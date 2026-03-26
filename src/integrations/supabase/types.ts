@@ -559,6 +559,16 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_company_by_slug: {
+        Args: { _slug: string }
+        Returns: {
+          id: string
+          logo_url: string
+          name: string
+          phone: string
+          slug: string
+        }[]
+      }
       get_user_company_id: { Args: { _user_id: string }; Returns: string }
       has_company_role: {
         Args: {
