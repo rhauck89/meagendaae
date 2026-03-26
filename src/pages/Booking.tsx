@@ -2,17 +2,18 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Calendar } from '@/components/ui/calendar';
 import { Scissors, Clock, DollarSign, ChevronRight, ChevronLeft, CheckCircle2 } from 'lucide-react';
-import { format, addMinutes, parseISO, isBefore, isAfter, setHours, setMinutes } from 'date-fns';
+import { format, addMinutes } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { calculateAvailableSlots, type BusinessHours, type BusinessException, type ExistingAppointment } from '@/lib/availability-engine';
 
 type Step = 'services' | 'professional' | 'datetime' | 'client' | 'confirm';
 
@@ -21,9 +22,8 @@ const Booking = () => {
   const [company, setCompany] = useState<any>(null);
   const [services, setServices] = useState<any[]>([]);
   const [professionals, setProfessionals] = useState<any[]>([]);
-  const [businessHours, setBusinessHours] = useState<any[]>([]);
-  const [exceptions, setExceptions] = useState<any[]>([]);
-  const [appointments, setAppointments] = useState<any[]>([]);
+  const [businessHours, setBusinessHours] = useState<BusinessHours[]>([]);
+  const [exceptions, setExceptions] = useState<BusinessException[]>([]);
 
   const [step, setStep] = useState<Step>('services');
   const [selectedServices, setSelectedServices] = useState<string[]>([]);
@@ -33,13 +33,16 @@ const Booking = () => {
   const [availableSlots, setAvailableSlots] = useState<string[]>([]);
   const [clientForm, setClientForm] = useState({ full_name: '', email: '', whatsapp: '', birth_date: '' });
   const [loading, setLoading] = useState(false);
+  const [slotsLoading, setSlotsLoading] = useState(false);
 
   useEffect(() => {
     if (slug) fetchCompany();
   }, [slug]);
 
   const fetchCompany = async () => {
-    const { data: comp } = await supabase.from('companies').select('*').eq('slug', slug!).single();
+    // Use RPC to avoid exposing Stripe fields to unauthenticated users
+    const { data: compArr } = await supabase.rpc('get_company_by_slug', { _slug: slug! });
+    const comp = compArr?.[0];
     if (!comp) return;
     setCompany(comp);
 
@@ -50,8 +53,8 @@ const Booking = () => {
     ]);
 
     if (servicesRes.data) setServices(servicesRes.data);
-    if (hoursRes.data) setBusinessHours(hoursRes.data);
-    if (exceptionsRes.data) setExceptions(exceptionsRes.data);
+    if (hoursRes.data) setBusinessHours(hoursRes.data as BusinessHours[]);
+    if (exceptionsRes.data) setExceptions(exceptionsRes.data as BusinessException[]);
   };
 
   const fetchProfessionals = async () => {
@@ -79,13 +82,9 @@ const Booking = () => {
 
   const calculateSlots = async (date: Date) => {
     if (!company || !selectedProfessional) return;
-    const dayOfWeek = date.getDay();
-    const hours = businessHours.find((h) => h.day_of_week === dayOfWeek);
-    if (!hours || hours.is_closed) { setAvailableSlots([]); return; }
+    setSlotsLoading(true);
 
     const dateStr = format(date, 'yyyy-MM-dd');
-    const exception = exceptions.find((e) => e.exception_date === dateStr);
-    if (exception?.is_closed) { setAvailableSlots([]); return; }
 
     // Fetch existing appointments for this professional on this date
     const { data: existingAppts } = await supabase
@@ -97,47 +96,17 @@ const Booking = () => {
       .gte('start_time', `${dateStr}T00:00:00`)
       .lte('start_time', `${dateStr}T23:59:59`);
 
-    const parseTime = (t: string) => {
-      const [h, m] = t.split(':').map(Number);
-      const d = new Date(date);
-      d.setHours(h, m, 0, 0);
-      return d;
-    };
-
-    const openTime = parseTime(hours.open_time);
-    const closeTime = parseTime(hours.close_time);
-    const lunchStart = hours.lunch_start ? parseTime(hours.lunch_start) : null;
-    const lunchEnd = hours.lunch_end ? parseTime(hours.lunch_end) : null;
-
-    const slots: string[] = [];
-    let current = new Date(openTime);
-
-    while (addMinutes(current, totalDuration) <= closeTime) {
-      const slotEnd = addMinutes(current, totalDuration);
-
-      // Check lunch overlap
-      if (lunchStart && lunchEnd) {
-        if (current < lunchEnd && slotEnd > lunchStart) {
-          current = new Date(lunchEnd);
-          continue;
-        }
-      }
-
-      // Check conflicts with existing appointments
-      const hasConflict = existingAppts?.some((apt) => {
-        const aptStart = parseISO(apt.start_time);
-        const aptEnd = parseISO(apt.end_time);
-        return current < aptEnd && slotEnd > aptStart;
-      });
-
-      if (!hasConflict) {
-        slots.push(format(current, 'HH:mm'));
-      }
-
-      current = addMinutes(current, 15); // 15 min intervals
-    }
+    const slots = calculateAvailableSlots({
+      date,
+      totalDuration,
+      businessHours,
+      exceptions,
+      existingAppointments: (existingAppts || []) as ExistingAppointment[],
+      slotInterval: 15,
+    });
 
     setAvailableSlots(slots);
+    setSlotsLoading(false);
   };
 
   useEffect(() => {
@@ -148,13 +117,11 @@ const Booking = () => {
     if (!company || !selectedDate || !selectedTime || !selectedProfessional) return;
     setLoading(true);
     try {
-      // Create or find client
       let userId: string;
       const { data: existingSession } = await supabase.auth.getSession();
 
       if (existingSession?.session?.user) {
         userId = existingSession.session.user.id;
-        // Update profile info
         await supabase
           .from('profiles')
           .update({
@@ -172,7 +139,6 @@ const Booking = () => {
         if (error) throw error;
         userId = authData.user!.id;
 
-        // Update profile
         await supabase
           .from('profiles')
           .update({
@@ -182,7 +148,6 @@ const Booking = () => {
           })
           .eq('user_id', userId);
 
-        // Add client role
         await supabase.from('user_roles').insert({
           user_id: userId,
           company_id: company.id,
@@ -190,7 +155,6 @@ const Booking = () => {
         });
       }
 
-      // Get profile id
       const { data: profile } = await supabase.from('profiles').select('id').eq('user_id', userId).single();
       if (!profile) throw new Error('Profile not found');
 
@@ -215,7 +179,6 @@ const Booking = () => {
 
       if (aptError) throw aptError;
 
-      // Add appointment services
       const aptServices = selectedServices.map((sid) => {
         const svc = services.find((s) => s.id === sid)!;
         return {
@@ -363,8 +326,17 @@ const Booking = () => {
             </Card>
             {selectedDate && (
               <div>
-                <p className="text-sm font-medium mb-2">Horários disponíveis</p>
-                {availableSlots.length === 0 ? (
+                <p className="text-sm font-medium mb-2">
+                  Horários disponíveis
+                  {totalDuration > 0 && (
+                    <span className="text-muted-foreground font-normal ml-2">
+                      (bloco de {totalDuration} min necessário)
+                    </span>
+                  )}
+                </p>
+                {slotsLoading ? (
+                  <p className="text-sm text-muted-foreground">Calculando disponibilidade...</p>
+                ) : availableSlots.length === 0 ? (
                   <p className="text-sm text-muted-foreground">Nenhum horário disponível neste dia</p>
                 ) : (
                   <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
