@@ -1,0 +1,477 @@
+import { useEffect, useState } from 'react';
+import { useParams } from 'react-router-dom';
+import { supabase } from '@/integrations/supabase/client';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Calendar } from '@/components/ui/calendar';
+import { Scissors, Clock, DollarSign, ChevronRight, ChevronLeft, CheckCircle2 } from 'lucide-react';
+import { format, addMinutes, parseISO, isBefore, isAfter, setHours, setMinutes } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
+import { toast } from 'sonner';
+import { cn } from '@/lib/utils';
+
+type Step = 'services' | 'professional' | 'datetime' | 'client' | 'confirm';
+
+const Booking = () => {
+  const { slug } = useParams<{ slug: string }>();
+  const [company, setCompany] = useState<any>(null);
+  const [services, setServices] = useState<any[]>([]);
+  const [professionals, setProfessionals] = useState<any[]>([]);
+  const [businessHours, setBusinessHours] = useState<any[]>([]);
+  const [exceptions, setExceptions] = useState<any[]>([]);
+  const [appointments, setAppointments] = useState<any[]>([]);
+
+  const [step, setStep] = useState<Step>('services');
+  const [selectedServices, setSelectedServices] = useState<string[]>([]);
+  const [selectedProfessional, setSelectedProfessional] = useState<string | null>(null);
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
+  const [selectedTime, setSelectedTime] = useState<string | null>(null);
+  const [availableSlots, setAvailableSlots] = useState<string[]>([]);
+  const [clientForm, setClientForm] = useState({ full_name: '', email: '', whatsapp: '', birth_date: '' });
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (slug) fetchCompany();
+  }, [slug]);
+
+  const fetchCompany = async () => {
+    const { data: comp } = await supabase.from('companies').select('*').eq('slug', slug!).single();
+    if (!comp) return;
+    setCompany(comp);
+
+    const [servicesRes, hoursRes, exceptionsRes] = await Promise.all([
+      supabase.from('services').select('*').eq('company_id', comp.id).eq('active', true).order('name'),
+      supabase.from('business_hours').select('*').eq('company_id', comp.id),
+      supabase.from('business_exceptions').select('*').eq('company_id', comp.id),
+    ]);
+
+    if (servicesRes.data) setServices(servicesRes.data);
+    if (hoursRes.data) setBusinessHours(hoursRes.data);
+    if (exceptionsRes.data) setExceptions(exceptionsRes.data);
+  };
+
+  const fetchProfessionals = async () => {
+    if (!company) return;
+    const { data } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('company_id', company.id);
+    if (data) setProfessionals(data);
+  };
+
+  const totalDuration = services
+    .filter((s) => selectedServices.includes(s.id))
+    .reduce((sum, s) => sum + s.duration_minutes, 0);
+
+  const totalPrice = services
+    .filter((s) => selectedServices.includes(s.id))
+    .reduce((sum, s) => sum + Number(s.price), 0);
+
+  const toggleService = (id: string) => {
+    setSelectedServices((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+    );
+  };
+
+  const calculateSlots = async (date: Date) => {
+    if (!company || !selectedProfessional) return;
+    const dayOfWeek = date.getDay();
+    const hours = businessHours.find((h) => h.day_of_week === dayOfWeek);
+    if (!hours || hours.is_closed) { setAvailableSlots([]); return; }
+
+    const dateStr = format(date, 'yyyy-MM-dd');
+    const exception = exceptions.find((e) => e.exception_date === dateStr);
+    if (exception?.is_closed) { setAvailableSlots([]); return; }
+
+    // Fetch existing appointments for this professional on this date
+    const { data: existingAppts } = await supabase
+      .from('appointments')
+      .select('start_time, end_time')
+      .eq('company_id', company.id)
+      .eq('professional_id', selectedProfessional)
+      .neq('status', 'cancelled')
+      .gte('start_time', `${dateStr}T00:00:00`)
+      .lte('start_time', `${dateStr}T23:59:59`);
+
+    const parseTime = (t: string) => {
+      const [h, m] = t.split(':').map(Number);
+      const d = new Date(date);
+      d.setHours(h, m, 0, 0);
+      return d;
+    };
+
+    const openTime = parseTime(hours.open_time);
+    const closeTime = parseTime(hours.close_time);
+    const lunchStart = hours.lunch_start ? parseTime(hours.lunch_start) : null;
+    const lunchEnd = hours.lunch_end ? parseTime(hours.lunch_end) : null;
+
+    const slots: string[] = [];
+    let current = new Date(openTime);
+
+    while (addMinutes(current, totalDuration) <= closeTime) {
+      const slotEnd = addMinutes(current, totalDuration);
+
+      // Check lunch overlap
+      if (lunchStart && lunchEnd) {
+        if (current < lunchEnd && slotEnd > lunchStart) {
+          current = new Date(lunchEnd);
+          continue;
+        }
+      }
+
+      // Check conflicts with existing appointments
+      const hasConflict = existingAppts?.some((apt) => {
+        const aptStart = parseISO(apt.start_time);
+        const aptEnd = parseISO(apt.end_time);
+        return current < aptEnd && slotEnd > aptStart;
+      });
+
+      if (!hasConflict) {
+        slots.push(format(current, 'HH:mm'));
+      }
+
+      current = addMinutes(current, 15); // 15 min intervals
+    }
+
+    setAvailableSlots(slots);
+  };
+
+  useEffect(() => {
+    if (selectedDate && selectedProfessional) calculateSlots(selectedDate);
+  }, [selectedDate, selectedProfessional]);
+
+  const handleBook = async () => {
+    if (!company || !selectedDate || !selectedTime || !selectedProfessional) return;
+    setLoading(true);
+    try {
+      // Create or find client
+      let userId: string;
+      const { data: existingSession } = await supabase.auth.getSession();
+
+      if (existingSession?.session?.user) {
+        userId = existingSession.session.user.id;
+        // Update profile info
+        await supabase
+          .from('profiles')
+          .update({
+            full_name: clientForm.full_name || undefined,
+            whatsapp: clientForm.whatsapp || undefined,
+            birth_date: clientForm.birth_date || undefined,
+          })
+          .eq('user_id', userId);
+      } else {
+        const { data: authData, error } = await supabase.auth.signUp({
+          email: clientForm.email,
+          password: Math.random().toString(36).slice(-8) + 'A1!',
+          options: { data: { full_name: clientForm.full_name } },
+        });
+        if (error) throw error;
+        userId = authData.user!.id;
+
+        // Update profile
+        await supabase
+          .from('profiles')
+          .update({
+            company_id: company.id,
+            whatsapp: clientForm.whatsapp,
+            birth_date: clientForm.birth_date || null,
+          })
+          .eq('user_id', userId);
+
+        // Add client role
+        await supabase.from('user_roles').insert({
+          user_id: userId,
+          company_id: company.id,
+          role: 'client' as const,
+        });
+      }
+
+      // Get profile id
+      const { data: profile } = await supabase.from('profiles').select('id').eq('user_id', userId).single();
+      if (!profile) throw new Error('Profile not found');
+
+      const [h, m] = selectedTime.split(':').map(Number);
+      const startTime = new Date(selectedDate);
+      startTime.setHours(h, m, 0, 0);
+      const endTime = addMinutes(startTime, totalDuration);
+
+      const { data: appointment, error: aptError } = await supabase
+        .from('appointments')
+        .insert({
+          company_id: company.id,
+          client_id: profile.id,
+          professional_id: selectedProfessional,
+          start_time: startTime.toISOString(),
+          end_time: endTime.toISOString(),
+          total_price: totalPrice,
+          status: 'pending',
+        })
+        .select()
+        .single();
+
+      if (aptError) throw aptError;
+
+      // Add appointment services
+      const aptServices = selectedServices.map((sid) => {
+        const svc = services.find((s) => s.id === sid)!;
+        return {
+          appointment_id: appointment.id,
+          service_id: sid,
+          price: Number(svc.price),
+          duration_minutes: svc.duration_minutes,
+        };
+      });
+      await supabase.from('appointment_services').insert(aptServices);
+
+      toast.success('Agendamento realizado com sucesso!');
+      setStep('services');
+      setSelectedServices([]);
+      setSelectedProfessional(null);
+      setSelectedDate(undefined);
+      setSelectedTime(null);
+    } catch (err: any) {
+      toast.error(err.message || 'Erro ao agendar');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (!company) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <p className="text-muted-foreground">Carregando...</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-background">
+      <header className="border-b bg-card">
+        <div className="max-w-2xl mx-auto px-4 py-4 flex items-center gap-3">
+          <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center">
+            <Scissors className="h-5 w-5 text-primary-foreground" />
+          </div>
+          <div>
+            <h1 className="font-display font-bold text-lg">{company.name}</h1>
+            <p className="text-xs text-muted-foreground">Agendamento online</p>
+          </div>
+        </div>
+      </header>
+
+      <div className="max-w-2xl mx-auto px-4 py-6 space-y-6">
+        {/* Progress */}
+        <div className="flex gap-1">
+          {(['services', 'professional', 'datetime', 'client', 'confirm'] as Step[]).map((s, i) => (
+            <div key={s} className={cn('h-1 flex-1 rounded-full', step === s || ['services', 'professional', 'datetime', 'client', 'confirm'].indexOf(step) > i ? 'bg-primary' : 'bg-muted')} />
+          ))}
+        </div>
+
+        {/* Step: Services */}
+        {step === 'services' && (
+          <div className="space-y-4">
+            <h2 className="text-xl font-display font-bold">Escolha os serviços</h2>
+            <div className="space-y-2">
+              {services.map((svc) => (
+                <div
+                  key={svc.id}
+                  onClick={() => toggleService(svc.id)}
+                  className={cn(
+                    'p-4 rounded-xl border cursor-pointer transition-all',
+                    selectedServices.includes(svc.id) ? 'border-primary bg-primary/5 shadow-sm' : 'hover:border-primary/30'
+                  )}
+                >
+                  <div className="flex items-center gap-3">
+                    <Checkbox checked={selectedServices.includes(svc.id)} />
+                    <div className="flex-1">
+                      <p className="font-semibold">{svc.name}</p>
+                      <div className="flex gap-3 text-sm text-muted-foreground">
+                        <span className="flex items-center gap-1"><Clock className="h-3 w-3" /> {svc.duration_minutes} min</span>
+                        <span className="flex items-center gap-1"><DollarSign className="h-3 w-3" /> R$ {Number(svc.price).toFixed(2)}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+            {selectedServices.length > 0 && (
+              <div className="flex items-center justify-between p-3 rounded-lg bg-muted">
+                <div>
+                  <span className="text-sm">{selectedServices.length} serviço(s)</span>
+                  <span className="mx-2 text-muted-foreground">•</span>
+                  <span className="text-sm">{totalDuration} min</span>
+                  <span className="mx-2 text-muted-foreground">•</span>
+                  <span className="font-semibold">R$ {totalPrice.toFixed(2)}</span>
+                </div>
+                <Button onClick={() => { fetchProfessionals(); setStep('professional'); }}>
+                  Próximo <ChevronRight className="h-4 w-4 ml-1" />
+                </Button>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Step: Professional */}
+        {step === 'professional' && (
+          <div className="space-y-4">
+            <Button variant="ghost" size="sm" onClick={() => setStep('services')}>
+              <ChevronLeft className="h-4 w-4 mr-1" /> Voltar
+            </Button>
+            <h2 className="text-xl font-display font-bold">Escolha o profissional</h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {professionals.map((p) => (
+                <div
+                  key={p.id}
+                  onClick={() => { setSelectedProfessional(p.id); setStep('datetime'); }}
+                  className={cn(
+                    'p-4 rounded-xl border cursor-pointer transition-all hover:border-primary/30',
+                    selectedProfessional === p.id && 'border-primary bg-primary/5'
+                  )}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center font-bold text-primary">
+                      {p.full_name?.charAt(0)?.toUpperCase()}
+                    </div>
+                    <p className="font-semibold">{p.full_name}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Step: Date/Time */}
+        {step === 'datetime' && (
+          <div className="space-y-4">
+            <Button variant="ghost" size="sm" onClick={() => setStep('professional')}>
+              <ChevronLeft className="h-4 w-4 mr-1" /> Voltar
+            </Button>
+            <h2 className="text-xl font-display font-bold">Escolha data e horário</h2>
+            <Card>
+              <CardContent className="p-4">
+                <Calendar
+                  mode="single"
+                  selected={selectedDate}
+                  onSelect={(date) => { setSelectedDate(date); setSelectedTime(null); }}
+                  locale={ptBR}
+                  disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
+                />
+              </CardContent>
+            </Card>
+            {selectedDate && (
+              <div>
+                <p className="text-sm font-medium mb-2">Horários disponíveis</p>
+                {availableSlots.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">Nenhum horário disponível neste dia</p>
+                ) : (
+                  <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
+                    {availableSlots.map((slot) => (
+                      <Button
+                        key={slot}
+                        variant={selectedTime === slot ? 'default' : 'outline'}
+                        size="sm"
+                        onClick={() => setSelectedTime(slot)}
+                      >
+                        {slot}
+                      </Button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+            {selectedTime && (
+              <Button onClick={() => setStep('client')} className="w-full">
+                Próximo <ChevronRight className="h-4 w-4 ml-1" />
+              </Button>
+            )}
+          </div>
+        )}
+
+        {/* Step: Client info */}
+        {step === 'client' && (
+          <div className="space-y-4">
+            <Button variant="ghost" size="sm" onClick={() => setStep('datetime')}>
+              <ChevronLeft className="h-4 w-4 mr-1" /> Voltar
+            </Button>
+            <h2 className="text-xl font-display font-bold">Seus dados</h2>
+            <div className="space-y-3">
+              <div className="space-y-1">
+                <Label>Nome</Label>
+                <Input value={clientForm.full_name} onChange={(e) => setClientForm({ ...clientForm, full_name: e.target.value })} required />
+              </div>
+              <div className="space-y-1">
+                <Label>Email</Label>
+                <Input type="email" value={clientForm.email} onChange={(e) => setClientForm({ ...clientForm, email: e.target.value })} required />
+              </div>
+              <div className="space-y-1">
+                <Label>WhatsApp</Label>
+                <Input value={clientForm.whatsapp} onChange={(e) => setClientForm({ ...clientForm, whatsapp: e.target.value })} placeholder="(11) 99999-9999" />
+              </div>
+              <div className="space-y-1">
+                <Label>Data de nascimento</Label>
+                <Input type="date" value={clientForm.birth_date} onChange={(e) => setClientForm({ ...clientForm, birth_date: e.target.value })} />
+              </div>
+            </div>
+            <Button onClick={() => setStep('confirm')} className="w-full" disabled={!clientForm.full_name || !clientForm.email}>
+              Revisar Agendamento <ChevronRight className="h-4 w-4 ml-1" />
+            </Button>
+          </div>
+        )}
+
+        {/* Step: Confirm */}
+        {step === 'confirm' && (
+          <div className="space-y-4">
+            <Button variant="ghost" size="sm" onClick={() => setStep('client')}>
+              <ChevronLeft className="h-4 w-4 mr-1" /> Voltar
+            </Button>
+            <h2 className="text-xl font-display font-bold">Confirmar Agendamento</h2>
+            <Card>
+              <CardContent className="p-5 space-y-4">
+                <div>
+                  <p className="text-sm text-muted-foreground">Serviços</p>
+                  <div className="flex flex-wrap gap-2 mt-1">
+                    {services.filter((s) => selectedServices.includes(s.id)).map((s) => (
+                      <Badge key={s.id} variant="secondary">{s.name}</Badge>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Profissional</p>
+                  <p className="font-semibold">{professionals.find((p) => p.id === selectedProfessional)?.full_name}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Data e horário</p>
+                  <p className="font-semibold">
+                    {selectedDate && format(selectedDate, "dd 'de' MMMM, yyyy", { locale: ptBR })} às {selectedTime}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Duração total</p>
+                  <p className="font-semibold">{totalDuration} minutos</p>
+                </div>
+                <div className="pt-3 border-t">
+                  <div className="flex justify-between text-lg font-display font-bold">
+                    <span>Total</span>
+                    <span>R$ {totalPrice.toFixed(2)}</span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            <Button onClick={handleBook} className="w-full" disabled={loading} size="lg">
+              {loading ? 'Agendando...' : (
+                <>
+                  <CheckCircle2 className="h-5 w-5 mr-2" /> Confirmar Agendamento
+                </>
+              )}
+            </Button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default Booking;
