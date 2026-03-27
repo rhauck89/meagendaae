@@ -33,6 +33,7 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
   const [businessType, setBusinessType] = useState<BusinessType>('barbershop');
   const [bufferMinutes, setBufferMinutes] = useState(0);
   const [professionalHours, setProfessionalHours] = useState<BusinessHours[]>([]);
+  const [companySettings, setCompanySettings] = useState<any>(null);
 
   const [step, setStep] = useState<Step>('services');
   const [selectedServices, setSelectedServices] = useState<string[]>([]);
@@ -94,17 +95,25 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
     const resolvedType: BusinessType = routeBusinessType || comp.business_type || 'barbershop';
     setBusinessType(resolvedType);
 
-    const [servicesRes, hoursRes, exceptionsRes, companyRes] = await Promise.all([
+    const [servicesRes, hoursRes, exceptionsRes, companyRes, settingsRes] = await Promise.all([
       supabase.from('public_services' as any).select('*').eq('company_id', comp.id).order('name'),
       supabase.from('business_hours').select('*').eq('company_id', comp.id),
       supabase.from('business_exceptions').select('*').eq('company_id', comp.id),
       supabase.from('companies').select('buffer_minutes').eq('id', comp.id).single(),
+      supabase.from('company_settings' as any).select('*').eq('company_id', comp.id).single(),
     ]);
 
     if (servicesRes.data) setServices(servicesRes.data);
     if (hoursRes.data) setBusinessHours(hoursRes.data as BusinessHours[]);
     if (exceptionsRes.data) setExceptions(exceptionsRes.data as BusinessException[]);
     if (companyRes.data) setBufferMinutes((companyRes.data as any).buffer_minutes || 0);
+    if (settingsRes.data) {
+      setCompanySettings(settingsRes.data);
+      // Use settings buffer if available
+      if ((settingsRes.data as any).booking_buffer_minutes > 0) {
+        setBufferMinutes((settingsRes.data as any).booking_buffer_minutes);
+      }
+    }
 
     // If professional slug provided, auto-select professional
     if (professionalSlug) {
@@ -668,13 +677,24 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
 
   const skipProfessionalStep = !!professionalSlug;
 
+  // Dynamic branding from company_settings
+  const brandStyle: React.CSSProperties = companySettings?.primary_color
+    ? {
+        '--brand-primary': companySettings.primary_color,
+        '--brand-secondary': companySettings.secondary_color || '#F59E0B',
+      } as React.CSSProperties
+    : {};
+
+  // Use settings logo_url if company doesn't have one
+  const displayLogoUrl = company.logo_url || companySettings?.logo_url;
+
   return (
-    <div className={cn('min-h-screen', bgPage, textPage)}>
+    <div className={cn('min-h-screen', bgPage, textPage)} style={brandStyle}>
       {/* Header */}
       <header className={cn('border-b', bgHeader)}>
         <div className="max-w-2xl mx-auto px-4 py-4 flex items-center gap-3">
-          {company.logo_url ? (
-            <img src={company.logo_url} alt={company.name} className="w-10 h-10 rounded-xl object-cover" />
+          {displayLogoUrl ? (
+            <img src={displayLogoUrl} alt={company.name} className="w-10 h-10 rounded-xl object-cover" />
           ) : (
             <div className={cn('w-10 h-10 rounded-xl flex items-center justify-center', iconBg)}>
               <Icon className="h-5 w-5 text-white" />
