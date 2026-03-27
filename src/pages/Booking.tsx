@@ -765,6 +765,52 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
               <ChevronLeft className="h-4 w-4 mr-1" /> Voltar
             </Button>
             <h2 className="text-xl font-bold">Escolha data e horário</h2>
+
+            {/* Next Available Slots */}
+            {nextSlots.length > 0 && (
+              <div className={cn('rounded-xl border p-4 space-y-3', bgCard)}>
+                <div className="flex items-center gap-2">
+                  <Zap className={cn('h-4 w-4', accentText)} />
+                  <p className="font-semibold text-sm">Próximos horários disponíveis</p>
+                </div>
+                {nextSlots.map(({ date, slots }) => {
+                  const dayLabel = isToday(date)
+                    ? 'Hoje'
+                    : isTomorrow(date)
+                    ? 'Amanhã'
+                    : format(date, "EEEE, dd/MM", { locale: ptBR });
+                  return (
+                    <div key={date.toISOString()}>
+                      <p className={cn('text-xs font-medium mb-1.5 capitalize', textMuted)}>{dayLabel}</p>
+                      <div className="flex flex-wrap gap-2">
+                        {slots.map((slot) => (
+                          <Button
+                            key={`${date.toISOString()}-${slot}`}
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleQuickSlot(date, slot)}
+                            className={cn(
+                              'transition-all',
+                              isDark
+                                ? 'border-amber-500/40 hover:bg-amber-500 hover:text-black'
+                                : 'border-rose-400/40 hover:bg-rose-400 hover:text-white'
+                            )}
+                          >
+                            {slot}
+                          </Button>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+            {nextSlotsLoading && (
+              <p className={cn('text-sm', textMuted)}>Buscando próximos horários...</p>
+            )}
+
+            <p className={cn('text-xs text-center', textMuted)}>ou escolha uma data no calendário</p>
+
             <div className={cn('rounded-xl border p-4', bgCard)}>
               <Calendar
                 mode="single"
