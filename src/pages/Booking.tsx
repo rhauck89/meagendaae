@@ -656,7 +656,11 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
                   <p className={cn('text-sm', textMuted)}>Calculando disponibilidade...</p>
                 ) : availableSlots.length === 0 ? (
                   <div className="space-y-3">
-                    <p className={cn('text-sm', textMuted)}>Nenhum horário disponível neste dia</p>
+                    <p className={cn('text-sm', textMuted)}>
+                      {businessHours.length === 0
+                        ? 'Horários de funcionamento não configurados'
+                        : 'Nenhum horário disponível neste dia'}
+                    </p>
                     <div className={cn('p-4 rounded-xl border border-dashed', isDark ? 'border-amber-500/50 bg-amber-500/5' : 'border-rose-400/50 bg-rose-400/5')}>
                       <div className="flex items-start gap-3">
                         <Bell className={cn('h-5 w-5 mt-0.5', accentText)} />
