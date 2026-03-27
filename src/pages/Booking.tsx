@@ -13,6 +13,7 @@ import { format, addMinutes } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { formatWhatsApp, displayWhatsApp, isValidWhatsApp } from '@/lib/whatsapp';
 import { calculateAvailableSlots, type BusinessHours, type BusinessException, type ExistingAppointment } from '@/lib/availability-engine';
 
 type Step = 'services' | 'professional' | 'datetime' | 'client' | 'confirm';
