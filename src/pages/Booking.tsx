@@ -913,12 +913,11 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
                 )}
               </div>
               <div className="space-y-1">
-                <Label>Email</Label>
+                <Label>Email (opcional)</Label>
                 <Input
                   type="email"
                   value={clientForm.email}
                   onChange={(e) => setClientForm({ ...clientForm, email: e.target.value })}
-                  required
                   className={cn(isDark ? 'bg-[#16213e] border-[#2a2a4a] text-white' : 'bg-white border-[#e8ddd4]')}
                 />
               </div>
