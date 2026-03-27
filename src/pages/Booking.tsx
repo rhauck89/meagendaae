@@ -462,11 +462,12 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
     if (!company || !selectedDate || !selectedTime || !selectedProfessional) return;
     setLoading(true);
     try {
-      let userId: string;
+      let clientId: string | null = null;
       const { data: existingSession } = await supabase.auth.getSession();
 
       if (existingSession?.session?.user) {
-        userId = existingSession.session.user.id;
+        // Authenticated user: update profile and get profile id
+        const userId = existingSession.session.user.id;
         await supabase
           .from('profiles')
            .update({
@@ -477,52 +478,35 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
              opt_in_date: optInWhatsapp ? new Date().toISOString() : undefined,
           } as any)
           .eq('user_id', userId);
-      } else {
-        const { data: authData, error } = await supabase.auth.signUp({
-          email: clientForm.email,
-          password: Math.random().toString(36).slice(-8) + 'A1!',
-          options: { data: { full_name: clientForm.full_name } },
-        });
-        if (error) throw error;
-        userId = authData.user!.id;
 
-        await supabase
-          .from('profiles')
-           .update({
-             company_id: company.id,
-             whatsapp: formatWhatsApp(clientForm.whatsapp),
-             birth_date: clientForm.birth_date || null,
-             opt_in_whatsapp: optInWhatsapp,
-             opt_in_date: optInWhatsapp ? new Date().toISOString() : null,
-          } as any)
-          .eq('user_id', userId);
-
-        await supabase.from('user_roles').insert({
-          user_id: userId,
-          company_id: company.id,
-          role: 'client' as const,
-        });
+        const { data: profile } = await supabase.from('profiles').select('id').eq('user_id', userId).single();
+        clientId = profile?.id || null;
       }
-
-      const { data: profile } = await supabase.from('profiles').select('id').eq('user_id', userId).single();
-      if (!profile) throw new Error('Profile not found');
+      // If not authenticated, clientId stays null — guest booking
 
       const [h, m] = selectedTime.split(':').map(Number);
       const startTime = new Date(selectedDate);
       startTime.setHours(h, m, 0, 0);
       const endTime = addMinutes(startTime, totalDuration);
 
+      const appointmentData: any = {
+        company_id: company.id,
+        professional_id: selectedProfessional,
+        start_time: startTime.toISOString(),
+        end_time: endTime.toISOString(),
+        total_price: totalPrice,
+        status: 'pending',
+        client_name: clientForm.full_name,
+        client_whatsapp: clientForm.whatsapp ? formatWhatsApp(clientForm.whatsapp) : null,
+      };
+
+      if (clientId) {
+        appointmentData.client_id = clientId;
+      }
+
       const { data: appointment, error: aptError } = await supabase
         .from('appointments')
-        .insert({
-          company_id: company.id,
-          client_id: profile.id,
-          professional_id: selectedProfessional,
-          start_time: startTime.toISOString(),
-          end_time: endTime.toISOString(),
-          total_price: totalPrice,
-          status: 'pending',
-        })
+        .insert(appointmentData)
         .select()
         .single();
 
