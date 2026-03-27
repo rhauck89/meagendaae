@@ -214,9 +214,9 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
 
       if (spLinks && spLinks.length > 0) {
         const linkedProfIds = new Set(spLinks.map((sp: any) => sp.professional_id));
-        const filtered = collabs.filter((c: any) => linkedProfIds.has(c.profile_id));
+        const filtered = collabs.filter((p: any) => linkedProfIds.has(p.id));
         if (filtered.length > 0) {
-          setProfessionals(filtered.map((c: any) => ({ ...c.profile, collaborator_id: c.id })));
+          setProfessionals(filtered.map((p: any) => ({ id: p.id, full_name: p.name, avatar_url: p.avatar_url })));
           console.log('[Booking] Professionals filtered by service linkage', { total: collabs.length, filtered: filtered.length });
           return;
         }
@@ -225,11 +225,11 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
       // Fallback: no service_professionals rows — auto-link all services to all professionals
       console.warn('[Booking] No service_professionals found, auto-linking all services to all professionals');
       const autoLinks: any[] = [];
-      for (const collab of collabs) {
+      for (const prof of collabs) {
         for (const svcId of selectedServices) {
           autoLinks.push({
             service_id: svcId,
-            professional_id: collab.profile_id,
+            professional_id: prof.id,
             company_id: company.id,
           });
         }
@@ -239,8 +239,8 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
       }
     }
 
-    // Fallback: show all active collaborators
-    setProfessionals(collabs.map((c: any) => ({ ...c.profile, collaborator_id: c.id })));
+    // Fallback: show all active professionals
+    setProfessionals(collabs.map((p: any) => ({ id: p.id, full_name: p.name, avatar_url: p.avatar_url })));
     console.log('[Booking] Showing all active professionals', { count: collabs.length });
   };
 
