@@ -8,8 +8,8 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Calendar } from '@/components/ui/calendar';
-import { Scissors, Sparkles, Clock, DollarSign, ChevronRight, ChevronLeft, CheckCircle2, Bell } from 'lucide-react';
-import { format, addMinutes } from 'date-fns';
+import { Scissors, Sparkles, Clock, DollarSign, ChevronRight, ChevronLeft, CheckCircle2, Bell, Zap } from 'lucide-react';
+import { format, addMinutes, addDays, isToday, isTomorrow, startOfDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -45,6 +45,8 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
   const [loading, setLoading] = useState(false);
   const [slotsLoading, setSlotsLoading] = useState(false);
   const [waitlistLoading, setWaitlistLoading] = useState(false);
+  const [nextSlots, setNextSlots] = useState<{ date: Date; slots: string[] }[]>([]);
+  const [nextSlotsLoading, setNextSlotsLoading] = useState(false);
 
   const isDark = businessType === 'barbershop';
 
@@ -313,6 +315,85 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
       calculateSlots(selectedDate);
     }
   }, [selectedDate, selectedProfessional, professionalHours, businessHours, totalDuration]);
+
+  // Fetch next available slots across 7 days
+  const fetchNextAvailableSlots = async () => {
+    if (!company || !selectedProfessional || businessHours.length === 0 || totalDuration <= 0) {
+      setNextSlots([]);
+      return;
+    }
+
+    setNextSlotsLoading(true);
+    const results: { date: Date; slots: string[] }[] = [];
+    let totalSlotsFound = 0;
+    const MAX_SLOTS = 8;
+    const MAX_DAYS = 7;
+    const now = new Date();
+
+    for (let i = 0; i < MAX_DAYS && totalSlotsFound < MAX_SLOTS; i++) {
+      const day = addDays(startOfDay(new Date()), i);
+      const dateStr = format(day, 'yyyy-MM-dd');
+
+      const [apptsRes, blockedRes] = await Promise.all([
+        supabase
+          .from('appointments')
+          .select('start_time, end_time')
+          .eq('company_id', company.id)
+          .eq('professional_id', selectedProfessional)
+          .neq('status', 'cancelled')
+          .gte('start_time', `${dateStr}T00:00:00`)
+          .lte('start_time', `${dateStr}T23:59:59`),
+        supabase
+          .from('blocked_times' as any)
+          .select('block_date, start_time, end_time')
+          .eq('company_id', company.id)
+          .eq('professional_id', selectedProfessional)
+          .eq('block_date', dateStr),
+      ]);
+
+      let slots = calculateAvailableSlots({
+        date: day,
+        totalDuration,
+        businessHours,
+        exceptions,
+        existingAppointments: (apptsRes.data || []) as ExistingAppointment[],
+        slotInterval: 15,
+        bufferMinutes,
+        professionalHours: professionalHours.length > 0 ? professionalHours : undefined,
+        blockedTimes: ((blockedRes.data || []) as unknown as BlockedTime[]),
+        professionalId: selectedProfessional,
+      });
+
+      // Filter past times for today
+      if (isToday(day)) {
+        const currentTime = format(now, 'HH:mm');
+        slots = slots.filter(s => s > currentTime);
+      }
+
+      if (slots.length > 0) {
+        const remaining = MAX_SLOTS - totalSlotsFound;
+        const daySlots = slots.slice(0, remaining);
+        results.push({ date: day, slots: daySlots });
+        totalSlotsFound += daySlots.length;
+      }
+    }
+
+    setNextSlots(results);
+    setNextSlotsLoading(false);
+  };
+
+  // Trigger next-slots calculation when professional is selected and services are chosen
+  useEffect(() => {
+    if (selectedProfessional && businessHours.length > 0 && totalDuration > 0 && step !== 'client' && step !== 'confirm') {
+      fetchNextAvailableSlots();
+    }
+  }, [selectedProfessional, professionalHours, businessHours, totalDuration]);
+
+  const handleQuickSlot = (date: Date, time: string) => {
+    setSelectedDate(date);
+    setSelectedTime(time);
+    setStep('client');
+  };
 
   const handleJoinWaitlist = async () => {
     if (!company || !selectedDate || !selectedProfessional) return;
@@ -684,6 +765,52 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
               <ChevronLeft className="h-4 w-4 mr-1" /> Voltar
             </Button>
             <h2 className="text-xl font-bold">Escolha data e horário</h2>
+
+            {/* Next Available Slots */}
+            {nextSlots.length > 0 && (
+              <div className={cn('rounded-xl border p-4 space-y-3', bgCard)}>
+                <div className="flex items-center gap-2">
+                  <Zap className={cn('h-4 w-4', accentText)} />
+                  <p className="font-semibold text-sm">Próximos horários disponíveis</p>
+                </div>
+                {nextSlots.map(({ date, slots }) => {
+                  const dayLabel = isToday(date)
+                    ? 'Hoje'
+                    : isTomorrow(date)
+                    ? 'Amanhã'
+                    : format(date, "EEEE, dd/MM", { locale: ptBR });
+                  return (
+                    <div key={date.toISOString()}>
+                      <p className={cn('text-xs font-medium mb-1.5 capitalize', textMuted)}>{dayLabel}</p>
+                      <div className="flex flex-wrap gap-2">
+                        {slots.map((slot) => (
+                          <Button
+                            key={`${date.toISOString()}-${slot}`}
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleQuickSlot(date, slot)}
+                            className={cn(
+                              'transition-all',
+                              isDark
+                                ? 'border-amber-500/40 hover:bg-amber-500 hover:text-black'
+                                : 'border-rose-400/40 hover:bg-rose-400 hover:text-white'
+                            )}
+                          >
+                            {slot}
+                          </Button>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+            {nextSlotsLoading && (
+              <p className={cn('text-sm', textMuted)}>Buscando próximos horários...</p>
+            )}
+
+            <p className={cn('text-xs text-center', textMuted)}>ou escolha uma data no calendário</p>
+
             <div className={cn('rounded-xl border p-4', bgCard)}>
               <Calendar
                 mode="single"
