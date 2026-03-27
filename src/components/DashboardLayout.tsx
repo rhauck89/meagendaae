@@ -3,7 +3,6 @@ import { useAuth } from '@/contexts/AuthContext';
 import {
   Calendar,
   Scissors,
-  Clock,
   Users,
   BarChart3,
   Webhook,
@@ -15,6 +14,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
+import CompanySetup from './CompanySetup';
 
 const navItems = [
   { href: '/dashboard', icon: Calendar, label: 'Agenda' },
@@ -26,7 +26,7 @@ const navItems = [
 ];
 
 const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
-  const { profile, signOut } = useAuth();
+  const { profile, companyId, signOut, loading: authLoading } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -35,6 +35,18 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
     await signOut();
     navigate('/auth');
   };
+
+  // Show company setup if user has no company
+  if (!authLoading && !companyId) {
+    return (
+      <CompanySetup
+        onComplete={() => {
+          // Force full reload to refresh auth context with new company_id
+          window.location.reload();
+        }}
+      />
+    );
+  }
 
   return (
     <div className="min-h-screen flex bg-background">
