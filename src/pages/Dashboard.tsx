@@ -4,8 +4,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Calendar, ChevronLeft, ChevronRight, Clock, DollarSign, Users } from 'lucide-react';
-import { format, addDays, startOfWeek, endOfWeek, startOfMonth, endOfMonth, isSameDay, parseISO } from 'date-fns';
+import { Calendar, ChevronLeft, ChevronRight, Clock, DollarSign, Users, UserCheck, UserMinus, AlertTriangle } from 'lucide-react';
+import { format, addDays, startOfWeek, endOfWeek, startOfMonth, endOfMonth, isSameDay, parseISO, differenceInDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 
@@ -27,16 +27,26 @@ const statusLabels: Record<string, string> = {
   no_show: 'Não compareceu',
 };
 
+interface ReturnStats {
+  onTime: number;
+  approaching: number;
+  overdue: number;
+  approachingClients: any[];
+  overdueClients: any[];
+}
+
 const Dashboard = () => {
   const { companyId } = useAuth();
   const [viewMode, setViewMode] = useState<ViewMode>('day');
   const [currentDate, setCurrentDate] = useState(new Date());
   const [appointments, setAppointments] = useState<any[]>([]);
   const [stats, setStats] = useState({ total: 0, revenue: 0, clients: 0 });
+  const [returnStats, setReturnStats] = useState<ReturnStats>({ onTime: 0, approaching: 0, overdue: 0, approachingClients: [], overdueClients: [] });
 
   useEffect(() => {
     if (!companyId) return;
     fetchAppointments();
+    fetchReturnStats();
   }, [companyId, currentDate, viewMode]);
 
   const getDateRange = () => {
@@ -69,6 +79,47 @@ const Dashboard = () => {
         clients: new Set(todayAppts.map((a) => a.client_id)).size,
       });
     }
+  };
+
+  const fetchReturnStats = async () => {
+    if (!companyId) return;
+    const { data: clients } = await supabase
+      .from('profiles')
+      .select('id, full_name, whatsapp, average_return_days, last_visit_date, expected_return_date')
+      .eq('company_id', companyId)
+      .not('expected_return_date', 'is', null);
+
+    if (!clients) return;
+
+    const today = new Date();
+    let onTime = 0;
+    let approaching = 0;
+    let overdue = 0;
+    const approachingClients: any[] = [];
+    const overdueClients: any[] = [];
+
+    for (const c of clients) {
+      const expected = new Date(c.expected_return_date);
+      const daysUntil = differenceInDays(expected, today);
+
+      if (daysUntil < 0) {
+        overdue++;
+        overdueClients.push({ ...c, daysOverdue: Math.abs(daysUntil) });
+      } else if (daysUntil <= 5) {
+        approaching++;
+        approachingClients.push({ ...c, daysUntil });
+      } else {
+        onTime++;
+      }
+    }
+
+    setReturnStats({
+      onTime,
+      approaching,
+      overdue,
+      approachingClients: approachingClients.sort((a, b) => a.daysUntil - b.daysUntil),
+      overdueClients: overdueClients.sort((a, b) => b.daysOverdue - a.daysOverdue),
+    });
   };
 
   const navigate = (direction: number) => {
@@ -121,6 +172,74 @@ const Dashboard = () => {
           </CardContent>
         </Card>
       </div>
+
+      {/* Return Frequency Indicators */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-lg font-display">Frequência de Retorno</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+            <div className="flex items-center gap-3 p-3 rounded-xl bg-success/5 border border-success/20">
+              <UserCheck className="h-8 w-8 text-success" />
+              <div>
+                <p className="text-2xl font-display font-bold">{returnStats.onTime}</p>
+                <p className="text-sm text-muted-foreground">Em dia</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3 p-3 rounded-xl bg-warning/5 border border-warning/20">
+              <Clock className="h-8 w-8 text-warning" />
+              <div>
+                <p className="text-2xl font-display font-bold">{returnStats.approaching}</p>
+                <p className="text-sm text-muted-foreground">Próx. do retorno</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3 p-3 rounded-xl bg-destructive/5 border border-destructive/20">
+              <AlertTriangle className="h-8 w-8 text-destructive" />
+              <div>
+                <p className="text-2xl font-display font-bold">{returnStats.overdue}</p>
+                <p className="text-sm text-muted-foreground">Atrasados</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Overdue clients list */}
+          {returnStats.overdueClients.length > 0 && (
+            <div className="space-y-2">
+              <p className="text-sm font-semibold text-destructive">Clientes atrasados</p>
+              {returnStats.overdueClients.slice(0, 5).map((c) => (
+                <div key={c.id} className="flex items-center justify-between p-2 rounded-lg bg-destructive/5 text-sm">
+                  <div>
+                    <span className="font-medium">{c.full_name}</span>
+                    {c.whatsapp && <span className="text-muted-foreground ml-2">({c.whatsapp})</span>}
+                  </div>
+                  <Badge variant="destructive" className="text-xs">
+                    {c.daysOverdue} dias atrasado
+                  </Badge>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Approaching clients list */}
+          {returnStats.approachingClients.length > 0 && (
+            <div className="space-y-2 mt-3">
+              <p className="text-sm font-semibold text-warning">Próximos do retorno</p>
+              {returnStats.approachingClients.slice(0, 5).map((c) => (
+                <div key={c.id} className="flex items-center justify-between p-2 rounded-lg bg-warning/5 text-sm">
+                  <div>
+                    <span className="font-medium">{c.full_name}</span>
+                    {c.whatsapp && <span className="text-muted-foreground ml-2">({c.whatsapp})</span>}
+                  </div>
+                  <Badge variant="outline" className="text-xs border-warning text-warning">
+                    {c.daysUntil === 0 ? 'Hoje' : `em ${c.daysUntil} dias`}
+                  </Badge>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Calendar Controls */}
       <Card>
