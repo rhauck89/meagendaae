@@ -126,9 +126,35 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
       .eq('company_id', company.id)
       .eq('active', true);
 
-    if (collabs) {
-      setProfessionals(collabs.map((c: any) => ({ ...c.profile, collaborator_id: c.id })));
+    if (!collabs || collabs.length === 0) {
+      console.warn('[Booking] No active collaborators found for company', company.id);
+      setProfessionals([]);
+      return;
     }
+
+    // Filter professionals who are linked to at least one selected service
+    if (selectedServices.length > 0) {
+      const { data: spLinks } = await supabase
+        .from('service_professionals')
+        .select('professional_id, service_id')
+        .eq('company_id', company.id)
+        .in('service_id', selectedServices);
+
+      if (spLinks && spLinks.length > 0) {
+        const linkedProfIds = new Set(spLinks.map((sp: any) => sp.professional_id));
+        const filtered = collabs.filter((c: any) => linkedProfIds.has(c.profile_id));
+        // If service_professionals has entries, use filtered list; otherwise show all
+        if (filtered.length > 0) {
+          setProfessionals(filtered.map((c: any) => ({ ...c.profile, collaborator_id: c.id })));
+          console.log('[Booking] Professionals filtered by service linkage', { total: collabs.length, filtered: filtered.length });
+          return;
+        }
+      }
+    }
+
+    // Fallback: show all active collaborators
+    setProfessionals(collabs.map((c: any) => ({ ...c.profile, collaborator_id: c.id })));
+    console.log('[Booking] Showing all active professionals', { count: collabs.length });
   };
 
   const fetchProfessionalHours = async (profileId: string) => {
@@ -180,6 +206,19 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
         .eq('block_date', dateStr),
     ]);
 
+    console.log('[Booking] calculateSlots input', {
+      date: dateStr,
+      professional: selectedProfessional,
+      totalDuration,
+      businessHoursCount: businessHours.length,
+      professionalHoursCount: professionalHours.length,
+      businessHoursDays: businessHours.map(h => ({ day: h.day_of_week, open: h.open_time, close: h.close_time, closed: h.is_closed })),
+      professionalHoursDays: professionalHours.map(h => ({ day: h.day_of_week, open: h.open_time, close: h.close_time, closed: h.is_closed })),
+      existingAppts: existingApptsRes.data?.length ?? 0,
+      blockedTimes: blockedTimesRes.data?.length ?? 0,
+      bufferMinutes,
+    });
+
     const slots = calculateAvailableSlots({
       date,
       totalDuration,
@@ -192,13 +231,14 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
       blockedTimes: ((blockedTimesRes.data || []) as unknown as BlockedTime[]),
     });
 
+    console.log('[Booking] calculateSlots result', { slotsFound: slots.length, firstSlots: slots.slice(0, 5) });
     setAvailableSlots(slots);
     setSlotsLoading(false);
   };
 
   useEffect(() => {
     if (selectedDate && selectedProfessional) calculateSlots(selectedDate);
-  }, [selectedDate, selectedProfessional]);
+  }, [selectedDate, selectedProfessional, professionalHours]);
 
   const handleJoinWaitlist = async () => {
     if (!company || !selectedDate || !selectedProfessional) return;

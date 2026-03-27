@@ -57,13 +57,30 @@ export function calculateAvailableSlots(params: AvailabilityParams): string[] {
     blockedTimes = [],
   } = params;
 
-  if (totalDuration <= 0) return [];
+  const debugInfo = {
+    date: format(date, 'yyyy-MM-dd'),
+    totalDuration,
+    businessHoursCount: businessHours.length,
+    professionalHoursCount: professionalHours?.length ?? 0,
+    existingAppointmentsCount: existingAppointments.length,
+    blockedTimesCount: blockedTimes.length,
+    bufferMinutes,
+    slotInterval,
+  };
+
+  if (totalDuration <= 0) {
+    console.warn('[AvailabilityEngine] totalDuration <= 0, returning no slots', debugInfo);
+    return [];
+  }
 
   const dateStr = format(date, 'yyyy-MM-dd');
 
   // 1. Check for exception on this date
   const exception = exceptions.find((e) => e.exception_date === dateStr);
-  if (exception?.is_closed) return [];
+  if (exception?.is_closed) {
+    console.warn('[AvailabilityEngine] Date is closed (exception)', { dateStr, exception });
+    return [];
+  }
 
   // 2. Get working hours - professional hours override company hours
   const dayOfWeek = date.getDay();
@@ -71,7 +88,16 @@ export function calculateAvailableSlots(params: AvailabilityParams): string[] {
     ? professionalHours
     : businessHours;
   const hours = activeHours.find((h) => h.day_of_week === dayOfWeek);
-  if (!hours || hours.is_closed) return [];
+  
+  if (!hours || hours.is_closed) {
+    console.warn('[AvailabilityEngine] No working hours for day', {
+      dayOfWeek,
+      usingProfessionalHours: !!(professionalHours && professionalHours.length > 0),
+      activeHoursDays: activeHours.map(h => ({ day: h.day_of_week, closed: h.is_closed })),
+      ...debugInfo,
+    });
+    return [];
+  }
 
   // Use exception hours if available
   const openTimeStr = exception?.open_time || hours.open_time;
@@ -129,6 +155,16 @@ export function calculateAvailableSlots(params: AvailabilityParams): string[] {
 
     current = addMinutes(current, slotInterval);
   }
+
+  console.log('[AvailabilityEngine] Result', {
+    ...debugInfo,
+    openTime: format(openTime, 'HH:mm'),
+    closeTime: format(closeTime, 'HH:mm'),
+    lunchBreak: hours.lunch_start ? `${hours.lunch_start}-${hours.lunch_end}` : 'none',
+    blockedIntervals: blocked.length,
+    effectiveDuration,
+    slotsFound: slots.length,
+  });
 
   return slots;
 }
