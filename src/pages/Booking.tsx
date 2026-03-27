@@ -95,17 +95,25 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
     const resolvedType: BusinessType = routeBusinessType || comp.business_type || 'barbershop';
     setBusinessType(resolvedType);
 
-    const [servicesRes, hoursRes, exceptionsRes, companyRes] = await Promise.all([
+    const [servicesRes, hoursRes, exceptionsRes, companyRes, settingsRes] = await Promise.all([
       supabase.from('public_services' as any).select('*').eq('company_id', comp.id).order('name'),
       supabase.from('business_hours').select('*').eq('company_id', comp.id),
       supabase.from('business_exceptions').select('*').eq('company_id', comp.id),
       supabase.from('companies').select('buffer_minutes').eq('id', comp.id).single(),
+      supabase.from('company_settings' as any).select('*').eq('company_id', comp.id).single(),
     ]);
 
     if (servicesRes.data) setServices(servicesRes.data);
     if (hoursRes.data) setBusinessHours(hoursRes.data as BusinessHours[]);
     if (exceptionsRes.data) setExceptions(exceptionsRes.data as BusinessException[]);
     if (companyRes.data) setBufferMinutes((companyRes.data as any).buffer_minutes || 0);
+    if (settingsRes.data) {
+      setCompanySettings(settingsRes.data);
+      // Use settings buffer if available
+      if ((settingsRes.data as any).booking_buffer_minutes > 0) {
+        setBufferMinutes((settingsRes.data as any).booking_buffer_minutes);
+      }
+    }
 
     // If professional slug provided, auto-select professional
     if (professionalSlug) {
