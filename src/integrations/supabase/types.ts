@@ -255,6 +255,7 @@ export type Database = {
           birthday_discount_type: string
           birthday_discount_value: number
           birthday_enabled: boolean
+          business_type: Database["public"]["Enums"]["business_type"]
           created_at: string
           id: string
           logo_url: string | null
@@ -272,6 +273,7 @@ export type Database = {
           birthday_discount_type?: string
           birthday_discount_value?: number
           birthday_enabled?: boolean
+          business_type?: Database["public"]["Enums"]["business_type"]
           created_at?: string
           id?: string
           logo_url?: string | null
@@ -289,6 +291,7 @@ export type Database = {
           birthday_discount_type?: string
           birthday_discount_value?: number
           birthday_enabled?: boolean
+          business_type?: Database["public"]["Enums"]["business_type"]
           created_at?: string
           id?: string
           logo_url?: string | null
@@ -644,6 +647,7 @@ export type Database = {
       get_company_by_slug: {
         Args: { _slug: string }
         Returns: {
+          business_type: Database["public"]["Enums"]["business_type"]
           id: string
           logo_url: string
           name: string
@@ -680,6 +684,7 @@ export type Database = {
         | "cancelled"
         | "completed"
         | "no_show"
+      business_type: "barbershop" | "esthetic"
       collaborator_type: "partner" | "commissioned"
       commission_type: "percentage" | "fixed" | "none"
       subscription_status: "active" | "inactive" | "blocked" | "trial"
@@ -833,6 +838,7 @@ export const Constants = {
         "completed",
         "no_show",
       ],
+      business_type: ["barbershop", "esthetic"],
       collaborator_type: ["partner", "commissioned"],
       commission_type: ["percentage", "fixed", "none"],
       subscription_status: ["active", "inactive", "blocked", "trial"],

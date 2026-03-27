@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Calendar } from '@/components/ui/calendar';
-import { Scissors, Clock, DollarSign, ChevronRight, ChevronLeft, CheckCircle2, Bell } from 'lucide-react';
+import { Scissors, Sparkles, Clock, DollarSign, ChevronRight, ChevronLeft, CheckCircle2, Bell } from 'lucide-react';
 import { format, addMinutes } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
@@ -16,14 +16,20 @@ import { cn } from '@/lib/utils';
 import { calculateAvailableSlots, type BusinessHours, type BusinessException, type ExistingAppointment } from '@/lib/availability-engine';
 
 type Step = 'services' | 'professional' | 'datetime' | 'client' | 'confirm';
+type BusinessType = 'barbershop' | 'esthetic';
 
-const Booking = () => {
+interface BookingPageProps {
+  routeBusinessType?: BusinessType;
+}
+
+const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
   const { slug } = useParams<{ slug: string }>();
   const [company, setCompany] = useState<any>(null);
   const [services, setServices] = useState<any[]>([]);
   const [professionals, setProfessionals] = useState<any[]>([]);
   const [businessHours, setBusinessHours] = useState<BusinessHours[]>([]);
   const [exceptions, setExceptions] = useState<BusinessException[]>([]);
+  const [businessType, setBusinessType] = useState<BusinessType>('barbershop');
 
   const [step, setStep] = useState<Step>('services');
   const [selectedServices, setSelectedServices] = useState<string[]>([]);
@@ -36,6 +42,8 @@ const Booking = () => {
   const [slotsLoading, setSlotsLoading] = useState(false);
   const [waitlistLoading, setWaitlistLoading] = useState(false);
 
+  const isDark = businessType === 'barbershop';
+
   useEffect(() => {
     if (slug) fetchCompany();
   }, [slug]);
@@ -45,6 +53,9 @@ const Booking = () => {
     const comp = compArr?.[0];
     if (!comp) return;
     setCompany(comp);
+
+    const resolvedType: BusinessType = routeBusinessType || comp.business_type || 'barbershop';
+    setBusinessType(resolvedType);
 
     const [servicesRes, hoursRes, exceptionsRes] = await Promise.all([
       supabase.from('services').select('*').eq('company_id', comp.id).eq('active', true).order('name'),
@@ -160,7 +171,7 @@ const Booking = () => {
         desired_date: format(selectedDate, 'yyyy-MM-dd'),
       });
 
-      toast.success('Você foi adicionado à lista de espera! Avisaremos quando surgir uma vaga.');
+      toast.success('Você foi adicionado à lista de espera!');
       setStep('services');
       setSelectedServices([]);
       setSelectedProfessional(null);
@@ -294,7 +305,7 @@ const Booking = () => {
           }).catch(() => {});
         }
       } catch (webhookErr) {
-        console.error('Webhook fire failed:', webhookErr);
+        // webhook failures are non-critical
       }
 
       toast.success('Agendamento realizado com sucesso!');
@@ -312,38 +323,71 @@ const Booking = () => {
 
   if (!company) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <p className="text-muted-foreground">Carregando...</p>
+      <div className={cn('min-h-screen flex items-center justify-center', isDark ? 'bg-[#1a1a2e] text-white' : 'bg-[#fdf6f0] text-[#3d2c2c]')}>
+        <p className="opacity-60">Carregando...</p>
       </div>
     );
   }
 
+  const Icon = isDark ? Scissors : Sparkles;
+
+  // Theme classes
+  const bgPage = isDark ? 'bg-[#1a1a2e]' : 'bg-[#fdf6f0]';
+  const textPage = isDark ? 'text-white' : 'text-[#3d2c2c]';
+  const bgHeader = isDark ? 'bg-[#16213e] border-[#2a2a4a]' : 'bg-white/80 border-[#e8ddd4]';
+  const bgCard = isDark ? 'bg-[#16213e] border-[#2a2a4a]' : 'bg-white border-[#e8ddd4]';
+  const bgMuted = isDark ? 'bg-[#2a2a4a]' : 'bg-[#f5ebe0]';
+  const textMuted = isDark ? 'text-gray-400' : 'text-[#8b7e74]';
+  const accentColor = isDark ? 'bg-amber-500 text-black' : 'bg-rose-400 text-white';
+  const accentBorder = isDark ? 'border-amber-500' : 'border-rose-400';
+  const accentText = isDark ? 'text-amber-400' : 'text-rose-500';
+  const accentBg = isDark ? 'bg-amber-500/10' : 'bg-rose-400/10';
+  const iconBg = isDark ? 'bg-amber-500' : 'bg-rose-400';
+
   return (
-    <div className="min-h-screen bg-background">
-      <header className="border-b bg-card">
+    <div className={cn('min-h-screen', bgPage, textPage)}>
+      {/* Header */}
+      <header className={cn('border-b', bgHeader)}>
         <div className="max-w-2xl mx-auto px-4 py-4 flex items-center gap-3">
-          <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center">
-            <Scissors className="h-5 w-5 text-primary-foreground" />
-          </div>
+          {company.logo_url ? (
+            <img src={company.logo_url} alt={company.name} className="w-10 h-10 rounded-xl object-cover" />
+          ) : (
+            <div className={cn('w-10 h-10 rounded-xl flex items-center justify-center', iconBg)}>
+              <Icon className="h-5 w-5 text-white" />
+            </div>
+          )}
           <div>
-            <h1 className="font-display font-bold text-lg">{company.name}</h1>
-            <p className="text-xs text-muted-foreground">Agendamento online</p>
+            <h1 className="font-bold text-lg">{company.name}</h1>
+            <p className={cn('text-xs', textMuted)}>
+              {businessType === 'barbershop' ? 'Barbearia' : 'Estética'} • Agendamento online
+            </p>
           </div>
         </div>
       </header>
 
       <div className="max-w-2xl mx-auto px-4 py-6 space-y-6">
-        {/* Progress */}
+        {/* Progress bar */}
         <div className="flex gap-1">
-          {(['services', 'professional', 'datetime', 'client', 'confirm'] as Step[]).map((s, i) => (
-            <div key={s} className={cn('h-1 flex-1 rounded-full', step === s || ['services', 'professional', 'datetime', 'client', 'confirm'].indexOf(step) > i ? 'bg-primary' : 'bg-muted')} />
-          ))}
+          {(['services', 'professional', 'datetime', 'client', 'confirm'] as Step[]).map((s, i) => {
+            const stepIndex = ['services', 'professional', 'datetime', 'client', 'confirm'].indexOf(step);
+            return (
+              <div
+                key={s}
+                className={cn(
+                  'h-1 flex-1 rounded-full transition-colors',
+                  i <= stepIndex
+                    ? isDark ? 'bg-amber-500' : 'bg-rose-400'
+                    : isDark ? 'bg-[#2a2a4a]' : 'bg-[#e8ddd4]'
+                )}
+              />
+            );
+          })}
         </div>
 
         {/* Step: Services */}
         {step === 'services' && (
           <div className="space-y-4">
-            <h2 className="text-xl font-display font-bold">Escolha os serviços</h2>
+            <h2 className="text-xl font-bold">Escolha os serviços</h2>
             <div className="space-y-2">
               {services.map((svc) => (
                 <div
@@ -351,14 +395,16 @@ const Booking = () => {
                   onClick={() => toggleService(svc.id)}
                   className={cn(
                     'p-4 rounded-xl border cursor-pointer transition-all',
-                    selectedServices.includes(svc.id) ? 'border-primary bg-primary/5 shadow-sm' : 'hover:border-primary/30'
+                    bgCard,
+                    selectedServices.includes(svc.id) && accentBorder,
+                    selectedServices.includes(svc.id) && accentBg
                   )}
                 >
                   <div className="flex items-center gap-3">
                     <Checkbox checked={selectedServices.includes(svc.id)} />
                     <div className="flex-1">
                       <p className="font-semibold">{svc.name}</p>
-                      <div className="flex gap-3 text-sm text-muted-foreground">
+                      <div className={cn('flex gap-3 text-sm', textMuted)}>
                         <span className="flex items-center gap-1"><Clock className="h-3 w-3" /> {svc.duration_minutes} min</span>
                         <span className="flex items-center gap-1"><DollarSign className="h-3 w-3" /> R$ {Number(svc.price).toFixed(2)}</span>
                       </div>
@@ -368,15 +414,18 @@ const Booking = () => {
               ))}
             </div>
             {selectedServices.length > 0 && (
-              <div className="flex items-center justify-between p-3 rounded-lg bg-muted">
-                <div>
-                  <span className="text-sm">{selectedServices.length} serviço(s)</span>
-                  <span className="mx-2 text-muted-foreground">•</span>
-                  <span className="text-sm">{totalDuration} min</span>
-                  <span className="mx-2 text-muted-foreground">•</span>
+              <div className={cn('flex items-center justify-between p-3 rounded-lg', bgMuted)}>
+                <div className="text-sm">
+                  <span>{selectedServices.length} serviço(s)</span>
+                  <span className="mx-2 opacity-40">•</span>
+                  <span>{totalDuration} min</span>
+                  <span className="mx-2 opacity-40">•</span>
                   <span className="font-semibold">R$ {totalPrice.toFixed(2)}</span>
                 </div>
-                <Button onClick={() => { fetchProfessionals(); setStep('professional'); }}>
+                <Button
+                  onClick={() => { fetchProfessionals(); setStep('professional'); }}
+                  className={cn(isDark ? 'bg-amber-500 hover:bg-amber-600 text-black' : 'bg-rose-400 hover:bg-rose-500 text-white')}
+                >
                   Próximo <ChevronRight className="h-4 w-4 ml-1" />
                 </Button>
               </div>
@@ -387,22 +436,24 @@ const Booking = () => {
         {/* Step: Professional */}
         {step === 'professional' && (
           <div className="space-y-4">
-            <Button variant="ghost" size="sm" onClick={() => setStep('services')}>
+            <Button variant="ghost" size="sm" onClick={() => setStep('services')} className={textMuted}>
               <ChevronLeft className="h-4 w-4 mr-1" /> Voltar
             </Button>
-            <h2 className="text-xl font-display font-bold">Escolha o profissional</h2>
+            <h2 className="text-xl font-bold">Escolha o profissional</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {professionals.map((p) => (
                 <div
                   key={p.id}
                   onClick={() => { setSelectedProfessional(p.id); setStep('datetime'); }}
                   className={cn(
-                    'p-4 rounded-xl border cursor-pointer transition-all hover:border-primary/30',
-                    selectedProfessional === p.id && 'border-primary bg-primary/5'
+                    'p-4 rounded-xl border cursor-pointer transition-all',
+                    bgCard,
+                    selectedProfessional === p.id && accentBorder,
+                    selectedProfessional === p.id && accentBg
                   )}
                 >
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center font-bold text-primary">
+                    <div className={cn('w-10 h-10 rounded-full flex items-center justify-center font-bold', accentBg, accentText)}>
                       {p.full_name?.charAt(0)?.toUpperCase()}
                     </div>
                     <p className="font-semibold">{p.full_name}</p>
@@ -416,48 +467,46 @@ const Booking = () => {
         {/* Step: Date/Time */}
         {step === 'datetime' && (
           <div className="space-y-4">
-            <Button variant="ghost" size="sm" onClick={() => setStep('professional')}>
+            <Button variant="ghost" size="sm" onClick={() => setStep('professional')} className={textMuted}>
               <ChevronLeft className="h-4 w-4 mr-1" /> Voltar
             </Button>
-            <h2 className="text-xl font-display font-bold">Escolha data e horário</h2>
-            <Card>
-              <CardContent className="p-4">
-                <Calendar
-                  mode="single"
-                  selected={selectedDate}
-                  onSelect={(date) => { setSelectedDate(date); setSelectedTime(null); }}
-                  locale={ptBR}
-                  disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
-                />
-              </CardContent>
-            </Card>
+            <h2 className="text-xl font-bold">Escolha data e horário</h2>
+            <div className={cn('rounded-xl border p-4', bgCard)}>
+              <Calendar
+                mode="single"
+                selected={selectedDate}
+                onSelect={(date) => { setSelectedDate(date); setSelectedTime(null); }}
+                locale={ptBR}
+                disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
+              />
+            </div>
             {selectedDate && (
               <div>
-                <p className="text-sm font-medium mb-2">
+                <p className={cn('text-sm font-medium mb-2')}>
                   Horários disponíveis
                   {totalDuration > 0 && (
-                    <span className="text-muted-foreground font-normal ml-2">
+                    <span className={cn('font-normal ml-2', textMuted)}>
                       (bloco de {totalDuration} min necessário)
                     </span>
                   )}
                 </p>
                 {slotsLoading ? (
-                  <p className="text-sm text-muted-foreground">Calculando disponibilidade...</p>
+                  <p className={cn('text-sm', textMuted)}>Calculando disponibilidade...</p>
                 ) : availableSlots.length === 0 ? (
                   <div className="space-y-3">
-                    <p className="text-sm text-muted-foreground">Nenhum horário disponível neste dia</p>
-                    <div className="p-4 rounded-xl border border-dashed border-warning/50 bg-warning/5">
+                    <p className={cn('text-sm', textMuted)}>Nenhum horário disponível neste dia</p>
+                    <div className={cn('p-4 rounded-xl border border-dashed', isDark ? 'border-amber-500/50 bg-amber-500/5' : 'border-rose-400/50 bg-rose-400/5')}>
                       <div className="flex items-start gap-3">
-                        <Bell className="h-5 w-5 text-warning mt-0.5" />
+                        <Bell className={cn('h-5 w-5 mt-0.5', accentText)} />
                         <div className="flex-1">
                           <p className="font-semibold text-sm">Quer ser avisado se surgir vaga?</p>
-                          <p className="text-xs text-muted-foreground mt-1">
+                          <p className={cn('text-xs mt-1', textMuted)}>
                             Entre na lista de espera e avisaremos quando um horário ficar disponível para {selectedDate && format(selectedDate, "dd 'de' MMMM", { locale: ptBR })}.
                           </p>
                           <Button
                             size="sm"
                             variant="outline"
-                            className="mt-3 border-warning text-warning hover:bg-warning/10"
+                            className={cn('mt-3', accentBorder, accentText)}
                             onClick={handleJoinWaitlist}
                             disabled={waitlistLoading}
                           >
@@ -473,9 +522,14 @@ const Booking = () => {
                     {availableSlots.map((slot) => (
                       <Button
                         key={slot}
-                        variant={selectedTime === slot ? 'default' : 'outline'}
+                        variant="outline"
                         size="sm"
                         onClick={() => setSelectedTime(slot)}
+                        className={cn(
+                          selectedTime === slot
+                            ? isDark ? 'bg-amber-500 text-black border-amber-500' : 'bg-rose-400 text-white border-rose-400'
+                            : cn(bgCard, 'hover:opacity-80')
+                        )}
                       >
                         {slot}
                       </Button>
@@ -485,7 +539,10 @@ const Booking = () => {
               </div>
             )}
             {selectedTime && (
-              <Button onClick={() => setStep('client')} className="w-full">
+              <Button
+                onClick={() => setStep('client')}
+                className={cn('w-full', isDark ? 'bg-amber-500 hover:bg-amber-600 text-black' : 'bg-rose-400 hover:bg-rose-500 text-white')}
+              >
                 Próximo <ChevronRight className="h-4 w-4 ml-1" />
               </Button>
             )}
@@ -495,29 +552,54 @@ const Booking = () => {
         {/* Step: Client info */}
         {step === 'client' && (
           <div className="space-y-4">
-            <Button variant="ghost" size="sm" onClick={() => setStep('datetime')}>
+            <Button variant="ghost" size="sm" onClick={() => setStep('datetime')} className={textMuted}>
               <ChevronLeft className="h-4 w-4 mr-1" /> Voltar
             </Button>
-            <h2 className="text-xl font-display font-bold">Seus dados</h2>
+            <h2 className="text-xl font-bold">Seus dados</h2>
             <div className="space-y-3">
               <div className="space-y-1">
                 <Label>Nome</Label>
-                <Input value={clientForm.full_name} onChange={(e) => setClientForm({ ...clientForm, full_name: e.target.value })} required />
-              </div>
-              <div className="space-y-1">
-                <Label>Email</Label>
-                <Input type="email" value={clientForm.email} onChange={(e) => setClientForm({ ...clientForm, email: e.target.value })} required />
+                <Input
+                  value={clientForm.full_name}
+                  onChange={(e) => setClientForm({ ...clientForm, full_name: e.target.value })}
+                  required
+                  className={cn(isDark ? 'bg-[#16213e] border-[#2a2a4a] text-white' : 'bg-white border-[#e8ddd4]')}
+                />
               </div>
               <div className="space-y-1">
                 <Label>WhatsApp</Label>
-                <Input value={clientForm.whatsapp} onChange={(e) => setClientForm({ ...clientForm, whatsapp: e.target.value })} placeholder="(11) 99999-9999" />
+                <Input
+                  value={clientForm.whatsapp}
+                  onChange={(e) => setClientForm({ ...clientForm, whatsapp: e.target.value })}
+                  placeholder="(11) 99999-9999"
+                  className={cn(isDark ? 'bg-[#16213e] border-[#2a2a4a] text-white' : 'bg-white border-[#e8ddd4]')}
+                />
+              </div>
+              <div className="space-y-1">
+                <Label>Email</Label>
+                <Input
+                  type="email"
+                  value={clientForm.email}
+                  onChange={(e) => setClientForm({ ...clientForm, email: e.target.value })}
+                  required
+                  className={cn(isDark ? 'bg-[#16213e] border-[#2a2a4a] text-white' : 'bg-white border-[#e8ddd4]')}
+                />
               </div>
               <div className="space-y-1">
                 <Label>Data de nascimento</Label>
-                <Input type="date" value={clientForm.birth_date} onChange={(e) => setClientForm({ ...clientForm, birth_date: e.target.value })} />
+                <Input
+                  type="date"
+                  value={clientForm.birth_date}
+                  onChange={(e) => setClientForm({ ...clientForm, birth_date: e.target.value })}
+                  className={cn(isDark ? 'bg-[#16213e] border-[#2a2a4a] text-white' : 'bg-white border-[#e8ddd4]')}
+                />
               </div>
             </div>
-            <Button onClick={() => setStep('confirm')} className="w-full" disabled={!clientForm.full_name || !clientForm.email}>
+            <Button
+              onClick={() => setStep('confirm')}
+              className={cn('w-full', isDark ? 'bg-amber-500 hover:bg-amber-600 text-black' : 'bg-rose-400 hover:bg-rose-500 text-white')}
+              disabled={!clientForm.full_name || !clientForm.whatsapp}
+            >
               Revisar Agendamento <ChevronRight className="h-4 w-4 ml-1" />
             </Button>
           </div>
@@ -526,43 +608,46 @@ const Booking = () => {
         {/* Step: Confirm */}
         {step === 'confirm' && (
           <div className="space-y-4">
-            <Button variant="ghost" size="sm" onClick={() => setStep('client')}>
+            <Button variant="ghost" size="sm" onClick={() => setStep('client')} className={textMuted}>
               <ChevronLeft className="h-4 w-4 mr-1" /> Voltar
             </Button>
-            <h2 className="text-xl font-display font-bold">Confirmar Agendamento</h2>
-            <Card>
-              <CardContent className="p-5 space-y-4">
-                <div>
-                  <p className="text-sm text-muted-foreground">Serviços</p>
-                  <div className="flex flex-wrap gap-2 mt-1">
-                    {services.filter((s) => selectedServices.includes(s.id)).map((s) => (
-                      <Badge key={s.id} variant="secondary">{s.name}</Badge>
-                    ))}
-                  </div>
+            <h2 className="text-xl font-bold">Confirmar Agendamento</h2>
+            <div className={cn('rounded-xl border p-5 space-y-4', bgCard)}>
+              <div>
+                <p className={cn('text-sm', textMuted)}>Serviços</p>
+                <div className="flex flex-wrap gap-2 mt-1">
+                  {services.filter((s) => selectedServices.includes(s.id)).map((s) => (
+                    <Badge key={s.id} className={cn(accentBg, accentText, 'border-0')}>{s.name}</Badge>
+                  ))}
                 </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Profissional</p>
-                  <p className="font-semibold">{professionals.find((p) => p.id === selectedProfessional)?.full_name}</p>
+              </div>
+              <div>
+                <p className={cn('text-sm', textMuted)}>Profissional</p>
+                <p className="font-semibold">{professionals.find((p) => p.id === selectedProfessional)?.full_name}</p>
+              </div>
+              <div>
+                <p className={cn('text-sm', textMuted)}>Data e horário</p>
+                <p className="font-semibold">
+                  {selectedDate && format(selectedDate, "dd 'de' MMMM, yyyy", { locale: ptBR })} às {selectedTime}
+                </p>
+              </div>
+              <div>
+                <p className={cn('text-sm', textMuted)}>Duração total</p>
+                <p className="font-semibold">{totalDuration} minutos</p>
+              </div>
+              <div className={cn('pt-3 border-t', isDark ? 'border-[#2a2a4a]' : 'border-[#e8ddd4]')}>
+                <div className="flex justify-between text-lg font-bold">
+                  <span>Total</span>
+                  <span className={accentText}>R$ {totalPrice.toFixed(2)}</span>
                 </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Data e horário</p>
-                  <p className="font-semibold">
-                    {selectedDate && format(selectedDate, "dd 'de' MMMM, yyyy", { locale: ptBR })} às {selectedTime}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Duração total</p>
-                  <p className="font-semibold">{totalDuration} minutos</p>
-                </div>
-                <div className="pt-3 border-t">
-                  <div className="flex justify-between text-lg font-display font-bold">
-                    <span>Total</span>
-                    <span>R$ {totalPrice.toFixed(2)}</span>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-            <Button onClick={handleBook} className="w-full" disabled={loading} size="lg">
+              </div>
+            </div>
+            <Button
+              onClick={handleBook}
+              className={cn('w-full', isDark ? 'bg-amber-500 hover:bg-amber-600 text-black' : 'bg-rose-400 hover:bg-rose-500 text-white')}
+              disabled={loading}
+              size="lg"
+            >
               {loading ? 'Agendando...' : (
                 <>
                   <CheckCircle2 className="h-5 w-5 mr-2" /> Confirmar Agendamento
@@ -576,4 +661,4 @@ const Booking = () => {
   );
 };
 
-export default Booking;
+export default BookingPage;

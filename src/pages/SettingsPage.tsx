@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
-import { Clock, Calendar as CalendarIcon, Plus, Trash2, Bell, Cake } from 'lucide-react';
+import { Clock, Calendar as CalendarIcon, Plus, Trash2, Bell, Cake, Link2, Copy } from 'lucide-react';
 
 const dayNames = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
 
@@ -21,6 +21,8 @@ const SettingsPage = () => {
   const [birthdayEnabled, setBirthdayEnabled] = useState(true);
   const [birthdayDiscountType, setBirthdayDiscountType] = useState('none');
   const [birthdayDiscountValue, setBirthdayDiscountValue] = useState(0);
+  const [companySlug, setCompanySlug] = useState('');
+  const [companyBusinessType, setCompanyBusinessType] = useState<string>('barbershop');
 
   useEffect(() => {
     if (companyId) {
@@ -72,7 +74,7 @@ const SettingsPage = () => {
   const fetchCompanySettings = async () => {
     const { data } = await supabase
       .from('companies')
-      .select('reminders_enabled, birthday_enabled, birthday_discount_type, birthday_discount_value')
+      .select('reminders_enabled, birthday_enabled, birthday_discount_type, birthday_discount_value, slug, business_type')
       .eq('id', companyId!)
       .single();
     if (data) {
@@ -80,6 +82,8 @@ const SettingsPage = () => {
       setBirthdayEnabled((data as any).birthday_enabled ?? true);
       setBirthdayDiscountType((data as any).birthday_discount_type ?? 'none');
       setBirthdayDiscountValue((data as any).birthday_discount_value ?? 0);
+      setCompanySlug((data as any).slug ?? '');
+      setCompanyBusinessType((data as any).business_type ?? 'barbershop');
     }
   };
 
@@ -133,7 +137,44 @@ const SettingsPage = () => {
         <p className="text-sm text-muted-foreground">Horários, lembretes e automações</p>
       </div>
 
-      {/* Reminder Settings */}
+      {/* Public Booking Link */}
+      {companySlug && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Link2 className="h-5 w-5" /> Link de Agendamento
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              <p className="text-sm text-muted-foreground">
+                Compartilhe este link com seus clientes para agendamento online:
+              </p>
+              {(() => {
+                const prefix = companyBusinessType === 'esthetic' ? 'estetica' : 'barbearia';
+                const bookingUrl = `${window.location.origin}/${prefix}/${companySlug}`;
+                return (
+                  <div className="flex items-center gap-2">
+                    <Input value={bookingUrl} readOnly className="bg-muted" />
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={() => {
+                        navigator.clipboard.writeText(bookingUrl);
+                        toast.success('Link copiado!');
+                      }}
+                    >
+                      <Copy className="h-4 w-4" />
+                    </Button>
+                  </div>
+                );
+              })()}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">

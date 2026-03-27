@@ -43,6 +43,10 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/auth" element={<Auth />} />
+            {/* Typed public booking routes */}
+            <Route path="/barbearia/:slug" element={<Booking routeBusinessType="barbershop" />} />
+            <Route path="/estetica/:slug" element={<Booking routeBusinessType="esthetic" />} />
+            {/* Legacy booking route */}
             <Route path="/booking/:slug" element={<Booking />} />
             <Route path="/my-appointments" element={<MyAppointments />} />
             <Route path="/admin" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
