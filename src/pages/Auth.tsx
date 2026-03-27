@@ -16,8 +16,6 @@ const Auth = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
-  const [companyName, setCompanyName] = useState('');
-  const [businessType, setBusinessType] = useState<'barbershop' | 'esthetic'>('barbershop');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
