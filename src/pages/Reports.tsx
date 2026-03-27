@@ -44,7 +44,6 @@ const Reports = () => {
   const fetchReport = async () => {
     const { start, end } = getRange();
 
-    // Fetch completed appointments with professional info
     const { data: appointments } = await supabase
       .from('appointments')
       .select('*, professional:profiles!appointments_professional_id_fkey(id, full_name)')
@@ -53,7 +52,6 @@ const Reports = () => {
       .gte('start_time', start.toISOString())
       .lte('start_time', end.toISOString());
 
-    // Fetch collaborators with commission info
     const { data: collaborators } = await supabase
       .from('collaborators')
       .select('profile_id, commission_type, commission_value, commission_percent')
@@ -61,59 +59,58 @@ const Reports = () => {
 
     if (!appointments) return;
 
-    // Build commission lookup by profile_id
     const commissionMap: Record<string, { type: string; value: number }> = {};
     if (collaborators) {
-      for (const c of collaborators) {
-        commissionMap[c.profile_id] = {
-          type: c.commission_type || 'percentage',
-          value: c.commission_value ?? c.commission_percent ?? 0,
+      for (const collaborator of collaborators) {
+        commissionMap[collaborator.profile_id] = {
+          type: collaborator.commission_type || 'none',
+          value: collaborator.commission_value ?? collaborator.commission_percent ?? 0,
         };
       }
     }
 
-    // Group by professional
     const grouped: Record<string, { name: string; revenue: number; count: number; profileId: string }> = {};
-    for (const a of appointments) {
-      const profId = a.professional_id;
-      const name = a.professional?.full_name || 'Sem nome';
-      if (!grouped[profId]) grouped[profId] = { name, revenue: 0, count: 0, profileId: profId };
-      grouped[profId].revenue += Number(a.total_price);
-      grouped[profId].count += 1;
+    for (const appointment of appointments) {
+      const professionalId = appointment.professional_id;
+      const name = appointment.professional?.full_name || 'Sem nome';
+      if (!grouped[professionalId]) {
+        grouped[professionalId] = { name, revenue: 0, count: 0, profileId: professionalId };
+      }
+      grouped[professionalId].revenue += Number(appointment.total_price);
+      grouped[professionalId].count += 1;
     }
 
-    // Calculate commissions
-    const profReports: ProfessionalReport[] = Object.entries(grouped).map(([id, g]) => {
-      const comm = commissionMap[g.profileId] || { type: 'none', value: 0 };
+    const professionalReports: ProfessionalReport[] = Object.entries(grouped).map(([id, groupedProfessional]) => {
+      const commission = commissionMap[groupedProfessional.profileId] || { type: 'none', value: 0 };
       let commissionAmount = 0;
 
-      if (comm.type === 'percentage') {
-        commissionAmount = (g.revenue * comm.value) / 100;
-      } else if (comm.type === 'fixed') {
-        commissionAmount = comm.value * g.count;
+      if (commission.type === 'percentage') {
+        commissionAmount = (groupedProfessional.revenue * commission.value) / 100;
+      } else if (commission.type === 'fixed') {
+        commissionAmount = commission.value * groupedProfessional.count;
       }
 
       return {
         id,
-        name: g.name,
-        totalServices: g.count,
-        totalRevenue: g.revenue,
-        commissionType: comm.type,
-        commissionValue: comm.value,
+        name: groupedProfessional.name,
+        totalServices: groupedProfessional.count,
+        totalRevenue: groupedProfessional.revenue,
+        commissionType: commission.type,
+        commissionValue: commission.value,
         commissionAmount,
-        netAmount: g.revenue - commissionAmount,
+        netAmount: groupedProfessional.revenue - commissionAmount,
       };
     });
 
-    profReports.sort((a, b) => b.totalRevenue - a.totalRevenue);
+    professionalReports.sort((a, b) => b.totalRevenue - a.totalRevenue);
 
-    const rev = appointments.reduce((sum, a) => sum + Number(a.total_price), 0);
-    const totalComm = profReports.reduce((sum, p) => sum + p.commissionAmount, 0);
+    const revenue = appointments.reduce((sum, appointment) => sum + Number(appointment.total_price), 0);
+    const commissions = professionalReports.reduce((sum, professional) => sum + professional.commissionAmount, 0);
 
-    setTotalRevenue(rev);
+    setTotalRevenue(revenue);
     setTotalCount(appointments.length);
-    setProfessionals(profReports);
-    setTotalCommission(totalComm);
+    setProfessionals(professionalReports);
+    setTotalCommission(commissions);
   };
 
   const commissionLabel = (type: string, value: number) => {
@@ -131,20 +128,19 @@ const Reports = () => {
           <h2 className="text-xl font-display font-bold">Relatórios Financeiros</h2>
           <p className="text-sm text-muted-foreground">Faturamento e comissões {periodLabel.toLowerCase()}</p>
         </div>
-        <div className="flex gap-1 bg-muted rounded-lg p-1">
-          {(['day', 'week', 'month'] as Period[]).map((p) => (
-            <Button key={p} variant={period === p ? 'default' : 'ghost'} size="sm" onClick={() => setPeriod(p)}>
-              {p === 'day' ? 'Dia' : p === 'week' ? 'Semana' : 'Mês'}
+        <div className="flex gap-1 rounded-lg bg-muted p-1">
+          {(['day', 'week', 'month'] as Period[]).map((currentPeriod) => (
+            <Button key={currentPeriod} variant={period === currentPeriod ? 'default' : 'ghost'} size="sm" onClick={() => setPeriod(currentPeriod)}>
+              {currentPeriod === 'day' ? 'Dia' : currentPeriod === 'week' ? 'Semana' : 'Mês'}
             </Button>
           ))}
         </div>
       </div>
 
-      {/* Summary cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
         <Card>
-          <CardContent className="p-5 flex items-center gap-4">
-            <div className="w-12 h-12 rounded-xl bg-success/10 flex items-center justify-center">
+          <CardContent className="flex items-center gap-4 p-5">
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-success/10">
               <DollarSign className="h-6 w-6 text-success" />
             </div>
             <div>
@@ -154,8 +150,8 @@ const Reports = () => {
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="p-5 flex items-center gap-4">
-            <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
+          <CardContent className="flex items-center gap-4 p-5">
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
               <TrendingUp className="h-6 w-6 text-primary" />
             </div>
             <div>
@@ -165,8 +161,8 @@ const Reports = () => {
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="p-5 flex items-center gap-4">
-            <div className="w-12 h-12 rounded-xl bg-warning/10 flex items-center justify-center">
+          <CardContent className="flex items-center gap-4 p-5">
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-warning/10">
               <Briefcase className="h-6 w-6 text-warning" />
             </div>
             <div>
@@ -176,8 +172,8 @@ const Reports = () => {
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="p-5 flex items-center gap-4">
-            <div className="w-12 h-12 rounded-xl bg-accent/10 flex items-center justify-center">
+          <CardContent className="flex items-center gap-4 p-5">
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-accent/10">
               <Users className="h-6 w-6 text-accent" />
             </div>
             <div>
@@ -188,7 +184,6 @@ const Reports = () => {
         </Card>
       </div>
 
-      {/* Per-professional table */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -197,7 +192,7 @@ const Reports = () => {
         </CardHeader>
         <CardContent>
           {professionals.length === 0 ? (
-            <p className="text-center text-muted-foreground py-8">Sem atendimentos concluídos no período</p>
+            <p className="py-8 text-center text-muted-foreground">Sem atendimentos concluídos no período</p>
           ) : (
             <Table>
               <TableHeader>
@@ -211,34 +206,33 @@ const Reports = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {professionals.map((p) => (
-                  <TableRow key={p.id}>
+                {professionals.map((professional) => (
+                  <TableRow key={professional.id}>
                     <TableCell>
                       <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center font-bold text-primary text-sm">
-                          {p.name.charAt(0)}
+                        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-sm font-bold text-primary">
+                          {professional.name.charAt(0)}
                         </div>
-                        <span className="font-medium">{p.name}</span>
+                        <span className="font-medium">{professional.name}</span>
                       </div>
                     </TableCell>
-                    <TableCell className="text-center">{p.totalServices}</TableCell>
+                    <TableCell className="text-center">{professional.totalServices}</TableCell>
                     <TableCell className="text-right font-display font-semibold">
-                      R$ {p.totalRevenue.toFixed(2)}
+                      R$ {professional.totalRevenue.toFixed(2)}
                     </TableCell>
                     <TableCell className="text-center">
                       <Badge variant="outline" className="text-xs">
-                        {commissionLabel(p.commissionType, p.commissionValue)}
+                        {commissionLabel(professional.commissionType, professional.commissionValue)}
                       </Badge>
                     </TableCell>
-                    <TableCell className="text-right text-warning font-semibold">
-                      R$ {p.commissionAmount.toFixed(2)}
+                    <TableCell className="text-right font-semibold text-warning">
+                      R$ {professional.commissionAmount.toFixed(2)}
                     </TableCell>
                     <TableCell className="text-right font-display font-bold">
-                      R$ {p.netAmount.toFixed(2)}
+                      R$ {professional.netAmount.toFixed(2)}
                     </TableCell>
                   </TableRow>
                 ))}
-                {/* Totals row */}
                 <TableRow className="border-t-2 font-bold">
                   <TableCell>Total</TableCell>
                   <TableCell className="text-center">{totalCount}</TableCell>
