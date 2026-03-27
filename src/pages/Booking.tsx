@@ -968,7 +968,7 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
                   </div>
                 ) : (
                   <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
-                    {availableSlots.map((slot) => (
+                    {(availableSlots.length > 0 ? availableSlots : generatedSlots).map((slot) => (
                       <Button
                         key={slot}
                         variant="outline"
