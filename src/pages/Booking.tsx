@@ -493,27 +493,57 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
     if (!company || !selectedDate || !selectedTime || !selectedProfessional) return;
     setLoading(true);
     try {
-      let clientId: string | null = null;
-      const { data: existingSession } = await supabase.auth.getSession();
+      // Upsert client in clients table
+      let clientId = savedClientId;
+      
+      if (!clientId) {
+        // Check if client already exists by CPF or WhatsApp
+        const formattedWhatsapp = clientForm.whatsapp ? formatWhatsApp(clientForm.whatsapp) : null;
+        
+        if (clientForm.cpf) {
+          const { data: existingByCpf } = await supabase
+            .from('clients' as any)
+            .select('id')
+            .eq('company_id', company.id)
+            .eq('cpf', clientForm.cpf)
+            .maybeSingle();
+          if (existingByCpf) clientId = (existingByCpf as any).id;
+        }
+        
+        if (!clientId && formattedWhatsapp) {
+          const { data: existingByWhatsapp } = await supabase
+            .from('clients' as any)
+            .select('id')
+            .eq('company_id', company.id)
+            .eq('whatsapp', formattedWhatsapp)
+            .maybeSingle();
+          if (existingByWhatsapp) clientId = (existingByWhatsapp as any).id;
+        }
 
-      if (existingSession?.session?.user) {
-        // Authenticated user: update profile and get profile id
-        const userId = existingSession.session.user.id;
-        await supabase
-          .from('profiles')
-           .update({
-             full_name: clientForm.full_name || undefined,
-             whatsapp: clientForm.whatsapp ? formatWhatsApp(clientForm.whatsapp) : undefined,
-             birth_date: clientForm.birth_date || undefined,
-             opt_in_whatsapp: optInWhatsapp,
-             opt_in_date: optInWhatsapp ? new Date().toISOString() : undefined,
-          } as any)
-          .eq('user_id', userId);
-
-        const { data: profile } = await supabase.from('profiles').select('id').eq('user_id', userId).single();
-        clientId = profile?.id || null;
+        if (!clientId) {
+          // Create new client
+          const { data: newClient, error: clientError } = await supabase
+            .from('clients' as any)
+            .insert({
+              company_id: company.id,
+              name: clientForm.full_name,
+              cpf: clientForm.cpf || null,
+              email: clientForm.email || null,
+              whatsapp: formattedWhatsapp,
+              opt_in_whatsapp: optInWhatsapp,
+            } as any)
+            .select()
+            .single();
+          if (clientError) throw clientError;
+          clientId = (newClient as any).id;
+        }
       }
-      // If not authenticated, clientId stays null — guest booking
+
+      // Persist client_id in localStorage
+      if (clientId) {
+        localStorage.setItem(`client_id_${company.id}`, clientId);
+        setSavedClientId(clientId);
+      }
 
       const [h, m] = selectedTime.split(':').map(Number);
       const startTime = new Date(selectedDate);
@@ -530,10 +560,6 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
         client_name: clientForm.full_name,
         client_whatsapp: clientForm.whatsapp ? formatWhatsApp(clientForm.whatsapp) : null,
       };
-
-      if (clientId) {
-        appointmentData.client_id = clientId;
-      }
 
       const { data: appointment, error: aptError } = await supabase
         .from('appointments')
