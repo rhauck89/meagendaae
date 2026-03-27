@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useUserRole } from '@/hooks/useUserRole';
 import { supabase } from '@/integrations/supabase/client';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -37,6 +39,7 @@ interface ReturnStats {
 
 const Dashboard = () => {
   const { companyId } = useAuth();
+  const { isAdmin, profileId } = useUserRole();
   const [viewMode, setViewMode] = useState<ViewMode>('day');
   const [currentDate, setCurrentDate] = useState(new Date());
   const [appointments, setAppointments] = useState<any[]>([]);
@@ -45,6 +48,13 @@ const Dashboard = () => {
   const [waitlistCount, setWaitlistCount] = useState(0);
   const [reminderCount, setReminderCount] = useState(0);
   const [birthdayClients, setBirthdayClients] = useState<any[]>([]);
+  const [filterProfessional, setFilterProfessional] = useState<string>('all');
+  const [collaboratorsList, setCollaboratorsList] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (!companyId) return;
+    fetchCollaborators();
+  }, [companyId]);
 
   useEffect(() => {
     if (!companyId) return;
@@ -53,7 +63,15 @@ const Dashboard = () => {
     fetchWaitlistCount();
     fetchReminderCount();
     fetchBirthdays();
-  }, [companyId, currentDate, viewMode]);
+  }, [companyId, currentDate, viewMode, filterProfessional]);
+
+  const fetchCollaborators = async () => {
+    const { data } = await supabase
+      .from('collaborators')
+      .select('profile_id, profile:profiles(full_name)')
+      .eq('company_id', companyId!);
+    if (data) setCollaboratorsList(data);
+  };
 
   const getDateRange = () => {
     if (viewMode === 'day') return { start: currentDate, end: currentDate };
@@ -63,7 +81,7 @@ const Dashboard = () => {
 
   const fetchAppointments = async () => {
     const { start, end } = getDateRange();
-    const { data } = await supabase
+    let query = supabase
       .from('appointments')
       .select(`
         *,
@@ -75,6 +93,15 @@ const Dashboard = () => {
       .gte('start_time', start.toISOString())
       .lte('start_time', end.toISOString())
       .order('start_time');
+
+    // Non-admin sees only their own appointments
+    if (!isAdmin && profileId) {
+      query = query.eq('professional_id', profileId);
+    } else if (filterProfessional !== 'all') {
+      query = query.eq('professional_id', filterProfessional);
+    }
+
+    const { data } = await query;
 
     if (data) {
       setAppointments(data);
@@ -385,6 +412,21 @@ const Dashboard = () => {
                 Hoje
               </Button>
             </div>
+            {isAdmin && (
+              <Select value={filterProfessional} onValueChange={setFilterProfessional}>
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue placeholder="Profissional" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos</SelectItem>
+                  {collaboratorsList.map((c) => (
+                    <SelectItem key={c.profile_id} value={c.profile_id}>
+                      {(c.profile as any)?.full_name || 'Sem nome'}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
             <div className="flex gap-1 bg-muted rounded-lg p-1">
               {(['day', 'week', 'month'] as ViewMode[]).map((mode) => (
                 <Button

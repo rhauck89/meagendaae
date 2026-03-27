@@ -1,13 +1,16 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useUserRole } from '@/hooks/useUserRole';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { BarChart3, TrendingUp, DollarSign, Users, Briefcase } from 'lucide-react';
 import { startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { calculateFinancials, collaboratorTypeLabel, commissionLabel } from '@/lib/financial-engine';
 
 type Period = 'day' | 'week' | 'month';
 
@@ -16,23 +19,43 @@ interface ProfessionalReport {
   name: string;
   totalServices: number;
   totalRevenue: number;
+  collaboratorType: string;
   commissionType: string;
   commissionValue: number;
-  commissionAmount: number;
-  netAmount: number;
+  professionalValue: number;
+  companyValue: number;
 }
 
 const Reports = () => {
   const { companyId } = useAuth();
+  const { isAdmin, profileId } = useUserRole();
   const [period, setPeriod] = useState<Period>('month');
+  const [filterProfessional, setFilterProfessional] = useState<string>('all');
+  const [filterRoleType, setFilterRoleType] = useState<string>('all');
   const [totalRevenue, setTotalRevenue] = useState(0);
   const [totalCount, setTotalCount] = useState(0);
   const [professionals, setProfessionals] = useState<ProfessionalReport[]>([]);
-  const [totalCommission, setTotalCommission] = useState(0);
+  const [totalProfessionalValue, setTotalProfessionalValue] = useState(0);
+  const [totalCompanyValue, setTotalCompanyValue] = useState(0);
+  const [collaboratorsList, setCollaboratorsList] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (companyId) {
+      fetchCollaborators();
+    }
+  }, [companyId]);
 
   useEffect(() => {
     if (companyId) fetchReport();
-  }, [companyId, period]);
+  }, [companyId, period, filterProfessional, filterRoleType]);
+
+  const fetchCollaborators = async () => {
+    const { data } = await supabase
+      .from('collaborators')
+      .select('profile_id, collaborator_type, commission_type, commission_value, commission_percent, profile:profiles(full_name)')
+      .eq('company_id', companyId!);
+    if (data) setCollaboratorsList(data);
+  };
 
   const getRange = () => {
     const now = new Date();
@@ -44,7 +67,7 @@ const Reports = () => {
   const fetchReport = async () => {
     const { start, end } = getRange();
 
-    const { data: appointments } = await supabase
+    let query = supabase
       .from('appointments')
       .select('*, professional:profiles!appointments_professional_id_fkey(id, full_name)')
       .eq('company_id', companyId!)
@@ -52,88 +75,121 @@ const Reports = () => {
       .gte('start_time', start.toISOString())
       .lte('start_time', end.toISOString());
 
+    // Non-admin professionals can only see their own data
+    if (!isAdmin && profileId) {
+      query = query.eq('professional_id', profileId);
+    } else if (filterProfessional !== 'all') {
+      query = query.eq('professional_id', filterProfessional);
+    }
+
+    const { data: appointments } = await query;
     const { data: collaborators } = await supabase
       .from('collaborators')
-      .select('profile_id, commission_type, commission_value, commission_percent')
+      .select('profile_id, collaborator_type, commission_type, commission_value, commission_percent')
       .eq('company_id', companyId!);
 
     if (!appointments) return;
 
-    const commissionMap: Record<string, { type: string; value: number }> = {};
+    const collabMap: Record<string, { type: string; commType: string; value: number }> = {};
     if (collaborators) {
-      for (const collaborator of collaborators) {
-        commissionMap[collaborator.profile_id] = {
-          type: collaborator.commission_type || 'none',
-          value: collaborator.commission_value ?? collaborator.commission_percent ?? 0,
+      for (const c of collaborators) {
+        collabMap[c.profile_id] = {
+          type: c.collaborator_type || 'commissioned',
+          commType: c.commission_type || 'none',
+          value: c.commission_value ?? c.commission_percent ?? 0,
         };
       }
     }
 
     const grouped: Record<string, { name: string; revenue: number; count: number; profileId: string }> = {};
-    for (const appointment of appointments) {
-      const professionalId = appointment.professional_id;
-      const name = appointment.professional?.full_name || 'Sem nome';
-      if (!grouped[professionalId]) {
-        grouped[professionalId] = { name, revenue: 0, count: 0, profileId: professionalId };
-      }
-      grouped[professionalId].revenue += Number(appointment.total_price);
-      grouped[professionalId].count += 1;
+    for (const apt of appointments) {
+      const pid = apt.professional_id;
+      const name = apt.professional?.full_name || 'Sem nome';
+      if (!grouped[pid]) grouped[pid] = { name, revenue: 0, count: 0, profileId: pid };
+      grouped[pid].revenue += Number(apt.total_price);
+      grouped[pid].count += 1;
     }
 
-    const professionalReports: ProfessionalReport[] = Object.entries(grouped).map(([id, groupedProfessional]) => {
-      const commission = commissionMap[groupedProfessional.profileId] || { type: 'none', value: 0 };
-      let commissionAmount = 0;
-
-      if (commission.type === 'percentage') {
-        commissionAmount = (groupedProfessional.revenue * commission.value) / 100;
-      } else if (commission.type === 'fixed') {
-        commissionAmount = commission.value * groupedProfessional.count;
-      }
+    let reports: ProfessionalReport[] = Object.entries(grouped).map(([id, g]) => {
+      const collab = collabMap[g.profileId] || { type: 'commissioned', commType: 'none', value: 0 };
+      const fin = calculateFinancials(g.revenue, g.count, collab.type, collab.commType, collab.value);
 
       return {
         id,
-        name: groupedProfessional.name,
-        totalServices: groupedProfessional.count,
-        totalRevenue: groupedProfessional.revenue,
-        commissionType: commission.type,
-        commissionValue: commission.value,
-        commissionAmount,
-        netAmount: groupedProfessional.revenue - commissionAmount,
+        name: g.name,
+        totalServices: g.count,
+        totalRevenue: g.revenue,
+        collaboratorType: collab.type,
+        commissionType: collab.commType,
+        commissionValue: collab.value,
+        professionalValue: fin.professionalValue,
+        companyValue: fin.companyValue,
       };
     });
 
-    professionalReports.sort((a, b) => b.totalRevenue - a.totalRevenue);
+    // Filter by role type
+    if (filterRoleType !== 'all') {
+      reports = reports.filter((r) => r.collaboratorType === filterRoleType);
+    }
 
-    const revenue = appointments.reduce((sum, appointment) => sum + Number(appointment.total_price), 0);
-    const commissions = professionalReports.reduce((sum, professional) => sum + professional.commissionAmount, 0);
+    reports.sort((a, b) => b.totalRevenue - a.totalRevenue);
+
+    const revenue = reports.reduce((s, r) => s + r.totalRevenue, 0);
+    const profValue = reports.reduce((s, r) => s + r.professionalValue, 0);
+    const compValue = reports.reduce((s, r) => s + r.companyValue, 0);
 
     setTotalRevenue(revenue);
-    setTotalCount(appointments.length);
-    setProfessionals(professionalReports);
-    setTotalCommission(commissions);
-  };
-
-  const commissionLabel = (type: string, value: number) => {
-    if (type === 'percentage') return `${value}%`;
-    if (type === 'fixed') return `R$ ${value.toFixed(2)}/serviço`;
-    return 'Sem comissão';
+    setTotalCount(reports.reduce((s, r) => s + r.totalServices, 0));
+    setProfessionals(reports);
+    setTotalProfessionalValue(profValue);
+    setTotalCompanyValue(compValue);
   };
 
   const periodLabel = period === 'day' ? 'do Dia' : period === 'week' ? 'da Semana' : 'do Mês';
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-xl font-display font-bold">Relatórios Financeiros</h2>
           <p className="text-sm text-muted-foreground">Faturamento e comissões {periodLabel.toLowerCase()}</p>
         </div>
-        <div className="flex gap-1 rounded-lg bg-muted p-1">
-          {(['day', 'week', 'month'] as Period[]).map((currentPeriod) => (
-            <Button key={currentPeriod} variant={period === currentPeriod ? 'default' : 'ghost'} size="sm" onClick={() => setPeriod(currentPeriod)}>
-              {currentPeriod === 'day' ? 'Dia' : currentPeriod === 'week' ? 'Semana' : 'Mês'}
-            </Button>
-          ))}
+        <div className="flex flex-wrap gap-2">
+          {isAdmin && (
+            <>
+              <Select value={filterProfessional} onValueChange={setFilterProfessional}>
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue placeholder="Profissional" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos</SelectItem>
+                  {collaboratorsList.map((c) => (
+                    <SelectItem key={c.profile_id} value={c.profile_id}>
+                      {(c.profile as any)?.full_name || 'Sem nome'}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select value={filterRoleType} onValueChange={setFilterRoleType}>
+                <SelectTrigger className="w-[160px]">
+                  <SelectValue placeholder="Tipo" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos os tipos</SelectItem>
+                  <SelectItem value="partner">Sócio</SelectItem>
+                  <SelectItem value="commissioned">Comissionado</SelectItem>
+                  <SelectItem value="independent">Independente</SelectItem>
+                </SelectContent>
+              </Select>
+            </>
+          )}
+          <div className="flex gap-1 rounded-lg bg-muted p-1">
+            {(['day', 'week', 'month'] as Period[]).map((p) => (
+              <Button key={p} variant={period === p ? 'default' : 'ghost'} size="sm" onClick={() => setPeriod(p)}>
+                {p === 'day' ? 'Dia' : p === 'week' ? 'Semana' : 'Mês'}
+              </Button>
+            ))}
+          </div>
         </div>
       </div>
 
@@ -166,8 +222,8 @@ const Reports = () => {
               <Briefcase className="h-6 w-6 text-warning" />
             </div>
             <div>
-              <p className="text-sm text-muted-foreground">Total Comissões</p>
-              <p className="text-2xl font-display font-bold">R$ {totalCommission.toFixed(2)}</p>
+              <p className="text-sm text-muted-foreground">Valor Profissionais</p>
+              <p className="text-2xl font-display font-bold">R$ {totalProfessionalValue.toFixed(2)}</p>
             </div>
           </CardContent>
         </Card>
@@ -178,7 +234,7 @@ const Reports = () => {
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Líquido Empresa</p>
-              <p className="text-2xl font-display font-bold">R$ {(totalRevenue - totalCommission).toFixed(2)}</p>
+              <p className="text-2xl font-display font-bold">R$ {totalCompanyValue.toFixed(2)}</p>
             </div>
           </CardContent>
         </Card>
@@ -198,48 +254,55 @@ const Reports = () => {
               <TableHeader>
                 <TableRow>
                   <TableHead>Profissional</TableHead>
+                  <TableHead className="text-center">Tipo</TableHead>
                   <TableHead className="text-center">Serviços</TableHead>
                   <TableHead className="text-right">Faturado</TableHead>
                   <TableHead className="text-center">Comissão</TableHead>
-                  <TableHead className="text-right">Valor Comissão</TableHead>
-                  <TableHead className="text-right">Líquido Prof.</TableHead>
+                  <TableHead className="text-right">Valor Prof.</TableHead>
+                  <TableHead className="text-right">Valor Empresa</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {professionals.map((professional) => (
-                  <TableRow key={professional.id}>
+                {professionals.map((p) => (
+                  <TableRow key={p.id}>
                     <TableCell>
                       <div className="flex items-center gap-3">
                         <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-sm font-bold text-primary">
-                          {professional.name.charAt(0)}
+                          {p.name.charAt(0)}
                         </div>
-                        <span className="font-medium">{professional.name}</span>
+                        <span className="font-medium">{p.name}</span>
                       </div>
-                    </TableCell>
-                    <TableCell className="text-center">{professional.totalServices}</TableCell>
-                    <TableCell className="text-right font-display font-semibold">
-                      R$ {professional.totalRevenue.toFixed(2)}
                     </TableCell>
                     <TableCell className="text-center">
                       <Badge variant="outline" className="text-xs">
-                        {commissionLabel(professional.commissionType, professional.commissionValue)}
+                        {collaboratorTypeLabel(p.collaboratorType)}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-center">{p.totalServices}</TableCell>
+                    <TableCell className="text-right font-display font-semibold">
+                      R$ {p.totalRevenue.toFixed(2)}
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <Badge variant="outline" className="text-xs">
+                        {commissionLabel(p.commissionType, p.commissionValue)}
                       </Badge>
                     </TableCell>
                     <TableCell className="text-right font-semibold text-warning">
-                      R$ {professional.commissionAmount.toFixed(2)}
+                      R$ {p.professionalValue.toFixed(2)}
                     </TableCell>
                     <TableCell className="text-right font-display font-bold">
-                      R$ {professional.netAmount.toFixed(2)}
+                      R$ {p.companyValue.toFixed(2)}
                     </TableCell>
                   </TableRow>
                 ))}
                 <TableRow className="border-t-2 font-bold">
                   <TableCell>Total</TableCell>
+                  <TableCell />
                   <TableCell className="text-center">{totalCount}</TableCell>
                   <TableCell className="text-right font-display">R$ {totalRevenue.toFixed(2)}</TableCell>
                   <TableCell />
-                  <TableCell className="text-right text-warning">R$ {totalCommission.toFixed(2)}</TableCell>
-                  <TableCell className="text-right font-display">R$ {(totalRevenue - totalCommission).toFixed(2)}</TableCell>
+                  <TableCell className="text-right text-warning">R$ {totalProfessionalValue.toFixed(2)}</TableCell>
+                  <TableCell className="text-right font-display">R$ {totalCompanyValue.toFixed(2)}</TableCell>
                 </TableRow>
               </TableBody>
             </Table>

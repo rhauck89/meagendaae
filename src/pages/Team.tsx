@@ -138,11 +138,12 @@ const Team = () => {
               </div>
               <div className="space-y-2">
                 <Label>Tipo</Label>
-                <Select value={form.collaborator_type} onValueChange={(value) => setForm({ ...form, collaborator_type: value as 'partner' | 'commissioned' })}>
+                <Select value={form.collaborator_type} onValueChange={(value) => setForm({ ...form, collaborator_type: value as any })}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="partner">Sócio</SelectItem>
                     <SelectItem value="commissioned">Comissionado</SelectItem>
+                    <SelectItem value="independent">Independente</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -200,7 +201,7 @@ const Team = () => {
               </div>
               <div className="flex items-center gap-2">
                 <Badge variant="outline">
-                  {collaborator.collaborator_type === 'partner' ? 'Sócio' : 'Comissionado'}
+                  {collaborator.collaborator_type === 'partner' ? 'Sócio' : collaborator.collaborator_type === 'independent' ? 'Independente' : 'Comissionado'}
                 </Badge>
                 <Badge variant="secondary" className="flex items-center gap-1">
                   {collaborator.commission_type === 'percentage' && <><Percent className="h-3 w-3" /> {paymentLabel(collaborator.commission_type, collaborator.commission_value)}</>}

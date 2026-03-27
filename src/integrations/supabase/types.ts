@@ -798,7 +798,7 @@ export type Database = {
         | "completed"
         | "no_show"
       business_type: "barbershop" | "esthetic"
-      collaborator_type: "partner" | "commissioned"
+      collaborator_type: "partner" | "commissioned" | "independent"
       commission_type: "percentage" | "fixed" | "none"
       subscription_status: "active" | "inactive" | "blocked" | "trial"
       waiting_list_status:
@@ -952,7 +952,7 @@ export const Constants = {
         "no_show",
       ],
       business_type: ["barbershop", "esthetic"],
-      collaborator_type: ["partner", "commissioned"],
+      collaborator_type: ["partner", "commissioned", "independent"],
       commission_type: ["percentage", "fixed", "none"],
       subscription_status: ["active", "inactive", "blocked", "trial"],
       waiting_list_status: [
