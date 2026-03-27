@@ -376,6 +376,8 @@ export type Database = {
           full_name: string
           id: string
           last_visit_date: string | null
+          opt_in_date: string | null
+          opt_in_whatsapp: boolean
           updated_at: string
           user_id: string
           whatsapp: string | null
@@ -391,6 +393,8 @@ export type Database = {
           full_name: string
           id?: string
           last_visit_date?: string | null
+          opt_in_date?: string | null
+          opt_in_whatsapp?: boolean
           updated_at?: string
           user_id: string
           whatsapp?: string | null
@@ -406,6 +410,8 @@ export type Database = {
           full_name?: string
           id?: string
           last_visit_date?: string | null
+          opt_in_date?: string | null
+          opt_in_whatsapp?: boolean
           updated_at?: string
           user_id?: string
           whatsapp?: string | null
