@@ -289,54 +289,91 @@ const SettingsPage = () => {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="space-y-3">
+          <div className="space-y-4">
             {hours.length === 0 && (
               <p className="text-sm text-muted-foreground text-center py-4">Carregando horários...</p>
             )}
-            {hours.map((h) => (
-              <div key={h.id} className="flex flex-wrap items-center gap-3 p-3 rounded-lg bg-muted/50">
-                <div className="w-24 font-medium text-sm">{dayNames[h.day_of_week]}</div>
-                <div className="flex items-center gap-2">
-                  <Label className="text-xs">Aberto</Label>
-                  <Switch
-                    checked={!h.is_closed}
-                    onCheckedChange={(v) => updateHour(h.id, 'is_closed', !v)}
-                  />
+            {hours.map((h) => {
+              const hasBreak = !!(h.lunch_start && h.lunch_end);
+              return (
+                <div key={h.id} className="p-4 rounded-lg border bg-card space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="font-medium text-sm">{dayNames[h.day_of_week]}</span>
+                    <div className="flex items-center gap-2">
+                      <Label className="text-xs text-muted-foreground">Aberto</Label>
+                      <Switch
+                        checked={!h.is_closed}
+                        onCheckedChange={(v) => updateHour(h.id, 'is_closed', !v)}
+                      />
+                    </div>
+                  </div>
+
+                  {!h.is_closed && (
+                    <div className="space-y-3 pl-1">
+                      <div className="flex items-center gap-3">
+                        <div className="space-y-1">
+                          <Label className="text-xs text-muted-foreground">Início</Label>
+                          <Input
+                            type="time"
+                            value={h.open_time || ''}
+                            onChange={(e) => updateHour(h.id, 'open_time', e.target.value)}
+                            className="w-28"
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs text-muted-foreground">Fim</Label>
+                          <Input
+                            type="time"
+                            value={h.close_time || ''}
+                            onChange={(e) => updateHour(h.id, 'close_time', e.target.value)}
+                            className="w-28"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2 pt-1">
+                        <Switch
+                          checked={hasBreak}
+                          onCheckedChange={(v) => {
+                            if (v) {
+                              updateHour(h.id, 'lunch_start', '12:00');
+                              updateHour(h.id, 'lunch_end', '13:00');
+                            } else {
+                              updateHour(h.id, 'lunch_start', null);
+                              updateHour(h.id, 'lunch_end', null);
+                            }
+                          }}
+                        />
+                        <Label className="text-xs text-muted-foreground">Pausa / Almoço</Label>
+                      </div>
+
+                      {hasBreak && (
+                        <div className="flex items-center gap-3 pl-1">
+                          <div className="space-y-1">
+                            <Label className="text-xs text-muted-foreground">Início pausa</Label>
+                            <Input
+                              type="time"
+                              value={h.lunch_start || ''}
+                              onChange={(e) => updateHour(h.id, 'lunch_start', e.target.value)}
+                              className="w-28"
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <Label className="text-xs text-muted-foreground">Fim pausa</Label>
+                            <Input
+                              type="time"
+                              value={h.lunch_end || ''}
+                              onChange={(e) => updateHour(h.id, 'lunch_end', e.target.value)}
+                              className="w-28"
+                            />
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
-                {!h.is_closed && (
-                  <>
-                    <span className="text-xs text-muted-foreground">Abre:</span>
-                    <Input
-                      type="time"
-                      value={h.open_time || ''}
-                      onChange={(e) => updateHour(h.id, 'open_time', e.target.value)}
-                      className="w-28"
-                    />
-                    <span className="text-xs text-muted-foreground">Almoço:</span>
-                    <Input
-                      type="time"
-                      value={h.lunch_start || ''}
-                      onChange={(e) => updateHour(h.id, 'lunch_start', e.target.value)}
-                      className="w-28"
-                    />
-                    <span className="text-xs">-</span>
-                    <Input
-                      type="time"
-                      value={h.lunch_end || ''}
-                      onChange={(e) => updateHour(h.id, 'lunch_end', e.target.value)}
-                      className="w-28"
-                    />
-                    <span className="text-xs text-muted-foreground">Fecha:</span>
-                    <Input
-                      type="time"
-                      value={h.close_time || ''}
-                      onChange={(e) => updateHour(h.id, 'close_time', e.target.value)}
-                      className="w-28"
-                    />
-                  </>
-                )}
-              </div>
-            ))}
+              );
+            })}
           </div>
         </CardContent>
       </Card>
