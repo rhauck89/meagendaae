@@ -39,14 +39,14 @@ Deno.serve(async (req) => {
 
       const { data: dueClients } = await supabase
         .from("profiles")
-        .select("id, full_name, whatsapp, expected_return_date, average_return_days, last_visit_date")
+        .select("id, full_name, whatsapp, email, expected_return_date, average_return_days, last_visit_date")
         .eq("company_id", company.id)
         .not("expected_return_date", "is", null)
         .lte("expected_return_date", thresholdDate.toISOString().split("T")[0]);
 
       if (!dueClients || dueClients.length === 0) continue;
 
-      // Check which webhook configs are active for client_return_due
+      // Get webhook configs
       const { data: webhookConfigs } = await supabase
         .from("webhook_configs")
         .select("url")
@@ -55,15 +55,37 @@ Deno.serve(async (req) => {
         .eq("active", true);
 
       for (const client of dueClients) {
+        // Get last appointment to include professional/service info
+        const { data: lastApt } = await supabase
+          .from("appointments")
+          .select("*, professional:profiles!appointments_professional_id_fkey(full_name), appointment_services(service:services(name))")
+          .eq("client_id", client.id)
+          .eq("company_id", company.id)
+          .eq("status", "completed")
+          .order("start_time", { ascending: false })
+          .limit(1)
+          .single();
+
+        const serviceNames = lastApt?.appointment_services
+          ?.map((as: any) => as.service?.name)
+          .filter(Boolean)
+          .join(", ") || "";
+
         const payload = {
           event: "client_return_due",
           company_id: company.id,
           client_id: client.id,
-          client_name: client.full_name,
-          client_whatsapp: client.whatsapp,
+          client_name: client.full_name || "",
+          client_whatsapp: client.whatsapp || "",
+          client_email: client.email || "",
+          professional_name: lastApt?.professional?.full_name || "",
+          service_name: serviceNames,
           average_return_days: client.average_return_days,
           last_visit_date: client.last_visit_date,
           expected_return_date: client.expected_return_date,
+          appointment_id: lastApt?.id || null,
+          appointment_date: lastApt?.start_time?.split("T")[0] || "",
+          appointment_time: lastApt?.start_time?.split("T")[1]?.substring(0, 5) || "",
         };
 
         // Log webhook event

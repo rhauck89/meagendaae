@@ -259,6 +259,9 @@ const Booking = () => {
           .eq('event_type', 'appointment_created')
           .eq('active', true);
 
+        const professionalProfile = professionals.find((p) => p.id === selectedProfessional);
+        const serviceNames = selectedServices.map((sid) => services.find((s) => s.id === sid)?.name).filter(Boolean);
+
         const createdPayload = {
           event: 'appointment_created',
           appointment_id: appointment.id,
@@ -266,10 +269,14 @@ const Booking = () => {
           client_name: clientForm.full_name,
           client_whatsapp: clientForm.whatsapp,
           client_email: clientForm.email,
+          professional_name: professionalProfile?.full_name || '',
+          service_name: serviceNames.join(', '),
+          services: serviceNames,
+          appointment_date: format(startTime, 'yyyy-MM-dd'),
+          appointment_time: format(startTime, 'HH:mm'),
           start_time: startTime.toISOString(),
           end_time: endTime.toISOString(),
           total_price: totalPrice,
-          services: selectedServices.map((sid) => services.find((s) => s.id === sid)?.name),
         };
 
         await supabase.from('webhook_events').insert({

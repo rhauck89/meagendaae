@@ -26,7 +26,18 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Find waiting clients for this date, company, and optionally professional
+    // Get professional name
+    let professionalName = "";
+    if (professional_id) {
+      const { data: prof } = await supabase
+        .from("profiles")
+        .select("full_name")
+        .eq("id", professional_id)
+        .single();
+      professionalName = prof?.full_name || "";
+    }
+
+    // Find waiting clients
     let query = supabase
       .from("waiting_list")
       .select("*, client:profiles!waiting_list_client_id_fkey(full_name, whatsapp, email)")
@@ -51,7 +62,6 @@ Deno.serve(async (req) => {
 
     let notifiedCount = 0;
 
-    // Get webhook configs for slot_available
     const { data: webhookConfigs } = await supabase
       .from("webhook_configs")
       .select("url")
@@ -60,27 +70,39 @@ Deno.serve(async (req) => {
       .eq("active", true);
 
     for (const entry of waitingClients) {
-      // Update status to notified
       await supabase
         .from("waiting_list")
         .update({ status: "notified" })
         .eq("id", entry.id);
+
+      // Resolve service names
+      let serviceNames = "";
+      if (entry.service_ids && entry.service_ids.length > 0) {
+        const { data: svcs } = await supabase
+          .from("services")
+          .select("name")
+          .in("id", entry.service_ids);
+        serviceNames = (svcs || []).map((s: any) => s.name).join(", ");
+      }
 
       const payload = {
         event: "slot_available",
         company_id,
         waiting_list_id: entry.id,
         client_id: entry.client_id,
-        client_name: entry.client?.full_name,
-        client_whatsapp: entry.client?.whatsapp,
-        client_email: entry.client?.email,
+        client_name: entry.client?.full_name || "",
+        client_whatsapp: entry.client?.whatsapp || "",
+        client_email: entry.client?.email || "",
+        professional_name: professionalName,
+        service_name: serviceNames,
+        appointment_date: entry.desired_date,
+        appointment_time: cancelled_start ? cancelled_start.split("T")[1]?.substring(0, 5) || "" : "",
         desired_date: entry.desired_date,
         service_ids: entry.service_ids,
         cancelled_start,
         cancelled_end,
       };
 
-      // Log event
       await supabase.from("webhook_events").insert({
         company_id,
         event_type: "slot_available",
@@ -88,7 +110,6 @@ Deno.serve(async (req) => {
         status: webhookConfigs && webhookConfigs.length > 0 ? "sent" : "no_config",
       });
 
-      // Fire webhooks
       for (const config of webhookConfigs || []) {
         try {
           await fetch(config.url, {
