@@ -316,7 +316,85 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
     }
   }, [selectedDate, selectedProfessional, professionalHours, businessHours, totalDuration]);
 
-  const handleJoinWaitlist = async () => {
+  // Fetch next available slots across 7 days
+  const fetchNextAvailableSlots = async () => {
+    if (!company || !selectedProfessional || businessHours.length === 0 || totalDuration <= 0) {
+      setNextSlots([]);
+      return;
+    }
+
+    setNextSlotsLoading(true);
+    const results: { date: Date; slots: string[] }[] = [];
+    let totalSlotsFound = 0;
+    const MAX_SLOTS = 8;
+    const MAX_DAYS = 7;
+    const now = new Date();
+
+    for (let i = 0; i < MAX_DAYS && totalSlotsFound < MAX_SLOTS; i++) {
+      const day = addDays(startOfDay(new Date()), i);
+      const dateStr = format(day, 'yyyy-MM-dd');
+
+      const [apptsRes, blockedRes] = await Promise.all([
+        supabase
+          .from('appointments')
+          .select('start_time, end_time')
+          .eq('company_id', company.id)
+          .eq('professional_id', selectedProfessional)
+          .neq('status', 'cancelled')
+          .gte('start_time', `${dateStr}T00:00:00`)
+          .lte('start_time', `${dateStr}T23:59:59`),
+        supabase
+          .from('blocked_times' as any)
+          .select('block_date, start_time, end_time')
+          .eq('company_id', company.id)
+          .eq('professional_id', selectedProfessional)
+          .eq('block_date', dateStr),
+      ]);
+
+      let slots = calculateAvailableSlots({
+        date: day,
+        totalDuration,
+        businessHours,
+        exceptions,
+        existingAppointments: (apptsRes.data || []) as ExistingAppointment[],
+        slotInterval: 15,
+        bufferMinutes,
+        professionalHours: professionalHours.length > 0 ? professionalHours : undefined,
+        blockedTimes: ((blockedRes.data || []) as unknown as BlockedTime[]),
+        professionalId: selectedProfessional,
+      });
+
+      // Filter past times for today
+      if (isToday(day)) {
+        const currentTime = format(now, 'HH:mm');
+        slots = slots.filter(s => s > currentTime);
+      }
+
+      if (slots.length > 0) {
+        const remaining = MAX_SLOTS - totalSlotsFound;
+        const daySlots = slots.slice(0, remaining);
+        results.push({ date: day, slots: daySlots });
+        totalSlotsFound += daySlots.length;
+      }
+    }
+
+    setNextSlots(results);
+    setNextSlotsLoading(false);
+  };
+
+  // Trigger next-slots calculation when professional is selected and services are chosen
+  useEffect(() => {
+    if (selectedProfessional && businessHours.length > 0 && totalDuration > 0 && step !== 'client' && step !== 'confirm') {
+      fetchNextAvailableSlots();
+    }
+  }, [selectedProfessional, professionalHours, businessHours, totalDuration]);
+
+  const handleQuickSlot = (date: Date, time: string) => {
+    setSelectedDate(date);
+    setSelectedTime(time);
+    setStep('client');
+  };
+
     if (!company || !selectedDate || !selectedProfessional) return;
     setWaitlistLoading(true);
     try {
