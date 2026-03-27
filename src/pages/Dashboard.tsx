@@ -179,7 +179,7 @@ const Dashboard = () => {
   return (
     <div className="space-y-6">
       {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
         <Card>
           <CardContent className="p-4 flex items-center gap-4">
             <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
@@ -223,6 +223,17 @@ const Dashboard = () => {
             <div>
               <p className="text-sm text-muted-foreground">Aguardando vaga</p>
               <p className="text-2xl font-display font-bold">{waitlistCount}</p>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4 flex items-center gap-4">
+            <div className="w-12 h-12 rounded-xl bg-secondary/10 flex items-center justify-center">
+              <Mail className="h-6 w-6 text-secondary" />
+            </div>
+            <div>
+              <p className="text-sm text-muted-foreground">Lembretes enviados</p>
+              <p className="text-2xl font-display font-bold">{reminderCount}</p>
             </div>
           </CardContent>
         </Card>
