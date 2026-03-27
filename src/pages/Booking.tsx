@@ -95,7 +95,7 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
     setBusinessType(resolvedType);
 
     const [servicesRes, hoursRes, exceptionsRes, companyRes] = await Promise.all([
-      supabase.from('services').select('*').eq('company_id', comp.id).eq('active', true).order('name'),
+      supabase.from('public_services' as any).select('*').eq('company_id', comp.id).order('name'),
       supabase.from('business_hours').select('*').eq('company_id', comp.id),
       supabase.from('business_exceptions').select('*').eq('company_id', comp.id),
       supabase.from('companies').select('buffer_minutes').eq('id', comp.id).single(),

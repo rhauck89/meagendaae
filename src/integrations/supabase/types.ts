@@ -48,6 +48,13 @@ export type Database = {
             foreignKeyName: "appointment_services_service_id_fkey"
             columns: ["service_id"]
             isOneToOne: false
+            referencedRelation: "public_services"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "appointment_services_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
             referencedRelation: "services"
             referencedColumns: ["id"]
           },
@@ -585,6 +592,13 @@ export type Database = {
             foreignKeyName: "service_professionals_service_id_fkey"
             columns: ["service_id"]
             isOneToOne: false
+            referencedRelation: "public_services"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "service_professionals_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
             referencedRelation: "services"
             referencedColumns: ["id"]
           },
@@ -868,6 +882,38 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "collaborators_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      public_services: {
+        Row: {
+          company_id: string | null
+          duration_minutes: number | null
+          id: string | null
+          name: string | null
+          price: number | null
+        }
+        Insert: {
+          company_id?: string | null
+          duration_minutes?: number | null
+          id?: string | null
+          name?: string | null
+          price?: number | null
+        }
+        Update: {
+          company_id?: string | null
+          duration_minutes?: number | null
+          id?: string | null
+          name?: string | null
+          price?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "services_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
