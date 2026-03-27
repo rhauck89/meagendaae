@@ -75,11 +75,20 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
 
     // If professional slug provided, auto-select professional
     if (professionalSlug) {
-      const { data: collabs } = await supabase
+      console.log('[Booking] Resolving professional by slug', { companyId: comp.id, professionalSlug });
+
+      const { data: collabs, error: collabErr } = await supabase
         .from('collaborators')
         .select('*, profile:profiles(*)')
         .eq('company_id', comp.id)
         .eq('slug', professionalSlug);
+
+      console.log('[Booking] Professional slug resolution', {
+        slug: professionalSlug,
+        found: collabs?.length ?? 0,
+        error: collabErr?.message,
+        results: collabs?.map((c: any) => ({ profile_id: c.profile_id, slug: c.slug, name: c.profile?.full_name })),
+      });
 
       if (collabs && collabs.length > 0) {
         const collab = collabs[0];
@@ -92,16 +101,22 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
           .select('service_id, price_override')
           .eq('professional_id', profileId);
 
+        console.log('[Booking] Professional services', {
+          professional: collab.profile?.full_name,
+          servicesLinked: profServices?.length ?? 0,
+          serviceIds: profServices?.map((ps: any) => ps.service_id),
+        });
+
         if (profServices && profServices.length > 0) {
           const profServiceIds = profServices.map((ps: any) => ps.service_id);
           const filteredServices = (servicesRes.data || []).filter((s: any) => profServiceIds.includes(s.id));
-          // Apply price overrides
           const withOverrides = filteredServices.map((s: any) => {
             const override = profServices.find((ps: any) => ps.service_id === s.id);
             return override?.price_override != null ? { ...s, price: override.price_override } : s;
           });
           setServices(withOverrides);
         }
+        // If no service_professionals links, keep all company services (already set above)
 
         // Fetch professional hours
         const { data: profHours } = await supabase
@@ -113,6 +128,8 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
         }
 
         setProfessionals([collab.profile]);
+      } else {
+        console.warn('[Booking] Professional slug not found, showing all professionals');
       }
     }
   };
