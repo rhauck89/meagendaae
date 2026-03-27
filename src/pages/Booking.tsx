@@ -216,8 +216,8 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
 
         await supabase.from('profiles').update({
           company_id: company.id,
-          whatsapp: clientForm.whatsapp,
-          birth_date: clientForm.birth_date || null,
+            whatsapp: formatWhatsApp(clientForm.whatsapp),
+            birth_date: clientForm.birth_date || null,
         }).eq('user_id', userId);
 
         await supabase.from('user_roles').insert({
@@ -262,10 +262,10 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
         userId = existingSession.session.user.id;
         await supabase
           .from('profiles')
-          .update({
-            full_name: clientForm.full_name || undefined,
-            whatsapp: clientForm.whatsapp || undefined,
-            birth_date: clientForm.birth_date || undefined,
+           .update({
+             full_name: clientForm.full_name || undefined,
+             whatsapp: clientForm.whatsapp ? formatWhatsApp(clientForm.whatsapp) : undefined,
+             birth_date: clientForm.birth_date || undefined,
           })
           .eq('user_id', userId);
       } else {
@@ -690,7 +690,7 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
             <Button
               onClick={() => setStep('confirm')}
               className={cn('w-full', isDark ? 'bg-amber-500 hover:bg-amber-600 text-black' : 'bg-rose-400 hover:bg-rose-500 text-white')}
-              disabled={!clientForm.full_name || !clientForm.whatsapp}
+              disabled={!clientForm.full_name || !clientForm.whatsapp || !isValidWhatsApp(clientForm.whatsapp)}
             >
               Revisar Agendamento <ChevronRight className="h-4 w-4 ml-1" />
             </Button>
