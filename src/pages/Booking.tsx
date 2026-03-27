@@ -45,6 +45,8 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
   const [loading, setLoading] = useState(false);
   const [slotsLoading, setSlotsLoading] = useState(false);
   const [waitlistLoading, setWaitlistLoading] = useState(false);
+  const [nextSlots, setNextSlots] = useState<{ date: Date; slots: string[] }[]>([]);
+  const [nextSlotsLoading, setNextSlotsLoading] = useState(false);
 
   const isDark = businessType === 'barbershop';
 
