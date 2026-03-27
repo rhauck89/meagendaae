@@ -731,6 +731,7 @@ export type Database = {
           slug: string
         }[]
       }
+      get_my_company_id: { Args: never; Returns: string }
       get_user_company_id: { Args: { _user_id: string }; Returns: string }
       has_company_role: {
         Args: {
