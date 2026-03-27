@@ -412,6 +412,21 @@ const Dashboard = () => {
                 Hoje
               </Button>
             </div>
+            {isAdmin && (
+              <Select value={filterProfessional} onValueChange={setFilterProfessional}>
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue placeholder="Profissional" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos</SelectItem>
+                  {collaboratorsList.map((c) => (
+                    <SelectItem key={c.profile_id} value={c.profile_id}>
+                      {(c.profile as any)?.full_name || 'Sem nome'}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
             <div className="flex gap-1 bg-muted rounded-lg p-1">
               {(['day', 'week', 'month'] as ViewMode[]).map((mode) => (
                 <Button

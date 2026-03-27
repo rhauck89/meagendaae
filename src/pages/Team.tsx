@@ -138,11 +138,12 @@ const Team = () => {
               </div>
               <div className="space-y-2">
                 <Label>Tipo</Label>
-                <Select value={form.collaborator_type} onValueChange={(value) => setForm({ ...form, collaborator_type: value as 'partner' | 'commissioned' })}>
+                <Select value={form.collaborator_type} onValueChange={(value) => setForm({ ...form, collaborator_type: value as any })}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="partner">Sócio</SelectItem>
                     <SelectItem value="commissioned">Comissionado</SelectItem>
+                    <SelectItem value="independent">Independente</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
