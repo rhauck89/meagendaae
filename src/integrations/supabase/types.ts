@@ -204,6 +204,8 @@ export type Database = {
           active: boolean
           collaborator_type: Database["public"]["Enums"]["collaborator_type"]
           commission_percent: number | null
+          commission_type: Database["public"]["Enums"]["commission_type"]
+          commission_value: number
           company_id: string
           created_at: string
           id: string
@@ -213,6 +215,8 @@ export type Database = {
           active?: boolean
           collaborator_type: Database["public"]["Enums"]["collaborator_type"]
           commission_percent?: number | null
+          commission_type?: Database["public"]["Enums"]["commission_type"]
+          commission_value?: number
           company_id: string
           created_at?: string
           id?: string
@@ -222,6 +226,8 @@ export type Database = {
           active?: boolean
           collaborator_type?: Database["public"]["Enums"]["collaborator_type"]
           commission_percent?: number | null
+          commission_type?: Database["public"]["Enums"]["commission_type"]
+          commission_value?: number
           company_id?: string
           created_at?: string
           id?: string
@@ -663,6 +669,7 @@ export type Database = {
         | "completed"
         | "no_show"
       collaborator_type: "partner" | "commissioned"
+      commission_type: "percentage" | "fixed" | "none"
       subscription_status: "active" | "inactive" | "blocked" | "trial"
       waiting_list_status:
         | "waiting"
@@ -813,6 +820,7 @@ export const Constants = {
         "no_show",
       ],
       collaborator_type: ["partner", "commissioned"],
+      commission_type: ["percentage", "fixed", "none"],
       subscription_status: ["active", "inactive", "blocked", "trial"],
       waiting_list_status: [
         "waiting",
