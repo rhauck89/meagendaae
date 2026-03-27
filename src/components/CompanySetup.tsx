@@ -58,6 +58,7 @@ const CompanySetup = ({ onComplete }: CompanySetupProps) => {
       lunch_start: '12:00',
       lunch_end: '13:00',
       is_closed: i === 0,
+      break_enabled: i !== 0, // break enabled by default for open days
     }))
   );
 
@@ -156,7 +157,15 @@ const CompanySetup = ({ onComplete }: CompanySetupProps) => {
     if (!companyId) return;
     setLoading(true);
     try {
-      const rows = hours.map((h) => ({ ...h, company_id: companyId }));
+      const rows = hours.map((h) => ({
+        company_id: companyId,
+        day_of_week: h.day_of_week,
+        open_time: h.open_time,
+        close_time: h.close_time,
+        lunch_start: h.break_enabled ? h.lunch_start : null,
+        lunch_end: h.break_enabled ? h.lunch_end : null,
+        is_closed: h.is_closed,
+      }));
       await supabase.from('business_hours').insert(rows);
       toast.success('Horários configurados!');
       setStep('branding');
@@ -237,24 +246,74 @@ const CompanySetup = ({ onComplete }: CompanySetupProps) => {
     if (!companyId || !profName.trim() || !profEmail.trim()) return;
     setLoading(true);
     try {
-      const response = await supabase.functions.invoke('create-collaborator', {
-        body: {
-          name: profName.trim(),
-          email: profEmail.trim(),
-          company_id: companyId,
-          collaborator_type: 'commissioned',
-          payment_type: profPaymentType,
-          commission_value: profPaymentType === 'none' ? 0 : profCommissionValue,
-          role: 'collaborator',
-          whatsapp: profWhatsApp.trim() ? formatWhatsApp(profWhatsApp) : null,
-        },
-      });
+      if (isSelfAttend && user) {
+        // Self-attend: use the logged-in user's existing profile directly
+        const { data: myProfile } = await supabase
+          .from('profiles')
+          .select('id')
+          .eq('user_id', user.id)
+          .single();
 
-      if (response.error) throw new Error(response.error.message);
-      if (!response.data?.success) throw new Error(response.data?.error || 'Erro');
+        if (!myProfile) throw new Error('Perfil não encontrado');
 
-      toast.success('Profissional adicionado!');
-      setStep('done');
+        // Update profile with WhatsApp if provided
+        if (profWhatsApp.trim()) {
+          await supabase
+            .from('profiles')
+            .update({ whatsapp: formatWhatsApp(profWhatsApp) } as any)
+            .eq('user_id', user.id);
+        }
+
+        // Create collaborator record directly
+        const { data: existingCollab } = await supabase
+          .from('collaborators')
+          .select('id')
+          .eq('company_id', companyId)
+          .eq('profile_id', myProfile.id)
+          .maybeSingle();
+
+        if (!existingCollab) {
+          const slug = profName
+            .toLowerCase()
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .replace(/[^a-z0-9]+/g, '-')
+            .replace(/(^-|-$)/g, '');
+
+          await supabase.from('collaborators').insert({
+            company_id: companyId,
+            profile_id: myProfile.id,
+            collaborator_type: 'commissioned' as const,
+            commission_type: profPaymentType as any,
+            commission_value: profPaymentType === 'none' ? 0 : profCommissionValue,
+            commission_percent: profPaymentType === 'percentage' ? profCommissionValue : 0,
+            slug,
+          });
+        }
+
+        toast.success('Profissional adicionado!');
+        setStep('done');
+      } else {
+        // External professional: use edge function
+        const response = await supabase.functions.invoke('create-collaborator', {
+          body: {
+            name: profName.trim(),
+            email: profEmail.trim(),
+            company_id: companyId,
+            collaborator_type: 'commissioned',
+            payment_type: profPaymentType,
+            commission_value: profPaymentType === 'none' ? 0 : profCommissionValue,
+            role: 'collaborator',
+            whatsapp: profWhatsApp.trim() ? formatWhatsApp(profWhatsApp) : null,
+          },
+        });
+
+        if (response.error) throw new Error(response.error.message);
+        if (!response.data?.success) throw new Error(response.data?.error || 'Erro');
+
+        toast.success('Profissional adicionado!');
+        setStep('done');
+      }
     } catch (err: any) {
       // Don't block onboarding if collaborator creation fails
       console.error('Professional creation error:', err);
@@ -372,23 +431,41 @@ const CompanySetup = ({ onComplete }: CompanySetupProps) => {
             {/* ───── Step 2: Hours ───── */}
             {step === 'hours' && (
               <>
-                <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
+                <div className="space-y-2 max-h-80 overflow-y-auto pr-1">
                   {hours.map((h) => (
-                    <div key={h.day_of_week} className="flex flex-wrap items-center gap-2 p-2.5 rounded-lg bg-muted/50">
-                      <span className="w-20 text-sm font-medium">{dayNames[h.day_of_week]}</span>
-                      <Switch
-                        checked={!h.is_closed}
-                        onCheckedChange={(v) => updateHour(h.day_of_week, 'is_closed', !v)}
-                      />
+                    <div key={h.day_of_week} className="p-2.5 rounded-lg bg-muted/50 space-y-2">
+                      <div className="flex items-center gap-2">
+                        <span className="w-20 text-sm font-medium">{dayNames[h.day_of_week]}</span>
+                        <Switch
+                          checked={!h.is_closed}
+                          onCheckedChange={(v) => updateHour(h.day_of_week, 'is_closed', !v)}
+                        />
+                        {!h.is_closed && (
+                          <div className="flex items-center gap-1 flex-1">
+                            <Input type="time" value={h.open_time} onChange={(e) => updateHour(h.day_of_week, 'open_time', e.target.value)} className="w-24 h-8 text-xs" />
+                            <span className="text-xs text-muted-foreground">às</span>
+                            <Input type="time" value={h.close_time} onChange={(e) => updateHour(h.day_of_week, 'close_time', e.target.value)} className="w-24 h-8 text-xs" />
+                          </div>
+                        )}
+                      </div>
                       {!h.is_closed && (
-                        <>
-                          <Input type="time" value={h.open_time} onChange={(e) => updateHour(h.day_of_week, 'open_time', e.target.value)} className="w-24 h-8 text-xs" />
-                          <span className="text-xs text-muted-foreground">almoço</span>
-                          <Input type="time" value={h.lunch_start} onChange={(e) => updateHour(h.day_of_week, 'lunch_start', e.target.value)} className="w-24 h-8 text-xs" />
-                          <span className="text-xs">-</span>
-                          <Input type="time" value={h.lunch_end} onChange={(e) => updateHour(h.day_of_week, 'lunch_end', e.target.value)} className="w-24 h-8 text-xs" />
-                          <Input type="time" value={h.close_time} onChange={(e) => updateHour(h.day_of_week, 'close_time', e.target.value)} className="w-24 h-8 text-xs" />
-                        </>
+                        <div className="ml-20 pl-2 flex items-center gap-2">
+                          <Checkbox
+                            id={`break-${h.day_of_week}`}
+                            checked={h.break_enabled}
+                            onCheckedChange={(v) => updateHour(h.day_of_week, 'break_enabled', v === true)}
+                          />
+                          <label htmlFor={`break-${h.day_of_week}`} className="text-xs text-muted-foreground cursor-pointer">
+                            Pausa / almoço
+                          </label>
+                          {h.break_enabled && (
+                            <div className="flex items-center gap-1">
+                              <Input type="time" value={h.lunch_start} onChange={(e) => updateHour(h.day_of_week, 'lunch_start', e.target.value)} className="w-24 h-7 text-xs" />
+                              <span className="text-xs text-muted-foreground">-</span>
+                              <Input type="time" value={h.lunch_end} onChange={(e) => updateHour(h.day_of_week, 'lunch_end', e.target.value)} className="w-24 h-7 text-xs" />
+                            </div>
+                          )}
+                        </div>
                       )}
                     </div>
                   ))}

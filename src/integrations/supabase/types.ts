@@ -117,6 +117,39 @@ export type Database = {
           },
         ]
       }
+      blocked_times: {
+        Row: {
+          block_date: string
+          company_id: string
+          created_at: string
+          end_time: string
+          id: string
+          professional_id: string
+          reason: string | null
+          start_time: string
+        }
+        Insert: {
+          block_date: string
+          company_id: string
+          created_at?: string
+          end_time: string
+          id?: string
+          professional_id: string
+          reason?: string | null
+          start_time: string
+        }
+        Update: {
+          block_date?: string
+          company_id?: string
+          created_at?: string
+          end_time?: string
+          id?: string
+          professional_id?: string
+          reason?: string | null
+          start_time?: string
+        }
+        Relationships: []
+      }
       business_exceptions: {
         Row: {
           close_time: string | null

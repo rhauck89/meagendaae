@@ -14,7 +14,7 @@ import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { formatWhatsApp, displayWhatsApp, isValidWhatsApp } from '@/lib/whatsapp';
-import { calculateAvailableSlots, type BusinessHours, type BusinessException, type ExistingAppointment } from '@/lib/availability-engine';
+import { calculateAvailableSlots, type BusinessHours, type BusinessException, type ExistingAppointment, type BlockedTime } from '@/lib/availability-engine';
 
 type Step = 'services' | 'professional' | 'datetime' | 'client' | 'confirm';
 type BusinessType = 'barbershop' | 'esthetic';
@@ -163,24 +163,33 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
 
     const dateStr = format(date, 'yyyy-MM-dd');
 
-    const { data: existingAppts } = await supabase
-      .from('appointments')
-      .select('start_time, end_time')
-      .eq('company_id', company.id)
-      .eq('professional_id', selectedProfessional)
-      .neq('status', 'cancelled')
-      .gte('start_time', `${dateStr}T00:00:00`)
-      .lte('start_time', `${dateStr}T23:59:59`);
+    const [existingApptsRes, blockedTimesRes] = await Promise.all([
+      supabase
+        .from('appointments')
+        .select('start_time, end_time')
+        .eq('company_id', company.id)
+        .eq('professional_id', selectedProfessional)
+        .neq('status', 'cancelled')
+        .gte('start_time', `${dateStr}T00:00:00`)
+        .lte('start_time', `${dateStr}T23:59:59`),
+      supabase
+        .from('blocked_times' as any)
+        .select('block_date, start_time, end_time')
+        .eq('company_id', company.id)
+        .eq('professional_id', selectedProfessional)
+        .eq('block_date', dateStr),
+    ]);
 
     const slots = calculateAvailableSlots({
       date,
       totalDuration,
       businessHours,
       exceptions,
-      existingAppointments: (existingAppts || []) as ExistingAppointment[],
+      existingAppointments: (existingApptsRes.data || []) as ExistingAppointment[],
       slotInterval: 15,
       bufferMinutes,
       professionalHours: professionalHours.length > 0 ? professionalHours : undefined,
+      blockedTimes: ((blockedTimesRes.data || []) as unknown as BlockedTime[]),
     });
 
     setAvailableSlots(slots);
