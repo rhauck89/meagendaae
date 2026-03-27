@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
 import { Scissors } from 'lucide-react';
 
@@ -16,6 +17,7 @@ const Auth = () => {
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
   const [companyName, setCompanyName] = useState('');
+  const [businessType, setBusinessType] = useState<'barbershop' | 'esthetic'>('barbershop');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -45,7 +47,12 @@ const Auth = () => {
         if (authData.user) {
           const { data: company, error: companyError } = await supabase
             .from('companies')
-            .insert({ name: companyName, slug, owner_id: authData.user.id })
+            .insert({
+              name: companyName,
+              slug,
+              owner_id: authData.user.id,
+              business_type: businessType,
+            })
             .select()
             .single();
           if (companyError) throw companyError;
@@ -83,7 +90,8 @@ const Auth = () => {
           await supabase.from('business_hours').insert(defaultHours);
         }
 
-        toast.success('Conta criada! Verifique seu email para confirmar.');
+        toast.success('Conta criada com sucesso!');
+        navigate('/dashboard');
       }
     } catch (error: any) {
       toast.error(error.message || 'Erro ao processar');
@@ -133,6 +141,18 @@ const Auth = () => {
                     required
                     placeholder="Ex: Barbearia do João"
                   />
+                </div>
+                <div className="space-y-2">
+                  <Label>Tipo de negócio</Label>
+                  <Select value={businessType} onValueChange={(v) => setBusinessType(v as 'barbershop' | 'esthetic')}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="barbershop">Barbearia</SelectItem>
+                      <SelectItem value="esthetic">Estética</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
               </>
             )}
