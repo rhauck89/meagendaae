@@ -4,7 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Calendar, ChevronLeft, ChevronRight, Clock, DollarSign, Users, UserCheck, UserMinus, AlertTriangle } from 'lucide-react';
+import { Calendar, ChevronLeft, ChevronRight, Clock, DollarSign, Users, UserCheck, UserMinus, AlertTriangle, Bell } from 'lucide-react';
 import { format, addDays, startOfWeek, endOfWeek, startOfMonth, endOfMonth, isSameDay, parseISO, differenceInDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
@@ -42,11 +42,13 @@ const Dashboard = () => {
   const [appointments, setAppointments] = useState<any[]>([]);
   const [stats, setStats] = useState({ total: 0, revenue: 0, clients: 0 });
   const [returnStats, setReturnStats] = useState<ReturnStats>({ onTime: 0, approaching: 0, overdue: 0, approachingClients: [], overdueClients: [] });
+  const [waitlistCount, setWaitlistCount] = useState(0);
 
   useEffect(() => {
     if (!companyId) return;
     fetchAppointments();
     fetchReturnStats();
+    fetchWaitlistCount();
   }, [companyId, currentDate, viewMode]);
 
   const getDateRange = () => {
@@ -122,20 +124,50 @@ const Dashboard = () => {
     });
   };
 
+  const fetchWaitlistCount = async () => {
+    if (!companyId) return;
+    const { count } = await supabase
+      .from('waiting_list')
+      .select('*', { count: 'exact', head: true })
+      .eq('company_id', companyId)
+      .eq('status', 'waiting');
+    setWaitlistCount(count || 0);
+  };
+
   const navigate = (direction: number) => {
     const days = viewMode === 'day' ? 1 : viewMode === 'week' ? 7 : 30;
     setCurrentDate(addDays(currentDate, direction * days));
   };
 
   const updateStatus = async (id: string, status: string) => {
+    const apt = appointments.find((a) => a.id === id);
     await supabase.from('appointments').update({ status: status as any }).eq('id', id);
+
+    // If cancelling, trigger waitlist check
+    if (status === 'cancelled' && apt) {
+      try {
+        await supabase.functions.invoke('check-waitlist', {
+          body: {
+            company_id: apt.company_id,
+            professional_id: apt.professional_id,
+            cancelled_start: apt.start_time,
+            cancelled_end: apt.end_time,
+            cancelled_date: format(parseISO(apt.start_time), 'yyyy-MM-dd'),
+          },
+        });
+      } catch (err) {
+        console.error('Waitlist check failed:', err);
+      }
+    }
+
     fetchAppointments();
+    fetchWaitlistCount();
   };
 
   return (
     <div className="space-y-6">
       {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
           <CardContent className="p-4 flex items-center gap-4">
             <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
@@ -168,6 +200,17 @@ const Dashboard = () => {
             <div>
               <p className="text-sm text-muted-foreground">Clientes hoje</p>
               <p className="text-2xl font-display font-bold">{stats.clients}</p>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4 flex items-center gap-4">
+            <div className="w-12 h-12 rounded-xl bg-warning/10 flex items-center justify-center">
+              <Bell className="h-6 w-6 text-warning" />
+            </div>
+            <div>
+              <p className="text-sm text-muted-foreground">Aguardando vaga</p>
+              <p className="text-2xl font-display font-bold">{waitlistCount}</p>
             </div>
           </CardContent>
         </Card>
