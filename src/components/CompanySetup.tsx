@@ -6,13 +6,15 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
   Scissors, Sparkles, ChevronRight, ChevronLeft, Clock, Upload, Palette,
-  CheckCircle2, Copy, Link2, Building2, Image as ImageIcon, Briefcase, UserPlus,
+  CheckCircle2, Copy, Link2, Building2, Briefcase, UserPlus, Phone,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { formatWhatsApp, isValidWhatsApp } from '@/lib/whatsapp';
 
 interface CompanySetupProps {
   onComplete: () => void;
@@ -23,7 +25,7 @@ type OnboardingStep = 'company' | 'hours' | 'branding' | 'service' | 'profession
 const STEPS: OnboardingStep[] = ['company', 'hours', 'branding', 'service', 'professional', 'done'];
 
 const stepMeta: Record<OnboardingStep, { icon: any; title: string; desc: string }> = {
-  company: { icon: Building2, title: 'Seu negócio', desc: 'Nome e tipo do seu estabelecimento' },
+  company: { icon: Building2, title: 'Seu negócio', desc: 'Tipo e nome do seu estabelecimento' },
   hours: { icon: Clock, title: 'Horários', desc: 'Defina o funcionamento semanal' },
   branding: { icon: Palette, title: 'Identidade visual', desc: 'Logo e cores do seu negócio' },
   service: { icon: Briefcase, title: 'Primeiro serviço', desc: 'Cadastre seu primeiro serviço' },
@@ -40,8 +42,9 @@ const CompanySetup = ({ onComplete }: CompanySetupProps) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Step 1: Company
-  const [companyName, setCompanyName] = useState('');
   const [businessType, setBusinessType] = useState<'barbershop' | 'esthetic'>('barbershop');
+  const [companyName, setCompanyName] = useState('');
+  const [companyWhatsApp, setCompanyWhatsApp] = useState('');
   const [companyId, setCompanyId] = useState<string | null>(null);
   const [companySlug, setCompanySlug] = useState('');
 
@@ -67,10 +70,29 @@ const CompanySetup = ({ onComplete }: CompanySetupProps) => {
   const [servicePrice, setServicePrice] = useState(50);
 
   // Step 5: Professional
+  const [isSelfAttend, setIsSelfAttend] = useState(false);
   const [profName, setProfName] = useState('');
   const [profEmail, setProfEmail] = useState('');
+  const [profWhatsApp, setProfWhatsApp] = useState('');
+  const [profPaymentType, setProfPaymentType] = useState<'percentage' | 'fixed' | 'none'>('none');
+  const [profCommissionValue, setProfCommissionValue] = useState(0);
 
   const currentStepIndex = STEPS.indexOf(step);
+
+  const companyNamePlaceholder = businessType === 'barbershop'
+    ? 'Ex: Barbearia do João'
+    : 'Ex: Salão da Jack';
+
+  const handleSelfAttendToggle = (checked: boolean) => {
+    setIsSelfAttend(checked);
+    if (checked && user) {
+      setProfName(user.user_metadata?.full_name || '');
+      setProfEmail(user.email || '');
+    } else {
+      setProfName('');
+      setProfEmail('');
+    }
+  };
 
   const handleCreateCompany = async () => {
     if (!user || !companyName.trim()) return;
@@ -83,6 +105,8 @@ const CompanySetup = ({ onComplete }: CompanySetupProps) => {
         .replace(/[^a-z0-9]+/g, '-')
         .replace(/(^-|-$)/g, '');
 
+      const phone = companyWhatsApp.trim() ? formatWhatsApp(companyWhatsApp) : null;
+
       const { data: company, error } = await supabase
         .from('companies')
         .insert({
@@ -90,6 +114,7 @@ const CompanySetup = ({ onComplete }: CompanySetupProps) => {
           slug,
           owner_id: user.id,
           business_type: businessType,
+          phone,
         })
         .select()
         .single();
@@ -118,7 +143,8 @@ const CompanySetup = ({ onComplete }: CompanySetupProps) => {
       toast.success('Empresa criada!');
       setStep('hours');
     } catch (err: any) {
-      toast.error(err.message || 'Erro ao criar empresa');
+      toast.error('Erro ao criar empresa. Tente novamente.');
+      console.error('Company creation error:', err);
     } finally {
       setLoading(false);
     }
@@ -133,7 +159,8 @@ const CompanySetup = ({ onComplete }: CompanySetupProps) => {
       toast.success('Horários configurados!');
       setStep('branding');
     } catch (err: any) {
-      toast.error(err.message || 'Erro ao salvar horários');
+      toast.error('Erro ao salvar horários. Tente novamente.');
+      console.error('Hours save error:', err);
     } finally {
       setLoading(false);
     }
@@ -176,7 +203,8 @@ const CompanySetup = ({ onComplete }: CompanySetupProps) => {
       toast.success('Identidade visual salva!');
       setStep('service');
     } catch (err: any) {
-      toast.error(err.message || 'Erro ao salvar branding');
+      toast.error('Erro ao salvar branding. Tente novamente.');
+      console.error('Branding save error:', err);
     } finally {
       setLoading(false);
     }
@@ -196,7 +224,8 @@ const CompanySetup = ({ onComplete }: CompanySetupProps) => {
       toast.success('Serviço criado!');
       setStep('professional');
     } catch (err: any) {
-      toast.error(err.message || 'Erro ao criar serviço');
+      toast.error('Erro ao criar serviço. Tente novamente.');
+      console.error('Service creation error:', err);
     } finally {
       setLoading(false);
     }
@@ -212,9 +241,10 @@ const CompanySetup = ({ onComplete }: CompanySetupProps) => {
           email: profEmail.trim(),
           company_id: companyId,
           collaborator_type: 'commissioned',
-          payment_type: 'none',
-          commission_value: 0,
+          payment_type: profPaymentType,
+          commission_value: profPaymentType === 'none' ? 0 : profCommissionValue,
           role: 'collaborator',
+          whatsapp: profWhatsApp.trim() ? formatWhatsApp(profWhatsApp) : null,
         },
       });
 
@@ -224,7 +254,10 @@ const CompanySetup = ({ onComplete }: CompanySetupProps) => {
       toast.success('Profissional adicionado!');
       setStep('done');
     } catch (err: any) {
-      toast.error(err.message || 'Erro ao criar profissional');
+      // Don't block onboarding if collaborator creation fails
+      console.error('Professional creation error:', err);
+      toast.error('Erro ao criar profissional. Você pode adicioná-lo depois no painel.');
+      setStep('done');
     } finally {
       setLoading(false);
     }
@@ -273,14 +306,6 @@ const CompanySetup = ({ onComplete }: CompanySetupProps) => {
             {step === 'company' && (
               <>
                 <div className="space-y-2">
-                  <Label>Nome do estabelecimento</Label>
-                  <Input
-                    value={companyName}
-                    onChange={(e) => setCompanyName(e.target.value)}
-                    placeholder="Ex: Barbearia do João"
-                  />
-                </div>
-                <div className="space-y-2">
                   <Label>Tipo de negócio</Label>
                   <Select value={businessType} onValueChange={(v) => setBusinessType(v as any)}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
@@ -293,6 +318,26 @@ const CompanySetup = ({ onComplete }: CompanySetupProps) => {
                       </SelectItem>
                     </SelectContent>
                   </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Nome do estabelecimento</Label>
+                  <Input
+                    value={companyName}
+                    onChange={(e) => setCompanyName(e.target.value)}
+                    placeholder={companyNamePlaceholder}
+                    autoFocus
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-1">
+                    <Phone className="h-4 w-4" /> WhatsApp do estabelecimento
+                  </Label>
+                  <Input
+                    value={companyWhatsApp}
+                    onChange={(e) => setCompanyWhatsApp(e.target.value)}
+                    placeholder="(31) 99999-9999"
+                    type="tel"
+                  />
                 </div>
                 <Button className="w-full" disabled={loading || !companyName.trim()} onClick={handleCreateCompany}>
                   {loading ? 'Criando...' : 'Continuar'} <ChevronRight className="h-4 w-4 ml-1" />
@@ -424,15 +469,84 @@ const CompanySetup = ({ onComplete }: CompanySetupProps) => {
                 <p className="text-sm text-muted-foreground">
                   Adicione um profissional que atenderá seus clientes. Você pode pular e fazer isso depois.
                 </p>
+
+                <div className="flex items-center space-x-2 p-3 rounded-lg bg-muted/50">
+                  <Checkbox
+                    id="self-attend"
+                    checked={isSelfAttend}
+                    onCheckedChange={(checked) => handleSelfAttendToggle(checked === true)}
+                  />
+                  <Label htmlFor="self-attend" className="text-sm cursor-pointer">
+                    Você mesmo vai atender?
+                  </Label>
+                </div>
+
                 <div className="space-y-3">
                   <div className="space-y-2">
                     <Label>Nome</Label>
-                    <Input value={profName} onChange={(e) => setProfName(e.target.value)} placeholder="Nome completo" />
+                    <Input
+                      value={profName}
+                      onChange={(e) => setProfName(e.target.value)}
+                      placeholder="Nome completo"
+                      disabled={isSelfAttend}
+                    />
                   </div>
                   <div className="space-y-2">
                     <Label>Email</Label>
-                    <Input type="email" value={profEmail} onChange={(e) => setProfEmail(e.target.value)} placeholder="email@exemplo.com" />
+                    <Input
+                      type="email"
+                      value={profEmail}
+                      onChange={(e) => setProfEmail(e.target.value)}
+                      placeholder="email@exemplo.com"
+                      disabled={isSelfAttend}
+                    />
                   </div>
+                  <div className="space-y-2">
+                    <Label className="flex items-center gap-1">
+                      <Phone className="h-4 w-4" /> WhatsApp
+                    </Label>
+                    <Input
+                      value={profWhatsApp}
+                      onChange={(e) => setProfWhatsApp(e.target.value)}
+                      placeholder="(31) 99999-9999"
+                      type="tel"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Tipo de pagamento</Label>
+                    <Select value={profPaymentType} onValueChange={(v) => setProfPaymentType(v as any)}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">Sem comissão</SelectItem>
+                        <SelectItem value="percentage">Porcentagem</SelectItem>
+                        <SelectItem value="fixed">Valor fixo</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  {profPaymentType === 'percentage' && (
+                    <div className="space-y-2">
+                      <Label>Comissão (%)</Label>
+                      <Input
+                        type="number"
+                        value={profCommissionValue}
+                        onChange={(e) => setProfCommissionValue(parseFloat(e.target.value) || 0)}
+                        min={0}
+                        max={100}
+                      />
+                    </div>
+                  )}
+                  {profPaymentType === 'fixed' && (
+                    <div className="space-y-2">
+                      <Label>Valor por serviço (R$)</Label>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        value={profCommissionValue}
+                        onChange={(e) => setProfCommissionValue(parseFloat(e.target.value) || 0)}
+                        min={0}
+                      />
+                    </div>
+                  )}
                 </div>
                 <div className="flex gap-2">
                   <Button variant="outline" onClick={() => setStep('service')} className="flex-1">
