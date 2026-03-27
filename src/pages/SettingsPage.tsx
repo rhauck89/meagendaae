@@ -36,7 +36,28 @@ const SettingsPage = () => {
       .select('*')
       .eq('company_id', companyId!)
       .order('day_of_week');
-    if (data) setHours(data);
+
+    if (data && data.length > 0) {
+      setHours(data);
+    } else {
+      // Auto-initialize default hours for all 7 days
+      const defaults = Array.from({ length: 7 }, (_, i) => ({
+        company_id: companyId!,
+        day_of_week: i,
+        open_time: '09:00',
+        close_time: '18:00',
+        lunch_start: '12:00',
+        lunch_end: '13:00',
+        is_closed: i === 0, // Sunday closed by default
+      }));
+      await supabase.from('business_hours').insert(defaults);
+      const { data: newData } = await supabase
+        .from('business_hours')
+        .select('*')
+        .eq('company_id', companyId!)
+        .order('day_of_week');
+      if (newData) setHours(newData);
+    }
   };
 
   const fetchExceptions = async () => {
