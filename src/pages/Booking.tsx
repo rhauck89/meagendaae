@@ -124,9 +124,9 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
         results: pubProfs?.map((p: any) => ({ id: p.id, slug: p.slug, name: p.name })),
       });
 
-      if (pubProfs && pubProfs.length > 0) {
-        const prof = pubProfs[0];
-        const profileId = prof.id;
+      if (pubProfs && (pubProfs as any[]).length > 0) {
+        const prof = (pubProfs as any[])[0];
+        const profileId = prof.id as string;
         setSelectedProfessional(profileId);
 
         // Fetch professional-specific services
@@ -172,26 +172,28 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
     if (!company) return;
     console.log('[Booking] fetchProfessionals called', { company_id: company.id, selectedServices });
 
-    // Get collaborators with their profiles
-    const { data: collabs, error: collabError } = await supabase
-      .from('collaborators')
-      .select('*, profile:profiles(*)')
+    // Use public_professionals view (no PII exposed)
+    const { data: pubProfs, error: collabError } = await supabase
+      .from('public_professionals' as any)
+      .select('*')
       .eq('company_id', company.id)
       .eq('active', true);
 
-    console.log('[Booking] collaborators query result', {
+    const collabs = pubProfs as any[] | null;
+
+    console.log('[Booking] public_professionals query result', {
       found: collabs?.length ?? 0,
       error: collabError?.message,
-      professionals: collabs?.map((c: any) => ({
-        profile_id: c.profile_id,
-        slug: c.slug,
-        name: c.profile?.full_name,
-        company_id: c.company_id,
+      professionals: collabs?.map((p: any) => ({
+        id: p.id,
+        slug: p.slug,
+        name: p.name,
+        company_id: p.company_id,
       })),
     });
 
     if (!collabs || collabs.length === 0) {
-      console.warn('[Booking] No active collaborators found for company', company.id);
+      console.warn('[Booking] No active professionals found for company', company.id);
       setProfessionals([]);
       return;
     }
