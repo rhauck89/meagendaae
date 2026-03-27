@@ -6,10 +6,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Calendar, ChevronLeft, ChevronRight, Clock, DollarSign, Users, UserCheck, UserMinus, AlertTriangle, Bell, Mail, Cake } from 'lucide-react';
+import { Calendar, ChevronLeft, ChevronRight, Clock, DollarSign, Users, UserCheck, UserMinus, AlertTriangle, Bell, Mail, Cake, Ban, Trash2 } from 'lucide-react';
+import { BlockTimeDialog } from '@/components/BlockTimeDialog';
 import { format, addDays, startOfWeek, endOfWeek, startOfMonth, endOfMonth, isSameDay, parseISO, differenceInDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
 
 type ViewMode = 'day' | 'week' | 'month';
 
@@ -49,6 +51,7 @@ const Dashboard = () => {
   const [reminderCount, setReminderCount] = useState(0);
   const [birthdayClients, setBirthdayClients] = useState<any[]>([]);
   const [filterProfessional, setFilterProfessional] = useState<string>('all');
+  const [blockedTimes, setBlockedTimes] = useState<any[]>([]);
   const [collaboratorsList, setCollaboratorsList] = useState<any[]>([]);
 
   useEffect(() => {
@@ -63,6 +66,7 @@ const Dashboard = () => {
     fetchWaitlistCount();
     fetchReminderCount();
     fetchBirthdays();
+    fetchBlockedTimes();
   }, [companyId, currentDate, viewMode, filterProfessional]);
 
   const fetchCollaborators = async () => {
@@ -71,6 +75,42 @@ const Dashboard = () => {
       .select('profile_id, profile:profiles(full_name)')
       .eq('company_id', companyId!);
     if (data) setCollaboratorsList(data);
+  };
+
+  const fetchBlockedTimes = async () => {
+    const { start, end } = getDateRange();
+    let query = supabase
+      .from('blocked_times' as any)
+      .select('*')
+      .eq('company_id', companyId!)
+      .gte('block_date', format(start, 'yyyy-MM-dd'))
+      .lte('block_date', format(end, 'yyyy-MM-dd'));
+
+    if (!isAdmin && profileId) {
+      query = query.eq('professional_id', profileId);
+    } else if (filterProfessional !== 'all') {
+      query = query.eq('professional_id', filterProfessional);
+    }
+
+    const { data } = await query;
+    const blocks = (data as any[]) || [];
+
+    // Enrich with professional names from collaborators list
+    const enriched = blocks.map(bt => {
+      const collab = collaboratorsList.find(c => c.profile_id === bt.professional_id);
+      return { ...bt, professional: { full_name: (collab?.profile as any)?.full_name || '' } };
+    });
+    setBlockedTimes(enriched);
+  };
+
+  const deleteBlockedTime = async (id: string) => {
+    const { error } = await supabase.from('blocked_times' as any).delete().eq('id', id);
+    if (error) {
+      toast.error('Erro ao remover bloqueio');
+    } else {
+      toast.success('Bloqueio removido');
+      fetchBlockedTimes();
+    }
   };
 
   const getDateRange = () => {
@@ -427,6 +467,10 @@ const Dashboard = () => {
                 </SelectContent>
               </Select>
             )}
+            <BlockTimeDialog
+              professionals={collaboratorsList.map(c => ({ profile_id: c.profile_id, full_name: (c.profile as any)?.full_name || 'Sem nome' }))}
+              onCreated={fetchBlockedTimes}
+            />
             <div className="flex gap-1 bg-muted rounded-lg p-1">
               {(['day', 'week', 'month'] as ViewMode[]).map((mode) => (
                 <Button
@@ -442,6 +486,42 @@ const Dashboard = () => {
           </div>
         </CardHeader>
         <CardContent>
+          {/* Blocked Times */}
+          {blockedTimes.length > 0 && (
+            <div className="space-y-2 mb-4">
+              <p className="text-sm font-semibold text-muted-foreground flex items-center gap-1">
+                <Ban className="h-4 w-4" /> Horários bloqueados
+              </p>
+              {blockedTimes.map((bt: any) => (
+                <div
+                  key={bt.id}
+                  className="flex items-center justify-between p-3 rounded-xl border border-destructive/20 bg-destructive/5"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="text-center min-w-[60px]">
+                      <p className="text-sm font-bold text-destructive">{bt.start_time?.slice(0, 5)}</p>
+                      <p className="text-xs text-muted-foreground">{bt.end_time?.slice(0, 5)}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-destructive">Bloqueado</p>
+                      <p className="text-xs text-muted-foreground">
+                        {bt.professional?.full_name || ''}{bt.reason ? ` • ${bt.reason}` : ''}
+                      </p>
+                      <p className="text-xs text-muted-foreground">{bt.block_date}</p>
+                    </div>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="text-destructive hover:text-destructive"
+                    onClick={() => deleteBlockedTime(bt.id)}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          )}
           {appointments.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground">
               <Calendar className="h-12 w-12 mx-auto mb-3 opacity-40" />
