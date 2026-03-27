@@ -23,13 +23,15 @@ interface BookingPageProps {
 }
 
 const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
-  const { slug } = useParams<{ slug: string }>();
+  const { slug, professionalSlug } = useParams<{ slug: string; professionalSlug?: string }>();
   const [company, setCompany] = useState<any>(null);
   const [services, setServices] = useState<any[]>([]);
   const [professionals, setProfessionals] = useState<any[]>([]);
   const [businessHours, setBusinessHours] = useState<BusinessHours[]>([]);
   const [exceptions, setExceptions] = useState<BusinessException[]>([]);
   const [businessType, setBusinessType] = useState<BusinessType>('barbershop');
+  const [bufferMinutes, setBufferMinutes] = useState(0);
+  const [professionalHours, setProfessionalHours] = useState<BusinessHours[]>([]);
 
   const [step, setStep] = useState<Step>('services');
   const [selectedServices, setSelectedServices] = useState<string[]>([]);
@@ -57,24 +59,86 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
     const resolvedType: BusinessType = routeBusinessType || comp.business_type || 'barbershop';
     setBusinessType(resolvedType);
 
-    const [servicesRes, hoursRes, exceptionsRes] = await Promise.all([
+    const [servicesRes, hoursRes, exceptionsRes, companyRes] = await Promise.all([
       supabase.from('services').select('*').eq('company_id', comp.id).eq('active', true).order('name'),
       supabase.from('business_hours').select('*').eq('company_id', comp.id),
       supabase.from('business_exceptions').select('*').eq('company_id', comp.id),
+      supabase.from('companies').select('buffer_minutes').eq('id', comp.id).single(),
     ]);
 
     if (servicesRes.data) setServices(servicesRes.data);
     if (hoursRes.data) setBusinessHours(hoursRes.data as BusinessHours[]);
     if (exceptionsRes.data) setExceptions(exceptionsRes.data as BusinessException[]);
+    if (companyRes.data) setBufferMinutes((companyRes.data as any).buffer_minutes || 0);
+
+    // If professional slug provided, auto-select professional
+    if (professionalSlug) {
+      const { data: collabs } = await supabase
+        .from('collaborators')
+        .select('*, profile:profiles(*)')
+        .eq('company_id', comp.id)
+        .eq('slug', professionalSlug);
+
+      if (collabs && collabs.length > 0) {
+        const collab = collabs[0];
+        const profileId = collab.profile_id;
+        setSelectedProfessional(profileId);
+
+        // Fetch professional-specific services
+        const { data: profServices } = await supabase
+          .from('service_professionals')
+          .select('service_id, price_override')
+          .eq('professional_id', profileId);
+
+        if (profServices && profServices.length > 0) {
+          const profServiceIds = profServices.map((ps: any) => ps.service_id);
+          const filteredServices = (servicesRes.data || []).filter((s: any) => profServiceIds.includes(s.id));
+          // Apply price overrides
+          const withOverrides = filteredServices.map((s: any) => {
+            const override = profServices.find((ps: any) => ps.service_id === s.id);
+            return override?.price_override != null ? { ...s, price: override.price_override } : s;
+          });
+          setServices(withOverrides);
+        }
+
+        // Fetch professional hours
+        const { data: profHours } = await supabase
+          .from('professional_working_hours' as any)
+          .select('*')
+          .eq('professional_id', profileId);
+        if (profHours && (profHours as any[]).length > 0) {
+          setProfessionalHours(profHours as unknown as BusinessHours[]);
+        }
+
+        setProfessionals([collab.profile]);
+      }
+    }
   };
 
   const fetchProfessionals = async () => {
     if (!company) return;
+    // Get collaborators with their profiles
+    const { data: collabs } = await supabase
+      .from('collaborators')
+      .select('*, profile:profiles(*)')
+      .eq('company_id', company.id)
+      .eq('active', true);
+
+    if (collabs) {
+      setProfessionals(collabs.map((c: any) => ({ ...c.profile, collaborator_id: c.id })));
+    }
+  };
+
+  const fetchProfessionalHours = async (profileId: string) => {
     const { data } = await supabase
-      .from('profiles')
+      .from('professional_working_hours' as any)
       .select('*')
-      .eq('company_id', company.id);
-    if (data) setProfessionals(data);
+      .eq('professional_id', profileId);
+    if (data && (data as any[]).length > 0) {
+      setProfessionalHours(data as unknown as BusinessHours[]);
+    } else {
+      setProfessionalHours([]);
+    }
   };
 
   const totalDuration = services
@@ -113,6 +177,8 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
       exceptions,
       existingAppointments: (existingAppts || []) as ExistingAppointment[],
       slotInterval: 15,
+      bufferMinutes,
+      professionalHours: professionalHours.length > 0 ? professionalHours : undefined,
     });
 
     setAvailableSlots(slots);
@@ -344,6 +410,8 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
   const accentBg = isDark ? 'bg-amber-500/10' : 'bg-rose-400/10';
   const iconBg = isDark ? 'bg-amber-500' : 'bg-rose-400';
 
+  const skipProfessionalStep = !!professionalSlug;
+
   return (
     <div className={cn('min-h-screen', bgPage, textPage)}>
       {/* Header */}
@@ -368,8 +436,11 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
       <div className="max-w-2xl mx-auto px-4 py-6 space-y-6">
         {/* Progress bar */}
         <div className="flex gap-1">
-          {(['services', 'professional', 'datetime', 'client', 'confirm'] as Step[]).map((s, i) => {
-            const stepIndex = ['services', 'professional', 'datetime', 'client', 'confirm'].indexOf(step);
+          {(skipProfessionalStep
+            ? ['services', 'datetime', 'client', 'confirm'] as Step[]
+            : ['services', 'professional', 'datetime', 'client', 'confirm'] as Step[]
+          ).map((s, i, arr) => {
+            const stepIndex = arr.indexOf(step);
             return (
               <div
                 key={s}
@@ -423,7 +494,14 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
                   <span className="font-semibold">R$ {totalPrice.toFixed(2)}</span>
                 </div>
                 <Button
-                  onClick={() => { fetchProfessionals(); setStep('professional'); }}
+                  onClick={() => {
+                    if (skipProfessionalStep) {
+                      setStep('datetime');
+                    } else {
+                      fetchProfessionals();
+                      setStep('professional');
+                    }
+                  }}
                   className={cn(isDark ? 'bg-amber-500 hover:bg-amber-600 text-black' : 'bg-rose-400 hover:bg-rose-500 text-white')}
                 >
                   Próximo <ChevronRight className="h-4 w-4 ml-1" />
@@ -444,7 +522,11 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
               {professionals.map((p) => (
                 <div
                   key={p.id}
-                  onClick={() => { setSelectedProfessional(p.id); setStep('datetime'); }}
+                  onClick={() => {
+                    setSelectedProfessional(p.id);
+                    fetchProfessionalHours(p.id);
+                    setStep('datetime');
+                  }}
                   className={cn(
                     'p-4 rounded-xl border cursor-pointer transition-all',
                     bgCard,
@@ -467,7 +549,7 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
         {/* Step: Date/Time */}
         {step === 'datetime' && (
           <div className="space-y-4">
-            <Button variant="ghost" size="sm" onClick={() => setStep('professional')} className={textMuted}>
+            <Button variant="ghost" size="sm" onClick={() => setStep(skipProfessionalStep ? 'services' : 'professional')} className={textMuted}>
               <ChevronLeft className="h-4 w-4 mr-1" /> Voltar
             </Button>
             <h2 className="text-xl font-bold">Escolha data e horário</h2>

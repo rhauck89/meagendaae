@@ -8,14 +8,17 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Plus, Users, Percent, DollarSign } from 'lucide-react';
+import { Plus, Users, Percent, DollarSign, Settings } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
+import ProfessionalPanel from '@/components/ProfessionalPanel';
 
 const Team = () => {
   const { companyId } = useAuth();
   const queryClient = useQueryClient();
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [panelOpen, setPanelOpen] = useState(false);
+  const [selectedCollaborator, setSelectedCollaborator] = useState<any>(null);
   const [form, setForm] = useState({
     name: '',
     email: '',
@@ -191,6 +194,9 @@ const Team = () => {
               <div className="flex-1">
                 <p className="font-semibold">{collaborator.profile?.full_name}</p>
                 <p className="text-sm text-muted-foreground">{collaborator.profile?.email}</p>
+                {(collaborator as any).slug && (
+                  <p className="text-xs text-muted-foreground">/{(collaborator as any).slug}</p>
+                )}
               </div>
               <div className="flex items-center gap-2">
                 <Badge variant="outline">
@@ -201,6 +207,13 @@ const Team = () => {
                   {collaborator.commission_type === 'fixed' && <><DollarSign className="h-3 w-3" /> {paymentLabel(collaborator.commission_type, collaborator.commission_value)}</>}
                   {collaborator.commission_type === 'none' && paymentLabel(collaborator.commission_type, collaborator.commission_value)}
                 </Badge>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => { setSelectedCollaborator(collaborator); setPanelOpen(true); }}
+                >
+                  <Settings className="h-4 w-4" />
+                </Button>
               </div>
             </CardContent>
           </Card>
@@ -212,6 +225,15 @@ const Team = () => {
           </div>
         )}
       </div>
+
+      {selectedCollaborator && (
+        <ProfessionalPanel
+          collaborator={selectedCollaborator}
+          open={panelOpen}
+          onOpenChange={setPanelOpen}
+          onUpdated={refreshTeam}
+        />
+      )}
     </div>
   );
 };

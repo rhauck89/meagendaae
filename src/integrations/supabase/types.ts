@@ -210,6 +210,7 @@ export type Database = {
           created_at: string
           id: string
           profile_id: string
+          slug: string | null
         }
         Insert: {
           active?: boolean
@@ -221,6 +222,7 @@ export type Database = {
           created_at?: string
           id?: string
           profile_id: string
+          slug?: string | null
         }
         Update: {
           active?: boolean
@@ -232,6 +234,7 @@ export type Database = {
           created_at?: string
           id?: string
           profile_id?: string
+          slug?: string | null
         }
         Relationships: [
           {
@@ -255,6 +258,7 @@ export type Database = {
           birthday_discount_type: string
           birthday_discount_value: number
           birthday_enabled: boolean
+          buffer_minutes: number
           business_type: Database["public"]["Enums"]["business_type"]
           created_at: string
           id: string
@@ -273,6 +277,7 @@ export type Database = {
           birthday_discount_type?: string
           birthday_discount_value?: number
           birthday_enabled?: boolean
+          buffer_minutes?: number
           business_type?: Database["public"]["Enums"]["business_type"]
           created_at?: string
           id?: string
@@ -291,6 +296,7 @@ export type Database = {
           birthday_discount_type?: string
           birthday_discount_value?: number
           birthday_enabled?: boolean
+          buffer_minutes?: number
           business_type?: Database["public"]["Enums"]["business_type"]
           created_at?: string
           id?: string
@@ -306,6 +312,57 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      professional_working_hours: {
+        Row: {
+          close_time: string
+          company_id: string
+          day_of_week: number
+          id: string
+          is_closed: boolean
+          lunch_end: string | null
+          lunch_start: string | null
+          open_time: string
+          professional_id: string
+        }
+        Insert: {
+          close_time?: string
+          company_id: string
+          day_of_week: number
+          id?: string
+          is_closed?: boolean
+          lunch_end?: string | null
+          lunch_start?: string | null
+          open_time?: string
+          professional_id: string
+        }
+        Update: {
+          close_time?: string
+          company_id?: string
+          day_of_week?: number
+          id?: string
+          is_closed?: boolean
+          lunch_end?: string | null
+          lunch_start?: string | null
+          open_time?: string
+          professional_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "professional_working_hours_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "professional_working_hours_professional_id_fkey"
+            columns: ["professional_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {
@@ -365,21 +422,34 @@ export type Database = {
       }
       service_professionals: {
         Row: {
+          company_id: string | null
           id: string
+          price_override: number | null
           professional_id: string
           service_id: string
         }
         Insert: {
+          company_id?: string | null
           id?: string
+          price_override?: number | null
           professional_id: string
           service_id: string
         }
         Update: {
+          company_id?: string | null
           id?: string
+          price_override?: number | null
           professional_id?: string
           service_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "service_professionals_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "service_professionals_professional_id_fkey"
             columns: ["professional_id"]

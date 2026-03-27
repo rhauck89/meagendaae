@@ -28,14 +28,14 @@ export interface AvailabilityParams {
   exceptions: BusinessException[];
   existingAppointments: ExistingAppointment[];
   slotInterval?: number; // default 15 minutes
+  bufferMinutes?: number; // buffer between appointments
+  professionalHours?: BusinessHours[]; // override company hours
 }
 
 /**
  * Smart availability engine that calculates available time slots
- * considering business hours, lunch breaks, exceptions, and existing appointments.
- * 
- * It finds continuous blocks of the required duration, ensuring no overlap
- * with lunch or booked appointments.
+ * considering business hours, lunch breaks, exceptions, existing appointments,
+ * buffer time, and professional-specific working hours.
  */
 export function calculateAvailableSlots(params: AvailabilityParams): string[] {
   const {
@@ -45,6 +45,8 @@ export function calculateAvailableSlots(params: AvailabilityParams): string[] {
     exceptions,
     existingAppointments,
     slotInterval = 15,
+    bufferMinutes = 0,
+    professionalHours,
   } = params;
 
   if (totalDuration <= 0) return [];
@@ -55,12 +57,15 @@ export function calculateAvailableSlots(params: AvailabilityParams): string[] {
   const exception = exceptions.find((e) => e.exception_date === dateStr);
   if (exception?.is_closed) return [];
 
-  // 2. Get business hours for this day of week
+  // 2. Get working hours - professional hours override company hours
   const dayOfWeek = date.getDay();
-  const hours = businessHours.find((h) => h.day_of_week === dayOfWeek);
+  const activeHours = professionalHours && professionalHours.length > 0
+    ? professionalHours
+    : businessHours;
+  const hours = activeHours.find((h) => h.day_of_week === dayOfWeek);
   if (!hours || hours.is_closed) return [];
 
-  // Use exception hours if available (special hours for holidays etc.)
+  // Use exception hours if available
   const openTimeStr = exception?.open_time || hours.open_time;
   const closeTimeStr = exception?.close_time || hours.close_time;
 
@@ -76,7 +81,7 @@ export function calculateAvailableSlots(params: AvailabilityParams): string[] {
   const lunchStart = hours.lunch_start ? parseTime(hours.lunch_start) : null;
   const lunchEnd = hours.lunch_end ? parseTime(hours.lunch_end) : null;
 
-  // 3. Build list of blocked intervals (lunch + existing appointments)
+  // 3. Build blocked intervals (lunch + existing appointments with buffer)
   const blocked: Array<{ start: Date; end: Date }> = [];
 
   if (lunchStart && lunchEnd) {
@@ -84,23 +89,21 @@ export function calculateAvailableSlots(params: AvailabilityParams): string[] {
   }
 
   for (const apt of existingAppointments) {
-    blocked.push({
-      start: parseISO(apt.start_time),
-      end: parseISO(apt.end_time),
-    });
+    const aptStart = parseISO(apt.start_time);
+    const aptEnd = addMinutes(parseISO(apt.end_time), bufferMinutes);
+    blocked.push({ start: aptStart, end: aptEnd });
   }
 
-  // Sort blocked intervals by start time
   blocked.sort((a, b) => a.start.getTime() - b.start.getTime());
 
-  // 4. Generate slots by scanning from open to close
+  // 4. Generate slots - the slot itself occupies totalDuration + buffer
+  const effectiveDuration = totalDuration + bufferMinutes;
   const slots: string[] = [];
   let current = new Date(openTime);
 
-  while (current.getTime() + totalDuration * 60000 <= closeTime.getTime()) {
-    const slotEnd = addMinutes(current, totalDuration);
+  while (current.getTime() + effectiveDuration * 60000 <= closeTime.getTime()) {
+    const slotEnd = addMinutes(current, effectiveDuration);
 
-    // Check if this slot overlaps with any blocked interval
     const hasConflict = blocked.some(
       (b) => current < b.end && slotEnd > b.start
     );

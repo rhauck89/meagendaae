@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
-import { Clock, Calendar as CalendarIcon, Plus, Trash2, Bell, Cake, Link2, Copy } from 'lucide-react';
+import { Clock, Calendar as CalendarIcon, Plus, Trash2, Bell, Cake, Link2, Copy, Timer } from 'lucide-react';
 
 const dayNames = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
 
@@ -23,6 +23,7 @@ const SettingsPage = () => {
   const [birthdayDiscountValue, setBirthdayDiscountValue] = useState(0);
   const [companySlug, setCompanySlug] = useState('');
   const [companyBusinessType, setCompanyBusinessType] = useState<string>('barbershop');
+  const [bufferMinutes, setBufferMinutes] = useState(0);
 
   useEffect(() => {
     if (companyId) {
@@ -42,7 +43,6 @@ const SettingsPage = () => {
     if (data && data.length > 0) {
       setHours(data);
     } else {
-      // Auto-initialize default hours for all 7 days
       const defaults = Array.from({ length: 7 }, (_, i) => ({
         company_id: companyId!,
         day_of_week: i,
@@ -50,7 +50,7 @@ const SettingsPage = () => {
         close_time: '18:00',
         lunch_start: '12:00',
         lunch_end: '13:00',
-        is_closed: i === 0, // Sunday closed by default
+        is_closed: i === 0,
       }));
       await supabase.from('business_hours').insert(defaults);
       const { data: newData } = await supabase
@@ -74,7 +74,7 @@ const SettingsPage = () => {
   const fetchCompanySettings = async () => {
     const { data } = await supabase
       .from('companies')
-      .select('reminders_enabled, birthday_enabled, birthday_discount_type, birthday_discount_value, slug, business_type')
+      .select('reminders_enabled, birthday_enabled, birthday_discount_type, birthday_discount_value, slug, business_type, buffer_minutes')
       .eq('id', companyId!)
       .single();
     if (data) {
@@ -84,6 +84,7 @@ const SettingsPage = () => {
       setBirthdayDiscountValue((data as any).birthday_discount_value ?? 0);
       setCompanySlug((data as any).slug ?? '');
       setCompanyBusinessType((data as any).business_type ?? 'barbershop');
+      setBufferMinutes((data as any).buffer_minutes ?? 0);
     }
   };
 
@@ -105,6 +106,11 @@ const SettingsPage = () => {
       birthday_discount_value: birthdayDiscountValue,
     } as any).eq('id', companyId!);
     toast.success('Desconto de aniversário salvo');
+  };
+
+  const saveBuffer = async () => {
+    await supabase.from('companies').update({ buffer_minutes: bufferMinutes } as any).eq('id', companyId!);
+    toast.success('Intervalo entre agendamentos salvo');
   };
 
   const updateHour = async (id: string, field: string, value: any) => {
@@ -174,6 +180,33 @@ const SettingsPage = () => {
         </Card>
       )}
 
+      {/* Buffer Time */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Timer className="h-5 w-5" /> Intervalo entre Agendamentos
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-wrap items-end gap-3">
+            <div className="space-y-1">
+              <Label className="text-xs">Minutos de intervalo</Label>
+              <Input
+                type="number"
+                min={0}
+                max={60}
+                value={bufferMinutes}
+                onChange={(e) => setBufferMinutes(parseInt(e.target.value, 10) || 0)}
+                className="w-28"
+              />
+            </div>
+            <Button size="sm" onClick={saveBuffer}>Salvar</Button>
+          </div>
+          <p className="text-xs text-muted-foreground mt-2">
+            Tempo adicionado após cada agendamento (ex: 5 min para limpeza/preparação)
+          </p>
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>
