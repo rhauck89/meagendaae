@@ -40,8 +40,10 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [availableSlots, setAvailableSlots] = useState<string[]>([]);
-  const [clientForm, setClientForm] = useState({ full_name: '', email: '', whatsapp: '', birth_date: '' });
+  const [clientForm, setClientForm] = useState({ full_name: '', email: '', whatsapp: '', cpf: '', birth_date: '' });
   const [optInWhatsapp, setOptInWhatsapp] = useState(false);
+  const [savedClientId, setSavedClientId] = useState<string | null>(null);
+  const [clientLoaded, setClientLoaded] = useState(false);
   const [loading, setLoading] = useState(false);
   const [slotsLoading, setSlotsLoading] = useState(false);
   const [waitlistLoading, setWaitlistLoading] = useState(false);
@@ -49,6 +51,35 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
   const [nextSlotsLoading, setNextSlotsLoading] = useState(false);
 
   const isDark = businessType === 'barbershop';
+
+  // Load saved client from localStorage
+  useEffect(() => {
+    const loadSavedClient = async () => {
+      if (!company) return;
+      const storedClientId = localStorage.getItem(`client_id_${company.id}`);
+      if (storedClientId) {
+        const { data: client } = await supabase
+          .from('clients' as any)
+          .select('*')
+          .eq('id', storedClientId)
+          .single();
+        if (client) {
+          const c = client as any;
+          setSavedClientId(c.id);
+          setClientForm({
+            full_name: c.name || '',
+            email: c.email || '',
+            whatsapp: c.whatsapp ? displayWhatsApp(c.whatsapp) : '',
+            cpf: c.cpf || '',
+            birth_date: '',
+          });
+          setOptInWhatsapp(c.opt_in_whatsapp || false);
+        }
+      }
+      setClientLoaded(true);
+    };
+    loadSavedClient();
+  }, [company]);
 
   useEffect(() => {
     if (slug) fetchCompany();
@@ -462,27 +493,57 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
     if (!company || !selectedDate || !selectedTime || !selectedProfessional) return;
     setLoading(true);
     try {
-      let clientId: string | null = null;
-      const { data: existingSession } = await supabase.auth.getSession();
+      // Upsert client in clients table
+      let clientId = savedClientId;
+      
+      if (!clientId) {
+        // Check if client already exists by CPF or WhatsApp
+        const formattedWhatsapp = clientForm.whatsapp ? formatWhatsApp(clientForm.whatsapp) : null;
+        
+        if (clientForm.cpf) {
+          const { data: existingByCpf } = await supabase
+            .from('clients' as any)
+            .select('id')
+            .eq('company_id', company.id)
+            .eq('cpf', clientForm.cpf)
+            .maybeSingle();
+          if (existingByCpf) clientId = (existingByCpf as any).id;
+        }
+        
+        if (!clientId && formattedWhatsapp) {
+          const { data: existingByWhatsapp } = await supabase
+            .from('clients' as any)
+            .select('id')
+            .eq('company_id', company.id)
+            .eq('whatsapp', formattedWhatsapp)
+            .maybeSingle();
+          if (existingByWhatsapp) clientId = (existingByWhatsapp as any).id;
+        }
 
-      if (existingSession?.session?.user) {
-        // Authenticated user: update profile and get profile id
-        const userId = existingSession.session.user.id;
-        await supabase
-          .from('profiles')
-           .update({
-             full_name: clientForm.full_name || undefined,
-             whatsapp: clientForm.whatsapp ? formatWhatsApp(clientForm.whatsapp) : undefined,
-             birth_date: clientForm.birth_date || undefined,
-             opt_in_whatsapp: optInWhatsapp,
-             opt_in_date: optInWhatsapp ? new Date().toISOString() : undefined,
-          } as any)
-          .eq('user_id', userId);
-
-        const { data: profile } = await supabase.from('profiles').select('id').eq('user_id', userId).single();
-        clientId = profile?.id || null;
+        if (!clientId) {
+          // Create new client
+          const { data: newClient, error: clientError } = await supabase
+            .from('clients' as any)
+            .insert({
+              company_id: company.id,
+              name: clientForm.full_name,
+              cpf: clientForm.cpf || null,
+              email: clientForm.email || null,
+              whatsapp: formattedWhatsapp,
+              opt_in_whatsapp: optInWhatsapp,
+            } as any)
+            .select()
+            .single();
+          if (clientError) throw clientError;
+          clientId = (newClient as any).id;
+        }
       }
-      // If not authenticated, clientId stays null — guest booking
+
+      // Persist client_id in localStorage
+      if (clientId) {
+        localStorage.setItem(`client_id_${company.id}`, clientId);
+        setSavedClientId(clientId);
+      }
 
       const [h, m] = selectedTime.split(':').map(Number);
       const startTime = new Date(selectedDate);
@@ -499,10 +560,6 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
         client_name: clientForm.full_name,
         client_whatsapp: clientForm.whatsapp ? formatWhatsApp(clientForm.whatsapp) : null,
       };
-
-      if (clientId) {
-        appointmentData.client_id = clientId;
-      }
 
       const { data: appointment, error: aptError } = await supabase
         .from('appointments')
@@ -883,14 +940,28 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
             <Button variant="ghost" size="sm" onClick={() => setStep('datetime')} className={textMuted}>
               <ChevronLeft className="h-4 w-4 mr-1" /> Voltar
             </Button>
-            <h2 className="text-xl font-bold">Seus dados</h2>
+            <h2 className="text-xl font-bold">
+              {savedClientId ? 'Confirme seus dados' : 'Cadastro rápido'}
+            </h2>
+            {savedClientId && (
+              <p className={cn('text-sm', textMuted)}>Seus dados foram carregados automaticamente.</p>
+            )}
             <div className="space-y-3">
               <div className="space-y-1">
-                <Label>Nome</Label>
+                <Label>Nome *</Label>
                 <Input
                   value={clientForm.full_name}
                   onChange={(e) => setClientForm({ ...clientForm, full_name: e.target.value })}
                   required
+                  className={cn(isDark ? 'bg-[#16213e] border-[#2a2a4a] text-white' : 'bg-white border-[#e8ddd4]')}
+                />
+              </div>
+              <div className="space-y-1">
+                <Label>CPF</Label>
+                <Input
+                  value={clientForm.cpf}
+                  onChange={(e) => setClientForm({ ...clientForm, cpf: e.target.value })}
+                  placeholder="000.000.000-00"
                   className={cn(isDark ? 'bg-[#16213e] border-[#2a2a4a] text-white' : 'bg-white border-[#e8ddd4]')}
                 />
               </div>

@@ -238,6 +238,47 @@ export type Database = {
           },
         ]
       }
+      clients: {
+        Row: {
+          company_id: string
+          cpf: string | null
+          created_at: string
+          email: string | null
+          id: string
+          name: string
+          opt_in_whatsapp: boolean
+          whatsapp: string | null
+        }
+        Insert: {
+          company_id: string
+          cpf?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          name: string
+          opt_in_whatsapp?: boolean
+          whatsapp?: string | null
+        }
+        Update: {
+          company_id?: string
+          cpf?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          name?: string
+          opt_in_whatsapp?: boolean
+          whatsapp?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clients_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       collaborators: {
         Row: {
           active: boolean
