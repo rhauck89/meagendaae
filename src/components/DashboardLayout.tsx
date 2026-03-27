@@ -6,7 +6,6 @@ import {
   Scissors,
   Users,
   BarChart3,
-  Webhook,
   Settings,
   LogOut,
   Menu,
@@ -22,7 +21,6 @@ const adminNavItems = [
   { href: '/dashboard/services', icon: Scissors, label: 'Serviços' },
   { href: '/dashboard/team', icon: Users, label: 'Equipe' },
   { href: '/dashboard/reports', icon: BarChart3, label: 'Relatórios' },
-  { href: '/dashboard/automations', icon: Webhook, label: 'Automações' },
   { href: '/dashboard/settings', icon: Settings, label: 'Configurações' },
 ];
 

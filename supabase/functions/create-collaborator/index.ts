@@ -58,12 +58,14 @@ Deno.serve(async (req) => {
     const name = typeof body.name === "string" ? body.name.trim() : "";
     const email = typeof body.email === "string" ? body.email.trim().toLowerCase() : "";
     const companyId = typeof body.company_id === "string" ? body.company_id.trim() : "";
-    const collaboratorType = body.collaborator_type === "partner" ? "partner" : "commissioned";
+    const collaboratorType = ["partner", "commissioned", "independent"].includes(body.collaborator_type) ? body.collaborator_type : "commissioned";
     const paymentType = ["percentage", "fixed", "none"].includes(body.payment_type) ? body.payment_type : null;
     const role = body.role === "collaborator" ? "collaborator" : null;
     const rawCommissionValue = Number(body.commission_value);
     const commissionValue = Number.isFinite(rawCommissionValue) && rawCommissionValue >= 0 ? rawCommissionValue : NaN;
     const whatsapp = typeof body.whatsapp === "string" ? body.whatsapp.trim() : null;
+    const slug = typeof body.slug === "string" ? body.slug.trim() : null;
+    const tempPassword = typeof body.temp_password === "string" ? body.temp_password : `${crypto.randomUUID().slice(0, 12)}A1!`;
 
     if (!name || !email || !companyId || !paymentType || !role || Number.isNaN(commissionValue)) {
       return jsonResponse({
@@ -122,7 +124,7 @@ Deno.serve(async (req) => {
     } else {
       const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
         email,
-        password: `${crypto.randomUUID().slice(0, 12)}A1!`,
+        password: tempPassword,
         email_confirm: true,
         user_metadata: { full_name: name },
       });
@@ -227,6 +229,7 @@ Deno.serve(async (req) => {
         commission_type: paymentType,
         commission_value: paymentType === "none" ? 0 : commissionValue,
         commission_percent: paymentType === "percentage" ? commissionValue : 0,
+        slug: slug || null,
       });
 
       if (collaboratorError) {
