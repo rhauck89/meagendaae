@@ -960,8 +960,16 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
                 <Label>CPF</Label>
                 <Input
                   value={clientForm.cpf}
-                  onChange={(e) => setClientForm({ ...clientForm, cpf: e.target.value })}
+                  onChange={(e) => {
+                    const digits = e.target.value.replace(/\D/g, '').slice(0, 11);
+                    let masked = digits;
+                    if (digits.length > 9) masked = `${digits.slice(0,3)}.${digits.slice(3,6)}.${digits.slice(6,9)}-${digits.slice(9)}`;
+                    else if (digits.length > 6) masked = `${digits.slice(0,3)}.${digits.slice(3,6)}.${digits.slice(6)}`;
+                    else if (digits.length > 3) masked = `${digits.slice(0,3)}.${digits.slice(3)}`;
+                    setClientForm({ ...clientForm, cpf: masked });
+                  }}
                   placeholder="000.000.000-00"
+                  maxLength={14}
                   className={cn(isDark ? 'bg-[#16213e] border-[#2a2a4a] text-white' : 'bg-white border-[#e8ddd4]')}
                 />
               </div>
@@ -969,17 +977,19 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
                 <Label>WhatsApp *</Label>
                 <Input
                   value={clientForm.whatsapp}
-                  onChange={(e) => setClientForm({ ...clientForm, whatsapp: e.target.value })}
-                  onBlur={() => {
-                    if (clientForm.whatsapp) {
-                      setClientForm({ ...clientForm, whatsapp: displayWhatsApp(clientForm.whatsapp) });
-                    }
+                  onChange={(e) => {
+                    const digits = e.target.value.replace(/\D/g, '').slice(0, 11);
+                    let masked = digits;
+                    if (digits.length > 7) masked = `(${digits.slice(0,2)}) ${digits.slice(2,7)}-${digits.slice(7)}`;
+                    else if (digits.length > 2) masked = `(${digits.slice(0,2)}) ${digits.slice(2)}`;
+                    setClientForm({ ...clientForm, whatsapp: masked });
                   }}
                   placeholder="(11) 99999-9999"
+                  maxLength={15}
                   required
                   className={cn(isDark ? 'bg-[#16213e] border-[#2a2a4a] text-white' : 'bg-white border-[#e8ddd4]')}
                 />
-                {clientForm.whatsapp && !isValidWhatsApp(clientForm.whatsapp) && (
+                {clientForm.whatsapp && clientForm.whatsapp.replace(/\D/g, '').length > 0 && !isValidWhatsApp(clientForm.whatsapp) && (
                   <p className="text-sm text-destructive">Número inválido. Use DDD + número.</p>
                 )}
               </div>
