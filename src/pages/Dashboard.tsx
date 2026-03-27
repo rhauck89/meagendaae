@@ -49,7 +49,7 @@ const Dashboard = () => {
   const [waitlistCount, setWaitlistCount] = useState(0);
   const [reminderCount, setReminderCount] = useState(0);
   const [birthdayClients, setBirthdayClients] = useState<any[]>([]);
-  const [filterProfessional, setFilterProfessional] = useState<string>('all');
+  const [blockedTimes, setBlockedTimes] = useState<any[]>([]);
   const [collaboratorsList, setCollaboratorsList] = useState<any[]>([]);
 
   useEffect(() => {
