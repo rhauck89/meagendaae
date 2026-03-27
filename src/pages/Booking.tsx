@@ -335,7 +335,7 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
       bufferMinutes,
     });
 
-    const slots = calculateAvailableSlots({
+    let slots = calculateAvailableSlots({
       date,
       totalDuration,
       businessHours,
@@ -348,16 +348,32 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
       professionalId: selectedProfessional,
     });
 
+    // Filter past times for today
+    if (isToday(date)) {
+      const currentTime = format(new Date(), 'HH:mm');
+      const beforeFilter = slots.length;
+      slots = slots.filter(s => s > currentTime);
+      console.log('[Booking] Filtered past slots for today', { before: beforeFilter, after: slots.length, currentTime });
+    }
+
     console.log('[Booking] calculateSlots result', { slotsFound: slots.length, firstSlots: slots.slice(0, 5) });
     setAvailableSlots(slots);
     setSlotsLoading(false);
   };
 
   useEffect(() => {
-    if (selectedDate && selectedProfessional && businessHours.length > 0 && totalDuration > 0) {
+    if (selectedDate && selectedProfessional && company && businessHours.length > 0 && totalDuration > 0) {
+      console.log('[Booking] Slot calculation useEffect triggered', {
+        selectedDate: format(selectedDate, 'yyyy-MM-dd'),
+        selectedProfessional,
+        businessHoursCount: businessHours.length,
+        professionalHoursCount: professionalHours.length,
+        totalDuration,
+        availableSlotsCurrently: availableSlots.length,
+      });
       calculateSlots(selectedDate);
     }
-  }, [selectedDate, selectedProfessional, professionalHours, businessHours, totalDuration]);
+  }, [selectedDate, selectedProfessional, professionalHours, businessHours, totalDuration, company]);
 
   // Fetch next available slots across 7 days
   const fetchNextAvailableSlots = async () => {
