@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Calendar } from '@/components/ui/calendar';
-import { Scissors, Clock, DollarSign, ChevronRight, ChevronLeft, CheckCircle2 } from 'lucide-react';
+import { Scissors, Clock, DollarSign, ChevronRight, ChevronLeft, CheckCircle2, Bell } from 'lucide-react';
 import { format, addMinutes } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
@@ -34,13 +34,13 @@ const Booking = () => {
   const [clientForm, setClientForm] = useState({ full_name: '', email: '', whatsapp: '', birth_date: '' });
   const [loading, setLoading] = useState(false);
   const [slotsLoading, setSlotsLoading] = useState(false);
+  const [waitlistLoading, setWaitlistLoading] = useState(false);
 
   useEffect(() => {
     if (slug) fetchCompany();
   }, [slug]);
 
   const fetchCompany = async () => {
-    // Use RPC to avoid exposing Stripe fields to unauthenticated users
     const { data: compArr } = await supabase.rpc('get_company_by_slug', { _slug: slug! });
     const comp = compArr?.[0];
     if (!comp) return;
@@ -86,7 +86,6 @@ const Booking = () => {
 
     const dateStr = format(date, 'yyyy-MM-dd');
 
-    // Fetch existing appointments for this professional on this date
     const { data: existingAppts } = await supabase
       .from('appointments')
       .select('start_time, end_time')
@@ -112,6 +111,67 @@ const Booking = () => {
   useEffect(() => {
     if (selectedDate && selectedProfessional) calculateSlots(selectedDate);
   }, [selectedDate, selectedProfessional]);
+
+  const handleJoinWaitlist = async () => {
+    if (!company || !selectedDate || !selectedProfessional) return;
+    setWaitlistLoading(true);
+    try {
+      let userId: string;
+      const { data: existingSession } = await supabase.auth.getSession();
+
+      if (existingSession?.session?.user) {
+        userId = existingSession.session.user.id;
+      } else {
+        if (!clientForm.email || !clientForm.full_name) {
+          toast.error('Preencha seu nome e email primeiro');
+          setStep('client');
+          setWaitlistLoading(false);
+          return;
+        }
+        const { data: authData, error } = await supabase.auth.signUp({
+          email: clientForm.email,
+          password: Math.random().toString(36).slice(-8) + 'A1!',
+          options: { data: { full_name: clientForm.full_name } },
+        });
+        if (error) throw error;
+        userId = authData.user!.id;
+
+        await supabase.from('profiles').update({
+          company_id: company.id,
+          whatsapp: clientForm.whatsapp,
+          birth_date: clientForm.birth_date || null,
+        }).eq('user_id', userId);
+
+        await supabase.from('user_roles').insert({
+          user_id: userId,
+          company_id: company.id,
+          role: 'client' as const,
+        });
+      }
+
+      const { data: profile } = await supabase.from('profiles').select('id').eq('user_id', userId).single();
+      if (!profile) throw new Error('Profile not found');
+
+      await supabase.from('waiting_list').insert({
+        company_id: company.id,
+        client_id: profile.id,
+        service_ids: selectedServices,
+        professional_id: selectedProfessional,
+        desired_date: format(selectedDate, 'yyyy-MM-dd'),
+      });
+
+      toast.success('Você foi adicionado à lista de espera! Avisaremos quando surgir uma vaga.');
+      setStep('services');
+      setSelectedServices([]);
+      setSelectedProfessional(null);
+      setSelectedDate(undefined);
+      setSelectedTime(null);
+    } catch (err: any) {
+      toast.error(err.message || 'Erro ao entrar na lista de espera');
+    } finally {
+      setWaitlistLoading(false);
+    }
+  };
 
   const handleBook = async () => {
     if (!company || !selectedDate || !selectedTime || !selectedProfessional) return;
@@ -337,7 +397,30 @@ const Booking = () => {
                 {slotsLoading ? (
                   <p className="text-sm text-muted-foreground">Calculando disponibilidade...</p>
                 ) : availableSlots.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">Nenhum horário disponível neste dia</p>
+                  <div className="space-y-3">
+                    <p className="text-sm text-muted-foreground">Nenhum horário disponível neste dia</p>
+                    <div className="p-4 rounded-xl border border-dashed border-warning/50 bg-warning/5">
+                      <div className="flex items-start gap-3">
+                        <Bell className="h-5 w-5 text-warning mt-0.5" />
+                        <div className="flex-1">
+                          <p className="font-semibold text-sm">Quer ser avisado se surgir vaga?</p>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Entre na lista de espera e avisaremos quando um horário ficar disponível para {selectedDate && format(selectedDate, "dd 'de' MMMM", { locale: ptBR })}.
+                          </p>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="mt-3 border-warning text-warning hover:bg-warning/10"
+                            onClick={handleJoinWaitlist}
+                            disabled={waitlistLoading}
+                          >
+                            <Bell className="h-4 w-4 mr-1" />
+                            {waitlistLoading ? 'Entrando...' : 'Avisar se surgir vaga'}
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 ) : (
                   <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
                     {availableSlots.map((slot) => (
