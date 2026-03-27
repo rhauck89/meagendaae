@@ -217,9 +217,11 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
 
         await supabase.from('profiles').update({
           company_id: company.id,
-            whatsapp: formatWhatsApp(clientForm.whatsapp),
-            birth_date: clientForm.birth_date || null,
-        }).eq('user_id', userId);
+          whatsapp: formatWhatsApp(clientForm.whatsapp),
+          birth_date: clientForm.birth_date || null,
+          opt_in_whatsapp: optInWhatsapp,
+          opt_in_date: optInWhatsapp ? new Date().toISOString() : null,
+        } as any).eq('user_id', userId);
 
         await supabase.from('user_roles').insert({
           user_id: userId,
