@@ -65,6 +65,7 @@ const Dashboard = () => {
     fetchWaitlistCount();
     fetchReminderCount();
     fetchBirthdays();
+    fetchBlockedTimes();
   }, [companyId, currentDate, viewMode, filterProfessional]);
 
   const fetchCollaborators = async () => {
