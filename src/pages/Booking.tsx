@@ -119,12 +119,25 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
 
   const fetchProfessionals = async () => {
     if (!company) return;
+    console.log('[Booking] fetchProfessionals called', { company_id: company.id, selectedServices });
+
     // Get collaborators with their profiles
-    const { data: collabs } = await supabase
+    const { data: collabs, error: collabError } = await supabase
       .from('collaborators')
       .select('*, profile:profiles(*)')
       .eq('company_id', company.id)
       .eq('active', true);
+
+    console.log('[Booking] collaborators query result', {
+      found: collabs?.length ?? 0,
+      error: collabError?.message,
+      professionals: collabs?.map((c: any) => ({
+        profile_id: c.profile_id,
+        slug: c.slug,
+        name: c.profile?.full_name,
+        company_id: c.company_id,
+      })),
+    });
 
     if (!collabs || collabs.length === 0) {
       console.warn('[Booking] No active collaborators found for company', company.id);
