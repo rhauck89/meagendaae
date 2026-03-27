@@ -21,6 +21,12 @@ export interface ExistingAppointment {
   end_time: string;
 }
 
+export interface BlockedTime {
+  block_date: string;
+  start_time: string; // HH:mm or HH:mm:ss
+  end_time: string;
+}
+
 export interface AvailabilityParams {
   date: Date;
   totalDuration: number; // in minutes
@@ -30,12 +36,13 @@ export interface AvailabilityParams {
   slotInterval?: number; // default 15 minutes
   bufferMinutes?: number; // buffer between appointments
   professionalHours?: BusinessHours[]; // override company hours
+  blockedTimes?: BlockedTime[]; // manual time blocks
 }
 
 /**
  * Smart availability engine that calculates available time slots
  * considering business hours, lunch breaks, exceptions, existing appointments,
- * buffer time, and professional-specific working hours.
+ * buffer time, professional-specific working hours, and blocked times.
  */
 export function calculateAvailableSlots(params: AvailabilityParams): string[] {
   const {
@@ -47,6 +54,7 @@ export function calculateAvailableSlots(params: AvailabilityParams): string[] {
     slotInterval = 15,
     bufferMinutes = 0,
     professionalHours,
+    blockedTimes = [],
   } = params;
 
   if (totalDuration <= 0) return [];
@@ -81,7 +89,7 @@ export function calculateAvailableSlots(params: AvailabilityParams): string[] {
   const lunchStart = hours.lunch_start ? parseTime(hours.lunch_start) : null;
   const lunchEnd = hours.lunch_end ? parseTime(hours.lunch_end) : null;
 
-  // 3. Build blocked intervals (lunch + existing appointments with buffer)
+  // 3. Build blocked intervals (lunch + existing appointments + blocked times)
   const blocked: Array<{ start: Date; end: Date }> = [];
 
   if (lunchStart && lunchEnd) {
@@ -92,6 +100,13 @@ export function calculateAvailableSlots(params: AvailabilityParams): string[] {
     const aptStart = parseISO(apt.start_time);
     const aptEnd = addMinutes(parseISO(apt.end_time), bufferMinutes);
     blocked.push({ start: aptStart, end: aptEnd });
+  }
+
+  // Add blocked times for this date
+  for (const bt of blockedTimes) {
+    if (bt.block_date === dateStr) {
+      blocked.push({ start: parseTime(bt.start_time), end: parseTime(bt.end_time) });
+    }
   }
 
   blocked.sort((a, b) => a.start.getTime() - b.start.getTime());
