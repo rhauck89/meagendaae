@@ -4,7 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Calendar, ChevronLeft, ChevronRight, Clock, DollarSign, Users, UserCheck, UserMinus, AlertTriangle, Bell } from 'lucide-react';
+import { Calendar, ChevronLeft, ChevronRight, Clock, DollarSign, Users, UserCheck, UserMinus, AlertTriangle, Bell, Mail } from 'lucide-react';
 import { format, addDays, startOfWeek, endOfWeek, startOfMonth, endOfMonth, isSameDay, parseISO, differenceInDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
@@ -43,12 +43,14 @@ const Dashboard = () => {
   const [stats, setStats] = useState({ total: 0, revenue: 0, clients: 0 });
   const [returnStats, setReturnStats] = useState<ReturnStats>({ onTime: 0, approaching: 0, overdue: 0, approachingClients: [], overdueClients: [] });
   const [waitlistCount, setWaitlistCount] = useState(0);
+  const [reminderCount, setReminderCount] = useState(0);
 
   useEffect(() => {
     if (!companyId) return;
     fetchAppointments();
     fetchReturnStats();
     fetchWaitlistCount();
+    fetchReminderCount();
   }, [companyId, currentDate, viewMode]);
 
   const getDateRange = () => {
@@ -134,6 +136,16 @@ const Dashboard = () => {
     setWaitlistCount(count || 0);
   };
 
+  const fetchReminderCount = async () => {
+    if (!companyId) return;
+    const { count } = await supabase
+      .from('webhook_events')
+      .select('*', { count: 'exact', head: true })
+      .eq('company_id', companyId)
+      .in('event_type', ['appointment_reminder', 'appointment_reminder_24h', 'appointment_reminder_3h'] as any);
+    setReminderCount(count || 0);
+  };
+
   const navigate = (direction: number) => {
     const days = viewMode === 'day' ? 1 : viewMode === 'week' ? 7 : 30;
     setCurrentDate(addDays(currentDate, direction * days));
@@ -167,7 +179,7 @@ const Dashboard = () => {
   return (
     <div className="space-y-6">
       {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
         <Card>
           <CardContent className="p-4 flex items-center gap-4">
             <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
@@ -211,6 +223,17 @@ const Dashboard = () => {
             <div>
               <p className="text-sm text-muted-foreground">Aguardando vaga</p>
               <p className="text-2xl font-display font-bold">{waitlistCount}</p>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4 flex items-center gap-4">
+            <div className="w-12 h-12 rounded-xl bg-secondary/10 flex items-center justify-center">
+              <Mail className="h-6 w-6 text-secondary" />
+            </div>
+            <div>
+              <p className="text-sm text-muted-foreground">Lembretes enviados</p>
+              <p className="text-2xl font-display font-bold">{reminderCount}</p>
             </div>
           </CardContent>
         </Card>

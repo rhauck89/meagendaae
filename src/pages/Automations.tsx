@@ -4,16 +4,16 @@ import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
-import { Webhook, Send, History } from 'lucide-react';
+import { Send, History } from 'lucide-react';
 import { toast } from 'sonner';
 
 const eventTypes = [
   { value: 'appointment_created', label: 'Agendamento Criado', desc: 'Quando um novo agendamento é feito' },
   { value: 'appointment_cancelled', label: 'Agendamento Cancelado', desc: 'Quando um agendamento é cancelado' },
-  { value: 'appointment_reminder', label: 'Lembrete', desc: 'Lembrete antes do horário' },
+  { value: 'appointment_reminder', label: 'Lembrete (genérico)', desc: 'Qualquer lembrete de agendamento' },
+  { value: 'appointment_reminder_24h', label: 'Lembrete 24h', desc: '24 horas antes do agendamento' },
+  { value: 'appointment_reminder_3h', label: 'Lembrete 3h', desc: '3 horas antes do agendamento' },
   { value: 'client_return_due', label: 'Retorno do Cliente', desc: 'Quando o cliente deve retornar' },
   { value: 'birthday_message', label: 'Aniversário', desc: 'Mensagem de aniversário do cliente' },
   { value: 'slot_available', label: 'Vaga Disponível', desc: 'Quando uma vaga é liberada' },
