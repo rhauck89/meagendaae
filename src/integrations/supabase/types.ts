@@ -647,6 +647,7 @@ export type Database = {
       get_company_by_slug: {
         Args: { _slug: string }
         Returns: {
+          business_type: Database["public"]["Enums"]["business_type"]
           id: string
           logo_url: string
           name: string
