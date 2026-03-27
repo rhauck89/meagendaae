@@ -8,10 +8,12 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Plus, Users, Percent, DollarSign, Settings } from 'lucide-react';
+import { Plus, Users, Percent, DollarSign, Settings, Copy, Link as LinkIcon } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import ProfessionalPanel from '@/components/ProfessionalPanel';
+
+const ROLE_TITLES = ['Barbeiro', 'Cabeleireira', 'Esteticista', 'Manicure', 'Recepcionista'];
 
 const Team = () => {
   const { companyId } = useAuth();
@@ -19,15 +21,32 @@ const Team = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [panelOpen, setPanelOpen] = useState(false);
   const [selectedCollaborator, setSelectedCollaborator] = useState<any>(null);
+  const [createdCredentials, setCreatedCredentials] = useState<{ email: string; password: string; link: string } | null>(null);
   const [form, setForm] = useState({
     name: '',
     email: '',
-    collaborator_type: 'commissioned' as 'partner' | 'commissioned',
+    whatsapp: '',
+    role_title: 'Barbeiro',
+    collaborator_type: 'commissioned' as 'partner' | 'commissioned' | 'independent',
     payment_type: 'percentage' as 'percentage' | 'fixed' | 'none',
     commission_value: 10,
   });
 
   const teamQueryKey = ['collaborators', companyId];
+
+  const { data: company } = useQuery({
+    queryKey: ['company', companyId],
+    enabled: Boolean(companyId),
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('companies')
+        .select('slug, business_type')
+        .eq('id', companyId!)
+        .single();
+      if (error) throw error;
+      return data;
+    },
+  });
 
   const { data: collaborators = [], refetch } = useQuery({
     queryKey: teamQueryKey,
@@ -48,16 +67,27 @@ const Team = () => {
     setForm({
       name: '',
       email: '',
+      whatsapp: '',
+      role_title: 'Barbeiro',
       collaborator_type: 'commissioned',
       payment_type: 'percentage',
       commission_value: 10,
     });
+    setCreatedCredentials(null);
   };
 
   const refreshTeam = async () => {
     await queryClient.invalidateQueries({ queryKey: teamQueryKey });
     await refetch();
   };
+
+  const generateSlug = (name: string) =>
+    name
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/(^-|-$)/g, '');
 
   const handleAdd = async () => {
     if (!form.email.trim() || !form.name.trim()) {
@@ -69,15 +99,22 @@ const Team = () => {
     }
 
     try {
+      const tempPassword = `${crypto.randomUUID().slice(0, 8)}A1!`;
+      const professionalSlug = generateSlug(form.name);
+
       const response = await supabase.functions.invoke('create-collaborator', {
         body: {
           name: form.name.trim(),
           email: form.email.trim(),
+          whatsapp: form.whatsapp.trim() || null,
           company_id: companyId,
           collaborator_type: form.collaborator_type,
           payment_type: form.payment_type,
           commission_value: form.payment_type === 'none' ? 0 : form.commission_value,
           role: 'collaborator',
+          role_title: form.role_title,
+          slug: professionalSlug,
+          temp_password: tempPassword,
         },
       });
 
@@ -89,13 +126,25 @@ const Team = () => {
         throw new Error(response.data?.error || 'Erro ao criar colaborador');
       }
 
-      toast.success('Colaborador adicionado');
-      setDialogOpen(false);
-      resetForm();
+      const businessPrefix = company?.business_type === 'esthetic' ? 'estetica' : 'barbearia';
+      const bookingLink = `${window.location.origin}/${businessPrefix}/${company?.slug}/${professionalSlug}`;
+
+      setCreatedCredentials({
+        email: form.email.trim(),
+        password: tempPassword,
+        link: bookingLink,
+      });
+
+      toast.success('Profissional adicionado com sucesso!');
       await refreshTeam();
     } catch (err: any) {
       toast.error(err.message || 'Erro ao criar colaborador');
     }
+  };
+
+  const copyToClipboard = (text: string, label: string) => {
+    navigator.clipboard.writeText(text);
+    toast.success(`${label} copiado!`);
   };
 
   const paymentLabel = (type: string, value: number) => {
@@ -104,12 +153,19 @@ const Team = () => {
     return 'Sem comissão';
   };
 
+  const getCollaboratorBookingLink = (collaborator: any) => {
+    if (!company) return '';
+    const businessPrefix = company.business_type === 'esthetic' ? 'estetica' : 'barbearia';
+    const slug = collaborator.slug || generateSlug(collaborator.profile?.full_name || '');
+    return `${window.location.origin}/${businessPrefix}/${company.slug}/${slug}`;
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-xl font-display font-bold">Equipe</h2>
-          <p className="text-sm text-muted-foreground">Gerencie colaboradores do seu estabelecimento</p>
+          <p className="text-sm text-muted-foreground">Gerencie profissionais do seu estabelecimento</p>
         </div>
         <Dialog
           open={dialogOpen}
@@ -120,109 +176,174 @@ const Team = () => {
         >
           <DialogTrigger asChild>
             <Button>
-              <Plus className="mr-2 h-4 w-4" /> Adicionar
+              <Plus className="mr-2 h-4 w-4" /> Adicionar Profissional
             </Button>
           </DialogTrigger>
-          <DialogContent>
+          <DialogContent className="max-w-md">
             <DialogHeader>
-              <DialogTitle>Novo Colaborador</DialogTitle>
+              <DialogTitle>
+                {createdCredentials ? 'Profissional Criado!' : 'Novo Profissional'}
+              </DialogTitle>
             </DialogHeader>
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label>Nome</Label>
-                <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
-              </div>
-              <div className="space-y-2">
-                <Label>Email</Label>
-                <Input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
-              </div>
-              <div className="space-y-2">
-                <Label>Tipo</Label>
-                <Select value={form.collaborator_type} onValueChange={(value) => setForm({ ...form, collaborator_type: value as any })}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="partner">Sócio</SelectItem>
-                    <SelectItem value="commissioned">Comissionado</SelectItem>
-                    <SelectItem value="independent">Independente</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label>Forma de pagamento</Label>
-                <Select value={form.payment_type} onValueChange={(value) => setForm({ ...form, payment_type: value as 'percentage' | 'fixed' | 'none' })}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="percentage">Percentual</SelectItem>
-                    <SelectItem value="fixed">Valor fixo</SelectItem>
-                    <SelectItem value="none">Sem comissão</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              {form.payment_type === 'percentage' && (
-                <div className="space-y-2">
-                  <Label>Comissão (%)</Label>
-                  <Input
-                    type="number"
-                    value={form.commission_value}
-                    onChange={(e) => setForm({ ...form, commission_value: parseFloat(e.target.value) || 0 })}
-                  />
+
+            {createdCredentials ? (
+              <div className="space-y-4">
+                <div className="rounded-lg border bg-muted/50 p-4 space-y-3">
+                  <div>
+                    <p className="text-xs text-muted-foreground">Email de acesso</p>
+                    <p className="font-mono text-sm">{createdCredentials.email}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Senha temporária</p>
+                    <p className="font-mono text-sm">{createdCredentials.password}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Link de agendamento</p>
+                    <p className="font-mono text-xs break-all">{createdCredentials.link}</p>
+                  </div>
                 </div>
-              )}
-              {form.payment_type === 'fixed' && (
-                <div className="space-y-2">
-                  <Label>Valor por serviço</Label>
-                  <Input
-                    type="number"
-                    step="0.01"
-                    value={form.commission_value}
-                    onChange={(e) => setForm({ ...form, commission_value: parseFloat(e.target.value) || 0 })}
-                  />
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    className="flex-1"
+                    onClick={() =>
+                      copyToClipboard(
+                        `Email: ${createdCredentials.email}\nSenha: ${createdCredentials.password}\nLink: ${createdCredentials.link}`,
+                        'Dados de acesso'
+                      )
+                    }
+                  >
+                    <Copy className="mr-2 h-4 w-4" /> Copiar tudo
+                  </Button>
+                  <Button className="flex-1" onClick={() => { setDialogOpen(false); resetForm(); }}>
+                    Fechar
+                  </Button>
                 </div>
-              )}
-              <Button onClick={handleAdd} className="w-full">Adicionar</Button>
-            </div>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label>Nome</Label>
+                  <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+                </div>
+                <div className="space-y-2">
+                  <Label>Email</Label>
+                  <Input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
+                </div>
+                <div className="space-y-2">
+                  <Label>WhatsApp</Label>
+                  <Input value={form.whatsapp} onChange={(e) => setForm({ ...form, whatsapp: e.target.value })} placeholder="(31) 99999-9999" />
+                </div>
+                <div className="space-y-2">
+                  <Label>Função</Label>
+                  <Select value={form.role_title} onValueChange={(v) => setForm({ ...form, role_title: v })}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {ROLE_TITLES.map((t) => (
+                        <SelectItem key={t} value={t}>{t}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Tipo</Label>
+                  <Select value={form.collaborator_type} onValueChange={(value) => setForm({ ...form, collaborator_type: value as any })}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="partner">Sócio</SelectItem>
+                      <SelectItem value="commissioned">Comissionado</SelectItem>
+                      <SelectItem value="independent">Independente</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Forma de pagamento</Label>
+                  <Select value={form.payment_type} onValueChange={(value) => setForm({ ...form, payment_type: value as 'percentage' | 'fixed' | 'none' })}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="percentage">Percentual</SelectItem>
+                      <SelectItem value="fixed">Valor fixo</SelectItem>
+                      <SelectItem value="none">Sem comissão</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                {form.payment_type === 'percentage' && (
+                  <div className="space-y-2">
+                    <Label>Comissão (%)</Label>
+                    <Input
+                      type="number"
+                      value={form.commission_value}
+                      onChange={(e) => setForm({ ...form, commission_value: parseFloat(e.target.value) || 0 })}
+                    />
+                  </div>
+                )}
+                {form.payment_type === 'fixed' && (
+                  <div className="space-y-2">
+                    <Label>Valor por serviço (R$)</Label>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      value={form.commission_value}
+                      onChange={(e) => setForm({ ...form, commission_value: parseFloat(e.target.value) || 0 })}
+                    />
+                  </div>
+                )}
+                <Button onClick={handleAdd} className="w-full">Adicionar</Button>
+              </div>
+            )}
           </DialogContent>
         </Dialog>
       </div>
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-        {collaborators.map((collaborator) => (
-          <Card key={collaborator.id}>
-            <CardContent className="flex items-center gap-4 p-5">
-              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 font-bold text-primary">
-                {collaborator.profile?.full_name?.charAt(0)?.toUpperCase() || '?'}
-              </div>
-              <div className="flex-1">
-                <p className="font-semibold">{collaborator.profile?.full_name}</p>
-                <p className="text-sm text-muted-foreground">{collaborator.profile?.email}</p>
-                {(collaborator as any).slug && (
-                  <p className="text-xs text-muted-foreground">/{(collaborator as any).slug}</p>
+        {collaborators.map((collaborator) => {
+          const bookingLink = getCollaboratorBookingLink(collaborator);
+          return (
+            <Card key={collaborator.id}>
+              <CardContent className="p-5 space-y-3">
+                <div className="flex items-center gap-4">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 font-bold text-primary shrink-0">
+                    {collaborator.profile?.full_name?.charAt(0)?.toUpperCase() || '?'}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-semibold">{collaborator.profile?.full_name}</p>
+                    <p className="text-sm text-muted-foreground">{collaborator.profile?.email}</p>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => { setSelectedCollaborator(collaborator); setPanelOpen(true); }}
+                  >
+                    <Settings className="h-4 w-4" />
+                  </Button>
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <Badge variant="outline">
+                    {collaborator.collaborator_type === 'partner' ? 'Sócio' : collaborator.collaborator_type === 'independent' ? 'Independente' : 'Comissionado'}
+                  </Badge>
+                  <Badge variant="secondary" className="flex items-center gap-1">
+                    {collaborator.commission_type === 'percentage' && <><Percent className="h-3 w-3" /> {paymentLabel(collaborator.commission_type, collaborator.commission_value)}</>}
+                    {collaborator.commission_type === 'fixed' && <><DollarSign className="h-3 w-3" /> {paymentLabel(collaborator.commission_type, collaborator.commission_value)}</>}
+                    {collaborator.commission_type === 'none' && paymentLabel(collaborator.commission_type, collaborator.commission_value)}
+                  </Badge>
+                </div>
+                {bookingLink && (
+                  <div className="flex items-center gap-2 rounded-md border bg-muted/30 px-3 py-2">
+                    <LinkIcon className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                    <p className="text-xs text-muted-foreground truncate flex-1">{bookingLink}</p>
+                    <Button variant="ghost" size="sm" className="h-7 px-2" onClick={() => copyToClipboard(bookingLink, 'Link')}>
+                      <Copy className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
                 )}
-              </div>
-              <div className="flex items-center gap-2">
-                <Badge variant="outline">
-                  {collaborator.collaborator_type === 'partner' ? 'Sócio' : collaborator.collaborator_type === 'independent' ? 'Independente' : 'Comissionado'}
-                </Badge>
-                <Badge variant="secondary" className="flex items-center gap-1">
-                  {collaborator.commission_type === 'percentage' && <><Percent className="h-3 w-3" /> {paymentLabel(collaborator.commission_type, collaborator.commission_value)}</>}
-                  {collaborator.commission_type === 'fixed' && <><DollarSign className="h-3 w-3" /> {paymentLabel(collaborator.commission_type, collaborator.commission_value)}</>}
-                  {collaborator.commission_type === 'none' && paymentLabel(collaborator.commission_type, collaborator.commission_value)}
-                </Badge>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => { setSelectedCollaborator(collaborator); setPanelOpen(true); }}
-                >
-                  <Settings className="h-4 w-4" />
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
+              </CardContent>
+            </Card>
+          );
+        })}
         {collaborators.length === 0 && (
           <div className="col-span-full py-12 text-center text-muted-foreground">
             <Users className="mx-auto mb-3 h-12 w-12 opacity-40" />
-            <p>Nenhum colaborador cadastrado</p>
+            <p>Nenhum profissional cadastrado</p>
           </div>
         )}
       </div>
