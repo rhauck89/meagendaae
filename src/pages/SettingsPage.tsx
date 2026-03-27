@@ -137,7 +137,44 @@ const SettingsPage = () => {
         <p className="text-sm text-muted-foreground">Horários, lembretes e automações</p>
       </div>
 
-      {/* Reminder Settings */}
+      {/* Public Booking Link */}
+      {companySlug && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Link2 className="h-5 w-5" /> Link de Agendamento
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              <p className="text-sm text-muted-foreground">
+                Compartilhe este link com seus clientes para agendamento online:
+              </p>
+              {(() => {
+                const prefix = companyBusinessType === 'esthetic' ? 'estetica' : 'barbearia';
+                const bookingUrl = `${window.location.origin}/${prefix}/${companySlug}`;
+                return (
+                  <div className="flex items-center gap-2">
+                    <Input value={bookingUrl} readOnly className="bg-muted" />
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={() => {
+                        navigator.clipboard.writeText(bookingUrl);
+                        toast.success('Link copiado!');
+                      }}
+                    >
+                      <Copy className="h-4 w-4" />
+                    </Button>
+                  </div>
+                );
+              })()}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
