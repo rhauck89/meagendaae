@@ -267,7 +267,7 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
 
   const totalDuration = services
     .filter((s) => selectedServices.includes(s.id))
-    .reduce((sum, s) => sum + s.duration_minutes, 0);
+    .reduce((sum, s) => sum + (Number(s.duration_minutes) || 0), 0);
 
   const totalPrice = services
     .filter((s) => selectedServices.includes(s.id))
@@ -900,6 +900,18 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
                 disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
               />
             </div>
+            {selectedDate && (() => {
+              console.log('[Booking] RENDER slots section', {
+                selectedDate: format(selectedDate, 'yyyy-MM-dd'),
+                slotsLoading,
+                availableSlotsCount: availableSlots.length,
+                firstSlots: availableSlots.slice(0, 5),
+                totalDuration,
+                selectedProfessional,
+                businessHoursCount: businessHours.length,
+              });
+              return null;
+            })()}
             {selectedDate && (
               <div>
                 <p className={cn('text-sm font-medium mb-2')}>
