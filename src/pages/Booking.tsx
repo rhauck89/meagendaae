@@ -41,6 +41,7 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [availableSlots, setAvailableSlots] = useState<string[]>([]);
+  const [generatedSlots, setGeneratedSlots] = useState<string[]>([]);
   const [clientForm, setClientForm] = useState({ full_name: '', email: '', whatsapp: '', cpf: '', birth_date: '' });
   const [optInWhatsapp, setOptInWhatsapp] = useState(false);
   const [savedClientId, setSavedClientId] = useState<string | null>(null);
@@ -335,7 +336,7 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
       bufferMinutes,
     });
 
-    let slots = calculateAvailableSlots({
+    const engineSlots = calculateAvailableSlots({
       date,
       totalDuration,
       businessHours,
@@ -348,16 +349,21 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
       professionalId: selectedProfessional,
     });
 
+    console.log('Generated slots:', engineSlots);
+    setGeneratedSlots(engineSlots);
+
+    let filteredSlots = engineSlots;
+
     // Filter past times for today
     if (isToday(date)) {
       const currentTime = format(new Date(), 'HH:mm');
-      const beforeFilter = slots.length;
-      slots = slots.filter(s => s > currentTime);
-      console.log('[Booking] Filtered past slots for today', { before: beforeFilter, after: slots.length, currentTime });
+      const beforeFilter = filteredSlots.length;
+      filteredSlots = filteredSlots.filter(s => s > currentTime);
+      console.log('[Booking] Filtered past slots for today', { before: beforeFilter, after: filteredSlots.length, currentTime });
     }
 
-    console.log('[Booking] calculateSlots result', { slotsFound: slots.length, firstSlots: slots.slice(0, 5) });
-    setAvailableSlots(slots);
+    console.log('[Booking] calculateSlots result', { slotsFound: filteredSlots.length, firstSlots: filteredSlots.slice(0, 5) });
+    setAvailableSlots(filteredSlots);
     setSlotsLoading(false);
   };
 
@@ -366,6 +372,7 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
       console.log('[Booking] Slot calculation useEffect triggered', {
         selectedDate: format(selectedDate, 'yyyy-MM-dd'),
         selectedProfessional,
+        selectedServices,
         businessHoursCount: businessHours.length,
         professionalHoursCount: professionalHours.length,
         totalDuration,
@@ -373,7 +380,11 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
       });
       calculateSlots(selectedDate);
     }
-  }, [selectedDate, selectedProfessional, professionalHours, businessHours, totalDuration, company]);
+  }, [selectedDate, selectedProfessional, selectedServices, professionalHours, businessHours, totalDuration, company]);
+
+  useEffect(() => {
+    console.log('availableSlots state:', availableSlots);
+  }, [availableSlots]);
 
   // Fetch next available slots across 7 days
   const fetchNextAvailableSlots = async () => {
@@ -904,6 +915,8 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
               console.log('[Booking] RENDER slots section', {
                 selectedDate: format(selectedDate, 'yyyy-MM-dd'),
                 slotsLoading,
+                generatedSlotsCount: generatedSlots.length,
+                generatedFirstSlots: generatedSlots.slice(0, 5),
                 availableSlotsCount: availableSlots.length,
                 firstSlots: availableSlots.slice(0, 5),
                 totalDuration,
@@ -924,7 +937,7 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
                 </p>
                 {slotsLoading ? (
                   <p className={cn('text-sm', textMuted)}>Calculando disponibilidade...</p>
-                ) : availableSlots.length === 0 ? (
+                ) : availableSlots.length === 0 && generatedSlots.length === 0 ? (
                   <div className="space-y-3">
                     <p className={cn('text-sm', textMuted)}>
                       {businessHours.length === 0
@@ -955,7 +968,7 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
                   </div>
                 ) : (
                   <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
-                    {availableSlots.map((slot) => (
+                    {(availableSlots.length > 0 ? availableSlots : generatedSlots).map((slot) => (
                       <Button
                         key={slot}
                         variant="outline"
