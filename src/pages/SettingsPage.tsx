@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
-import { Clock, Calendar as CalendarIcon, Plus, Trash2 } from 'lucide-react';
+import { Clock, Calendar as CalendarIcon, Plus, Trash2, Bell } from 'lucide-react';
 
 const dayNames = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
 
@@ -16,11 +16,13 @@ const SettingsPage = () => {
   const [hours, setHours] = useState<any[]>([]);
   const [exceptions, setExceptions] = useState<any[]>([]);
   const [newException, setNewException] = useState({ date: '', reason: '', is_closed: true });
+  const [remindersEnabled, setRemindersEnabled] = useState(true);
 
   useEffect(() => {
     if (companyId) {
       fetchHours();
       fetchExceptions();
+      fetchReminderSetting();
     }
   }, [companyId]);
 
@@ -40,6 +42,24 @@ const SettingsPage = () => {
       .eq('company_id', companyId!)
       .order('exception_date');
     if (data) setExceptions(data);
+  };
+
+  const fetchReminderSetting = async () => {
+    const { data } = await supabase
+      .from('companies')
+      .select('reminders_enabled')
+      .eq('id', companyId!)
+      .single();
+    if (data) setRemindersEnabled(data.reminders_enabled ?? true);
+  };
+
+  const toggleReminders = async (enabled: boolean) => {
+    setRemindersEnabled(enabled);
+    await supabase
+      .from('companies')
+      .update({ reminders_enabled: enabled } as any)
+      .eq('id', companyId!);
+    toast.success(enabled ? 'Lembretes ativados' : 'Lembretes desativados');
   };
 
   const updateHour = async (id: string, field: string, value: any) => {
@@ -69,8 +89,31 @@ const SettingsPage = () => {
     <div className="space-y-6">
       <div>
         <h2 className="text-xl font-display font-bold">Configurações</h2>
-        <p className="text-sm text-muted-foreground">Horários de funcionamento e exceções</p>
+        <p className="text-sm text-muted-foreground">Horários de funcionamento, exceções e lembretes</p>
       </div>
+
+      {/* Reminder Settings */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Bell className="h-5 w-5" /> Lembretes Automáticos
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
+            <div>
+              <p className="font-medium">Enviar lembretes de agendamento</p>
+              <p className="text-sm text-muted-foreground">
+                Dispara eventos 24h e 3h antes do horário agendado
+              </p>
+            </div>
+            <Switch
+              checked={remindersEnabled}
+              onCheckedChange={toggleReminders}
+            />
+          </div>
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>

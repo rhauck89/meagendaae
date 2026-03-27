@@ -250,6 +250,46 @@ const Booking = () => {
       });
       await supabase.from('appointment_services').insert(aptServices);
 
+      // Fire appointment_created webhook
+      try {
+        const { data: webhookConfigs } = await supabase
+          .from('webhook_configs')
+          .select('url')
+          .eq('company_id', company.id)
+          .eq('event_type', 'appointment_created')
+          .eq('active', true);
+
+        const createdPayload = {
+          event: 'appointment_created',
+          appointment_id: appointment.id,
+          company_id: company.id,
+          client_name: clientForm.full_name,
+          client_whatsapp: clientForm.whatsapp,
+          client_email: clientForm.email,
+          start_time: startTime.toISOString(),
+          end_time: endTime.toISOString(),
+          total_price: totalPrice,
+          services: selectedServices.map((sid) => services.find((s) => s.id === sid)?.name),
+        };
+
+        await supabase.from('webhook_events').insert({
+          company_id: company.id,
+          event_type: 'appointment_created' as any,
+          payload: createdPayload,
+          status: webhookConfigs && webhookConfigs.length > 0 ? 'sent' : 'no_config',
+        });
+
+        for (const config of webhookConfigs || []) {
+          fetch(config.url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(createdPayload),
+          }).catch(() => {});
+        }
+      } catch (webhookErr) {
+        console.error('Webhook fire failed:', webhookErr);
+      }
+
       toast.success('Agendamento realizado com sucesso!');
       setStep('services');
       setSelectedServices([]);
