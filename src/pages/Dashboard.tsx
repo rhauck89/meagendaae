@@ -479,6 +479,42 @@ const Dashboard = () => {
           </div>
         </CardHeader>
         <CardContent>
+          {/* Blocked Times */}
+          {blockedTimes.length > 0 && (
+            <div className="space-y-2 mb-4">
+              <p className="text-sm font-semibold text-muted-foreground flex items-center gap-1">
+                <Ban className="h-4 w-4" /> Horários bloqueados
+              </p>
+              {blockedTimes.map((bt: any) => (
+                <div
+                  key={bt.id}
+                  className="flex items-center justify-between p-3 rounded-xl border border-destructive/20 bg-destructive/5"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="text-center min-w-[60px]">
+                      <p className="text-sm font-bold text-destructive">{bt.start_time?.slice(0, 5)}</p>
+                      <p className="text-xs text-muted-foreground">{bt.end_time?.slice(0, 5)}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-destructive">Bloqueado</p>
+                      <p className="text-xs text-muted-foreground">
+                        {bt.professional?.full_name || ''}{bt.reason ? ` • ${bt.reason}` : ''}
+                      </p>
+                      <p className="text-xs text-muted-foreground">{bt.block_date}</p>
+                    </div>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="text-destructive hover:text-destructive"
+                    onClick={() => deleteBlockedTime(bt.id)}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          )}
           {appointments.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground">
               <Calendar className="h-12 w-12 mx-auto mb-3 opacity-40" />
