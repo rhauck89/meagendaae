@@ -136,6 +136,16 @@ const Dashboard = () => {
     setWaitlistCount(count || 0);
   };
 
+  const fetchReminderCount = async () => {
+    if (!companyId) return;
+    const { count } = await supabase
+      .from('webhook_events')
+      .select('*', { count: 'exact', head: true })
+      .eq('company_id', companyId)
+      .in('event_type', ['appointment_reminder', 'appointment_reminder_24h', 'appointment_reminder_3h'] as any);
+    setReminderCount(count || 0);
+  };
+
   const navigate = (direction: number) => {
     const days = viewMode === 'day' ? 1 : viewMode === 'week' ? 7 : 30;
     setCurrentDate(addDays(currentDate, direction * days));
