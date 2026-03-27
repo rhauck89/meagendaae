@@ -650,13 +650,22 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
                 />
               </div>
               <div className="space-y-1">
-                <Label>WhatsApp</Label>
+                <Label>WhatsApp *</Label>
                 <Input
                   value={clientForm.whatsapp}
                   onChange={(e) => setClientForm({ ...clientForm, whatsapp: e.target.value })}
+                  onBlur={() => {
+                    if (clientForm.whatsapp) {
+                      setClientForm({ ...clientForm, whatsapp: displayWhatsApp(clientForm.whatsapp) });
+                    }
+                  }}
                   placeholder="(11) 99999-9999"
+                  required
                   className={cn(isDark ? 'bg-[#16213e] border-[#2a2a4a] text-white' : 'bg-white border-[#e8ddd4]')}
                 />
+                {clientForm.whatsapp && !isValidWhatsApp(clientForm.whatsapp) && (
+                  <p className="text-sm text-destructive">Número inválido. Use DDD + número.</p>
+                )}
               </div>
               <div className="space-y-1">
                 <Label>Email</Label>
