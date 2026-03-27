@@ -289,36 +289,45 @@ export type Database = {
       profiles: {
         Row: {
           avatar_url: string | null
+          average_return_days: number | null
           birth_date: string | null
           company_id: string | null
           created_at: string
           email: string | null
+          expected_return_date: string | null
           full_name: string
           id: string
+          last_visit_date: string | null
           updated_at: string
           user_id: string
           whatsapp: string | null
         }
         Insert: {
           avatar_url?: string | null
+          average_return_days?: number | null
           birth_date?: string | null
           company_id?: string | null
           created_at?: string
           email?: string | null
+          expected_return_date?: string | null
           full_name: string
           id?: string
+          last_visit_date?: string | null
           updated_at?: string
           user_id: string
           whatsapp?: string | null
         }
         Update: {
           avatar_url?: string | null
+          average_return_days?: number | null
           birth_date?: string | null
           company_id?: string | null
           created_at?: string
           email?: string | null
+          expected_return_date?: string | null
           full_name?: string
           id?: string
+          last_visit_date?: string | null
           updated_at?: string
           user_id?: string
           whatsapp?: string | null
@@ -584,6 +593,10 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      recalculate_client_return_stats: {
+        Args: { _company_id: string }
+        Returns: undefined
       }
     }
     Enums: {
