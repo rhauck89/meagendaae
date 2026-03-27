@@ -279,10 +279,10 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
 
         await supabase
           .from('profiles')
-          .update({
-            company_id: company.id,
-            whatsapp: clientForm.whatsapp,
-            birth_date: clientForm.birth_date || null,
+           .update({
+             company_id: company.id,
+             whatsapp: formatWhatsApp(clientForm.whatsapp),
+             birth_date: clientForm.birth_date || null,
           })
           .eq('user_id', userId);
 
@@ -345,7 +345,7 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
           appointment_id: appointment.id,
           company_id: company.id,
           client_name: clientForm.full_name,
-          client_whatsapp: clientForm.whatsapp,
+          client_whatsapp: formatWhatsApp(clientForm.whatsapp),
           client_email: clientForm.email,
           professional_name: professionalProfile?.full_name || '',
           service_name: serviceNames.join(', '),
