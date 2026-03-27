@@ -66,7 +66,12 @@ Deno.serve(async (req) => {
       });
     }
 
-    const { email, full_name, collaborator_type, commission_percent } = await req.json();
+    const body = await req.json();
+    const email = typeof body.email === "string" ? body.email.trim() : "";
+    const full_name = typeof body.full_name === "string" ? body.full_name.trim() : "";
+    const collaborator_type = body.collaborator_type === "partner" ? "partner" : "commissioned";
+    const commission_type = ["percentage", "fixed", "none"].includes(body.commission_type) ? body.commission_type : "percentage";
+    const commission_value = typeof body.commission_value === "number" ? body.commission_value : 0;
 
     if (!email || !full_name) {
       return new Response(JSON.stringify({ error: "Email and name required" }), {
@@ -75,7 +80,14 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Create the user using admin API (doesn't affect caller's session)
+    if (email.length > 255 || full_name.length > 255) {
+      return new Response(JSON.stringify({ error: "Input too long" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Create the user using admin API
     const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
       email,
       password: crypto.randomUUID().slice(0, 12) + "A1!",
@@ -118,12 +130,15 @@ Deno.serve(async (req) => {
       await supabaseAdmin.from("collaborators").insert({
         company_id: companyId,
         profile_id: profileData.id,
-        collaborator_type: collaborator_type || "commissioned",
-        commission_percent: collaborator_type === "commissioned" ? (commission_percent || 10) : 0,
+        collaborator_type,
+        commission_type,
+        commission_value,
+        commission_percent: commission_type === "percentage" ? commission_value : 0,
       });
     }
 
     return new Response(JSON.stringify({ success: true }), {
+      status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (err) {
