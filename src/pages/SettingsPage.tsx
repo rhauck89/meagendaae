@@ -216,18 +216,22 @@ const SettingsPage = () => {
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
+            {hours.length === 0 && (
+              <p className="text-sm text-muted-foreground text-center py-4">Carregando horários...</p>
+            )}
             {hours.map((h) => (
               <div key={h.id} className="flex flex-wrap items-center gap-3 p-3 rounded-lg bg-muted/50">
                 <div className="w-24 font-medium text-sm">{dayNames[h.day_of_week]}</div>
                 <div className="flex items-center gap-2">
-                  <Label className="text-xs">Fechado</Label>
+                  <Label className="text-xs">Aberto</Label>
                   <Switch
-                    checked={h.is_closed}
-                    onCheckedChange={(v) => updateHour(h.id, 'is_closed', v)}
+                    checked={!h.is_closed}
+                    onCheckedChange={(v) => updateHour(h.id, 'is_closed', !v)}
                   />
                 </div>
                 {!h.is_closed && (
                   <>
+                    <span className="text-xs text-muted-foreground">Abre:</span>
                     <Input
                       type="time"
                       value={h.open_time || ''}
