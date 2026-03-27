@@ -74,7 +74,7 @@ const SettingsPage = () => {
   const fetchCompanySettings = async () => {
     const { data } = await supabase
       .from('companies')
-      .select('reminders_enabled, birthday_enabled, birthday_discount_type, birthday_discount_value')
+      .select('reminders_enabled, birthday_enabled, birthday_discount_type, birthday_discount_value, slug, business_type')
       .eq('id', companyId!)
       .single();
     if (data) {
@@ -82,6 +82,8 @@ const SettingsPage = () => {
       setBirthdayEnabled((data as any).birthday_enabled ?? true);
       setBirthdayDiscountType((data as any).birthday_discount_type ?? 'none');
       setBirthdayDiscountValue((data as any).birthday_discount_value ?? 0);
+      setCompanySlug((data as any).slug ?? '');
+      setCompanyBusinessType((data as any).business_type ?? 'barbershop');
     }
   };
 
