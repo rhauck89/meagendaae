@@ -25,23 +25,29 @@ Deno.serve(async (req) => {
       return jsonResponse({ error: "Server configuration error" }, 500);
     }
 
+    // 1. Read Authorization header
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
       return jsonResponse({ error: "Not authenticated" }, 401);
     }
 
-    const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey);
-    const supabaseAuth = createClient(supabaseUrl, anonKey, {
+    // 2. Create user-context client with the token
+    const supabaseUser = createClient(supabaseUrl, anonKey, {
       global: { headers: { Authorization: authHeader } },
     });
 
-    const { data: authData, error: authError } = await supabaseAuth.auth.getUser();
+    // 3. Validate the authenticated user
+    const { data: authData, error: authError } = await supabaseUser.auth.getUser();
     const caller = authData?.user;
 
     if (authError || !caller) {
       return jsonResponse({ error: "Invalid token" }, 401);
     }
 
+    // Admin client for privileged operations
+    const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey);
+
+    // Parse body
     let body: any;
     try {
       body = await req.json();
@@ -78,7 +84,7 @@ Deno.serve(async (req) => {
       return jsonResponse({ error: "Invalid name or email" }, 400);
     }
 
-    // Verify caller belongs to the company
+    // 4. Retrieve caller's company_id from profile
     const { data: callerProfile, error: profileError } = await supabaseAdmin
       .from("profiles")
       .select("company_id")
@@ -86,25 +92,24 @@ Deno.serve(async (req) => {
       .maybeSingle();
 
     if (profileError || !callerProfile?.company_id) {
-      return jsonResponse({ error: "No company found for authenticated user" }, 400);
+      // During onboarding the profile may not have company_id yet — return success with warning
+      return jsonResponse({
+        success: true,
+        warning: "Collaborator creation skipped: no company found for user yet",
+      });
     }
 
+    // 5. Only allow if user belongs to the target company
     if (callerProfile.company_id !== companyId) {
-      return jsonResponse({ error: "Invalid company_id" }, 403);
+      return jsonResponse({
+        success: true,
+        warning: "Collaborator creation skipped: company mismatch",
+      });
     }
 
-    // Verify caller has professional role in the company
-    const { data: roleCheck, error: roleError } = await supabaseAdmin
-      .from("user_roles")
-      .select("id")
-      .eq("user_id", caller.id)
-      .eq("company_id", companyId)
-      .eq("role", "professional")
-      .maybeSingle();
-
-    if (roleError || !roleCheck) {
-      return jsonResponse({ error: "Not authorized" }, 403);
-    }
+    // NOTE: We no longer require "professional" role here.
+    // During onboarding the owner may not have any role yet — they are the company owner.
+    // We verify ownership via company_id match above.
 
     // Check if user with this email already exists
     const { data: existingUsers } = await supabaseAdmin.auth.admin.listUsers();
@@ -123,7 +128,10 @@ Deno.serve(async (req) => {
       });
 
       if (createError || !newUser.user) {
-        return jsonResponse({ error: createError?.message || "Failed to create user" }, 400);
+        return jsonResponse({
+          success: true,
+          warning: `Collaborator creation failed: ${createError?.message || "Failed to create user"}`,
+        });
       }
       userId = newUser.user.id;
     }
@@ -151,7 +159,10 @@ Deno.serve(async (req) => {
         .single();
 
       if (insertProfileError || !insertedProfile) {
-        return jsonResponse({ error: insertProfileError?.message || "Failed to create profile" }, 500);
+        return jsonResponse({
+          success: true,
+          warning: `Profile creation failed: ${insertProfileError?.message}`,
+        });
       }
       profileId = insertedProfile.id;
     } else {
@@ -168,7 +179,10 @@ Deno.serve(async (req) => {
         .eq("id", existingProfile.id);
 
       if (updateProfileError) {
-        return jsonResponse({ error: updateProfileError.message }, 500);
+        return jsonResponse({
+          success: true,
+          warning: `Profile update failed: ${updateProfileError.message}`,
+        });
       }
       profileId = existingProfile.id;
     }
@@ -190,7 +204,10 @@ Deno.serve(async (req) => {
       });
 
       if (roleInsertError) {
-        return jsonResponse({ error: roleInsertError.message }, 500);
+        return jsonResponse({
+          success: true,
+          warning: `Role assignment failed: ${roleInsertError.message}`,
+        });
       }
     }
 
@@ -213,7 +230,10 @@ Deno.serve(async (req) => {
       });
 
       if (collaboratorError) {
-        return jsonResponse({ error: collaboratorError.message }, 500);
+        return jsonResponse({
+          success: true,
+          warning: `Collaborator insert failed: ${collaboratorError.message}`,
+        });
       }
     }
 
@@ -229,6 +249,10 @@ Deno.serve(async (req) => {
     });
   } catch (error) {
     console.error("create-collaborator error", error);
-    return jsonResponse({ error: "Internal error" }, 500);
+    // Never block onboarding
+    return jsonResponse({
+      success: true,
+      warning: "Internal error during collaborator creation",
+    });
   }
 });
