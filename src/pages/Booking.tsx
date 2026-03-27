@@ -269,7 +269,9 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
              full_name: clientForm.full_name || undefined,
              whatsapp: clientForm.whatsapp ? formatWhatsApp(clientForm.whatsapp) : undefined,
              birth_date: clientForm.birth_date || undefined,
-          })
+             opt_in_whatsapp: optInWhatsapp,
+             opt_in_date: optInWhatsapp ? new Date().toISOString() : undefined,
+          } as any)
           .eq('user_id', userId);
       } else {
         const { data: authData, error } = await supabase.auth.signUp({
@@ -286,7 +288,9 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
              company_id: company.id,
              whatsapp: formatWhatsApp(clientForm.whatsapp),
              birth_date: clientForm.birth_date || null,
-          })
+             opt_in_whatsapp: optInWhatsapp,
+             opt_in_date: optInWhatsapp ? new Date().toISOString() : null,
+          } as any)
           .eq('user_id', userId);
 
         await supabase.from('user_roles').insert({
