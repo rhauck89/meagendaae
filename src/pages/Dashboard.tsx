@@ -148,6 +148,34 @@ const Dashboard = () => {
     setReminderCount(count || 0);
   };
 
+  const fetchBirthdays = async () => {
+    if (!companyId) return;
+    const { data: clients } = await supabase
+      .from('profiles')
+      .select('id, full_name, birth_date, whatsapp')
+      .eq('company_id', companyId)
+      .not('birth_date', 'is', null);
+
+    if (!clients) return;
+
+    const today = new Date();
+    const upcoming: any[] = [];
+
+    for (const c of clients) {
+      if (!c.birth_date) continue;
+      const bday = new Date(c.birth_date);
+      const bdayThisYear = new Date(today.getFullYear(), bday.getMonth(), bday.getDate());
+      if (bdayThisYear < today) bdayThisYear.setFullYear(today.getFullYear() + 1);
+      const daysUntil = Math.ceil((bdayThisYear.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+      if (daysUntil <= 7) {
+        upcoming.push({ ...c, daysUntil, bdayDisplay: format(bday, 'dd/MM') });
+      }
+    }
+
+    upcoming.sort((a, b) => a.daysUntil - b.daysUntil);
+    setBirthdayClients(upcoming);
+  };
+
   const navigate = (direction: number) => {
     const days = viewMode === 'day' ? 1 : viewMode === 'week' ? 7 : 30;
     setCurrentDate(addDays(currentDate, direction * days));
