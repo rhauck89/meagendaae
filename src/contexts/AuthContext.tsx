@@ -32,6 +32,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [companyId, setCompanyId] = useState<string | null>(null);
   const [roles, setRoles] = useState<string[]>([]);
 
+  const fetchUserData = async (userId: string) => {
+    const [profileRes, rolesRes] = await Promise.all([
+      supabase.from('profiles').select('*').eq('user_id', userId).single(),
+      supabase.from('user_roles').select('role').eq('user_id', userId),
+    ]);
+
+    if (profileRes.data) {
+      setProfile(profileRes.data);
+      setCompanyId(profileRes.data.company_id);
+    }
+
+    if (rolesRes.data) {
+      setRoles(rolesRes.data.map((r) => r.role));
+    }
+  };
+
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (_event, session) => {
@@ -39,34 +55,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setUser(session?.user ?? null);
 
         if (session?.user) {
+          // Use setTimeout to avoid Supabase auth deadlock, but await inside
           setTimeout(async () => {
-            const { data: profileData } = await supabase
-              .from('profiles')
-              .select('*')
-              .eq('user_id', session.user.id)
-              .single();
-
-            if (profileData) {
-              setProfile(profileData);
-              setCompanyId(profileData.company_id);
-            }
-
-            const { data: rolesData } = await supabase
-              .from('user_roles')
-              .select('role')
-              .eq('user_id', session.user.id);
-
-            if (rolesData) {
-              setRoles(rolesData.map((r) => r.role));
-            }
+            await fetchUserData(session.user.id);
+            setLoading(false);
           }, 0);
         } else {
           setProfile(null);
           setCompanyId(null);
           setRoles([]);
+          setLoading(false);
         }
-
-        setLoading(false);
       }
     );
 
