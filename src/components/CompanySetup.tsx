@@ -291,6 +291,9 @@ const CompanySetup = ({ onComplete }: CompanySetupProps) => {
           });
         }
 
+        // Auto-link all company services to this professional
+        await autoLinkServices(myProfile.id);
+
         toast.success('Profissional adicionado!');
         setStep('done');
       } else {
@@ -310,6 +313,11 @@ const CompanySetup = ({ onComplete }: CompanySetupProps) => {
 
         if (response.error) throw new Error(response.error.message);
         if (!response.data?.success) throw new Error(response.data?.error || 'Erro');
+
+        // Auto-link all company services to the new professional
+        if (response.data?.profile_id) {
+          await autoLinkServices(response.data.profile_id);
+        }
 
         toast.success('Profissional adicionado!');
         setStep('done');
