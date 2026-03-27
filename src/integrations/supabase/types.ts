@@ -258,6 +258,7 @@ export type Database = {
           name: string
           owner_id: string | null
           phone: string | null
+          reminders_enabled: boolean
           slug: string
           stripe_customer_id: string | null
           stripe_subscription_id: string | null
@@ -271,6 +272,7 @@ export type Database = {
           name: string
           owner_id?: string | null
           phone?: string | null
+          reminders_enabled?: boolean
           slug: string
           stripe_customer_id?: string | null
           stripe_subscription_id?: string | null
@@ -284,6 +286,7 @@ export type Database = {
           name?: string
           owner_id?: string | null
           phone?: string | null
+          reminders_enabled?: boolean
           slug?: string
           stripe_customer_id?: string | null
           stripe_subscription_id?: string | null
@@ -684,6 +687,8 @@ export type Database = {
         | "client_return_due"
         | "birthday_message"
         | "slot_available"
+        | "appointment_reminder_24h"
+        | "appointment_reminder_3h"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -836,6 +841,8 @@ export const Constants = {
         "client_return_due",
         "birthday_message",
         "slot_available",
+        "appointment_reminder_24h",
+        "appointment_reminder_3h",
       ],
     },
   },
