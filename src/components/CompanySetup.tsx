@@ -221,6 +221,29 @@ const CompanySetup = ({ onComplete }: CompanySetupProps) => {
     }
   };
 
+  const autoLinkServices = async (profileId: string) => {
+    if (!companyId) return;
+    try {
+      const { data: allServices } = await supabase
+        .from('services')
+        .select('id')
+        .eq('company_id', companyId)
+        .eq('active', true);
+
+      if (allServices && allServices.length > 0) {
+        const links = allServices.map((s) => ({
+          service_id: s.id,
+          professional_id: profileId,
+          company_id: companyId,
+        }));
+        await supabase.from('service_professionals').insert(links as any);
+        console.log('[Onboarding] Auto-linked', allServices.length, 'services to professional', profileId);
+      }
+    } catch (err) {
+      console.warn('[Onboarding] Auto-link services failed (non-blocking):', err);
+    }
+  };
+
   const handleCreateService = async () => {
     if (!companyId || !serviceName.trim()) return;
     setLoading(true);
