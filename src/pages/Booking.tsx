@@ -185,6 +185,25 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
 
   const calculateSlots = async (date: Date) => {
     if (!company || !selectedProfessional) return;
+
+    // Data-ready guard: ensure we have business hours loaded
+    if (businessHours.length === 0) {
+      console.warn('[Booking] calculateSlots skipped: businessHours not loaded yet');
+      return;
+    }
+
+    // Data-ready guard: ensure totalDuration is valid
+    if (totalDuration <= 0) {
+      console.warn('[Booking] calculateSlots skipped: totalDuration is 0', {
+        selectedServices,
+        loadedServiceIds: services.map(s => s.id),
+        matchedServices: services.filter(s => selectedServices.includes(s.id)).map(s => ({ id: s.id, name: s.name, duration: s.duration_minutes })),
+      });
+      setAvailableSlots([]);
+      setSlotsLoading(false);
+      return;
+    }
+
     setSlotsLoading(true);
 
     const dateStr = format(date, 'yyyy-MM-dd');
@@ -210,6 +229,7 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
       date: dateStr,
       professional: selectedProfessional,
       totalDuration,
+      selectedServices,
       businessHoursCount: businessHours.length,
       professionalHoursCount: professionalHours.length,
       businessHoursDays: businessHours.map(h => ({ day: h.day_of_week, open: h.open_time, close: h.close_time, closed: h.is_closed })),
@@ -229,6 +249,7 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
       bufferMinutes,
       professionalHours: professionalHours.length > 0 ? professionalHours : undefined,
       blockedTimes: ((blockedTimesRes.data || []) as unknown as BlockedTime[]),
+      professionalId: selectedProfessional,
     });
 
     console.log('[Booking] calculateSlots result', { slotsFound: slots.length, firstSlots: slots.slice(0, 5) });
@@ -237,8 +258,10 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
   };
 
   useEffect(() => {
-    if (selectedDate && selectedProfessional) calculateSlots(selectedDate);
-  }, [selectedDate, selectedProfessional, professionalHours]);
+    if (selectedDate && selectedProfessional && businessHours.length > 0 && totalDuration > 0) {
+      calculateSlots(selectedDate);
+    }
+  }, [selectedDate, selectedProfessional, professionalHours, businessHours, totalDuration]);
 
   const handleJoinWaitlist = async () => {
     if (!company || !selectedDate || !selectedProfessional) return;
@@ -633,7 +656,11 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
                   <p className={cn('text-sm', textMuted)}>Calculando disponibilidade...</p>
                 ) : availableSlots.length === 0 ? (
                   <div className="space-y-3">
-                    <p className={cn('text-sm', textMuted)}>Nenhum horário disponível neste dia</p>
+                    <p className={cn('text-sm', textMuted)}>
+                      {businessHours.length === 0
+                        ? 'Horários de funcionamento não configurados'
+                        : 'Nenhum horário disponível neste dia'}
+                    </p>
                     <div className={cn('p-4 rounded-xl border border-dashed', isDark ? 'border-amber-500/50 bg-amber-500/5' : 'border-rose-400/50 bg-rose-400/5')}>
                       <div className="flex items-start gap-3">
                         <Bell className={cn('h-5 w-5 mt-0.5', accentText)} />

@@ -37,6 +37,7 @@ export interface AvailabilityParams {
   bufferMinutes?: number; // buffer between appointments
   professionalHours?: BusinessHours[]; // override company hours
   blockedTimes?: BlockedTime[]; // manual time blocks
+  professionalId?: string; // for debug logging
 }
 
 /**
@@ -55,9 +56,11 @@ export function calculateAvailableSlots(params: AvailabilityParams): string[] {
     bufferMinutes = 0,
     professionalHours,
     blockedTimes = [],
+    professionalId,
   } = params;
 
   const debugInfo = {
+    professionalId: professionalId ?? 'N/A',
     date: format(date, 'yyyy-MM-dd'),
     totalDuration,
     businessHoursCount: businessHours.length,
@@ -84,16 +87,28 @@ export function calculateAvailableSlots(params: AvailabilityParams): string[] {
 
   // 2. Get working hours - professional hours override company hours
   const dayOfWeek = date.getDay();
-  const activeHours = professionalHours && professionalHours.length > 0
-    ? professionalHours
-    : businessHours;
+  const usingProfessionalHours = !!(professionalHours && professionalHours.length > 0);
+  const activeHours = usingProfessionalHours ? professionalHours! : businessHours;
   const hours = activeHours.find((h) => h.day_of_week === dayOfWeek);
+
+  console.log('[AvailabilityEngine] Hours resolution', {
+    dayOfWeek,
+    usingProfessionalHours,
+    fallbackToCompany: !usingProfessionalHours,
+    activeHoursEntries: activeHours.map(h => ({
+      day: h.day_of_week,
+      open: h.open_time,
+      close: h.close_time,
+      closed: h.is_closed,
+    })),
+    matchedDay: hours ? { open: hours.open_time, close: hours.close_time, closed: hours.is_closed } : 'NOT FOUND',
+    ...debugInfo,
+  });
   
   if (!hours || hours.is_closed) {
     console.warn('[AvailabilityEngine] No working hours for day', {
       dayOfWeek,
-      usingProfessionalHours: !!(professionalHours && professionalHours.length > 0),
-      activeHoursDays: activeHours.map(h => ({ day: h.day_of_week, closed: h.is_closed })),
+      reason: !hours ? 'No entry for this day_of_week' : 'Day is marked as closed',
       ...debugInfo,
     });
     return [];
