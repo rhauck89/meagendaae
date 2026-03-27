@@ -37,11 +37,11 @@ Deno.serve(async (req) => {
     const companyIds = companies.map((c) => c.id);
     let totalSent = 0;
 
-    // --- 24h reminders: appointments between 24h and 25h from now ---
+    // --- 24h reminders ---
     const { data: appts24h } = await supabase
       .from("appointments")
       .select(
-        "*, client:profiles!appointments_client_id_fkey(full_name, whatsapp, email), professional:profiles!appointments_professional_id_fkey(full_name)"
+        "*, client:profiles!appointments_client_id_fkey(full_name, whatsapp, email), professional:profiles!appointments_professional_id_fkey(full_name), appointment_services(service:services(name))"
       )
       .in("company_id", companyIds)
       .in("status", ["pending", "confirmed"])
@@ -50,7 +50,6 @@ Deno.serve(async (req) => {
 
     if (appts24h) {
       for (const apt of appts24h) {
-        // Check if already sent
         const { count } = await supabase
           .from("webhook_events")
           .select("*", { count: "exact", head: true })
@@ -65,11 +64,11 @@ Deno.serve(async (req) => {
       }
     }
 
-    // --- 3h reminders: appointments between now and 3h from now ---
+    // --- 3h reminders ---
     const { data: appts3h } = await supabase
       .from("appointments")
       .select(
-        "*, client:profiles!appointments_client_id_fkey(full_name, whatsapp, email), professional:profiles!appointments_professional_id_fkey(full_name)"
+        "*, client:profiles!appointments_client_id_fkey(full_name, whatsapp, email), professional:profiles!appointments_professional_id_fkey(full_name), appointment_services(service:services(name))"
       )
       .in("company_id", companyIds)
       .in("status", ["pending", "confirmed"])
@@ -105,26 +104,40 @@ Deno.serve(async (req) => {
   }
 });
 
-async function fireReminderWebhook(
-  supabase: any,
-  apt: any,
-  eventType: string
-) {
+function formatDate(isoString: string): string {
+  return isoString.split("T")[0];
+}
+
+function formatTime(isoString: string): string {
+  return isoString.split("T")[1]?.substring(0, 5) || "";
+}
+
+function getServiceNames(apt: any): string {
+  if (!apt.appointment_services) return "";
+  return apt.appointment_services
+    .map((as: any) => as.service?.name)
+    .filter(Boolean)
+    .join(", ");
+}
+
+async function fireReminderWebhook(supabase: any, apt: any, eventType: string) {
   const payload = {
     event: eventType,
     appointment_id: apt.id,
     company_id: apt.company_id,
     client_id: apt.client_id,
-    client_name: apt.client?.full_name,
-    client_whatsapp: apt.client?.whatsapp,
-    client_email: apt.client?.email,
-    professional_name: apt.professional?.full_name,
+    client_name: apt.client?.full_name || "",
+    client_whatsapp: apt.client?.whatsapp || "",
+    client_email: apt.client?.email || "",
+    professional_name: apt.professional?.full_name || "",
+    service_name: getServiceNames(apt),
+    appointment_date: formatDate(apt.start_time),
+    appointment_time: formatTime(apt.start_time),
     start_time: apt.start_time,
     end_time: apt.end_time,
     total_price: apt.total_price,
   };
 
-  // Get webhook configs for this event type (and also generic appointment_reminder)
   const { data: configs } = await supabase
     .from("webhook_configs")
     .select("url")
