@@ -4,7 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Calendar, ChevronLeft, ChevronRight, Clock, DollarSign, Users, UserCheck, UserMinus, AlertTriangle, Bell, Mail } from 'lucide-react';
+import { Calendar, ChevronLeft, ChevronRight, Clock, DollarSign, Users, UserCheck, UserMinus, AlertTriangle, Bell, Mail, Cake } from 'lucide-react';
 import { format, addDays, startOfWeek, endOfWeek, startOfMonth, endOfMonth, isSameDay, parseISO, differenceInDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
@@ -44,6 +44,7 @@ const Dashboard = () => {
   const [returnStats, setReturnStats] = useState<ReturnStats>({ onTime: 0, approaching: 0, overdue: 0, approachingClients: [], overdueClients: [] });
   const [waitlistCount, setWaitlistCount] = useState(0);
   const [reminderCount, setReminderCount] = useState(0);
+  const [birthdayClients, setBirthdayClients] = useState<any[]>([]);
 
   useEffect(() => {
     if (!companyId) return;
@@ -51,6 +52,7 @@ const Dashboard = () => {
     fetchReturnStats();
     fetchWaitlistCount();
     fetchReminderCount();
+    fetchBirthdays();
   }, [companyId, currentDate, viewMode]);
 
   const getDateRange = () => {
@@ -144,6 +146,34 @@ const Dashboard = () => {
       .eq('company_id', companyId)
       .in('event_type', ['appointment_reminder', 'appointment_reminder_24h', 'appointment_reminder_3h'] as any);
     setReminderCount(count || 0);
+  };
+
+  const fetchBirthdays = async () => {
+    if (!companyId) return;
+    const { data: clients } = await supabase
+      .from('profiles')
+      .select('id, full_name, birth_date, whatsapp')
+      .eq('company_id', companyId)
+      .not('birth_date', 'is', null);
+
+    if (!clients) return;
+
+    const today = new Date();
+    const upcoming: any[] = [];
+
+    for (const c of clients) {
+      if (!c.birth_date) continue;
+      const bday = new Date(c.birth_date);
+      const bdayThisYear = new Date(today.getFullYear(), bday.getMonth(), bday.getDate());
+      if (bdayThisYear < today) bdayThisYear.setFullYear(today.getFullYear() + 1);
+      const daysUntil = Math.ceil((bdayThisYear.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+      if (daysUntil <= 7) {
+        upcoming.push({ ...c, daysUntil, bdayDisplay: format(bday, 'dd/MM') });
+      }
+    }
+
+    upcoming.sort((a, b) => a.daysUntil - b.daysUntil);
+    setBirthdayClients(upcoming);
   };
 
   const navigate = (direction: number) => {
@@ -306,6 +336,33 @@ const Dashboard = () => {
           )}
         </CardContent>
       </Card>
+
+      {/* Birthday Indicator */}
+      {birthdayClients.length > 0 && (
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-lg font-display flex items-center gap-2">
+              <Cake className="h-5 w-5" /> Aniversários Próximos
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              {birthdayClients.map((c) => (
+                <div key={c.id} className="flex items-center justify-between p-2 rounded-lg bg-primary/5 text-sm">
+                  <div>
+                    <span className="font-medium">{c.full_name}</span>
+                    <span className="text-muted-foreground ml-2">({c.bdayDisplay})</span>
+                    {c.whatsapp && <span className="text-muted-foreground ml-1">• {c.whatsapp}</span>}
+                  </div>
+                  <Badge variant="outline" className="text-xs border-primary text-primary">
+                    {c.daysUntil === 0 ? '🎂 Hoje!' : `em ${c.daysUntil} dias`}
+                  </Badge>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Calendar Controls */}
       <Card>

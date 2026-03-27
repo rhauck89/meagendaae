@@ -252,6 +252,9 @@ export type Database = {
       }
       companies: {
         Row: {
+          birthday_discount_type: string
+          birthday_discount_value: number
+          birthday_enabled: boolean
           created_at: string
           id: string
           logo_url: string | null
@@ -266,6 +269,9 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          birthday_discount_type?: string
+          birthday_discount_value?: number
+          birthday_enabled?: boolean
           created_at?: string
           id?: string
           logo_url?: string | null
@@ -280,6 +286,9 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          birthday_discount_type?: string
+          birthday_discount_value?: number
+          birthday_enabled?: boolean
           created_at?: string
           id?: string
           logo_url?: string | null
