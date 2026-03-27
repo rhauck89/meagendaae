@@ -81,7 +81,7 @@ const Dashboard = () => {
     const { start, end } = getDateRange();
     let query = supabase
       .from('blocked_times' as any)
-      .select('*, professional:profiles!blocked_times_professional_id_fkey(full_name)')
+      .select('*')
       .eq('company_id', companyId!)
       .gte('block_date', format(start, 'yyyy-MM-dd'))
       .lte('block_date', format(end, 'yyyy-MM-dd'));
@@ -93,7 +93,14 @@ const Dashboard = () => {
     }
 
     const { data } = await query;
-    setBlockedTimes((data as any[]) || []);
+    const blocks = (data as any[]) || [];
+
+    // Enrich with professional names from collaborators list
+    const enriched = blocks.map(bt => {
+      const collab = collaboratorsList.find(c => c.profile_id === bt.professional_id);
+      return { ...bt, professional: { full_name: (collab?.profile as any)?.full_name || '' } };
+    });
+    setBlockedTimes(enriched);
   };
 
   const deleteBlockedTime = async (id: string) => {
