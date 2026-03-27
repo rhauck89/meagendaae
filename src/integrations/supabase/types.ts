@@ -424,6 +424,53 @@ export type Database = {
         }
         Relationships: []
       }
+      company_settings: {
+        Row: {
+          booking_buffer_minutes: number
+          company_id: string
+          created_at: string
+          id: string
+          logo_url: string | null
+          primary_color: string
+          secondary_color: string
+          timezone: string
+          updated_at: string
+          whatsapp_number: string | null
+        }
+        Insert: {
+          booking_buffer_minutes?: number
+          company_id: string
+          created_at?: string
+          id?: string
+          logo_url?: string | null
+          primary_color?: string
+          secondary_color?: string
+          timezone?: string
+          updated_at?: string
+          whatsapp_number?: string | null
+        }
+        Update: {
+          booking_buffer_minutes?: number
+          company_id?: string
+          created_at?: string
+          id?: string
+          logo_url?: string | null
+          primary_color?: string
+          secondary_color?: string
+          timezone?: string
+          updated_at?: string
+          whatsapp_number?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_settings_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: true
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       professional_working_hours: {
         Row: {
           close_time: string
