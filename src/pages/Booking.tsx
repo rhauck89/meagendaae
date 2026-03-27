@@ -677,8 +677,19 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
 
   const skipProfessionalStep = !!professionalSlug;
 
+  // Dynamic branding from company_settings
+  const brandStyle: React.CSSProperties = companySettings?.primary_color
+    ? {
+        '--brand-primary': companySettings.primary_color,
+        '--brand-secondary': companySettings.secondary_color || '#F59E0B',
+      } as React.CSSProperties
+    : {};
+
+  // Use settings logo_url if company doesn't have one
+  const displayLogoUrl = company.logo_url || companySettings?.logo_url;
+
   return (
-    <div className={cn('min-h-screen', bgPage, textPage)}>
+    <div className={cn('min-h-screen', bgPage, textPage)} style={brandStyle}>
       {/* Header */}
       <header className={cn('border-b', bgHeader)}>
         <div className="max-w-2xl mx-auto px-4 py-4 flex items-center gap-3">
