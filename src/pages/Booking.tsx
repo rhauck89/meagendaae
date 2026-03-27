@@ -41,6 +41,7 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [availableSlots, setAvailableSlots] = useState<string[]>([]);
   const [clientForm, setClientForm] = useState({ full_name: '', email: '', whatsapp: '', birth_date: '' });
+  const [optInWhatsapp, setOptInWhatsapp] = useState(false);
   const [loading, setLoading] = useState(false);
   const [slotsLoading, setSlotsLoading] = useState(false);
   const [waitlistLoading, setWaitlistLoading] = useState(false);
