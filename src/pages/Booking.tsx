@@ -335,7 +335,7 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
       bufferMinutes,
     });
 
-    const slots = calculateAvailableSlots({
+    let slots = calculateAvailableSlots({
       date,
       totalDuration,
       businessHours,
@@ -347,6 +347,14 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
       blockedTimes: ((blockedTimesRes.data || []) as unknown as BlockedTime[]),
       professionalId: selectedProfessional,
     });
+
+    // Filter past times for today
+    if (isToday(date)) {
+      const currentTime = format(new Date(), 'HH:mm');
+      const beforeFilter = slots.length;
+      slots = slots.filter(s => s > currentTime);
+      console.log('[Booking] Filtered past slots for today', { before: beforeFilter, after: slots.length, currentTime });
+    }
 
     console.log('[Booking] calculateSlots result', { slotsFound: slots.length, firstSlots: slots.slice(0, 5) });
     setAvailableSlots(slots);
