@@ -36,7 +36,28 @@ const SettingsPage = () => {
       .select('*')
       .eq('company_id', companyId!)
       .order('day_of_week');
-    if (data) setHours(data);
+
+    if (data && data.length > 0) {
+      setHours(data);
+    } else {
+      // Auto-initialize default hours for all 7 days
+      const defaults = Array.from({ length: 7 }, (_, i) => ({
+        company_id: companyId!,
+        day_of_week: i,
+        open_time: '09:00',
+        close_time: '18:00',
+        lunch_start: '12:00',
+        lunch_end: '13:00',
+        is_closed: i === 0, // Sunday closed by default
+      }));
+      await supabase.from('business_hours').insert(defaults);
+      const { data: newData } = await supabase
+        .from('business_hours')
+        .select('*')
+        .eq('company_id', companyId!)
+        .order('day_of_week');
+      if (newData) setHours(newData);
+    }
   };
 
   const fetchExceptions = async () => {
@@ -195,18 +216,22 @@ const SettingsPage = () => {
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
+            {hours.length === 0 && (
+              <p className="text-sm text-muted-foreground text-center py-4">Carregando horários...</p>
+            )}
             {hours.map((h) => (
               <div key={h.id} className="flex flex-wrap items-center gap-3 p-3 rounded-lg bg-muted/50">
                 <div className="w-24 font-medium text-sm">{dayNames[h.day_of_week]}</div>
                 <div className="flex items-center gap-2">
-                  <Label className="text-xs">Fechado</Label>
+                  <Label className="text-xs">Aberto</Label>
                   <Switch
-                    checked={h.is_closed}
-                    onCheckedChange={(v) => updateHour(h.id, 'is_closed', v)}
+                    checked={!h.is_closed}
+                    onCheckedChange={(v) => updateHour(h.id, 'is_closed', !v)}
                   />
                 </div>
                 {!h.is_closed && (
                   <>
+                    <span className="text-xs text-muted-foreground">Abre:</span>
                     <Input
                       type="time"
                       value={h.open_time || ''}
