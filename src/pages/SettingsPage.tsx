@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
-import { Clock, Calendar as CalendarIcon, Plus, Trash2, Bell, Cake } from 'lucide-react';
+import { Clock, Calendar as CalendarIcon, Plus, Trash2, Bell, Cake, Link2, Copy } from 'lucide-react';
 
 const dayNames = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
 
@@ -21,6 +21,8 @@ const SettingsPage = () => {
   const [birthdayEnabled, setBirthdayEnabled] = useState(true);
   const [birthdayDiscountType, setBirthdayDiscountType] = useState('none');
   const [birthdayDiscountValue, setBirthdayDiscountValue] = useState(0);
+  const [companySlug, setCompanySlug] = useState('');
+  const [companyBusinessType, setCompanyBusinessType] = useState<string>('barbershop');
 
   useEffect(() => {
     if (companyId) {
