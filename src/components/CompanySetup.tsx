@@ -45,6 +45,7 @@ const CompanySetup = ({ onComplete }: CompanySetupProps) => {
   const [businessType, setBusinessType] = useState<'barbershop' | 'esthetic'>('barbershop');
   const [companyName, setCompanyName] = useState('');
   const [companyWhatsApp, setCompanyWhatsApp] = useState('');
+  const [companyTimezone, setCompanyTimezone] = useState('America/Sao_Paulo');
   const [companyId, setCompanyId] = useState<string | null>(null);
   const [companySlug, setCompanySlug] = useState('');
 
@@ -115,7 +116,8 @@ const CompanySetup = ({ onComplete }: CompanySetupProps) => {
           owner_id: user.id,
           business_type: businessType,
           phone,
-        })
+          timezone: companyTimezone,
+        } as any)
         .select()
         .single();
 
@@ -338,6 +340,28 @@ const CompanySetup = ({ onComplete }: CompanySetupProps) => {
                     placeholder="(31) 99999-9999"
                     type="tel"
                   />
+                </div>
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-1">
+                    <Clock className="h-4 w-4" /> Fuso horário
+                  </Label>
+                  <Select value={companyTimezone} onValueChange={setCompanyTimezone}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="America/Sao_Paulo">Brasília (GMT-3)</SelectItem>
+                      <SelectItem value="America/Manaus">Manaus (GMT-4)</SelectItem>
+                      <SelectItem value="America/Belem">Belém (GMT-3)</SelectItem>
+                      <SelectItem value="America/Fortaleza">Fortaleza (GMT-3)</SelectItem>
+                      <SelectItem value="America/Recife">Recife (GMT-3)</SelectItem>
+                      <SelectItem value="America/Cuiaba">Cuiabá (GMT-4)</SelectItem>
+                      <SelectItem value="America/Campo_Grande">Campo Grande (GMT-4)</SelectItem>
+                      <SelectItem value="America/Rio_Branco">Rio Branco (GMT-5)</SelectItem>
+                      <SelectItem value="America/Noronha">Fernando de Noronha (GMT-2)</SelectItem>
+                      <SelectItem value="America/Porto_Velho">Porto Velho (GMT-4)</SelectItem>
+                      <SelectItem value="America/Boa_Vista">Boa Vista (GMT-4)</SelectItem>
+                      <SelectItem value="America/Bahia">Bahia (GMT-3)</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
                 <Button className="w-full" disabled={loading || !companyName.trim()} onClick={handleCreateCompany}>
                   {loading ? 'Criando...' : 'Continuar'} <ChevronRight className="h-4 w-4 ml-1" />
