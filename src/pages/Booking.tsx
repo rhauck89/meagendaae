@@ -110,22 +110,23 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
     if (professionalSlug) {
       console.log('[Booking] Resolving professional by slug', { companyId: comp.id, professionalSlug });
 
-      const { data: collabs, error: collabErr } = await supabase
-        .from('collaborators')
-        .select('*, profile:profiles(*)')
+      // Use public_professionals view (no PII exposed)
+      const { data: pubProfs, error: collabErr } = await supabase
+        .from('public_professionals' as any)
+        .select('*')
         .eq('company_id', comp.id)
         .eq('slug', professionalSlug);
 
       console.log('[Booking] Professional slug resolution', {
         slug: professionalSlug,
-        found: collabs?.length ?? 0,
+        found: pubProfs?.length ?? 0,
         error: collabErr?.message,
-        results: collabs?.map((c: any) => ({ profile_id: c.profile_id, slug: c.slug, name: c.profile?.full_name })),
+        results: pubProfs?.map((p: any) => ({ id: p.id, slug: p.slug, name: p.name })),
       });
 
-      if (collabs && collabs.length > 0) {
-        const collab = collabs[0];
-        const profileId = collab.profile_id;
+      if (pubProfs && (pubProfs as any[]).length > 0) {
+        const prof = (pubProfs as any[])[0];
+        const profileId = prof.id as string;
         setSelectedProfessional(profileId);
 
         // Fetch professional-specific services
@@ -135,7 +136,7 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
           .eq('professional_id', profileId);
 
         console.log('[Booking] Professional services', {
-          professional: collab.profile?.full_name,
+          professional: prof.name,
           servicesLinked: profServices?.length ?? 0,
           serviceIds: profServices?.map((ps: any) => ps.service_id),
         });
@@ -160,7 +161,7 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
           setProfessionalHours(profHours as unknown as BusinessHours[]);
         }
 
-        setProfessionals([collab.profile]);
+        setProfessionals([{ id: prof.id, full_name: prof.name, avatar_url: prof.avatar_url }]);
       } else {
         console.warn('[Booking] Professional slug not found, showing all professionals');
       }
@@ -171,26 +172,28 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
     if (!company) return;
     console.log('[Booking] fetchProfessionals called', { company_id: company.id, selectedServices });
 
-    // Get collaborators with their profiles
-    const { data: collabs, error: collabError } = await supabase
-      .from('collaborators')
-      .select('*, profile:profiles(*)')
+    // Use public_professionals view (no PII exposed)
+    const { data: pubProfs, error: collabError } = await supabase
+      .from('public_professionals' as any)
+      .select('*')
       .eq('company_id', company.id)
       .eq('active', true);
 
-    console.log('[Booking] collaborators query result', {
+    const collabs = pubProfs as any[] | null;
+
+    console.log('[Booking] public_professionals query result', {
       found: collabs?.length ?? 0,
       error: collabError?.message,
-      professionals: collabs?.map((c: any) => ({
-        profile_id: c.profile_id,
-        slug: c.slug,
-        name: c.profile?.full_name,
-        company_id: c.company_id,
+      professionals: collabs?.map((p: any) => ({
+        id: p.id,
+        slug: p.slug,
+        name: p.name,
+        company_id: p.company_id,
       })),
     });
 
     if (!collabs || collabs.length === 0) {
-      console.warn('[Booking] No active collaborators found for company', company.id);
+      console.warn('[Booking] No active professionals found for company', company.id);
       setProfessionals([]);
       return;
     }
@@ -211,9 +214,9 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
 
       if (spLinks && spLinks.length > 0) {
         const linkedProfIds = new Set(spLinks.map((sp: any) => sp.professional_id));
-        const filtered = collabs.filter((c: any) => linkedProfIds.has(c.profile_id));
+        const filtered = collabs.filter((p: any) => linkedProfIds.has(p.id));
         if (filtered.length > 0) {
-          setProfessionals(filtered.map((c: any) => ({ ...c.profile, collaborator_id: c.id })));
+          setProfessionals(filtered.map((p: any) => ({ id: p.id, full_name: p.name, avatar_url: p.avatar_url })));
           console.log('[Booking] Professionals filtered by service linkage', { total: collabs.length, filtered: filtered.length });
           return;
         }
@@ -222,11 +225,11 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
       // Fallback: no service_professionals rows — auto-link all services to all professionals
       console.warn('[Booking] No service_professionals found, auto-linking all services to all professionals');
       const autoLinks: any[] = [];
-      for (const collab of collabs) {
+      for (const prof of collabs) {
         for (const svcId of selectedServices) {
           autoLinks.push({
             service_id: svcId,
-            professional_id: collab.profile_id,
+            professional_id: prof.id,
             company_id: company.id,
           });
         }
@@ -236,8 +239,8 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
       }
     }
 
-    // Fallback: show all active collaborators
-    setProfessionals(collabs.map((c: any) => ({ ...c.profile, collaborator_id: c.id })));
+    // Fallback: show all active professionals
+    setProfessionals(collabs.map((p: any) => ({ id: p.id, full_name: p.name, avatar_url: p.avatar_url })));
     console.log('[Booking] Showing all active professionals', { count: collabs.length });
   };
 
