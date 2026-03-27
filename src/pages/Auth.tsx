@@ -5,7 +5,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
 import { Scissors } from 'lucide-react';
 
@@ -16,8 +15,6 @@ const Auth = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
-  const [companyName, setCompanyName] = useState('');
-  const [businessType, setBusinessType] = useState<'barbershop' | 'esthetic'>('barbershop');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -30,65 +27,12 @@ const Auth = () => {
         toast.success('Login realizado com sucesso!');
         navigate('/dashboard');
       } else {
-        const slug = companyName
-          .toLowerCase()
-          .normalize('NFD')
-          .replace(/[\u0300-\u036f]/g, '')
-          .replace(/[^a-z0-9]+/g, '-')
-          .replace(/(^-|-$)/g, '');
-
-        const { data: authData, error: authError } = await supabase.auth.signUp({
+        const { error: authError } = await supabase.auth.signUp({
           email,
           password,
           options: { data: { full_name: fullName } },
         });
         if (authError) throw authError;
-
-        if (authData.user) {
-          const { data: company, error: companyError } = await supabase
-            .from('companies')
-            .insert({
-              name: companyName,
-              slug,
-              owner_id: authData.user.id,
-              business_type: businessType,
-            })
-            .select()
-            .single();
-          if (companyError) throw companyError;
-
-          await supabase
-            .from('profiles')
-            .update({ company_id: company.id })
-            .eq('user_id', authData.user.id);
-
-          await supabase.from('user_roles').insert({
-            user_id: authData.user.id,
-            company_id: company.id,
-            role: 'professional' as const,
-          });
-
-          // Create default business hours (Mon-Sat 9-18, lunch 12-13)
-          const defaultHours = [1, 2, 3, 4, 5, 6].map((day) => ({
-            company_id: company.id,
-            day_of_week: day,
-            open_time: '09:00',
-            lunch_start: '12:00',
-            lunch_end: '13:00',
-            close_time: '18:00',
-            is_closed: false,
-          }));
-          defaultHours.push({
-            company_id: company.id,
-            day_of_week: 0,
-            open_time: '09:00',
-            lunch_start: '12:00',
-            lunch_end: '13:00',
-            close_time: '18:00',
-            is_closed: true,
-          });
-          await supabase.from('business_hours').insert(defaultHours);
-        }
 
         toast.success('Conta criada com sucesso!');
         navigate('/dashboard');
@@ -121,40 +65,16 @@ const Auth = () => {
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             {!isLogin && (
-              <>
-                <div className="space-y-2">
-                  <Label htmlFor="fullName">Nome completo</Label>
-                  <Input
-                    id="fullName"
-                    value={fullName}
-                    onChange={(e) => setFullName(e.target.value)}
-                    required
-                    placeholder="Seu nome"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="companyName">Nome do estabelecimento</Label>
-                  <Input
-                    id="companyName"
-                    value={companyName}
-                    onChange={(e) => setCompanyName(e.target.value)}
-                    required
-                    placeholder="Ex: Barbearia do João"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Tipo de negócio</Label>
-                  <Select value={businessType} onValueChange={(v) => setBusinessType(v as 'barbershop' | 'esthetic')}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="barbershop">Barbearia</SelectItem>
-                      <SelectItem value="esthetic">Estética</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </>
+              <div className="space-y-2">
+                <Label htmlFor="fullName">Nome completo</Label>
+                <Input
+                  id="fullName"
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                  required
+                  placeholder="Seu nome"
+                />
+              </div>
             )}
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
