@@ -337,6 +337,33 @@ const Dashboard = () => {
         </CardContent>
       </Card>
 
+      {/* Birthday Indicator */}
+      {birthdayClients.length > 0 && (
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-lg font-display flex items-center gap-2">
+              <Cake className="h-5 w-5" /> Aniversários Próximos
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              {birthdayClients.map((c) => (
+                <div key={c.id} className="flex items-center justify-between p-2 rounded-lg bg-primary/5 text-sm">
+                  <div>
+                    <span className="font-medium">{c.full_name}</span>
+                    <span className="text-muted-foreground ml-2">({c.bdayDisplay})</span>
+                    {c.whatsapp && <span className="text-muted-foreground ml-1">• {c.whatsapp}</span>}
+                  </div>
+                  <Badge variant="outline" className="text-xs border-primary text-primary">
+                    {c.daysUntil === 0 ? '🎂 Hoje!' : `em ${c.daysUntil} dias`}
+                  </Badge>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Calendar Controls */}
       <Card>
         <CardHeader className="pb-3">
