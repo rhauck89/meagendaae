@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent } from '@/components/ui/card';
@@ -12,69 +13,120 @@ import { toast } from 'sonner';
 
 const Services = () => {
   const { companyId } = useAuth();
-  const [services, setServices] = useState<any[]>([]);
+  const queryClient = useQueryClient();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<any | null>(null);
   const [form, setForm] = useState({ name: '', duration_minutes: 30, price: 0 });
 
-  useEffect(() => {
-    if (companyId) fetchServices();
-  }, [companyId]);
+  const servicesQueryKey = ['services', companyId];
 
-  const fetchServices = async () => {
-    if (!companyId) return;
-    const { data } = await supabase
-      .from('services')
-      .select('*')
-      .eq('company_id', companyId)
-      .order('name');
-    if (data) setServices(data);
+  const { data: services = [], refetch } = useQuery({
+    queryKey: servicesQueryKey,
+    enabled: Boolean(companyId),
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('services')
+        .select('*')
+        .eq('company_id', companyId!)
+        .order('name');
+
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  useEffect(() => {
+    if (companyId) {
+      refetch();
+    }
+  }, [companyId, refetch]);
+
+  const refreshServices = async () => {
+    await queryClient.invalidateQueries({ queryKey: servicesQueryKey });
+    await refetch();
+  };
+
+  const resetForm = () => {
+    setEditing(null);
+    setForm({ name: '', duration_minutes: 30, price: 0 });
   };
 
   const handleSave = async () => {
     if (!form.name.trim()) return toast.error('Nome é obrigatório');
     if (!companyId) return toast.error('Empresa não encontrada');
+
     try {
       if (editing) {
         const { error } = await supabase
           .from('services')
-          .update({ name: form.name, duration_minutes: form.duration_minutes, price: form.price })
-          .eq('id', editing.id);
+          .update({
+            name: form.name.trim(),
+            duration_minutes: form.duration_minutes,
+            price: form.price,
+          })
+          .eq('id', editing.id)
+          .eq('company_id', companyId);
+
         if (error) throw error;
         toast.success('Serviço atualizado');
       } else {
         const { error } = await supabase.from('services').insert({
           company_id: companyId,
-          name: form.name,
+          name: form.name.trim(),
           duration_minutes: form.duration_minutes,
           price: form.price,
         });
+
         if (error) throw error;
         toast.success('Serviço criado');
       }
+
       setDialogOpen(false);
-      setEditing(null);
-      setForm({ name: '', duration_minutes: 30, price: 0 });
-      fetchServices();
+      resetForm();
+      await refreshServices();
     } catch (err: any) {
-      toast.error(err.message);
+      toast.error(err.message || 'Erro ao salvar serviço');
     }
   };
 
   const toggleActive = async (id: string, active: boolean) => {
-    await supabase.from('services').update({ active: !active }).eq('id', id);
-    fetchServices();
+    const { error } = await supabase
+      .from('services')
+      .update({ active: !active })
+      .eq('id', id)
+      .eq('company_id', companyId!);
+
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+
+    await refreshServices();
   };
 
   const deleteService = async (id: string) => {
-    await supabase.from('services').delete().eq('id', id);
+    const { error } = await supabase
+      .from('services')
+      .delete()
+      .eq('id', id)
+      .eq('company_id', companyId!);
+
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+
     toast.success('Serviço removido');
-    fetchServices();
+    await refreshServices();
   };
 
   const openEdit = (service: any) => {
     setEditing(service);
-    setForm({ name: service.name, duration_minutes: service.duration_minutes, price: Number(service.price) });
+    setForm({
+      name: service.name,
+      duration_minutes: service.duration_minutes,
+      price: Number(service.price),
+    });
     setDialogOpen(true);
   };
 
@@ -85,10 +137,16 @@ const Services = () => {
           <h2 className="text-xl font-display font-bold">Serviços</h2>
           <p className="text-sm text-muted-foreground">Gerencie os serviços do seu estabelecimento</p>
         </div>
-        <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) { setEditing(null); setForm({ name: '', duration_minutes: 30, price: 0 }); } }}>
+        <Dialog
+          open={dialogOpen}
+          onOpenChange={(open) => {
+            setDialogOpen(open);
+            if (!open) resetForm();
+          }}
+        >
           <DialogTrigger asChild>
             <Button>
-              <Plus className="h-4 w-4 mr-2" /> Novo Serviço
+              <Plus className="mr-2 h-4 w-4" /> Novo Serviço
             </Button>
           </DialogTrigger>
           <DialogContent>
@@ -98,16 +156,29 @@ const Services = () => {
             <div className="space-y-4">
               <div className="space-y-2">
                 <Label>Nome</Label>
-                <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Ex: Corte masculino" />
+                <Input
+                  value={form.name}
+                  onChange={(e) => setForm({ ...form, name: e.target.value })}
+                  placeholder="Ex: Corte masculino"
+                />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Duração (min)</Label>
-                  <Input type="number" value={form.duration_minutes} onChange={(e) => setForm({ ...form, duration_minutes: parseInt(e.target.value) || 0 })} />
+                  <Input
+                    type="number"
+                    value={form.duration_minutes}
+                    onChange={(e) => setForm({ ...form, duration_minutes: parseInt(e.target.value, 10) || 0 })}
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label>Preço (R$)</Label>
-                  <Input type="number" step="0.01" value={form.price} onChange={(e) => setForm({ ...form, price: parseFloat(e.target.value) || 0 })} />
+                  <Input
+                    type="number"
+                    step="0.01"
+                    value={form.price}
+                    onChange={(e) => setForm({ ...form, price: parseFloat(e.target.value) || 0 })}
+                  />
                 </div>
               </div>
               <Button onClick={handleSave} className="w-full">
@@ -118,15 +189,15 @@ const Services = () => {
         </Dialog>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
         {services.map((service) => (
           <Card key={service.id} className={!service.active ? 'opacity-50' : ''}>
             <CardContent className="p-5">
-              <div className="flex items-start justify-between mb-3">
-                <h3 className="font-semibold text-lg">{service.name}</h3>
+              <div className="mb-3 flex items-start justify-between">
+                <h3 className="text-lg font-semibold">{service.name}</h3>
                 <Switch checked={service.active} onCheckedChange={() => toggleActive(service.id, service.active)} />
               </div>
-              <div className="flex gap-4 text-sm text-muted-foreground mb-4">
+              <div className="mb-4 flex gap-4 text-sm text-muted-foreground">
                 <span className="flex items-center gap-1">
                   <Clock className="h-4 w-4" /> {service.duration_minutes} min
                 </span>
@@ -136,17 +207,17 @@ const Services = () => {
               </div>
               <div className="flex gap-2">
                 <Button variant="outline" size="sm" onClick={() => openEdit(service)}>
-                  <Pencil className="h-3 w-3 mr-1" /> Editar
+                  <Pencil className="mr-1 h-3 w-3" /> Editar
                 </Button>
                 <Button variant="ghost" size="sm" className="text-destructive" onClick={() => deleteService(service.id)}>
-                  <Trash2 className="h-3 w-3 mr-1" /> Excluir
+                  <Trash2 className="mr-1 h-3 w-3" /> Excluir
                 </Button>
               </div>
             </CardContent>
           </Card>
         ))}
         {services.length === 0 && (
-          <div className="col-span-full text-center py-12 text-muted-foreground">
+          <div className="col-span-full py-12 text-center text-muted-foreground">
             <p>Nenhum serviço cadastrado ainda</p>
           </div>
         )}
