@@ -110,22 +110,23 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
     if (professionalSlug) {
       console.log('[Booking] Resolving professional by slug', { companyId: comp.id, professionalSlug });
 
-      const { data: collabs, error: collabErr } = await supabase
-        .from('collaborators')
-        .select('*, profile:profiles(*)')
+      // Use public_professionals view (no PII exposed)
+      const { data: pubProfs, error: collabErr } = await supabase
+        .from('public_professionals' as any)
+        .select('*')
         .eq('company_id', comp.id)
         .eq('slug', professionalSlug);
 
       console.log('[Booking] Professional slug resolution', {
         slug: professionalSlug,
-        found: collabs?.length ?? 0,
+        found: pubProfs?.length ?? 0,
         error: collabErr?.message,
-        results: collabs?.map((c: any) => ({ profile_id: c.profile_id, slug: c.slug, name: c.profile?.full_name })),
+        results: pubProfs?.map((p: any) => ({ id: p.id, slug: p.slug, name: p.name })),
       });
 
-      if (collabs && collabs.length > 0) {
-        const collab = collabs[0];
-        const profileId = collab.profile_id;
+      if (pubProfs && pubProfs.length > 0) {
+        const prof = pubProfs[0];
+        const profileId = prof.id;
         setSelectedProfessional(profileId);
 
         // Fetch professional-specific services
@@ -135,7 +136,7 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
           .eq('professional_id', profileId);
 
         console.log('[Booking] Professional services', {
-          professional: collab.profile?.full_name,
+          professional: prof.name,
           servicesLinked: profServices?.length ?? 0,
           serviceIds: profServices?.map((ps: any) => ps.service_id),
         });
@@ -160,7 +161,7 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
           setProfessionalHours(profHours as unknown as BusinessHours[]);
         }
 
-        setProfessionals([collab.profile]);
+        setProfessionals([{ id: prof.id, full_name: prof.name, avatar_url: prof.avatar_url }]);
       } else {
         console.warn('[Booking] Professional slug not found, showing all professionals');
       }
