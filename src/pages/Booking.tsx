@@ -362,10 +362,18 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
   };
 
   useEffect(() => {
-    if (selectedDate && selectedProfessional && businessHours.length > 0 && totalDuration > 0) {
+    if (selectedDate && selectedProfessional && company && businessHours.length > 0 && totalDuration > 0) {
+      console.log('[Booking] Slot calculation useEffect triggered', {
+        selectedDate: format(selectedDate, 'yyyy-MM-dd'),
+        selectedProfessional,
+        businessHoursCount: businessHours.length,
+        professionalHoursCount: professionalHours.length,
+        totalDuration,
+        availableSlotsCurrently: availableSlots.length,
+      });
       calculateSlots(selectedDate);
     }
-  }, [selectedDate, selectedProfessional, professionalHours, businessHours, totalDuration]);
+  }, [selectedDate, selectedProfessional, professionalHours, businessHours, totalDuration, company]);
 
   // Fetch next available slots across 7 days
   const fetchNextAvailableSlots = async () => {
