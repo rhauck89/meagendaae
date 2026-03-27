@@ -445,6 +445,61 @@ export type Database = {
           },
         ]
       }
+      waiting_list: {
+        Row: {
+          client_id: string
+          company_id: string
+          created_at: string
+          desired_date: string
+          id: string
+          professional_id: string | null
+          service_ids: string[]
+          status: Database["public"]["Enums"]["waiting_list_status"]
+        }
+        Insert: {
+          client_id: string
+          company_id: string
+          created_at?: string
+          desired_date: string
+          id?: string
+          professional_id?: string | null
+          service_ids: string[]
+          status?: Database["public"]["Enums"]["waiting_list_status"]
+        }
+        Update: {
+          client_id?: string
+          company_id?: string
+          created_at?: string
+          desired_date?: string
+          id?: string
+          professional_id?: string | null
+          service_ids?: string[]
+          status?: Database["public"]["Enums"]["waiting_list_status"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "waiting_list_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "waiting_list_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "waiting_list_professional_id_fkey"
+            columns: ["professional_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       waitlist: {
         Row: {
           client_id: string
@@ -609,6 +664,12 @@ export type Database = {
         | "no_show"
       collaborator_type: "partner" | "commissioned"
       subscription_status: "active" | "inactive" | "blocked" | "trial"
+      waiting_list_status:
+        | "waiting"
+        | "notified"
+        | "confirmed"
+        | "expired"
+        | "cancelled"
       webhook_event_type:
         | "appointment_created"
         | "appointment_cancelled"
@@ -753,6 +814,13 @@ export const Constants = {
       ],
       collaborator_type: ["partner", "commissioned"],
       subscription_status: ["active", "inactive", "blocked", "trial"],
+      waiting_list_status: [
+        "waiting",
+        "notified",
+        "confirmed",
+        "expired",
+        "cancelled",
+      ],
       webhook_event_type: [
         "appointment_created",
         "appointment_cancelled",
