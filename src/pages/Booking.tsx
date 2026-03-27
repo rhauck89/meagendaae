@@ -33,6 +33,7 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
   const [businessType, setBusinessType] = useState<BusinessType>('barbershop');
   const [bufferMinutes, setBufferMinutes] = useState(0);
   const [professionalHours, setProfessionalHours] = useState<BusinessHours[]>([]);
+  const [companySettings, setCompanySettings] = useState<any>(null);
 
   const [step, setStep] = useState<Step>('services');
   const [selectedServices, setSelectedServices] = useState<string[]>([]);
