@@ -33,38 +33,21 @@ const Team = () => {
   const handleAdd = async () => {
     if (!form.email.trim() || !form.full_name.trim()) return toast.error('Preencha todos os campos');
     try {
-      // Create auth user for collaborator
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: form.email,
-        password: Math.random().toString(36).slice(-8) + 'A1!',
-        options: { data: { full_name: form.full_name } },
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return toast.error('Sessão expirada');
+
+      const response = await supabase.functions.invoke('create-collaborator', {
+        body: {
+          email: form.email,
+          full_name: form.full_name,
+          collaborator_type: form.type,
+          commission_percent: form.type === 'commissioned' ? form.commission : 0,
+        },
       });
-      if (authError) throw authError;
 
-      if (authData.user) {
-        // Update profile with company
-        await supabase.from('profiles').update({ company_id: companyId }).eq('user_id', authData.user.id);
-
-        // Get profile id
-        const { data: profileData } = await supabase.from('profiles').select('id').eq('user_id', authData.user.id).single();
-
-        if (profileData) {
-          // Add role
-          await supabase.from('user_roles').insert({
-            user_id: authData.user.id,
-            company_id: companyId!,
-            role: 'collaborator' as const,
-          });
-
-          // Add collaborator
-          await supabase.from('collaborators').insert({
-            company_id: companyId!,
-            profile_id: profileData.id,
-            collaborator_type: form.type as any,
-            commission_percent: form.type === 'commissioned' ? form.commission : 0,
-          });
-        }
-      }
+      if (response.error) throw new Error(response.error.message || 'Erro ao criar colaborador');
+      const result = response.data;
+      if (result?.error) throw new Error(result.error);
 
       toast.success('Colaborador adicionado');
       setDialogOpen(false);
