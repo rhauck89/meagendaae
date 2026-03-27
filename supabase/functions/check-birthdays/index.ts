@@ -39,8 +39,9 @@ Deno.serve(async (req) => {
       // Get clients with birthdays in the next 3 days
       const { data: clients } = await supabase
         .from("profiles")
-        .select("id, full_name, birth_date, whatsapp, email")
+        .select("id, full_name, birth_date, whatsapp, email, opt_in_whatsapp")
         .eq("company_id", company.id)
+        .eq("opt_in_whatsapp", true)
         .not("birth_date", "is", null);
 
       if (!clients) continue;

@@ -39,8 +39,9 @@ Deno.serve(async (req) => {
 
       const { data: dueClients } = await supabase
         .from("profiles")
-        .select("id, full_name, whatsapp, email, expected_return_date, average_return_days, last_visit_date")
+        .select("id, full_name, whatsapp, email, expected_return_date, average_return_days, last_visit_date, opt_in_whatsapp")
         .eq("company_id", company.id)
+        .eq("opt_in_whatsapp", true)
         .not("expected_return_date", "is", null)
         .lte("expected_return_date", thresholdDate.toISOString().split("T")[0]);
 

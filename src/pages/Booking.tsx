@@ -41,6 +41,7 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [availableSlots, setAvailableSlots] = useState<string[]>([]);
   const [clientForm, setClientForm] = useState({ full_name: '', email: '', whatsapp: '', birth_date: '' });
+  const [optInWhatsapp, setOptInWhatsapp] = useState(false);
   const [loading, setLoading] = useState(false);
   const [slotsLoading, setSlotsLoading] = useState(false);
   const [waitlistLoading, setWaitlistLoading] = useState(false);
@@ -216,9 +217,11 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
 
         await supabase.from('profiles').update({
           company_id: company.id,
-            whatsapp: formatWhatsApp(clientForm.whatsapp),
-            birth_date: clientForm.birth_date || null,
-        }).eq('user_id', userId);
+          whatsapp: formatWhatsApp(clientForm.whatsapp),
+          birth_date: clientForm.birth_date || null,
+          opt_in_whatsapp: optInWhatsapp,
+          opt_in_date: optInWhatsapp ? new Date().toISOString() : null,
+        } as any).eq('user_id', userId);
 
         await supabase.from('user_roles').insert({
           user_id: userId,
@@ -266,7 +269,9 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
              full_name: clientForm.full_name || undefined,
              whatsapp: clientForm.whatsapp ? formatWhatsApp(clientForm.whatsapp) : undefined,
              birth_date: clientForm.birth_date || undefined,
-          })
+             opt_in_whatsapp: optInWhatsapp,
+             opt_in_date: optInWhatsapp ? new Date().toISOString() : undefined,
+          } as any)
           .eq('user_id', userId);
       } else {
         const { data: authData, error } = await supabase.auth.signUp({
@@ -283,7 +288,9 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
              company_id: company.id,
              whatsapp: formatWhatsApp(clientForm.whatsapp),
              birth_date: clientForm.birth_date || null,
-          })
+             opt_in_whatsapp: optInWhatsapp,
+             opt_in_date: optInWhatsapp ? new Date().toISOString() : null,
+          } as any)
           .eq('user_id', userId);
 
         await supabase.from('user_roles').insert({
@@ -686,6 +693,16 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
                   className={cn(isDark ? 'bg-[#16213e] border-[#2a2a4a] text-white' : 'bg-white border-[#e8ddd4]')}
                 />
               </div>
+            </div>
+            <div className="flex items-start gap-3 pt-2">
+              <Checkbox
+                id="opt-in-whatsapp"
+                checked={optInWhatsapp}
+                onCheckedChange={(v) => setOptInWhatsapp(v === true)}
+              />
+              <label htmlFor="opt-in-whatsapp" className={cn('text-sm leading-snug cursor-pointer', textMuted)}>
+                Aceito receber lembretes e comunicações via WhatsApp. Posso cancelar a qualquer momento.
+              </label>
             </div>
             <Button
               onClick={() => setStep('confirm')}
