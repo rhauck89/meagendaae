@@ -688,6 +688,16 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
                 />
               </div>
             </div>
+            <div className="flex items-start gap-3 pt-2">
+              <Checkbox
+                id="opt-in-whatsapp"
+                checked={optInWhatsapp}
+                onCheckedChange={(v) => setOptInWhatsapp(v === true)}
+              />
+              <label htmlFor="opt-in-whatsapp" className={cn('text-sm leading-snug cursor-pointer', textMuted)}>
+                Aceito receber lembretes e comunicações via WhatsApp. Posso cancelar a qualquer momento.
+              </label>
+            </div>
             <Button
               onClick={() => setStep('confirm')}
               className={cn('w-full', isDark ? 'bg-amber-500 hover:bg-amber-600 text-black' : 'bg-rose-400 hover:bg-rose-500 text-white')}
