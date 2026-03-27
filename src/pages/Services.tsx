@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -22,30 +22,34 @@ const Services = () => {
   }, [companyId]);
 
   const fetchServices = async () => {
+    if (!companyId) return;
     const { data } = await supabase
       .from('services')
       .select('*')
-      .eq('company_id', companyId!)
+      .eq('company_id', companyId)
       .order('name');
     if (data) setServices(data);
   };
 
   const handleSave = async () => {
     if (!form.name.trim()) return toast.error('Nome é obrigatório');
+    if (!companyId) return toast.error('Empresa não encontrada');
     try {
       if (editing) {
-        await supabase
+        const { error } = await supabase
           .from('services')
           .update({ name: form.name, duration_minutes: form.duration_minutes, price: form.price })
           .eq('id', editing.id);
+        if (error) throw error;
         toast.success('Serviço atualizado');
       } else {
-        await supabase.from('services').insert({
-          company_id: companyId!,
+        const { error } = await supabase.from('services').insert({
+          company_id: companyId,
           name: form.name,
           duration_minutes: form.duration_minutes,
           price: form.price,
         });
+        if (error) throw error;
         toast.success('Serviço criado');
       }
       setDialogOpen(false);

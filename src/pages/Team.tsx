@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Plus, Users, Percent } from 'lucide-react';
+import { Plus, Users, Percent, DollarSign } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 
@@ -15,7 +15,13 @@ const Team = () => {
   const { companyId } = useAuth();
   const [collaborators, setCollaborators] = useState<any[]>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [form, setForm] = useState({ email: '', full_name: '', type: 'commissioned' as const, commission: 10 });
+  const [form, setForm] = useState({
+    email: '',
+    full_name: '',
+    type: 'commissioned' as 'partner' | 'commissioned',
+    commission_type: 'percentage' as 'percentage' | 'fixed' | 'none',
+    commission_value: 10,
+  });
 
   useEffect(() => {
     if (companyId) fetchTeam();
@@ -41,7 +47,8 @@ const Team = () => {
           email: form.email,
           full_name: form.full_name,
           collaborator_type: form.type,
-          commission_percent: form.type === 'commissioned' ? form.commission : 0,
+          commission_type: form.commission_type,
+          commission_value: form.commission_type === 'none' ? 0 : form.commission_value,
         },
       });
 
@@ -51,11 +58,17 @@ const Team = () => {
 
       toast.success('Colaborador adicionado');
       setDialogOpen(false);
-      setForm({ email: '', full_name: '', type: 'commissioned', commission: 10 });
+      setForm({ email: '', full_name: '', type: 'commissioned', commission_type: 'percentage', commission_value: 10 });
       fetchTeam();
     } catch (err: any) {
       toast.error(err.message);
     }
+  };
+
+  const commissionLabel = (type: string, value: number) => {
+    if (type === 'percentage') return `${value}%`;
+    if (type === 'fixed') return `R$ ${Number(value).toFixed(2)}/serviço`;
+    return 'Sem comissão';
   };
 
   return (
@@ -90,10 +103,27 @@ const Team = () => {
                   </SelectContent>
                 </Select>
               </div>
-              {form.type === 'commissioned' && (
+              <div className="space-y-2">
+                <Label>Tipo de Comissão</Label>
+                <Select value={form.commission_type} onValueChange={(v) => setForm({ ...form, commission_type: v as any })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="percentage">Percentual</SelectItem>
+                    <SelectItem value="fixed">Valor Fixo</SelectItem>
+                    <SelectItem value="none">Sem Comissão</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              {form.commission_type === 'percentage' && (
                 <div className="space-y-2">
                   <Label>Comissão (%)</Label>
-                  <Input type="number" value={form.commission} onChange={(e) => setForm({ ...form, commission: parseInt(e.target.value) || 0 })} />
+                  <Input type="number" value={form.commission_value} onChange={(e) => setForm({ ...form, commission_value: parseFloat(e.target.value) || 0 })} />
+                </div>
+              )}
+              {form.commission_type === 'fixed' && (
+                <div className="space-y-2">
+                  <Label>Valor por serviço (R$)</Label>
+                  <Input type="number" step="0.01" value={form.commission_value} onChange={(e) => setForm({ ...form, commission_value: parseFloat(e.target.value) || 0 })} />
                 </div>
               )}
               <Button onClick={handleAdd} className="w-full">Adicionar</Button>
@@ -117,11 +147,11 @@ const Team = () => {
                 <Badge variant="outline">
                   {c.collaborator_type === 'partner' ? 'Sócio' : 'Comissionado'}
                 </Badge>
-                {c.collaborator_type === 'commissioned' && (
-                  <Badge variant="secondary" className="flex items-center gap-1">
-                    <Percent className="h-3 w-3" /> {c.commission_percent}%
-                  </Badge>
-                )}
+                <Badge variant="secondary" className="flex items-center gap-1">
+                  {c.commission_type === 'percentage' && <><Percent className="h-3 w-3" /> {c.commission_value}%</>}
+                  {c.commission_type === 'fixed' && <><DollarSign className="h-3 w-3" /> R$ {Number(c.commission_value).toFixed(2)}</>}
+                  {c.commission_type === 'none' && 'Sem comissão'}
+                </Badge>
               </div>
             </CardContent>
           </Card>
