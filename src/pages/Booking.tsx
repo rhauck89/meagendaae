@@ -940,14 +940,28 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
             <Button variant="ghost" size="sm" onClick={() => setStep('datetime')} className={textMuted}>
               <ChevronLeft className="h-4 w-4 mr-1" /> Voltar
             </Button>
-            <h2 className="text-xl font-bold">Seus dados</h2>
+            <h2 className="text-xl font-bold">
+              {savedClientId ? 'Confirme seus dados' : 'Cadastro rápido'}
+            </h2>
+            {savedClientId && (
+              <p className={cn('text-sm', textMuted)}>Seus dados foram carregados automaticamente.</p>
+            )}
             <div className="space-y-3">
               <div className="space-y-1">
-                <Label>Nome</Label>
+                <Label>Nome *</Label>
                 <Input
                   value={clientForm.full_name}
                   onChange={(e) => setClientForm({ ...clientForm, full_name: e.target.value })}
                   required
+                  className={cn(isDark ? 'bg-[#16213e] border-[#2a2a4a] text-white' : 'bg-white border-[#e8ddd4]')}
+                />
+              </div>
+              <div className="space-y-1">
+                <Label>CPF</Label>
+                <Input
+                  value={clientForm.cpf}
+                  onChange={(e) => setClientForm({ ...clientForm, cpf: e.target.value })}
+                  placeholder="000.000.000-00"
                   className={cn(isDark ? 'bg-[#16213e] border-[#2a2a4a] text-white' : 'bg-white border-[#e8ddd4]')}
                 />
               </div>
