@@ -48,12 +48,24 @@ const ProfessionalPanel = ({ collaborator, open, onOpenChange, onUpdated }: Prof
 
     if (servicesRes.data) setServices(servicesRes.data);
     if (assignedRes.data) {
-      setAssignedServiceIds(assignedRes.data.map((r: any) => r.service_id));
-      const overrides: Record<string, string> = {};
-      assignedRes.data.forEach((r: any) => {
-        if (r.price_override != null) overrides[r.service_id] = String(r.price_override);
-      });
-      setPriceOverrides(overrides);
+      if (assignedRes.data.length === 0 && servicesRes.data && servicesRes.data.length > 0) {
+        // Auto-link all services as fallback
+        const links = servicesRes.data.map((s: any) => ({
+          service_id: s.id,
+          professional_id: profileId,
+          company_id: companyId,
+        }));
+        await supabase.from('service_professionals').insert(links as any);
+        setAssignedServiceIds(servicesRes.data.map((s: any) => s.id));
+        console.log('[ProfessionalPanel] Auto-linked all services to professional', profileId);
+      } else {
+        setAssignedServiceIds(assignedRes.data.map((r: any) => r.service_id));
+        const overrides: Record<string, string> = {};
+        assignedRes.data.forEach((r: any) => {
+          if (r.price_override != null) overrides[r.service_id] = String(r.price_override);
+        });
+        setPriceOverrides(overrides);
+      }
     }
     if (hoursRes.data && (hoursRes.data as any[]).length > 0) {
       setProfHours(hoursRes.data as any[]);

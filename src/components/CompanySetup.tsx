@@ -221,6 +221,29 @@ const CompanySetup = ({ onComplete }: CompanySetupProps) => {
     }
   };
 
+  const autoLinkServices = async (profileId: string) => {
+    if (!companyId) return;
+    try {
+      const { data: allServices } = await supabase
+        .from('services')
+        .select('id')
+        .eq('company_id', companyId)
+        .eq('active', true);
+
+      if (allServices && allServices.length > 0) {
+        const links = allServices.map((s) => ({
+          service_id: s.id,
+          professional_id: profileId,
+          company_id: companyId,
+        }));
+        await supabase.from('service_professionals').insert(links as any);
+        console.log('[Onboarding] Auto-linked', allServices.length, 'services to professional', profileId);
+      }
+    } catch (err) {
+      console.warn('[Onboarding] Auto-link services failed (non-blocking):', err);
+    }
+  };
+
   const handleCreateService = async () => {
     if (!companyId || !serviceName.trim()) return;
     setLoading(true);
@@ -291,6 +314,9 @@ const CompanySetup = ({ onComplete }: CompanySetupProps) => {
           });
         }
 
+        // Auto-link all company services to this professional
+        await autoLinkServices(myProfile.id);
+
         toast.success('Profissional adicionado!');
         setStep('done');
       } else {
@@ -310,6 +336,11 @@ const CompanySetup = ({ onComplete }: CompanySetupProps) => {
 
         if (response.error) throw new Error(response.error.message);
         if (!response.data?.success) throw new Error(response.data?.error || 'Erro');
+
+        // Auto-link all company services to the new professional
+        if (response.data?.profile_id) {
+          await autoLinkServices(response.data.profile_id);
+        }
 
         toast.success('Profissional adicionado!');
         setStep('done');

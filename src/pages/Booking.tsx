@@ -140,15 +140,36 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
         .eq('company_id', company.id)
         .in('service_id', selectedServices);
 
+      console.log('[Booking] service_professionals lookup', {
+        selectedServices,
+        spLinksFound: spLinks?.length ?? 0,
+        spLinks: spLinks?.map((sp: any) => ({ prof: sp.professional_id, svc: sp.service_id })),
+      });
+
       if (spLinks && spLinks.length > 0) {
         const linkedProfIds = new Set(spLinks.map((sp: any) => sp.professional_id));
         const filtered = collabs.filter((c: any) => linkedProfIds.has(c.profile_id));
-        // If service_professionals has entries, use filtered list; otherwise show all
         if (filtered.length > 0) {
           setProfessionals(filtered.map((c: any) => ({ ...c.profile, collaborator_id: c.id })));
           console.log('[Booking] Professionals filtered by service linkage', { total: collabs.length, filtered: filtered.length });
           return;
         }
+      }
+
+      // Fallback: no service_professionals rows — auto-link all services to all professionals
+      console.warn('[Booking] No service_professionals found, auto-linking all services to all professionals');
+      const autoLinks: any[] = [];
+      for (const collab of collabs) {
+        for (const svcId of selectedServices) {
+          autoLinks.push({
+            service_id: svcId,
+            professional_id: collab.profile_id,
+            company_id: company.id,
+          });
+        }
+      }
+      if (autoLinks.length > 0) {
+        await supabase.from('service_professionals').insert(autoLinks as any);
       }
     }
 
