@@ -460,6 +460,10 @@ const Dashboard = () => {
                 </SelectContent>
               </Select>
             )}
+            <BlockTimeDialog
+              professionals={collaboratorsList.map(c => ({ profile_id: c.profile_id, full_name: (c.profile as any)?.full_name || 'Sem nome' }))}
+              onCreated={fetchBlockedTimes}
+            />
             <div className="flex gap-1 bg-muted rounded-lg p-1">
               {(['day', 'week', 'month'] as ViewMode[]).map((mode) => (
                 <Button
