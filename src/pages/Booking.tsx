@@ -693,8 +693,8 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
       {/* Header */}
       <header className={cn('border-b', bgHeader)}>
         <div className="max-w-2xl mx-auto px-4 py-4 flex items-center gap-3">
-          {company.logo_url ? (
-            <img src={company.logo_url} alt={company.name} className="w-10 h-10 rounded-xl object-cover" />
+          {displayLogoUrl ? (
+            <img src={displayLogoUrl} alt={company.name} className="w-10 h-10 rounded-xl object-cover" />
           ) : (
             <div className={cn('w-10 h-10 rounded-xl flex items-center justify-center', iconBg)}>
               <Icon className="h-5 w-5 text-white" />
