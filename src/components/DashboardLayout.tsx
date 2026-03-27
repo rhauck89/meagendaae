@@ -6,7 +6,6 @@ import {
   Scissors,
   Users,
   BarChart3,
-  Webhook,
   Settings,
   LogOut,
   Menu,
