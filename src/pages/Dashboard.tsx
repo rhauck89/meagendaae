@@ -76,6 +76,35 @@ const Dashboard = () => {
     if (data) setCollaboratorsList(data);
   };
 
+  const fetchBlockedTimes = async () => {
+    const { start, end } = getDateRange();
+    let query = supabase
+      .from('blocked_times' as any)
+      .select('*, professional:profiles!blocked_times_professional_id_fkey(full_name)')
+      .eq('company_id', companyId!)
+      .gte('block_date', format(start, 'yyyy-MM-dd'))
+      .lte('block_date', format(end, 'yyyy-MM-dd'));
+
+    if (!isAdmin && profileId) {
+      query = query.eq('professional_id', profileId);
+    } else if (filterProfessional !== 'all') {
+      query = query.eq('professional_id', filterProfessional);
+    }
+
+    const { data } = await query;
+    setBlockedTimes((data as any[]) || []);
+  };
+
+  const deleteBlockedTime = async (id: string) => {
+    const { error } = await supabase.from('blocked_times' as any).delete().eq('id', id);
+    if (error) {
+      toast.error('Erro ao remover bloqueio');
+    } else {
+      toast.success('Bloqueio removido');
+      fetchBlockedTimes();
+    }
+  };
+
   const getDateRange = () => {
     if (viewMode === 'day') return { start: currentDate, end: currentDate };
     if (viewMode === 'week') return { start: startOfWeek(currentDate, { locale: ptBR }), end: endOfWeek(currentDate, { locale: ptBR }) };
