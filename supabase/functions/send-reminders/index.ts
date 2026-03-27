@@ -41,7 +41,7 @@ Deno.serve(async (req) => {
     const { data: appts24h } = await supabase
       .from("appointments")
       .select(
-        "*, client:profiles!appointments_client_id_fkey(full_name, whatsapp, email), professional:profiles!appointments_professional_id_fkey(full_name), appointment_services(service:services(name))"
+        "*, client:profiles!appointments_client_id_fkey(full_name, whatsapp, email, opt_in_whatsapp), professional:profiles!appointments_professional_id_fkey(full_name), appointment_services(service:services(name))"
       )
       .in("company_id", companyIds)
       .in("status", ["pending", "confirmed"])
@@ -50,6 +50,8 @@ Deno.serve(async (req) => {
 
     if (appts24h) {
       for (const apt of appts24h) {
+        // Skip clients who haven't opted in to WhatsApp messages
+        if (!apt.client?.opt_in_whatsapp) continue;
         const { count } = await supabase
           .from("webhook_events")
           .select("*", { count: "exact", head: true })
@@ -68,7 +70,7 @@ Deno.serve(async (req) => {
     const { data: appts3h } = await supabase
       .from("appointments")
       .select(
-        "*, client:profiles!appointments_client_id_fkey(full_name, whatsapp, email), professional:profiles!appointments_professional_id_fkey(full_name), appointment_services(service:services(name))"
+        "*, client:profiles!appointments_client_id_fkey(full_name, whatsapp, email, opt_in_whatsapp), professional:profiles!appointments_professional_id_fkey(full_name), appointment_services(service:services(name))"
       )
       .in("company_id", companyIds)
       .in("status", ["pending", "confirmed"])
@@ -77,6 +79,7 @@ Deno.serve(async (req) => {
 
     if (appts3h) {
       for (const apt of appts3h) {
+        if (!apt.client?.opt_in_whatsapp) continue;
         const { count } = await supabase
           .from("webhook_events")
           .select("*", { count: "exact", head: true })
