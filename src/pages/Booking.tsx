@@ -395,6 +395,7 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
     setStep('client');
   };
 
+  const handleJoinWaitlist = async () => {
     if (!company || !selectedDate || !selectedProfessional) return;
     setWaitlistLoading(true);
     try {
