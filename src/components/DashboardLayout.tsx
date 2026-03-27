@@ -1,5 +1,6 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { useUserRole } from '@/hooks/useUserRole';
 import {
   Calendar,
   Scissors,
@@ -16,7 +17,7 @@ import { useState } from 'react';
 import { cn } from '@/lib/utils';
 import CompanySetup from './CompanySetup';
 
-const navItems = [
+const adminNavItems = [
   { href: '/dashboard', icon: Calendar, label: 'Agenda' },
   { href: '/dashboard/services', icon: Scissors, label: 'Serviços' },
   { href: '/dashboard/team', icon: Users, label: 'Equipe' },
@@ -25,23 +26,31 @@ const navItems = [
   { href: '/dashboard/settings', icon: Settings, label: 'Configurações' },
 ];
 
+const professionalNavItems = [
+  { href: '/dashboard', icon: Calendar, label: 'Minha Agenda' },
+  { href: '/dashboard/services', icon: Scissors, label: 'Meus Serviços' },
+  { href: '/dashboard/reports', icon: BarChart3, label: 'Meu Financeiro' },
+  { href: '/dashboard/settings', icon: Settings, label: 'Meus Horários' },
+];
+
 const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
   const { profile, companyId, signOut, loading: authLoading } = useAuth();
+  const { isAdmin } = useUserRole();
   const location = useLocation();
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  const navItems = isAdmin ? adminNavItems : professionalNavItems;
 
   const handleSignOut = async () => {
     await signOut();
     navigate('/auth');
   };
 
-  // Show company setup if user has no company
   if (!authLoading && !companyId) {
     return (
       <CompanySetup
         onComplete={() => {
-          // Force full reload to refresh auth context with new company_id
           window.location.reload();
         }}
       />
@@ -50,7 +59,6 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
 
   return (
     <div className="min-h-screen flex bg-background">
-      {/* Mobile overlay */}
       {sidebarOpen && (
         <div
           className="fixed inset-0 bg-foreground/50 z-40 lg:hidden"
@@ -58,7 +66,6 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
         />
       )}
 
-      {/* Sidebar */}
       <aside
         className={cn(
           'fixed inset-y-0 left-0 z-50 w-64 bg-sidebar text-sidebar-foreground flex flex-col transition-transform lg:translate-x-0 lg:static',
@@ -121,7 +128,6 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
         </div>
       </aside>
 
-      {/* Main content */}
       <main className="flex-1 flex flex-col min-h-screen">
         <header className="h-16 border-b flex items-center px-4 lg:px-8 bg-card">
           <button className="lg:hidden mr-4" onClick={() => setSidebarOpen(true)}>
