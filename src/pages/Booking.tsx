@@ -52,6 +52,35 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
 
   const isDark = businessType === 'barbershop';
 
+  // Load saved client from localStorage
+  useEffect(() => {
+    const loadSavedClient = async () => {
+      if (!company) return;
+      const storedClientId = localStorage.getItem(`client_id_${company.id}`);
+      if (storedClientId) {
+        const { data: client } = await supabase
+          .from('clients' as any)
+          .select('*')
+          .eq('id', storedClientId)
+          .single();
+        if (client) {
+          const c = client as any;
+          setSavedClientId(c.id);
+          setClientForm({
+            full_name: c.name || '',
+            email: c.email || '',
+            whatsapp: c.whatsapp ? displayWhatsApp(c.whatsapp) : '',
+            cpf: c.cpf || '',
+            birth_date: '',
+          });
+          setOptInWhatsapp(c.opt_in_whatsapp || false);
+        }
+      }
+      setClientLoaded(true);
+    };
+    loadSavedClient();
+  }, [company]);
+
   useEffect(() => {
     if (slug) fetchCompany();
   }, [slug]);
