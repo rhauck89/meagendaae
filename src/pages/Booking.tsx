@@ -630,21 +630,17 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
         }
 
         if (!clientId) {
-          // Create new client
-          const { data: newClient, error: clientError } = await supabase
-            .from('clients' as any)
-            .insert({
-              company_id: company.id,
-              name: clientForm.full_name,
-              cpf: clientForm.cpf || null,
-              email: clientForm.email || null,
-              whatsapp: formattedWhatsapp,
-              opt_in_whatsapp: optInWhatsapp,
-            } as any)
-            .select('id')
-            .single();
+          // Create new client via secure RPC (avoids SELECT permission issue)
+          const { data: newClientId, error: clientError } = await supabase
+            .rpc('create_client', {
+              p_name: clientForm.full_name,
+              p_cpf: clientForm.cpf || '',
+              p_whatsapp: formattedWhatsapp || '',
+              p_email: clientForm.email || '',
+              p_company_id: company.id,
+            });
           if (clientError) throw clientError;
-          clientId = (newClient as any).id;
+          clientId = newClientId;
         }
       }
 

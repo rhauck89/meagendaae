@@ -1,0 +1,1 @@
+DROP POLICY IF EXISTS "public can select own client after insert" ON clients;
