@@ -998,6 +998,14 @@ export type Database = {
         }
         Returns: boolean
       }
+      lookup_client_by_cpf: {
+        Args: { _company_id: string; _cpf: string }
+        Returns: string
+      }
+      lookup_client_by_whatsapp: {
+        Args: { _company_id: string; _whatsapp: string }
+        Returns: string
+      }
       recalculate_client_return_stats: {
         Args: { _company_id: string }
         Returns: undefined
