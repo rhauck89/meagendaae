@@ -614,7 +614,7 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
 
       // Always create/retrieve the client through the RPC right before booking.
       // Never trust or assume a frontend client_id for appointment creation.
-      const { data: newClientId, error: clientError } = await supabase.rpc('create_client', {
+      const { data: clientIdFromRpc, error: clientError } = await supabase.rpc('create_client', {
         p_name: clientForm.full_name,
         p_cpf: clientForm.cpf || '',
         p_whatsapp: formattedWhatsapp || '',
@@ -624,7 +624,11 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
 
       if (clientError) throw clientError;
 
-      const clientId = newClientId;
+      console.log('CLIENT ID FROM RPC:', clientIdFromRpc);
+
+      // Always use only the id returned by create_client.
+      // Never reuse/generated ids from the frontend for appointment creation.
+      const clientId = clientIdFromRpc;
 
       // Persist client_id and form data in localStorage
       if (clientId) {
