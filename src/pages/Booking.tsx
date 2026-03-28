@@ -673,9 +673,9 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
         p_start_time: startTime.toISOString(),
         p_end_time: endTime.toISOString(),
         p_total_price: totalPrice,
-        p_client_name: clientName,
-        p_client_whatsapp: clientWhatsapp,
-        p_notes: notes,
+        p_client_name: clientName || '',
+        p_client_whatsapp: clientWhatsapp || '',
+        p_notes: notes || '',
       };
 
       console.log("APPOINTMENT PAYLOAD:", {
