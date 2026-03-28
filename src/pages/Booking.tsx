@@ -182,87 +182,120 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
     if (!company) return [];
     console.log('[Booking] fetchProfessionals called', { company_id: company.id, selectedServices });
 
-    // Query collaborators joined with profiles for reliable data
-    const { data: collabData, error: collabError } = await supabase
-      .from('collaborators')
-      .select(`
-        id,
-        slug,
-        profile_id,
-        commission_type,
-        profiles:profile_id (
-          id,
-          full_name,
-          avatar_url
-        )
-      `)
-      .eq('company_id', company.id)
-      .eq('active', true);
+    let mappedProfs: any[] = [];
 
-    console.log('[Booking] collaborators query result', {
-      found: collabData?.length ?? 0,
-      error: collabError?.message,
-      raw: collabData,
-    });
-
-    if (!collabData || collabData.length === 0) {
-      console.warn('[Booking] No active collaborators found for company', company.id);
-      setProfessionals([]);
-      return [];
-    }
-
-    // Map collaborator data to professional format using profile_id as the ID
-    let mappedProfs = collabData.map((c: any) => ({
-      id: c.profile_id,
-      full_name: (c.profiles as any)?.full_name || 'Profissional',
-      avatar_url: (c.profiles as any)?.avatar_url || null,
-      slug: c.slug,
-    }));
-
-    console.log('[Booking] Mapped professionals', mappedProfs);
-
-    // Filter by service linkage if services are selected
+    // If services are selected, query via service_professionals for guaranteed linkage
     if (selectedServices.length > 0) {
-      const { data: spLinks } = await supabase
+      const { data: spData, error: spError } = await supabase
         .from('service_professionals')
-        .select('professional_id, service_id')
+        .select(`
+          professional_id,
+          service_id
+        `)
         .eq('company_id', company.id)
         .in('service_id', selectedServices);
 
-      console.log('[Booking] service_professionals lookup', {
+      console.log('[Booking] service_professionals query', {
         selectedServices,
-        spLinksFound: spLinks?.length ?? 0,
-        spLinks: spLinks?.map((sp: any) => ({ prof: sp.professional_id, svc: sp.service_id })),
+        found: spData?.length ?? 0,
+        error: spError?.message,
+        data: spData,
       });
 
-      if (spLinks && spLinks.length > 0) {
-        const linkedProfIds = new Set(spLinks.map((sp: any) => sp.professional_id));
-        const filtered = mappedProfs.filter((p: any) => linkedProfIds.has(p.id));
-        if (filtered.length > 0) {
-          mappedProfs = filtered;
-          console.log('[Booking] Professionals filtered by service linkage', { total: collabData.length, filtered: filtered.length });
+      if (spData && spData.length > 0) {
+        // Get unique professional IDs that serve ALL selected services
+        const profServiceMap = new Map<string, Set<string>>();
+        for (const sp of spData) {
+          if (!profServiceMap.has(sp.professional_id)) {
+            profServiceMap.set(sp.professional_id, new Set());
+          }
+          profServiceMap.get(sp.professional_id)!.add(sp.service_id);
         }
-      } else {
-        // Fallback: auto-link all services to all professionals
-        console.warn('[Booking] No service_professionals found, auto-linking');
-        const autoLinks: any[] = [];
-        for (const prof of mappedProfs) {
-          for (const svcId of selectedServices) {
-            autoLinks.push({
-              service_id: svcId,
-              professional_id: prof.id,
-              company_id: company.id,
-            });
+
+        // Only keep professionals linked to at least one selected service
+        const linkedProfIds = [...profServiceMap.keys()];
+
+        // Fetch collaborator details for these professionals
+        const { data: collabData } = await supabase
+          .from('collaborators')
+          .select(`
+            id, slug, profile_id,
+            profiles:profile_id (id, full_name, avatar_url)
+          `)
+          .eq('company_id', company.id)
+          .eq('active', true)
+          .in('profile_id', linkedProfIds);
+
+        if (collabData && collabData.length > 0) {
+          mappedProfs = collabData.map((c: any) => ({
+            id: c.profile_id,
+            full_name: (c.profiles as any)?.full_name || 'Profissional',
+            avatar_url: (c.profiles as any)?.avatar_url || null,
+            slug: c.slug,
+          }));
+        }
+      }
+
+      // Fallback: if no service_professionals links, get all active collaborators and auto-link
+      if (mappedProfs.length === 0) {
+        console.warn('[Booking] No service_professionals found, falling back to all collaborators');
+        const { data: allCollabs } = await supabase
+          .from('collaborators')
+          .select(`
+            id, slug, profile_id,
+            profiles:profile_id (id, full_name, avatar_url)
+          `)
+          .eq('company_id', company.id)
+          .eq('active', true);
+
+        if (allCollabs && allCollabs.length > 0) {
+          mappedProfs = allCollabs.map((c: any) => ({
+            id: c.profile_id,
+            full_name: (c.profiles as any)?.full_name || 'Profissional',
+            avatar_url: (c.profiles as any)?.avatar_url || null,
+            slug: c.slug,
+          }));
+
+          // Auto-link services to professionals
+          const autoLinks: any[] = [];
+          for (const prof of mappedProfs) {
+            for (const svcId of selectedServices) {
+              autoLinks.push({
+                service_id: svcId,
+                professional_id: prof.id,
+                company_id: company.id,
+              });
+            }
+          }
+          if (autoLinks.length > 0) {
+            await supabase.from('service_professionals').insert(autoLinks as any);
+            console.log('[Booking] Auto-linked', autoLinks.length, 'service-professional pairs');
           }
         }
-        if (autoLinks.length > 0) {
-          await supabase.from('service_professionals').insert(autoLinks as any);
-        }
+      }
+    } else {
+      // No services selected, get all active collaborators
+      const { data: collabData } = await supabase
+        .from('collaborators')
+        .select(`
+          id, slug, profile_id,
+          profiles:profile_id (id, full_name, avatar_url)
+        `)
+        .eq('company_id', company.id)
+        .eq('active', true);
+
+      if (collabData && collabData.length > 0) {
+        mappedProfs = collabData.map((c: any) => ({
+          id: c.profile_id,
+          full_name: (c.profiles as any)?.full_name || 'Profissional',
+          avatar_url: (c.profiles as any)?.avatar_url || null,
+          slug: c.slug,
+        }));
       }
     }
 
     setProfessionals(mappedProfs);
-    console.log('[Booking] Final professionals list', { count: mappedProfs.length, professionals: mappedProfs });
+    console.log('[Booking] Professionals loaded:', { count: mappedProfs.length, professionals: mappedProfs });
 
     // Auto-select if only one professional
     if (mappedProfs.length === 1) {
@@ -722,7 +755,7 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
   const accentBg = isDark ? 'bg-amber-500/10' : 'bg-rose-400/10';
   const iconBg = isDark ? 'bg-amber-500' : 'bg-rose-400';
 
-  const skipProfessionalStep = !!professionalSlug;
+  const skipProfessionalStep = !!professionalSlug || professionals.length === 1;
 
   // Dynamic branding from company_settings
   const brandStyle: React.CSSProperties = companySettings?.primary_color
