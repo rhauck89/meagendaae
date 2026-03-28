@@ -192,7 +192,6 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
           professional_id,
           service_id
         `)
-        .eq('company_id', company.id)
         .in('service_id', selectedServices);
 
       console.log('[Booking] service_professionals query', {
@@ -203,7 +202,7 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
       });
 
       if (spData && spData.length > 0) {
-        // Get unique professional IDs that serve ALL selected services
+        // Keep only professionals that support all selected services
         const profServiceMap = new Map<string, Set<string>>();
         for (const sp of spData) {
           if (!profServiceMap.has(sp.professional_id)) {
@@ -212,23 +211,32 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
           profServiceMap.get(sp.professional_id)!.add(sp.service_id);
         }
 
-        // Only keep professionals linked to at least one selected service
-        const linkedProfIds = [...profServiceMap.keys()];
+        const linkedProfIds = [...profServiceMap.entries()]
+          .filter(([, serviceIds]) => selectedServices.every((serviceId) => serviceIds.has(serviceId)))
+          .map(([professionalId]) => professionalId);
 
         // Fetch collaborator details for these professionals
-        const { data: collabData } = await supabase
+        const { data: collabData, error: collabError } = await supabase
           .from('collaborators')
           .select(`
-            id, slug, profile_id,
+            id, slug, active, profile_id,
             profiles:profile_id (id, full_name, avatar_url)
           `)
           .eq('company_id', company.id)
           .eq('active', true)
           .in('profile_id', linkedProfIds);
 
+        console.log('[Booking] collaborators for selected services', {
+          linkedProfIds,
+          found: collabData?.length ?? 0,
+          error: collabError?.message,
+          data: collabData,
+        });
+
         if (collabData && collabData.length > 0) {
           mappedProfs = collabData.map((c: any) => ({
             id: c.profile_id,
+            name: (c.profiles as any)?.full_name || 'Profissional',
             full_name: (c.profiles as any)?.full_name || 'Profissional',
             avatar_url: (c.profiles as any)?.avatar_url || null,
             slug: c.slug,
@@ -251,6 +259,7 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
         if (allCollabs && allCollabs.length > 0) {
           mappedProfs = allCollabs.map((c: any) => ({
             id: c.profile_id,
+            name: (c.profiles as any)?.full_name || 'Profissional',
             full_name: (c.profiles as any)?.full_name || 'Profissional',
             avatar_url: (c.profiles as any)?.avatar_url || null,
             slug: c.slug,
@@ -287,6 +296,7 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
       if (collabData && collabData.length > 0) {
         mappedProfs = collabData.map((c: any) => ({
           id: c.profile_id,
+          name: (c.profiles as any)?.full_name || 'Profissional',
           full_name: (c.profiles as any)?.full_name || 'Profissional',
           avatar_url: (c.profiles as any)?.avatar_url || null,
           slug: c.slug,
@@ -295,6 +305,7 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
     }
 
     setProfessionals(mappedProfs);
+    console.log('Professionals fetched:', mappedProfs);
     console.log('[Booking] Professionals loaded:', { count: mappedProfs.length, professionals: mappedProfs });
 
     // Auto-select if only one professional
@@ -334,7 +345,11 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
   };
 
   const calculateSlots = async (date: Date) => {
-    if (!company || !selectedProfessional) return;
+    if (!company) return;
+    if (!selectedProfessional) {
+      console.log('No professional selected yet');
+      return;
+    }
 
     // Data-ready guard: ensure we have business hours loaded
     if (businessHours.length === 0) {
@@ -438,6 +453,16 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
   useEffect(() => {
     console.log('availableSlots state:', availableSlots);
   }, [availableSlots]);
+
+  useEffect(() => {
+    if (professionals.length === 1 && selectedProfessional !== professionals[0].id) {
+      setSelectedProfessional(professionals[0].id);
+      fetchProfessionalHours(professionals[0].id);
+      if (step === 'professional') {
+        setStep('datetime');
+      }
+    }
+  }, [professionals, selectedProfessional, step]);
 
   // Fetch next available slots across 7 days
   const fetchNextAvailableSlots = async () => {
