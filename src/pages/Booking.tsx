@@ -817,12 +817,17 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
                   <span className="font-semibold">R$ {totalPrice.toFixed(2)}</span>
                 </div>
                 <Button
-                  onClick={() => {
+                  onClick={async () => {
                     if (skipProfessionalStep) {
                       setStep('datetime');
                     } else {
-                      fetchProfessionals();
-                      setStep('professional');
+                      const profs = await fetchProfessionals();
+                      if (profs.length === 1) {
+                        // Auto-selected, skip to datetime
+                        setStep('datetime');
+                      } else {
+                        setStep('professional');
+                      }
                     }
                   }}
                   className={cn(isDark ? 'bg-amber-500 hover:bg-amber-600 text-black' : 'bg-rose-400 hover:bg-rose-500 text-white')}
