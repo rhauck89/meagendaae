@@ -1,30 +1,24 @@
 
-## Plan: Fix availability engine zero-slot issue
 
-### Root causes identified:
-1. **`totalDuration` may be 0** — if `selectedServices` doesn't match loaded `services` after filtering, `reduce` returns 0 → engine exits immediately
-2. **No data-ready guard** — `calculateSlots` runs before `businessHours` or `professionalHours` are fully loaded
-3. **Professional hours fallback** — when professional has no custom hours, engine correctly falls back to company hours, but company hours may be empty
+## Fix: Booking appointment creation failing due to RLS
 
-### Changes:
+**Root cause:** The booking page does `.insert().select().single()` on appointments. The `.select()` requires a public SELECT policy which doesn't exist. Also, `client_id` is resolved but never added to `appointmentData`.
 
-**1. `src/pages/Booking.tsx`** — Add comprehensive debug logging and data-ready guards:
-- Log `selectedServices`, `totalDuration`, loaded `services` IDs at each step transition
-- In `calculateSlots`: guard against `totalDuration <= 0` with user-facing warning
-- In `calculateSlots`: guard against empty `businessHours` — if empty, log error and show message
-- Add debug log in `fetchProfessionals` showing service_professionals linkage
-- Ensure `professionalHours` state is set before `calculateSlots` runs (already in deps, but add explicit guard)
+**Plan:**
 
-**2. `src/lib/availability-engine.ts`** — Enhanced debug output:
-- Log `professional_id` (add as optional param)
-- Log all `activeHours` entries with their day/open/close/closed status
-- Log when falling back from professional to company hours
-- Log the exact `dayOfWeek` being searched and whether it was found
+### 1. Update `create_appointment` RPC to accept all booking fields
+Add parameters: `p_client_name`, `p_client_whatsapp`, `p_total_price`, `p_status` to the existing `create_appointment` SECURITY DEFINER function. This bypasses RLS entirely and returns just the UUID.
 
-**3. `src/pages/Booking.tsx`** — Ensure slot calculation waits for all data:
-- Add `businessHours.length > 0` check before calling `calculateAvailableSlots`
-- If both `businessHours` and `professionalHours` are empty, show "Horários não configurados" instead of "Nenhum horário disponível"
-- Pass `totalDuration` as dependency to the `useEffect` that triggers `calculateSlots`
+### 2. Update Booking.tsx to use `create_appointment` RPC
+- Add `client_id: clientId` to the appointment data
+- Replace `.from('appointments').insert().select().single()` with `supabase.rpc('create_appointment', {...})`
+- Use the returned UUID directly as `appointmentId`
 
-### Security:
-- Existing findings unchanged — no new vulnerabilities introduced by logging changes
+### 3. Fix `appointment_services` INSERT for public users
+The current `appointment_services` public INSERT policy checks `a.client_id IS NULL`, but now `client_id` will be set. Create a new SECURITY DEFINER RPC `create_appointment_services` or update the policy to allow public insert when appointment exists.
+
+**Simpler alternative for step 3:** Update the public INSERT policy on `appointment_services` to just check that the appointment exists (remove the `client_id IS NULL` check).
+
+### 4. Clean up redundant policies
+Remove the overly permissive `"public can create appointments"` policy with `WITH CHECK (true)` since the RPC handles creation securely.
+
