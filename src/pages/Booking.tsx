@@ -56,26 +56,26 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
 
   // Load saved client from localStorage
   useEffect(() => {
-    const loadSavedClient = async () => {
+    const loadSavedClient = () => {
       if (!company) return;
       const storedClientId = localStorage.getItem(`client_id_${company.id}`);
+      const storedClientData = localStorage.getItem(`client_data_${company.id}`);
       if (storedClientId) {
-        const { data: client } = await supabase
-          .from('clients' as any)
-          .select('*')
-          .eq('id', storedClientId)
-          .single();
-        if (client) {
-          const c = client as any;
-          setSavedClientId(c.id);
-          setClientForm({
-            full_name: c.name || '',
-            email: c.email || '',
-            whatsapp: c.whatsapp ? displayWhatsApp(c.whatsapp) : '',
-            cpf: c.cpf || '',
-            birth_date: '',
-          });
-          setOptInWhatsapp(c.opt_in_whatsapp || false);
+        setSavedClientId(storedClientId);
+        if (storedClientData) {
+          try {
+            const c = JSON.parse(storedClientData);
+            setClientForm({
+              full_name: c.full_name || '',
+              email: c.email || '',
+              whatsapp: c.whatsapp || '',
+              cpf: c.cpf || '',
+              birth_date: '',
+            });
+            setOptInWhatsapp(c.opt_in_whatsapp || false);
+          } catch (e) {
+            console.warn('[Booking] Failed to parse stored client data');
+          }
         }
       }
       setClientLoaded(true);
@@ -656,9 +656,16 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
         }
       }
 
-      // Persist client_id in localStorage
+      // Persist client_id and form data in localStorage
       if (clientId) {
         localStorage.setItem(`client_id_${company.id}`, clientId);
+        localStorage.setItem(`client_data_${company.id}`, JSON.stringify({
+          full_name: clientForm.full_name,
+          email: clientForm.email || '',
+          whatsapp: clientForm.whatsapp || '',
+          cpf: clientForm.cpf || '',
+          opt_in_whatsapp: optInWhatsapp,
+        }));
         setSavedClientId(clientId);
       }
 
