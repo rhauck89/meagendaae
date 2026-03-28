@@ -649,20 +649,46 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
         throw new Error('Cadastro do cliente falhou. Tente novamente.');
       }
 
+      const clientName = clientForm.full_name;
+      const clientWhatsapp = clientForm.whatsapp ? formatWhatsApp(clientForm.whatsapp) : null;
+      const notes = null;
+      const selectedProfessionalRef = selectedProfessional ? { id: selectedProfessional } : null;
+
       console.log("CLIENT ID BEFORE BOOKING:", clientId);
+      console.log("====== BOOKING DEBUG START ======");
+      console.log("CLIENT ID:", clientId);
+      console.log("PROFESSIONAL ID:", selectedProfessionalRef?.id);
+      console.log("SELECTED DATE:", selectedDate);
+      console.log("START TIME:", startTime);
+      console.log("END TIME:", endTime);
+      console.log("TOTAL PRICE:", totalPrice);
+
+      const appointmentPayload = {
+        p_professional_id: selectedProfessional,
+        p_client_id: clientId,
+        p_start_time: startTime.toISOString(),
+        p_end_time: endTime.toISOString(),
+        p_total_price: totalPrice,
+        p_client_name: clientName,
+        p_client_whatsapp: clientWhatsapp,
+        p_notes: notes,
+      };
+
+      console.log("APPOINTMENT PAYLOAD:", {
+        professional_id: selectedProfessionalRef?.id,
+        client_id: clientId,
+        start_time: startTime,
+        end_time: endTime,
+        total_price: totalPrice,
+        client_name: clientName,
+        client_whatsapp: clientWhatsapp,
+        notes,
+      });
+      console.log("====== BOOKING DEBUG END ======");
 
       // Create appointment via secure RPC (bypasses RLS)
       const { data: appointmentId, error: aptError } = await supabase
-        .rpc('create_appointment' as any, {
-          p_professional_id: selectedProfessional,
-          p_client_id: clientId,
-          p_start_time: startTime.toISOString(),
-          p_end_time: endTime.toISOString(),
-          p_total_price: totalPrice,
-          p_client_name: clientForm.full_name,
-          p_client_whatsapp: clientForm.whatsapp ? formatWhatsApp(clientForm.whatsapp) : null,
-          p_notes: null,
-        } as any);
+        .rpc('create_appointment' as any, appointmentPayload as any);
 
       if (aptError) throw aptError;
       if (!appointmentId) throw new Error('Falha ao criar agendamento');
