@@ -662,35 +662,40 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
       startTime.setHours(h, m, 0, 0);
       const endTime = addMinutes(startTime, totalDuration);
 
-      const appointmentData: any = {
-        company_id: company.id,
-        professional_id: selectedProfessional,
-        start_time: startTime.toISOString(),
-        end_time: endTime.toISOString(),
-        total_price: totalPrice,
-        status: 'pending',
-        client_name: clientForm.full_name,
-        client_whatsapp: clientForm.whatsapp ? formatWhatsApp(clientForm.whatsapp) : null,
-      };
-
-      const { data: appointment, error: aptError } = await supabase
-        .from('appointments')
-        .insert(appointmentData)
-        .select()
-        .single();
+      // Create appointment via secure RPC (bypasses RLS)
+      const { data: appointmentId, error: aptError } = await supabase
+        .rpc('create_appointment', {
+          p_company_id: company.id,
+          p_professional_id: selectedProfessional,
+          p_client_id: clientId || null,
+          p_start_time: startTime.toISOString(),
+          p_end_time: endTime.toISOString(),
+          p_total_price: totalPrice,
+          p_status: 'pending',
+          p_client_name: clientForm.full_name,
+          p_client_whatsapp: clientForm.whatsapp ? formatWhatsApp(clientForm.whatsapp) : null,
+        });
 
       if (aptError) throw aptError;
+      if (!appointmentId) throw new Error('Falha ao criar agendamento');
 
-      const aptServices = selectedServices.map((sid) => {
+      // Insert appointment services via secure RPC
+      const aptServicesPayload = selectedServices.map((sid) => {
         const svc = services.find((s) => s.id === sid)!;
         return {
-          appointment_id: appointment.id,
           service_id: sid,
           price: Number(svc.price),
           duration_minutes: svc.duration_minutes,
         };
       });
-      await supabase.from('appointment_services').insert(aptServices);
+
+      const { error: svcError } = await supabase.rpc('create_appointment_services', {
+        p_appointment_id: appointmentId,
+        p_services: aptServicesPayload,
+      });
+      if (svcError) console.warn('[Booking] appointment_services insert warning:', svcError);
+
+      const appointment = { id: appointmentId };
 
       // Fire appointment_created webhook
       try {
