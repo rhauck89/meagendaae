@@ -610,39 +610,21 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
     if (!company || !selectedDate || !selectedTime || !selectedProfessional) return;
     setLoading(true);
     try {
-      // Upsert client in clients table
-      let clientId = savedClientId;
-      
-      if (!clientId) {
-        // Check if client already exists by CPF or WhatsApp using secure RPC
-        const formattedWhatsapp = clientForm.whatsapp ? formatWhatsApp(clientForm.whatsapp) : null;
-        
-        if (clientForm.cpf) {
-          const { data: existingId } = await supabase
-            .rpc('lookup_client_by_cpf', { _company_id: company.id, _cpf: clientForm.cpf });
-          if (existingId) clientId = existingId;
-        }
-        
-        if (!clientId && formattedWhatsapp) {
-          const { data: existingId } = await supabase
-            .rpc('lookup_client_by_whatsapp', { _company_id: company.id, _whatsapp: formattedWhatsapp });
-          if (existingId) clientId = existingId;
-        }
+      const formattedWhatsapp = clientForm.whatsapp ? formatWhatsApp(clientForm.whatsapp) : null;
 
-        if (!clientId) {
-          // Create new client via secure RPC (avoids SELECT permission issue)
-          const { data: newClientId, error: clientError } = await supabase
-            .rpc('create_client', {
-              p_name: clientForm.full_name,
-              p_cpf: clientForm.cpf || '',
-              p_whatsapp: formattedWhatsapp || '',
-              p_email: clientForm.email || '',
-              p_company_id: company.id,
-            });
-          if (clientError) throw clientError;
-          clientId = newClientId;
-        }
-      }
+      // Always create/retrieve the client through the RPC right before booking.
+      // Never trust or assume a frontend client_id for appointment creation.
+      const { data: newClientId, error: clientError } = await supabase.rpc('create_client', {
+        p_name: clientForm.full_name,
+        p_cpf: clientForm.cpf || '',
+        p_whatsapp: formattedWhatsapp || '',
+        p_email: clientForm.email || '',
+        p_company_id: company.id,
+      });
+
+      if (clientError) throw clientError;
+
+      const clientId = newClientId;
 
       // Persist client_id and form data in localStorage
       if (clientId) {
@@ -667,7 +649,7 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
         throw new Error('Cadastro do cliente falhou. Tente novamente.');
       }
 
-      console.log("CLIENT ID USED FOR BOOKING:", clientId);
+      console.log("CLIENT ID BEFORE BOOKING:", clientId);
 
       // Create appointment via secure RPC (bypasses RLS)
       const { data: appointmentId, error: aptError } = await supabase
