@@ -56,26 +56,26 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
 
   // Load saved client from localStorage
   useEffect(() => {
-    const loadSavedClient = async () => {
+    const loadSavedClient = () => {
       if (!company) return;
       const storedClientId = localStorage.getItem(`client_id_${company.id}`);
+      const storedClientData = localStorage.getItem(`client_data_${company.id}`);
       if (storedClientId) {
-        const { data: client } = await supabase
-          .from('clients' as any)
-          .select('*')
-          .eq('id', storedClientId)
-          .single();
-        if (client) {
-          const c = client as any;
-          setSavedClientId(c.id);
-          setClientForm({
-            full_name: c.name || '',
-            email: c.email || '',
-            whatsapp: c.whatsapp ? displayWhatsApp(c.whatsapp) : '',
-            cpf: c.cpf || '',
-            birth_date: '',
-          });
-          setOptInWhatsapp(c.opt_in_whatsapp || false);
+        setSavedClientId(storedClientId);
+        if (storedClientData) {
+          try {
+            const c = JSON.parse(storedClientData);
+            setClientForm({
+              full_name: c.full_name || '',
+              email: c.email || '',
+              whatsapp: c.whatsapp || '',
+              cpf: c.cpf || '',
+              birth_date: '',
+            });
+            setOptInWhatsapp(c.opt_in_whatsapp || false);
+          } catch (e) {
+            console.warn('[Booking] Failed to parse stored client data');
+          }
         }
       }
       setClientLoaded(true);
@@ -614,27 +614,19 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
       let clientId = savedClientId;
       
       if (!clientId) {
-        // Check if client already exists by CPF or WhatsApp
+        // Check if client already exists by CPF or WhatsApp using secure RPC
         const formattedWhatsapp = clientForm.whatsapp ? formatWhatsApp(clientForm.whatsapp) : null;
         
         if (clientForm.cpf) {
-          const { data: existingByCpf } = await supabase
-            .from('clients' as any)
-            .select('id')
-            .eq('company_id', company.id)
-            .eq('cpf', clientForm.cpf)
-            .maybeSingle();
-          if (existingByCpf) clientId = (existingByCpf as any).id;
+          const { data: existingId } = await supabase
+            .rpc('lookup_client_by_cpf', { _company_id: company.id, _cpf: clientForm.cpf });
+          if (existingId) clientId = existingId;
         }
         
         if (!clientId && formattedWhatsapp) {
-          const { data: existingByWhatsapp } = await supabase
-            .from('clients' as any)
-            .select('id')
-            .eq('company_id', company.id)
-            .eq('whatsapp', formattedWhatsapp)
-            .maybeSingle();
-          if (existingByWhatsapp) clientId = (existingByWhatsapp as any).id;
+          const { data: existingId } = await supabase
+            .rpc('lookup_client_by_whatsapp', { _company_id: company.id, _whatsapp: formattedWhatsapp });
+          if (existingId) clientId = existingId;
         }
 
         if (!clientId) {
@@ -649,16 +641,23 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
               whatsapp: formattedWhatsapp,
               opt_in_whatsapp: optInWhatsapp,
             } as any)
-            .select()
+            .select('id')
             .single();
           if (clientError) throw clientError;
           clientId = (newClient as any).id;
         }
       }
 
-      // Persist client_id in localStorage
+      // Persist client_id and form data in localStorage
       if (clientId) {
         localStorage.setItem(`client_id_${company.id}`, clientId);
+        localStorage.setItem(`client_data_${company.id}`, JSON.stringify({
+          full_name: clientForm.full_name,
+          email: clientForm.email || '',
+          whatsapp: clientForm.whatsapp || '',
+          cpf: clientForm.cpf || '',
+          opt_in_whatsapp: optInWhatsapp,
+        }));
         setSavedClientId(clientId);
       }
 
