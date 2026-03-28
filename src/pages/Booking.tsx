@@ -662,18 +662,25 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
       startTime.setHours(h, m, 0, 0);
       const endTime = addMinutes(startTime, totalDuration);
 
+      // Guard: client_id is required
+      if (!clientId) {
+        throw new Error('Cadastro do cliente falhou. Tente novamente.');
+      }
+
+      console.log("CLIENT ID USED FOR BOOKING:", clientId);
+
       // Create appointment via secure RPC (bypasses RLS)
       const { data: appointmentId, error: aptError } = await supabase
         .rpc('create_appointment', {
           p_company_id: company.id,
           p_professional_id: selectedProfessional,
-          p_client_id: clientId || null,
+          p_client_id: clientId,
           p_start_time: startTime.toISOString(),
           p_end_time: endTime.toISOString(),
           p_total_price: totalPrice,
-          p_status: 'pending',
           p_client_name: clientForm.full_name,
           p_client_whatsapp: clientForm.whatsapp ? formatWhatsApp(clientForm.whatsapp) : null,
+          p_notes: null,
         });
 
       if (aptError) throw aptError;
