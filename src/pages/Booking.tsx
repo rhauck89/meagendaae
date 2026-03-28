@@ -671,8 +671,7 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
 
       // Create appointment via secure RPC (bypasses RLS)
       const { data: appointmentId, error: aptError } = await supabase
-        .rpc('create_appointment', {
-          p_company_id: company.id,
+        .rpc('create_appointment' as any, {
           p_professional_id: selectedProfessional,
           p_client_id: clientId,
           p_start_time: startTime.toISOString(),
@@ -681,7 +680,7 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
           p_client_name: clientForm.full_name,
           p_client_whatsapp: clientForm.whatsapp ? formatWhatsApp(clientForm.whatsapp) : null,
           p_notes: null,
-        });
+        } as any);
 
       if (aptError) throw aptError;
       if (!appointmentId) throw new Error('Falha ao criar agendamento');

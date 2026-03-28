@@ -975,7 +975,6 @@ export type Database = {
           p_client_id: string
           p_client_name: string
           p_client_whatsapp: string
-          p_company_id: string
           p_end_time: string
           p_notes: string
           p_professional_id: string
