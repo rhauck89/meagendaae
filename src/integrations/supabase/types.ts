@@ -972,14 +972,22 @@ export type Database = {
     Functions: {
       create_appointment: {
         Args: {
-          p_client_id: string
+          p_client_id?: string
+          p_client_name?: string
+          p_client_whatsapp?: string
           p_company_id: string
-          p_end_time: string
+          p_end_time?: string
+          p_notes?: string
           p_professional_id: string
-          p_service_id: string
-          p_start_time: string
+          p_start_time?: string
+          p_status?: string
+          p_total_price?: number
         }
         Returns: string
+      }
+      create_appointment_services: {
+        Args: { p_appointment_id: string; p_services: Json }
+        Returns: undefined
       }
       create_client: {
         Args: {
