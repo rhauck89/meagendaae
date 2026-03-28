@@ -1,24 +1,18 @@
 
+## Fix: Replace create_appointment RPC and update booking flow
 
-## Fix: Booking appointment creation failing due to RLS
+### 1. Database Migration
+Replace `create_appointment` function with the user's provided implementation:
+- Drop existing function (all signatures)
+- Create new function with 9 required parameters (no `p_status` param — hardcoded to `'confirmed'`)
+- Validates client exists before inserting
+- Sets `search_path = public`
 
-**Root cause:** The booking page does `.insert().select().single()` on appointments. The `.select()` requires a public SELECT policy which doesn't exist. Also, `client_id` is resolved but never added to `appointmentData`.
+### 2. Update Booking.tsx (line ~666-677)
+- Remove `p_status` parameter from the RPC call (no longer accepted)
+- Add `p_notes: null` parameter (now required)
+- Add debug log before the call: `console.log("CLIENT ID USED FOR BOOKING:", clientId)`
+- Ensure `clientId` is always passed (never null) since the new function requires it
 
-**Plan:**
-
-### 1. Update `create_appointment` RPC to accept all booking fields
-Add parameters: `p_client_name`, `p_client_whatsapp`, `p_total_price`, `p_status` to the existing `create_appointment` SECURITY DEFINER function. This bypasses RLS entirely and returns just the UUID.
-
-### 2. Update Booking.tsx to use `create_appointment` RPC
-- Add `client_id: clientId` to the appointment data
-- Replace `.from('appointments').insert().select().single()` with `supabase.rpc('create_appointment', {...})`
-- Use the returned UUID directly as `appointmentId`
-
-### 3. Fix `appointment_services` INSERT for public users
-The current `appointment_services` public INSERT policy checks `a.client_id IS NULL`, but now `client_id` will be set. Create a new SECURITY DEFINER RPC `create_appointment_services` or update the policy to allow public insert when appointment exists.
-
-**Simpler alternative for step 3:** Update the public INSERT policy on `appointment_services` to just check that the appointment exists (remove the `client_id IS NULL` check).
-
-### 4. Clean up redundant policies
-Remove the overly permissive `"public can create appointments"` policy with `WITH CHECK (true)` since the RPC handles creation securely.
-
+### 3. Guard: prevent booking without client_id
+Add a check before calling `create_appointment`: if `!clientId`, throw an error saying client registration failed. This prevents the FK constraint violation.
