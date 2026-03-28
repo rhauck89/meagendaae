@@ -970,6 +970,27 @@ export type Database = {
       }
     }
     Functions: {
+      create_appointment: {
+        Args: {
+          p_client_id: string
+          p_company_id: string
+          p_end_time: string
+          p_professional_id: string
+          p_service_id: string
+          p_start_time: string
+        }
+        Returns: string
+      }
+      create_client: {
+        Args: {
+          p_company_id: string
+          p_cpf: string
+          p_email: string
+          p_name: string
+          p_whatsapp: string
+        }
+        Returns: string
+      }
       get_company_by_slug: {
         Args: { _slug: string }
         Returns: {
