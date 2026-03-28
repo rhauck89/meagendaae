@@ -614,27 +614,19 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
       let clientId = savedClientId;
       
       if (!clientId) {
-        // Check if client already exists by CPF or WhatsApp
+        // Check if client already exists by CPF or WhatsApp using secure RPC
         const formattedWhatsapp = clientForm.whatsapp ? formatWhatsApp(clientForm.whatsapp) : null;
         
         if (clientForm.cpf) {
-          const { data: existingByCpf } = await supabase
-            .from('clients' as any)
-            .select('id')
-            .eq('company_id', company.id)
-            .eq('cpf', clientForm.cpf)
-            .maybeSingle();
-          if (existingByCpf) clientId = (existingByCpf as any).id;
+          const { data: existingId } = await supabase
+            .rpc('lookup_client_by_cpf', { _company_id: company.id, _cpf: clientForm.cpf });
+          if (existingId) clientId = existingId;
         }
         
         if (!clientId && formattedWhatsapp) {
-          const { data: existingByWhatsapp } = await supabase
-            .from('clients' as any)
-            .select('id')
-            .eq('company_id', company.id)
-            .eq('whatsapp', formattedWhatsapp)
-            .maybeSingle();
-          if (existingByWhatsapp) clientId = (existingByWhatsapp as any).id;
+          const { data: existingId } = await supabase
+            .rpc('lookup_client_by_whatsapp', { _company_id: company.id, _whatsapp: formattedWhatsapp });
+          if (existingId) clientId = existingId;
         }
 
         if (!clientId) {
@@ -649,7 +641,7 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
               whatsapp: formattedWhatsapp,
               opt_in_whatsapp: optInWhatsapp,
             } as any)
-            .select()
+            .select('id')
             .single();
           if (clientError) throw clientError;
           clientId = (newClient as any).id;
