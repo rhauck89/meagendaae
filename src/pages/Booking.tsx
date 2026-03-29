@@ -656,12 +656,11 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
       const clientName = clientForm.full_name;
       const clientWhatsapp = clientForm.whatsapp ? formatWhatsApp(clientForm.whatsapp) : null;
       const notes = null;
-      const selectedProfessionalRef = selectedProfessional ? { id: selectedProfessional } : null;
 
       console.log("CLIENT ID BEFORE BOOKING:", clientId);
       console.log("====== BOOKING DEBUG START ======");
       console.log("CLIENT ID:", clientId);
-      console.log("PROFESSIONAL ID:", selectedProfessionalRef?.id);
+      console.log("PROFESSIONAL ID:", selectedProfessional);
       console.log("SELECTED DATE:", selectedDate);
       console.log("START TIME:", startTime);
       console.log("END TIME:", endTime);
@@ -670,24 +669,15 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
       const appointmentPayload = {
         p_professional_id: selectedProfessional,
         p_client_id: clientId,
-        p_start_time: startTime.toISOString(),
-        p_end_time: endTime.toISOString(),
+        p_start_time: startTime,
+        p_end_time: endTime,
         p_total_price: totalPrice,
-        p_client_name: clientName || '',
-        p_client_whatsapp: clientWhatsapp || '',
-        p_notes: notes || '',
+        p_client_name: clientName ?? null,
+        p_client_whatsapp: clientWhatsapp ?? null,
+        p_notes: notes ?? null,
       };
 
-      console.log("APPOINTMENT PAYLOAD:", {
-        professional_id: selectedProfessionalRef?.id,
-        client_id: clientId,
-        start_time: startTime,
-        end_time: endTime,
-        total_price: totalPrice,
-        client_name: clientName,
-        client_whatsapp: clientWhatsapp,
-        notes,
-      });
+      console.log("APPOINTMENT PAYLOAD:", appointmentPayload);
       console.log("====== BOOKING DEBUG END ======");
 
       // Create appointment via secure RPC (bypasses RLS)
