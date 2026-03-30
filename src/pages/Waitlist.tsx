@@ -136,13 +136,13 @@ const Waitlist = () => {
                     {idx + 1}
                   </div>
                   <div className="flex-1">
-                    <p className="font-semibold">{entry.client?.full_name || 'Cliente'}</p>
+                    <p className="font-semibold">{entry.client_name}</p>
                     <p className="text-sm text-muted-foreground">
                       {getServiceNames(entry.service_ids)}
                     </p>
-                    {entry.professional?.full_name && (
+                    {entry.professional_name && (
                       <p className="text-xs text-muted-foreground">
-                        Preferência: {entry.professional.full_name}
+                        Preferência: {entry.professional_name}
                       </p>
                     )}
                   </div>
