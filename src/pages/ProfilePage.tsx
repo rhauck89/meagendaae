@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUserRole } from '@/hooks/useUserRole';
 import { supabase } from '@/integrations/supabase/client';
@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Star, Save, Camera, Instagram, Globe, MessageCircle } from 'lucide-react';
+import { Star, Save, Camera, Instagram, Globe, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -18,8 +18,10 @@ const ProfilePage = () => {
   const { user, profile, companyId } = useAuth();
   const { profileId } = useUserRole();
   const [loading, setLoading] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [reviews, setReviews] = useState<any[]>([]);
   const [avgRating, setAvgRating] = useState(0);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [form, setForm] = useState({
     full_name: '',
@@ -72,6 +74,52 @@ const ProfilePage = () => {
     }
   };
 
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user) return;
+
+    if (!file.type.startsWith('image/')) {
+      toast.error('Por favor, selecione uma imagem');
+      return;
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error('Imagem deve ter no máximo 2MB');
+      return;
+    }
+
+    setUploading(true);
+    try {
+      const ext = file.name.split('.').pop();
+      const filePath = `${user.id}/avatar.${ext}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(filePath, file, { upsert: true });
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('avatars')
+        .getPublicUrl(filePath);
+
+      const avatarUrl = `${publicUrl}?t=${Date.now()}`;
+
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({ avatar_url: avatarUrl })
+        .eq('user_id', user.id);
+
+      if (updateError) throw updateError;
+
+      setForm(prev => ({ ...prev, avatar_url: avatarUrl }));
+      toast.success('Foto atualizada!');
+    } catch (err: any) {
+      toast.error(err.message || 'Erro ao enviar foto');
+    } finally {
+      setUploading(false);
+    }
+  };
+
   const handleSave = async () => {
     if (!user) return;
     setLoading(true);
@@ -88,7 +136,6 @@ const ProfilePage = () => {
           email: form.email,
           whatsapp: form.whatsapp,
           bio: form.bio as any,
-          avatar_url: form.avatar_url || null,
           social_links: socialLinks as any,
         })
         .eq('user_id', user.id);
@@ -121,26 +168,40 @@ const ProfilePage = () => {
         <CardContent className="space-y-6">
           {/* Avatar */}
           <div className="flex items-center gap-4">
-            <Avatar className="h-20 w-20">
-              <AvatarImage src={form.avatar_url} />
-              <AvatarFallback className="text-2xl font-display">
-                {form.full_name?.charAt(0)?.toUpperCase() || '?'}
-              </AvatarFallback>
-            </Avatar>
-            <div className="space-y-2">
-              <Label htmlFor="avatar_url">URL da foto</Label>
-              <div className="flex gap-2">
-                <Input
-                  id="avatar_url"
-                  value={form.avatar_url}
-                  onChange={(e) => setForm({ ...form, avatar_url: e.target.value })}
-                  placeholder="https://..."
-                  className="w-[300px]"
-                />
-                <Button variant="outline" size="icon" disabled>
+            <div className="relative">
+              <Avatar className="h-20 w-20">
+                <AvatarImage src={form.avatar_url} />
+                <AvatarFallback className="text-2xl font-display">
+                  {form.full_name?.charAt(0)?.toUpperCase() || '?'}
+                </AvatarFallback>
+              </Avatar>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                capture="environment"
+                className="hidden"
+                onChange={handleAvatarUpload}
+              />
+              <Button
+                variant="outline"
+                size="icon"
+                className="absolute -bottom-1 -right-1 h-8 w-8 rounded-full shadow-md"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploading}
+              >
+                {uploading ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
                   <Camera className="h-4 w-4" />
-                </Button>
-              </div>
+                )}
+              </Button>
+            </div>
+            <div>
+              <p className="font-medium">{form.full_name || 'Seu nome'}</p>
+              <p className="text-sm text-muted-foreground">
+                Clique no ícone da câmera para alterar a foto
+              </p>
             </div>
           </div>
 
