@@ -48,7 +48,7 @@ const Dashboard = () => {
   const [viewMode, setViewMode] = useState<ViewMode>('day');
   const [currentDate, setCurrentDate] = useState(new Date());
   const [appointments, setAppointments] = useState<any[]>([]);
-  const [stats, setStats] = useState({ total: 0, revenue: 0, clients: 0 });
+  const [stats, setStats] = useState({ total: 0, revenue: 0, revenueCompleted: 0, clients: 0 });
   const [returnStats, setReturnStats] = useState<ReturnStats>({ onTime: 0, approaching: 0, overdue: 0, approachingClients: [], overdueClients: [] });
   const [waitlistCount, setWaitlistCount] = useState(0);
   const [reminderCount, setReminderCount] = useState(0);
