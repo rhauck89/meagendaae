@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Calendar, ChevronLeft, ChevronRight, Clock, DollarSign, Users, UserCheck, UserMinus, AlertTriangle, Bell, Mail, Cake, Ban, Trash2, Timer } from 'lucide-react';
 import { BlockTimeDialog } from '@/components/BlockTimeDialog';
 import { format, addDays, startOfWeek, endOfWeek, startOfMonth, endOfMonth, isSameDay, parseISO, differenceInDays } from 'date-fns';
@@ -57,6 +58,8 @@ const Dashboard = () => {
   const [collaboratorsList, setCollaboratorsList] = useState<any[]>([]);
   const [delayDialogOpen, setDelayDialogOpen] = useState(false);
   const [delayTargetId, setDelayTargetId] = useState<string | null>(null);
+  const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
+  const [cancelTarget, setCancelTarget] = useState<any>(null);
   const [delayLoading, setDelayLoading] = useState(false);
 
   useEffect(() => {
@@ -646,7 +649,10 @@ const Dashboard = () => {
                           size="sm"
                           variant="ghost"
                           className="text-destructive"
-                          onClick={() => updateStatus(apt.id, 'cancelled')}
+                          onClick={() => {
+                            setCancelTarget(apt);
+                            setCancelDialogOpen(true);
+                          }}
                         >
                           Cancelar
                         </Button>
@@ -692,6 +698,39 @@ const Dashboard = () => {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Cancel Confirmation Dialog */}
+      <AlertDialog open={cancelDialogOpen} onOpenChange={setCancelDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Tem certeza que deseja cancelar este agendamento?</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-2 text-sm text-muted-foreground">
+                {cancelTarget && (
+                  <>
+                    <p><strong>Cliente:</strong> {cancelTarget.client_name || 'N/A'}</p>
+                    <p><strong>Serviço:</strong> {cancelTarget.appointment_services?.map((s: any) => s.service?.name).join(', ') || 'N/A'}</p>
+                    <p><strong>Horário:</strong> {format(parseISO(cancelTarget.start_time), 'HH:mm')} - {format(parseISO(cancelTarget.end_time), 'HH:mm')}</p>
+                  </>
+                )}
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar ação</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => {
+                if (cancelTarget) updateStatus(cancelTarget.id, 'cancelled');
+                setCancelDialogOpen(false);
+                setCancelTarget(null);
+              }}
+            >
+              Confirmar cancelamento
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
