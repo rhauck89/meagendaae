@@ -287,16 +287,16 @@ const Dashboard = () => {
       .eq('notified', false);
     setWaitlistCount((wlCount || 0) + (wCount || 0));
 
-    // Fetch client names for tooltip from both tables
+    // Fetch client names + service_ids for tooltip from both tables
     const { data: wlData } = await supabase
       .from('waiting_list')
-      .select('client:profiles!waiting_list_client_id_fkey(full_name)')
+      .select('client:profiles!waiting_list_client_id_fkey(full_name), service_ids')
       .eq('company_id', companyId)
       .eq('status', 'waiting')
       .limit(10);
     const { data: wData } = await supabase
       .from('waitlist')
-      .select('client_name')
+      .select('client_name, service_ids')
       .eq('company_id', companyId)
       .eq('notified', false)
       .limit(10);
@@ -305,6 +305,36 @@ const Dashboard = () => {
       ...(wData?.map((d: any) => d.client_name).filter(Boolean) || []),
     ];
     setWaitlistClients(names.slice(0, 10));
+
+    // Service breakdown
+    const allServiceIds = [
+      ...(wlData?.flatMap((d: any) => d.service_ids || []) || []),
+      ...(wData?.flatMap((d: any) => d.service_ids || []) || []),
+    ];
+    if (allServiceIds.length > 0) {
+      const uniqueIds = [...new Set(allServiceIds)];
+      const { data: svcs } = await supabase.from('services').select('id, name').in('id', uniqueIds);
+      const breakdown: Record<string, number> = {};
+      for (const sid of allServiceIds) {
+        const name = svcs?.find((s: any) => s.id === sid)?.name || 'Serviço';
+        breakdown[name] = (breakdown[name] || 0) + 1;
+      }
+      setWaitlistServiceBreakdown(breakdown);
+    } else {
+      setWaitlistServiceBreakdown({});
+    }
+
+    // Check if there's an open slot today (simple heuristic: fewer than expected appointments)
+    const todayStr = format(new Date(), 'yyyy-MM-dd');
+    const { count: todayApptCount } = await supabase
+      .from('appointments')
+      .select('*', { count: 'exact', head: true })
+      .eq('company_id', companyId)
+      .gte('start_time', `${todayStr}T00:00:00`)
+      .lt('start_time', `${todayStr}T23:59:59`)
+      .not('status', 'in', '("cancelled","no_show")');
+    // If there are waitlist entries and fewer than 8 appointments today, hint availability
+    setHasOpenSlot((wlCount || 0) + (wCount || 0) > 0 && (todayApptCount || 0) < 8);
   };
 
   const fetchReminderCount = async () => {
