@@ -210,13 +210,18 @@ const Services = () => {
                 <h3 className="text-lg font-semibold">{service.name}</h3>
                 <Switch checked={service.active} onCheckedChange={() => toggleActive(service.id, service.active)} />
               </div>
-              <div className="mb-4 flex gap-4 text-sm text-muted-foreground">
+              <div className="mb-4 flex flex-wrap gap-4 text-sm text-muted-foreground">
                 <span className="flex items-center gap-1">
                   <Clock className="h-4 w-4" /> {service.duration_minutes} min
                 </span>
                 <span className="flex items-center gap-1">
                   <DollarSign className="h-4 w-4" /> R$ {Number(service.price).toFixed(2)}
                 </span>
+                {(service as any).recommended_return_days && (
+                  <span className="flex items-center gap-1">
+                    <RefreshCw className="h-4 w-4" /> Retorno: {(service as any).recommended_return_days} dias
+                  </span>
+                )}
               </div>
               <div className="flex gap-2">
                 <Button variant="outline" size="sm" onClick={() => openEdit(service)}>
