@@ -60,6 +60,8 @@ const Dashboard = () => {
   const [delayTargetId, setDelayTargetId] = useState<string | null>(null);
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
   const [cancelTarget, setCancelTarget] = useState<any>(null);
+  const [completeDialogOpen, setCompleteDialogOpen] = useState(false);
+  const [completeTarget, setCompleteTarget] = useState<any>(null);
   const [delayLoading, setDelayLoading] = useState(false);
 
   useEffect(() => {
@@ -630,7 +632,10 @@ const Dashboard = () => {
                         <Button
                           size="sm"
                           variant="outline"
-                          onClick={() => updateStatus(apt.id, 'completed')}
+                          onClick={() => {
+                            setCompleteTarget(apt);
+                            setCompleteDialogOpen(true);
+                          }}
                         >
                           Concluir
                         </Button>
@@ -727,6 +732,41 @@ const Dashboard = () => {
               }}
             >
               Confirmar cancelamento
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Complete Confirmation Dialog */}
+      <AlertDialog open={completeDialogOpen} onOpenChange={setCompleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {completeTarget && new Date() < parseISO(completeTarget.start_time)
+                ? 'Este atendimento ainda não começou'
+                : 'Deseja concluir este atendimento?'}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {completeTarget && new Date() < parseISO(completeTarget.start_time)
+                ? 'Deseja realmente concluir este serviço?'
+                : `${completeTarget?.client_name || 'Cliente'} — ${format(parseISO(completeTarget?.start_time || new Date().toISOString()), 'HH:mm')}`}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (completeTarget) {
+                  updateStatus(completeTarget.id, 'completed');
+                  toast.success('Serviço concluído com sucesso');
+                }
+                setCompleteDialogOpen(false);
+                setCompleteTarget(null);
+              }}
+            >
+              {completeTarget && new Date() < parseISO(completeTarget.start_time)
+                ? 'Concluir mesmo assim'
+                : 'Concluir'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
