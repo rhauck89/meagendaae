@@ -1007,6 +1007,7 @@ const Dashboard = () => {
             </div>
           </div>
         </DialogContent>
+        )}
       </Dialog>
     </div>
   );
