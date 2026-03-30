@@ -233,49 +233,63 @@ export default function ProfessionalPublicProfile() {
           </p>
         )}
 
-        {/* Next Available Slot */}
-        {nextAvailable && (
+        {/* Next Available Slot - Highlighted */}
+        {nextAvailable && nextAvailable.slots.length > 0 && (
           <div className="w-full max-w-xs">
             <div className="flex items-center gap-2 mb-3">
-              <Calendar className="w-4 h-4" style={{ color: isDark ? '#F59E0B' : '#D97706' }} />
+              <span className="text-base">🔥</span>
               <h3 className="text-sm font-semibold" style={{ color: isDark ? '#FFFFFF' : '#1F2937' }}>Próximo horário disponível</h3>
             </div>
+
+            {/* Primary highlighted slot */}
             <div
-              className="rounded-xl p-4 border"
+              className="rounded-xl p-4 border-2 mb-3"
               style={{
-                background: isDark ? '#111827' : '#FFFFFF',
-                borderColor: isDark ? '#1F2937' : '#E5E7EB',
+                background: isDark ? 'rgba(245,158,11,0.08)' : 'rgba(217,119,6,0.06)',
+                borderColor: isDark ? '#F59E0B' : '#D97706',
               }}
             >
-              <p className="text-sm font-semibold mb-3 capitalize" style={{ color: isDark ? '#F59E0B' : '#D97706' }}>
-                {nextAvailable.label}
+              <p className="text-lg font-bold text-center capitalize" style={{ color: isDark ? '#FFFFFF' : '#1F2937' }}>
+                {nextAvailable.label} • {nextAvailable.slots[0]}
               </p>
+              <Button
+                onClick={() => navigate(`${bookingUrl}?date=${format(nextAvailable.date, 'yyyy-MM-dd')}&time=${nextAvailable.slots[0]}`)}
+                className="w-full h-11 mt-3 text-sm font-semibold rounded-xl shadow-lg"
+                style={{ background: isDark ? '#F59E0B' : '#D97706', color: '#0B132B' }}
+              >
+                <Calendar className="w-4 h-4 mr-2" />
+                Agendar este horário
+              </Button>
+            </div>
+
+            {/* Secondary slots */}
+            {nextAvailable.slots.length > 1 && (
               <div className="flex gap-2">
-                {nextAvailable.slots.slice(0, 3).map(time => (
+                {nextAvailable.slots.slice(1, 3).map(time => (
                   <button
                     key={time}
                     onClick={() => navigate(`${bookingUrl}?date=${format(nextAvailable.date, 'yyyy-MM-dd')}&time=${time}`)}
                     className="flex-1 py-2.5 rounded-lg text-sm font-semibold transition-all hover:scale-105 active:scale-95"
                     style={{
-                      background: isDark ? 'rgba(245,158,11,0.2)' : 'rgba(217,119,6,0.12)',
+                      background: isDark ? 'rgba(245,158,11,0.15)' : 'rgba(217,119,6,0.1)',
                       color: isDark ? '#F59E0B' : '#D97706',
-                      border: `1px solid ${isDark ? 'rgba(245,158,11,0.3)' : 'rgba(217,119,6,0.25)'}`,
+                      border: `1px solid ${isDark ? 'rgba(245,158,11,0.25)' : 'rgba(217,119,6,0.2)'}`,
                     }}
                   >
                     {time}
                   </button>
                 ))}
               </div>
-              {nextAvailable.slots.length > 3 && (
-                <button
-                  onClick={() => navigate(`${bookingUrl}?date=${format(nextAvailable.date, 'yyyy-MM-dd')}`)}
-                  className="w-full text-xs mt-2 py-1"
-                  style={{ color: isDark ? '#6B7280' : '#9CA3AF' }}
-                >
-                  +{nextAvailable.slots.length - 3} horários disponíveis →
-                </button>
-              )}
-            </div>
+            )}
+            {nextAvailable.slots.length > 3 && (
+              <button
+                onClick={() => navigate(`${bookingUrl}?date=${format(nextAvailable.date, 'yyyy-MM-dd')}`)}
+                className="w-full text-xs mt-2 py-1"
+                style={{ color: isDark ? '#6B7280' : '#9CA3AF' }}
+              >
+                +{nextAvailable.slots.length - 3} horários disponíveis →
+              </button>
+            )}
           </div>
         )}
 
@@ -326,22 +340,6 @@ export default function ProfessionalPublicProfile() {
             </a>
           )}
 
-          {company.address && (
-            <a
-              href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(company.address)}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center justify-center gap-2 w-full h-11 rounded-xl border text-sm font-medium transition-colors hover:opacity-90"
-              style={{
-                borderColor: isDark ? '#1F2937' : '#E5E7EB',
-                background: isDark ? '#111827' : '#FFFFFF',
-                color: isDark ? '#FFFFFF' : '#1F2937',
-              }}
-            >
-              <MapPin className="w-4 h-4" style={{ color: '#EF4444' }} />
-              Localização
-            </a>
-          )}
 
           <button
             onClick={handleShare}
@@ -431,6 +429,46 @@ export default function ProfessionalPublicProfile() {
                 Ver todas avaliações ({totalReviews})
               </button>
             )}
+          </div>
+        )}
+
+        {/* Location with Map */}
+        {company.address && (
+          <div className="w-full max-w-xs">
+            <div className="flex items-center gap-2 mb-3">
+              <MapPin className="w-4 h-4" style={{ color: '#EF4444' }} />
+              <h3 className="text-sm font-semibold" style={{ color: isDark ? '#FFFFFF' : '#1F2937' }}>Localização</h3>
+            </div>
+            <a
+              href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(company.address)}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="block rounded-xl overflow-hidden border transition-transform hover:scale-[1.01]"
+              style={{
+                borderColor: isDark ? '#1F2937' : '#E5E7EB',
+              }}
+            >
+              <img
+                src={`https://maps.googleapis.com/maps/api/staticmap?center=${encodeURIComponent(company.address)}&zoom=15&size=400x180&scale=2&maptype=roadmap&markers=color:red%7C${encodeURIComponent(company.address)}&style=feature:all%7Celement:geometry%7Ccolor:${isDark ? '0x1a1a2e' : '0xf5f5f5'}&style=feature:water%7Celement:geometry%7Ccolor:${isDark ? '0x0d1b2a' : '0xc9d6ff'}&key=`}
+                alt="Mapa"
+                className="w-full h-[120px] object-cover"
+                style={{ background: isDark ? '#1F2937' : '#F3F4F6' }}
+                onError={(e) => {
+                  (e.target as HTMLImageElement).style.display = 'none';
+                }}
+              />
+              <div className="p-3" style={{ background: isDark ? '#111827' : '#FFFFFF' }}>
+                <p className="text-sm font-medium" style={{ color: isDark ? '#FFFFFF' : '#1F2937' }}>
+                  📍 {company.name}
+                </p>
+                <p className="text-xs mt-0.5" style={{ color: isDark ? '#9CA3AF' : '#6B7280' }}>
+                  {company.address}
+                </p>
+                <p className="text-xs mt-2 font-medium" style={{ color: isDark ? '#F59E0B' : '#D97706' }}>
+                  Abrir no Google Maps →
+                </p>
+              </div>
+            </a>
           </div>
         )}
 
