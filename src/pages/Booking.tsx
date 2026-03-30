@@ -1103,7 +1103,8 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
 
           const waUrl = () => {
             const phone = bookingResult.companyPhone?.replace(/\D/g, '') || '';
-            const msg = `Olá! 👋\n\nConfirmando meu agendamento na ${bookingResult.companyName}:\n\n📅 Data: ${format(bookingResult.date, "dd/MM/yyyy")}\n⏰ Horário: ${bookingResult.time}\n✂️ Serviço: ${bookingResult.serviceNames.join(', ')}\n💈 Profissional: ${bookingResult.professionalName}\n💰 Valor: R$ ${bookingResult.totalPrice.toFixed(2)}\n\nObrigado!`;
+            const baseUrl = window.location.origin;
+            const msg = `Olá! 👋\n\nConfirmando meu agendamento na ${bookingResult.companyName}:\n\n📅 Data: ${format(bookingResult.date, "dd/MM/yyyy")}\n⏰ Horário: ${bookingResult.time}\n✂️ Serviço: ${bookingResult.serviceNames.join(', ')}\n💈 Profissional: ${bookingResult.professionalName}\n💰 Valor: R$ ${bookingResult.totalPrice.toFixed(2)}\n\n📋 Gerenciar agendamento:\n🔄 Reagendar: ${baseUrl}/reschedule/${bookingResult.appointmentId}\n❌ Cancelar: ${baseUrl}/cancel/${bookingResult.appointmentId}\n\nObrigado!`;
             return `https://wa.me/${phone.startsWith('55') ? phone : '55' + phone}?text=${encodeURIComponent(msg)}`;
           };
 
@@ -1185,6 +1186,15 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
                     <MapPin className="h-4 w-4" style={{ color: T.accent }} /> 📍 Abrir localização
                   </button>
                 )}
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <button onClick={() => window.location.href = `/reschedule/${bookingResult.appointmentId}`} className="flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-medium transition-all hover:scale-105" style={{ background: T.card, border: `1px solid ${T.border}`, color: T.text }}>
+                  🔄 Reagendar
+                </button>
+                <button onClick={() => window.location.href = `/cancel/${bookingResult.appointmentId}`} className="flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-medium transition-all hover:scale-105" style={{ background: T.card, border: `1px solid ${T.border}`, color: '#F87171' }}>
+                  ❌ Cancelar
+                </button>
               </div>
 
               {/* ── Rating info ── */}

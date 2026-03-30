@@ -15,6 +15,8 @@ import Automations from "./pages/Automations";
 import Booking from "./pages/Booking";
 import MyAppointments from "./pages/MyAppointments";
 import ReviewPage from "./pages/ReviewPage";
+import CancelAppointment from "./pages/CancelAppointment";
+import RescheduleAppointment from "./pages/RescheduleAppointment";
 import Admin from "./pages/Admin";
 import DebugAgenda from "./pages/DebugAgenda";
 import DashboardLayout from "./components/DashboardLayout";
@@ -54,6 +56,8 @@ const App = () => (
             <Route path="/booking/:slug" element={<Booking />} />
             <Route path="/my-appointments" element={<MyAppointments />} />
             <Route path="/review/:appointmentId" element={<ReviewPage />} />
+            <Route path="/cancel/:appointmentId" element={<CancelAppointment />} />
+            <Route path="/reschedule/:appointmentId" element={<RescheduleAppointment />} />
             <Route path="/admin" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
             <Route path="/admin/debug-agenda" element={<ProtectedRoute><DebugAgenda /></ProtectedRoute>} />
             <Route path="/dashboard" element={<DashboardRoute><Dashboard /></DashboardRoute>} />
