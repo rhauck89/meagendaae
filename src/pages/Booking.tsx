@@ -118,6 +118,7 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
     totalDuration: number;
     companyName: string;
     companyPhone: string | null;
+    companyAddress: string | null;
   } | null>(null);
 
   const isDark = businessType === 'barbershop';
