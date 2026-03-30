@@ -101,9 +101,9 @@ const RescheduleAppointment = () => {
         supabase.from('business_exceptions').select('*').eq('company_id', companyId),
         supabase.from('professional_working_hours').select('*').eq('professional_id', data.professional_id).eq('company_id', companyId),
       ]);
-      if (bhRes.data) setBusinessHours(bhRes.data.map((h: any) => ({ dayOfWeek: h.day_of_week, openTime: h.open_time, closeTime: h.close_time, isClosed: h.is_closed, lunchStart: h.lunch_start, lunchEnd: h.lunch_end })));
-      if (exRes.data) setExceptions(exRes.data.map((e: any) => ({ date: e.exception_date, isClosed: e.is_closed, openTime: e.open_time, closeTime: e.close_time })));
-      if (phRes.data && phRes.data.length > 0) setProfessionalHours(phRes.data.map((h: any) => ({ dayOfWeek: h.day_of_week, openTime: h.open_time, closeTime: h.close_time, isClosed: h.is_closed, lunchStart: h.lunch_start, lunchEnd: h.lunch_end })));
+      if (bhRes.data) setBusinessHours(bhRes.data as BusinessHours[]);
+      if (exRes.data) setExceptions(exRes.data as BusinessException[]);
+      if (phRes.data && phRes.data.length > 0) setProfessionalHours(phRes.data as BusinessHours[]);
 
       if (data.status === 'cancelled' || data.status === 'completed' || data.status === 'no_show') {
         // Can't reschedule
@@ -135,9 +135,16 @@ const RescheduleAppointment = () => {
     const apts = (aptData || []) as ExistingAppointment[];
     setExistingAppointments(apts);
 
-    const hoursToUse = professionalHours.length > 0 ? professionalHours : businessHours;
-    const blockedTimes: BlockedTime[] = [];
-    const rawSlots = calculateAvailableSlots(selectedDate, totalDuration, hoursToUse, exceptions, blockedTimes, bufferMinutes);
+    const rawSlots = calculateAvailableSlots({
+      date: selectedDate,
+      totalDuration,
+      businessHours,
+      exceptions,
+      existingAppointments: [],
+      bufferMinutes,
+      professionalHours: professionalHours.length > 0 ? professionalHours : undefined,
+      blockedTimes: [],
+    });
     const filtered = filterOverlappingSlots(rawSlots, apts, totalDuration, bufferMinutes, DEFAULT_TZ, appointmentId!);
     setAvailableSlots(filtered);
     setSlotsLoading(false);
