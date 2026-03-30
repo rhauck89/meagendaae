@@ -1037,8 +1037,8 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
                             className={cn(
                               'transition-all',
                               isDark
-                                ? 'border-amber-500/40 hover:bg-amber-500 hover:text-black'
-                                : 'border-rose-400/40 hover:bg-rose-400 hover:text-white'
+                                ? 'bg-[#16213e] border-[#2a2a4a] text-white hover:bg-amber-500 hover:text-black'
+                                : 'bg-white border-[#e8ddd4] text-[#3d2c2c] hover:bg-rose-400 hover:text-white'
                             )}
                           >
                             {slot}
