@@ -665,6 +665,33 @@ const Dashboard = () => {
           )}
         </CardContent>
       </Card>
+
+      {/* Delay Dialog */}
+      <Dialog open={delayDialogOpen} onOpenChange={setDelayDialogOpen}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Timer className="h-5 w-5" /> Registrar Atraso
+            </DialogTitle>
+            <DialogDescription>
+              Selecione o tempo de atraso. Todos os agendamentos seguintes serão ajustados automaticamente.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid grid-cols-2 gap-3 pt-2">
+            {[5, 10, 15, 20].map((min) => (
+              <Button
+                key={min}
+                variant="outline"
+                className="h-16 text-lg font-display"
+                disabled={delayLoading}
+                onClick={() => registerDelay(min)}
+              >
+                {min} min
+              </Button>
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
