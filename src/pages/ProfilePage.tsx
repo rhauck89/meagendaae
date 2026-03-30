@@ -152,7 +152,6 @@ const ProfilePage = () => {
     try {
       const socialLinks = {
         instagram: form.social_instagram || null,
-        website: form.social_website || null,
       };
 
       const { error } = await supabase
