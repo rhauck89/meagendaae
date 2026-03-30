@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import Index from "./pages/Index";
+import ProfessionalPublicProfile from "./pages/ProfessionalPublicProfile";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import Services from "./pages/Services";
