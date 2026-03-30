@@ -491,43 +491,30 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
   };
 
   const handleJoinWaitlist = async () => {
-    if (!company || !selectedDate || !selectedProfessional) return;
+    if (!company || !selectedDate) return;
+    if (!waitlistForm.name.trim() || !waitlistForm.whatsapp.trim()) {
+      toast.error('Preencha seu nome e WhatsApp');
+      return;
+    }
+    if (!isValidWhatsApp(waitlistForm.whatsapp)) {
+      toast.error('WhatsApp inválido');
+      return;
+    }
     setWaitlistLoading(true);
     try {
-      let userId: string;
-      const { data: existingSession } = await supabase.auth.getSession();
-      if (existingSession?.session?.user) {
-        userId = existingSession.session.user.id;
-      } else {
-        if (!clientForm.email || !clientForm.full_name) {
-          toast.error('Preencha seu nome e email primeiro');
-          setStep('client');
-          setWaitlistLoading(false);
-          return;
-        }
-        const { data: authData, error } = await supabase.auth.signUp({
-          email: clientForm.email,
-          password: Math.random().toString(36).slice(-8) + 'A1!',
-          options: { data: { full_name: clientForm.full_name } },
-        });
-        if (error) throw error;
-        userId = authData.user!.id;
-        await supabase.from('profiles').update({
-          company_id: company.id,
-          whatsapp: formatWhatsApp(clientForm.whatsapp),
-          birth_date: clientForm.birth_date || null,
-          opt_in_whatsapp: optInWhatsapp,
-          opt_in_date: optInWhatsapp ? new Date().toISOString() : null,
-        } as any).eq('user_id', userId);
-        await supabase.from('user_roles').insert({ user_id: userId, company_id: company.id, role: 'client' as const });
-      }
-      const { data: profile } = await supabase.from('profiles').select('id').eq('user_id', userId).single();
-      if (!profile) throw new Error('Profile not found');
-      await supabase.from('waiting_list').insert({
-        company_id: company.id, client_id: profile.id, service_ids: selectedServices,
-        professional_id: selectedProfessional, desired_date: format(selectedDate, 'yyyy-MM-dd'),
+      const { error } = await supabase.rpc('join_public_waitlist', {
+        p_company_id: company.id,
+        p_client_name: waitlistForm.name.trim(),
+        p_client_whatsapp: formatWhatsApp(waitlistForm.whatsapp),
+        p_email: waitlistForm.email.trim() || null,
+        p_service_ids: selectedServices,
+        p_desired_date: format(selectedDate, 'yyyy-MM-dd'),
+        p_professional_id: selectedProfessional || null,
       });
+      if (error) throw error;
       toast.success('Você foi adicionado à lista de espera!');
+      setShowWaitlistForm(false);
+      setWaitlistForm({ name: '', whatsapp: '', email: '' });
       setStep('services');
       setSelectedServices([]);
       setSelectedProfessional(null);
