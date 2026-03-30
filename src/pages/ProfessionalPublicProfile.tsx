@@ -104,9 +104,8 @@ export default function ProfessionalPublicProfile() {
     const avgDur = services.length > 0 ? Math.round(services.reduce((s, sv) => s + (sv.duration_minutes || 30), 0) / services.length) : 30;
 
     const results: { date: Date; slots: string[] }[] = [];
-    let total = 0;
     const now = new Date();
-    for (let i = 0; i < 7 && total < 6; i++) {
+    for (let i = 0; i < 7; i++) {
       const day = addDays(startOfDay(new Date()), i);
       const dateStr = format(day, 'yyyy-MM-dd');
       const { data: aptData } = await (supabase as any).rpc('get_booking_appointments', { p_company_id: comp.id, p_professional_id: prof.id, p_selected_date: dateStr, p_timezone: tz });
@@ -116,13 +115,9 @@ export default function ProfessionalPublicProfile() {
       let slots = calculateAvailableSlots({ date: day, totalDuration: avgDur, businessHours: bh, exceptions: exc, existingAppointments: apts, slotInterval: 15, bufferMinutes: buf, professionalHours: ph, blockedTimes: ((blockedData || []) as unknown as BlockedTime[]), professionalId: prof.id });
       slots = filterOverlapping(slots, apts, avgDur, buf, tz);
       if (isToday(day)) { const ct = format(now, 'HH:mm'); slots = slots.filter(s => s > ct); }
-      if (slots.length > 0) {
-        const rem = 6 - total;
-        results.push({ date: day, slots: slots.slice(0, rem) });
-        total += Math.min(slots.length, rem);
-      }
+      results.push({ date: day, slots });
     }
-    setNextSlots(results);
+    setWeekSlots(results);
     setSlotsLoading(false);
   };
 
