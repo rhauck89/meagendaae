@@ -19,7 +19,7 @@ Deno.serve(async (req) => {
     // Get all active companies
     const { data: companies, error: compErr } = await supabase
       .from("companies")
-      .select("id")
+      .select("id, slug, business_type")
       .in("subscription_status", ["active", "trial"]);
 
     if (compErr) throw compErr;
