@@ -94,6 +94,8 @@ const Dashboard = () => {
   const [rescheduleLoading, setRescheduleLoading] = useState(false);
   const routerNavigate = useRouterNavigate();
   const [waitlistClients, setWaitlistClients] = useState<string[]>([]);
+  const [companySlug, setCompanySlug] = useState('');
+  const [companyBusinessType, setCompanyBusinessType] = useState('barbershop');
 
   // Cleanup orphan Radix portal elements when reschedule modal closes
   useEffect(() => {
