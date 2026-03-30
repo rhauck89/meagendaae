@@ -1151,11 +1151,11 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
 
               <div className="grid grid-cols-2 gap-3">
                 <button onClick={() => window.open(calUrl(), '_blank')} className="flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-medium transition-all hover:scale-105" style={{ background: T.card, border: `1px solid ${T.border}`, color: T.text }}>
-                  <CalendarPlus className="h-4 w-4" style={{ color: T.accent }} /> Calendário
+                  <CalendarPlus className="h-4 w-4" style={{ color: T.accent }} /> 📅 Salvar no Google Agenda
                 </button>
                 {bookingResult.companyPhone && (
                   <button onClick={() => window.open(waUrl(), '_blank')} className="flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-medium transition-all hover:scale-105" style={{ background: '#25D366', color: '#fff' }}>
-                    <MessageCircle className="h-4 w-4" /> WhatsApp
+                    <MessageCircle className="h-4 w-4" /> 📲 Enviar confirmação no WhatsApp
                   </button>
                 )}
               </div>
