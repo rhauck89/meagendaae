@@ -103,3 +103,52 @@
     font-family: 'Space Grotesk', sans-serif;
   }
 }
+
+/* Booking dark-theme calendar overrides */
+.booking-dark-calendar .rdp {
+  --rdp-cell-size: 40px;
+  --rdp-accent-color: #F59E0B;
+  --rdp-background-color: #F59E0B;
+  color: #FFFFFF;
+}
+.booking-dark-calendar .rdp-caption_label {
+  color: #FFFFFF;
+  font-weight: 600;
+}
+.booking-dark-calendar .rdp-nav_button {
+  color: #9CA3AF;
+  border-color: #1F2937;
+  background: #1a2332;
+}
+.booking-dark-calendar .rdp-nav_button:hover {
+  background: #F59E0B;
+  color: #000;
+}
+.booking-dark-calendar .rdp-head_cell {
+  color: #9CA3AF;
+}
+.booking-dark-calendar .rdp-day {
+  color: #FFFFFF;
+  border-radius: 0.75rem;
+}
+.booking-dark-calendar .rdp-day:hover:not(.rdp-day_selected):not(.rdp-day_disabled) {
+  background: #1F2937;
+}
+.booking-dark-calendar .rdp-day_selected {
+  background: #F59E0B !important;
+  color: #000 !important;
+  font-weight: 700;
+}
+.booking-dark-calendar .rdp-day_today:not(.rdp-day_selected) {
+  border: 1px solid #F59E0B;
+  color: #F59E0B;
+  background: transparent;
+  font-weight: 600;
+}
+.booking-dark-calendar .rdp-day_disabled {
+  color: #374151;
+  opacity: 0.4;
+}
+.booking-dark-calendar .rdp-day_outside {
+  color: #374151;
+}
