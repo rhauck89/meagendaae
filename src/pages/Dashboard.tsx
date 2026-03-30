@@ -26,6 +26,14 @@ const statusColors: Record<string, string> = {
   no_show: 'bg-muted text-muted-foreground border-border',
 };
 
+const statusCardStyles: Record<string, string> = {
+  pending: 'bg-warning/5 border-l-4 border-l-warning',
+  confirmed: 'bg-[hsl(226,100%,97%)] border-l-4 border-l-primary',
+  cancelled: 'bg-destructive/5 border-l-4 border-l-destructive opacity-60',
+  completed: 'bg-muted/50 border-l-4 border-l-success opacity-75',
+  no_show: 'bg-muted/30 border-l-4 border-l-muted-foreground opacity-60',
+};
+
 const statusLabels: Record<string, string> = {
   pending: 'Pendente',
   confirmed: 'Confirmado',
