@@ -1187,71 +1187,11 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
                 )}
               </div>
 
-              {/* ── Rating Section ── */}
-              <div className="rounded-2xl p-5 space-y-4 text-left" style={{ background: T.card, border: `1px solid ${T.border}` }}>
-                <p className="font-semibold text-base text-center">Como foi sua experiência?</p>
-                {reviewSubmitted ? (
-                  <div className="text-center space-y-2 py-2">
-                    <div className="flex justify-center gap-1">
-                      {[1, 2, 3, 4, 5].map((s) => (
-                        <Star key={s} className="h-6 w-6" style={{ color: s <= reviewRating ? T.accent : T.border, fill: s <= reviewRating ? T.accent : 'none' }} />
-                      ))}
-                    </div>
-                    <p className="text-sm" style={{ color: T.greenText }}>✓ Obrigado pela avaliação!</p>
-                  </div>
-                ) : (
-                  <>
-                    <div className="flex justify-center gap-2">
-                      {[1, 2, 3, 4, 5].map((s) => (
-                        <button
-                          key={s}
-                          onClick={() => setReviewRating(s)}
-                          className="transition-all hover:scale-110"
-                        >
-                          <Star className="h-8 w-8" style={{ color: s <= reviewRating ? T.accent : T.border, fill: s <= reviewRating ? T.accent : 'none' }} />
-                        </button>
-                      ))}
-                    </div>
-                    {reviewRating > 0 && (
-                      <div className="space-y-3 animate-fade-in">
-                        <textarea
-                          placeholder="Deixe um comentário (opcional)"
-                          value={reviewComment}
-                          onChange={(e) => setReviewComment(e.target.value.slice(0, 500))}
-                          maxLength={500}
-                          rows={3}
-                          className="w-full rounded-xl px-4 py-3 text-sm resize-none outline-none placeholder:opacity-50"
-                          style={{ background: T.bg, border: `1px solid ${T.border}`, color: T.text }}
-                        />
-                        <Button
-                          disabled={reviewSubmitting}
-                          onClick={async () => {
-                            if (!bookingResult?.appointmentId || reviewRating < 1) return;
-                            setReviewSubmitting(true);
-                            try {
-                              const { error } = await supabase.rpc('submit_review' as any, {
-                                p_appointment_id: bookingResult.appointmentId,
-                                p_rating: reviewRating,
-                                p_comment: reviewComment.trim() || null,
-                              });
-                              if (error) throw error;
-                              setReviewSubmitted(true);
-                              toast.success('Avaliação enviada!');
-                            } catch (err: any) {
-                              toast.error(err.message || 'Erro ao enviar avaliação');
-                            } finally {
-                              setReviewSubmitting(false);
-                            }
-                          }}
-                          className="w-full rounded-xl py-5 font-semibold text-sm"
-                          style={{ background: T.accent, color: '#000' }}
-                        >
-                          {reviewSubmitting ? 'Enviando...' : 'Enviar avaliação'}
-                        </Button>
-                      </div>
-                    )}
-                  </>
-                )}
+              {/* ── Rating info ── */}
+              <div className="rounded-2xl p-4 text-center" style={{ background: T.card, border: `1px solid ${T.border}` }}>
+                <p className="text-sm" style={{ color: T.textSec }}>
+                  Após seu atendimento, você receberá um link para avaliar sua experiência ⭐
+                </p>
               </div>
 
               <div className="space-y-3 pt-2">
