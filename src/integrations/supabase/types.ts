@@ -67,6 +67,7 @@ export type Database = {
           client_whatsapp: string | null
           company_id: string
           created_at: string
+          delay_minutes: number | null
           end_time: string
           id: string
           notes: string | null
@@ -82,6 +83,7 @@ export type Database = {
           client_whatsapp?: string | null
           company_id: string
           created_at?: string
+          delay_minutes?: number | null
           end_time: string
           id?: string
           notes?: string | null
@@ -97,6 +99,7 @@ export type Database = {
           client_whatsapp?: string | null
           company_id?: string
           created_at?: string
+          delay_minutes?: number | null
           end_time?: string
           id?: string
           notes?: string | null
@@ -1141,6 +1144,10 @@ export type Database = {
       recalculate_client_return_stats: {
         Args: { _company_id: string }
         Returns: undefined
+      }
+      register_delay: {
+        Args: { p_appointment_id: string; p_delay_minutes: number }
+        Returns: Json
       }
       submit_review:
         | {
