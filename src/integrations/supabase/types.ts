@@ -1097,6 +1097,7 @@ export type Database = {
         Returns: {
           address: string
           business_type: Database["public"]["Enums"]["business_type"]
+          google_review_url: string
           id: string
           logo_url: string
           name: string
