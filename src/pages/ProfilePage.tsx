@@ -21,6 +21,8 @@ const ProfilePage = () => {
   const [uploading, setUploading] = useState(false);
   const [reviews, setReviews] = useState<any[]>([]);
   const [avgRating, setAvgRating] = useState(0);
+  const [copied, setCopied] = useState(false);
+  const [bookingLink, setBookingLink] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [form, setForm] = useState({
@@ -30,7 +32,6 @@ const ProfilePage = () => {
     bio: '',
     avatar_url: '',
     social_instagram: '',
-    social_website: '',
   });
 
   useEffect(() => {
