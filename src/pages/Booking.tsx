@@ -785,7 +785,14 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
                       )}
                       <div>
                         <p className="font-semibold text-base">{p.full_name}</p>
-                        <p className="text-xs mt-0.5" style={{ color: T.textSec }}>Profissional</p>
+                        {professionalRatings[p.id] ? (
+                          <p className="text-xs mt-0.5 flex items-center justify-center gap-1" style={{ color: T.accent }}>
+                            <Star className="h-3.5 w-3.5 fill-current" /> {professionalRatings[p.id].avg.toFixed(1)}
+                            <span style={{ color: T.textSec }}>({professionalRatings[p.id].count} avaliações)</span>
+                          </p>
+                        ) : (
+                          <p className="text-xs mt-0.5" style={{ color: T.textSec }}>Profissional</p>
+                        )}
                       </div>
                     </div>
                   </div>
