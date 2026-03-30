@@ -13,7 +13,7 @@ import { format, addDays, startOfWeek, endOfWeek, startOfMonth, endOfMonth, isSa
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
-import { sendWhatsAppMessage } from '@/lib/whatsapp';
+import { formatWhatsApp } from '@/lib/whatsapp';
 
 type ViewMode = 'day' | 'week' | 'month';
 
