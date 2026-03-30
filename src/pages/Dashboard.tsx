@@ -616,7 +616,7 @@ const Dashboard = () => {
                       {statusLabels[apt.status]}
                     </Badge>
                   </div>
-                  <div className="flex gap-1">
+                  <div className="flex gap-1 flex-wrap">
                     {apt.status === 'pending' && (
                       <Button size="sm" onClick={() => updateStatus(apt.id, 'confirmed')}>
                         Confirmar
@@ -633,6 +633,17 @@ const Dashboard = () => {
                         </Button>
                         <Button
                           size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            setDelayTargetId(apt.id);
+                            setDelayDialogOpen(true);
+                          }}
+                        >
+                          <Timer className="h-4 w-4 mr-1" />
+                          Atraso
+                        </Button>
+                        <Button
+                          size="sm"
                           variant="ghost"
                           className="text-destructive"
                           onClick={() => updateStatus(apt.id, 'cancelled')}
@@ -640,6 +651,12 @@ const Dashboard = () => {
                           Cancelar
                         </Button>
                       </>
+                    )}
+                    {apt.delay_minutes > 0 && (
+                      <Badge variant="outline" className="text-xs border-warning text-warning">
+                        <Timer className="h-3 w-3 mr-1" />
+                        +{apt.delay_minutes}min
+                      </Badge>
                     )}
                   </div>
                 </div>
