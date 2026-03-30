@@ -152,13 +152,33 @@ export function calculateAvailableSlots(params: AvailabilityParams): string[] {
 
   blocked.sort((a, b) => a.start.getTime() - b.start.getTime());
 
-  // 4. Generate slots - the slot itself occupies totalDuration + buffer
+  // 4. Calculate earliest allowed slot if date is today
+  const now = new Date();
+  const isToday = date.getFullYear() === now.getFullYear() &&
+    date.getMonth() === now.getMonth() &&
+    date.getDate() === now.getDate();
+
+  let earliestSlotTime: Date | null = null;
+  if (isToday) {
+    const nowMinutes = now.getHours() * 60 + now.getMinutes();
+    const roundedMinutes = Math.ceil(nowMinutes / slotInterval) * slotInterval;
+    earliestSlotTime = new Date(date);
+    earliestSlotTime.setHours(Math.floor(roundedMinutes / 60), roundedMinutes % 60, 0, 0);
+  }
+
+  // 5. Generate slots - the slot itself occupies totalDuration + buffer
   const effectiveDuration = totalDuration + bufferMinutes;
   const slots: string[] = [];
   let current = new Date(openTime);
 
   while (current.getTime() + effectiveDuration * 60000 <= closeTime.getTime()) {
     const slotEnd = addMinutes(current, effectiveDuration);
+
+    // Skip past slots for today
+    if (earliestSlotTime && current < earliestSlotTime) {
+      current = addMinutes(current, slotInterval);
+      continue;
+    }
 
     const hasConflict = blocked.some(
       (b) => current < b.end && slotEnd > b.start
