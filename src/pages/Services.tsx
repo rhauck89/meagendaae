@@ -76,7 +76,8 @@ const Services = () => {
           name: form.name.trim(),
           duration_minutes: form.duration_minutes,
           price: form.price,
-        });
+          recommended_return_days: form.recommended_return_days ? Number(form.recommended_return_days) : null,
+        } as any);
 
         if (error) throw error;
         toast.success('Serviço criado');
