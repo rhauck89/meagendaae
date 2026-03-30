@@ -937,7 +937,8 @@ const Dashboard = () => {
       </AlertDialog>
 
       {/* Reschedule Dialog */}
-      <Dialog open={rescheduleDialogOpen} onOpenChange={(open) => { setRescheduleDialogOpen(open); if (!open) setRescheduleTarget(null); }}>
+      <Dialog open={rescheduleDialogOpen} onOpenChange={(open) => { setRescheduleDialogOpen(open); if (!open) { setRescheduleTarget(null); setRescheduleDate(undefined); setRescheduleSlots([]); setRescheduleSelectedSlot(null); } }}>
+        {rescheduleDialogOpen && (
         <DialogContent className="sm:max-w-[720px] max-h-[90vh]">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
