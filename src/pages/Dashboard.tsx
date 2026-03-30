@@ -657,6 +657,60 @@ const Dashboard = () => {
       )}
 
       {/* Calendar Controls */}
+      {/* Próximos atendimentos */}
+      {(() => {
+        const now = new Date();
+        const todayAppts = appointments
+          .filter(a => a.status === 'confirmed' || a.status === 'completed')
+          .sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime());
+
+        const currentApt = todayAppts.find(
+          a => a.status === 'confirmed' && now >= parseISO(a.start_time) && now <= parseISO(a.end_time)
+        );
+        const futureAppts = todayAppts.filter(a => parseISO(a.start_time) > now && a.status === 'confirmed');
+        const nextApt = futureAppts[0] || null;
+        const followingAppts = futureAppts.slice(1, 3);
+
+        const upcomingItems: { apt: any; label: string; icon: string; style: string }[] = [];
+        if (currentApt) upcomingItems.push({ apt: currentApt, label: 'Em atendimento', icon: '🔵', style: 'bg-blue-50 border-l-4 border-l-blue-500' });
+        if (nextApt) upcomingItems.push({ apt: nextApt, label: 'Próximo', icon: '⏭', style: 'bg-primary/5 border-l-4 border-l-primary' });
+        followingAppts.forEach(a => upcomingItems.push({ apt: a, label: 'Depois', icon: '🕒', style: 'bg-muted/50 border-l-4 border-l-muted-foreground' }));
+
+        if (upcomingItems.length === 0) return null;
+
+        return (
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-lg font-display flex items-center gap-2">
+                <Clock className="h-5 w-5" /> Próximos atendimentos
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {upcomingItems.map(({ apt, label, icon, style }) => (
+                  <div key={apt.id} className={cn('flex items-center gap-4 p-4 rounded-xl border transition-shadow', style)}>
+                    <div className="text-center min-w-[60px]">
+                      <p className="text-lg font-display font-bold">{format(parseISO(apt.start_time), 'HH:mm')}</p>
+                      <p className="text-xs text-muted-foreground">{format(parseISO(apt.end_time), 'HH:mm')}</p>
+                    </div>
+                    <div className="flex-1">
+                      <p className="font-semibold">{apt.client_name || apt.client?.name || 'Cliente'}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {apt.appointment_services?.map((s: any) => s.service?.name).join(', ')}
+                      </p>
+                      <p className="text-xs text-muted-foreground">com {apt.professional?.full_name}</p>
+                    </div>
+                    <Badge variant="outline" className="text-xs whitespace-nowrap">
+                      {icon} {label}
+                    </Badge>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        );
+      })()}
+
       <Card>
         <CardHeader className="pb-3">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
