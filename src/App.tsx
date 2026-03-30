@@ -55,6 +55,9 @@ const App = () => (
             <Route path="/barbearia/:slug/:professionalSlug" element={<Booking routeBusinessType="barbershop" />} />
             <Route path="/estetica/:slug" element={<Booking routeBusinessType="esthetic" />} />
             <Route path="/estetica/:slug/:professionalSlug" element={<Booking routeBusinessType="esthetic" />} />
+            {/* Public profile routes */}
+            <Route path="/perfil/barbearia/:slug/:professionalSlug" element={<ProfessionalPublicProfile />} />
+            <Route path="/perfil/estetica/:slug/:professionalSlug" element={<ProfessionalPublicProfile />} />
             {/* Legacy booking route */}
             <Route path="/booking/:slug" element={<Booking />} />
             <Route path="/my-appointments" element={<MyAppointments />} />
