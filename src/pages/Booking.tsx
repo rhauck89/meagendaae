@@ -872,15 +872,67 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
                           <button
                             className="mt-3 px-4 py-2 rounded-xl text-sm font-medium flex items-center gap-1.5 transition-all hover:scale-105"
                             style={{ border: `1px solid ${T.accent}`, color: T.accent }}
-                            onClick={handleJoinWaitlist}
-                            disabled={waitlistLoading}
+                            onClick={() => setShowWaitlistForm(true)}
                           >
                             <Bell className="h-3.5 w-3.5" />
-                            {waitlistLoading ? 'Entrando...' : 'Avisar se surgir vaga'}
+                            Avisar se surgir vaga
                           </button>
                         </div>
                       </div>
                     </div>
+
+                    {showWaitlistForm && (
+                      <div className="mt-4 p-4 rounded-2xl border space-y-3" style={{ borderColor: `${T.accent}40`, background: `${T.accent}05` }}>
+                        <p className="font-semibold text-sm">Dados para lista de espera</p>
+                        <div className="space-y-2">
+                          <div>
+                            <label className="text-xs font-medium block mb-1">Nome *</label>
+                            <input
+                              className="w-full px-3 py-2 rounded-lg border text-sm"
+                              placeholder="Seu nome"
+                              value={waitlistForm.name}
+                              onChange={(e) => setWaitlistForm(f => ({ ...f, name: e.target.value }))}
+                            />
+                          </div>
+                          <div>
+                            <label className="text-xs font-medium block mb-1">WhatsApp *</label>
+                            <input
+                              className="w-full px-3 py-2 rounded-lg border text-sm"
+                              placeholder="(31) 99999-9999"
+                              value={waitlistForm.whatsapp}
+                              onChange={(e) => setWaitlistForm(f => ({ ...f, whatsapp: e.target.value }))}
+                            />
+                          </div>
+                          <div>
+                            <label className="text-xs font-medium block mb-1">Email (opcional)</label>
+                            <input
+                              type="email"
+                              className="w-full px-3 py-2 rounded-lg border text-sm"
+                              placeholder="seu@email.com"
+                              value={waitlistForm.email}
+                              onChange={(e) => setWaitlistForm(f => ({ ...f, email: e.target.value }))}
+                            />
+                          </div>
+                        </div>
+                        <div className="flex gap-2">
+                          <button
+                            className="px-4 py-2 rounded-xl text-sm font-medium"
+                            style={{ color: T.textSec }}
+                            onClick={() => setShowWaitlistForm(false)}
+                          >
+                            Cancelar
+                          </button>
+                          <button
+                            className="px-4 py-2 rounded-xl text-sm font-medium text-white"
+                            style={{ background: T.accent }}
+                            onClick={handleJoinWaitlist}
+                            disabled={waitlistLoading}
+                          >
+                            {waitlistLoading ? 'Entrando...' : 'Entrar na lista'}
+                          </button>
+                        </div>
+                      </div>
+                    )
                   </div>
                 ) : (
                   <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
