@@ -1001,6 +1001,19 @@ export type Database = {
         }
         Returns: string
       }
+      get_booking_appointments: {
+        Args: {
+          p_company_id: string
+          p_professional_id: string
+          p_selected_date: string
+          p_timezone?: string
+        }
+        Returns: {
+          end_time: string
+          start_time: string
+          status: Database["public"]["Enums"]["appointment_status"]
+        }[]
+      }
       get_company_by_slug: {
         Args: { _slug: string }
         Returns: {
