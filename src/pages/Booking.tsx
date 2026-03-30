@@ -513,14 +513,9 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
         p_professional_id: selectedProfessional || null,
       });
       if (error) throw error;
-      toast.success('Você foi adicionado à lista de espera!');
       setShowWaitlistForm(false);
+      setWaitlistSuccess(true);
       setWaitlistForm({ name: '', whatsapp: '', email: '' });
-      setStep('services');
-      setSelectedServices([]);
-      setSelectedProfessional(null);
-      setSelectedDate(undefined);
-      setSelectedTime(null);
     } catch (err: any) {
       toast.error(err.message || 'Erro ao entrar na lista de espera');
     } finally {
