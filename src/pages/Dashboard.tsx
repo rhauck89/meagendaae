@@ -361,6 +361,111 @@ const Dashboard = () => {
     }
   };
 
+  const openRescheduleDialog = (apt: any) => {
+    setRescheduleTarget(apt);
+    setRescheduleDate(undefined);
+    setRescheduleSlots([]);
+    setRescheduleSelectedSlot(null);
+    setRescheduleDialogOpen(true);
+  };
+
+  const fetchRescheduleSlots = async (date: Date) => {
+    if (!rescheduleTarget || !companyId) return;
+    setRescheduleSlotsLoading(true);
+    setRescheduleSelectedSlot(null);
+    try {
+      const dateStr = format(date, 'yyyy-MM-dd');
+      const { data: existingAppts } = await supabase.rpc('get_booking_appointments', {
+        p_company_id: companyId,
+        p_professional_id: rescheduleTarget.professional_id,
+        p_selected_date: dateStr,
+      });
+      const { data: profHours } = await supabase
+        .from('professional_working_hours')
+        .select('*')
+        .eq('professional_id', rescheduleTarget.professional_id)
+        .eq('company_id', companyId);
+      const { data: bizHours } = await supabase
+        .from('business_hours')
+        .select('*')
+        .eq('company_id', companyId);
+      const { data: blocks } = await supabase
+        .from('blocked_times')
+        .select('*')
+        .eq('professional_id', rescheduleTarget.professional_id)
+        .eq('block_date', dateStr);
+      const { data: company } = await supabase
+        .from('companies')
+        .select('buffer_minutes')
+        .eq('id', companyId)
+        .single();
+
+      const totalDuration = rescheduleTarget.appointment_services?.reduce(
+        (sum: number, s: any) => sum + (s.duration_minutes || 0), 0
+      ) || 30;
+
+      const { calculateAvailableSlots } = await import('@/lib/availability-engine');
+      const filtered = (existingAppts || []).filter(
+        (a: any) => !(a.start_time === rescheduleTarget.start_time && a.end_time === rescheduleTarget.end_time)
+      );
+      const slots = calculateAvailableSlots({
+        date,
+        totalDuration,
+        businessHours: bizHours || [],
+        exceptions: [],
+        existingAppointments: filtered,
+        bufferMinutes: company?.buffer_minutes || 0,
+        professionalHours: profHours && profHours.length > 0 ? profHours : undefined,
+        blockedTimes: blocks || [],
+      });
+      setRescheduleSlots(slots);
+    } catch (err) {
+      console.error('Failed to fetch reschedule slots:', err);
+      toast.error('Erro ao buscar horários disponíveis');
+    } finally {
+      setRescheduleSlotsLoading(false);
+    }
+  };
+
+  const confirmReschedule = async () => {
+    if (!rescheduleTarget || !rescheduleSelectedSlot || !rescheduleDate) return;
+    setRescheduleLoading(true);
+    try {
+      const totalDuration = rescheduleTarget.appointment_services?.reduce(
+        (sum: number, s: any) => sum + (s.duration_minutes || 0), 0
+      ) || 30;
+      const dateStr = format(rescheduleDate, 'yyyy-MM-dd');
+      const newStart = `${dateStr}T${rescheduleSelectedSlot}:00`;
+      const newEndDate = addMinutes(new Date(`${dateStr}T${rescheduleSelectedSlot}:00`), totalDuration);
+      const newEnd = `${dateStr}T${format(newEndDate, 'HH:mm')}:00`;
+
+      const { error } = await supabase.rpc('reschedule_appointment', {
+        p_appointment_id: rescheduleTarget.id,
+        p_new_start: newStart,
+        p_new_end: newEnd,
+      });
+      if (error) {
+        toast.error(error.message || 'Erro ao reagendar');
+        return;
+      }
+      toast.success('Agendamento reagendado com sucesso');
+      const clientWhatsapp = rescheduleTarget.client_whatsapp;
+      if (clientWhatsapp) {
+        const msg = encodeURIComponent(
+          `📋 Seu horário foi atualizado.\n\n📅 ${format(rescheduleDate, "dd 'de' MMMM, yyyy", { locale: ptBR })}\n⏰ ${rescheduleSelectedSlot}\n\nSe precisar alterar novamente, utilize o link enviado anteriormente.`
+        );
+        window.open(`https://wa.me/${formatWhatsApp(clientWhatsapp)}?text=${msg}`, '_blank');
+      }
+      fetchAppointments();
+    } catch {
+      toast.error('Erro ao reagendar');
+    } finally {
+      setRescheduleLoading(false);
+      setRescheduleDialogOpen(false);
+      setRescheduleTarget(null);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Stats */}
