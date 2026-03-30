@@ -603,6 +603,7 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
         serviceNames: bookedServiceNames, date: selectedDate, time: selectedTime,
         totalPrice, totalDuration, companyName: company.name,
         companyPhone: company.phone || companySettings?.whatsapp_number || null,
+        companyAddress: (company as any).address || null,
       });
       setStep('success');
     } catch (err: any) {
