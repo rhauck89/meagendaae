@@ -83,6 +83,13 @@ const Dashboard = () => {
   const [completeDialogOpen, setCompleteDialogOpen] = useState(false);
   const [completeTarget, setCompleteTarget] = useState<any>(null);
   const [delayLoading, setDelayLoading] = useState(false);
+  const [rescheduleTarget, setRescheduleTarget] = useState<any>(null);
+  const [rescheduleDialogOpen, setRescheduleDialogOpen] = useState(false);
+  const [rescheduleDate, setRescheduleDate] = useState<Date | undefined>(undefined);
+  const [rescheduleSlots, setRescheduleSlots] = useState<string[]>([]);
+  const [rescheduleSlotsLoading, setRescheduleSlotsLoading] = useState(false);
+  const [rescheduleSelectedSlot, setRescheduleSelectedSlot] = useState<string | null>(null);
+  const [rescheduleLoading, setRescheduleLoading] = useState(false);
 
   useEffect(() => {
     if (!companyId) return;
