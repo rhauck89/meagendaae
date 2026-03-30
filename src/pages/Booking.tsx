@@ -604,6 +604,7 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
       const professionalProfile = professionals.find((p) => p.id === selectedProfessional);
       const bookedServiceNames = selectedServices.map((sid) => services.find((s) => s.id === sid)?.name).filter(Boolean) as string[];
       setBookingResult({
+        appointmentId: appointmentId as string,
         professionalName: professionalProfile?.full_name || 'Profissional',
         professionalAvatar: professionalProfile?.avatar_url || null,
         serviceNames: bookedServiceNames, date: selectedDate, time: selectedTime,
