@@ -372,6 +372,9 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
     setSlotsLoading(true);
 
     const dateStr = format(date, 'yyyy-MM-dd');
+    const SP_OFFSET = '-03:00';
+    const dayStartSP = `${dateStr}T00:00:00${SP_OFFSET}`;
+    const dayEndSP = `${dateStr}T23:59:59${SP_OFFSET}`;
 
     const [existingApptsRes, blockedTimesRes] = await Promise.all([
       supabase
@@ -380,8 +383,8 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
         .eq('company_id', company.id)
         .eq('professional_id', selectedProfessional)
         .neq('status', 'cancelled')
-        .gte('start_time', `${dateStr}T00:00:00`)
-        .lte('start_time', `${dateStr}T23:59:59`),
+        .gte('start_time', dayStartSP)
+        .lte('start_time', dayEndSP),
       supabase
         .from('blocked_times' as any)
         .select('block_date, start_time, end_time')
