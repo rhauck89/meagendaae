@@ -272,34 +272,48 @@ const ProfilePage = () => {
             />
           </div>
 
-          {/* Social Links */}
+          {/* Social Links & Booking Link */}
           <div className="space-y-3">
             <Label className="text-base font-semibold">Redes Sociais</Label>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="instagram" className="flex items-center gap-1.5 text-sm">
-                  <Instagram className="h-4 w-4" /> Instagram
-                </Label>
-                <Input
-                  id="instagram"
-                  value={form.social_instagram}
-                  onChange={(e) => setForm({ ...form, social_instagram: e.target.value })}
-                  placeholder="@seuusuario"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="website" className="flex items-center gap-1.5 text-sm">
-                  <Globe className="h-4 w-4" /> Website
-                </Label>
-                <Input
-                  id="website"
-                  value={form.social_website}
-                  onChange={(e) => setForm({ ...form, social_website: e.target.value })}
-                  placeholder="https://seusite.com"
-                />
-              </div>
+            <div className="space-y-2">
+              <Label htmlFor="instagram" className="flex items-center gap-1.5 text-sm">
+                <Instagram className="h-4 w-4" /> Instagram
+              </Label>
+              <Input
+                id="instagram"
+                value={form.social_instagram}
+                onChange={(e) => setForm({ ...form, social_instagram: e.target.value })}
+                placeholder="@seuusuario"
+              />
             </div>
           </div>
+
+          {/* Public Booking Link */}
+          {bookingLink && (
+            <div className="space-y-2">
+              <Label className="flex items-center gap-1.5 text-base font-semibold">
+                <Link2 className="h-4 w-4" /> Link de agendamento público
+              </Label>
+              <div className="flex items-center gap-2">
+                <Input
+                  readOnly
+                  value={bookingLink}
+                  className="text-sm bg-muted/50"
+                />
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={handleCopyLink}
+                  className="shrink-0"
+                >
+                  {copied ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Compartilhe este link para clientes agendarem diretamente com você
+              </p>
+            </div>
+          )}
 
           <Button onClick={handleSave} disabled={loading} className="w-full md:w-auto">
             <Save className="h-4 w-4 mr-2" />
