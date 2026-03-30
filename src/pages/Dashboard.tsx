@@ -60,6 +60,8 @@ const Dashboard = () => {
   const [delayTargetId, setDelayTargetId] = useState<string | null>(null);
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
   const [cancelTarget, setCancelTarget] = useState<any>(null);
+  const [completeDialogOpen, setCompleteDialogOpen] = useState(false);
+  const [completeTarget, setCompleteTarget] = useState<any>(null);
   const [delayLoading, setDelayLoading] = useState(false);
 
   useEffect(() => {
