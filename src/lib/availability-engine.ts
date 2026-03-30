@@ -152,7 +152,21 @@ export function calculateAvailableSlots(params: AvailabilityParams): string[] {
 
   blocked.sort((a, b) => a.start.getTime() - b.start.getTime());
 
-  // 4. Generate slots - the slot itself occupies totalDuration + buffer
+  // 4. Calculate earliest allowed slot if date is today
+  const now = new Date();
+  const isToday = date.getFullYear() === now.getFullYear() &&
+    date.getMonth() === now.getMonth() &&
+    date.getDate() === now.getDate();
+
+  let earliestSlotTime: Date | null = null;
+  if (isToday) {
+    const nowMinutes = now.getHours() * 60 + now.getMinutes();
+    const roundedMinutes = Math.ceil(nowMinutes / slotInterval) * slotInterval;
+    earliestSlotTime = new Date(date);
+    earliestSlotTime.setHours(Math.floor(roundedMinutes / 60), roundedMinutes % 60, 0, 0);
+  }
+
+  // 5. Generate slots - the slot itself occupies totalDuration + buffer
   const effectiveDuration = totalDuration + bufferMinutes;
   const slots: string[] = [];
   let current = new Date(openTime);
