@@ -650,8 +650,8 @@ const Dashboard = () => {
                     <span className="font-display font-bold text-lg">
                       R$ {Number(apt.total_price).toFixed(2)}
                     </span>
-                    <Badge variant="outline" className={cn('text-xs', statusColors[apt.status])}>
-                      {statusLabels[apt.status]}
+                    <Badge variant="outline" className={cn('text-xs', statusColors[getDisplayStatus(apt)])}>
+                      {statusLabels[getDisplayStatus(apt)]}
                     </Badge>
                   </div>
                   <div className="flex gap-1 flex-wrap">
