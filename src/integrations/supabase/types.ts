@@ -538,6 +538,7 @@ export type Database = {
         Row: {
           avatar_url: string | null
           average_return_days: number | null
+          bio: string | null
           birth_date: string | null
           company_id: string | null
           created_at: string
@@ -548,6 +549,7 @@ export type Database = {
           last_visit_date: string | null
           opt_in_date: string | null
           opt_in_whatsapp: boolean
+          social_links: Json | null
           updated_at: string
           user_id: string
           whatsapp: string | null
@@ -555,6 +557,7 @@ export type Database = {
         Insert: {
           avatar_url?: string | null
           average_return_days?: number | null
+          bio?: string | null
           birth_date?: string | null
           company_id?: string | null
           created_at?: string
@@ -565,6 +568,7 @@ export type Database = {
           last_visit_date?: string | null
           opt_in_date?: string | null
           opt_in_whatsapp?: boolean
+          social_links?: Json | null
           updated_at?: string
           user_id: string
           whatsapp?: string | null
@@ -572,6 +576,7 @@ export type Database = {
         Update: {
           avatar_url?: string | null
           average_return_days?: number | null
+          bio?: string | null
           birth_date?: string | null
           company_id?: string | null
           created_at?: string
@@ -582,6 +587,7 @@ export type Database = {
           last_visit_date?: string | null
           opt_in_date?: string | null
           opt_in_whatsapp?: boolean
+          social_links?: Json | null
           updated_at?: string
           user_id?: string
           whatsapp?: string | null

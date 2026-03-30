@@ -669,7 +669,8 @@ const Dashboard = () => {
         </Card>
       </div>
 
-      {/* Return Frequency Indicators */}
+      {/* Return Frequency Indicators - Admin only */}
+      {isAdmin && (
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="text-lg font-display">Frequência de Retorno</CardTitle>
@@ -768,9 +769,10 @@ const Dashboard = () => {
           )}
         </CardContent>
       </Card>
+      )}
 
-      {/* Birthday Indicator */}
-      {birthdayClients.length > 0 && (
+      {/* Birthday Indicator - Admin only */}
+      {isAdmin && birthdayClients.length > 0 && (
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-lg font-display flex items-center gap-2">

@@ -10,6 +10,7 @@ import {
   LogOut,
   Menu,
   X,
+  User,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useState } from 'react';
@@ -22,13 +23,13 @@ const adminNavItems = [
   { href: '/dashboard/team', icon: Users, label: 'Equipe' },
   { href: '/dashboard/reports', icon: BarChart3, label: 'Relatórios' },
   { href: '/dashboard/settings', icon: Settings, label: 'Configurações' },
+  { href: '/dashboard/profile', icon: User, label: 'Meu Perfil' },
 ];
 
 const professionalNavItems = [
   { href: '/dashboard', icon: Calendar, label: 'Minha Agenda' },
   { href: '/dashboard/services', icon: Scissors, label: 'Meus Serviços' },
-  { href: '/dashboard/reports', icon: BarChart3, label: 'Meu Financeiro' },
-  { href: '/dashboard/settings', icon: Settings, label: 'Meus Horários' },
+  { href: '/dashboard/profile', icon: User, label: 'Meu Perfil' },
 ];
 
 const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
