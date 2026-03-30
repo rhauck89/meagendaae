@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Plus, Users, Percent, DollarSign, Settings, Copy, Link as LinkIcon, ExternalLink, Mail, KeyRound } from 'lucide-react';
+import { Plus, Users, Percent, DollarSign, Settings, Copy, Link as LinkIcon, ExternalLink, Mail, KeyRound, MessageCircle } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import ProfessionalPanel from '@/components/ProfessionalPanel';
@@ -242,9 +242,18 @@ const Team = () => {
               </DialogTitle>
             </DialogHeader>
 
-            {createdCredentials ? (
+            {createdCredentials ? (() => {
+              const loginUrl = `${window.location.origin}/auth`;
+              const fullMessage = `🔐 *Acesso ao sistema*\n\n📎 Link de login: ${loginUrl}\n📧 Email: ${createdCredentials.email}\n🔑 Senha temporária: ${createdCredentials.password}\n\n📌 Link de agendamento:\n${createdCredentials.link}\n\n⚠️ Troque sua senha após o primeiro login.`;
+              const whatsAppUrl = `https://wa.me/?text=${encodeURIComponent(fullMessage)}`;
+              return (
               <div className="space-y-4">
+                <p className="text-sm text-muted-foreground">Envie esses dados para o profissional acessar o sistema:</p>
                 <div className="rounded-lg border bg-muted/50 p-4 space-y-3">
+                  <div>
+                    <p className="text-xs text-muted-foreground">Link de login</p>
+                    <p className="font-mono text-xs break-all">{loginUrl}</p>
+                  </div>
                   <div>
                     <p className="text-xs text-muted-foreground">Email de acesso</p>
                     <p className="font-mono text-sm">{createdCredentials.email}</p>
@@ -258,25 +267,29 @@ const Team = () => {
                     <p className="font-mono text-xs break-all">{createdCredentials.link}</p>
                   </div>
                 </div>
+                <p className="text-xs text-muted-foreground">O profissional pode alterar a senha após o primeiro login.</p>
                 <div className="flex gap-2">
                   <Button
                     variant="outline"
                     className="flex-1"
                     onClick={() =>
-                      copyToClipboard(
-                        `Email: ${createdCredentials.email}\nSenha: ${createdCredentials.password}\nLink: ${createdCredentials.link}`,
-                        'Dados de acesso'
-                      )
+                      copyToClipboard(fullMessage, 'Dados de acesso')
                     }
                   >
-                    <Copy className="mr-2 h-4 w-4" /> Copiar tudo
+                    <Copy className="mr-2 h-4 w-4" /> Copiar acesso
                   </Button>
-                  <Button className="flex-1" onClick={() => { setDialogOpen(false); resetForm(); }}>
-                    Fechar
+                  <Button className="flex-1 bg-green-600 hover:bg-green-700 text-white" asChild>
+                    <a href={whatsAppUrl} target="_blank" rel="noopener noreferrer">
+                      <MessageCircle className="mr-2 h-4 w-4" /> Enviar via WhatsApp
+                    </a>
                   </Button>
                 </div>
+                <Button variant="ghost" className="w-full" onClick={() => { setDialogOpen(false); resetForm(); }}>
+                  Fechar
+                </Button>
               </div>
-            ) : (
+              );
+            })() : (
               <div className="space-y-4">
                 <div className="space-y-2">
                   <Label>Nome</Label>
@@ -456,12 +469,20 @@ const Team = () => {
           <DialogHeader>
             <DialogTitle>Credenciais de Acesso</DialogTitle>
           </DialogHeader>
-          {inviteCredentials && (
+          {inviteCredentials && (() => {
+            const loginUrl = `${window.location.origin}/auth`;
+            const fullMessage = `🔐 *Acesso ao sistema*\n\n📎 Link de login: ${loginUrl}\n📧 Email: ${inviteCredentials.email}\n🔑 Senha temporária: ${inviteCredentials.password}\n\n⚠️ Troque sua senha após o primeiro login.`;
+            const whatsAppUrl = `https://wa.me/?text=${encodeURIComponent(fullMessage)}`;
+            return (
             <div className="space-y-4">
               <p className="text-sm text-muted-foreground">
                 Envie esses dados para o profissional acessar o sistema:
               </p>
               <div className="rounded-lg border bg-muted/50 p-4 space-y-3">
+                <div>
+                  <p className="text-xs text-muted-foreground">Link de login</p>
+                  <p className="font-mono text-xs break-all">{loginUrl}</p>
+                </div>
                 <div>
                   <p className="text-xs text-muted-foreground">Email</p>
                   <p className="font-mono text-sm">{inviteCredentials.email}</p>
@@ -478,21 +499,22 @@ const Team = () => {
                 <Button
                   variant="outline"
                   className="flex-1"
-                  onClick={() =>
-                    copyToClipboard(
-                      `Email: ${inviteCredentials.email}\nSenha: ${inviteCredentials.password}`,
-                      'Credenciais'
-                    )
-                  }
+                  onClick={() => copyToClipboard(fullMessage, 'Credenciais')}
                 >
-                  <Copy className="mr-2 h-4 w-4" /> Copiar
+                  <Copy className="mr-2 h-4 w-4" /> Copiar acesso
                 </Button>
-                <Button className="flex-1" onClick={() => setInviteDialogOpen(false)}>
-                  Fechar
+                <Button className="flex-1 bg-green-600 hover:bg-green-700 text-white" asChild>
+                  <a href={whatsAppUrl} target="_blank" rel="noopener noreferrer">
+                    <MessageCircle className="mr-2 h-4 w-4" /> Enviar via WhatsApp
+                  </a>
                 </Button>
               </div>
+              <Button variant="ghost" className="w-full" onClick={() => setInviteDialogOpen(false)}>
+                Fechar
+              </Button>
             </div>
-          )}
+            );
+          })()}
         </DialogContent>
       </Dialog>
 
