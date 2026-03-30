@@ -925,6 +925,76 @@ const Dashboard = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Reschedule Dialog */}
+      <Dialog open={rescheduleDialogOpen} onOpenChange={(open) => { setRescheduleDialogOpen(open); if (!open) setRescheduleTarget(null); }}>
+        <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <RefreshCw className="h-5 w-5" /> Reagendar
+            </DialogTitle>
+            <DialogDescription>
+              {rescheduleTarget && (
+                <span className="block space-y-1 mt-1">
+                  <span className="block"><strong>Cliente:</strong> {rescheduleTarget.client_name || 'Cliente'}</span>
+                  <span className="block"><strong>Serviço:</strong> {rescheduleTarget.appointment_services?.map((s: any) => s.service?.name).join(', ')}</span>
+                  <span className="block"><strong>Horário atual:</strong> {format(parseISO(rescheduleTarget.start_time), 'dd/MM/yyyy HH:mm')} - {format(parseISO(rescheduleTarget.end_time), 'HH:mm')}</span>
+                </span>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 pt-2">
+            <div>
+              <p className="text-sm font-medium mb-2">Selecione a nova data</p>
+              <Calendar
+                mode="single"
+                selected={rescheduleDate}
+                onSelect={(date) => {
+                  if (date) {
+                    setRescheduleDate(date);
+                    fetchRescheduleSlots(date);
+                  }
+                }}
+                disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
+                className="rounded-md border pointer-events-auto"
+                locale={ptBR}
+              />
+            </div>
+            {rescheduleDate && (
+              <div>
+                <p className="text-sm font-medium mb-2">Horários disponíveis</p>
+                {rescheduleSlotsLoading ? (
+                  <p className="text-sm text-muted-foreground">Carregando...</p>
+                ) : rescheduleSlots.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">Nenhum horário disponível nesta data</p>
+                ) : (
+                  <div className="grid grid-cols-4 gap-2 max-h-48 overflow-y-auto">
+                    {rescheduleSlots.map((slot) => (
+                      <Button
+                        key={slot}
+                        size="sm"
+                        variant={rescheduleSelectedSlot === slot ? 'default' : 'outline'}
+                        onClick={() => setRescheduleSelectedSlot(slot)}
+                      >
+                        {slot}
+                      </Button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+            {rescheduleSelectedSlot && (
+              <Button
+                className="w-full"
+                disabled={rescheduleLoading}
+                onClick={confirmReschedule}
+              >
+                {rescheduleLoading ? 'Reagendando...' : `Confirmar reagendamento às ${rescheduleSelectedSlot}`}
+              </Button>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
