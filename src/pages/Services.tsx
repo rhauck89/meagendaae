@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Switch } from '@/components/ui/switch';
-import { Plus, Pencil, Trash2, Clock, DollarSign } from 'lucide-react';
+import { Plus, Pencil, Trash2, Clock, DollarSign, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 
 const Services = () => {
@@ -16,7 +16,7 @@ const Services = () => {
   const queryClient = useQueryClient();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<any | null>(null);
-  const [form, setForm] = useState({ name: '', duration_minutes: 30, price: 0 });
+  const [form, setForm] = useState({ name: '', duration_minutes: 30, price: 0, recommended_return_days: '' as string | number });
 
   const servicesQueryKey = ['services', companyId];
 
@@ -48,7 +48,7 @@ const Services = () => {
 
   const resetForm = () => {
     setEditing(null);
-    setForm({ name: '', duration_minutes: 30, price: 0 });
+    setForm({ name: '', duration_minutes: 30, price: 0, recommended_return_days: '' });
   };
 
   const handleSave = async () => {
@@ -63,7 +63,8 @@ const Services = () => {
             name: form.name.trim(),
             duration_minutes: form.duration_minutes,
             price: form.price,
-          })
+            recommended_return_days: form.recommended_return_days ? Number(form.recommended_return_days) : null,
+          } as any)
           .eq('id', editing.id)
           .eq('company_id', companyId);
 
@@ -75,7 +76,8 @@ const Services = () => {
           name: form.name.trim(),
           duration_minutes: form.duration_minutes,
           price: form.price,
-        });
+          recommended_return_days: form.recommended_return_days ? Number(form.recommended_return_days) : null,
+        } as any);
 
         if (error) throw error;
         toast.success('Serviço criado');
@@ -126,6 +128,7 @@ const Services = () => {
       name: service.name,
       duration_minutes: service.duration_minutes,
       price: Number(service.price),
+      recommended_return_days: service.recommended_return_days || '',
     });
     setDialogOpen(true);
   };
@@ -181,6 +184,16 @@ const Services = () => {
                   />
                 </div>
               </div>
+              <div className="space-y-2">
+                <Label>Retorno recomendado (dias)</Label>
+                <Input
+                  type="number"
+                  value={form.recommended_return_days}
+                  onChange={(e) => setForm({ ...form, recommended_return_days: e.target.value })}
+                  placeholder="Ex: 25"
+                />
+                <p className="text-xs text-muted-foreground">Dias até o próximo retorno do cliente</p>
+              </div>
               <Button onClick={handleSave} className="w-full">
                 {editing ? 'Salvar' : 'Criar'}
               </Button>
@@ -197,13 +210,18 @@ const Services = () => {
                 <h3 className="text-lg font-semibold">{service.name}</h3>
                 <Switch checked={service.active} onCheckedChange={() => toggleActive(service.id, service.active)} />
               </div>
-              <div className="mb-4 flex gap-4 text-sm text-muted-foreground">
+              <div className="mb-4 flex flex-wrap gap-4 text-sm text-muted-foreground">
                 <span className="flex items-center gap-1">
                   <Clock className="h-4 w-4" /> {service.duration_minutes} min
                 </span>
                 <span className="flex items-center gap-1">
                   <DollarSign className="h-4 w-4" /> R$ {Number(service.price).toFixed(2)}
                 </span>
+                {(service as any).recommended_return_days && (
+                  <span className="flex items-center gap-1">
+                    <RefreshCw className="h-4 w-4" /> Retorno: {(service as any).recommended_return_days} dias
+                  </span>
+                )}
               </div>
               <div className="flex gap-2">
                 <Button variant="outline" size="sm" onClick={() => openEdit(service)}>

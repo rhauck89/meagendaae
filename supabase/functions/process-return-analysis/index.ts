@@ -19,7 +19,7 @@ Deno.serve(async (req) => {
     // Get all active companies
     const { data: companies, error: compErr } = await supabase
       .from("companies")
-      .select("id")
+      .select("id, slug, business_type")
       .in("subscription_status", ["active", "trial"]);
 
     if (compErr) throw compErr;
@@ -72,6 +72,10 @@ Deno.serve(async (req) => {
           .filter(Boolean)
           .join(", ") || "";
 
+        const siteUrl = Deno.env.get("SITE_URL") || `${supabaseUrl.replace('.supabase.co', '.lovable.app')}`;
+        const prefix = company.business_type === 'esthetic' ? 'estetica' : 'barbearia';
+        const bookingUrl = company.slug ? `${siteUrl}/${prefix}/${company.slug}` : '';
+
         const payload = {
           event: "client_return_due",
           company_id: company.id,
@@ -87,6 +91,8 @@ Deno.serve(async (req) => {
           appointment_id: lastApt?.id || null,
           appointment_date: lastApt?.start_time?.split("T")[0] || "",
           appointment_time: lastApt?.start_time?.split("T")[1]?.substring(0, 5) || "",
+          booking_url: bookingUrl,
+          whatsapp_message: `Olá ${client.full_name || 'Cliente'}! 👋\n\nEstá na hora do seu retorno.\n\n📅 Agende aqui: ${bookingUrl}\n\nEsperamos você!`,
         };
 
         // Log webhook event
