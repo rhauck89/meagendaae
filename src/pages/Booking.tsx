@@ -114,6 +114,7 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
   const [nextSlotsLoading, setNextSlotsLoading] = useState(false);
   const slotRequestRef = useRef(0);
   const [bookingResult, setBookingResult] = useState<{
+    appointmentId: string;
     professionalName: string;
     professionalAvatar: string | null;
     serviceNames: string[];
