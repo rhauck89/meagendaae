@@ -262,21 +262,38 @@ const Dashboard = () => {
 
   const fetchWaitlistCount = async () => {
     if (!companyId) return;
-    const { count } = await supabase
+    // Count from waiting_list
+    const { count: wlCount } = await supabase
       .from('waiting_list')
       .select('*', { count: 'exact', head: true })
       .eq('company_id', companyId)
       .eq('status', 'waiting');
-    setWaitlistCount(count || 0);
+    // Count from waitlist
+    const { count: wCount } = await supabase
+      .from('waitlist')
+      .select('*', { count: 'exact', head: true })
+      .eq('company_id', companyId)
+      .eq('notified', false);
+    setWaitlistCount((wlCount || 0) + (wCount || 0));
 
-    // Fetch client names for tooltip
-    const { data } = await supabase
+    // Fetch client names for tooltip from both tables
+    const { data: wlData } = await supabase
       .from('waiting_list')
       .select('client:profiles!waiting_list_client_id_fkey(full_name)')
       .eq('company_id', companyId)
       .eq('status', 'waiting')
       .limit(10);
-    setWaitlistClients(data?.map((d: any) => d.client?.full_name).filter(Boolean) || []);
+    const { data: wData } = await supabase
+      .from('waitlist')
+      .select('client_name')
+      .eq('company_id', companyId)
+      .eq('notified', false)
+      .limit(10);
+    const names = [
+      ...(wlData?.map((d: any) => d.client?.full_name).filter(Boolean) || []),
+      ...(wData?.map((d: any) => d.client_name).filter(Boolean) || []),
+    ];
+    setWaitlistClients(names.slice(0, 10));
   };
 
   const fetchReminderCount = async () => {
