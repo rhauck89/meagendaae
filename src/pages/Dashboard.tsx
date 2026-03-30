@@ -936,7 +936,7 @@ const Dashboard = () => {
 
       {/* Reschedule Dialog */}
       <Dialog open={rescheduleDialogOpen} onOpenChange={(open) => { setRescheduleDialogOpen(open); if (!open) setRescheduleTarget(null); }}>
-        <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-[720px] max-h-[90vh]">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <RefreshCw className="h-5 w-5" /> Reagendar
@@ -951,7 +951,8 @@ const Dashboard = () => {
               )}
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4 pt-2">
+          <div className="grid grid-cols-1 sm:grid-cols-[320px_1fr] gap-6 pt-2">
+            {/* Left: Calendar */}
             <div className="overflow-hidden">
               <p className="text-sm font-medium mb-2">Selecione a nova data</p>
               <Calendar
@@ -964,42 +965,43 @@ const Dashboard = () => {
                   }
                 }}
                 disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
-                className="rounded-md border pointer-events-auto mx-auto"
+                className="rounded-md border pointer-events-auto"
                 locale={ptBR}
               />
             </div>
-            {rescheduleDate && (
-              <div>
-                <p className="text-sm font-medium mb-2">Horários disponíveis</p>
-                {rescheduleSlotsLoading ? (
-                  <p className="text-sm text-muted-foreground">Carregando...</p>
-                ) : rescheduleSlots.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">Nenhum horário disponível nesta data</p>
-                ) : (
-                  <div className="grid grid-cols-4 gap-2 max-h-48 overflow-y-auto">
-                    {rescheduleSlots.map((slot) => (
-                      <Button
-                        key={slot}
-                        size="sm"
-                        variant={rescheduleSelectedSlot === slot ? 'default' : 'outline'}
-                        onClick={() => setRescheduleSelectedSlot(slot)}
-                      >
-                        {slot}
-                      </Button>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-            {rescheduleSelectedSlot && (
-              <Button
-                className="w-full"
-                disabled={rescheduleLoading}
-                onClick={confirmReschedule}
-              >
-                {rescheduleLoading ? 'Reagendando...' : `Confirmar reagendamento às ${rescheduleSelectedSlot}`}
-              </Button>
-            )}
+            {/* Right: Slots */}
+            <div className="flex flex-col">
+              <p className="text-sm font-medium mb-2">Horários disponíveis</p>
+              {!rescheduleDate ? (
+                <p className="text-sm text-muted-foreground">Selecione uma data para ver os horários</p>
+              ) : rescheduleSlotsLoading ? (
+                <p className="text-sm text-muted-foreground">Carregando...</p>
+              ) : rescheduleSlots.length === 0 ? (
+                <p className="text-sm text-muted-foreground">Nenhum horário disponível nesta data</p>
+              ) : (
+                <div className="grid grid-cols-3 gap-2 max-h-[280px] overflow-y-auto">
+                  {rescheduleSlots.map((slot) => (
+                    <Button
+                      key={slot}
+                      size="sm"
+                      variant={rescheduleSelectedSlot === slot ? 'default' : 'outline'}
+                      onClick={() => setRescheduleSelectedSlot(slot)}
+                    >
+                      {slot}
+                    </Button>
+                  ))}
+                </div>
+              )}
+              {rescheduleSelectedSlot && (
+                <Button
+                  className="w-full mt-4"
+                  disabled={rescheduleLoading}
+                  onClick={confirmReschedule}
+                >
+                  {rescheduleLoading ? 'Reagendando...' : `Confirmar às ${rescheduleSelectedSlot}`}
+                </Button>
+              )}
+            </div>
           </div>
         </DialogContent>
       </Dialog>
