@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Calendar } from '@/components/ui/calendar';
-import { Scissors, Sparkles, Clock, DollarSign, ChevronRight, ChevronLeft, CheckCircle2, Bell, Zap } from 'lucide-react';
+import { Scissors, Sparkles, Clock, DollarSign, ChevronRight, ChevronLeft, CheckCircle2, Bell, Zap, CalendarPlus, MessageCircle, RotateCcw, Home } from 'lucide-react';
 import { format, addMinutes, addDays, isToday, isTomorrow, startOfDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
@@ -16,7 +16,7 @@ import { cn } from '@/lib/utils';
 import { formatWhatsApp, displayWhatsApp, isValidWhatsApp } from '@/lib/whatsapp';
 import { calculateAvailableSlots, type BusinessHours, type BusinessException, type ExistingAppointment, type BlockedTime } from '@/lib/availability-engine';
 
-type Step = 'services' | 'professional' | 'datetime' | 'client' | 'confirm';
+type Step = 'services' | 'professional' | 'datetime' | 'client' | 'confirm' | 'success';
 type BusinessType = 'barbershop' | 'esthetic';
 
 interface BookingPageProps {
@@ -94,6 +94,17 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
   const [nextSlots, setNextSlots] = useState<{ date: Date; slots: string[] }[]>([]);
   const [nextSlotsLoading, setNextSlotsLoading] = useState(false);
   const slotRequestRef = useRef(0);
+  const [bookingResult, setBookingResult] = useState<{
+    professionalName: string;
+    professionalAvatar: string | null;
+    serviceNames: string[];
+    date: Date;
+    time: string;
+    totalPrice: number;
+    totalDuration: number;
+    companyName: string;
+    companyPhone: string | null;
+  } | null>(null);
 
   const isDark = businessType === 'barbershop';
   const bookingTimezone = companySettings?.timezone || DEFAULT_BOOKING_TIMEZONE;
@@ -811,12 +822,21 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
         // webhook failures are non-critical
       }
 
-      toast.success('Agendamento realizado com sucesso!');
-      setStep('services');
-      setSelectedServices([]);
-      setSelectedProfessional(null);
-      setSelectedDate(undefined);
-      setSelectedTime(null);
+      const professionalProfile = professionals.find((p) => p.id === selectedProfessional);
+      const bookedServiceNames = selectedServices.map((sid) => services.find((s) => s.id === sid)?.name).filter(Boolean) as string[];
+
+      setBookingResult({
+        professionalName: professionalProfile?.full_name || 'Profissional',
+        professionalAvatar: professionalProfile?.avatar_url || null,
+        serviceNames: bookedServiceNames,
+        date: selectedDate,
+        time: selectedTime,
+        totalPrice,
+        totalDuration,
+        companyName: company.name,
+        companyPhone: company.phone || companySettings?.whatsapp_number || null,
+      });
+      setStep('success');
     } catch (err: any) {
       toast.error(err.message || 'Erro ao agendar');
     } finally {
@@ -1322,6 +1342,147 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
             </Button>
           </div>
         )}
+
+        {/* Step: Success */}
+        {step === 'success' && bookingResult && (() => {
+          const startTime = new Date(bookingResult.date);
+          const [h, m] = bookingResult.time.split(':').map(Number);
+          startTime.setHours(h, m, 0, 0);
+          const endTime = addMinutes(startTime, bookingResult.totalDuration);
+
+          const generateCalendarUrl = () => {
+            const fmt = (d: Date) => d.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
+            const title = encodeURIComponent(`${bookingResult.serviceNames.join(', ')} - ${bookingResult.companyName}`);
+            const details = encodeURIComponent(`Profissional: ${bookingResult.professionalName}\nValor: R$ ${bookingResult.totalPrice.toFixed(2)}`);
+            return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${fmt(startTime)}/${fmt(endTime)}&details=${details}`;
+          };
+
+          const generateWhatsAppUrl = () => {
+            const phone = bookingResult.companyPhone?.replace(/\D/g, '') || '';
+            const dateStr = format(bookingResult.date, "dd/MM/yyyy");
+            const msg = encodeURIComponent(
+              `Olá! Confirmando meu agendamento:\n📅 ${dateStr} às ${bookingResult.time}\n✂️ ${bookingResult.serviceNames.join(', ')}\n👤 ${bookingResult.professionalName}\n💰 R$ ${bookingResult.totalPrice.toFixed(2)}`
+            );
+            return `https://wa.me/${phone.startsWith('55') ? phone : '55' + phone}?text=${msg}`;
+          };
+
+          const handleBookAnother = () => {
+            setBookingResult(null);
+            setStep('services');
+            setSelectedServices([]);
+            setSelectedProfessional(null);
+            setSelectedDate(undefined);
+            setSelectedTime(null);
+          };
+
+          return (
+            <div className="space-y-6 text-center">
+              {/* Success icon */}
+              <div className="flex justify-center pt-4">
+                <div className={cn('w-20 h-20 rounded-full flex items-center justify-center', isDark ? 'bg-green-500/20' : 'bg-green-100')}>
+                  <CheckCircle2 className={cn('h-10 w-10', isDark ? 'text-green-400' : 'text-green-600')} />
+                </div>
+              </div>
+
+              <div>
+                <h2 className="text-2xl font-bold">Agendamento Confirmado!</h2>
+                <p className={cn('text-sm mt-1', textMuted)}>Seu horário foi reservado com sucesso</p>
+              </div>
+
+              {/* Booking details card */}
+              <div className={cn('rounded-xl border p-5 space-y-4 text-left', bgCard)}>
+                {/* Professional */}
+                <div className="flex items-center gap-3">
+                  {bookingResult.professionalAvatar ? (
+                    <img src={bookingResult.professionalAvatar} alt={bookingResult.professionalName} className="w-12 h-12 rounded-full object-cover" />
+                  ) : (
+                    <div className={cn('w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg', accentBg, accentText)}>
+                      {bookingResult.professionalName.charAt(0).toUpperCase()}
+                    </div>
+                  )}
+                  <div>
+                    <p className={cn('text-xs', textMuted)}>Profissional</p>
+                    <p className="font-semibold">{bookingResult.professionalName}</p>
+                  </div>
+                </div>
+
+                <div className={cn('border-t', isDark ? 'border-[#2a2a4a]' : 'border-[#e8ddd4]')} />
+
+                {/* Services */}
+                <div>
+                  <p className={cn('text-xs', textMuted)}>Serviços</p>
+                  <div className="flex flex-wrap gap-2 mt-1">
+                    {bookingResult.serviceNames.map((name) => (
+                      <Badge key={name} className={cn(accentBg, accentText, 'border-0')}>{name}</Badge>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Date & Time */}
+                <div className="flex gap-6">
+                  <div>
+                    <p className={cn('text-xs', textMuted)}>Data</p>
+                    <p className="font-semibold">{format(bookingResult.date, "dd 'de' MMMM, yyyy", { locale: ptBR })}</p>
+                  </div>
+                  <div>
+                    <p className={cn('text-xs', textMuted)}>Horário</p>
+                    <p className="font-semibold">{bookingResult.time} - {format(endTime, 'HH:mm')}</p>
+                  </div>
+                </div>
+
+                {/* Location */}
+                <div>
+                  <p className={cn('text-xs', textMuted)}>Local</p>
+                  <p className="font-semibold">{bookingResult.companyName}</p>
+                </div>
+
+                {/* Total */}
+                <div className={cn('pt-3 border-t', isDark ? 'border-[#2a2a4a]' : 'border-[#e8ddd4]')}>
+                  <div className="flex justify-between text-lg font-bold">
+                    <span>Total</span>
+                    <span className={accentText}>R$ {bookingResult.totalPrice.toFixed(2)}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Action buttons */}
+              <div className="grid grid-cols-2 gap-3">
+                <Button
+                  variant="outline"
+                  className={cn(bgCard)}
+                  onClick={() => window.open(generateCalendarUrl(), '_blank')}
+                >
+                  <CalendarPlus className="h-4 w-4 mr-2" /> Adicionar ao calendário
+                </Button>
+                {bookingResult.companyPhone && (
+                  <Button
+                    variant="outline"
+                    className={cn(bgCard)}
+                    onClick={() => window.open(generateWhatsAppUrl(), '_blank')}
+                  >
+                    <MessageCircle className="h-4 w-4 mr-2" /> WhatsApp
+                  </Button>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <Button
+                  onClick={handleBookAnother}
+                  className={cn('w-full', isDark ? 'bg-amber-500 hover:bg-amber-600 text-black' : 'bg-rose-400 hover:bg-rose-500 text-white')}
+                >
+                  <RotateCcw className="h-4 w-4 mr-2" /> Agendar outro serviço
+                </Button>
+                <Button
+                  variant="ghost"
+                  className={cn('w-full', textMuted)}
+                  onClick={() => window.location.href = '/'}
+                >
+                  <Home className="h-4 w-4 mr-2" /> Voltar ao início
+                </Button>
+              </div>
+            </div>
+          );
+        })()}
       </div>
     </div>
   );
