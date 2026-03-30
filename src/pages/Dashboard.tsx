@@ -111,6 +111,13 @@ const Dashboard = () => {
   useEffect(() => {
     if (!companyId) return;
     fetchCollaborators();
+    // Fetch company slug for booking links
+    supabase.from('companies').select('slug, business_type').eq('id', companyId).single().then(({ data }) => {
+      if (data) {
+        setCompanySlug(data.slug);
+        setCompanyBusinessType(data.business_type);
+      }
+    });
   }, [companyId]);
 
   useEffect(() => {
