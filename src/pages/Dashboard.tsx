@@ -55,6 +55,9 @@ const Dashboard = () => {
   const [filterProfessional, setFilterProfessional] = useState<string>('all');
   const [blockedTimes, setBlockedTimes] = useState<any[]>([]);
   const [collaboratorsList, setCollaboratorsList] = useState<any[]>([]);
+  const [delayDialogOpen, setDelayDialogOpen] = useState(false);
+  const [delayTargetId, setDelayTargetId] = useState<string | null>(null);
+  const [delayLoading, setDelayLoading] = useState(false);
 
   useEffect(() => {
     if (!companyId) return;
