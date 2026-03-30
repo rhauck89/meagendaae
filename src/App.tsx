@@ -15,6 +15,8 @@ import Automations from "./pages/Automations";
 import Booking from "./pages/Booking";
 import MyAppointments from "./pages/MyAppointments";
 import ReviewPage from "./pages/ReviewPage";
+import CancelAppointment from "./pages/CancelAppointment";
+import RescheduleAppointment from "./pages/RescheduleAppointment";
 import Admin from "./pages/Admin";
 import DebugAgenda from "./pages/DebugAgenda";
 import DashboardLayout from "./components/DashboardLayout";
