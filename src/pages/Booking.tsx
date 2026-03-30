@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Calendar } from '@/components/ui/calendar';
-import { Scissors, Sparkles, Clock, DollarSign, ChevronRight, ChevronLeft, CheckCircle2, Bell, Zap, CalendarPlus, MessageCircle, RotateCcw, Home, User, Phone, Mail, CreditCard, Cake, MapPin } from 'lucide-react';
+import { Scissors, Sparkles, Clock, DollarSign, ChevronRight, ChevronLeft, CheckCircle2, Bell, Zap, CalendarPlus, MessageCircle, RotateCcw, Home, User, Phone, Mail, CreditCard, Cake, MapPin, Star } from 'lucide-react';
 import { format, addMinutes, addDays, isToday, isTomorrow, startOfDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
@@ -88,6 +88,11 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
   const [bufferMinutes, setBufferMinutes] = useState(0);
   const [professionalHours, setProfessionalHours] = useState<BusinessHours[]>([]);
   const [companySettings, setCompanySettings] = useState<any>(null);
+  const [professionalRatings, setProfessionalRatings] = useState<Record<string, { avg: number; count: number }>>({});
+  const [reviewRating, setReviewRating] = useState(0);
+  const [reviewComment, setReviewComment] = useState('');
+  const [reviewSubmitted, setReviewSubmitted] = useState(false);
+  const [reviewSubmitting, setReviewSubmitting] = useState(false);
 
   const [step, setStep] = useState<Step>('services');
   const [selectedServices, setSelectedServices] = useState<string[]>([]);
@@ -109,6 +114,7 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
   const [nextSlotsLoading, setNextSlotsLoading] = useState(false);
   const slotRequestRef = useRef(0);
   const [bookingResult, setBookingResult] = useState<{
+    appointmentId: string;
     professionalName: string;
     professionalAvatar: string | null;
     serviceNames: string[];
@@ -183,6 +189,16 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
       if ((settingsRes.data as any).booking_buffer_minutes > 0) {
         setBufferMinutes((settingsRes.data as any).booking_buffer_minutes);
       }
+    }
+
+    // Fetch professional ratings
+    const { data: ratingsData } = await supabase.rpc('get_professional_ratings' as any, { p_company_id: comp.id });
+    if (ratingsData && Array.isArray(ratingsData)) {
+      const ratingsMap: Record<string, { avg: number; count: number }> = {};
+      for (const r of ratingsData as any[]) {
+        ratingsMap[r.professional_id] = { avg: Number(r.avg_rating), count: Number(r.review_count) };
+      }
+      setProfessionalRatings(ratingsMap);
     }
 
     if (professionalSlug) {
@@ -598,6 +614,7 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
       const professionalProfile = professionals.find((p) => p.id === selectedProfessional);
       const bookedServiceNames = selectedServices.map((sid) => services.find((s) => s.id === sid)?.name).filter(Boolean) as string[];
       setBookingResult({
+        appointmentId: appointmentId as string,
         professionalName: professionalProfile?.full_name || 'Profissional',
         professionalAvatar: professionalProfile?.avatar_url || null,
         serviceNames: bookedServiceNames, date: selectedDate, time: selectedTime,
@@ -768,7 +785,14 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
                       )}
                       <div>
                         <p className="font-semibold text-base">{p.full_name}</p>
-                        <p className="text-xs mt-0.5" style={{ color: T.textSec }}>Profissional</p>
+                        {professionalRatings[p.id] ? (
+                          <p className="text-xs mt-0.5 flex items-center justify-center gap-1" style={{ color: T.accent }}>
+                            <Star className="h-3.5 w-3.5 fill-current" /> {professionalRatings[p.id].avg.toFixed(1)}
+                            <span style={{ color: T.textSec }}>({professionalRatings[p.id].count} avaliações)</span>
+                          </p>
+                        ) : (
+                          <p className="text-xs mt-0.5" style={{ color: T.textSec }}>Profissional</p>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -1164,6 +1188,73 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
                   <button onClick={() => window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(bookingResult.companyAddress!)}`, '_blank')} className="flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-medium transition-all hover:scale-105 col-span-2" style={{ background: T.card, border: `1px solid ${T.border}`, color: T.text }}>
                     <MapPin className="h-4 w-4" style={{ color: T.accent }} /> 📍 Abrir localização
                   </button>
+                )}
+              </div>
+
+              {/* ── Rating Section ── */}
+              <div className="rounded-2xl p-5 space-y-4 text-left" style={{ background: T.card, border: `1px solid ${T.border}` }}>
+                <p className="font-semibold text-base text-center">Como foi sua experiência?</p>
+                {reviewSubmitted ? (
+                  <div className="text-center space-y-2 py-2">
+                    <div className="flex justify-center gap-1">
+                      {[1, 2, 3, 4, 5].map((s) => (
+                        <Star key={s} className="h-6 w-6" style={{ color: s <= reviewRating ? T.accent : T.border, fill: s <= reviewRating ? T.accent : 'none' }} />
+                      ))}
+                    </div>
+                    <p className="text-sm" style={{ color: T.greenText }}>✓ Obrigado pela avaliação!</p>
+                  </div>
+                ) : (
+                  <>
+                    <div className="flex justify-center gap-2">
+                      {[1, 2, 3, 4, 5].map((s) => (
+                        <button
+                          key={s}
+                          onClick={() => setReviewRating(s)}
+                          className="transition-all hover:scale-110"
+                        >
+                          <Star className="h-8 w-8" style={{ color: s <= reviewRating ? T.accent : T.border, fill: s <= reviewRating ? T.accent : 'none' }} />
+                        </button>
+                      ))}
+                    </div>
+                    {reviewRating > 0 && (
+                      <div className="space-y-3 animate-fade-in">
+                        <textarea
+                          placeholder="Deixe um comentário (opcional)"
+                          value={reviewComment}
+                          onChange={(e) => setReviewComment(e.target.value.slice(0, 500))}
+                          maxLength={500}
+                          rows={3}
+                          className="w-full rounded-xl px-4 py-3 text-sm resize-none outline-none placeholder:opacity-50"
+                          style={{ background: T.bg, border: `1px solid ${T.border}`, color: T.text }}
+                        />
+                        <Button
+                          disabled={reviewSubmitting}
+                          onClick={async () => {
+                            if (!bookingResult?.appointmentId || reviewRating < 1) return;
+                            setReviewSubmitting(true);
+                            try {
+                              const { error } = await supabase.rpc('submit_review' as any, {
+                                p_appointment_id: bookingResult.appointmentId,
+                                p_rating: reviewRating,
+                                p_comment: reviewComment.trim() || null,
+                              });
+                              if (error) throw error;
+                              setReviewSubmitted(true);
+                              toast.success('Avaliação enviada!');
+                            } catch (err: any) {
+                              toast.error(err.message || 'Erro ao enviar avaliação');
+                            } finally {
+                              setReviewSubmitting(false);
+                            }
+                          }}
+                          className="w-full rounded-xl py-5 font-semibold text-sm"
+                          style={{ background: T.accent, color: '#000' }}
+                        >
+                          {reviewSubmitting ? 'Enviando...' : 'Enviar avaliação'}
+                        </Button>
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
 
