@@ -101,7 +101,7 @@ const Waitlist = () => {
 
   const handleBook = (entry: any) => {
     // Navigate to dashboard with pre-filled info — staff can book from there
-    toast.info(`Redirecione para agendar ${entry.client?.full_name || 'Cliente'}`);
+    toast.info(`Redirecione para agendar ${entry.client_name}`);
     // For now navigate to dashboard; a future enhancement could open a booking modal
     navigate('/dashboard');
   };
