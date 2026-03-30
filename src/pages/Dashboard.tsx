@@ -16,6 +16,8 @@ import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { formatWhatsApp } from '@/lib/whatsapp';
+import { useNavigate as useRouterNavigate } from 'react-router-dom';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
 type ViewMode = 'day' | 'week' | 'month';
 
@@ -90,6 +92,8 @@ const Dashboard = () => {
   const [rescheduleSlotsLoading, setRescheduleSlotsLoading] = useState(false);
   const [rescheduleSelectedSlot, setRescheduleSelectedSlot] = useState<string | null>(null);
   const [rescheduleLoading, setRescheduleLoading] = useState(false);
+  const routerNavigate = useRouterNavigate();
+  const [waitlistClients, setWaitlistClients] = useState<string[]>([]);
 
   // Cleanup orphan Radix portal elements when reschedule modal closes
   useEffect(() => {
@@ -264,6 +268,15 @@ const Dashboard = () => {
       .eq('company_id', companyId)
       .eq('status', 'waiting');
     setWaitlistCount(count || 0);
+
+    // Fetch client names for tooltip
+    const { data } = await supabase
+      .from('waiting_list')
+      .select('client:profiles!waiting_list_client_id_fkey(full_name)')
+      .eq('company_id', companyId)
+      .eq('status', 'waiting')
+      .limit(10);
+    setWaitlistClients(data?.map((d: any) => d.client?.full_name).filter(Boolean) || []);
   };
 
   const fetchReminderCount = async () => {
@@ -537,17 +550,38 @@ const Dashboard = () => {
             </div>
           </CardContent>
         </Card>
-        <Card>
-          <CardContent className="p-4 flex items-center gap-4">
-            <div className="w-12 h-12 rounded-xl bg-warning/10 flex items-center justify-center">
-              <Bell className="h-6 w-6 text-warning" />
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Aguardando vaga</p>
-              <p className="text-2xl font-display font-bold">{waitlistCount}</p>
-            </div>
-          </CardContent>
-        </Card>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Card
+              className="cursor-pointer hover:shadow-md transition-shadow"
+              onClick={() => routerNavigate('/dashboard/waitlist')}
+            >
+              <CardContent className="p-4 flex items-center gap-4">
+                <div className="w-12 h-12 rounded-xl bg-warning/10 flex items-center justify-center">
+                  <Bell className="h-6 w-6 text-warning" />
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Aguardando vaga</p>
+                  <p className="text-2xl font-display font-bold">{waitlistCount}</p>
+                </div>
+              </CardContent>
+            </Card>
+          </TooltipTrigger>
+          <TooltipContent side="bottom" className="max-w-[200px]">
+            {waitlistClients.length > 0 ? (
+              <div className="space-y-1">
+                {waitlistClients.map((name, i) => (
+                  <p key={i} className="text-sm">{name}</p>
+                ))}
+                {waitlistCount > waitlistClients.length && (
+                  <p className="text-xs text-muted-foreground">+{waitlistCount - waitlistClients.length} mais</p>
+                )}
+              </div>
+            ) : (
+              <p className="text-sm">Nenhum cliente na fila</p>
+            )}
+          </TooltipContent>
+        </Tooltip>
         <Card>
           <CardContent className="p-4 flex items-center gap-4">
             <div className="w-12 h-12 rounded-xl bg-secondary/10 flex items-center justify-center">

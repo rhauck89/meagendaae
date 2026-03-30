@@ -19,6 +19,7 @@ import CancelAppointment from "./pages/CancelAppointment";
 import RescheduleAppointment from "./pages/RescheduleAppointment";
 import Admin from "./pages/Admin";
 import DebugAgenda from "./pages/DebugAgenda";
+import Waitlist from "./pages/Waitlist";
 import DashboardLayout from "./components/DashboardLayout";
 import NotFound from "./pages/NotFound";
 
@@ -66,6 +67,7 @@ const App = () => (
             <Route path="/dashboard/settings" element={<DashboardRoute><SettingsPage /></DashboardRoute>} />
             <Route path="/dashboard/reports" element={<DashboardRoute><Reports /></DashboardRoute>} />
             <Route path="/dashboard/automations" element={<DashboardRoute><Automations /></DashboardRoute>} />
+            <Route path="/dashboard/waitlist" element={<DashboardRoute><Waitlist /></DashboardRoute>} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AuthProvider>
