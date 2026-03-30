@@ -290,6 +290,44 @@ const Dashboard = () => {
     fetchWaitlistCount();
   };
 
+  const registerDelay = async (minutes: number) => {
+    if (!delayTargetId) return;
+    setDelayLoading(true);
+    try {
+      const { data, error } = await supabase.rpc('register_delay', {
+        p_appointment_id: delayTargetId,
+        p_delay_minutes: minutes,
+      });
+
+      if (error) {
+        toast.error(error.message || 'Erro ao registrar atraso');
+        return;
+      }
+
+      toast.success(`Atraso de ${minutes} min registrado com sucesso`);
+
+      // Send WhatsApp notifications to affected clients
+      const affected = (data as any[]) || [];
+      for (const a of affected) {
+        if (a.client_whatsapp) {
+          const msg = encodeURIComponent(
+            `⚠️ Aviso de atraso\n\nOlá ${a.client_name || 'Cliente'}! 👋\n\nHouve um pequeno atraso no atendimento anterior.\n\nSeu horário foi ajustado para:\n🕐 ${a.new_start} - ${a.new_end}\n\nObrigado pela compreensão!`
+          );
+          const phone = formatWhatsApp(a.client_whatsapp);
+          window.open(`https://wa.me/${phone}?text=${msg}`, '_blank');
+        }
+      }
+
+      fetchAppointments();
+    } catch (err) {
+      toast.error('Erro ao registrar atraso');
+    } finally {
+      setDelayLoading(false);
+      setDelayDialogOpen(false);
+      setDelayTargetId(null);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Stats */}
