@@ -160,6 +160,13 @@ const Team = () => {
     return `${window.location.origin}/${businessPrefix}/${company.slug}/${slug}`;
   };
 
+  const getCollaboratorProfileLink = (collaborator: any) => {
+    if (!company) return '';
+    const businessPrefix = company.business_type === 'esthetic' ? 'estetica' : 'barbearia';
+    const slug = collaborator.slug || generateSlug(collaborator.profile?.full_name || '');
+    return `${window.location.origin}/perfil/${businessPrefix}/${company.slug}/${slug}`;
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
