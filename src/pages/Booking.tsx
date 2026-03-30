@@ -23,22 +23,21 @@ interface BookingPageProps {
   routeBusinessType?: BusinessType;
 }
 
-const SAO_PAULO_TIMEZONE = 'America/Sao_Paulo';
-
-const timePartsFormatter = new Intl.DateTimeFormat('en-GB', {
-  timeZone: SAO_PAULO_TIMEZONE,
-  hour: '2-digit',
-  minute: '2-digit',
-  hour12: false,
-});
+const DEFAULT_BOOKING_TIMEZONE = 'America/Sao_Paulo';
 
 const timeStringToMinutes = (value: string) => {
   const [hours, minutes] = value.split(':').map(Number);
   return hours * 60 + minutes;
 };
 
-const getAppointmentMinutesInSaoPaulo = (value: string) => {
-  const parts = timePartsFormatter.formatToParts(new Date(value));
+const getAppointmentMinutesInTimezone = (value: string, timezone: string) => {
+  const parts = new Intl.DateTimeFormat('en-GB', {
+    timeZone: timezone,
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  }).formatToParts(new Date(value));
+
   const hours = Number(parts.find((part) => part.type === 'hour')?.value ?? '0');
   const minutes = Number(parts.find((part) => part.type === 'minute')?.value ?? '0');
   return hours * 60 + minutes;
@@ -49,14 +48,15 @@ const filterOverlappingSlots = (
   appointments: ExistingAppointment[],
   serviceDuration: number,
   bufferMinutes: number,
+  timezone: string,
 ) => {
   return slots.filter((slot) => {
     const slotStart = timeStringToMinutes(slot);
     const slotEnd = slotStart + serviceDuration;
 
     return !appointments.some((appointment) => {
-      const appointmentStart = getAppointmentMinutesInSaoPaulo(appointment.start_time);
-      const appointmentEndWithBuffer = getAppointmentMinutesInSaoPaulo(appointment.end_time) + bufferMinutes;
+      const appointmentStart = getAppointmentMinutesInTimezone(appointment.start_time, timezone);
+      const appointmentEndWithBuffer = getAppointmentMinutesInTimezone(appointment.end_time, timezone) + bufferMinutes;
 
       return appointmentStart < slotEnd && appointmentEndWithBuffer > slotStart;
     });
@@ -96,6 +96,7 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
   const slotRequestRef = useRef(0);
 
   const isDark = businessType === 'barbershop';
+  const bookingTimezone = companySettings?.timezone || DEFAULT_BOOKING_TIMEZONE;
 
   // Load saved client from localStorage
   useEffect(() => {
@@ -387,6 +388,36 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
     );
   };
 
+  const fetchBookingAppointments = async (date: Date, professionalId: string) => {
+    if (!company) return [] as ExistingAppointment[];
+
+    const dateStr = format(date, 'yyyy-MM-dd');
+    const { data, error } = await (supabase as any).rpc('get_booking_appointments', {
+      p_company_id: company.id,
+      p_professional_id: professionalId,
+      p_selected_date: dateStr,
+      p_timezone: bookingTimezone,
+    });
+
+    if (error) {
+      throw error;
+    }
+
+    const appointments = ((data as ExistingAppointment[] | null) || []).map((appointment) => ({
+      start_time: appointment.start_time,
+      end_time: appointment.end_time,
+    }));
+
+    console.log('[Booking] Appointments used for slot filtering', {
+      date: dateStr,
+      professional: professionalId,
+      timezone: bookingTimezone,
+      appointments,
+    });
+
+    return appointments;
+  };
+
   const calculateSlots = async (date: Date) => {
     if (!company) return;
     if (!selectedProfessional) {
@@ -420,103 +451,93 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
     setGeneratedSlots([]);
 
     const dateStr = format(date, 'yyyy-MM-dd');
-    const SP_OFFSET = '-03:00';
-    const dayStartSP = `${dateStr}T00:00:00${SP_OFFSET}`;
-    const dayEndSP = `${dateStr}T23:59:59${SP_OFFSET}`;
-
-    const [existingApptsRes, blockedTimesRes] = await Promise.all([
-      supabase
-        .from('appointments')
-        .select('start_time, end_time')
-        .eq('company_id', company.id)
-        .eq('professional_id', selectedProfessional)
-        .neq('status', 'cancelled')
-        .gte('start_time', dayStartSP)
-        .lte('start_time', dayEndSP),
-      supabase
+    try {
+      const existingAppointments = await fetchBookingAppointments(date, selectedProfessional);
+      const { data: blockedTimesData } = await supabase
         .from('blocked_times' as any)
         .select('block_date, start_time, end_time')
         .eq('company_id', company.id)
         .eq('professional_id', selectedProfessional)
-        .eq('block_date', dateStr),
-    ]);
+        .eq('block_date', dateStr);
 
-    console.log('[Booking] calculateSlots input', {
-      date: dateStr,
-      professional: selectedProfessional,
-      totalDuration,
-      selectedServices,
-      businessHoursCount: businessHours.length,
-      professionalHoursCount: professionalHours.length,
-      businessHoursDays: businessHours.map(h => ({ day: h.day_of_week, open: h.open_time, close: h.close_time, closed: h.is_closed })),
-      professionalHoursDays: professionalHours.map(h => ({ day: h.day_of_week, open: h.open_time, close: h.close_time, closed: h.is_closed })),
-      existingAppts: existingApptsRes.data?.length ?? 0,
-      blockedTimes: blockedTimesRes.data?.length ?? 0,
-      bufferMinutes,
-    });
+      console.log('[Booking] calculateSlots input', {
+        date: dateStr,
+        professional: selectedProfessional,
+        totalDuration,
+        selectedServices,
+        timezone: bookingTimezone,
+        businessHoursCount: businessHours.length,
+        professionalHoursCount: professionalHours.length,
+        businessHoursDays: businessHours.map(h => ({ day: h.day_of_week, open: h.open_time, close: h.close_time, closed: h.is_closed })),
+        professionalHoursDays: professionalHours.map(h => ({ day: h.day_of_week, open: h.open_time, close: h.close_time, closed: h.is_closed })),
+        existingAppts: existingAppointments.length,
+        blockedTimes: blockedTimesData?.length ?? 0,
+        bufferMinutes,
+      });
 
-    const existingAppointments = (existingApptsRes.data || []) as ExistingAppointment[];
+      if (requestId !== slotRequestRef.current) {
+        return;
+      }
 
-    console.log('[Booking] Appointments used for slot filtering', {
-      date: dateStr,
-      professional: selectedProfessional,
-      appointments: existingAppointments,
-    });
+      setAppointmentsForSelectedDate(existingAppointments);
+      setAppointmentsLoaded(true);
 
-    if (requestId !== slotRequestRef.current) {
-      return;
+      const engineSlots = calculateAvailableSlots({
+        date,
+        totalDuration,
+        businessHours,
+        exceptions,
+        existingAppointments,
+        slotInterval: 15,
+        bufferMinutes,
+        professionalHours: professionalHours.length > 0 ? professionalHours : undefined,
+        blockedTimes: ((blockedTimesData || []) as unknown as BlockedTime[]),
+        professionalId: selectedProfessional,
+      });
+
+      console.log('Generated slots:', engineSlots);
+
+      if (requestId !== slotRequestRef.current) {
+        return;
+      }
+
+      setGeneratedSlots(engineSlots);
+
+      let filteredSlots = filterOverlappingSlots(engineSlots, existingAppointments, totalDuration, bufferMinutes, bookingTimezone);
+
+      console.log('[Booking] Filtered overlapping slots', {
+        before: engineSlots.length,
+        after: filteredSlots.length,
+        existingAppointments: existingAppointments.length,
+        bufferMinutes,
+        totalDuration,
+      });
+
+      if (isToday(date)) {
+        const currentTime = format(new Date(), 'HH:mm');
+        const beforeFilter = filteredSlots.length;
+        filteredSlots = filteredSlots.filter(s => s > currentTime);
+        console.log('[Booking] Filtered past slots for today', { before: beforeFilter, after: filteredSlots.length, currentTime });
+      }
+
+      console.log('[Booking] calculateSlots result', { slotsFound: filteredSlots.length, firstSlots: filteredSlots.slice(0, 5) });
+
+      if (requestId !== slotRequestRef.current) {
+        return;
+      }
+
+      setAvailableSlots(filteredSlots);
+    } catch (error) {
+      console.error('[Booking] Failed to load appointments for slot calculation', error);
+      setAppointmentsLoaded(true);
+      setAppointmentsForSelectedDate([]);
+      setAvailableSlots([]);
+      setGeneratedSlots([]);
+    } finally {
+      if (requestId === slotRequestRef.current) {
+        setSlotsLoading(false);
+      }
     }
-
-    setAppointmentsForSelectedDate(existingAppointments);
-    setAppointmentsLoaded(true);
-
-    const engineSlots = calculateAvailableSlots({
-      date,
-      totalDuration,
-      businessHours,
-      exceptions,
-      existingAppointments,
-      slotInterval: 15,
-      bufferMinutes,
-      professionalHours: professionalHours.length > 0 ? professionalHours : undefined,
-      blockedTimes: ((blockedTimesRes.data || []) as unknown as BlockedTime[]),
-      professionalId: selectedProfessional,
-    });
-
-    console.log('Generated slots:', engineSlots);
-
-    if (requestId !== slotRequestRef.current) {
-      return;
-    }
-
-    setGeneratedSlots(engineSlots);
-
-    let filteredSlots = filterOverlappingSlots(engineSlots, existingAppointments, totalDuration, bufferMinutes);
-
-    console.log('[Booking] Filtered overlapping slots', {
-      before: engineSlots.length,
-      after: filteredSlots.length,
-      existingAppointments: existingAppointments.length,
-      bufferMinutes,
-      totalDuration,
-    });
-
-    // Filter past times for today
-    if (isToday(date)) {
-      const currentTime = format(new Date(), 'HH:mm');
-      const beforeFilter = filteredSlots.length;
-      filteredSlots = filteredSlots.filter(s => s > currentTime);
-      console.log('[Booking] Filtered past slots for today', { before: beforeFilter, after: filteredSlots.length, currentTime });
-    }
-
-    console.log('[Booking] calculateSlots result', { slotsFound: filteredSlots.length, firstSlots: filteredSlots.slice(0, 5) });
-
-    if (requestId !== slotRequestRef.current) {
-      return;
-    }
-
-    setAvailableSlots(filteredSlots);
-    setSlotsLoading(false);
   };
 
   useEffect(() => {
@@ -573,28 +594,13 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
     for (let i = 0; i < MAX_DAYS && totalSlotsFound < MAX_SLOTS; i++) {
       const day = addDays(startOfDay(new Date()), i);
       const dateStr = format(day, 'yyyy-MM-dd');
-
-      const spStart = `${dateStr}T00:00:00-03:00`;
-      const spEnd = `${dateStr}T23:59:59-03:00`;
-
-      const [apptsRes, blockedRes] = await Promise.all([
-        supabase
-          .from('appointments')
-          .select('start_time, end_time')
-          .eq('company_id', company.id)
-          .eq('professional_id', selectedProfessional)
-          .neq('status', 'cancelled')
-          .gte('start_time', spStart)
-          .lte('start_time', spEnd),
-        supabase
-          .from('blocked_times' as any)
-          .select('block_date, start_time, end_time')
-          .eq('company_id', company.id)
-          .eq('professional_id', selectedProfessional)
-          .eq('block_date', dateStr),
-      ]);
-
-      const existingAppointments = (apptsRes.data || []) as ExistingAppointment[];
+      const existingAppointments = await fetchBookingAppointments(day, selectedProfessional);
+      const { data: blockedData } = await supabase
+        .from('blocked_times' as any)
+        .select('block_date, start_time, end_time')
+        .eq('company_id', company.id)
+        .eq('professional_id', selectedProfessional)
+        .eq('block_date', dateStr);
 
       let slots = calculateAvailableSlots({
         date: day,
@@ -605,11 +611,11 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
         slotInterval: 15,
         bufferMinutes,
         professionalHours: professionalHours.length > 0 ? professionalHours : undefined,
-        blockedTimes: ((blockedRes.data || []) as unknown as BlockedTime[]),
+        blockedTimes: ((blockedData || []) as unknown as BlockedTime[]),
         professionalId: selectedProfessional,
       });
 
-      slots = filterOverlappingSlots(slots, existingAppointments, totalDuration, bufferMinutes);
+      slots = filterOverlappingSlots(slots, existingAppointments, totalDuration, bufferMinutes, bookingTimezone);
 
       // Filter past times for today
       if (isToday(day)) {
