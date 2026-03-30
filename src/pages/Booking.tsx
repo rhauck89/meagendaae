@@ -988,9 +988,13 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
                   )}
                 >
                   <div className="flex items-center gap-3">
-                    <div className={cn('w-10 h-10 rounded-full flex items-center justify-center font-bold', accentBg, accentText)}>
-                      {p.full_name?.charAt(0)?.toUpperCase()}
-                    </div>
+                    {p.avatar_url ? (
+                      <img src={p.avatar_url} alt={p.full_name} className="w-10 h-10 rounded-full object-cover" />
+                    ) : (
+                      <div className={cn('w-10 h-10 rounded-full flex items-center justify-center font-bold', accentBg, accentText)}>
+                        {p.full_name?.charAt(0)?.toUpperCase()}
+                      </div>
+                    )}
                     <p className="font-semibold">{p.full_name}</p>
                   </div>
                 </div>
