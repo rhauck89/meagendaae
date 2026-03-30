@@ -63,7 +63,8 @@ const Services = () => {
             name: form.name.trim(),
             duration_minutes: form.duration_minutes,
             price: form.price,
-          })
+            recommended_return_days: form.recommended_return_days ? Number(form.recommended_return_days) : null,
+          } as any)
           .eq('id', editing.id)
           .eq('company_id', companyId);
 
