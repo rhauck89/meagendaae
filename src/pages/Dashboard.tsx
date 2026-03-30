@@ -556,7 +556,7 @@ const Dashboard = () => {
                       </p>
                     </div>
                     <div className="flex-1">
-                      <p className="font-semibold">{apt.client?.full_name}</p>
+                      <p className="font-semibold">{apt.client_name || apt.client?.name || 'Cliente'}</p>
                       <p className="text-sm text-muted-foreground">
                         {apt.appointment_services?.map((s: any) => s.service?.name).join(', ')}
                       </p>
