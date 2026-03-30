@@ -111,14 +111,7 @@ export type Database = {
             foreignKeyName: "appointments_client_id_fkey"
             columns: ["client_id"]
             isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "appointments_client_id_fkey"
-            columns: ["client_id"]
-            isOneToOne: false
-            referencedRelation: "public_professionals"
+            referencedRelation: "clients"
             referencedColumns: ["id"]
           },
           {
@@ -970,19 +963,30 @@ export type Database = {
       }
     }
     Functions: {
-      create_appointment: {
-        Args: {
-          p_client_id: string
-          p_client_name: string
-          p_client_whatsapp: string
-          p_end_time: string
-          p_notes: string
-          p_professional_id: string
-          p_start_time: string
-          p_total_price: number
-        }
-        Returns: string
-      }
+      create_appointment:
+        | {
+            Args: {
+              p_client_id: string
+              p_end_time: string
+              p_professional_id: string
+              p_start_time: string
+              p_total_price: number
+            }
+            Returns: string
+          }
+        | {
+            Args: {
+              p_client_id: string
+              p_client_name: string
+              p_client_whatsapp: string
+              p_end_time: string
+              p_notes: string
+              p_professional_id: string
+              p_start_time: string
+              p_total_price: number
+            }
+            Returns: string
+          }
       create_appointment_services: {
         Args: { p_appointment_id: string; p_services: Json }
         Returns: undefined
