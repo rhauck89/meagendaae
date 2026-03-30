@@ -932,7 +932,7 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
                           </button>
                         </div>
                       </div>
-                    )
+                    )}
                   </div>
                 ) : (
                   <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
