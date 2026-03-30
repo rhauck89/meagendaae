@@ -184,6 +184,16 @@ const Services = () => {
                   />
                 </div>
               </div>
+              <div className="space-y-2">
+                <Label>Retorno recomendado (dias)</Label>
+                <Input
+                  type="number"
+                  value={form.recommended_return_days}
+                  onChange={(e) => setForm({ ...form, recommended_return_days: e.target.value })}
+                  placeholder="Ex: 25"
+                />
+                <p className="text-xs text-muted-foreground">Dias até o próximo retorno do cliente</p>
+              </div>
               <Button onClick={handleSave} className="w-full">
                 {editing ? 'Salvar' : 'Criar'}
               </Button>
