@@ -58,6 +58,26 @@ const ProfilePage = () => {
     if (profileId) fetchReviews();
   }, [profileId]);
 
+  const fetchBookingLink = async () => {
+    const [companyRes, collabRes] = await Promise.all([
+      supabase.from('companies').select('slug, business_type').eq('id', companyId!).single(),
+      supabase.from('collaborators').select('slug').eq('profile_id', profileId!).eq('company_id', companyId!).single(),
+    ]);
+    if (companyRes.data && collabRes.data?.slug) {
+      const prefix = companyRes.data.business_type === 'esthetic' ? 'estetica' : 'barbearia';
+      const origin = window.location.origin;
+      setBookingLink(`${origin}/${prefix}/${companyRes.data.slug}/${collabRes.data.slug}`);
+    }
+  };
+
+  const handleCopyLink = async () => {
+    if (!bookingLink) return;
+    await navigator.clipboard.writeText(bookingLink);
+    setCopied(true);
+    toast.success('Link copiado!');
+    setTimeout(() => setCopied(false), 2000);
+  };
+
   const fetchReviews = async () => {
     const { data } = await supabase
       .from('reviews')
