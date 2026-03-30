@@ -8,9 +8,10 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { Calendar, ChevronLeft, ChevronRight, Clock, DollarSign, Users, UserCheck, UserMinus, AlertTriangle, Bell, Mail, Cake, Ban, Trash2, Timer } from 'lucide-react';
+import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Clock, DollarSign, Users, UserCheck, UserMinus, AlertTriangle, Bell, Mail, Cake, Ban, Trash2, Timer, RefreshCw } from 'lucide-react';
 import { BlockTimeDialog } from '@/components/BlockTimeDialog';
-import { format, addDays, startOfWeek, endOfWeek, startOfMonth, endOfMonth, isSameDay, parseISO, differenceInDays } from 'date-fns';
+import { Calendar } from '@/components/ui/calendar';
+import { format, addDays, addMinutes, startOfWeek, endOfWeek, startOfMonth, endOfMonth, isSameDay, parseISO, differenceInDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -82,6 +83,13 @@ const Dashboard = () => {
   const [completeDialogOpen, setCompleteDialogOpen] = useState(false);
   const [completeTarget, setCompleteTarget] = useState<any>(null);
   const [delayLoading, setDelayLoading] = useState(false);
+  const [rescheduleTarget, setRescheduleTarget] = useState<any>(null);
+  const [rescheduleDialogOpen, setRescheduleDialogOpen] = useState(false);
+  const [rescheduleDate, setRescheduleDate] = useState<Date | undefined>(undefined);
+  const [rescheduleSlots, setRescheduleSlots] = useState<string[]>([]);
+  const [rescheduleSlotsLoading, setRescheduleSlotsLoading] = useState(false);
+  const [rescheduleSelectedSlot, setRescheduleSelectedSlot] = useState<string | null>(null);
+  const [rescheduleLoading, setRescheduleLoading] = useState(false);
 
   useEffect(() => {
     if (!companyId) return;
@@ -350,6 +358,111 @@ const Dashboard = () => {
       setDelayLoading(false);
       setDelayDialogOpen(false);
       setDelayTargetId(null);
+    }
+  };
+
+  const openRescheduleDialog = (apt: any) => {
+    setRescheduleTarget(apt);
+    setRescheduleDate(undefined);
+    setRescheduleSlots([]);
+    setRescheduleSelectedSlot(null);
+    setRescheduleDialogOpen(true);
+  };
+
+  const fetchRescheduleSlots = async (date: Date) => {
+    if (!rescheduleTarget || !companyId) return;
+    setRescheduleSlotsLoading(true);
+    setRescheduleSelectedSlot(null);
+    try {
+      const dateStr = format(date, 'yyyy-MM-dd');
+      const { data: existingAppts } = await supabase.rpc('get_booking_appointments', {
+        p_company_id: companyId,
+        p_professional_id: rescheduleTarget.professional_id,
+        p_selected_date: dateStr,
+      });
+      const { data: profHours } = await supabase
+        .from('professional_working_hours')
+        .select('*')
+        .eq('professional_id', rescheduleTarget.professional_id)
+        .eq('company_id', companyId);
+      const { data: bizHours } = await supabase
+        .from('business_hours')
+        .select('*')
+        .eq('company_id', companyId);
+      const { data: blocks } = await supabase
+        .from('blocked_times')
+        .select('*')
+        .eq('professional_id', rescheduleTarget.professional_id)
+        .eq('block_date', dateStr);
+      const { data: company } = await supabase
+        .from('companies')
+        .select('buffer_minutes')
+        .eq('id', companyId)
+        .single();
+
+      const totalDuration = rescheduleTarget.appointment_services?.reduce(
+        (sum: number, s: any) => sum + (s.duration_minutes || 0), 0
+      ) || 30;
+
+      const { calculateAvailableSlots } = await import('@/lib/availability-engine');
+      const filtered = (existingAppts || []).filter(
+        (a: any) => !(a.start_time === rescheduleTarget.start_time && a.end_time === rescheduleTarget.end_time)
+      );
+      const slots = calculateAvailableSlots({
+        date,
+        totalDuration,
+        businessHours: bizHours || [],
+        exceptions: [],
+        existingAppointments: filtered,
+        bufferMinutes: company?.buffer_minutes || 0,
+        professionalHours: profHours && profHours.length > 0 ? profHours : undefined,
+        blockedTimes: blocks || [],
+      });
+      setRescheduleSlots(slots);
+    } catch (err) {
+      console.error('Failed to fetch reschedule slots:', err);
+      toast.error('Erro ao buscar horários disponíveis');
+    } finally {
+      setRescheduleSlotsLoading(false);
+    }
+  };
+
+  const confirmReschedule = async () => {
+    if (!rescheduleTarget || !rescheduleSelectedSlot || !rescheduleDate) return;
+    setRescheduleLoading(true);
+    try {
+      const totalDuration = rescheduleTarget.appointment_services?.reduce(
+        (sum: number, s: any) => sum + (s.duration_minutes || 0), 0
+      ) || 30;
+      const dateStr = format(rescheduleDate, 'yyyy-MM-dd');
+      const newStart = `${dateStr}T${rescheduleSelectedSlot}:00`;
+      const newEndDate = addMinutes(new Date(`${dateStr}T${rescheduleSelectedSlot}:00`), totalDuration);
+      const newEnd = `${dateStr}T${format(newEndDate, 'HH:mm')}:00`;
+
+      const { error } = await supabase.rpc('reschedule_appointment', {
+        p_appointment_id: rescheduleTarget.id,
+        p_new_start: newStart,
+        p_new_end: newEnd,
+      });
+      if (error) {
+        toast.error(error.message || 'Erro ao reagendar');
+        return;
+      }
+      toast.success('Agendamento reagendado com sucesso');
+      const clientWhatsapp = rescheduleTarget.client_whatsapp;
+      if (clientWhatsapp) {
+        const msg = encodeURIComponent(
+          `📋 Seu horário foi atualizado.\n\n📅 ${format(rescheduleDate, "dd 'de' MMMM, yyyy", { locale: ptBR })}\n⏰ ${rescheduleSelectedSlot}\n\nSe precisar alterar novamente, utilize o link enviado anteriormente.`
+        );
+        window.open(`https://wa.me/${formatWhatsApp(clientWhatsapp)}?text=${msg}`, '_blank');
+      }
+      fetchAppointments();
+    } catch {
+      toast.error('Erro ao reagendar');
+    } finally {
+      setRescheduleLoading(false);
+      setRescheduleDialogOpen(false);
+      setRescheduleTarget(null);
     }
   };
 
@@ -685,6 +798,14 @@ const Dashboard = () => {
                         </Button>
                         <Button
                           size="sm"
+                          variant="outline"
+                          onClick={() => openRescheduleDialog(apt)}
+                        >
+                          <RefreshCw className="h-4 w-4 mr-1" />
+                          Reagendar
+                        </Button>
+                        <Button
+                          size="sm"
                           variant="ghost"
                           className="text-destructive"
                           onClick={() => {
@@ -804,6 +925,76 @@ const Dashboard = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Reschedule Dialog */}
+      <Dialog open={rescheduleDialogOpen} onOpenChange={(open) => { setRescheduleDialogOpen(open); if (!open) setRescheduleTarget(null); }}>
+        <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <RefreshCw className="h-5 w-5" /> Reagendar
+            </DialogTitle>
+            <DialogDescription>
+              {rescheduleTarget && (
+                <span className="block space-y-1 mt-1">
+                  <span className="block"><strong>Cliente:</strong> {rescheduleTarget.client_name || 'Cliente'}</span>
+                  <span className="block"><strong>Serviço:</strong> {rescheduleTarget.appointment_services?.map((s: any) => s.service?.name).join(', ')}</span>
+                  <span className="block"><strong>Horário atual:</strong> {format(parseISO(rescheduleTarget.start_time), 'dd/MM/yyyy HH:mm')} - {format(parseISO(rescheduleTarget.end_time), 'HH:mm')}</span>
+                </span>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 pt-2">
+            <div>
+              <p className="text-sm font-medium mb-2">Selecione a nova data</p>
+              <Calendar
+                mode="single"
+                selected={rescheduleDate}
+                onSelect={(date) => {
+                  if (date) {
+                    setRescheduleDate(date);
+                    fetchRescheduleSlots(date);
+                  }
+                }}
+                disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
+                className="rounded-md border pointer-events-auto"
+                locale={ptBR}
+              />
+            </div>
+            {rescheduleDate && (
+              <div>
+                <p className="text-sm font-medium mb-2">Horários disponíveis</p>
+                {rescheduleSlotsLoading ? (
+                  <p className="text-sm text-muted-foreground">Carregando...</p>
+                ) : rescheduleSlots.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">Nenhum horário disponível nesta data</p>
+                ) : (
+                  <div className="grid grid-cols-4 gap-2 max-h-48 overflow-y-auto">
+                    {rescheduleSlots.map((slot) => (
+                      <Button
+                        key={slot}
+                        size="sm"
+                        variant={rescheduleSelectedSlot === slot ? 'default' : 'outline'}
+                        onClick={() => setRescheduleSelectedSlot(slot)}
+                      >
+                        {slot}
+                      </Button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+            {rescheduleSelectedSlot && (
+              <Button
+                className="w-full"
+                disabled={rescheduleLoading}
+                onClick={confirmReschedule}
+              >
+                {rescheduleLoading ? 'Reagendando...' : `Confirmar reagendamento às ${rescheduleSelectedSlot}`}
+              </Button>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
