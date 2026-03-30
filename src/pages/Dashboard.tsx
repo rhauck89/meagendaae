@@ -355,9 +355,22 @@ const Dashboard = () => {
               <DollarSign className="h-6 w-6 text-success" />
             </div>
             <div>
-              <p className="text-sm text-muted-foreground">Receita hoje</p>
+              <p className="text-sm text-muted-foreground">Receita estimada</p>
               <p className="text-2xl font-display font-bold">
                 R$ {stats.revenue.toFixed(2)}
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4 flex items-center gap-4">
+            <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
+              <DollarSign className="h-6 w-6 text-primary" />
+            </div>
+            <div>
+              <p className="text-sm text-muted-foreground">Receita realizada</p>
+              <p className="text-2xl font-display font-bold">
+                R$ {stats.revenueCompleted.toFixed(2)}
               </p>
             </div>
           </CardContent>
