@@ -6,12 +6,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Calendar, ChevronLeft, ChevronRight, Clock, DollarSign, Users, UserCheck, UserMinus, AlertTriangle, Bell, Mail, Cake, Ban, Trash2 } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { Calendar, ChevronLeft, ChevronRight, Clock, DollarSign, Users, UserCheck, UserMinus, AlertTriangle, Bell, Mail, Cake, Ban, Trash2, Timer } from 'lucide-react';
 import { BlockTimeDialog } from '@/components/BlockTimeDialog';
 import { format, addDays, startOfWeek, endOfWeek, startOfMonth, endOfMonth, isSameDay, parseISO, differenceInDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import { formatWhatsApp } from '@/lib/whatsapp';
 
 type ViewMode = 'day' | 'week' | 'month';
 
@@ -53,6 +55,9 @@ const Dashboard = () => {
   const [filterProfessional, setFilterProfessional] = useState<string>('all');
   const [blockedTimes, setBlockedTimes] = useState<any[]>([]);
   const [collaboratorsList, setCollaboratorsList] = useState<any[]>([]);
+  const [delayDialogOpen, setDelayDialogOpen] = useState(false);
+  const [delayTargetId, setDelayTargetId] = useState<string | null>(null);
+  const [delayLoading, setDelayLoading] = useState(false);
 
   useEffect(() => {
     if (!companyId) return;
@@ -283,6 +288,44 @@ const Dashboard = () => {
 
     fetchAppointments();
     fetchWaitlistCount();
+  };
+
+  const registerDelay = async (minutes: number) => {
+    if (!delayTargetId) return;
+    setDelayLoading(true);
+    try {
+      const { data, error } = await supabase.rpc('register_delay', {
+        p_appointment_id: delayTargetId,
+        p_delay_minutes: minutes,
+      });
+
+      if (error) {
+        toast.error(error.message || 'Erro ao registrar atraso');
+        return;
+      }
+
+      toast.success(`Atraso de ${minutes} min registrado com sucesso`);
+
+      // Send WhatsApp notifications to affected clients
+      const affected = (data as any[]) || [];
+      for (const a of affected) {
+        if (a.client_whatsapp) {
+          const msg = encodeURIComponent(
+            `⚠️ Aviso de atraso\n\nOlá ${a.client_name || 'Cliente'}! 👋\n\nHouve um pequeno atraso no atendimento anterior.\n\nSeu horário foi ajustado para:\n🕐 ${a.new_start} - ${a.new_end}\n\nObrigado pela compreensão!`
+          );
+          const phone = formatWhatsApp(a.client_whatsapp);
+          window.open(`https://wa.me/${phone}?text=${msg}`, '_blank');
+        }
+      }
+
+      fetchAppointments();
+    } catch (err) {
+      toast.error('Erro ao registrar atraso');
+    } finally {
+      setDelayLoading(false);
+      setDelayDialogOpen(false);
+      setDelayTargetId(null);
+    }
   };
 
   return (
@@ -573,7 +616,7 @@ const Dashboard = () => {
                       {statusLabels[apt.status]}
                     </Badge>
                   </div>
-                  <div className="flex gap-1">
+                  <div className="flex gap-1 flex-wrap">
                     {apt.status === 'pending' && (
                       <Button size="sm" onClick={() => updateStatus(apt.id, 'confirmed')}>
                         Confirmar
@@ -590,6 +633,17 @@ const Dashboard = () => {
                         </Button>
                         <Button
                           size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            setDelayTargetId(apt.id);
+                            setDelayDialogOpen(true);
+                          }}
+                        >
+                          <Timer className="h-4 w-4 mr-1" />
+                          Atraso
+                        </Button>
+                        <Button
+                          size="sm"
                           variant="ghost"
                           className="text-destructive"
                           onClick={() => updateStatus(apt.id, 'cancelled')}
@@ -598,6 +652,12 @@ const Dashboard = () => {
                         </Button>
                       </>
                     )}
+                    {apt.delay_minutes > 0 && (
+                      <Badge variant="outline" className="text-xs border-warning text-warning">
+                        <Timer className="h-3 w-3 mr-1" />
+                        +{apt.delay_minutes}min
+                      </Badge>
+                    )}
                   </div>
                 </div>
               ))}
@@ -605,6 +665,33 @@ const Dashboard = () => {
           )}
         </CardContent>
       </Card>
+
+      {/* Delay Dialog */}
+      <Dialog open={delayDialogOpen} onOpenChange={setDelayDialogOpen}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Timer className="h-5 w-5" /> Registrar Atraso
+            </DialogTitle>
+            <DialogDescription>
+              Selecione o tempo de atraso. Todos os agendamentos seguintes serão ajustados automaticamente.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid grid-cols-2 gap-3 pt-2">
+            {[5, 10, 15, 20].map((min) => (
+              <Button
+                key={min}
+                variant="outline"
+                className="h-16 text-lg font-display"
+                disabled={delayLoading}
+                onClick={() => registerDelay(min)}
+              >
+                {min} min
+              </Button>
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
