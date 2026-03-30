@@ -432,6 +432,46 @@ export default function ProfessionalPublicProfile() {
           </div>
         )}
 
+        {/* Location with Map */}
+        {company.address && (
+          <div className="w-full max-w-xs">
+            <div className="flex items-center gap-2 mb-3">
+              <MapPin className="w-4 h-4" style={{ color: '#EF4444' }} />
+              <h3 className="text-sm font-semibold" style={{ color: isDark ? '#FFFFFF' : '#1F2937' }}>Localização</h3>
+            </div>
+            <a
+              href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(company.address)}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="block rounded-xl overflow-hidden border transition-transform hover:scale-[1.01]"
+              style={{
+                borderColor: isDark ? '#1F2937' : '#E5E7EB',
+              }}
+            >
+              <img
+                src={`https://maps.googleapis.com/maps/api/staticmap?center=${encodeURIComponent(company.address)}&zoom=15&size=400x180&scale=2&maptype=roadmap&markers=color:red%7C${encodeURIComponent(company.address)}&style=feature:all%7Celement:geometry%7Ccolor:${isDark ? '0x1a1a2e' : '0xf5f5f5'}&style=feature:water%7Celement:geometry%7Ccolor:${isDark ? '0x0d1b2a' : '0xc9d6ff'}&key=`}
+                alt="Mapa"
+                className="w-full h-[120px] object-cover"
+                style={{ background: isDark ? '#1F2937' : '#F3F4F6' }}
+                onError={(e) => {
+                  (e.target as HTMLImageElement).style.display = 'none';
+                }}
+              />
+              <div className="p-3" style={{ background: isDark ? '#111827' : '#FFFFFF' }}>
+                <p className="text-sm font-medium" style={{ color: isDark ? '#FFFFFF' : '#1F2937' }}>
+                  📍 {company.name}
+                </p>
+                <p className="text-xs mt-0.5" style={{ color: isDark ? '#9CA3AF' : '#6B7280' }}>
+                  {company.address}
+                </p>
+                <p className="text-xs mt-2 font-medium" style={{ color: isDark ? '#F59E0B' : '#D97706' }}>
+                  Abrir no Google Maps →
+                </p>
+              </div>
+            </a>
+          </div>
+        )}
+
         {/* Footer */}
         <p className="text-xs mt-4" style={{ color: isDark ? '#4B5563' : '#9CA3AF' }}>
           {company.name}
