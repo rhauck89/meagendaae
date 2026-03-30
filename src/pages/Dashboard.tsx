@@ -170,7 +170,8 @@ const Dashboard = () => {
       const todayAppts = data.filter((a) => isSameDay(parseISO(a.start_time), new Date()));
       setStats({
         total: todayAppts.length,
-        revenue: todayAppts.filter((a) => a.status !== 'cancelled').reduce((sum, a) => sum + Number(a.total_price), 0),
+        revenue: todayAppts.filter((a) => a.status === 'confirmed' || a.status === 'completed').reduce((sum, a) => sum + Number(a.total_price), 0),
+        revenueCompleted: todayAppts.filter((a) => a.status === 'completed').reduce((sum, a) => sum + Number(a.total_price), 0),
         clients: new Set(todayAppts.map((a) => a.client_id)).size,
       });
     }
