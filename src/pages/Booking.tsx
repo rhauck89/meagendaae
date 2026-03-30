@@ -23,6 +23,46 @@ interface BookingPageProps {
   routeBusinessType?: BusinessType;
 }
 
+const SAO_PAULO_TIMEZONE = 'America/Sao_Paulo';
+
+const timePartsFormatter = new Intl.DateTimeFormat('en-GB', {
+  timeZone: SAO_PAULO_TIMEZONE,
+  hour: '2-digit',
+  minute: '2-digit',
+  hour12: false,
+});
+
+const timeStringToMinutes = (value: string) => {
+  const [hours, minutes] = value.split(':').map(Number);
+  return hours * 60 + minutes;
+};
+
+const getAppointmentMinutesInSaoPaulo = (value: string) => {
+  const parts = timePartsFormatter.formatToParts(new Date(value));
+  const hours = Number(parts.find((part) => part.type === 'hour')?.value ?? '0');
+  const minutes = Number(parts.find((part) => part.type === 'minute')?.value ?? '0');
+  return hours * 60 + minutes;
+};
+
+const filterOverlappingSlots = (
+  slots: string[],
+  appointments: ExistingAppointment[],
+  serviceDuration: number,
+  bufferMinutes: number,
+) => {
+  return slots.filter((slot) => {
+    const slotStart = timeStringToMinutes(slot);
+    const slotEnd = slotStart + serviceDuration;
+
+    return !appointments.some((appointment) => {
+      const appointmentStart = getAppointmentMinutesInSaoPaulo(appointment.start_time);
+      const appointmentEndWithBuffer = getAppointmentMinutesInSaoPaulo(appointment.end_time) + bufferMinutes;
+
+      return appointmentStart < slotEnd && appointmentEndWithBuffer > slotStart;
+    });
+  });
+};
+
 const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
   const { slug, professionalSlug } = useParams<{ slug: string; professionalSlug?: string }>();
   const [company, setCompany] = useState<any>(null);
@@ -407,12 +447,14 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
       bufferMinutes,
     });
 
+    const existingAppointments = (existingApptsRes.data || []) as ExistingAppointment[];
+
     const engineSlots = calculateAvailableSlots({
       date,
       totalDuration,
       businessHours,
       exceptions,
-      existingAppointments: (existingApptsRes.data || []) as ExistingAppointment[],
+      existingAppointments,
       slotInterval: 15,
       bufferMinutes,
       professionalHours: professionalHours.length > 0 ? professionalHours : undefined,
@@ -423,7 +465,15 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
     console.log('Generated slots:', engineSlots);
     setGeneratedSlots(engineSlots);
 
-    let filteredSlots = engineSlots;
+    let filteredSlots = filterOverlappingSlots(engineSlots, existingAppointments, totalDuration, bufferMinutes);
+
+    console.log('[Booking] Filtered overlapping slots', {
+      before: engineSlots.length,
+      after: filteredSlots.length,
+      existingAppointments: existingAppointments.length,
+      bufferMinutes,
+      totalDuration,
+    });
 
     // Filter past times for today
     if (isToday(date)) {
@@ -505,18 +555,22 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
           .eq('block_date', dateStr),
       ]);
 
+      const existingAppointments = (apptsRes.data || []) as ExistingAppointment[];
+
       let slots = calculateAvailableSlots({
         date: day,
         totalDuration,
         businessHours,
         exceptions,
-        existingAppointments: (apptsRes.data || []) as ExistingAppointment[],
+        existingAppointments,
         slotInterval: 15,
         bufferMinutes,
         professionalHours: professionalHours.length > 0 ? professionalHours : undefined,
         blockedTimes: ((blockedRes.data || []) as unknown as BlockedTime[]),
         professionalId: selectedProfessional,
       });
+
+      slots = filterOverlappingSlots(slots, existingAppointments, totalDuration, bufferMinutes);
 
       // Filter past times for today
       if (isToday(day)) {
@@ -1034,7 +1088,7 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
                 </p>
                 {slotsLoading ? (
                   <p className={cn('text-sm', textMuted)}>Calculando disponibilidade...</p>
-                ) : availableSlots.length === 0 && generatedSlots.length === 0 ? (
+                ) : availableSlots.length === 0 ? (
                   <div className="space-y-3">
                     <p className={cn('text-sm', textMuted)}>
                       {businessHours.length === 0
@@ -1065,7 +1119,7 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
                   </div>
                 ) : (
                   <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
-                    {(availableSlots.length > 0 ? availableSlots : generatedSlots).map((slot) => (
+                    {availableSlots.map((slot) => (
                       <Button
                         key={slot}
                         variant="outline"
