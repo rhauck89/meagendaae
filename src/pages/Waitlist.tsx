@@ -287,7 +287,7 @@ const Waitlist = () => {
                     )}
                   </div>
                 </div>
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2 sm:gap-4">
                   <div className="text-right">
                     <p className="text-sm font-medium">
                       📅 {format(parseISO(entry.desired_date), "dd 'de' MMM", { locale: ptBR })}
@@ -295,7 +295,26 @@ const Waitlist = () => {
                     <p className="text-xs text-muted-foreground">
                       Entrou {format(parseISO(entry.created_at), "dd/MM 'às' HH:mm", { locale: ptBR })}
                     </p>
+                    {entry.professional_name && (
+                      <p className="text-xs text-muted-foreground">
+                        Pref: {entry.professional_name}
+                      </p>
+                    )}
                   </div>
+                  {entry.client_whatsapp && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => {
+                        const msg = encodeURIComponent(
+                          `Olá ${entry.client_name}! 👋\n\nVimos que você está na nossa lista de espera.\n\nTemos novidades sobre disponibilidade! Gostaria de agendar?\n\nAguardamos seu retorno!`
+                        );
+                        window.open(`https://wa.me/${formatWhatsApp(entry.client_whatsapp)}?text=${msg}`, '_blank');
+                      }}
+                    >
+                      📲 WhatsApp
+                    </Button>
+                  )}
                   <Button size="sm" onClick={() => openBookingModal(entry)}>
                     <CalendarPlus className="h-4 w-4 mr-1" />
                     Agendar
