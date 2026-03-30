@@ -91,6 +91,17 @@ const Dashboard = () => {
   const [rescheduleSelectedSlot, setRescheduleSelectedSlot] = useState<string | null>(null);
   const [rescheduleLoading, setRescheduleLoading] = useState(false);
 
+  // Cleanup orphan Radix portal elements when reschedule modal closes
+  useEffect(() => {
+    if (!rescheduleDialogOpen) {
+      // Small delay to allow animation to complete
+      const timer = setTimeout(() => {
+        document.querySelectorAll('[data-radix-popper-content-wrapper]').forEach(el => el.remove());
+      }, 150);
+      return () => clearTimeout(timer);
+    }
+  }, [rescheduleDialogOpen]);
+
   useEffect(() => {
     if (!companyId) return;
     fetchCollaborators();
