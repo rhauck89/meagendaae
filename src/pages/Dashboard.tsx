@@ -952,7 +952,7 @@ const Dashboard = () => {
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 pt-2">
-            <div>
+            <div className="overflow-hidden">
               <p className="text-sm font-medium mb-2">Selecione a nova data</p>
               <Calendar
                 mode="single"
@@ -964,7 +964,7 @@ const Dashboard = () => {
                   }
                 }}
                 disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
-                className="rounded-md border pointer-events-auto"
+                className="rounded-md border pointer-events-auto mx-auto"
                 locale={ptBR}
               />
             </div>
