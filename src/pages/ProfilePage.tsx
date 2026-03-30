@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Star, Save, Camera, Instagram, Globe, Loader2 } from 'lucide-react';
+import { Star, Save, Camera, Instagram, Link2, Loader2, Copy, Check } from 'lucide-react';
 import { toast } from 'sonner';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -21,6 +21,8 @@ const ProfilePage = () => {
   const [uploading, setUploading] = useState(false);
   const [reviews, setReviews] = useState<any[]>([]);
   const [avgRating, setAvgRating] = useState(0);
+  const [copied, setCopied] = useState(false);
+  const [bookingLink, setBookingLink] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [form, setForm] = useState({
@@ -30,7 +32,6 @@ const ProfilePage = () => {
     bio: '',
     avatar_url: '',
     social_instagram: '',
-    social_website: '',
   });
 
   useEffect(() => {
@@ -43,14 +44,39 @@ const ProfilePage = () => {
         bio: (profile as any).bio || '',
         avatar_url: profile.avatar_url || '',
         social_instagram: socialLinks.instagram || '',
-        social_website: socialLinks.website || '',
       });
     }
   }, [profile]);
 
   useEffect(() => {
+    if (companyId && profileId) {
+      fetchBookingLink();
+    }
+  }, [companyId, profileId]);
+
+  useEffect(() => {
     if (profileId) fetchReviews();
   }, [profileId]);
+
+  const fetchBookingLink = async () => {
+    const [companyRes, collabRes] = await Promise.all([
+      supabase.from('companies').select('slug, business_type').eq('id', companyId!).single(),
+      supabase.from('collaborators').select('slug').eq('profile_id', profileId!).eq('company_id', companyId!).single(),
+    ]);
+    if (companyRes.data && collabRes.data?.slug) {
+      const prefix = companyRes.data.business_type === 'esthetic' ? 'estetica' : 'barbearia';
+      const origin = window.location.origin;
+      setBookingLink(`${origin}/${prefix}/${companyRes.data.slug}/${collabRes.data.slug}`);
+    }
+  };
+
+  const handleCopyLink = async () => {
+    if (!bookingLink) return;
+    await navigator.clipboard.writeText(bookingLink);
+    setCopied(true);
+    toast.success('Link copiado!');
+    setTimeout(() => setCopied(false), 2000);
+  };
 
   const fetchReviews = async () => {
     const { data } = await supabase
@@ -126,7 +152,6 @@ const ProfilePage = () => {
     try {
       const socialLinks = {
         instagram: form.social_instagram || null,
-        website: form.social_website || null,
       };
 
       const { error } = await supabase
@@ -247,34 +272,48 @@ const ProfilePage = () => {
             />
           </div>
 
-          {/* Social Links */}
+          {/* Social Links & Booking Link */}
           <div className="space-y-3">
             <Label className="text-base font-semibold">Redes Sociais</Label>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="instagram" className="flex items-center gap-1.5 text-sm">
-                  <Instagram className="h-4 w-4" /> Instagram
-                </Label>
-                <Input
-                  id="instagram"
-                  value={form.social_instagram}
-                  onChange={(e) => setForm({ ...form, social_instagram: e.target.value })}
-                  placeholder="@seuusuario"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="website" className="flex items-center gap-1.5 text-sm">
-                  <Globe className="h-4 w-4" /> Website
-                </Label>
-                <Input
-                  id="website"
-                  value={form.social_website}
-                  onChange={(e) => setForm({ ...form, social_website: e.target.value })}
-                  placeholder="https://seusite.com"
-                />
-              </div>
+            <div className="space-y-2">
+              <Label htmlFor="instagram" className="flex items-center gap-1.5 text-sm">
+                <Instagram className="h-4 w-4" /> Instagram
+              </Label>
+              <Input
+                id="instagram"
+                value={form.social_instagram}
+                onChange={(e) => setForm({ ...form, social_instagram: e.target.value })}
+                placeholder="@seuusuario"
+              />
             </div>
           </div>
+
+          {/* Public Booking Link */}
+          {bookingLink && (
+            <div className="space-y-2">
+              <Label className="flex items-center gap-1.5 text-base font-semibold">
+                <Link2 className="h-4 w-4" /> Link de agendamento público
+              </Label>
+              <div className="flex items-center gap-2">
+                <Input
+                  readOnly
+                  value={bookingLink}
+                  className="text-sm bg-muted/50"
+                />
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={handleCopyLink}
+                  className="shrink-0"
+                >
+                  {copied ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Compartilhe este link para clientes agendarem diretamente com você
+              </p>
+            </div>
+          )}
 
           <Button onClick={handleSave} disabled={loading} className="w-full md:w-auto">
             <Save className="h-4 w-4 mr-2" />
