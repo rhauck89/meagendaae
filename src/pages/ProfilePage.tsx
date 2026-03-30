@@ -74,6 +74,52 @@ const ProfilePage = () => {
     }
   };
 
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user) return;
+
+    if (!file.type.startsWith('image/')) {
+      toast.error('Por favor, selecione uma imagem');
+      return;
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error('Imagem deve ter no máximo 2MB');
+      return;
+    }
+
+    setUploading(true);
+    try {
+      const ext = file.name.split('.').pop();
+      const filePath = `${user.id}/avatar.${ext}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(filePath, file, { upsert: true });
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('avatars')
+        .getPublicUrl(filePath);
+
+      const avatarUrl = `${publicUrl}?t=${Date.now()}`;
+
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({ avatar_url: avatarUrl })
+        .eq('user_id', user.id);
+
+      if (updateError) throw updateError;
+
+      setForm(prev => ({ ...prev, avatar_url: avatarUrl }));
+      toast.success('Foto atualizada!');
+    } catch (err: any) {
+      toast.error(err.message || 'Erro ao enviar foto');
+    } finally {
+      setUploading(false);
+    }
+  };
+
   const handleSave = async () => {
     if (!user) return;
     setLoading(true);
@@ -90,7 +136,6 @@ const ProfilePage = () => {
           email: form.email,
           whatsapp: form.whatsapp,
           bio: form.bio as any,
-          avatar_url: form.avatar_url || null,
           social_links: socialLinks as any,
         })
         .eq('user_id', user.id);
