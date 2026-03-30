@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Plus, Users, Percent, DollarSign, Settings, Copy, Link as LinkIcon, ExternalLink, Mail, KeyRound } from 'lucide-react';
+import { Plus, Users, Percent, DollarSign, Settings, Copy, Link as LinkIcon, ExternalLink, Mail, KeyRound, MessageCircle } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import ProfessionalPanel from '@/components/ProfessionalPanel';
