@@ -48,7 +48,7 @@ const Services = () => {
 
   const resetForm = () => {
     setEditing(null);
-    setForm({ name: '', duration_minutes: 30, price: 0 });
+    setForm({ name: '', duration_minutes: 30, price: 0, recommended_return_days: '' });
   };
 
   const handleSave = async () => {
