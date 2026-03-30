@@ -632,7 +632,10 @@ const Dashboard = () => {
                         <Button
                           size="sm"
                           variant="outline"
-                          onClick={() => updateStatus(apt.id, 'completed')}
+                          onClick={() => {
+                            setCompleteTarget(apt);
+                            setCompleteDialogOpen(true);
+                          }}
                         >
                           Concluir
                         </Button>
