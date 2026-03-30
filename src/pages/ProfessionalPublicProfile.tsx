@@ -285,41 +285,69 @@ export default function ProfessionalPublicProfile() {
           </button>
         </div>
 
-        {/* Next Available Slots */}
-        {nextSlots.length > 0 && (
+        {/* Agenda da Semana */}
+        {weekSlots.length > 0 && (
           <div className="w-full max-w-xs">
             <div className="flex items-center gap-2 mb-3">
-              <Zap className="w-4 h-4" style={{ color: '#F59E0B' }} />
-              <h3 className="text-sm font-semibold" style={{ color: isDark ? '#FFFFFF' : '#1F2937' }}>Próximos horários</h3>
+              <Calendar className="w-4 h-4" style={{ color: isDark ? '#F59E0B' : '#D97706' }} />
+              <h3 className="text-sm font-semibold" style={{ color: isDark ? '#FFFFFF' : '#1F2937' }}>Agenda da semana</h3>
             </div>
-            <div className="flex flex-wrap gap-2">
-              {nextSlots.map(group =>
-                group.slots.map(time => (
-                  <button
-                    key={`${format(group.date, 'yyyy-MM-dd')}-${time}`}
-                    onClick={() => navigate(bookingUrl)}
-                    className="px-3 py-2 rounded-lg text-xs font-medium transition-all hover:scale-105"
+            <div className="grid grid-cols-7 gap-1">
+              {weekSlots.map(group => {
+                const today = isToday(group.date);
+                const hasSlots = group.slots.length > 0;
+                const displaySlots = group.slots.slice(0, 3);
+                const extra = group.slots.length - 3;
+                return (
+                  <div
+                    key={format(group.date, 'yyyy-MM-dd')}
+                    className="flex flex-col items-center rounded-lg p-1.5"
                     style={{
-                      background: isDark ? 'rgba(245,158,11,0.12)' : 'rgba(217,119,6,0.1)',
-                      color: isDark ? '#F59E0B' : '#D97706',
-                      border: `1px solid ${isDark ? 'rgba(245,158,11,0.2)' : 'rgba(217,119,6,0.2)'}`,
+                      background: today
+                        ? isDark ? 'rgba(245,158,11,0.15)' : 'rgba(217,119,6,0.1)'
+                        : isDark ? '#111827' : '#F9FAFB',
+                      border: today
+                        ? `1.5px solid ${isDark ? '#F59E0B' : '#D97706'}`
+                        : `1px solid ${isDark ? '#1F2937' : '#E5E7EB'}`,
                     }}
                   >
-                    <span className="block text-[10px] opacity-70">
-                      {isToday(group.date) ? 'Hoje' : format(group.date, "EEE, dd/MM", { locale: ptBR })}
+                    <span className="text-[10px] font-semibold uppercase" style={{ color: isDark ? '#9CA3AF' : '#6B7280' }}>
+                      {format(group.date, 'EEE', { locale: ptBR }).replace('.', '')}
                     </span>
-                    {time}
-                  </button>
-                ))
-              )}
+                    <span className="text-[10px] mb-1" style={{ color: isDark ? '#6B7280' : '#9CA3AF' }}>
+                      {format(group.date, 'dd/MM')}
+                    </span>
+                    {today && (
+                      <span className="text-[9px] mb-1" style={{ color: isDark ? '#F59E0B' : '#D97706' }}>🔥 Hoje</span>
+                    )}
+                    {hasSlots ? (
+                      <>
+                        {displaySlots.map(time => (
+                          <button
+                            key={time}
+                            onClick={() => navigate(`${bookingUrl}?date=${format(group.date, 'yyyy-MM-dd')}&time=${time}`)}
+                            className="w-full text-[10px] font-medium py-0.5 rounded transition-all hover:scale-105 mb-0.5"
+                            style={{
+                              background: isDark ? 'rgba(245,158,11,0.2)' : 'rgba(217,119,6,0.15)',
+                              color: isDark ? '#F59E0B' : '#D97706',
+                            }}
+                          >
+                            {time}
+                          </button>
+                        ))}
+                        {extra > 0 && (
+                          <span className="text-[9px] mt-0.5" style={{ color: isDark ? '#6B7280' : '#9CA3AF' }}>
+                            +{extra} horários
+                          </span>
+                        )}
+                      </>
+                    ) : (
+                      <span className="text-[9px] mt-1" style={{ color: isDark ? '#4B5563' : '#D1D5DB' }}>—</span>
+                    )}
+                  </div>
+                );
+              })}
             </div>
-          </div>
-        )}
-
-        {slotsLoading && (
-          <div className="flex items-center gap-2">
-            <div className="w-4 h-4 border-2 border-t-transparent rounded-full animate-spin" style={{ borderColor: isDark ? '#F59E0B' : '#D97706', borderTopColor: 'transparent' }} />
-            <span className="text-xs" style={{ color: isDark ? '#6B7280' : '#9CA3AF' }}>Carregando horários...</span>
           </div>
         )}
 
