@@ -649,7 +649,10 @@ const Dashboard = () => {
                           size="sm"
                           variant="ghost"
                           className="text-destructive"
-                          onClick={() => updateStatus(apt.id, 'cancelled')}
+                          onClick={() => {
+                            setCancelTarget(apt);
+                            setCancelDialogOpen(true);
+                          }}
                         >
                           Cancelar
                         </Button>
