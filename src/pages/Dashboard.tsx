@@ -375,11 +375,6 @@ const Dashboard = () => {
     setRescheduleSelectedSlot(null);
     try {
       const dateStr = format(date, 'yyyy-MM-dd');
-      const { data: existingAppts } = await supabase.rpc('get_booking_appointments', {
-        p_company_id: companyId,
-        p_professional_id: rescheduleTarget.professional_id,
-        p_selected_date: dateStr,
-      });
       const { data: profHours } = await supabase
         .from('professional_working_hours')
         .select('*')
