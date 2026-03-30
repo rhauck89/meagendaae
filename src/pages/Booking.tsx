@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -88,9 +88,12 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
   const [clientLoaded, setClientLoaded] = useState(false);
   const [loading, setLoading] = useState(false);
   const [slotsLoading, setSlotsLoading] = useState(false);
+  const [appointmentsLoaded, setAppointmentsLoaded] = useState(false);
+  const [appointmentsForSelectedDate, setAppointmentsForSelectedDate] = useState<ExistingAppointment[]>([]);
   const [waitlistLoading, setWaitlistLoading] = useState(false);
   const [nextSlots, setNextSlots] = useState<{ date: Date; slots: string[] }[]>([]);
   const [nextSlotsLoading, setNextSlotsLoading] = useState(false);
+  const slotRequestRef = useRef(0);
 
   const isDark = businessType === 'barbershop';
 
@@ -409,7 +412,12 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
       return;
     }
 
+    const requestId = ++slotRequestRef.current;
     setSlotsLoading(true);
+    setAppointmentsLoaded(false);
+    setAppointmentsForSelectedDate([]);
+    setAvailableSlots([]);
+    setGeneratedSlots([]);
 
     const dateStr = format(date, 'yyyy-MM-dd');
     const SP_OFFSET = '-03:00';
@@ -449,6 +457,19 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
 
     const existingAppointments = (existingApptsRes.data || []) as ExistingAppointment[];
 
+    console.log('[Booking] Appointments used for slot filtering', {
+      date: dateStr,
+      professional: selectedProfessional,
+      appointments: existingAppointments,
+    });
+
+    if (requestId !== slotRequestRef.current) {
+      return;
+    }
+
+    setAppointmentsForSelectedDate(existingAppointments);
+    setAppointmentsLoaded(true);
+
     const engineSlots = calculateAvailableSlots({
       date,
       totalDuration,
@@ -463,6 +484,11 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
     });
 
     console.log('Generated slots:', engineSlots);
+
+    if (requestId !== slotRequestRef.current) {
+      return;
+    }
+
     setGeneratedSlots(engineSlots);
 
     let filteredSlots = filterOverlappingSlots(engineSlots, existingAppointments, totalDuration, bufferMinutes);
@@ -484,9 +510,22 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
     }
 
     console.log('[Booking] calculateSlots result', { slotsFound: filteredSlots.length, firstSlots: filteredSlots.slice(0, 5) });
+
+    if (requestId !== slotRequestRef.current) {
+      return;
+    }
+
     setAvailableSlots(filteredSlots);
     setSlotsLoading(false);
   };
+
+  useEffect(() => {
+    setSelectedTime(null);
+    setAppointmentsLoaded(false);
+    setAppointmentsForSelectedDate([]);
+    setAvailableSlots([]);
+    setGeneratedSlots([]);
+  }, [selectedDate, selectedProfessional, selectedServices, totalDuration]);
 
   useEffect(() => {
     if (selectedDate && selectedProfessional && company && businessHours.length > 0 && totalDuration > 0) {
@@ -1088,6 +1127,8 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
                 </p>
                 {slotsLoading ? (
                   <p className={cn('text-sm', textMuted)}>Calculando disponibilidade...</p>
+                ) : !appointmentsLoaded ? (
+                  <p className={cn('text-sm', textMuted)}>Carregando agendamentos...</p>
                 ) : availableSlots.length === 0 ? (
                   <div className="space-y-3">
                     <p className={cn('text-sm', textMuted)}>
@@ -1135,6 +1176,11 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
                       </Button>
                     ))}
                   </div>
+                )}
+                {appointmentsLoaded && appointmentsForSelectedDate.length > 0 && (
+                  <p className={cn('text-xs mt-2', textMuted)}>
+                    {appointmentsForSelectedDate.length} agendamento(s) carregado(s) para validar conflitos.
+                  </p>
                 )}
               </div>
             )}
