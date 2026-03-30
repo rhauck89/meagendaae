@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Switch } from '@/components/ui/switch';
-import { Plus, Pencil, Trash2, Clock, DollarSign } from 'lucide-react';
+import { Plus, Pencil, Trash2, Clock, DollarSign, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 
 const Services = () => {
