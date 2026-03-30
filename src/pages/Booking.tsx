@@ -106,6 +106,8 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
   const [appointmentsLoaded, setAppointmentsLoaded] = useState(false);
   const [appointmentsForSelectedDate, setAppointmentsForSelectedDate] = useState<ExistingAppointment[]>([]);
   const [waitlistLoading, setWaitlistLoading] = useState(false);
+  const [showWaitlistForm, setShowWaitlistForm] = useState(false);
+  const [waitlistForm, setWaitlistForm] = useState({ name: '', whatsapp: '', email: '' });
   const [nextSlots, setNextSlots] = useState<{ date: Date; slots: string[] }[]>([]);
   const [nextSlotsLoading, setNextSlotsLoading] = useState(false);
   const slotRequestRef = useRef(0);
@@ -489,43 +491,30 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
   };
 
   const handleJoinWaitlist = async () => {
-    if (!company || !selectedDate || !selectedProfessional) return;
+    if (!company || !selectedDate) return;
+    if (!waitlistForm.name.trim() || !waitlistForm.whatsapp.trim()) {
+      toast.error('Preencha seu nome e WhatsApp');
+      return;
+    }
+    if (!isValidWhatsApp(waitlistForm.whatsapp)) {
+      toast.error('WhatsApp inválido');
+      return;
+    }
     setWaitlistLoading(true);
     try {
-      let userId: string;
-      const { data: existingSession } = await supabase.auth.getSession();
-      if (existingSession?.session?.user) {
-        userId = existingSession.session.user.id;
-      } else {
-        if (!clientForm.email || !clientForm.full_name) {
-          toast.error('Preencha seu nome e email primeiro');
-          setStep('client');
-          setWaitlistLoading(false);
-          return;
-        }
-        const { data: authData, error } = await supabase.auth.signUp({
-          email: clientForm.email,
-          password: Math.random().toString(36).slice(-8) + 'A1!',
-          options: { data: { full_name: clientForm.full_name } },
-        });
-        if (error) throw error;
-        userId = authData.user!.id;
-        await supabase.from('profiles').update({
-          company_id: company.id,
-          whatsapp: formatWhatsApp(clientForm.whatsapp),
-          birth_date: clientForm.birth_date || null,
-          opt_in_whatsapp: optInWhatsapp,
-          opt_in_date: optInWhatsapp ? new Date().toISOString() : null,
-        } as any).eq('user_id', userId);
-        await supabase.from('user_roles').insert({ user_id: userId, company_id: company.id, role: 'client' as const });
-      }
-      const { data: profile } = await supabase.from('profiles').select('id').eq('user_id', userId).single();
-      if (!profile) throw new Error('Profile not found');
-      await supabase.from('waiting_list').insert({
-        company_id: company.id, client_id: profile.id, service_ids: selectedServices,
-        professional_id: selectedProfessional, desired_date: format(selectedDate, 'yyyy-MM-dd'),
+      const { error } = await supabase.rpc('join_public_waitlist', {
+        p_company_id: company.id,
+        p_client_name: waitlistForm.name.trim(),
+        p_client_whatsapp: formatWhatsApp(waitlistForm.whatsapp),
+        p_email: waitlistForm.email.trim() || null,
+        p_service_ids: selectedServices,
+        p_desired_date: format(selectedDate, 'yyyy-MM-dd'),
+        p_professional_id: selectedProfessional || null,
       });
+      if (error) throw error;
       toast.success('Você foi adicionado à lista de espera!');
+      setShowWaitlistForm(false);
+      setWaitlistForm({ name: '', whatsapp: '', email: '' });
       setStep('services');
       setSelectedServices([]);
       setSelectedProfessional(null);
@@ -883,15 +872,67 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
                           <button
                             className="mt-3 px-4 py-2 rounded-xl text-sm font-medium flex items-center gap-1.5 transition-all hover:scale-105"
                             style={{ border: `1px solid ${T.accent}`, color: T.accent }}
-                            onClick={handleJoinWaitlist}
-                            disabled={waitlistLoading}
+                            onClick={() => setShowWaitlistForm(true)}
                           >
                             <Bell className="h-3.5 w-3.5" />
-                            {waitlistLoading ? 'Entrando...' : 'Avisar se surgir vaga'}
+                            Avisar se surgir vaga
                           </button>
                         </div>
                       </div>
                     </div>
+
+                    {showWaitlistForm && (
+                      <div className="mt-4 p-4 rounded-2xl border space-y-3" style={{ borderColor: `${T.accent}40`, background: `${T.accent}05` }}>
+                        <p className="font-semibold text-sm">Dados para lista de espera</p>
+                        <div className="space-y-2">
+                          <div>
+                            <label className="text-xs font-medium block mb-1">Nome *</label>
+                            <input
+                              className="w-full px-3 py-2 rounded-lg border text-sm"
+                              placeholder="Seu nome"
+                              value={waitlistForm.name}
+                              onChange={(e) => setWaitlistForm(f => ({ ...f, name: e.target.value }))}
+                            />
+                          </div>
+                          <div>
+                            <label className="text-xs font-medium block mb-1">WhatsApp *</label>
+                            <input
+                              className="w-full px-3 py-2 rounded-lg border text-sm"
+                              placeholder="(31) 99999-9999"
+                              value={waitlistForm.whatsapp}
+                              onChange={(e) => setWaitlistForm(f => ({ ...f, whatsapp: e.target.value }))}
+                            />
+                          </div>
+                          <div>
+                            <label className="text-xs font-medium block mb-1">Email (opcional)</label>
+                            <input
+                              type="email"
+                              className="w-full px-3 py-2 rounded-lg border text-sm"
+                              placeholder="seu@email.com"
+                              value={waitlistForm.email}
+                              onChange={(e) => setWaitlistForm(f => ({ ...f, email: e.target.value }))}
+                            />
+                          </div>
+                        </div>
+                        <div className="flex gap-2">
+                          <button
+                            className="px-4 py-2 rounded-xl text-sm font-medium"
+                            style={{ color: T.textSec }}
+                            onClick={() => setShowWaitlistForm(false)}
+                          >
+                            Cancelar
+                          </button>
+                          <button
+                            className="px-4 py-2 rounded-xl text-sm font-medium text-white"
+                            style={{ background: T.accent }}
+                            onClick={handleJoinWaitlist}
+                            disabled={waitlistLoading}
+                          >
+                            {waitlistLoading ? 'Entrando...' : 'Entrar na lista'}
+                          </button>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 ) : (
                   <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">

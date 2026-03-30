@@ -23,7 +23,8 @@ const Waitlist = () => {
 
   const fetchEntries = async () => {
     setLoading(true);
-    const { data } = await supabase
+    // Fetch from waiting_list (auth-based entries)
+    const { data: wlData } = await supabase
       .from('waiting_list')
       .select(`
         *,
@@ -33,7 +34,37 @@ const Waitlist = () => {
       .eq('company_id', companyId!)
       .eq('status', 'waiting')
       .order('created_at', { ascending: true });
-    setEntries(data || []);
+    
+    // Fetch from waitlist (public entries without auth)
+    const { data: wData } = await supabase
+      .from('waitlist')
+      .select('*')
+      .eq('company_id', companyId!)
+      .eq('notified', false)
+      .order('created_at', { ascending: true });
+
+    // Normalize both into a common shape
+    const fromWl = (wlData || []).map((e: any) => ({
+      id: e.id,
+      client_name: e.client?.full_name || 'Cliente',
+      client_whatsapp: e.client?.whatsapp || null,
+      service_ids: e.service_ids,
+      professional_name: e.professional?.full_name || null,
+      desired_date: e.desired_date,
+      created_at: e.created_at,
+      source: 'waiting_list' as const,
+    }));
+    const fromW = (wData || []).map((e: any) => ({
+      id: e.id,
+      client_name: e.client_name || 'Cliente',
+      client_whatsapp: e.client_whatsapp || null,
+      service_ids: e.service_ids,
+      professional_name: null,
+      desired_date: e.desired_date,
+      created_at: e.created_at,
+      source: 'waitlist' as const,
+    }));
+    setEntries([...fromWl, ...fromW].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()));
     setLoading(false);
   };
 
@@ -70,7 +101,7 @@ const Waitlist = () => {
 
   const handleBook = (entry: any) => {
     // Navigate to dashboard with pre-filled info — staff can book from there
-    toast.info(`Redirecione para agendar ${entry.client?.full_name || 'Cliente'}`);
+    toast.info(`Redirecione para agendar ${entry.client_name}`);
     // For now navigate to dashboard; a future enhancement could open a booking modal
     navigate('/dashboard');
   };
@@ -105,13 +136,13 @@ const Waitlist = () => {
                     {idx + 1}
                   </div>
                   <div className="flex-1">
-                    <p className="font-semibold">{entry.client?.full_name || 'Cliente'}</p>
+                    <p className="font-semibold">{entry.client_name}</p>
                     <p className="text-sm text-muted-foreground">
                       {getServiceNames(entry.service_ids)}
                     </p>
-                    {entry.professional?.full_name && (
+                    {entry.professional_name && (
                       <p className="text-xs text-muted-foreground">
-                        Preferência: {entry.professional.full_name}
+                        Preferência: {entry.professional_name}
                       </p>
                     )}
                   </div>

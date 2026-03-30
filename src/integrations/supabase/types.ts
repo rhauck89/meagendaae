@@ -866,30 +866,42 @@ export type Database = {
       }
       waitlist: {
         Row: {
-          client_id: string
+          client_id: string | null
+          client_name: string | null
+          client_whatsapp: string | null
           company_id: string
           created_at: string
           desired_date: string
+          email: string | null
           id: string
           notified: boolean
+          professional_id: string | null
           service_ids: string[]
         }
         Insert: {
-          client_id: string
+          client_id?: string | null
+          client_name?: string | null
+          client_whatsapp?: string | null
           company_id: string
           created_at?: string
           desired_date: string
+          email?: string | null
           id?: string
           notified?: boolean
+          professional_id?: string | null
           service_ids: string[]
         }
         Update: {
-          client_id?: string
+          client_id?: string | null
+          client_name?: string | null
+          client_whatsapp?: string | null
           company_id?: string
           created_at?: string
           desired_date?: string
+          email?: string | null
           id?: string
           notified?: boolean
+          professional_id?: string | null
           service_ids?: string[]
         }
         Relationships: [
@@ -1136,6 +1148,18 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      join_public_waitlist: {
+        Args: {
+          p_client_name: string
+          p_client_whatsapp: string
+          p_company_id: string
+          p_desired_date: string
+          p_email: string
+          p_professional_id?: string
+          p_service_ids: string[]
+        }
+        Returns: string
       }
       lookup_client_by_cpf: {
         Args: { _company_id: string; _cpf: string }
