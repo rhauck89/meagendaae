@@ -877,7 +877,29 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
                       </div>
                     </div>
 
-                    {showWaitlistForm && (
+                    {waitlistSuccess && (
+                      <div className="mt-4 p-6 rounded-2xl border text-center space-y-2" style={{ borderColor: '#10B98140', background: '#10B98110' }}>
+                        <div className="text-3xl">✅</div>
+                        <p className="font-semibold text-sm" style={{ color: '#10B981' }}>Você entrou na lista de espera!</p>
+                        <p className="text-xs" style={{ color: T.textSec }}>Avisaremos no WhatsApp se surgir uma vaga.</p>
+                        <button
+                          className="mt-3 px-4 py-2 rounded-xl text-sm font-medium"
+                          style={{ color: T.accent, border: `1px solid ${T.accent}` }}
+                          onClick={() => {
+                            setWaitlistSuccess(false);
+                            setStep('services');
+                            setSelectedServices([]);
+                            setSelectedProfessional(null);
+                            setSelectedDate(undefined);
+                            setSelectedTime(null);
+                          }}
+                        >
+                          Voltar ao início
+                        </button>
+                      </div>
+                    )}
+
+                    {showWaitlistForm && !waitlistSuccess && (
                       <div className="mt-4 p-4 rounded-2xl border space-y-3" style={{ borderColor: `${T.accent}40`, background: `${T.accent}05` }}>
                         <p className="font-semibold text-sm">Dados para lista de espera</p>
                         <div className="space-y-2">
