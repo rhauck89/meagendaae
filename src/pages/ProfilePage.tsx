@@ -44,10 +44,15 @@ const ProfilePage = () => {
         bio: (profile as any).bio || '',
         avatar_url: profile.avatar_url || '',
         social_instagram: socialLinks.instagram || '',
-        social_website: socialLinks.website || '',
       });
     }
   }, [profile]);
+
+  useEffect(() => {
+    if (companyId && profileId) {
+      fetchBookingLink();
+    }
+  }, [companyId, profileId]);
 
   useEffect(() => {
     if (profileId) fetchReviews();
