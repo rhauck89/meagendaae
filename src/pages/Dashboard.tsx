@@ -656,14 +656,30 @@ const Dashboard = () => {
             <div className="space-y-2">
               <p className="text-sm font-semibold text-destructive">Clientes atrasados</p>
               {returnStats.overdueClients.slice(0, 5).map((c) => (
-                <div key={c.id} className="flex items-center justify-between p-2 rounded-lg bg-destructive/5 text-sm">
-                  <div>
+                <div key={c.id} className="flex items-center justify-between p-2 rounded-lg bg-destructive/5 text-sm gap-2">
+                  <div className="min-w-0 flex-1">
                     <span className="font-medium">{c.full_name}</span>
-                    {c.whatsapp && <span className="text-muted-foreground ml-2">({c.whatsapp})</span>}
                   </div>
-                  <Badge variant="destructive" className="text-xs">
-                    {c.daysOverdue} dias atrasado
+                  <Badge variant="destructive" className="text-xs shrink-0">
+                    {c.daysOverdue}d atraso
                   </Badge>
+                  {c.whatsapp && companySlug && (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-7 px-2 text-xs shrink-0"
+                      onClick={() => {
+                        const prefix = companyBusinessType === 'esthetic' ? 'estetica' : 'barbearia';
+                        const bookingUrl = `${window.location.origin}/${prefix}/${companySlug}`;
+                        const msg = encodeURIComponent(
+                          `Olá ${c.full_name}! 👋\n\nJá faz ${c.daysOverdue} dias desde sua última visita.\n\nQue tal agendar seu próximo horário?\n\n📅 Agende aqui: ${bookingUrl}\n\nEsperamos você!`
+                        );
+                        window.open(`https://wa.me/${formatWhatsApp(c.whatsapp)}?text=${msg}`, '_blank');
+                      }}
+                    >
+                      📲
+                    </Button>
+                  )}
                 </div>
               ))}
             </div>
