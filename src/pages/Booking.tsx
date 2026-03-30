@@ -824,12 +824,13 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
 
             <p className="text-xs text-center" style={{ color: T.textSec }}>ou escolha uma data no calendário</p>
 
-            <div className="rounded-2xl p-4" style={{ background: T.card, border: `1px solid ${T.border}` }}>
+            <div className="booking-dark-calendar rounded-2xl p-4" style={{ background: T.card, border: `1px solid ${T.border}` }}>
               <Calendar
                 mode="single" selected={selectedDate}
                 onSelect={(date) => { setSelectedDate(date); setSelectedTime(null); }}
                 locale={ptBR}
                 disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
+                className="mx-auto"
               />
             </div>
 
