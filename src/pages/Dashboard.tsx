@@ -611,28 +611,44 @@ const Dashboard = () => {
         <Tooltip>
           <TooltipTrigger asChild>
             <Card
-              className="cursor-pointer hover:shadow-md transition-shadow"
+              className={cn(
+                "cursor-pointer hover:shadow-md transition-shadow",
+                hasOpenSlot && "ring-2 ring-warning/50 bg-warning/5"
+              )}
               onClick={() => routerNavigate('/dashboard/waitlist')}
             >
               <CardContent className="p-4 flex items-center gap-4">
-                <div className="w-12 h-12 rounded-xl bg-warning/10 flex items-center justify-center">
+                <div className={cn("w-12 h-12 rounded-xl flex items-center justify-center", hasOpenSlot ? "bg-warning/20" : "bg-warning/10")}>
                   <Bell className="h-6 w-6 text-warning" />
                 </div>
-                <div>
+                <div className="flex-1 min-w-0">
                   <p className="text-sm text-muted-foreground">Aguardando vaga</p>
                   <p className="text-2xl font-display font-bold">{waitlistCount}</p>
+                  {hasOpenSlot && (
+                    <p className="text-xs font-semibold text-warning">⚡ Vaga disponível</p>
+                  )}
+                  {Object.keys(waitlistServiceBreakdown).length > 0 && (
+                    <div className="flex flex-wrap gap-1 mt-1">
+                      {Object.entries(waitlistServiceBreakdown).slice(0, 3).map(([name, count]) => (
+                        <Badge key={name} variant="outline" className="text-[10px] px-1.5 py-0">
+                          {name} ({count})
+                        </Badge>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>
           </TooltipTrigger>
-          <TooltipContent side="bottom" className="max-w-[200px]">
+          <TooltipContent side="bottom" className="max-w-[220px]">
             {waitlistClients.length > 0 ? (
               <div className="space-y-1">
-                {waitlistClients.map((name, i) => (
-                  <p key={i} className="text-sm">{name}</p>
+                <p className="text-xs font-semibold text-muted-foreground mb-1">Primeiros na fila:</p>
+                {waitlistClients.slice(0, 3).map((name, i) => (
+                  <p key={i} className="text-sm">• {name}</p>
                 ))}
-                {waitlistCount > waitlistClients.length && (
-                  <p className="text-xs text-muted-foreground">+{waitlistCount - waitlistClients.length} mais</p>
+                {waitlistCount > 3 && (
+                  <p className="text-xs text-muted-foreground mt-1">+{waitlistCount - 3} mais</p>
                 )}
               </div>
             ) : (
