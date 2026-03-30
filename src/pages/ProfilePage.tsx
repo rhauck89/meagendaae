@@ -18,8 +18,10 @@ const ProfilePage = () => {
   const { user, profile, companyId } = useAuth();
   const { profileId } = useUserRole();
   const [loading, setLoading] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [reviews, setReviews] = useState<any[]>([]);
   const [avgRating, setAvgRating] = useState(0);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [form, setForm] = useState({
     full_name: '',
