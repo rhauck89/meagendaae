@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Plus, Users, Percent, DollarSign, Settings, Copy, Link as LinkIcon, ExternalLink } from 'lucide-react';
+import { Plus, Users, Percent, DollarSign, Settings, Copy, Link as LinkIcon, ExternalLink, Mail, KeyRound } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import ProfessionalPanel from '@/components/ProfessionalPanel';
@@ -22,6 +22,9 @@ const Team = () => {
   const [panelOpen, setPanelOpen] = useState(false);
   const [selectedCollaborator, setSelectedCollaborator] = useState<any>(null);
   const [createdCredentials, setCreatedCredentials] = useState<{ email: string; password: string; link: string } | null>(null);
+  const [inviteCredentials, setInviteCredentials] = useState<{ email: string; password: string } | null>(null);
+  const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
+  const [loadingAction, setLoadingAction] = useState<string | null>(null);
   const [form, setForm] = useState({
     name: '',
     email: '',
@@ -139,6 +142,52 @@ const Team = () => {
       await refreshTeam();
     } catch (err: any) {
       toast.error(err.message || 'Erro ao criar colaborador');
+    }
+  };
+
+  const handleSendInvite = async (collaborator: any) => {
+    const email = collaborator.profile?.email;
+    const userId = collaborator.profile?.user_id;
+    if (!email) return toast.error('Email não encontrado');
+
+    setLoadingAction(`invite-${collaborator.id}`);
+    try {
+      const response = await supabase.functions.invoke('invite-team-member', {
+        body: { action: 'invite', email, user_id: userId },
+      });
+
+      if (response.error) throw new Error(response.error.message);
+      if (!response.data?.success) throw new Error(response.data?.error || 'Erro ao gerar convite');
+
+      setInviteCredentials({ email, password: response.data.temp_password });
+      setInviteDialogOpen(true);
+      toast.success('Credenciais temporárias geradas!');
+    } catch (err: any) {
+      toast.error(err.message || 'Erro ao enviar convite');
+    } finally {
+      setLoadingAction(null);
+    }
+  };
+
+  const handleResetPassword = async (collaborator: any) => {
+    const email = collaborator.profile?.email;
+    const userId = collaborator.profile?.user_id;
+    if (!email) return toast.error('Email não encontrado');
+
+    setLoadingAction(`reset-${collaborator.id}`);
+    try {
+      const response = await supabase.functions.invoke('invite-team-member', {
+        body: { action: 'reset_password', email, user_id: userId },
+      });
+
+      if (response.error) throw new Error(response.error.message);
+      if (!response.data?.success) throw new Error(response.data?.error || 'Erro ao resetar senha');
+
+      toast.success('Email de redefinição de senha enviado!');
+    } catch (err: any) {
+      toast.error(err.message || 'Erro ao resetar senha');
+    } finally {
+      setLoadingAction(null);
     }
   };
 
@@ -335,6 +384,31 @@ const Team = () => {
                     {collaborator.commission_type === 'none' && paymentLabel(collaborator.commission_type, collaborator.commission_value)}
                   </Badge>
                 </div>
+
+                {/* Access management buttons */}
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="flex-1"
+                    disabled={loadingAction === `invite-${collaborator.id}`}
+                    onClick={() => handleSendInvite(collaborator)}
+                  >
+                    <Mail className="mr-1.5 h-3.5 w-3.5" />
+                    {loadingAction === `invite-${collaborator.id}` ? 'Gerando...' : 'Enviar convite'}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="flex-1"
+                    disabled={loadingAction === `reset-${collaborator.id}`}
+                    onClick={() => handleResetPassword(collaborator)}
+                  >
+                    <KeyRound className="mr-1.5 h-3.5 w-3.5" />
+                    {loadingAction === `reset-${collaborator.id}` ? 'Enviando...' : 'Resetar senha'}
+                  </Button>
+                </div>
+
                 {bookingLink && (
                   <div className="flex items-center gap-2 rounded-md border bg-muted/30 px-3 py-2">
                     <LinkIcon className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
@@ -375,6 +449,52 @@ const Team = () => {
           </div>
         )}
       </div>
+
+      {/* Invite credentials dialog */}
+      <Dialog open={inviteDialogOpen} onOpenChange={setInviteDialogOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Credenciais de Acesso</DialogTitle>
+          </DialogHeader>
+          {inviteCredentials && (
+            <div className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                Envie esses dados para o profissional acessar o sistema:
+              </p>
+              <div className="rounded-lg border bg-muted/50 p-4 space-y-3">
+                <div>
+                  <p className="text-xs text-muted-foreground">Email</p>
+                  <p className="font-mono text-sm">{inviteCredentials.email}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Senha temporária</p>
+                  <p className="font-mono text-sm">{inviteCredentials.password}</p>
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                O profissional pode alterar a senha após o primeiro login.
+              </p>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  className="flex-1"
+                  onClick={() =>
+                    copyToClipboard(
+                      `Email: ${inviteCredentials.email}\nSenha: ${inviteCredentials.password}`,
+                      'Credenciais'
+                    )
+                  }
+                >
+                  <Copy className="mr-2 h-4 w-4" /> Copiar
+                </Button>
+                <Button className="flex-1" onClick={() => setInviteDialogOpen(false)}>
+                  Fechar
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
 
       {selectedCollaborator && (
         <ProfessionalPanel
