@@ -113,6 +113,18 @@ const Dashboard = () => {
     }
   };
 
+  const SP_OFFSET = '-03:00';
+
+  const toSpStart = (date: Date) => {
+    const dateStr = format(date, 'yyyy-MM-dd');
+    return `${dateStr}T00:00:00${SP_OFFSET}`;
+  };
+
+  const toSpEnd = (date: Date) => {
+    const dateStr = format(date, 'yyyy-MM-dd');
+    return `${dateStr}T23:59:59${SP_OFFSET}`;
+  };
+
   const getDateRange = () => {
     if (viewMode === 'day') return { start: currentDate, end: currentDate };
     if (viewMode === 'week') return { start: startOfWeek(currentDate, { locale: ptBR }), end: endOfWeek(currentDate, { locale: ptBR }) };
@@ -125,13 +137,13 @@ const Dashboard = () => {
       .from('appointments')
       .select(`
         *,
-        client:profiles!appointments_client_id_fkey(full_name, whatsapp),
+        client:clients!appointments_client_id_fkey(name, whatsapp),
         professional:profiles!appointments_professional_id_fkey(full_name),
         appointment_services(*, service:services(name))
       `)
       .eq('company_id', companyId!)
-      .gte('start_time', start.toISOString())
-      .lte('start_time', end.toISOString())
+      .gte('start_time', toSpStart(start))
+      .lte('start_time', toSpEnd(end))
       .order('start_time');
 
     // Non-admin sees only their own appointments
@@ -544,7 +556,7 @@ const Dashboard = () => {
                       </p>
                     </div>
                     <div className="flex-1">
-                      <p className="font-semibold">{apt.client?.full_name}</p>
+                      <p className="font-semibold">{apt.client_name || apt.client?.name || 'Cliente'}</p>
                       <p className="text-sm text-muted-foreground">
                         {apt.appointment_services?.map((s: any) => s.service?.name).join(', ')}
                       </p>
