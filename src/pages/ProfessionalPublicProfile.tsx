@@ -30,7 +30,7 @@ export default function ProfessionalPublicProfile() {
   const [services, setServices] = useState<any[]>([]);
   const [rating, setRating] = useState<{ avg: number; count: number } | null>(null);
   const [reviews, setReviews] = useState<any[]>([]);
-  const [nextSlots, setNextSlots] = useState<{ date: Date; slots: string[] }[]>([]);
+  const [weekSlots, setWeekSlots] = useState<{ date: Date; slots: string[] }[]>([]);
   const [slotsLoading, setSlotsLoading] = useState(false);
   const [businessType, setBusinessType] = useState<BusinessType>('barbershop');
   const [copied, setCopied] = useState(false);
