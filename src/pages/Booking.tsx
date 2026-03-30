@@ -822,12 +822,21 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
         // webhook failures are non-critical
       }
 
-      toast.success('Agendamento realizado com sucesso!');
-      setStep('services');
-      setSelectedServices([]);
-      setSelectedProfessional(null);
-      setSelectedDate(undefined);
-      setSelectedTime(null);
+      const professionalProfile = professionals.find((p) => p.id === selectedProfessional);
+      const bookedServiceNames = selectedServices.map((sid) => services.find((s) => s.id === sid)?.name).filter(Boolean) as string[];
+
+      setBookingResult({
+        professionalName: professionalProfile?.full_name || 'Profissional',
+        professionalAvatar: professionalProfile?.avatar_url || null,
+        serviceNames: bookedServiceNames,
+        date: selectedDate,
+        time: selectedTime,
+        totalPrice,
+        totalDuration,
+        companyName: company.name,
+        companyPhone: company.phone || companySettings?.whatsapp_number || null,
+      });
+      setStep('success');
     } catch (err: any) {
       toast.error(err.message || 'Erro ao agendar');
     } finally {
