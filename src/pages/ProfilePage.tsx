@@ -168,26 +168,40 @@ const ProfilePage = () => {
         <CardContent className="space-y-6">
           {/* Avatar */}
           <div className="flex items-center gap-4">
-            <Avatar className="h-20 w-20">
-              <AvatarImage src={form.avatar_url} />
-              <AvatarFallback className="text-2xl font-display">
-                {form.full_name?.charAt(0)?.toUpperCase() || '?'}
-              </AvatarFallback>
-            </Avatar>
-            <div className="space-y-2">
-              <Label htmlFor="avatar_url">URL da foto</Label>
-              <div className="flex gap-2">
-                <Input
-                  id="avatar_url"
-                  value={form.avatar_url}
-                  onChange={(e) => setForm({ ...form, avatar_url: e.target.value })}
-                  placeholder="https://..."
-                  className="w-[300px]"
-                />
-                <Button variant="outline" size="icon" disabled>
+            <div className="relative">
+              <Avatar className="h-20 w-20">
+                <AvatarImage src={form.avatar_url} />
+                <AvatarFallback className="text-2xl font-display">
+                  {form.full_name?.charAt(0)?.toUpperCase() || '?'}
+                </AvatarFallback>
+              </Avatar>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                capture="environment"
+                className="hidden"
+                onChange={handleAvatarUpload}
+              />
+              <Button
+                variant="outline"
+                size="icon"
+                className="absolute -bottom-1 -right-1 h-8 w-8 rounded-full shadow-md"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploading}
+              >
+                {uploading ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
                   <Camera className="h-4 w-4" />
-                </Button>
-              </div>
+                )}
+              </Button>
+            </div>
+            <div>
+              <p className="font-medium">{form.full_name || 'Seu nome'}</p>
+              <p className="text-sm text-muted-foreground">
+                Clique no ícone da câmera para alterar a foto
+              </p>
             </div>
           </div>
 
