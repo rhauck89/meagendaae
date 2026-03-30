@@ -590,6 +590,7 @@ export type Database = {
       reviews: {
         Row: {
           appointment_id: string
+          barbershop_rating: number | null
           client_id: string | null
           comment: string | null
           company_id: string
@@ -600,6 +601,7 @@ export type Database = {
         }
         Insert: {
           appointment_id: string
+          barbershop_rating?: number | null
           client_id?: string | null
           comment?: string | null
           company_id: string
@@ -610,6 +612,7 @@ export type Database = {
         }
         Update: {
           appointment_id?: string
+          barbershop_rating?: number | null
           client_id?: string | null
           comment?: string | null
           company_id?: string
@@ -1135,10 +1138,24 @@ export type Database = {
         Args: { _company_id: string }
         Returns: undefined
       }
-      submit_review: {
-        Args: { p_appointment_id: string; p_comment?: string; p_rating: number }
-        Returns: string
-      }
+      submit_review:
+        | {
+            Args: {
+              p_appointment_id: string
+              p_comment?: string
+              p_rating: number
+            }
+            Returns: string
+          }
+        | {
+            Args: {
+              p_appointment_id: string
+              p_barbershop_rating?: number
+              p_comment?: string
+              p_rating: number
+            }
+            Returns: string
+          }
     }
     Enums: {
       app_role: "super_admin" | "professional" | "collaborator" | "client"
@@ -1167,6 +1184,7 @@ export type Database = {
         | "slot_available"
         | "appointment_reminder_24h"
         | "appointment_reminder_3h"
+        | "review_request"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1322,6 +1340,7 @@ export const Constants = {
         "slot_available",
         "appointment_reminder_24h",
         "appointment_reminder_3h",
+        "review_request",
       ],
     },
   },

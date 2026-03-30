@@ -16,10 +16,9 @@ Deno.serve(async (req) => {
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, serviceRoleKey);
 
-    // Get companies with reminders enabled and their timezones
     const { data: companies } = await supabase
       .from("companies")
-      .select("id, timezone")
+      .select("id, timezone, slug, business_type")
       .eq("reminders_enabled", true);
 
     if (!companies || companies.length === 0) {
@@ -33,9 +32,6 @@ Deno.serve(async (req) => {
 
     for (const company of companies) {
       const tz = company.timezone || "America/Sao_Paulo";
-
-      // Calculate "now" in the company's timezone perspective
-      // We use UTC for DB queries but the concept is: appointments are stored in UTC
       const now = new Date();
       const in3h = new Date(now.getTime() + 3 * 60 * 60 * 1000);
       const in24h = new Date(now.getTime() + 24 * 60 * 60 * 1000);
@@ -63,7 +59,6 @@ Deno.serve(async (req) => {
             .containedBy("payload", { appointment_id: apt.id });
 
           if (count && count > 0) continue;
-
           await fireReminderWebhook(supabase, apt, "appointment_reminder_24h", tz);
           totalSent++;
         }
@@ -91,8 +86,108 @@ Deno.serve(async (req) => {
             .containedBy("payload", { appointment_id: apt.id });
 
           if (count && count > 0) continue;
-
           await fireReminderWebhook(supabase, apt, "appointment_reminder_3h", tz);
+          totalSent++;
+        }
+      }
+
+      // --- Review requests (appointments completed or past end_time) ---
+      // Find appointments that ended up to 2 hours ago OR were marked as completed
+      const twoHoursAgo = new Date(now.getTime() - 2 * 60 * 60 * 1000);
+
+      const { data: completedAppts } = await supabase
+        .from("appointments")
+        .select(
+          "*, client:clients!appointments_client_id_fkey(name, whatsapp), professional:profiles!appointments_professional_id_fkey(full_name), appointment_services(service:services(name))"
+        )
+        .eq("company_id", company.id)
+        .in("status", ["completed", "confirmed"])
+        .lte("end_time", now.toISOString())
+        .gte("end_time", twoHoursAgo.toISOString());
+
+      if (completedAppts) {
+        for (const apt of completedAppts) {
+          // Skip if no client WhatsApp
+          if (!apt.client?.whatsapp) continue;
+
+          // Skip if already sent review_request for this appointment
+          const { count: reviewCount } = await supabase
+            .from("webhook_events")
+            .select("*", { count: "exact", head: true })
+            .eq("company_id", apt.company_id)
+            .eq("event_type", "review_request")
+            .containedBy("payload", { appointment_id: apt.id });
+
+          if (reviewCount && reviewCount > 0) continue;
+
+          // Skip if already reviewed
+          const { count: existingReview } = await supabase
+            .from("reviews")
+            .select("*", { count: "exact", head: true })
+            .eq("appointment_id", apt.id);
+
+          if (existingReview && existingReview > 0) continue;
+
+          // Build the review URL
+          const baseUrl = Deno.env.get("SITE_URL") || `${supabaseUrl.replace('.supabase.co', '.lovable.app')}`;
+          const reviewUrl = `${baseUrl}/review/${apt.id}`;
+
+          const clientName = apt.client?.name || apt.client_name || "Cliente";
+          const professionalName = apt.professional?.full_name || "Profissional";
+          const companyName = company.slug || "nosso estabelecimento";
+
+          const whatsappMessage = `Olá ${clientName}! 👋\n\nSeu atendimento na ${companyName} acabou de ser finalizado.\n\nComo foi sua experiência com ${professionalName}?\n\nAvalie seu atendimento:\n\n⭐ Avaliar agora\n${reviewUrl}`;
+
+          const payload = {
+            event: "review_request",
+            appointment_id: apt.id,
+            company_id: apt.company_id,
+            client_id: apt.client_id,
+            client_name: clientName,
+            client_whatsapp: apt.client?.whatsapp || "",
+            professional_name: professionalName,
+            service_name: getServiceNames(apt),
+            review_url: reviewUrl,
+            whatsapp_message: whatsappMessage,
+            appointment_date: formatDateInTz(apt.start_time, tz),
+            appointment_time: formatTimeInTz(apt.start_time, tz),
+            timezone: tz,
+          };
+
+          const { data: configs } = await supabase
+            .from("webhook_configs")
+            .select("url")
+            .eq("company_id", apt.company_id)
+            .eq("event_type", "review_request")
+            .eq("active", true);
+
+          const status = configs && configs.length > 0 ? "sent" : "no_config";
+
+          await supabase.from("webhook_events").insert({
+            company_id: apt.company_id,
+            event_type: "review_request",
+            payload,
+            status,
+          });
+
+          for (const config of configs || []) {
+            try {
+              const resp = await fetch(config.url, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload),
+              });
+              await supabase
+                .from("webhook_events")
+                .update({ response_code: resp.status, status: "sent" })
+                .eq("company_id", apt.company_id)
+                .eq("event_type", "review_request")
+                .containedBy("payload", { appointment_id: apt.id });
+            } catch (err) {
+              console.error(`Review webhook failed: ${config.url}`, err);
+            }
+          }
+
           totalSent++;
         }
       }
