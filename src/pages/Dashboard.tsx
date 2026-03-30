@@ -48,7 +48,7 @@ const Dashboard = () => {
   const [viewMode, setViewMode] = useState<ViewMode>('day');
   const [currentDate, setCurrentDate] = useState(new Date());
   const [appointments, setAppointments] = useState<any[]>([]);
-  const [stats, setStats] = useState({ total: 0, revenue: 0, clients: 0 });
+  const [stats, setStats] = useState({ total: 0, revenue: 0, revenueCompleted: 0, clients: 0 });
   const [returnStats, setReturnStats] = useState<ReturnStats>({ onTime: 0, approaching: 0, overdue: 0, approachingClients: [], overdueClients: [] });
   const [waitlistCount, setWaitlistCount] = useState(0);
   const [reminderCount, setReminderCount] = useState(0);
@@ -170,7 +170,8 @@ const Dashboard = () => {
       const todayAppts = data.filter((a) => isSameDay(parseISO(a.start_time), new Date()));
       setStats({
         total: todayAppts.length,
-        revenue: todayAppts.filter((a) => a.status !== 'cancelled').reduce((sum, a) => sum + Number(a.total_price), 0),
+        revenue: todayAppts.filter((a) => a.status === 'confirmed' || a.status === 'completed').reduce((sum, a) => sum + Number(a.total_price), 0),
+        revenueCompleted: todayAppts.filter((a) => a.status === 'completed').reduce((sum, a) => sum + Number(a.total_price), 0),
         clients: new Set(todayAppts.map((a) => a.client_id)).size,
       });
     }
@@ -336,7 +337,7 @@ const Dashboard = () => {
   return (
     <div className="space-y-6">
       {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
         <Card>
           <CardContent className="p-4 flex items-center gap-4">
             <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
@@ -354,9 +355,22 @@ const Dashboard = () => {
               <DollarSign className="h-6 w-6 text-success" />
             </div>
             <div>
-              <p className="text-sm text-muted-foreground">Receita hoje</p>
+              <p className="text-sm text-muted-foreground">Receita estimada</p>
               <p className="text-2xl font-display font-bold">
                 R$ {stats.revenue.toFixed(2)}
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4 flex items-center gap-4">
+            <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
+              <DollarSign className="h-6 w-6 text-primary" />
+            </div>
+            <div>
+              <p className="text-sm text-muted-foreground">Receita realizada</p>
+              <p className="text-2xl font-display font-bold">
+                R$ {stats.revenueCompleted.toFixed(2)}
               </p>
             </div>
           </CardContent>
