@@ -1044,6 +1044,10 @@ export type Database = {
       }
     }
     Functions: {
+      cancel_appointment_public: {
+        Args: { p_appointment_id: string }
+        Returns: Json
+      }
       create_appointment:
         | {
             Args: {
@@ -1147,6 +1151,14 @@ export type Database = {
       }
       register_delay: {
         Args: { p_appointment_id: string; p_delay_minutes: number }
+        Returns: Json
+      }
+      reschedule_appointment: {
+        Args: {
+          p_appointment_id: string
+          p_new_end: string
+          p_new_start: string
+        }
         Returns: Json
       }
       submit_review:
