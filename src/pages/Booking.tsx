@@ -1081,7 +1081,8 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
 
           const waUrl = () => {
             const phone = bookingResult.companyPhone?.replace(/\D/g, '') || '';
-            return `https://wa.me/${phone.startsWith('55') ? phone : '55' + phone}?text=${encodeURIComponent(`Olá! Confirmando meu agendamento:\n📅 ${format(bookingResult.date, "dd/MM/yyyy")} às ${bookingResult.time}\n✂️ ${bookingResult.serviceNames.join(', ')}\n👤 ${bookingResult.professionalName}\n💰 R$ ${bookingResult.totalPrice.toFixed(2)}`)}`;
+            const msg = `Olá! 👋\n\nConfirmando meu agendamento na ${bookingResult.companyName}:\n\n📅 Data: ${format(bookingResult.date, "dd/MM/yyyy")}\n⏰ Horário: ${bookingResult.time}\n✂️ Serviço: ${bookingResult.serviceNames.join(', ')}\n💈 Profissional: ${bookingResult.professionalName}\n💰 Valor: R$ ${bookingResult.totalPrice.toFixed(2)}\n\nObrigado!`;
+            return `https://wa.me/${phone.startsWith('55') ? phone : '55' + phone}?text=${encodeURIComponent(msg)}`;
           };
 
           const resetBooking = () => {
