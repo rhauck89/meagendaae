@@ -58,6 +58,8 @@ const Dashboard = () => {
   const [collaboratorsList, setCollaboratorsList] = useState<any[]>([]);
   const [delayDialogOpen, setDelayDialogOpen] = useState(false);
   const [delayTargetId, setDelayTargetId] = useState<string | null>(null);
+  const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
+  const [cancelTarget, setCancelTarget] = useState<any>(null);
   const [delayLoading, setDelayLoading] = useState(false);
 
   useEffect(() => {
