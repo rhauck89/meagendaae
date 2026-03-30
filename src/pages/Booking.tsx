@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Calendar } from '@/components/ui/calendar';
-import { Scissors, Sparkles, Clock, DollarSign, ChevronRight, ChevronLeft, CheckCircle2, Bell, Zap, CalendarPlus, MessageCircle, RotateCcw, Home, User, Phone, Mail, CreditCard, Cake, Star, MapPin } from 'lucide-react';
+import { Scissors, Sparkles, Clock, DollarSign, ChevronRight, ChevronLeft, CheckCircle2, Bell, Zap, CalendarPlus, MessageCircle, RotateCcw, Home, User, Phone, Mail, CreditCard, Cake, MapPin } from 'lucide-react';
 import { format, addMinutes, addDays, isToday, isTomorrow, startOfDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
@@ -61,6 +61,20 @@ const filterOverlappingSlots = (
       return appointmentStart < slotEnd && appointmentEndWithBuffer > slotStart;
     });
   });
+};
+
+// ─── Premium Theme Tokens ───
+const T = {
+  bg: '#0B132B',
+  card: '#111827',
+  cardHover: '#1a2332',
+  accent: '#F59E0B',
+  accentHover: '#D97706',
+  text: '#FFFFFF',
+  textSec: '#9CA3AF',
+  border: '#1F2937',
+  green: 'rgba(34,197,94,0.15)',
+  greenText: '#4ADE80',
 };
 
 const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
@@ -165,46 +179,28 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
     if (companyRes.data) setBufferMinutes((companyRes.data as any).buffer_minutes || 0);
     if (settingsRes.data) {
       setCompanySettings(settingsRes.data);
-      // Use settings buffer if available
       if ((settingsRes.data as any).booking_buffer_minutes > 0) {
         setBufferMinutes((settingsRes.data as any).booking_buffer_minutes);
       }
     }
 
-    // If professional slug provided, auto-select professional
     if (professionalSlug) {
       console.log('[Booking] Resolving professional by slug', { companyId: comp.id, professionalSlug });
-
-      // Use public_professionals view (no PII exposed)
       const { data: pubProfs, error: collabErr } = await supabase
         .from('public_professionals' as any)
         .select('*')
         .eq('company_id', comp.id)
         .eq('slug', professionalSlug);
 
-      console.log('[Booking] Professional slug resolution', {
-        slug: professionalSlug,
-        found: pubProfs?.length ?? 0,
-        error: collabErr?.message,
-        results: pubProfs?.map((p: any) => ({ id: p.id, slug: p.slug, name: p.name })),
-      });
-
       if (pubProfs && (pubProfs as any[]).length > 0) {
         const prof = (pubProfs as any[])[0];
         const profileId = prof.id as string;
         setSelectedProfessional(profileId);
 
-        // Fetch professional-specific services
         const { data: profServices } = await supabase
           .from('service_professionals')
           .select('service_id, price_override')
           .eq('professional_id', profileId);
-
-        console.log('[Booking] Professional services', {
-          professional: prof.name,
-          servicesLinked: profServices?.length ?? 0,
-          serviceIds: profServices?.map((ps: any) => ps.service_id),
-        });
 
         if (profServices && profServices.length > 0) {
           const profServiceIds = profServices.map((ps: any) => ps.service_id);
@@ -215,9 +211,7 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
           });
           setServices(withOverrides);
         }
-        // If no service_professionals links, keep all company services (already set above)
 
-        // Fetch professional hours
         const { data: profHours } = await supabase
           .from('professional_working_hours' as any)
           .select('*')
@@ -227,28 +221,18 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
         }
 
         setProfessionals([{ id: prof.id, full_name: prof.name, avatar_url: prof.avatar_url }]);
-      } else {
-        console.warn('[Booking] Professional slug not found, showing all professionals');
       }
     }
   };
 
   const fetchProfessionals = async (): Promise<any[]> => {
     if (!company) return [];
-    console.log('[Booking] fetchProfessionals called', { company_id: company.id, selectedServices });
 
-    // Use public_professionals view (accessible without auth, no PII exposed)
-    const { data: pubProfs, error: pubError } = await supabase
+    const { data: pubProfs } = await supabase
       .from('public_professionals' as any)
       .select('*')
       .eq('company_id', company.id)
       .eq('active', true);
-
-    console.log('[Booking] public_professionals query', {
-      found: pubProfs?.length ?? 0,
-      error: pubError?.message,
-      data: pubProfs,
-    });
 
     let allProfs = ((pubProfs as any[]) || []).map((p: any) => ({
       id: p.id,
@@ -260,18 +244,11 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
 
     let mappedProfs: any[] = [];
 
-    // If services are selected, filter by service_professionals linkage
     if (selectedServices.length > 0) {
-      const { data: spData, error: spError } = await supabase
+      const { data: spData } = await supabase
         .from('service_professionals')
         .select('professional_id, service_id')
         .in('service_id', selectedServices);
-
-      console.log('[Booking] service_professionals query', {
-        selectedServices,
-        found: spData?.length ?? 0,
-        error: spError?.message,
-      });
 
       if (spData && spData.length > 0) {
         const profServiceMap = new Map<string, Set<string>>();
@@ -281,33 +258,22 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
           }
           profServiceMap.get(sp.professional_id)!.add(sp.service_id);
         }
-
         const linkedProfIds = [...profServiceMap.entries()]
           .filter(([, serviceIds]) => selectedServices.every((sid) => serviceIds.has(sid)))
           .map(([pid]) => pid);
-
         mappedProfs = allProfs.filter((p) => linkedProfIds.includes(p.id));
       }
 
-      // Fallback: if no service_professionals links, use all professionals
       if (mappedProfs.length === 0) {
-        console.warn('[Booking] No service_professionals found, falling back to all professionals');
         mappedProfs = allProfs;
-
-        // Auto-link services to professionals
         const autoLinks: any[] = [];
         for (const prof of mappedProfs) {
           for (const svcId of selectedServices) {
-            autoLinks.push({
-              service_id: svcId,
-              professional_id: prof.id,
-              company_id: company.id,
-            });
+            autoLinks.push({ service_id: svcId, professional_id: prof.id, company_id: company.id });
           }
         }
         if (autoLinks.length > 0) {
           await supabase.from('service_professionals').insert(autoLinks as any);
-          console.log('[Booking] Auto-linked', autoLinks.length, 'service-professional pairs');
         }
       }
     } else {
@@ -315,11 +281,8 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
     }
 
     setProfessionals(mappedProfs);
-    console.log('[Booking] Professionals loaded:', { count: mappedProfs.length, professionals: mappedProfs });
 
-    // Auto-select if only one professional
     if (mappedProfs.length === 1) {
-      console.log('[Booking] Auto-selecting single professional', mappedProfs[0].id);
       setSelectedProfessional(mappedProfs[0].id);
       fetchProfessionalHours(mappedProfs[0].id);
     }
@@ -355,7 +318,6 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
 
   const fetchBookingAppointments = async (date: Date, professionalId: string) => {
     if (!company) return [] as ExistingAppointment[];
-
     const dateStr = format(date, 'yyyy-MM-dd');
     const { data, error } = await (supabase as any).rpc('get_booking_appointments', {
       p_company_id: company.id,
@@ -363,46 +325,15 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
       p_selected_date: dateStr,
       p_timezone: bookingTimezone,
     });
-
-    if (error) {
-      throw error;
-    }
-
-    const appointments = ((data as ExistingAppointment[] | null) || []).map((appointment) => ({
-      start_time: appointment.start_time,
-      end_time: appointment.end_time,
+    if (error) throw error;
+    return ((data as ExistingAppointment[] | null) || []).map((a) => ({
+      start_time: a.start_time,
+      end_time: a.end_time,
     }));
-
-    console.log('[Booking] Appointments used for slot filtering', {
-      date: dateStr,
-      professional: professionalId,
-      timezone: bookingTimezone,
-      appointments,
-    });
-
-    return appointments;
   };
 
   const calculateSlots = async (date: Date) => {
-    if (!company) return;
-    if (!selectedProfessional) {
-      console.log('No professional selected yet');
-      return;
-    }
-
-    // Data-ready guard: ensure we have business hours loaded
-    if (businessHours.length === 0) {
-      console.warn('[Booking] calculateSlots skipped: businessHours not loaded yet');
-      return;
-    }
-
-    // Data-ready guard: ensure totalDuration is valid
-    if (totalDuration <= 0) {
-      console.warn('[Booking] calculateSlots skipped: totalDuration is 0', {
-        selectedServices,
-        loadedServiceIds: services.map(s => s.id),
-        matchedServices: services.filter(s => selectedServices.includes(s.id)).map(s => ({ id: s.id, name: s.name, duration: s.duration_minutes })),
-      });
+    if (!company || !selectedProfessional || businessHours.length === 0 || totalDuration <= 0) {
       setAvailableSlots([]);
       setSlotsLoading(false);
       return;
@@ -425,24 +356,7 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
         .eq('professional_id', selectedProfessional)
         .eq('block_date', dateStr);
 
-      console.log('[Booking] calculateSlots input', {
-        date: dateStr,
-        professional: selectedProfessional,
-        totalDuration,
-        selectedServices,
-        timezone: bookingTimezone,
-        businessHoursCount: businessHours.length,
-        professionalHoursCount: professionalHours.length,
-        businessHoursDays: businessHours.map(h => ({ day: h.day_of_week, open: h.open_time, close: h.close_time, closed: h.is_closed })),
-        professionalHoursDays: professionalHours.map(h => ({ day: h.day_of_week, open: h.open_time, close: h.close_time, closed: h.is_closed })),
-        existingAppts: existingAppointments.length,
-        blockedTimes: blockedTimesData?.length ?? 0,
-        bufferMinutes,
-      });
-
-      if (requestId !== slotRequestRef.current) {
-        return;
-      }
+      if (requestId !== slotRequestRef.current) return;
 
       setAppointmentsForSelectedDate(existingAppointments);
       setAppointmentsLoaded(true);
@@ -460,37 +374,17 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
         professionalId: selectedProfessional,
       });
 
-      console.log('Generated slots:', engineSlots);
-
-      if (requestId !== slotRequestRef.current) {
-        return;
-      }
-
+      if (requestId !== slotRequestRef.current) return;
       setGeneratedSlots(engineSlots);
 
       let filteredSlots = filterOverlappingSlots(engineSlots, existingAppointments, totalDuration, bufferMinutes, bookingTimezone);
 
-      console.log('[Booking] Filtered overlapping slots', {
-        before: engineSlots.length,
-        after: filteredSlots.length,
-        existingAppointments: existingAppointments.length,
-        bufferMinutes,
-        totalDuration,
-      });
-
       if (isToday(date)) {
         const currentTime = format(new Date(), 'HH:mm');
-        const beforeFilter = filteredSlots.length;
         filteredSlots = filteredSlots.filter(s => s > currentTime);
-        console.log('[Booking] Filtered past slots for today', { before: beforeFilter, after: filteredSlots.length, currentTime });
       }
 
-      console.log('[Booking] calculateSlots result', { slotsFound: filteredSlots.length, firstSlots: filteredSlots.slice(0, 5) });
-
-      if (requestId !== slotRequestRef.current) {
-        return;
-      }
-
+      if (requestId !== slotRequestRef.current) return;
       setAvailableSlots(filteredSlots);
     } catch (error) {
       console.error('[Booking] Failed to load appointments for slot calculation', error);
@@ -499,9 +393,7 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
       setAvailableSlots([]);
       setGeneratedSlots([]);
     } finally {
-      if (requestId === slotRequestRef.current) {
-        setSlotsLoading(false);
-      }
+      if (requestId === slotRequestRef.current) setSlotsLoading(false);
     }
   };
 
@@ -515,47 +407,29 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
 
   useEffect(() => {
     if (selectedDate && selectedProfessional && company && businessHours.length > 0 && totalDuration > 0) {
-      console.log('[Booking] Slot calculation useEffect triggered', {
-        selectedDate: format(selectedDate, 'yyyy-MM-dd'),
-        selectedProfessional,
-        selectedServices,
-        businessHoursCount: businessHours.length,
-        professionalHoursCount: professionalHours.length,
-        totalDuration,
-        availableSlotsCurrently: availableSlots.length,
-      });
       calculateSlots(selectedDate);
     }
   }, [selectedDate, selectedProfessional, selectedServices, professionalHours, businessHours, totalDuration, company]);
 
   useEffect(() => {
-    console.log('availableSlots state:', availableSlots);
-  }, [availableSlots]);
-
-  useEffect(() => {
     if (professionals.length === 1 && selectedProfessional !== professionals[0].id) {
       setSelectedProfessional(professionals[0].id);
       fetchProfessionalHours(professionals[0].id);
-      if (step === 'professional') {
-        setStep('datetime');
-      }
+      if (step === 'professional') setStep('datetime');
     }
   }, [professionals, selectedProfessional, step]);
 
-  // Fetch next available slots across 7 days
   const fetchNextAvailableSlots = async () => {
     if (!company || !selectedProfessional || businessHours.length === 0 || totalDuration <= 0) {
       setNextSlots([]);
       return;
     }
-
     setNextSlotsLoading(true);
     const results: { date: Date; slots: string[] }[] = [];
     let totalSlotsFound = 0;
     const MAX_SLOTS = 8;
     const MAX_DAYS = 7;
     const now = new Date();
-
     for (let i = 0; i < MAX_DAYS && totalSlotsFound < MAX_SLOTS; i++) {
       const day = addDays(startOfDay(new Date()), i);
       const dateStr = format(day, 'yyyy-MM-dd');
@@ -566,28 +440,18 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
         .eq('company_id', company.id)
         .eq('professional_id', selectedProfessional)
         .eq('block_date', dateStr);
-
       let slots = calculateAvailableSlots({
-        date: day,
-        totalDuration,
-        businessHours,
-        exceptions,
-        existingAppointments,
-        slotInterval: 15,
-        bufferMinutes,
+        date: day, totalDuration, businessHours, exceptions, existingAppointments,
+        slotInterval: 15, bufferMinutes,
         professionalHours: professionalHours.length > 0 ? professionalHours : undefined,
         blockedTimes: ((blockedData || []) as unknown as BlockedTime[]),
         professionalId: selectedProfessional,
       });
-
       slots = filterOverlappingSlots(slots, existingAppointments, totalDuration, bufferMinutes, bookingTimezone);
-
-      // Filter past times for today
       if (isToday(day)) {
         const currentTime = format(now, 'HH:mm');
         slots = slots.filter(s => s > currentTime);
       }
-
       if (slots.length > 0) {
         const remaining = MAX_SLOTS - totalSlotsFound;
         const daySlots = slots.slice(0, remaining);
@@ -595,12 +459,10 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
         totalSlotsFound += daySlots.length;
       }
     }
-
     setNextSlots(results);
     setNextSlotsLoading(false);
   };
 
-  // Trigger next-slots calculation when professional is selected and services are chosen
   useEffect(() => {
     if (selectedProfessional && businessHours.length > 0 && totalDuration > 0 && step !== 'client' && step !== 'confirm') {
       fetchNextAvailableSlots();
@@ -619,7 +481,6 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
     try {
       let userId: string;
       const { data: existingSession } = await supabase.auth.getSession();
-
       if (existingSession?.session?.user) {
         userId = existingSession.session.user.id;
       } else {
@@ -636,7 +497,6 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
         });
         if (error) throw error;
         userId = authData.user!.id;
-
         await supabase.from('profiles').update({
           company_id: company.id,
           whatsapp: formatWhatsApp(clientForm.whatsapp),
@@ -644,25 +504,14 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
           opt_in_whatsapp: optInWhatsapp,
           opt_in_date: optInWhatsapp ? new Date().toISOString() : null,
         } as any).eq('user_id', userId);
-
-        await supabase.from('user_roles').insert({
-          user_id: userId,
-          company_id: company.id,
-          role: 'client' as const,
-        });
+        await supabase.from('user_roles').insert({ user_id: userId, company_id: company.id, role: 'client' as const });
       }
-
       const { data: profile } = await supabase.from('profiles').select('id').eq('user_id', userId).single();
       if (!profile) throw new Error('Profile not found');
-
       await supabase.from('waiting_list').insert({
-        company_id: company.id,
-        client_id: profile.id,
-        service_ids: selectedServices,
-        professional_id: selectedProfessional,
-        desired_date: format(selectedDate, 'yyyy-MM-dd'),
+        company_id: company.id, client_id: profile.id, service_ids: selectedServices,
+        professional_id: selectedProfessional, desired_date: format(selectedDate, 'yyyy-MM-dd'),
       });
-
       toast.success('Você foi adicionado à lista de espera!');
       setStep('services');
       setSelectedServices([]);
@@ -681,34 +530,17 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
     setLoading(true);
     try {
       const formattedWhatsapp = clientForm.whatsapp ? formatWhatsApp(clientForm.whatsapp) : null;
-
-      // Always create/retrieve the client through the RPC right before booking.
-      // Never trust or assume a frontend client_id for appointment creation.
       const { data: clientIdFromRpc, error: clientError } = await supabase.rpc('create_client', {
-        p_name: clientForm.full_name,
-        p_cpf: clientForm.cpf || '',
-        p_whatsapp: formattedWhatsapp || '',
-        p_email: clientForm.email || '',
-        p_company_id: company.id,
+        p_name: clientForm.full_name, p_cpf: clientForm.cpf || '', p_whatsapp: formattedWhatsapp || '',
+        p_email: clientForm.email || '', p_company_id: company.id,
       });
-
       if (clientError) throw clientError;
-
-      console.log('CLIENT ID FROM RPC:', clientIdFromRpc);
-
-      // Always use only the id returned by create_client.
-      // Never reuse/generated ids from the frontend for appointment creation.
       const clientId = clientIdFromRpc;
-
-      // Persist client_id and form data in localStorage
       if (clientId) {
         localStorage.setItem(`client_id_${company.id}`, clientId);
         localStorage.setItem(`client_data_${company.id}`, JSON.stringify({
-          full_name: clientForm.full_name,
-          email: clientForm.email || '',
-          whatsapp: clientForm.whatsapp || '',
-          cpf: clientForm.cpf || '',
-          opt_in_whatsapp: optInWhatsapp,
+          full_name: clientForm.full_name, email: clientForm.email || '', whatsapp: clientForm.whatsapp || '',
+          cpf: clientForm.cpf || '', opt_in_whatsapp: optInWhatsapp,
         }));
         setSavedClientId(clientId);
       }
@@ -717,123 +549,58 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
       const startTime = new Date(selectedDate);
       startTime.setHours(h, m, 0, 0);
       const endTime = addMinutes(startTime, totalDuration);
-
-      // Guard: client_id is required
-      if (!clientId) {
-        throw new Error('Cadastro do cliente falhou. Tente novamente.');
-      }
-
-      const clientName = clientForm.full_name;
-      const clientWhatsapp = clientForm.whatsapp ? formatWhatsApp(clientForm.whatsapp) : null;
-      const notes = null;
-
-      console.log("CLIENT ID BEFORE BOOKING:", clientId);
-      console.log("====== BOOKING DEBUG START ======");
-      console.log("CLIENT ID:", clientId);
-      console.log("PROFESSIONAL ID:", selectedProfessional);
-      console.log("SELECTED DATE:", selectedDate);
-      console.log("START TIME:", startTime);
-      console.log("END TIME:", endTime);
-      console.log("TOTAL PRICE:", totalPrice);
+      if (!clientId) throw new Error('Cadastro do cliente falhou. Tente novamente.');
 
       const appointmentPayload = {
-        p_professional_id: selectedProfessional,
-        p_client_id: clientId,
-        p_start_time: startTime,
-        p_end_time: endTime,
-        p_total_price: totalPrice,
-        p_client_name: clientName ?? null,
-        p_client_whatsapp: clientWhatsapp ?? null,
-        p_notes: notes ?? null,
+        p_professional_id: selectedProfessional, p_client_id: clientId,
+        p_start_time: startTime, p_end_time: endTime, p_total_price: totalPrice,
+        p_client_name: clientForm.full_name ?? null,
+        p_client_whatsapp: formattedWhatsapp ?? null,
+        p_notes: null as string | null,
       };
 
-      console.log("APPOINTMENT PAYLOAD:", appointmentPayload);
-      console.log("====== BOOKING DEBUG END ======");
-
-      // Create appointment via secure RPC (bypasses RLS)
       const { data: appointmentId, error: aptError } = await supabase
         .rpc('create_appointment' as any, appointmentPayload as any);
-
       if (aptError) throw aptError;
       if (!appointmentId) throw new Error('Falha ao criar agendamento');
 
-      // Insert appointment services via secure RPC
       const aptServicesPayload = selectedServices.map((sid) => {
         const svc = services.find((s) => s.id === sid)!;
-        return {
-          service_id: sid,
-          price: Number(svc.price),
-          duration_minutes: svc.duration_minutes,
-        };
+        return { service_id: sid, price: Number(svc.price), duration_minutes: svc.duration_minutes };
       });
+      await supabase.rpc('create_appointment_services', { p_appointment_id: appointmentId, p_services: aptServicesPayload });
 
-      const { error: svcError } = await supabase.rpc('create_appointment_services', {
-        p_appointment_id: appointmentId,
-        p_services: aptServicesPayload,
-      });
-      if (svcError) console.warn('[Booking] appointment_services insert warning:', svcError);
-
-      const appointment = { id: appointmentId };
-
-      // Fire appointment_created webhook
+      // Fire webhooks
       try {
         const { data: webhookConfigs } = await supabase
-          .from('webhook_configs')
-          .select('url')
-          .eq('company_id', company.id)
-          .eq('event_type', 'appointment_created')
-          .eq('active', true);
-
+          .from('webhook_configs').select('url')
+          .eq('company_id', company.id).eq('event_type', 'appointment_created').eq('active', true);
         const professionalProfile = professionals.find((p) => p.id === selectedProfessional);
         const serviceNames = selectedServices.map((sid) => services.find((s) => s.id === sid)?.name).filter(Boolean);
-
         const createdPayload = {
-          event: 'appointment_created',
-          appointment_id: appointment.id,
-          company_id: company.id,
-          client_name: clientForm.full_name,
-          client_whatsapp: formatWhatsApp(clientForm.whatsapp),
-          client_email: clientForm.email,
-          professional_name: professionalProfile?.full_name || '',
-          service_name: serviceNames.join(', '),
-          services: serviceNames,
-          appointment_date: format(startTime, 'yyyy-MM-dd'),
-          appointment_time: format(startTime, 'HH:mm'),
-          start_time: startTime.toISOString(),
-          end_time: endTime.toISOString(),
-          total_price: totalPrice,
+          event: 'appointment_created', appointment_id: appointmentId, company_id: company.id,
+          client_name: clientForm.full_name, client_whatsapp: formatWhatsApp(clientForm.whatsapp),
+          client_email: clientForm.email, professional_name: professionalProfile?.full_name || '',
+          service_name: serviceNames.join(', '), services: serviceNames,
+          appointment_date: format(startTime, 'yyyy-MM-dd'), appointment_time: format(startTime, 'HH:mm'),
+          start_time: startTime.toISOString(), end_time: endTime.toISOString(), total_price: totalPrice,
         };
-
         await supabase.from('webhook_events').insert({
-          company_id: company.id,
-          event_type: 'appointment_created' as any,
-          payload: createdPayload,
-          status: webhookConfigs && webhookConfigs.length > 0 ? 'sent' : 'no_config',
+          company_id: company.id, event_type: 'appointment_created' as any,
+          payload: createdPayload, status: webhookConfigs && webhookConfigs.length > 0 ? 'sent' : 'no_config',
         });
-
         for (const config of webhookConfigs || []) {
-          fetch(config.url, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(createdPayload),
-          }).catch(() => {});
+          fetch(config.url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(createdPayload) }).catch(() => {});
         }
-      } catch (webhookErr) {
-        // webhook failures are non-critical
-      }
+      } catch (webhookErr) { /* non-critical */ }
 
       const professionalProfile = professionals.find((p) => p.id === selectedProfessional);
       const bookedServiceNames = selectedServices.map((sid) => services.find((s) => s.id === sid)?.name).filter(Boolean) as string[];
-
       setBookingResult({
         professionalName: professionalProfile?.full_name || 'Profissional',
         professionalAvatar: professionalProfile?.avatar_url || null,
-        serviceNames: bookedServiceNames,
-        date: selectedDate,
-        time: selectedTime,
-        totalPrice,
-        totalDuration,
-        companyName: company.name,
+        serviceNames: bookedServiceNames, date: selectedDate, time: selectedTime,
+        totalPrice, totalDuration, companyName: company.name,
         companyPhone: company.phone || companySettings?.whatsapp_number || null,
       });
       setStep('success');
@@ -844,57 +611,46 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
     }
   };
 
+  // ─── Loading State ───
   if (!company) {
     return (
-      <div className={cn('min-h-screen flex items-center justify-center', isDark ? 'bg-[#1a1a2e] text-white' : 'bg-[#fdf6f0] text-[#3d2c2c]')}>
-        <p className="opacity-60">Carregando...</p>
+      <div className="min-h-screen flex items-center justify-center" style={{ background: T.bg, color: T.text }}>
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-8 h-8 border-2 rounded-full animate-spin" style={{ borderColor: `${T.accent} transparent transparent transparent` }} />
+          <p style={{ color: T.textSec }}>Carregando...</p>
+        </div>
       </div>
     );
   }
 
   const Icon = isDark ? Scissors : Sparkles;
-
-  // Theme classes
-  const bgPage = isDark ? 'bg-[#1a1a2e]' : 'bg-[#fdf6f0]';
-  const textPage = isDark ? 'text-white' : 'text-[#3d2c2c]';
-  const bgHeader = isDark ? 'bg-[#16213e] border-[#2a2a4a]' : 'bg-white/80 border-[#e8ddd4]';
-  const bgCard = isDark ? 'bg-[#16213e] border-[#2a2a4a]' : 'bg-white border-[#e8ddd4]';
-  const bgMuted = isDark ? 'bg-[#2a2a4a]' : 'bg-[#f5ebe0]';
-  const textMuted = isDark ? 'text-gray-400' : 'text-[#8b7e74]';
-  const accentColor = isDark ? 'bg-amber-500 text-black' : 'bg-rose-400 text-white';
-  const accentBorder = isDark ? 'border-amber-500' : 'border-rose-400';
-  const accentText = isDark ? 'text-amber-400' : 'text-rose-500';
-  const accentBg = isDark ? 'bg-amber-500/10' : 'bg-rose-400/10';
-  const iconBg = isDark ? 'bg-amber-500' : 'bg-rose-400';
-
   const skipProfessionalStep = !!professionalSlug || professionals.length === 1;
-
-  // Dynamic branding from company_settings
-  const brandStyle: React.CSSProperties = companySettings?.primary_color
-    ? {
-        '--brand-primary': companySettings.primary_color,
-        '--brand-secondary': companySettings.secondary_color || '#F59E0B',
-      } as React.CSSProperties
-    : {};
-
-  // Use settings logo_url if company doesn't have one
   const displayLogoUrl = company.logo_url || companySettings?.logo_url;
 
+  const stepList: Step[] = skipProfessionalStep
+    ? ['services', 'datetime', 'client', 'confirm']
+    : ['services', 'professional', 'datetime', 'client', 'confirm'];
+  const stepLabels: Record<string, string> = {
+    services: 'Serviços', professional: 'Profissional', datetime: 'Horário', client: 'Dados', confirm: 'Confirmar',
+  };
+  const currentStepIdx = stepList.indexOf(step);
+
+  // ─── Render ───
   return (
-    <div className={cn('min-h-screen', bgPage, textPage)} style={brandStyle}>
+    <div className="min-h-screen" style={{ background: T.bg, color: T.text }}>
       {/* Header */}
-      <header className={cn('border-b', bgHeader)}>
+      <header style={{ background: T.card, borderBottom: `1px solid ${T.border}` }}>
         <div className="max-w-2xl mx-auto px-4 py-4 flex items-center gap-3">
           {displayLogoUrl ? (
-            <img src={displayLogoUrl} alt={company.name} className="w-10 h-10 rounded-xl object-cover" />
+            <img src={displayLogoUrl} alt={company.name} className="w-11 h-11 rounded-2xl object-cover shadow-lg" />
           ) : (
-            <div className={cn('w-10 h-10 rounded-xl flex items-center justify-center', iconBg)}>
-              <Icon className="h-5 w-5 text-white" />
+            <div className="w-11 h-11 rounded-2xl flex items-center justify-center shadow-lg" style={{ background: T.accent }}>
+              <Icon className="h-5 w-5 text-black" />
             </div>
           )}
           <div>
-            <h1 className="font-bold text-lg">{company.name}</h1>
-            <p className={cn('text-xs', textMuted)}>
+            <h1 className="font-bold text-lg tracking-tight">{company.name}</h1>
+            <p className="text-xs" style={{ color: T.textSec }}>
               {businessType === 'barbershop' ? 'Barbearia' : 'Estética'} • Agendamento online
             </p>
           </div>
@@ -902,167 +658,161 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
       </header>
 
       <div className="max-w-2xl mx-auto px-4 py-6 space-y-6">
-        {/* Progress bar */}
-        <div className="flex gap-1">
-          {(skipProfessionalStep
-            ? ['services', 'datetime', 'client', 'confirm'] as Step[]
-            : ['services', 'professional', 'datetime', 'client', 'confirm'] as Step[]
-          ).map((s, i, arr) => {
-            const stepIndex = arr.indexOf(step);
-            return (
-              <div
-                key={s}
-                className={cn(
-                  'h-1 flex-1 rounded-full transition-colors',
-                  i <= stepIndex
-                    ? isDark ? 'bg-amber-500' : 'bg-rose-400'
-                    : isDark ? 'bg-[#2a2a4a]' : 'bg-[#e8ddd4]'
-                )}
-              />
-            );
-          })}
-        </div>
+        {/* Progress */}
+        {step !== 'success' && (
+          <div className="flex items-center gap-1">
+            {stepList.map((s, i) => (
+              <div key={s} className="flex-1 flex flex-col items-center gap-1">
+                <div className="h-1.5 w-full rounded-full transition-all duration-500" style={{ background: i <= currentStepIdx ? T.accent : T.border }} />
+                <span className="text-[10px] font-medium tracking-wide uppercase" style={{ color: i <= currentStepIdx ? T.accent : T.textSec }}>
+                  {stepLabels[s]}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
 
-        {/* Step: Services */}
+        {/* ═══ SERVICES ═══ */}
         {step === 'services' && (
-          <div className="space-y-4">
-            <h2 className="text-xl font-bold">Escolha os serviços</h2>
-            <div className="space-y-2">
-              {services.map((svc) => (
-                <div
-                  key={svc.id}
-                  onClick={() => toggleService(svc.id)}
-                  className={cn(
-                    'p-4 rounded-xl border cursor-pointer transition-all',
-                    bgCard,
-                    selectedServices.includes(svc.id) && accentBorder,
-                    selectedServices.includes(svc.id) && accentBg
-                  )}
-                >
-                  <div className="flex items-center gap-3">
-                    <Checkbox checked={selectedServices.includes(svc.id)} />
-                    <div className="flex-1">
-                      <p className="font-semibold">{svc.name}</p>
-                      <div className={cn('flex gap-3 text-sm', textMuted)}>
-                        <span className="flex items-center gap-1"><Clock className="h-3 w-3" /> {svc.duration_minutes} min</span>
-                        <span className="flex items-center gap-1"><DollarSign className="h-3 w-3" /> R$ {Number(svc.price).toFixed(2)}</span>
+          <div className="space-y-5 animate-fade-in">
+            <div>
+              <h2 className="text-2xl font-bold tracking-tight">Escolha os serviços</h2>
+              <p className="text-sm mt-1" style={{ color: T.textSec }}>Selecione um ou mais serviços desejados</p>
+            </div>
+            <div className="space-y-3">
+              {services.map((svc) => {
+                const sel = selectedServices.includes(svc.id);
+                return (
+                  <div
+                    key={svc.id}
+                    onClick={() => toggleService(svc.id)}
+                    className="p-4 rounded-2xl cursor-pointer transition-all duration-200 hover:scale-[1.01]"
+                    style={{
+                      background: sel ? `${T.accent}10` : T.card,
+                      border: `1.5px solid ${sel ? T.accent : T.border}`,
+                      boxShadow: sel ? `0 0 20px ${T.accent}15` : '0 2px 8px rgba(0,0,0,0.2)',
+                    }}
+                  >
+                    <div className="flex items-center gap-4">
+                      <div className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0" style={{ background: sel ? T.accent : `${T.accent}20` }}>
+                        <Scissors className="h-5 w-5" style={{ color: sel ? '#000' : T.accent }} />
                       </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-semibold text-[15px]">{svc.name}</p>
+                        <span className="flex items-center gap-1 text-sm" style={{ color: T.textSec }}>
+                          <Clock className="h-3.5 w-3.5" /> {svc.duration_minutes} min
+                        </span>
+                      </div>
+                      <p className="font-bold text-lg shrink-0" style={{ color: T.accent }}>R$ {Number(svc.price).toFixed(2)}</p>
                     </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
             {selectedServices.length > 0 && (
-              <div className={cn('flex items-center justify-between p-3 rounded-lg', bgMuted)}>
-                <div className="text-sm">
-                  <span>{selectedServices.length} serviço(s)</span>
-                  <span className="mx-2 opacity-40">•</span>
-                  <span>{totalDuration} min</span>
-                  <span className="mx-2 opacity-40">•</span>
-                  <span className="font-semibold">R$ {totalPrice.toFixed(2)}</span>
+              <div className="flex items-center justify-between p-4 rounded-2xl animate-fade-in" style={{ background: T.card, border: `1px solid ${T.border}` }}>
+                <div className="text-sm" style={{ color: T.textSec }}>
+                  <span className="font-medium" style={{ color: T.text }}>{selectedServices.length}</span> serviço(s)
+                  <span className="mx-2 opacity-30">•</span>{totalDuration} min
+                  <span className="mx-2 opacity-30">•</span>
+                  <span className="font-bold text-base" style={{ color: T.accent }}>R$ {totalPrice.toFixed(2)}</span>
                 </div>
                 <Button
                   onClick={async () => {
-                    if (skipProfessionalStep) {
-                      setStep('datetime');
-                    } else {
-                      const profs = await fetchProfessionals();
-                      if (profs.length === 1) {
-                        // Auto-selected, skip to datetime
-                        setStep('datetime');
-                      } else {
-                        setStep('professional');
-                      }
-                    }
+                    if (skipProfessionalStep) { setStep('datetime'); }
+                    else { const profs = await fetchProfessionals(); setStep(profs.length === 1 ? 'datetime' : 'professional'); }
                   }}
-                  className={cn(isDark ? 'bg-amber-500 hover:bg-amber-600 text-black' : 'bg-rose-400 hover:bg-rose-500 text-white')}
+                  className="rounded-xl px-6 font-semibold shadow-lg transition-all hover:scale-105"
+                  style={{ background: T.accent, color: '#000' }}
                 >
-                  Próximo <ChevronRight className="h-4 w-4 ml-1" />
+                  Continuar <ChevronRight className="h-4 w-4 ml-1" />
                 </Button>
               </div>
             )}
           </div>
         )}
 
-        {/* Step: Professional */}
+        {/* ═══ PROFESSIONAL ═══ */}
         {step === 'professional' && (
-          <div className="space-y-4">
-            <Button variant="ghost" size="sm" onClick={() => setStep('services')} className={textMuted}>
-              <ChevronLeft className="h-4 w-4 mr-1" /> Voltar
-            </Button>
-            <h2 className="text-xl font-bold">Escolha o profissional</h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {professionals.map((p) => (
-                <div
-                  key={p.id}
-                  onClick={() => {
-                    setSelectedProfessional(p.id);
-                    fetchProfessionalHours(p.id);
-                    setStep('datetime');
-                  }}
-                  className={cn(
-                    'p-4 rounded-xl border cursor-pointer transition-all',
-                    bgCard,
-                    selectedProfessional === p.id && accentBorder,
-                    selectedProfessional === p.id && accentBg
-                  )}
-                >
-                  <div className="flex items-center gap-3">
-                    {p.avatar_url ? (
-                      <img src={p.avatar_url} alt={p.full_name} className="w-10 h-10 rounded-full object-cover" />
-                    ) : (
-                      <div className={cn('w-10 h-10 rounded-full flex items-center justify-center font-bold', accentBg, accentText)}>
-                        {p.full_name?.charAt(0)?.toUpperCase()}
+          <div className="space-y-5 animate-fade-in">
+            <button onClick={() => setStep('services')} className="flex items-center gap-1 text-sm font-medium hover:opacity-80" style={{ color: T.textSec }}>
+              <ChevronLeft className="h-4 w-4" /> Voltar
+            </button>
+            <div>
+              <h2 className="text-2xl font-bold tracking-tight">Escolha o profissional</h2>
+              <p className="text-sm mt-1" style={{ color: T.textSec }}>Selecione quem irá atendê-lo</p>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {professionals.map((p) => {
+                const sel = selectedProfessional === p.id;
+                return (
+                  <div
+                    key={p.id}
+                    onClick={() => { setSelectedProfessional(p.id); fetchProfessionalHours(p.id); setStep('datetime'); }}
+                    className="p-5 rounded-2xl cursor-pointer transition-all duration-200 hover:scale-[1.02] text-center"
+                    style={{
+                      background: sel ? `${T.accent}10` : T.card,
+                      border: `1.5px solid ${sel ? T.accent : T.border}`,
+                      boxShadow: sel ? `0 0 24px ${T.accent}20` : '0 2px 12px rgba(0,0,0,0.25)',
+                    }}
+                  >
+                    <div className="flex flex-col items-center gap-3">
+                      {p.avatar_url ? (
+                        <img src={p.avatar_url} alt={p.full_name} className="w-20 h-20 rounded-full object-cover" style={{ border: `3px solid ${sel ? T.accent : T.border}` }} />
+                      ) : (
+                        <div className="w-20 h-20 rounded-full flex items-center justify-center text-2xl font-bold" style={{ background: `${T.accent}20`, color: T.accent }}>
+                          {p.full_name?.charAt(0)?.toUpperCase()}
+                        </div>
+                      )}
+                      <div>
+                        <p className="font-semibold text-base">{p.full_name}</p>
+                        <p className="text-xs mt-0.5" style={{ color: T.textSec }}>Profissional</p>
                       </div>
-                    )}
-                    <p className="font-semibold">{p.full_name}</p>
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         )}
 
-        {/* Step: Date/Time */}
+        {/* ═══ DATE/TIME ═══ */}
         {step === 'datetime' && (
-          <div className="space-y-4">
-            <Button variant="ghost" size="sm" onClick={() => setStep(skipProfessionalStep ? 'services' : 'professional')} className={textMuted}>
-              <ChevronLeft className="h-4 w-4 mr-1" /> Voltar
-            </Button>
-            <h2 className="text-xl font-bold">Escolha data e horário</h2>
+          <div className="space-y-5 animate-fade-in">
+            <button onClick={() => setStep(skipProfessionalStep ? 'services' : 'professional')} className="flex items-center gap-1 text-sm font-medium hover:opacity-80" style={{ color: T.textSec }}>
+              <ChevronLeft className="h-4 w-4" /> Voltar
+            </button>
+            <div>
+              <h2 className="text-2xl font-bold tracking-tight">Escolha data e horário</h2>
+              <p className="text-sm mt-1" style={{ color: T.textSec }}>Selecione o melhor momento para você</p>
+            </div>
 
-            {/* Next Available Slots */}
+            {/* Quick slots */}
             {nextSlots.length > 0 && (
-              <div className={cn('rounded-xl border p-4 space-y-3', bgCard)}>
+              <div className="rounded-2xl p-5 space-y-4" style={{ background: T.card, border: `1px solid ${T.border}` }}>
                 <div className="flex items-center gap-2">
-                  <Zap className={cn('h-4 w-4', accentText)} />
+                  <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: `${T.accent}20` }}>
+                    <Zap className="h-4 w-4" style={{ color: T.accent }} />
+                  </div>
                   <p className="font-semibold text-sm">Próximos horários disponíveis</p>
                 </div>
                 {nextSlots.map(({ date, slots }) => {
-                  const dayLabel = isToday(date)
-                    ? 'Hoje'
-                    : isTomorrow(date)
-                    ? 'Amanhã'
-                    : format(date, "EEEE, dd/MM", { locale: ptBR });
+                  const dayLabel = isToday(date) ? 'Hoje' : isTomorrow(date) ? 'Amanhã' : format(date, "EEEE, dd/MM", { locale: ptBR });
                   return (
                     <div key={date.toISOString()}>
-                      <p className={cn('text-xs font-medium mb-1.5 capitalize', textMuted)}>{dayLabel}</p>
+                      <p className="text-xs font-medium mb-2 capitalize" style={{ color: T.textSec }}>{dayLabel}</p>
                       <div className="flex flex-wrap gap-2">
                         {slots.map((slot) => (
-                          <Button
+                          <button
                             key={`${date.toISOString()}-${slot}`}
-                            variant="outline"
-                            size="sm"
                             onClick={() => handleQuickSlot(date, slot)}
-                            className={cn(
-                              'transition-all',
-                              isDark
-                                ? 'bg-[#16213e] border-[#2a2a4a] text-white hover:bg-amber-500 hover:text-black'
-                                : 'bg-white border-[#e8ddd4] text-[#3d2c2c] hover:bg-rose-400 hover:text-white'
-                            )}
+                            className="px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 hover:scale-105"
+                            style={{ background: T.cardHover, border: `1px solid ${T.border}`, color: T.text }}
+                            onMouseEnter={(e) => { e.currentTarget.style.background = T.accent; e.currentTarget.style.color = '#000'; e.currentTarget.style.borderColor = T.accent; }}
+                            onMouseLeave={(e) => { e.currentTarget.style.background = T.cardHover; e.currentTarget.style.color = T.text; e.currentTarget.style.borderColor = T.border; }}
                           >
                             {slot}
-                          </Button>
+                          </button>
                         ))}
                       </div>
                     </div>
@@ -1070,139 +820,129 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
                 })}
               </div>
             )}
-            {nextSlotsLoading && (
-              <p className={cn('text-sm', textMuted)}>Buscando próximos horários...</p>
-            )}
+            {nextSlotsLoading && <p className="text-sm" style={{ color: T.textSec }}>Buscando próximos horários...</p>}
 
-            <p className={cn('text-xs text-center', textMuted)}>ou escolha uma data no calendário</p>
+            <p className="text-xs text-center" style={{ color: T.textSec }}>ou escolha uma data no calendário</p>
 
-            <div className={cn('rounded-xl border p-4', bgCard)}>
+            <div className="rounded-2xl p-4" style={{ background: T.card, border: `1px solid ${T.border}` }}>
               <Calendar
-                mode="single"
-                selected={selectedDate}
+                mode="single" selected={selectedDate}
                 onSelect={(date) => { setSelectedDate(date); setSelectedTime(null); }}
                 locale={ptBR}
                 disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
               />
             </div>
-            {selectedDate && (() => {
-              console.log('[Booking] RENDER slots section', {
-                selectedDate: format(selectedDate, 'yyyy-MM-dd'),
-                slotsLoading,
-                generatedSlotsCount: generatedSlots.length,
-                generatedFirstSlots: generatedSlots.slice(0, 5),
-                availableSlotsCount: availableSlots.length,
-                firstSlots: availableSlots.slice(0, 5),
-                totalDuration,
-                selectedProfessional,
-                businessHoursCount: businessHours.length,
-              });
-              return null;
-            })()}
+
             {selectedDate && (
-              <div>
-                <p className={cn('text-sm font-medium mb-2')}>
+              <div className="space-y-3">
+                <p className="text-sm font-semibold">
                   Horários disponíveis
-                  {totalDuration > 0 && (
-                    <span className={cn('font-normal ml-2', textMuted)}>
-                      (bloco de {totalDuration} min necessário)
-                    </span>
-                  )}
+                  {totalDuration > 0 && <span className="font-normal ml-2" style={{ color: T.textSec }}>(bloco de {totalDuration} min)</span>}
                 </p>
-                {slotsLoading ? (
-                  <p className={cn('text-sm', textMuted)}>Calculando disponibilidade...</p>
-                ) : !appointmentsLoaded ? (
-                  <p className={cn('text-sm', textMuted)}>Carregando agendamentos...</p>
+                {slotsLoading || !appointmentsLoaded ? (
+                  <div className="flex items-center gap-2 py-4" style={{ color: T.textSec }}>
+                    <div className="w-4 h-4 border-2 rounded-full animate-spin" style={{ borderColor: `${T.accent} transparent transparent transparent` }} />
+                    <span className="text-sm">{slotsLoading ? 'Calculando disponibilidade...' : 'Carregando agendamentos...'}</span>
+                  </div>
                 ) : availableSlots.length === 0 ? (
                   <div className="space-y-3">
-                    <p className={cn('text-sm', textMuted)}>
-                      {businessHours.length === 0
-                        ? 'Horários de funcionamento não configurados'
-                        : 'Nenhum horário disponível neste dia'}
+                    <p className="text-sm" style={{ color: T.textSec }}>
+                      {businessHours.length === 0 ? 'Horários de funcionamento não configurados' : 'Nenhum horário disponível neste dia'}
                     </p>
-                    <div className={cn('p-4 rounded-xl border border-dashed', isDark ? 'border-amber-500/50 bg-amber-500/5' : 'border-rose-400/50 bg-rose-400/5')}>
+                    <div className="p-4 rounded-2xl" style={{ background: `${T.accent}08`, border: `1px dashed ${T.accent}40` }}>
                       <div className="flex items-start gap-3">
-                        <Bell className={cn('h-5 w-5 mt-0.5', accentText)} />
+                        <Bell className="h-5 w-5 mt-0.5 shrink-0" style={{ color: T.accent }} />
                         <div className="flex-1">
                           <p className="font-semibold text-sm">Quer ser avisado se surgir vaga?</p>
-                          <p className={cn('text-xs mt-1', textMuted)}>
-                            Entre na lista de espera e avisaremos quando um horário ficar disponível para {selectedDate && format(selectedDate, "dd 'de' MMMM", { locale: ptBR })}.
+                          <p className="text-xs mt-1" style={{ color: T.textSec }}>
+                            Entre na lista de espera e avisaremos quando um horário ficar disponível para {format(selectedDate, "dd 'de' MMMM", { locale: ptBR })}.
                           </p>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className={cn('mt-3', accentBorder, accentText)}
+                          <button
+                            className="mt-3 px-4 py-2 rounded-xl text-sm font-medium flex items-center gap-1.5 transition-all hover:scale-105"
+                            style={{ border: `1px solid ${T.accent}`, color: T.accent }}
                             onClick={handleJoinWaitlist}
                             disabled={waitlistLoading}
                           >
-                            <Bell className="h-4 w-4 mr-1" />
+                            <Bell className="h-3.5 w-3.5" />
                             {waitlistLoading ? 'Entrando...' : 'Avisar se surgir vaga'}
-                          </Button>
+                          </button>
                         </div>
                       </div>
                     </div>
                   </div>
                 ) : (
                   <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
-                    {availableSlots.map((slot) => (
-                      <Button
-                        key={slot}
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setSelectedTime(slot)}
-                        className={cn(
-                          selectedTime === slot
-                            ? isDark ? 'bg-amber-500 text-black border-amber-500' : 'bg-rose-400 text-white border-rose-400'
-                            : cn(bgCard, 'hover:opacity-80')
-                        )}
-                      >
-                        {slot}
-                      </Button>
-                    ))}
+                    {availableSlots.map((slot) => {
+                      const isSel = selectedTime === slot;
+                      return (
+                        <button
+                          key={slot}
+                          onClick={() => setSelectedTime(slot)}
+                          className="py-2.5 rounded-xl text-sm font-medium transition-all duration-200 hover:scale-105"
+                          style={{
+                            background: isSel ? T.accent : T.cardHover,
+                            color: isSel ? '#000' : T.text,
+                            border: `1px solid ${isSel ? T.accent : T.border}`,
+                            boxShadow: isSel ? `0 0 16px ${T.accent}30` : 'none',
+                          }}
+                        >
+                          {slot}
+                        </button>
+                      );
+                    })}
                   </div>
-                )}
-                {appointmentsLoaded && appointmentsForSelectedDate.length > 0 && (
-                  <p className={cn('text-xs mt-2', textMuted)}>
-                    {appointmentsForSelectedDate.length} agendamento(s) carregado(s) para validar conflitos.
-                  </p>
                 )}
               </div>
             )}
             {selectedTime && (
               <Button
                 onClick={() => setStep('client')}
-                className={cn('w-full', isDark ? 'bg-amber-500 hover:bg-amber-600 text-black' : 'bg-rose-400 hover:bg-rose-500 text-white')}
+                className="w-full rounded-xl py-6 font-semibold text-base shadow-lg transition-all hover:scale-[1.01]"
+                style={{ background: T.accent, color: '#000' }}
               >
-                Próximo <ChevronRight className="h-4 w-4 ml-1" />
+                Continuar <ChevronRight className="h-4 w-4 ml-1" />
               </Button>
             )}
           </div>
         )}
 
-        {/* Step: Client info */}
+        {/* ═══ CLIENT INFO ═══ */}
         {step === 'client' && (
-          <div className="space-y-4">
-            <Button variant="ghost" size="sm" onClick={() => setStep('datetime')} className={textMuted}>
-              <ChevronLeft className="h-4 w-4 mr-1" /> Voltar
-            </Button>
-            <h2 className="text-xl font-bold">
-              {savedClientId ? 'Confirme seus dados' : 'Cadastro rápido'}
-            </h2>
-            {savedClientId && (
-              <p className={cn('text-sm', textMuted)}>Seus dados foram carregados automaticamente.</p>
-            )}
-            <div className="space-y-3">
-              <div className="space-y-1">
-                <Label>Nome *</Label>
-                <Input
-                  value={clientForm.full_name}
-                  onChange={(e) => setClientForm({ ...clientForm, full_name: e.target.value })}
-                  required
-                  className={cn(isDark ? 'bg-[#16213e] border-[#2a2a4a] text-white' : 'bg-white border-[#e8ddd4]')}
-                />
+          <div className="space-y-5 animate-fade-in">
+            <button onClick={() => setStep('datetime')} className="flex items-center gap-1 text-sm font-medium hover:opacity-80" style={{ color: T.textSec }}>
+              <ChevronLeft className="h-4 w-4" /> Voltar
+            </button>
+            <div>
+              <h2 className="text-2xl font-bold tracking-tight">{savedClientId ? 'Confirme seus dados' : 'Seus dados'}</h2>
+              <p className="text-sm mt-1" style={{ color: T.textSec }}>
+                {savedClientId ? 'Dados carregados automaticamente' : 'Preencha para finalizar o agendamento'}
+              </p>
+            </div>
+            <div className="space-y-4">
+              <div className="space-y-1.5">
+                <Label className="text-sm font-medium flex items-center gap-1.5" style={{ color: T.textSec }}><User className="h-3.5 w-3.5" /> Nome completo *</Label>
+                <Input value={clientForm.full_name} onChange={(e) => setClientForm({ ...clientForm, full_name: e.target.value })} placeholder="Seu nome" className="rounded-xl h-12 text-base" style={{ background: T.card, border: `1px solid ${T.border}`, color: T.text }} />
               </div>
-              <div className="space-y-1">
-                <Label>CPF</Label>
+              <div className="space-y-1.5">
+                <Label className="text-sm font-medium flex items-center gap-1.5" style={{ color: T.textSec }}><Phone className="h-3.5 w-3.5" /> WhatsApp *</Label>
+                <Input
+                  value={clientForm.whatsapp}
+                  onChange={(e) => {
+                    const digits = e.target.value.replace(/\D/g, '').slice(0, 11);
+                    let masked = digits;
+                    if (digits.length > 7) masked = `(${digits.slice(0,2)}) ${digits.slice(2,7)}-${digits.slice(7)}`;
+                    else if (digits.length > 2) masked = `(${digits.slice(0,2)}) ${digits.slice(2)}`;
+                    setClientForm({ ...clientForm, whatsapp: masked });
+                  }}
+                  placeholder="(11) 99999-9999" maxLength={15}
+                  className="rounded-xl h-12 text-base" style={{ background: T.card, border: `1px solid ${T.border}`, color: T.text }}
+                />
+                {clientForm.whatsapp && clientForm.whatsapp.replace(/\D/g, '').length > 0 && !isValidWhatsApp(clientForm.whatsapp) && (
+                  <p className="text-sm text-red-400 mt-1">Número inválido. Use DDD + número.</p>
+                )}
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-sm font-medium flex items-center gap-1.5" style={{ color: T.textSec }}><CreditCard className="h-3.5 w-3.5" /> CPF</Label>
                 <Input
                   value={clientForm.cpf}
                   onChange={(e) => {
@@ -1213,63 +953,29 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
                     else if (digits.length > 3) masked = `${digits.slice(0,3)}.${digits.slice(3)}`;
                     setClientForm({ ...clientForm, cpf: masked });
                   }}
-                  placeholder="000.000.000-00"
-                  maxLength={14}
-                  className={cn(isDark ? 'bg-[#16213e] border-[#2a2a4a] text-white' : 'bg-white border-[#e8ddd4]')}
+                  placeholder="000.000.000-00" maxLength={14}
+                  className="rounded-xl h-12 text-base" style={{ background: T.card, border: `1px solid ${T.border}`, color: T.text }}
                 />
               </div>
-              <div className="space-y-1">
-                <Label>WhatsApp *</Label>
-                <Input
-                  value={clientForm.whatsapp}
-                  onChange={(e) => {
-                    const digits = e.target.value.replace(/\D/g, '').slice(0, 11);
-                    let masked = digits;
-                    if (digits.length > 7) masked = `(${digits.slice(0,2)}) ${digits.slice(2,7)}-${digits.slice(7)}`;
-                    else if (digits.length > 2) masked = `(${digits.slice(0,2)}) ${digits.slice(2)}`;
-                    setClientForm({ ...clientForm, whatsapp: masked });
-                  }}
-                  placeholder="(11) 99999-9999"
-                  maxLength={15}
-                  required
-                  className={cn(isDark ? 'bg-[#16213e] border-[#2a2a4a] text-white' : 'bg-white border-[#e8ddd4]')}
-                />
-                {clientForm.whatsapp && clientForm.whatsapp.replace(/\D/g, '').length > 0 && !isValidWhatsApp(clientForm.whatsapp) && (
-                  <p className="text-sm text-destructive">Número inválido. Use DDD + número.</p>
-                )}
+              <div className="space-y-1.5">
+                <Label className="text-sm font-medium flex items-center gap-1.5" style={{ color: T.textSec }}><Mail className="h-3.5 w-3.5" /> Email (opcional)</Label>
+                <Input type="email" value={clientForm.email} onChange={(e) => setClientForm({ ...clientForm, email: e.target.value })} placeholder="seuemail@exemplo.com" className="rounded-xl h-12 text-base" style={{ background: T.card, border: `1px solid ${T.border}`, color: T.text }} />
               </div>
-              <div className="space-y-1">
-                <Label>Email (opcional)</Label>
-                <Input
-                  type="email"
-                  value={clientForm.email}
-                  onChange={(e) => setClientForm({ ...clientForm, email: e.target.value })}
-                  className={cn(isDark ? 'bg-[#16213e] border-[#2a2a4a] text-white' : 'bg-white border-[#e8ddd4]')}
-                />
-              </div>
-              <div className="space-y-1">
-                <Label>Data de nascimento</Label>
-                <Input
-                  type="date"
-                  value={clientForm.birth_date}
-                  onChange={(e) => setClientForm({ ...clientForm, birth_date: e.target.value })}
-                  className={cn(isDark ? 'bg-[#16213e] border-[#2a2a4a] text-white' : 'bg-white border-[#e8ddd4]')}
-                />
+              <div className="space-y-1.5">
+                <Label className="text-sm font-medium flex items-center gap-1.5" style={{ color: T.textSec }}><Cake className="h-3.5 w-3.5" /> Data de nascimento</Label>
+                <Input type="date" value={clientForm.birth_date} onChange={(e) => setClientForm({ ...clientForm, birth_date: e.target.value })} className="rounded-xl h-12 text-base" style={{ background: T.card, border: `1px solid ${T.border}`, color: T.text }} />
               </div>
             </div>
-            <div className="flex items-start gap-3 pt-2">
-              <Checkbox
-                id="opt-in-whatsapp"
-                checked={optInWhatsapp}
-                onCheckedChange={(v) => setOptInWhatsapp(v === true)}
-              />
-              <label htmlFor="opt-in-whatsapp" className={cn('text-sm leading-snug cursor-pointer', textMuted)}>
+            <div className="flex items-start gap-3 pt-1">
+              <Checkbox id="opt-in-whatsapp" checked={optInWhatsapp} onCheckedChange={(v) => setOptInWhatsapp(v === true)} />
+              <label htmlFor="opt-in-whatsapp" className="text-sm leading-snug cursor-pointer" style={{ color: T.textSec }}>
                 Aceito receber lembretes e comunicações via WhatsApp. Posso cancelar a qualquer momento.
               </label>
             </div>
             <Button
               onClick={() => setStep('confirm')}
-              className={cn('w-full', isDark ? 'bg-amber-500 hover:bg-amber-600 text-black' : 'bg-rose-400 hover:bg-rose-500 text-white')}
+              className="w-full rounded-xl py-6 font-semibold text-base shadow-lg transition-all hover:scale-[1.01]"
+              style={{ background: T.accent, color: '#000' }}
               disabled={!clientForm.full_name || !clientForm.whatsapp || !isValidWhatsApp(clientForm.whatsapp)}
             >
               Revisar Agendamento <ChevronRight className="h-4 w-4 ml-1" />
@@ -1277,208 +983,188 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
           </div>
         )}
 
-        {/* Step: Confirm */}
+        {/* ═══ CONFIRM ═══ */}
         {step === 'confirm' && (
-          <div className="space-y-4">
-            <Button variant="ghost" size="sm" onClick={() => setStep('client')} className={textMuted}>
-              <ChevronLeft className="h-4 w-4 mr-1" /> Voltar
-            </Button>
-            <h2 className="text-xl font-bold">Confirmar Agendamento</h2>
-            <div className={cn('rounded-xl border p-5 space-y-4', bgCard)}>
+          <div className="space-y-5 animate-fade-in">
+            <button onClick={() => setStep('client')} className="flex items-center gap-1 text-sm font-medium hover:opacity-80" style={{ color: T.textSec }}>
+              <ChevronLeft className="h-4 w-4" /> Voltar
+            </button>
+            <div>
+              <h2 className="text-2xl font-bold tracking-tight">Confirmar Agendamento</h2>
+              <p className="text-sm mt-1" style={{ color: T.textSec }}>Revise os detalhes antes de confirmar</p>
+            </div>
+            <div className="rounded-2xl p-5 space-y-5" style={{ background: T.card, border: `1px solid ${T.border}` }}>
+              {/* Professional */}
+              {(() => {
+                const prof = professionals.find((p) => p.id === selectedProfessional);
+                return (
+                  <div className="flex items-center gap-4">
+                    {prof?.avatar_url ? (
+                      <img src={prof.avatar_url} alt={prof.full_name} className="w-14 h-14 rounded-full object-cover" style={{ border: `3px solid ${T.accent}` }} />
+                    ) : (
+                      <div className="w-14 h-14 rounded-full flex items-center justify-center text-xl font-bold" style={{ background: `${T.accent}20`, color: T.accent }}>
+                        {prof?.full_name?.charAt(0)?.toUpperCase()}
+                      </div>
+                    )}
+                    <div>
+                      <p className="text-xs" style={{ color: T.textSec }}>Profissional</p>
+                      <p className="font-semibold text-base">{prof?.full_name}</p>
+                    </div>
+                  </div>
+                );
+              })()}
+              <div style={{ borderTop: `1px solid ${T.border}` }} />
+              {/* Services */}
               <div>
-                <p className={cn('text-sm', textMuted)}>Serviços</p>
-                <div className="flex flex-wrap gap-2 mt-1">
+                <p className="text-xs mb-2" style={{ color: T.textSec }}>Serviços</p>
+                <div className="space-y-2">
                   {services.filter((s) => selectedServices.includes(s.id)).map((s) => (
-                    <Badge key={s.id} className={cn(accentBg, accentText, 'border-0')}>{s.name}</Badge>
+                    <div key={s.id} className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 rounded-full" style={{ background: T.accent }} />
+                        <span className="text-sm font-medium">{s.name}</span>
+                        <span className="text-xs" style={{ color: T.textSec }}>{s.duration_minutes} min</span>
+                      </div>
+                      <span className="text-sm font-semibold" style={{ color: T.accent }}>R$ {Number(s.price).toFixed(2)}</span>
+                    </div>
                   ))}
                 </div>
               </div>
-              <div>
-                <p className={cn('text-sm', textMuted)}>Profissional</p>
-                {(() => {
-                  const prof = professionals.find((p) => p.id === selectedProfessional);
-                  return (
-                    <div className="flex items-center gap-2 mt-1">
-                      {prof?.avatar_url ? (
-                        <img src={prof.avatar_url} alt={prof.full_name} className="w-8 h-8 rounded-full object-cover" />
-                      ) : (
-                        <div className={cn('w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold', accentBg, accentText)}>
-                          {prof?.full_name?.charAt(0)?.toUpperCase()}
-                        </div>
-                      )}
-                      <p className="font-semibold">{prof?.full_name}</p>
-                    </div>
-                  );
-                })()}
-              </div>
-              <div>
-                <p className={cn('text-sm', textMuted)}>Data e horário</p>
-                <p className="font-semibold">
-                  {selectedDate && format(selectedDate, "dd 'de' MMMM, yyyy", { locale: ptBR })} às {selectedTime}
-                </p>
-              </div>
-              <div>
-                <p className={cn('text-sm', textMuted)}>Duração total</p>
-                <p className="font-semibold">{totalDuration} minutos</p>
-              </div>
-              <div className={cn('pt-3 border-t', isDark ? 'border-[#2a2a4a]' : 'border-[#e8ddd4]')}>
-                <div className="flex justify-between text-lg font-bold">
-                  <span>Total</span>
-                  <span className={accentText}>R$ {totalPrice.toFixed(2)}</span>
+              <div style={{ borderTop: `1px solid ${T.border}` }} />
+              {/* Date & Time */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-xs mb-1" style={{ color: T.textSec }}>Data</p>
+                  <p className="font-semibold text-sm">{selectedDate && format(selectedDate, "dd 'de' MMMM", { locale: ptBR })}</p>
                 </div>
+                <div>
+                  <p className="text-xs mb-1" style={{ color: T.textSec }}>Horário</p>
+                  <p className="font-semibold text-sm">{selectedTime} • {totalDuration} min</p>
+                </div>
+              </div>
+              <div style={{ borderTop: `1px solid ${T.border}` }} />
+              {/* Total */}
+              <div className="flex justify-between items-center">
+                <span className="text-lg font-bold">Total</span>
+                <span className="text-2xl font-bold" style={{ color: T.accent }}>R$ {totalPrice.toFixed(2)}</span>
               </div>
             </div>
             <Button
               onClick={handleBook}
-              className={cn('w-full', isDark ? 'bg-amber-500 hover:bg-amber-600 text-black' : 'bg-rose-400 hover:bg-rose-500 text-white')}
-              disabled={loading}
-              size="lg"
+              className="w-full rounded-xl py-6 font-semibold text-base shadow-lg transition-all hover:scale-[1.01]"
+              style={{ background: T.accent, color: '#000' }}
+              disabled={loading} size="lg"
             >
-              {loading ? 'Agendando...' : (
-                <>
-                  <CheckCircle2 className="h-5 w-5 mr-2" /> Confirmar Agendamento
-                </>
+              {loading ? (
+                <div className="flex items-center gap-2">
+                  <div className="w-5 h-5 border-2 rounded-full animate-spin" style={{ borderColor: '#000 transparent transparent transparent' }} /> Agendando...
+                </div>
+              ) : (
+                <><CheckCircle2 className="h-5 w-5 mr-2" /> Confirmar Agendamento</>
               )}
             </Button>
           </div>
         )}
 
-        {/* Step: Success */}
+        {/* ═══ SUCCESS ═══ */}
         {step === 'success' && bookingResult && (() => {
-          const startTime = new Date(bookingResult.date);
+          const st = new Date(bookingResult.date);
           const [h, m] = bookingResult.time.split(':').map(Number);
-          startTime.setHours(h, m, 0, 0);
-          const endTime = addMinutes(startTime, bookingResult.totalDuration);
+          st.setHours(h, m, 0, 0);
+          const et = addMinutes(st, bookingResult.totalDuration);
 
-          const generateCalendarUrl = () => {
+          const calUrl = () => {
             const fmt = (d: Date) => d.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
-            const title = encodeURIComponent(`${bookingResult.serviceNames.join(', ')} - ${bookingResult.companyName}`);
-            const details = encodeURIComponent(`Profissional: ${bookingResult.professionalName}\nValor: R$ ${bookingResult.totalPrice.toFixed(2)}`);
-            return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${fmt(startTime)}/${fmt(endTime)}&details=${details}`;
+            return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(`${bookingResult.serviceNames.join(', ')} - ${bookingResult.companyName}`)}&dates=${fmt(st)}/${fmt(et)}&details=${encodeURIComponent(`Profissional: ${bookingResult.professionalName}\nValor: R$ ${bookingResult.totalPrice.toFixed(2)}`)}`;
           };
 
-          const generateWhatsAppUrl = () => {
+          const waUrl = () => {
             const phone = bookingResult.companyPhone?.replace(/\D/g, '') || '';
-            const dateStr = format(bookingResult.date, "dd/MM/yyyy");
-            const msg = encodeURIComponent(
-              `Olá! Confirmando meu agendamento:\n📅 ${dateStr} às ${bookingResult.time}\n✂️ ${bookingResult.serviceNames.join(', ')}\n👤 ${bookingResult.professionalName}\n💰 R$ ${bookingResult.totalPrice.toFixed(2)}`
-            );
-            return `https://wa.me/${phone.startsWith('55') ? phone : '55' + phone}?text=${msg}`;
+            return `https://wa.me/${phone.startsWith('55') ? phone : '55' + phone}?text=${encodeURIComponent(`Olá! Confirmando meu agendamento:\n📅 ${format(bookingResult.date, "dd/MM/yyyy")} às ${bookingResult.time}\n✂️ ${bookingResult.serviceNames.join(', ')}\n👤 ${bookingResult.professionalName}\n💰 R$ ${bookingResult.totalPrice.toFixed(2)}`)}`;
           };
 
-          const handleBookAnother = () => {
-            setBookingResult(null);
-            setStep('services');
-            setSelectedServices([]);
-            setSelectedProfessional(null);
-            setSelectedDate(undefined);
-            setSelectedTime(null);
+          const resetBooking = () => {
+            setBookingResult(null); setStep('services'); setSelectedServices([]);
+            setSelectedProfessional(null); setSelectedDate(undefined); setSelectedTime(null);
           };
 
           return (
-            <div className="space-y-6 text-center">
-              {/* Success icon */}
-              <div className="flex justify-center pt-4">
-                <div className={cn('w-20 h-20 rounded-full flex items-center justify-center', isDark ? 'bg-green-500/20' : 'bg-green-100')}>
-                  <CheckCircle2 className={cn('h-10 w-10', isDark ? 'text-green-400' : 'text-green-600')} />
+            <div className="space-y-6 text-center animate-fade-in">
+              <div className="flex justify-center pt-6">
+                <div className="w-24 h-24 rounded-full flex items-center justify-center animate-scale-in" style={{ background: T.green }}>
+                  <CheckCircle2 className="h-12 w-12" style={{ color: T.greenText }} />
                 </div>
               </div>
-
               <div>
-                <h2 className="text-2xl font-bold">Agendamento Confirmado!</h2>
-                <p className={cn('text-sm mt-1', textMuted)}>Seu horário foi reservado com sucesso</p>
+                <h2 className="text-2xl font-bold tracking-tight">Agendamento Confirmado!</h2>
+                <p className="text-sm mt-2" style={{ color: T.textSec }}>Seu horário foi reservado com sucesso</p>
               </div>
 
-              {/* Booking details card */}
-              <div className={cn('rounded-xl border p-5 space-y-4 text-left', bgCard)}>
-                {/* Professional */}
-                <div className="flex items-center gap-3">
+              <div className="rounded-2xl p-5 space-y-5 text-left" style={{ background: T.card, border: `1px solid ${T.border}` }}>
+                <div className="flex items-center gap-4">
                   {bookingResult.professionalAvatar ? (
-                    <img src={bookingResult.professionalAvatar} alt={bookingResult.professionalName} className="w-12 h-12 rounded-full object-cover" />
+                    <img src={bookingResult.professionalAvatar} alt={bookingResult.professionalName} className="w-14 h-14 rounded-full object-cover" />
                   ) : (
-                    <div className={cn('w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg', accentBg, accentText)}>
+                    <div className="w-14 h-14 rounded-full flex items-center justify-center text-xl font-bold" style={{ background: `${T.accent}20`, color: T.accent }}>
                       {bookingResult.professionalName.charAt(0).toUpperCase()}
                     </div>
                   )}
                   <div>
-                    <p className={cn('text-xs', textMuted)}>Profissional</p>
-                    <p className="font-semibold">{bookingResult.professionalName}</p>
+                    <p className="text-xs" style={{ color: T.textSec }}>Profissional</p>
+                    <p className="font-semibold text-base">{bookingResult.professionalName}</p>
                   </div>
                 </div>
-
-                <div className={cn('border-t', isDark ? 'border-[#2a2a4a]' : 'border-[#e8ddd4]')} />
-
-                {/* Services */}
+                <div style={{ borderTop: `1px solid ${T.border}` }} />
                 <div>
-                  <p className={cn('text-xs', textMuted)}>Serviços</p>
-                  <div className="flex flex-wrap gap-2 mt-1">
+                  <p className="text-xs mb-2" style={{ color: T.textSec }}>Serviços</p>
+                  <div className="flex flex-wrap gap-2">
                     {bookingResult.serviceNames.map((name) => (
-                      <Badge key={name} className={cn(accentBg, accentText, 'border-0')}>{name}</Badge>
+                      <span key={name} className="px-3 py-1 rounded-lg text-xs font-medium" style={{ background: `${T.accent}15`, color: T.accent }}>{name}</span>
                     ))}
                   </div>
                 </div>
-
-                {/* Date & Time */}
-                <div className="flex gap-6">
+                <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <p className={cn('text-xs', textMuted)}>Data</p>
-                    <p className="font-semibold">{format(bookingResult.date, "dd 'de' MMMM, yyyy", { locale: ptBR })}</p>
+                    <p className="text-xs mb-1" style={{ color: T.textSec }}>📅 Data</p>
+                    <p className="font-semibold text-sm">{format(bookingResult.date, "dd 'de' MMMM, yyyy", { locale: ptBR })}</p>
                   </div>
                   <div>
-                    <p className={cn('text-xs', textMuted)}>Horário</p>
-                    <p className="font-semibold">{bookingResult.time} - {format(endTime, 'HH:mm')}</p>
+                    <p className="text-xs mb-1" style={{ color: T.textSec }}>🕐 Horário</p>
+                    <p className="font-semibold text-sm">{bookingResult.time} - {format(et, 'HH:mm')}</p>
                   </div>
                 </div>
-
-                {/* Location */}
-                <div>
-                  <p className={cn('text-xs', textMuted)}>Local</p>
-                  <p className="font-semibold">{bookingResult.companyName}</p>
-                </div>
-
-                {/* Total */}
-                <div className={cn('pt-3 border-t', isDark ? 'border-[#2a2a4a]' : 'border-[#e8ddd4]')}>
-                  <div className="flex justify-between text-lg font-bold">
-                    <span>Total</span>
-                    <span className={accentText}>R$ {bookingResult.totalPrice.toFixed(2)}</span>
+                <div className="flex items-center gap-2">
+                  <MapPin className="h-4 w-4 shrink-0" style={{ color: T.textSec }} />
+                  <div>
+                    <p className="text-xs" style={{ color: T.textSec }}>Local</p>
+                    <p className="font-semibold text-sm">{bookingResult.companyName}</p>
                   </div>
+                </div>
+                <div style={{ borderTop: `1px solid ${T.border}` }} />
+                <div className="flex justify-between items-center">
+                  <span className="text-lg font-bold">Total</span>
+                  <span className="text-2xl font-bold" style={{ color: T.accent }}>R$ {bookingResult.totalPrice.toFixed(2)}</span>
                 </div>
               </div>
 
-              {/* Action buttons */}
               <div className="grid grid-cols-2 gap-3">
-                <Button
-                  variant="outline"
-                  className={cn(bgCard)}
-                  onClick={() => window.open(generateCalendarUrl(), '_blank')}
-                >
-                  <CalendarPlus className="h-4 w-4 mr-2" /> Adicionar ao calendário
-                </Button>
+                <button onClick={() => window.open(calUrl(), '_blank')} className="flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-medium transition-all hover:scale-105" style={{ background: T.card, border: `1px solid ${T.border}`, color: T.text }}>
+                  <CalendarPlus className="h-4 w-4" style={{ color: T.accent }} /> Calendário
+                </button>
                 {bookingResult.companyPhone && (
-                  <Button
-                    variant="outline"
-                    className={cn(bgCard)}
-                    onClick={() => window.open(generateWhatsAppUrl(), '_blank')}
-                  >
-                    <MessageCircle className="h-4 w-4 mr-2" /> WhatsApp
-                  </Button>
+                  <button onClick={() => window.open(waUrl(), '_blank')} className="flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-medium transition-all hover:scale-105" style={{ background: '#25D366', color: '#fff' }}>
+                    <MessageCircle className="h-4 w-4" /> WhatsApp
+                  </button>
                 )}
               </div>
 
-              <div className="space-y-2">
-                <Button
-                  onClick={handleBookAnother}
-                  className={cn('w-full', isDark ? 'bg-amber-500 hover:bg-amber-600 text-black' : 'bg-rose-400 hover:bg-rose-500 text-white')}
-                >
+              <div className="space-y-3 pt-2">
+                <Button onClick={resetBooking} className="w-full rounded-xl py-6 font-semibold text-base shadow-lg transition-all hover:scale-[1.01]" style={{ background: T.accent, color: '#000' }}>
                   <RotateCcw className="h-4 w-4 mr-2" /> Agendar outro serviço
                 </Button>
-                <Button
-                  variant="ghost"
-                  className={cn('w-full', textMuted)}
-                  onClick={() => window.location.href = '/'}
-                >
-                  <Home className="h-4 w-4 mr-2" /> Voltar ao início
-                </Button>
+                <button onClick={() => window.location.href = '/'} className="w-full py-3 rounded-xl text-sm font-medium hover:opacity-80" style={{ color: T.textSec }}>
+                  <Home className="h-4 w-4 mr-1 inline" /> Voltar ao início
+                </button>
               </div>
             </div>
           );
