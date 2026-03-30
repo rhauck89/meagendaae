@@ -226,27 +226,43 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
     if (!company) return [];
     console.log('[Booking] fetchProfessionals called', { company_id: company.id, selectedServices });
 
+    // Use public_professionals view (accessible without auth, no PII exposed)
+    const { data: pubProfs, error: pubError } = await supabase
+      .from('public_professionals' as any)
+      .select('*')
+      .eq('company_id', company.id)
+      .eq('active', true);
+
+    console.log('[Booking] public_professionals query', {
+      found: pubProfs?.length ?? 0,
+      error: pubError?.message,
+      data: pubProfs,
+    });
+
+    let allProfs = ((pubProfs as any[]) || []).map((p: any) => ({
+      id: p.id,
+      name: p.name || 'Profissional',
+      full_name: p.name || 'Profissional',
+      avatar_url: p.avatar_url || null,
+      slug: p.slug,
+    }));
+
     let mappedProfs: any[] = [];
 
-    // If services are selected, query via service_professionals for guaranteed linkage
+    // If services are selected, filter by service_professionals linkage
     if (selectedServices.length > 0) {
       const { data: spData, error: spError } = await supabase
         .from('service_professionals')
-        .select(`
-          professional_id,
-          service_id
-        `)
+        .select('professional_id, service_id')
         .in('service_id', selectedServices);
 
       console.log('[Booking] service_professionals query', {
         selectedServices,
         found: spData?.length ?? 0,
         error: spError?.message,
-        data: spData,
       });
 
       if (spData && spData.length > 0) {
-        // Keep only professionals that support all selected services
         const profServiceMap = new Map<string, Set<string>>();
         for (const sp of spData) {
           if (!profServiceMap.has(sp.professional_id)) {
@@ -256,100 +272,38 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
         }
 
         const linkedProfIds = [...profServiceMap.entries()]
-          .filter(([, serviceIds]) => selectedServices.every((serviceId) => serviceIds.has(serviceId)))
-          .map(([professionalId]) => professionalId);
+          .filter(([, serviceIds]) => selectedServices.every((sid) => serviceIds.has(sid)))
+          .map(([pid]) => pid);
 
-        // Fetch collaborator details for these professionals
-        const { data: collabData, error: collabError } = await supabase
-          .from('collaborators')
-          .select(`
-            id, slug, active, profile_id,
-            profiles:profile_id (id, full_name, avatar_url)
-          `)
-          .eq('company_id', company.id)
-          .eq('active', true)
-          .in('profile_id', linkedProfIds);
-
-        console.log('[Booking] collaborators for selected services', {
-          linkedProfIds,
-          found: collabData?.length ?? 0,
-          error: collabError?.message,
-          data: collabData,
-        });
-
-        if (collabData && collabData.length > 0) {
-          mappedProfs = collabData.map((c: any) => ({
-            id: c.profile_id,
-            name: (c.profiles as any)?.full_name || 'Profissional',
-            full_name: (c.profiles as any)?.full_name || 'Profissional',
-            avatar_url: (c.profiles as any)?.avatar_url || null,
-            slug: c.slug,
-          }));
-        }
+        mappedProfs = allProfs.filter((p) => linkedProfIds.includes(p.id));
       }
 
-      // Fallback: if no service_professionals links, get all active collaborators and auto-link
+      // Fallback: if no service_professionals links, use all professionals
       if (mappedProfs.length === 0) {
-        console.warn('[Booking] No service_professionals found, falling back to all collaborators');
-        const { data: allCollabs } = await supabase
-          .from('collaborators')
-          .select(`
-            id, slug, profile_id,
-            profiles:profile_id (id, full_name, avatar_url)
-          `)
-          .eq('company_id', company.id)
-          .eq('active', true);
+        console.warn('[Booking] No service_professionals found, falling back to all professionals');
+        mappedProfs = allProfs;
 
-        if (allCollabs && allCollabs.length > 0) {
-          mappedProfs = allCollabs.map((c: any) => ({
-            id: c.profile_id,
-            name: (c.profiles as any)?.full_name || 'Profissional',
-            full_name: (c.profiles as any)?.full_name || 'Profissional',
-            avatar_url: (c.profiles as any)?.avatar_url || null,
-            slug: c.slug,
-          }));
-
-          // Auto-link services to professionals
-          const autoLinks: any[] = [];
-          for (const prof of mappedProfs) {
-            for (const svcId of selectedServices) {
-              autoLinks.push({
-                service_id: svcId,
-                professional_id: prof.id,
-                company_id: company.id,
-              });
-            }
+        // Auto-link services to professionals
+        const autoLinks: any[] = [];
+        for (const prof of mappedProfs) {
+          for (const svcId of selectedServices) {
+            autoLinks.push({
+              service_id: svcId,
+              professional_id: prof.id,
+              company_id: company.id,
+            });
           }
-          if (autoLinks.length > 0) {
-            await supabase.from('service_professionals').insert(autoLinks as any);
-            console.log('[Booking] Auto-linked', autoLinks.length, 'service-professional pairs');
-          }
+        }
+        if (autoLinks.length > 0) {
+          await supabase.from('service_professionals').insert(autoLinks as any);
+          console.log('[Booking] Auto-linked', autoLinks.length, 'service-professional pairs');
         }
       }
     } else {
-      // No services selected, get all active collaborators
-      const { data: collabData } = await supabase
-        .from('collaborators')
-        .select(`
-          id, slug, profile_id,
-          profiles:profile_id (id, full_name, avatar_url)
-        `)
-        .eq('company_id', company.id)
-        .eq('active', true);
-
-      if (collabData && collabData.length > 0) {
-        mappedProfs = collabData.map((c: any) => ({
-          id: c.profile_id,
-          name: (c.profiles as any)?.full_name || 'Profissional',
-          full_name: (c.profiles as any)?.full_name || 'Profissional',
-          avatar_url: (c.profiles as any)?.avatar_url || null,
-          slug: c.slug,
-        }));
-      }
+      mappedProfs = allProfs;
     }
 
     setProfessionals(mappedProfs);
-    console.log('Professionals fetched:', mappedProfs);
     console.log('[Booking] Professionals loaded:', { count: mappedProfs.length, professionals: mappedProfs });
 
     // Auto-select if only one professional
