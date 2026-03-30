@@ -2,11 +2,12 @@ import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
-import { Star, MessageCircle, MapPin, Share2, Copy, Check, Calendar, Clock, DollarSign, Instagram, Sparkles, Scissors, Zap } from 'lucide-react';
-import { format, addDays, startOfDay, isToday } from 'date-fns';
+import { Star, MessageCircle, MapPin, Share2, Check, Calendar, Clock, Instagram, Sparkles, Scissors } from 'lucide-react';
+import { format, addDays, startOfDay, isToday, isTomorrow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { calculateAvailableSlots, type BusinessHours, type BusinessException, type BlockedTime, type ExistingAppointment } from '@/lib/availability-engine';
+import { formatWhatsApp } from '@/lib/whatsapp';
 
 type BusinessType = 'barbershop' | 'esthetic';
 
@@ -30,7 +31,10 @@ export default function ProfessionalPublicProfile() {
   const [services, setServices] = useState<any[]>([]);
   const [rating, setRating] = useState<{ avg: number; count: number } | null>(null);
   const [reviews, setReviews] = useState<any[]>([]);
-  const [weekSlots, setWeekSlots] = useState<{ date: Date; slots: string[] }[]>([]);
+  const [totalReviews, setTotalReviews] = useState(0);
+  const [showAllReviews, setShowAllReviews] = useState(false);
+  const [nextAvailable, setNextAvailable] = useState<{ date: Date; slots: string[]; label: string } | null>(null);
+  const [completedCount, setCompletedCount] = useState(0);
   const [slotsLoading, setSlotsLoading] = useState(false);
   const [businessType, setBusinessType] = useState<BusinessType>('barbershop');
   const [copied, setCopied] = useState(false);
@@ -51,7 +55,6 @@ export default function ProfessionalPublicProfile() {
     if (!prof) { setLoading(false); return; }
     setProfessional(prof);
 
-    // Fetch profile details (bio, social_links, whatsapp) via profiles view
     const { data: profileData } = await supabase.from('profiles').select('bio, social_links, whatsapp, avatar_url').eq('id', prof.id).maybeSingle();
     setProfile(profileData);
 
@@ -74,9 +77,16 @@ export default function ProfessionalPublicProfile() {
       if (r) setRating({ avg: Number(r.avg_rating), count: Number(r.review_count) });
     }
 
-    // Reviews
-    const { data: reviewsData } = await supabase.from('reviews').select('rating, comment, created_at').eq('professional_id', prof.id).order('created_at', { ascending: false }).limit(5);
-    if (reviewsData) setReviews(reviewsData);
+    // Reviews - fetch all for count, display limited
+    const { data: allReviewsData } = await supabase.from('reviews').select('rating, comment, created_at').eq('professional_id', prof.id).order('created_at', { ascending: false });
+    if (allReviewsData) {
+      setReviews(allReviewsData);
+      setTotalReviews(allReviewsData.length);
+    }
+
+    // Completed appointments count
+    const { count } = await supabase.from('appointments').select('id', { count: 'exact', head: true }).eq('professional_id', prof.id).eq('status', 'completed');
+    setCompletedCount(count || 0);
 
     // Next available slots
     await fetchNextSlots(comp, prof);
@@ -100,12 +110,10 @@ export default function ProfessionalPublicProfile() {
     if ((settingsRes.data as any)?.booking_buffer_minutes > 0) buf = (settingsRes.data as any).booking_buffer_minutes;
     const ph = ((profHoursRes.data as any[]) || []).length > 0 ? (profHoursRes.data as unknown as BusinessHours[]) : undefined;
 
-    // Use average service duration for slot preview
     const avgDur = services.length > 0 ? Math.round(services.reduce((s, sv) => s + (sv.duration_minutes || 30), 0) / services.length) : 30;
 
-    const results: { date: Date; slots: string[] }[] = [];
     const now = new Date();
-    for (let i = 0; i < 7; i++) {
+    for (let i = 0; i < 14; i++) {
       const day = addDays(startOfDay(new Date()), i);
       const dateStr = format(day, 'yyyy-MM-dd');
       const { data: aptData } = await (supabase as any).rpc('get_booking_appointments', { p_company_id: comp.id, p_professional_id: prof.id, p_selected_date: dateStr, p_timezone: tz });
@@ -115,9 +123,22 @@ export default function ProfessionalPublicProfile() {
       let slots = calculateAvailableSlots({ date: day, totalDuration: avgDur, businessHours: bh, exceptions: exc, existingAppointments: apts, slotInterval: 15, bufferMinutes: buf, professionalHours: ph, blockedTimes: ((blockedData || []) as unknown as BlockedTime[]), professionalId: prof.id });
       slots = filterOverlapping(slots, apts, avgDur, buf, tz);
       if (isToday(day)) { const ct = format(now, 'HH:mm'); slots = slots.filter(s => s > ct); }
-      results.push({ date: day, slots });
+
+      if (slots.length > 0) {
+        let label: string;
+        if (isToday(day)) {
+          label = '🔥 Hoje';
+        } else if (isTomorrow(day)) {
+          label = '📅 Amanhã';
+        } else {
+          label = `📅 ${format(day, "EEEE • dd/MM", { locale: ptBR })}`;
+        }
+        setNextAvailable({ date: day, slots, label });
+        setSlotsLoading(false);
+        return;
+      }
     }
-    setWeekSlots(results);
+    setNextAvailable(null);
     setSlotsLoading(false);
   };
 
@@ -132,12 +153,6 @@ export default function ProfessionalPublicProfile() {
     }
   };
 
-  const handleCopyLink = async () => {
-    await navigator.clipboard.writeText(window.location.href);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
-
   const bookingUrl = company && professionalSlug
     ? `/${businessType === 'esthetic' ? 'estetica' : 'barbearia'}/${slug}/${professionalSlug}`
     : '#';
@@ -147,6 +162,9 @@ export default function ProfessionalPublicProfile() {
   const socialLinks = profile?.social_links as any;
   const instagramUrl = socialLinks?.instagram ? (socialLinks.instagram.startsWith('http') ? socialLinks.instagram : `https://instagram.com/${socialLinks.instagram.replace('@', '')}`) : null;
   const whatsappNumber = profile?.whatsapp;
+  const whatsappDigits = whatsappNumber ? formatWhatsApp(whatsappNumber) : null;
+
+  const displayedReviews = showAllReviews ? reviews : reviews.slice(0, 3);
 
   if (loading) {
     return (
@@ -188,24 +206,77 @@ export default function ProfessionalPublicProfile() {
           <p className="text-sm mt-1" style={{ color: isDark ? '#9CA3AF' : '#6B7280' }}>{company.name}</p>
         </div>
 
-        {/* Rating */}
-        {rating && rating.count > 0 && (
-          <div className="flex items-center gap-2">
-            <div className="flex items-center gap-1">
-              {[1, 2, 3, 4, 5].map(i => (
-                <Star key={i} className={cn("w-4 h-4", i <= Math.round(rating.avg) ? "fill-yellow-400 text-yellow-400" : "text-gray-600")} />
-              ))}
+        {/* Rating & Completed Count */}
+        <div className="flex flex-col items-center gap-1">
+          {rating && rating.count > 0 && (
+            <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1">
+                {[1, 2, 3, 4, 5].map(i => (
+                  <Star key={i} className={cn("w-4 h-4", i <= Math.round(rating.avg) ? "fill-yellow-400 text-yellow-400" : "text-gray-600")} />
+                ))}
+              </div>
+              <span className="text-sm font-medium" style={{ color: isDark ? '#F59E0B' : '#D97706' }}>{rating.avg.toFixed(1)}</span>
+              <span className="text-xs" style={{ color: isDark ? '#6B7280' : '#9CA3AF' }}>({rating.count} avaliações)</span>
             </div>
-            <span className="text-sm font-medium" style={{ color: isDark ? '#F59E0B' : '#D97706' }}>{rating.avg.toFixed(1)}</span>
-            <span className="text-xs" style={{ color: isDark ? '#6B7280' : '#9CA3AF' }}>({rating.count} avaliações)</span>
-          </div>
-        )}
+          )}
+          {completedCount > 0 && (
+            <span className="text-xs font-medium" style={{ color: isDark ? '#9CA3AF' : '#6B7280' }}>
+              ✂️ {completedCount} cortes realizados
+            </span>
+          )}
+        </div>
 
         {/* Bio */}
         {profile?.bio && (
           <p className="text-center text-sm leading-relaxed max-w-xs" style={{ color: isDark ? '#D1D5DB' : '#4B5563' }}>
             {profile.bio}
           </p>
+        )}
+
+        {/* Next Available Slot */}
+        {nextAvailable && (
+          <div className="w-full max-w-xs">
+            <div className="flex items-center gap-2 mb-3">
+              <Calendar className="w-4 h-4" style={{ color: isDark ? '#F59E0B' : '#D97706' }} />
+              <h3 className="text-sm font-semibold" style={{ color: isDark ? '#FFFFFF' : '#1F2937' }}>Próximo horário disponível</h3>
+            </div>
+            <div
+              className="rounded-xl p-4 border"
+              style={{
+                background: isDark ? '#111827' : '#FFFFFF',
+                borderColor: isDark ? '#1F2937' : '#E5E7EB',
+              }}
+            >
+              <p className="text-sm font-semibold mb-3 capitalize" style={{ color: isDark ? '#F59E0B' : '#D97706' }}>
+                {nextAvailable.label}
+              </p>
+              <div className="flex gap-2">
+                {nextAvailable.slots.slice(0, 3).map(time => (
+                  <button
+                    key={time}
+                    onClick={() => navigate(`${bookingUrl}?date=${format(nextAvailable.date, 'yyyy-MM-dd')}&time=${time}`)}
+                    className="flex-1 py-2.5 rounded-lg text-sm font-semibold transition-all hover:scale-105 active:scale-95"
+                    style={{
+                      background: isDark ? 'rgba(245,158,11,0.2)' : 'rgba(217,119,6,0.12)',
+                      color: isDark ? '#F59E0B' : '#D97706',
+                      border: `1px solid ${isDark ? 'rgba(245,158,11,0.3)' : 'rgba(217,119,6,0.25)'}`,
+                    }}
+                  >
+                    {time}
+                  </button>
+                ))}
+              </div>
+              {nextAvailable.slots.length > 3 && (
+                <button
+                  onClick={() => navigate(`${bookingUrl}?date=${format(nextAvailable.date, 'yyyy-MM-dd')}`)}
+                  className="w-full text-xs mt-2 py-1"
+                  style={{ color: isDark ? '#6B7280' : '#9CA3AF' }}
+                >
+                  +{nextAvailable.slots.length - 3} horários disponíveis →
+                </button>
+              )}
+            </div>
+          </div>
         )}
 
         {/* Primary CTA */}
@@ -218,25 +289,26 @@ export default function ProfessionalPublicProfile() {
           Agendar horário
         </Button>
 
+        {/* WhatsApp CTA */}
+        {whatsappDigits && (
+          <a
+            href={`https://wa.me/${whatsappDigits}?text=${encodeURIComponent(`Olá ${professional.name}! Vi seu perfil e gostaria de agendar um horário.`)}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="w-full max-w-xs flex items-center justify-center gap-2 h-11 rounded-xl border text-sm font-medium transition-colors hover:opacity-90"
+            style={{
+              borderColor: '#25D366',
+              background: isDark ? 'rgba(37,211,102,0.1)' : 'rgba(37,211,102,0.08)',
+              color: '#25D366',
+            }}
+          >
+            <MessageCircle className="w-4 h-4" />
+            Chamar no WhatsApp
+          </a>
+        )}
+
         {/* Secondary Buttons */}
         <div className="w-full max-w-xs flex flex-col gap-3">
-          {whatsappNumber && (
-            <a
-              href={`https://wa.me/${whatsappNumber.replace(/\D/g, '')}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center justify-center gap-2 w-full h-11 rounded-xl border text-sm font-medium transition-colors hover:opacity-90"
-              style={{
-                borderColor: isDark ? '#1F2937' : '#E5E7EB',
-                background: isDark ? '#111827' : '#FFFFFF',
-                color: isDark ? '#FFFFFF' : '#1F2937',
-              }}
-            >
-              <MessageCircle className="w-4 h-4" style={{ color: '#25D366' }} />
-              WhatsApp
-            </a>
-          )}
-
           {instagramUrl && (
             <a
               href={instagramUrl}
@@ -285,72 +357,6 @@ export default function ProfessionalPublicProfile() {
           </button>
         </div>
 
-        {/* Agenda da Semana */}
-        {weekSlots.length > 0 && (
-          <div className="w-full max-w-xs">
-            <div className="flex items-center gap-2 mb-3">
-              <Calendar className="w-4 h-4" style={{ color: isDark ? '#F59E0B' : '#D97706' }} />
-              <h3 className="text-sm font-semibold" style={{ color: isDark ? '#FFFFFF' : '#1F2937' }}>Agenda da semana</h3>
-            </div>
-            <div className="grid grid-cols-7 gap-1">
-              {weekSlots.map(group => {
-                const today = isToday(group.date);
-                const hasSlots = group.slots.length > 0;
-                const displaySlots = group.slots.slice(0, 3);
-                const extra = group.slots.length - 3;
-                return (
-                  <div
-                    key={format(group.date, 'yyyy-MM-dd')}
-                    className="flex flex-col items-center rounded-lg p-1.5"
-                    style={{
-                      background: today
-                        ? isDark ? 'rgba(245,158,11,0.15)' : 'rgba(217,119,6,0.1)'
-                        : isDark ? '#111827' : '#F9FAFB',
-                      border: today
-                        ? `1.5px solid ${isDark ? '#F59E0B' : '#D97706'}`
-                        : `1px solid ${isDark ? '#1F2937' : '#E5E7EB'}`,
-                    }}
-                  >
-                    <span className="text-[10px] font-semibold uppercase" style={{ color: isDark ? '#9CA3AF' : '#6B7280' }}>
-                      {format(group.date, 'EEE', { locale: ptBR }).replace('.', '')}
-                    </span>
-                    <span className="text-[10px] mb-1" style={{ color: isDark ? '#6B7280' : '#9CA3AF' }}>
-                      {format(group.date, 'dd/MM')}
-                    </span>
-                    {today && (
-                      <span className="text-[9px] mb-1" style={{ color: isDark ? '#F59E0B' : '#D97706' }}>🔥 Hoje</span>
-                    )}
-                    {hasSlots ? (
-                      <>
-                        {displaySlots.map(time => (
-                          <button
-                            key={time}
-                            onClick={() => navigate(`${bookingUrl}?date=${format(group.date, 'yyyy-MM-dd')}&time=${time}`)}
-                            className="w-full text-[10px] font-medium py-0.5 rounded transition-all hover:scale-105 mb-0.5"
-                            style={{
-                              background: isDark ? 'rgba(245,158,11,0.2)' : 'rgba(217,119,6,0.15)',
-                              color: isDark ? '#F59E0B' : '#D97706',
-                            }}
-                          >
-                            {time}
-                          </button>
-                        ))}
-                        {extra > 0 && (
-                          <span className="text-[9px] mt-0.5" style={{ color: isDark ? '#6B7280' : '#9CA3AF' }}>
-                            +{extra} horários
-                          </span>
-                        )}
-                      </>
-                    ) : (
-                      <span className="text-[9px] mt-1" style={{ color: isDark ? '#4B5563' : '#D1D5DB' }}>—</span>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
         {/* Services */}
         {services.length > 0 && (
           <div className="w-full max-w-xs">
@@ -387,9 +393,11 @@ export default function ProfessionalPublicProfile() {
         {/* Reviews */}
         {reviews.length > 0 && (
           <div className="w-full max-w-xs">
-            <h3 className="text-sm font-semibold mb-3" style={{ color: isDark ? '#FFFFFF' : '#1F2937' }}>Avaliações</h3>
+            <h3 className="text-sm font-semibold mb-3" style={{ color: isDark ? '#FFFFFF' : '#1F2937' }}>
+              Avaliações ({totalReviews})
+            </h3>
             <div className="flex flex-col gap-3">
-              {reviews.map((rev, i) => (
+              {displayedReviews.map((rev, i) => (
                 <div
                   key={i}
                   className="p-3 rounded-xl border"
@@ -414,6 +422,15 @@ export default function ProfessionalPublicProfile() {
                 </div>
               ))}
             </div>
+            {totalReviews > 3 && !showAllReviews && (
+              <button
+                onClick={() => setShowAllReviews(true)}
+                className="w-full text-xs font-medium mt-3 py-2 rounded-lg transition-colors hover:opacity-80"
+                style={{ color: isDark ? '#F59E0B' : '#D97706' }}
+              >
+                Ver todas avaliações ({totalReviews})
+              </button>
+            )}
           </div>
         )}
 
