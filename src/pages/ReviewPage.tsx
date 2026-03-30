@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
-import { Star, CheckCircle2, Scissors } from 'lucide-react';
+import { Star, CheckCircle2, Scissors, ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -28,6 +28,7 @@ const ReviewPage = () => {
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [alreadyReviewed, setAlreadyReviewed] = useState(false);
+  const [googleReviewUrl, setGoogleReviewUrl] = useState<string | null>(null);
 
   useEffect(() => {
     if (appointmentId) fetchAppointment();
@@ -35,13 +36,12 @@ const ReviewPage = () => {
 
   const fetchAppointment = async () => {
     try {
-      // Fetch appointment with related data
       const { data, error } = await supabase
         .from('appointments')
         .select(`
           *,
           professional:profiles!appointments_professional_id_fkey(full_name, avatar_url),
-          company:companies(name, logo_url),
+          company:companies(name, logo_url, google_review_url),
           appointment_services(*, service:services(name))
         `)
         .eq('id', appointmentId!)
@@ -54,8 +54,8 @@ const ReviewPage = () => {
       }
 
       setAppointment(data);
+      setGoogleReviewUrl((data as any).company?.google_review_url || null);
 
-      // Check if already reviewed
       const { data: existingReview } = await supabase
         .from('reviews')
         .select('id')
@@ -123,7 +123,10 @@ const ReviewPage = () => {
     .filter(Boolean)
     .join(', ') || '';
 
+  // Post-submission: show thank you + conditional Google review invite
   if (submitted || alreadyReviewed) {
+    const showGoogleInvite = submitted && professionalRating >= 4 && googleReviewUrl;
+
     return (
       <div className="min-h-screen flex items-center justify-center p-4" style={{ background: T.bg, color: T.text }}>
         <div className="max-w-md w-full text-center space-y-6">
@@ -147,6 +150,25 @@ const ReviewPage = () => {
               {[1, 2, 3, 4, 5].map((s) => (
                 <Star key={s} className="h-6 w-6" style={{ color: s <= professionalRating ? T.accent : T.border, fill: s <= professionalRating ? T.accent : 'none' }} />
               ))}
+            </div>
+          )}
+
+          {/* Google Review Invite — only for positive ratings (>= 4 stars) */}
+          {showGoogleInvite && (
+            <div className="rounded-2xl p-6 space-y-4 animate-fade-in" style={{ background: T.card, border: `1px solid ${T.border}` }}>
+              <p className="text-lg font-semibold">Que bom que você gostou! 🙌</p>
+              <p className="text-sm" style={{ color: T.textSec }}>
+                Você poderia deixar essa avaliação no Google?{'\n'}
+                Isso ajuda muito nossa barbearia.
+              </p>
+              <button
+                onClick={() => window.open(googleReviewUrl!, '_blank')}
+                className="w-full flex items-center justify-center gap-2 py-4 rounded-xl text-base font-semibold transition-all hover:scale-[1.02] hover:shadow-lg"
+                style={{ background: T.accent, color: '#000' }}
+              >
+                <Star className="h-5 w-5 fill-current" /> Avaliar no Google
+                <ExternalLink className="h-4 w-4 ml-1" />
+              </button>
             </div>
           )}
         </div>

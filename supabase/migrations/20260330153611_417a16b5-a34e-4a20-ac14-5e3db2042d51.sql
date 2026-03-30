@@ -1,0 +1,1 @@
+ALTER TABLE public.companies ADD COLUMN google_review_url text;
