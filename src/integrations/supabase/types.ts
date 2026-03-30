@@ -363,6 +363,7 @@ export type Database = {
           buffer_minutes: number
           business_type: Database["public"]["Enums"]["business_type"]
           created_at: string
+          google_review_url: string | null
           id: string
           logo_url: string | null
           name: string
@@ -384,6 +385,7 @@ export type Database = {
           buffer_minutes?: number
           business_type?: Database["public"]["Enums"]["business_type"]
           created_at?: string
+          google_review_url?: string | null
           id?: string
           logo_url?: string | null
           name: string
@@ -405,6 +407,7 @@ export type Database = {
           buffer_minutes?: number
           business_type?: Database["public"]["Enums"]["business_type"]
           created_at?: string
+          google_review_url?: string | null
           id?: string
           logo_url?: string | null
           name?: string
