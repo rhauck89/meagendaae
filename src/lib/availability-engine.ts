@@ -174,6 +174,12 @@ export function calculateAvailableSlots(params: AvailabilityParams): string[] {
   while (current.getTime() + effectiveDuration * 60000 <= closeTime.getTime()) {
     const slotEnd = addMinutes(current, effectiveDuration);
 
+    // Skip past slots for today
+    if (earliestSlotTime && current < earliestSlotTime) {
+      current = addMinutes(current, slotInterval);
+      continue;
+    }
+
     const hasConflict = blocked.some(
       (b) => current < b.end && slotEnd > b.start
     );
