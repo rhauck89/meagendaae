@@ -356,6 +356,7 @@ export type Database = {
       }
       companies: {
         Row: {
+          address: string | null
           birthday_discount_type: string
           birthday_discount_value: number
           birthday_enabled: boolean
@@ -376,6 +377,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          address?: string | null
           birthday_discount_type?: string
           birthday_discount_value?: number
           birthday_enabled?: boolean
@@ -396,6 +398,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          address?: string | null
           birthday_discount_type?: string
           birthday_discount_value?: number
           birthday_enabled?: boolean
@@ -1017,6 +1020,7 @@ export type Database = {
       get_company_by_slug: {
         Args: { _slug: string }
         Returns: {
+          address: string
           business_type: Database["public"]["Enums"]["business_type"]
           id: string
           logo_url: string

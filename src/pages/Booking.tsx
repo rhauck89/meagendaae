@@ -118,6 +118,7 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
     totalDuration: number;
     companyName: string;
     companyPhone: string | null;
+    companyAddress: string | null;
   } | null>(null);
 
   const isDark = businessType === 'barbershop';
@@ -602,6 +603,7 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
         serviceNames: bookedServiceNames, date: selectedDate, time: selectedTime,
         totalPrice, totalDuration, companyName: company.name,
         companyPhone: company.phone || companySettings?.whatsapp_number || null,
+        companyAddress: (company as any).address || null,
       });
       setStep('success');
     } catch (err: any) {
@@ -1156,6 +1158,11 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
                 {bookingResult.companyPhone && (
                   <button onClick={() => window.open(waUrl(), '_blank')} className="flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-medium transition-all hover:scale-105" style={{ background: '#25D366', color: '#fff' }}>
                     <MessageCircle className="h-4 w-4" /> 📲 Enviar confirmação no WhatsApp
+                  </button>
+                )}
+                {bookingResult.companyAddress && (
+                  <button onClick={() => window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(bookingResult.companyAddress!)}`, '_blank')} className="flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-medium transition-all hover:scale-105 col-span-2" style={{ background: T.card, border: `1px solid ${T.border}`, color: T.text }}>
+                    <MapPin className="h-4 w-4" style={{ color: T.accent }} /> 📍 Abrir localização
                   </button>
                 )}
               </div>
