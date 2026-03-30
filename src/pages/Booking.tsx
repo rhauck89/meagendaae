@@ -1195,6 +1195,7 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
                 <button onClick={() => window.location.href = `/cancel/${bookingResult.appointmentId}`} className="flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-medium transition-all hover:scale-105" style={{ background: T.card, border: `1px solid ${T.border}`, color: '#F87171' }}>
                   ❌ Cancelar
                 </button>
+              </div>
 
               {/* ── Rating info ── */}
               <div className="rounded-2xl p-4 text-center" style={{ background: T.card, border: `1px solid ${T.border}` }}>
