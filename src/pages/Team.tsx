@@ -242,9 +242,18 @@ const Team = () => {
               </DialogTitle>
             </DialogHeader>
 
-            {createdCredentials ? (
+            {createdCredentials ? (() => {
+              const loginUrl = `${window.location.origin}/auth`;
+              const fullMessage = `🔐 *Acesso ao sistema*\n\n📎 Link de login: ${loginUrl}\n📧 Email: ${createdCredentials.email}\n🔑 Senha temporária: ${createdCredentials.password}\n\n📌 Link de agendamento:\n${createdCredentials.link}\n\n⚠️ Troque sua senha após o primeiro login.`;
+              const whatsAppUrl = `https://wa.me/?text=${encodeURIComponent(fullMessage)}`;
+              return (
               <div className="space-y-4">
+                <p className="text-sm text-muted-foreground">Envie esses dados para o profissional acessar o sistema:</p>
                 <div className="rounded-lg border bg-muted/50 p-4 space-y-3">
+                  <div>
+                    <p className="text-xs text-muted-foreground">Link de login</p>
+                    <p className="font-mono text-xs break-all">{loginUrl}</p>
+                  </div>
                   <div>
                     <p className="text-xs text-muted-foreground">Email de acesso</p>
                     <p className="font-mono text-sm">{createdCredentials.email}</p>
@@ -258,25 +267,29 @@ const Team = () => {
                     <p className="font-mono text-xs break-all">{createdCredentials.link}</p>
                   </div>
                 </div>
+                <p className="text-xs text-muted-foreground">O profissional pode alterar a senha após o primeiro login.</p>
                 <div className="flex gap-2">
                   <Button
                     variant="outline"
                     className="flex-1"
                     onClick={() =>
-                      copyToClipboard(
-                        `Email: ${createdCredentials.email}\nSenha: ${createdCredentials.password}\nLink: ${createdCredentials.link}`,
-                        'Dados de acesso'
-                      )
+                      copyToClipboard(fullMessage, 'Dados de acesso')
                     }
                   >
-                    <Copy className="mr-2 h-4 w-4" /> Copiar tudo
+                    <Copy className="mr-2 h-4 w-4" /> Copiar acesso
                   </Button>
-                  <Button className="flex-1" onClick={() => { setDialogOpen(false); resetForm(); }}>
-                    Fechar
+                  <Button className="flex-1 bg-green-600 hover:bg-green-700 text-white" asChild>
+                    <a href={whatsAppUrl} target="_blank" rel="noopener noreferrer">
+                      <MessageCircle className="mr-2 h-4 w-4" /> Enviar via WhatsApp
+                    </a>
                   </Button>
                 </div>
+                <Button variant="ghost" className="w-full" onClick={() => { setDialogOpen(false); resetForm(); }}>
+                  Fechar
+                </Button>
               </div>
-            ) : (
+              );
+            })() : (
               <div className="space-y-4">
                 <div className="space-y-2">
                   <Label>Nome</Label>
