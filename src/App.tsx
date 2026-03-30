@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import Index from "./pages/Index";
+import ProfessionalPublicProfile from "./pages/ProfessionalPublicProfile";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import Services from "./pages/Services";
@@ -54,6 +55,9 @@ const App = () => (
             <Route path="/barbearia/:slug/:professionalSlug" element={<Booking routeBusinessType="barbershop" />} />
             <Route path="/estetica/:slug" element={<Booking routeBusinessType="esthetic" />} />
             <Route path="/estetica/:slug/:professionalSlug" element={<Booking routeBusinessType="esthetic" />} />
+            {/* Public profile routes */}
+            <Route path="/perfil/barbearia/:slug/:professionalSlug" element={<ProfessionalPublicProfile />} />
+            <Route path="/perfil/estetica/:slug/:professionalSlug" element={<ProfessionalPublicProfile />} />
             {/* Legacy booking route */}
             <Route path="/booking/:slug" element={<Booking />} />
             <Route path="/my-appointments" element={<MyAppointments />} />
