@@ -736,6 +736,41 @@ const Dashboard = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Complete Confirmation Dialog */}
+      <AlertDialog open={completeDialogOpen} onOpenChange={setCompleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {completeTarget && new Date() < parseISO(completeTarget.start_time)
+                ? 'Este atendimento ainda não começou'
+                : 'Deseja concluir este atendimento?'}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {completeTarget && new Date() < parseISO(completeTarget.start_time)
+                ? 'Deseja realmente concluir este serviço?'
+                : `${completeTarget?.client_name || 'Cliente'} — ${format(parseISO(completeTarget?.start_time || new Date().toISOString()), 'HH:mm')}`}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (completeTarget) {
+                  updateStatus(completeTarget.id, 'completed');
+                  toast.success('Serviço concluído com sucesso');
+                }
+                setCompleteDialogOpen(false);
+                setCompleteTarget(null);
+              }}
+            >
+              {completeTarget && new Date() < parseISO(completeTarget.start_time)
+                ? 'Concluir mesmo assim'
+                : 'Concluir'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
