@@ -1275,7 +1275,21 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
               </div>
               <div>
                 <p className={cn('text-sm', textMuted)}>Profissional</p>
-                <p className="font-semibold">{professionals.find((p) => p.id === selectedProfessional)?.full_name}</p>
+                {(() => {
+                  const prof = professionals.find((p) => p.id === selectedProfessional);
+                  return (
+                    <div className="flex items-center gap-2 mt-1">
+                      {prof?.avatar_url ? (
+                        <img src={prof.avatar_url} alt={prof.full_name} className="w-8 h-8 rounded-full object-cover" />
+                      ) : (
+                        <div className={cn('w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold', accentBg, accentText)}>
+                          {prof?.full_name?.charAt(0)?.toUpperCase()}
+                        </div>
+                      )}
+                      <p className="font-semibold">{prof?.full_name}</p>
+                    </div>
+                  );
+                })()}
               </div>
               <div>
                 <p className={cn('text-sm', textMuted)}>Data e horário</p>
