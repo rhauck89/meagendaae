@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Clock, DollarSign, Users, UserCheck, UserMinus, AlertTriangle, Bell, Mail, Cake, Ban, Trash2, Timer, RefreshCw } from 'lucide-react';
 import { BlockTimeDialog } from '@/components/BlockTimeDialog';
-import { Calendar } from '@/components/ui/calendar';
+import { Calendar as DatePickerCalendar } from '@/components/ui/calendar';
 import { format, addDays, addMinutes, startOfWeek, endOfWeek, startOfMonth, endOfMonth, isSameDay, parseISO, differenceInDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
@@ -492,7 +492,7 @@ const Dashboard = () => {
         <Card>
           <CardContent className="p-4 flex items-center gap-4">
             <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
-              <Calendar className="h-6 w-6 text-primary" />
+              <CalendarIcon className="h-6 w-6 text-primary" />
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Hoje</p>
@@ -749,7 +749,7 @@ const Dashboard = () => {
           )}
           {appointments.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground">
-              <Calendar className="h-12 w-12 mx-auto mb-3 opacity-40" />
+              <CalendarIcon className="h-12 w-12 mx-auto mb-3 opacity-40" />
               <p>Nenhum agendamento neste período</p>
             </div>
           ) : (
@@ -969,7 +969,7 @@ const Dashboard = () => {
             {/* Left: Calendar */}
             <div className="overflow-hidden">
               <p className="text-sm font-medium mb-2">Selecione a nova data</p>
-              <Calendar
+              <DatePickerCalendar
                 mode="single"
                 selected={rescheduleDate}
                 onSelect={(date) => {
