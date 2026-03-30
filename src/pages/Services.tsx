@@ -128,6 +128,7 @@ const Services = () => {
       name: service.name,
       duration_minutes: service.duration_minutes,
       price: Number(service.price),
+      recommended_return_days: service.recommended_return_days || '',
     });
     setDialogOpen(true);
   };
