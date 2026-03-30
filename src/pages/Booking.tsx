@@ -94,6 +94,17 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
   const [nextSlots, setNextSlots] = useState<{ date: Date; slots: string[] }[]>([]);
   const [nextSlotsLoading, setNextSlotsLoading] = useState(false);
   const slotRequestRef = useRef(0);
+  const [bookingResult, setBookingResult] = useState<{
+    professionalName: string;
+    professionalAvatar: string | null;
+    serviceNames: string[];
+    date: Date;
+    time: string;
+    totalPrice: number;
+    totalDuration: number;
+    companyName: string;
+    companyPhone: string | null;
+  } | null>(null);
 
   const isDark = businessType === 'barbershop';
   const bookingTimezone = companySettings?.timezone || DEFAULT_BOOKING_TIMEZONE;
