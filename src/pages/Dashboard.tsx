@@ -614,7 +614,7 @@ const Dashboard = () => {
               {appointments.map((apt) => (
                 <div
                   key={apt.id}
-                  className="flex flex-col sm:flex-row sm:items-center gap-3 p-4 rounded-xl border bg-card hover:shadow-md transition-shadow"
+                  className={cn("flex flex-col sm:flex-row sm:items-center gap-3 p-4 rounded-xl border transition-shadow hover:shadow-md", statusCardStyles[apt.status] || 'bg-card')}
                 >
                   <div className="flex items-center gap-3 flex-1">
                     <div className="text-center min-w-[60px]">
