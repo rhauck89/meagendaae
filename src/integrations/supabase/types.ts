@@ -587,6 +587,75 @@ export type Database = {
           },
         ]
       }
+      reviews: {
+        Row: {
+          appointment_id: string
+          client_id: string | null
+          comment: string | null
+          company_id: string
+          created_at: string
+          id: string
+          professional_id: string
+          rating: number
+        }
+        Insert: {
+          appointment_id: string
+          client_id?: string | null
+          comment?: string | null
+          company_id: string
+          created_at?: string
+          id?: string
+          professional_id: string
+          rating: number
+        }
+        Update: {
+          appointment_id?: string
+          client_id?: string | null
+          comment?: string | null
+          company_id?: string
+          created_at?: string
+          id?: string
+          professional_id?: string
+          rating?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reviews_appointment_id_fkey"
+            columns: ["appointment_id"]
+            isOneToOne: true
+            referencedRelation: "appointments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reviews_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reviews_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reviews_professional_id_fkey"
+            columns: ["professional_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reviews_professional_id_fkey"
+            columns: ["professional_id"]
+            isOneToOne: false
+            referencedRelation: "public_professionals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       service_professionals: {
         Row: {
           company_id: string | null
@@ -1030,6 +1099,14 @@ export type Database = {
         }[]
       }
       get_my_company_id: { Args: never; Returns: string }
+      get_professional_ratings: {
+        Args: { p_company_id: string }
+        Returns: {
+          avg_rating: number
+          professional_id: string
+          review_count: number
+        }[]
+      }
       get_user_company_id: { Args: { _user_id: string }; Returns: string }
       has_company_role: {
         Args: {
@@ -1057,6 +1134,10 @@ export type Database = {
       recalculate_client_return_stats: {
         Args: { _company_id: string }
         Returns: undefined
+      }
+      submit_review: {
+        Args: { p_appointment_id: string; p_comment?: string; p_rating: number }
+        Returns: string
       }
     }
     Enums: {
