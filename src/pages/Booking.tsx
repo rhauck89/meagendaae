@@ -191,6 +191,16 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
       }
     }
 
+    // Fetch professional ratings
+    const { data: ratingsData } = await supabase.rpc('get_professional_ratings' as any, { p_company_id: comp.id });
+    if (ratingsData && Array.isArray(ratingsData)) {
+      const ratingsMap: Record<string, { avg: number; count: number }> = {};
+      for (const r of ratingsData as any[]) {
+        ratingsMap[r.professional_id] = { avg: Number(r.avg_rating), count: Number(r.review_count) };
+      }
+      setProfessionalRatings(ratingsMap);
+    }
+
     if (professionalSlug) {
       console.log('[Booking] Resolving professional by slug', { companyId: comp.id, professionalSlug });
       const { data: pubProfs, error: collabErr } = await supabase
