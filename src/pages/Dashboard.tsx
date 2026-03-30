@@ -21,6 +21,7 @@ type ViewMode = 'day' | 'week' | 'month';
 const statusColors: Record<string, string> = {
   pending: 'bg-warning/10 text-warning border-warning/20',
   confirmed: 'bg-primary/10 text-primary border-primary/20',
+  in_progress: 'bg-blue-500/10 text-blue-500 border-blue-500/20',
   cancelled: 'bg-destructive/10 text-destructive border-destructive/20',
   completed: 'bg-success/10 text-success border-success/20',
   no_show: 'bg-muted text-muted-foreground border-border',
@@ -29,6 +30,7 @@ const statusColors: Record<string, string> = {
 const statusCardStyles: Record<string, string> = {
   pending: 'bg-warning/5 border-l-4 border-l-warning',
   confirmed: 'bg-[hsl(226,100%,97%)] border-l-4 border-l-primary',
+  in_progress: 'bg-blue-50 border-l-4 border-l-blue-500',
   cancelled: 'bg-destructive/5 border-l-4 border-l-destructive opacity-60',
   completed: 'bg-muted/50 border-l-4 border-l-success opacity-75',
   no_show: 'bg-muted/30 border-l-4 border-l-muted-foreground opacity-60',
@@ -37,9 +39,18 @@ const statusCardStyles: Record<string, string> = {
 const statusLabels: Record<string, string> = {
   pending: 'Pendente',
   confirmed: 'Confirmado',
+  in_progress: '🔵 Em atendimento',
   cancelled: 'Cancelado',
   completed: 'Concluído',
   no_show: 'Não compareceu',
+};
+
+const getDisplayStatus = (apt: any): string => {
+  const now = new Date();
+  if (apt.status === 'confirmed' && now >= parseISO(apt.start_time) && now <= parseISO(apt.end_time)) {
+    return 'in_progress';
+  }
+  return apt.status;
 };
 
 interface ReturnStats {
