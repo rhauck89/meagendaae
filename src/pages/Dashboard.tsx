@@ -803,6 +803,7 @@ const Dashboard = () => {
                         >
                           <RefreshCw className="h-4 w-4 mr-1" />
                           Reagendar
+                        </Button>
                         <Button
                           size="sm"
                           variant="ghost"
