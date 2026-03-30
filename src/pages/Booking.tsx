@@ -889,6 +889,7 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
                             <label className="text-xs font-medium block mb-1">Nome *</label>
                             <input
                               className="w-full px-3 py-2 rounded-lg border text-sm"
+                              style={{ background: '#FFFFFF', color: '#111827' }}
                               placeholder="Seu nome"
                               value={waitlistForm.name}
                               onChange={(e) => setWaitlistForm(f => ({ ...f, name: e.target.value }))}
@@ -898,6 +899,7 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
                             <label className="text-xs font-medium block mb-1">WhatsApp *</label>
                             <input
                               className="w-full px-3 py-2 rounded-lg border text-sm"
+                              style={{ background: '#FFFFFF', color: '#111827' }}
                               placeholder="(31) 99999-9999"
                               value={waitlistForm.whatsapp}
                               onChange={(e) => setWaitlistForm(f => ({ ...f, whatsapp: e.target.value }))}
@@ -908,6 +910,7 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
                             <input
                               type="email"
                               className="w-full px-3 py-2 rounded-lg border text-sm"
+                              style={{ background: '#FFFFFF', color: '#111827' }}
                               placeholder="seu@email.com"
                               value={waitlistForm.email}
                               onChange={(e) => setWaitlistForm(f => ({ ...f, email: e.target.value }))}
