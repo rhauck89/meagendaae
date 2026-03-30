@@ -375,11 +375,6 @@ const Dashboard = () => {
     setRescheduleSelectedSlot(null);
     try {
       const dateStr = format(date, 'yyyy-MM-dd');
-      const { data: existingAppts } = await supabase.rpc('get_booking_appointments', {
-        p_company_id: companyId,
-        p_professional_id: rescheduleTarget.professional_id,
-        p_selected_date: dateStr,
-      });
       const { data: profHours } = await supabase
         .from('professional_working_hours')
         .select('*')
@@ -394,6 +389,11 @@ const Dashboard = () => {
         .select('*')
         .eq('professional_id', rescheduleTarget.professional_id)
         .eq('block_date', dateStr);
+      const { data: exceptions } = await supabase
+        .from('business_exceptions')
+        .select('*')
+        .eq('company_id', companyId)
+        .eq('exception_date', dateStr);
       const { data: company } = await supabase
         .from('companies')
         .select('buffer_minutes')
@@ -404,16 +404,24 @@ const Dashboard = () => {
         (sum: number, s: any) => sum + (s.duration_minutes || 0), 0
       ) || 30;
 
+      // Fetch all appointments for this date/professional, then exclude the one being rescheduled by ID
+      const { data: allAppts } = await supabase
+        .from('appointments')
+        .select('id, start_time, end_time')
+        .eq('professional_id', rescheduleTarget.professional_id)
+        .eq('company_id', companyId)
+        .gte('start_time', `${dateStr}T00:00:00`)
+        .lt('start_time', `${dateStr}T23:59:59`)
+        .not('status', 'in', '("cancelled","no_show")')
+        .neq('id', rescheduleTarget.id);
+
       const { calculateAvailableSlots } = await import('@/lib/availability-engine');
-      const filtered = (existingAppts || []).filter(
-        (a: any) => !(a.start_time === rescheduleTarget.start_time && a.end_time === rescheduleTarget.end_time)
-      );
       const slots = calculateAvailableSlots({
         date,
         totalDuration,
         businessHours: bizHours || [],
-        exceptions: [],
-        existingAppointments: filtered,
+        exceptions: exceptions || [],
+        existingAppointments: allAppts || [],
         bufferMinutes: company?.buffer_minutes || 0,
         professionalHours: profHours && profHours.length > 0 ? profHours : undefined,
         blockedTimes: blocks || [],
