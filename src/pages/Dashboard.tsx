@@ -73,6 +73,8 @@ const Dashboard = () => {
   const [stats, setStats] = useState({ total: 0, revenue: 0, revenueCompleted: 0, clients: 0 });
   const [returnStats, setReturnStats] = useState<ReturnStats>({ onTime: 0, approaching: 0, overdue: 0, approachingClients: [], overdueClients: [] });
   const [waitlistCount, setWaitlistCount] = useState(0);
+  const [waitlistServiceBreakdown, setWaitlistServiceBreakdown] = useState<Record<string, number>>({});
+  const [hasOpenSlot, setHasOpenSlot] = useState(false);
   const [reminderCount, setReminderCount] = useState(0);
   const [birthdayClients, setBirthdayClients] = useState<any[]>([]);
   const [filterProfessional, setFilterProfessional] = useState<string>('all');
@@ -285,16 +287,16 @@ const Dashboard = () => {
       .eq('notified', false);
     setWaitlistCount((wlCount || 0) + (wCount || 0));
 
-    // Fetch client names for tooltip from both tables
+    // Fetch client names + service_ids for tooltip from both tables
     const { data: wlData } = await supabase
       .from('waiting_list')
-      .select('client:profiles!waiting_list_client_id_fkey(full_name)')
+      .select('client:profiles!waiting_list_client_id_fkey(full_name), service_ids')
       .eq('company_id', companyId)
       .eq('status', 'waiting')
       .limit(10);
     const { data: wData } = await supabase
       .from('waitlist')
-      .select('client_name')
+      .select('client_name, service_ids')
       .eq('company_id', companyId)
       .eq('notified', false)
       .limit(10);
@@ -303,6 +305,36 @@ const Dashboard = () => {
       ...(wData?.map((d: any) => d.client_name).filter(Boolean) || []),
     ];
     setWaitlistClients(names.slice(0, 10));
+
+    // Service breakdown
+    const allServiceIds = [
+      ...(wlData?.flatMap((d: any) => d.service_ids || []) || []),
+      ...(wData?.flatMap((d: any) => d.service_ids || []) || []),
+    ];
+    if (allServiceIds.length > 0) {
+      const uniqueIds = [...new Set(allServiceIds)];
+      const { data: svcs } = await supabase.from('services').select('id, name').in('id', uniqueIds);
+      const breakdown: Record<string, number> = {};
+      for (const sid of allServiceIds) {
+        const name = svcs?.find((s: any) => s.id === sid)?.name || 'Serviço';
+        breakdown[name] = (breakdown[name] || 0) + 1;
+      }
+      setWaitlistServiceBreakdown(breakdown);
+    } else {
+      setWaitlistServiceBreakdown({});
+    }
+
+    // Check if there's an open slot today (simple heuristic: fewer than expected appointments)
+    const todayStr = format(new Date(), 'yyyy-MM-dd');
+    const { count: todayApptCount } = await supabase
+      .from('appointments')
+      .select('*', { count: 'exact', head: true })
+      .eq('company_id', companyId)
+      .gte('start_time', `${todayStr}T00:00:00`)
+      .lt('start_time', `${todayStr}T23:59:59`)
+      .not('status', 'in', '("cancelled","no_show")');
+    // If there are waitlist entries and fewer than 8 appointments today, hint availability
+    setHasOpenSlot((wlCount || 0) + (wCount || 0) > 0 && (todayApptCount || 0) < 8);
   };
 
   const fetchReminderCount = async () => {
@@ -579,28 +611,44 @@ const Dashboard = () => {
         <Tooltip>
           <TooltipTrigger asChild>
             <Card
-              className="cursor-pointer hover:shadow-md transition-shadow"
+              className={cn(
+                "cursor-pointer hover:shadow-md transition-shadow",
+                hasOpenSlot && "ring-2 ring-warning/50 bg-warning/5"
+              )}
               onClick={() => routerNavigate('/dashboard/waitlist')}
             >
               <CardContent className="p-4 flex items-center gap-4">
-                <div className="w-12 h-12 rounded-xl bg-warning/10 flex items-center justify-center">
+                <div className={cn("w-12 h-12 rounded-xl flex items-center justify-center", hasOpenSlot ? "bg-warning/20" : "bg-warning/10")}>
                   <Bell className="h-6 w-6 text-warning" />
                 </div>
-                <div>
+                <div className="flex-1 min-w-0">
                   <p className="text-sm text-muted-foreground">Aguardando vaga</p>
                   <p className="text-2xl font-display font-bold">{waitlistCount}</p>
+                  {hasOpenSlot && (
+                    <p className="text-xs font-semibold text-warning">⚡ Vaga disponível</p>
+                  )}
+                  {Object.keys(waitlistServiceBreakdown).length > 0 && (
+                    <div className="flex flex-wrap gap-1 mt-1">
+                      {Object.entries(waitlistServiceBreakdown).slice(0, 3).map(([name, count]) => (
+                        <Badge key={name} variant="outline" className="text-[10px] px-1.5 py-0">
+                          {name} ({count})
+                        </Badge>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>
           </TooltipTrigger>
-          <TooltipContent side="bottom" className="max-w-[200px]">
+          <TooltipContent side="bottom" className="max-w-[220px]">
             {waitlistClients.length > 0 ? (
               <div className="space-y-1">
-                {waitlistClients.map((name, i) => (
-                  <p key={i} className="text-sm">{name}</p>
+                <p className="text-xs font-semibold text-muted-foreground mb-1">Primeiros na fila:</p>
+                {waitlistClients.slice(0, 3).map((name, i) => (
+                  <p key={i} className="text-sm">• {name}</p>
                 ))}
-                {waitlistCount > waitlistClients.length && (
-                  <p className="text-xs text-muted-foreground">+{waitlistCount - waitlistClients.length} mais</p>
+                {waitlistCount > 3 && (
+                  <p className="text-xs text-muted-foreground mt-1">+{waitlistCount - 3} mais</p>
                 )}
               </div>
             ) : (
