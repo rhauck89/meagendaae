@@ -263,6 +263,7 @@ export type Database = {
           email: string | null
           id: string
           name: string
+          next_recommended_visit: string | null
           opt_in_whatsapp: boolean
           whatsapp: string | null
         }
@@ -273,6 +274,7 @@ export type Database = {
           email?: string | null
           id?: string
           name: string
+          next_recommended_visit?: string | null
           opt_in_whatsapp?: boolean
           whatsapp?: string | null
         }
@@ -283,6 +285,7 @@ export type Database = {
           email?: string | null
           id?: string
           name?: string
+          next_recommended_visit?: string | null
           opt_in_whatsapp?: boolean
           whatsapp?: string | null
         }
@@ -734,6 +737,7 @@ export type Database = {
           id: string
           name: string
           price: number
+          recommended_return_days: number | null
           updated_at: string
         }
         Insert: {
@@ -744,6 +748,7 @@ export type Database = {
           id?: string
           name: string
           price: number
+          recommended_return_days?: number | null
           updated_at?: string
         }
         Update: {
@@ -754,6 +759,7 @@ export type Database = {
           id?: string
           name?: string
           price?: number
+          recommended_return_days?: number | null
           updated_at?: string
         }
         Relationships: [
