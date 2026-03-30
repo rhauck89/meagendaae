@@ -1081,7 +1081,8 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
 
           const waUrl = () => {
             const phone = bookingResult.companyPhone?.replace(/\D/g, '') || '';
-            return `https://wa.me/${phone.startsWith('55') ? phone : '55' + phone}?text=${encodeURIComponent(`Olá! Confirmando meu agendamento:\n📅 ${format(bookingResult.date, "dd/MM/yyyy")} às ${bookingResult.time}\n✂️ ${bookingResult.serviceNames.join(', ')}\n👤 ${bookingResult.professionalName}\n💰 R$ ${bookingResult.totalPrice.toFixed(2)}`)}`;
+            const msg = `Olá! 👋\n\nConfirmando meu agendamento na ${bookingResult.companyName}:\n\n📅 Data: ${format(bookingResult.date, "dd/MM/yyyy")}\n⏰ Horário: ${bookingResult.time}\n✂️ Serviço: ${bookingResult.serviceNames.join(', ')}\n💈 Profissional: ${bookingResult.professionalName}\n💰 Valor: R$ ${bookingResult.totalPrice.toFixed(2)}\n\nObrigado!`;
+            return `https://wa.me/${phone.startsWith('55') ? phone : '55' + phone}?text=${encodeURIComponent(msg)}`;
           };
 
           const resetBooking = () => {
@@ -1150,11 +1151,11 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
 
               <div className="grid grid-cols-2 gap-3">
                 <button onClick={() => window.open(calUrl(), '_blank')} className="flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-medium transition-all hover:scale-105" style={{ background: T.card, border: `1px solid ${T.border}`, color: T.text }}>
-                  <CalendarPlus className="h-4 w-4" style={{ color: T.accent }} /> Calendário
+                  <CalendarPlus className="h-4 w-4" style={{ color: T.accent }} /> 📅 Salvar no Google Agenda
                 </button>
                 {bookingResult.companyPhone && (
                   <button onClick={() => window.open(waUrl(), '_blank')} className="flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-medium transition-all hover:scale-105" style={{ background: '#25D366', color: '#fff' }}>
-                    <MessageCircle className="h-4 w-4" /> WhatsApp
+                    <MessageCircle className="h-4 w-4" /> 📲 Enviar confirmação no WhatsApp
                   </button>
                 )}
               </div>
