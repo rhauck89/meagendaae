@@ -750,11 +750,6 @@ const Dashboard = () => {
                 >
                   <div className="flex items-center gap-3 flex-1">
                     <div className="text-center min-w-[60px]">
-                      {viewMode !== 'day' && (
-                        <p className="text-xs text-muted-foreground mb-0.5">
-                          📅 {format(parseISO(apt.start_time), 'dd/MM')}
-                        </p>
-                      )}
                       <p className="text-lg font-display font-bold">
                         {viewMode !== 'day'
                           ? `${format(parseISO(apt.start_time), 'dd/MM')} • ${format(parseISO(apt.start_time), 'HH:mm')}`
