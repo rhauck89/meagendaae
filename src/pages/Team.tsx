@@ -305,6 +305,7 @@ const Team = () => {
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         {collaborators.map((collaborator) => {
           const bookingLink = getCollaboratorBookingLink(collaborator);
+          const profileLink = getCollaboratorProfileLink(collaborator);
           return (
             <Card key={collaborator.id}>
               <CardContent className="p-5 space-y-3">
@@ -340,6 +341,26 @@ const Team = () => {
                     <p className="text-xs text-muted-foreground truncate flex-1">{bookingLink}</p>
                     <Button variant="ghost" size="sm" className="h-7 px-2" onClick={() => copyToClipboard(bookingLink, 'Link')}>
                       <Copy className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                )}
+                {profileLink && (
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="flex-1"
+                      onClick={() => window.open(profileLink, '_blank')}
+                    >
+                      <ExternalLink className="mr-1.5 h-3.5 w-3.5" /> Ver perfil público
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="flex-1"
+                      onClick={() => copyToClipboard(profileLink, 'Link do perfil')}
+                    >
+                      <Copy className="mr-1.5 h-3.5 w-3.5" /> Copiar link do perfil
                     </Button>
                   </div>
                 )}
