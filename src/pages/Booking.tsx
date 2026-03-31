@@ -672,6 +672,36 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
         </div>
       </header>
 
+      {/* Professional Header (when booking via professional link) */}
+      {professionalSlug && selectedProfessional && professionals.length > 0 && step !== 'success' && (() => {
+        const prof = professionals.find(p => p.id === selectedProfessional);
+        if (!prof) return null;
+        const rating = professionalRatings[prof.id];
+        return (
+          <div className="max-w-2xl mx-auto px-4 pt-6">
+            <div className="flex items-center gap-4 p-4 rounded-2xl" style={{ background: T.card, border: `1px solid ${T.border}` }}>
+              {prof.avatar_url ? (
+                <img src={prof.avatar_url} alt={prof.full_name} className="w-16 h-16 rounded-full object-cover shrink-0" style={{ border: `2.5px solid ${T.accent}` }} />
+              ) : (
+                <div className="w-16 h-16 rounded-full flex items-center justify-center text-xl font-bold shrink-0" style={{ background: `${T.accent}20`, color: T.accent, border: `2.5px solid ${T.accent}` }}>
+                  {prof.full_name?.charAt(0)?.toUpperCase()}
+                </div>
+              )}
+              <div className="min-w-0">
+                <p className="font-bold text-lg leading-tight truncate">{prof.full_name}</p>
+                {rating && (
+                  <p className="flex items-center gap-1 text-sm mt-0.5" style={{ color: T.accent }}>
+                    <Star className="h-3.5 w-3.5 fill-current" /> {rating.avg.toFixed(1)}
+                    <span className="font-normal" style={{ color: T.textSec }}>({rating.count} avaliações)</span>
+                  </p>
+                )}
+                <p className="text-xs mt-0.5 truncate" style={{ color: T.textSec }}>{company.name}</p>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
       <div className="max-w-2xl mx-auto px-4 py-6 space-y-6">
         {/* Progress */}
         {step !== 'success' && (
