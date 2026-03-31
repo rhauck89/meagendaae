@@ -91,6 +91,7 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
   const [companySettings, setCompanySettings] = useState<any>(null);
   const [professionalRatings, setProfessionalRatings] = useState<Record<string, { avg: number; count: number }>>({});
   const [recentBookings, setRecentBookings] = useState<number | null>(null);
+  const [companyStats, setCompanyStats] = useState<{ avgRating: number; reviewCount: number; completedCount: number } | null>(null);
 
   const [step, setStep] = useState<Step>('services');
   const [selectedServices, setSelectedServices] = useState<string[]>([]);
