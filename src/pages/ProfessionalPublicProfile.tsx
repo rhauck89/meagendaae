@@ -475,7 +475,7 @@ export default function ProfessionalPublicProfile() {
           {company.logo_url ? (
             <img src={company.logo_url} alt={company.name} className="max-h-[40px] object-contain" />
           ) : (
-            <p className="text-xs font-medium" style={{ color: isDark ? '#4B5563' : '#9CA3AF' }}>
+            <p className="text-xs font-medium" style={{ color: T.textSec }}>
               {company.name}
             </p>
           )}
