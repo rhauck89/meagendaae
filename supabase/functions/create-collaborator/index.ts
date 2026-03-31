@@ -64,7 +64,8 @@ Deno.serve(async (req) => {
     const rawCommissionValue = Number(body.commission_value);
     const commissionValue = Number.isFinite(rawCommissionValue) && rawCommissionValue >= 0 ? rawCommissionValue : NaN;
     const whatsapp = typeof body.whatsapp === "string" ? body.whatsapp.trim() : null;
-    const slug = typeof body.slug === "string" ? body.slug.trim() : null;
+    const rawSlug = typeof body.slug === "string" ? body.slug.trim() : null;
+    const slug = rawSlug || name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
     const tempPassword = typeof body.temp_password === "string" ? body.temp_password : `${crypto.randomUUID().slice(0, 12)}A1!`;
 
     if (!name || !email || !companyId || !paymentType || !role || Number.isNaN(commissionValue)) {

@@ -89,7 +89,20 @@ const ProfessionalPanel = ({ collaborator, open, onOpenChange, onUpdated }: Prof
       setCompanySlug((companyRes.data as any).slug || '');
       setBusinessType((companyRes.data as any).business_type || 'barbershop');
     }
-    setSlug(collaborator.slug || '');
+    const existingSlug = collaborator.slug || '';
+    if (!existingSlug && collaborator.profile?.full_name) {
+      const autoSlug = collaborator.profile.full_name
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/(^-|-$)/g, '');
+      setSlug(autoSlug);
+      // Auto-save the generated slug
+      await supabase.from('collaborators').update({ slug: autoSlug } as any).eq('id', collaborator.id);
+    } else {
+      setSlug(existingSlug);
+    }
   };
 
   const saveSlug = async () => {
