@@ -253,7 +253,7 @@ export default function ProfessionalPublicProfile() {
             </div>
           )}
           {completedCount > 0 && (
-            <span className="text-xs font-medium" style={{ color: isDark ? '#9CA3AF' : '#6B7280' }}>
+            <span className="text-xs font-medium" style={{ color: T.textSec }}>
               ✂️ {completedCount} cortes realizados
             </span>
           )}
