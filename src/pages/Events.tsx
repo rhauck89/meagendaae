@@ -78,6 +78,11 @@ const Events = () => {
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [showSlotsDialog, setShowSlotsDialog] = useState(false);
   const [showPricesDialog, setShowPricesDialog] = useState(false);
+  const [showStoryDialog, setShowStoryDialog] = useState(false);
+  const [storyEvent, setStoryEvent] = useState<Event | null>(null);
+  const [storyImageUrl, setStoryImageUrl] = useState<string | null>(null);
+  const [generatingStory, setGeneratingStory] = useState(false);
+  const storyCanvasRef = useRef<HTMLCanvasElement>(null);
   const [editingEvent, setEditingEvent] = useState<Event | null>(null);
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
 
