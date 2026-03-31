@@ -695,8 +695,8 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
         professionalAvatar: professionalProfile?.avatar_url || null,
         serviceNames: bookedServiceNames, date: selectedDate, time: selectedTime,
         totalPrice, totalDuration, companyName: company.name,
-        companyPhone: company.phone || companySettings?.whatsapp_number || null,
-        companyAddress: (company as any).address || null,
+        companyPhone: (company as any).whatsapp || company.phone || companySettings?.whatsapp_number || null,
+        companyAddress: [(company as any).address, (company as any).address_number, (company as any).district].filter(Boolean).join(', ') || null,
       });
       setStep('success');
     } catch (err: any) {
@@ -1319,6 +1319,9 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
               `\u2702\uFE0F Servi\u00e7o: ${bookingResult.serviceNames.join(', ')}`,
               `\uD83D\uDC64 Profissional: ${bookingResult.professionalName}`,
               `\uD83D\uDCB0 Valor: R$ ${bookingResult.totalPrice.toFixed(2)}`,
+              '',
+              `\uD83D\uDCCD Local: *${bookingResult.companyName}*`,
+              ...(bookingResult.companyAddress ? [`\uD83D\uDCCD Endere\u00e7o: ${bookingResult.companyAddress}`] : []),
               '',
               'Caso precise alterar:',
               '',
