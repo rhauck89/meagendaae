@@ -1247,17 +1247,28 @@ export type Database = {
       public_company: {
         Row: {
           address: string | null
+          address_number: string | null
           average_rating: number | null
           buffer_minutes: number | null
           business_type: Database["public"]["Enums"]["business_type"] | null
+          city: string | null
           cover_url: string | null
+          description: string | null
+          district: string | null
+          facebook: string | null
+          google_maps_url: string | null
           google_review_url: string | null
           id: string | null
+          instagram: string | null
           logo_url: string | null
           name: string | null
           phone: string | null
+          postal_code: string | null
           review_count: number | null
           slug: string | null
+          state: string | null
+          website: string | null
+          whatsapp: string | null
         }
         Relationships: []
       }
