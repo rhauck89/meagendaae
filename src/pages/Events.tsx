@@ -10,7 +10,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Calendar, Plus, Pencil, Trash2, Clock, DollarSign, Copy, ExternalLink, Upload, X, ImageIcon, Users } from 'lucide-react';
+import { Calendar, Plus, Pencil, Trash2, Clock, DollarSign, Copy, ExternalLink, Upload, X, ImageIcon, Users, Instagram, Download, Link } from 'lucide-react';
 import { format, parseISO, eachDayOfInterval } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
@@ -67,6 +67,37 @@ const statusLabels: Record<string, string> = {
 const generateSlug = (name: string) =>
   name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 
+function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y);
+  ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+  ctx.lineTo(x + w, y + h - r);
+  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+  ctx.lineTo(x + r, y + h);
+  ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+  ctx.lineTo(x, y + r);
+  ctx.quadraticCurveTo(x, y, x + r, y);
+  ctx.closePath();
+}
+
+function wrapText(ctx: CanvasRenderingContext2D, text: string, x: number, y: number, maxWidth: number, lineHeight: number) {
+  const words = text.split(' ');
+  let line = '';
+  let currentY = y;
+  for (const word of words) {
+    const testLine = line + word + ' ';
+    if (ctx.measureText(testLine).width > maxWidth && line) {
+      ctx.fillText(line.trim(), x, currentY);
+      line = word + ' ';
+      currentY += lineHeight;
+    } else {
+      line = testLine;
+    }
+  }
+  ctx.fillText(line.trim(), x, currentY);
+}
+
 const Events = () => {
   const { companyId } = useAuth();
   const [events, setEvents] = useState<Event[]>([]);
@@ -78,6 +109,11 @@ const Events = () => {
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [showSlotsDialog, setShowSlotsDialog] = useState(false);
   const [showPricesDialog, setShowPricesDialog] = useState(false);
+  const [showStoryDialog, setShowStoryDialog] = useState(false);
+  const [storyEvent, setStoryEvent] = useState<Event | null>(null);
+  const [storyImageUrl, setStoryImageUrl] = useState<string | null>(null);
+  const [generatingStory, setGeneratingStory] = useState(false);
+  const storyCanvasRef = useRef<HTMLCanvasElement>(null);
   const [editingEvent, setEditingEvent] = useState<Event | null>(null);
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
 
@@ -406,6 +442,148 @@ const Events = () => {
 
   const getPublicUrl = (event: Event) => `${window.location.origin}/event/${event.slug}`;
 
+  const generateStoryImage = async (event: Event) => {
+    setStoryEvent(event);
+    setStoryImageUrl(null);
+    setGeneratingStory(true);
+    setShowStoryDialog(true);
+
+    try {
+      const canvas = document.createElement('canvas');
+      canvas.width = 1080;
+      canvas.height = 1920;
+      const ctx = canvas.getContext('2d')!;
+
+      // Background gradient
+      const grad = ctx.createLinearGradient(0, 0, 0, 1920);
+      grad.addColorStop(0, '#0B132B');
+      grad.addColorStop(0.5, '#1C2541');
+      grad.addColorStop(1, '#0B132B');
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, 1080, 1920);
+
+      // Cover image
+      if (event.cover_image) {
+        try {
+          const img = new Image();
+          img.crossOrigin = 'anonymous';
+          await new Promise<void>((resolve, reject) => {
+            img.onload = () => resolve();
+            img.onerror = () => reject();
+            img.src = event.cover_image!;
+          });
+          // Draw cover with rounded corners effect
+          ctx.save();
+          const coverY = 180;
+          const coverH = 500;
+          const coverX = 60;
+          const coverW = 960;
+          const radius = 24;
+          ctx.beginPath();
+          ctx.moveTo(coverX + radius, coverY);
+          ctx.lineTo(coverX + coverW - radius, coverY);
+          ctx.quadraticCurveTo(coverX + coverW, coverY, coverX + coverW, coverY + radius);
+          ctx.lineTo(coverX + coverW, coverY + coverH - radius);
+          ctx.quadraticCurveTo(coverX + coverW, coverY + coverH, coverX + coverW - radius, coverY + coverH);
+          ctx.lineTo(coverX + radius, coverY + coverH);
+          ctx.quadraticCurveTo(coverX, coverY + coverH, coverX, coverY + coverH - radius);
+          ctx.lineTo(coverX, coverY + radius);
+          ctx.quadraticCurveTo(coverX, coverY, coverX + radius, coverY);
+          ctx.closePath();
+          ctx.clip();
+          ctx.drawImage(img, coverX, coverY, coverW, coverH);
+          ctx.restore();
+        } catch {
+          // Cover failed to load, skip
+        }
+      }
+
+      // Accent bar
+      const accentGrad = ctx.createLinearGradient(60, 750, 1020, 750);
+      accentGrad.addColorStop(0, '#F59E0B');
+      accentGrad.addColorStop(1, '#D97706');
+      ctx.fillStyle = accentGrad;
+      roundRect(ctx, 60, 740, 960, 6, 3);
+      ctx.fill();
+
+      // Event name
+      ctx.fillStyle = '#FFFFFF';
+      ctx.font = 'bold 64px system-ui, -apple-system, sans-serif';
+      ctx.textAlign = 'center';
+      wrapText(ctx, event.name.toUpperCase(), 540, 840, 900, 76);
+
+      // Date
+      const dateText = event.start_date === event.end_date
+        ? format(parseISO(event.start_date), "dd 'de' MMMM", { locale: ptBR })
+        : `${format(parseISO(event.start_date), "dd/MM", { locale: ptBR })} a ${format(parseISO(event.end_date), "dd/MM/yyyy", { locale: ptBR })}`;
+
+      ctx.fillStyle = '#F59E0B';
+      ctx.font = 'bold 48px system-ui, -apple-system, sans-serif';
+      ctx.fillText(`📅 ${dateText}`, 540, 1020);
+
+      // Slot counter
+      const stats = eventSlotStats[event.id];
+      if (stats && stats.total > 0) {
+        const remaining = stats.total - stats.booked;
+        const slotText = remaining <= 0
+          ? '🔥 ESGOTADO'
+          : remaining <= 5
+          ? `🔥 ÚLTIMAS ${remaining} VAGAS`
+          : `✅ ${remaining} VAGAS DISPONÍVEIS`;
+
+        ctx.fillStyle = remaining <= 5 && remaining > 0 ? '#FB923C' : remaining <= 0 ? '#EF4444' : '#34D399';
+        ctx.font = 'bold 44px system-ui, -apple-system, sans-serif';
+        ctx.fillText(slotText, 540, 1120);
+      }
+
+      // Booking URL
+      const bookingUrl = getPublicUrl(event);
+      ctx.fillStyle = 'rgba(245, 158, 11, 0.15)';
+      roundRect(ctx, 60, 1260, 960, 120, 20);
+      ctx.fill();
+      ctx.strokeStyle = '#F59E0B';
+      ctx.lineWidth = 2;
+      roundRect(ctx, 60, 1260, 960, 120, 20);
+      ctx.stroke();
+
+      ctx.fillStyle = '#F59E0B';
+      ctx.font = 'bold 32px system-ui, -apple-system, sans-serif';
+      ctx.fillText('AGENDE AGORA', 540, 1310);
+      ctx.fillStyle = '#FFFFFF';
+      ctx.font = '28px system-ui, -apple-system, sans-serif';
+      const shortUrl = bookingUrl.replace(/^https?:\/\//, '');
+      ctx.fillText(shortUrl.length > 45 ? shortUrl.slice(0, 45) + '...' : shortUrl, 540, 1355);
+
+      // Swipe up indicator
+      ctx.fillStyle = 'rgba(255,255,255,0.5)';
+      ctx.font = '28px system-ui, -apple-system, sans-serif';
+      ctx.fillText('⬆ Deslize para agendar', 540, 1800);
+
+      const dataUrl = canvas.toDataURL('image/png');
+      setStoryImageUrl(dataUrl);
+    } catch (err) {
+      console.error('Error generating story image:', err);
+      toast.error('Erro ao gerar imagem');
+    } finally {
+      setGeneratingStory(false);
+    }
+  };
+
+  const handleDownloadStory = () => {
+    if (!storyImageUrl || !storyEvent) return;
+    const link = document.createElement('a');
+    link.download = `story-${storyEvent.slug}.png`;
+    link.href = storyImageUrl;
+    link.click();
+    toast.success('Imagem baixada!');
+  };
+
+  const handleCopyBookingLink = () => {
+    if (!storyEvent) return;
+    navigator.clipboard.writeText(getPublicUrl(storyEvent));
+    toast.success('Link copiado!');
+  };
+
   const filteredEvents = events.filter(e => statusFilter === 'all' || e.status === statusFilter);
 
   const statusCounts = {
@@ -501,12 +679,17 @@ const Events = () => {
                 </div>
 
                 {event.status === 'published' && (
-                  <div className="flex gap-1.5">
-                    <Button size="sm" variant="secondary" className="flex-1 gap-1.5" onClick={() => window.open(getPublicUrl(event), '_blank')}>
-                      <ExternalLink className="h-3.5 w-3.5" /> Ver página
-                    </Button>
-                    <Button size="sm" variant="outline" onClick={() => { navigator.clipboard.writeText(getPublicUrl(event)); toast.success('Link copiado!'); }}>
-                      <Copy className="h-3.5 w-3.5" />
+                  <div className="flex flex-col gap-1.5">
+                    <div className="flex gap-1.5">
+                      <Button size="sm" variant="secondary" className="flex-1 gap-1.5" onClick={() => window.open(getPublicUrl(event), '_blank')}>
+                        <ExternalLink className="h-3.5 w-3.5" /> Ver página
+                      </Button>
+                      <Button size="sm" variant="outline" onClick={() => { navigator.clipboard.writeText(getPublicUrl(event)); toast.success('Link copiado!'); }}>
+                        <Copy className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                    <Button size="sm" variant="outline" className="w-full gap-1.5" onClick={() => generateStoryImage(event)}>
+                      <Instagram className="h-3.5 w-3.5" /> Compartilhar nos Stories
                     </Button>
                   </div>
                 )}
@@ -770,6 +953,56 @@ const Events = () => {
             <Button className="w-full" onClick={handleSavePrices} disabled={saving}>
               {saving ? 'Salvando...' : 'Salvar Preços do Evento'}
             </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Story Share Dialog */}
+      <Dialog open={showStoryDialog} onOpenChange={setShowStoryDialog}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Instagram className="h-5 w-5" /> Compartilhar nos Stories
+            </DialogTitle>
+            <DialogDescription>
+              Imagem otimizada para Instagram Stories (1080×1920)
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            {generatingStory ? (
+              <div className="h-64 flex items-center justify-center bg-muted rounded-lg">
+                <p className="text-sm text-muted-foreground animate-pulse">Gerando imagem...</p>
+              </div>
+            ) : storyImageUrl ? (
+              <div className="rounded-lg overflow-hidden border bg-muted">
+                <img
+                  src={storyImageUrl}
+                  alt="Story preview"
+                  className="w-full h-auto"
+                />
+              </div>
+            ) : null}
+
+            <div className="flex gap-2">
+              <Button
+                className="flex-1 gap-2"
+                onClick={handleDownloadStory}
+                disabled={!storyImageUrl}
+              >
+                <Download className="h-4 w-4" /> Baixar Imagem
+              </Button>
+              <Button
+                variant="outline"
+                className="gap-2"
+                onClick={handleCopyBookingLink}
+              >
+                <Link className="h-4 w-4" /> Copiar Link
+              </Button>
+            </div>
+
+            <p className="text-xs text-muted-foreground text-center">
+              Baixe a imagem e compartilhe diretamente no Instagram Stories. Cole o link no sticker de link.
+            </p>
           </div>
         </DialogContent>
       </Dialog>
