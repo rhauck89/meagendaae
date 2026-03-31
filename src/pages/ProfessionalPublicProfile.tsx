@@ -11,6 +11,7 @@ import { cn } from '@/lib/utils';
 import { calculateAvailableSlots, type BusinessHours, type BusinessException, type BlockedTime, type ExistingAppointment } from '@/lib/availability-engine';
 import { formatWhatsApp } from '@/lib/whatsapp';
 import { PlatformBranding } from '@/components/PlatformBranding';
+import { getCompanyBranding, buildThemeFromBranding, useApplyBranding } from '@/hooks/useCompanyBranding';
 
 type BusinessType = 'barbershop' | 'esthetic';
 

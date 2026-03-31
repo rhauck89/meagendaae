@@ -63,9 +63,9 @@ export default function BarbershopLanding({ routeBusinessType }: BarbershopLandi
 
   const isDark = businessType === 'barbershop';
 
-  const T = isDark
-    ? { bg: '#0B132B', card: '#111827', accent: '#F59E0B', accentHover: '#D97706', text: '#FFFFFF', textSec: '#9CA3AF', border: '#1F2937' }
-    : { bg: 'linear-gradient(180deg, #FFF7ED, #FFFFFF)', card: '#FFFFFF', accent: '#D97706', accentHover: '#B45309', text: '#1F2937', textSec: '#6B7280', border: '#E5E7EB' };
+  const branding = getCompanyBranding(companySettings, isDark);
+  useApplyBranding(branding);
+  const T = buildThemeFromBranding(branding, isDark);
 
   useEffect(() => { if (slug) load(); }, [slug]);
 
