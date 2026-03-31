@@ -227,6 +227,29 @@ const SettingsPage = () => {
             </div>
           </div>
 
+          {/* Cover */}
+          <div className="space-y-2">
+            <p className="text-sm font-medium">Capa da empresa</p>
+            <p className="text-xs text-muted-foreground">Recomendado: 1200x400px — exibida no topo da página de agendamento</p>
+            {companyCoverUrl ? (
+              <div className="relative">
+                <img src={companyCoverUrl} alt="Capa" className="w-full h-32 rounded-xl object-cover border" />
+                <label className="absolute bottom-2 right-2 px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-xs font-medium cursor-pointer shadow-md hover:opacity-90">
+                  <Camera className="w-3.5 h-3.5 inline mr-1" /> Alterar
+                  <input type="file" accept="image/*" className="hidden" onChange={handleCoverUpload} disabled={coverUploading} />
+                </label>
+              </div>
+            ) : (
+              <label className="flex items-center justify-center w-full h-32 rounded-xl border-2 border-dashed border-muted-foreground/30 cursor-pointer hover:border-primary/50 transition-colors">
+                <div className="text-center">
+                  <Camera className="w-6 h-6 mx-auto text-muted-foreground mb-1" />
+                  <span className="text-xs text-muted-foreground">Clique para enviar a capa</span>
+                </div>
+                <input type="file" accept="image/*" className="hidden" onChange={handleCoverUpload} disabled={coverUploading} />
+              </label>
+            )}
+          </div>
+
           {/* Name & Phone */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1">
