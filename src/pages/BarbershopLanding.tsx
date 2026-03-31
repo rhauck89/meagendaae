@@ -398,32 +398,81 @@ export default function BarbershopLanding({ routeBusinessType }: BarbershopLandi
         )}
 
         {/* 9) Address & Map */}
-        {company.address && (
+        {fullAddress && (
           <section>
             <div className="flex items-center gap-2 mb-4">
               <MapPin className="w-5 h-5" style={{ color: '#EF4444' }} />
               <h2 className="text-lg font-bold" style={{ color: T.text }}>Localização</h2>
             </div>
-            <a
-              href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(company.address)}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="block rounded-xl overflow-hidden transition-transform hover:scale-[1.01]"
-              style={{ border: `1px solid ${T.border}` }}
-            >
-              <img
-                src={`https://maps.googleapis.com/maps/api/staticmap?center=${encodeURIComponent(company.address)}&zoom=15&size=400x180&scale=2&maptype=roadmap&markers=color:red%7C${encodeURIComponent(company.address)}&style=feature:all%7Celement:geometry%7Ccolor:${isDark ? '0x1a1a2e' : '0xf5f5f5'}&style=feature:water%7Celement:geometry%7Ccolor:${isDark ? '0x0d1b2a' : '0xc9d6ff'}&key=`}
-                alt="Mapa"
-                className="w-full h-[140px] object-cover"
-                style={{ background: isDark ? '#1F2937' : '#F3F4F6' }}
-                onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
-              />
-              <div className="p-3" style={{ background: T.card }}>
+            <div className="rounded-xl overflow-hidden" style={{ border: `1px solid ${T.border}` }}>
+              <div className="p-4" style={{ background: T.card }}>
                 <p className="text-sm font-medium" style={{ color: T.text }}>📍 {company.name}</p>
-                <p className="text-xs mt-0.5" style={{ color: T.textSec }}>{company.address}</p>
-                <p className="text-xs mt-2 font-medium" style={{ color: T.accent }}>Abrir no Google Maps →</p>
+                <p className="text-xs mt-1" style={{ color: T.textSec }}>{fullAddress}</p>
+                {company.postal_code && (
+                  <p className="text-xs mt-0.5" style={{ color: T.textSec }}>CEP: {company.postal_code}</p>
+                )}
+                {company.google_maps_url && (
+                  <a
+                    href={company.google_maps_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 mt-3 text-xs font-medium"
+                    style={{ color: T.accent }}
+                  >
+                    <ExternalLink className="w-3 h-3" />
+                    Ver no mapa
+                  </a>
+                )}
               </div>
-            </a>
+            </div>
+          </section>
+        )}
+
+        {/* Social Links */}
+        {(company.instagram || company.facebook || company.website) && (
+          <section>
+            <div className="flex items-center gap-2 mb-4">
+              <Globe className="w-5 h-5" style={{ color: T.accent }} />
+              <h2 className="text-lg font-bold" style={{ color: T.text }}>Redes Sociais</h2>
+            </div>
+            <div className="flex flex-wrap gap-3">
+              {company.instagram && (
+                <a
+                  href={company.instagram.startsWith('http') ? company.instagram : `https://instagram.com/${company.instagram.replace('@', '')}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-colors"
+                  style={{ background: T.card, border: `1px solid ${T.border}`, color: T.text }}
+                >
+                  <Instagram className="w-4 h-4" style={{ color: '#E1306C' }} />
+                  Instagram
+                </a>
+              )}
+              {company.facebook && (
+                <a
+                  href={company.facebook.startsWith('http') ? company.facebook : `https://facebook.com/${company.facebook}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-colors"
+                  style={{ background: T.card, border: `1px solid ${T.border}`, color: T.text }}
+                >
+                  <Facebook className="w-4 h-4" style={{ color: '#1877F2' }} />
+                  Facebook
+                </a>
+              )}
+              {company.website && (
+                <a
+                  href={company.website.startsWith('http') ? company.website : `https://${company.website}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-colors"
+                  style={{ background: T.card, border: `1px solid ${T.border}`, color: T.text }}
+                >
+                  <Globe className="w-4 h-4" style={{ color: T.accent }} />
+                  Website
+                </a>
+              )}
+            </div>
           </section>
         )}
 
