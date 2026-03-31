@@ -28,6 +28,7 @@ const statusColors: Record<string, string> = {
   cancelled: 'bg-destructive/10 text-destructive border-destructive/20',
   completed: 'bg-success/10 text-success border-success/20',
   no_show: 'bg-muted text-muted-foreground border-border',
+  rescheduled: 'bg-orange-500/10 text-orange-600 border-orange-500/20',
 };
 
 const statusCardStyles: Record<string, string> = {
@@ -37,6 +38,7 @@ const statusCardStyles: Record<string, string> = {
   cancelled: 'bg-destructive/5 border-l-4 border-l-destructive opacity-60',
   completed: 'bg-muted/50 border-l-4 border-l-success opacity-75',
   no_show: 'bg-muted/30 border-l-4 border-l-muted-foreground opacity-60',
+  rescheduled: 'bg-orange-50 border-l-4 border-l-orange-500 opacity-60',
 };
 
 const statusLabels: Record<string, string> = {
@@ -46,6 +48,7 @@ const statusLabels: Record<string, string> = {
   cancelled: 'Cancelado',
   completed: 'Concluído',
   no_show: 'Não compareceu',
+  rescheduled: 'Reagendado',
 };
 
 const getDisplayStatus = (apt: any): string => {
