@@ -49,8 +49,12 @@ export default function ProfessionalPublicProfile() {
     const { data: compArr } = await supabase.rpc('get_company_by_slug', { _slug: slug! });
     const comp = compArr?.[0];
     if (!comp) { setLoading(false); return; }
-    setCompany(comp);
-    setBusinessType(comp.business_type || 'barbershop');
+
+    // Fetch full company data from public_company view for address/cover fields
+    const { data: fullCompanyData } = await supabase.from('public_company' as any).select('*').eq('id', comp.id).single();
+    const companyFull = { ...comp, ...(fullCompanyData || {}) };
+    setCompany(companyFull);
+    setBusinessType(companyFull.business_type || 'barbershop');
 
     const { data: pubProfs } = await supabase.from('public_professionals' as any).select('*').eq('company_id', comp.id).eq('slug', professionalSlug!);
     const prof = (pubProfs as any[])?.[0];
