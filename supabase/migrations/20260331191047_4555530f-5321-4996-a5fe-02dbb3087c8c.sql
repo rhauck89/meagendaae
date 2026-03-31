@@ -1,0 +1,1 @@
+ALTER TABLE public.company_settings ADD COLUMN IF NOT EXISTS background_color text NOT NULL DEFAULT '#0B132B';
