@@ -23,8 +23,8 @@ export const buildFullAddress = (company: LocationBlockProps['company']) => {
 
 export const buildMapsUrl = (company: LocationBlockProps['company']) => {
   if (company.google_maps_url) return company.google_maps_url;
-  const parts = [company.address, company.address_number, company.district, company.city].filter(Boolean).join(', ');
-  return parts ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(parts)}` : null;
+  const parts = [company.address, company.address_number, company.district, company.city, company.state, 'Brazil'].filter(Boolean).join(' ');
+  return parts && parts !== 'Brazil' ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(parts)}` : null;
 };
 
 export function LocationBlock({ company, isDark = true }: LocationBlockProps) {
