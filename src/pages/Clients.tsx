@@ -170,6 +170,58 @@ const Clients = () => {
         />
       </div>
 
+      {/* Upcoming Birthdays */}
+      {clientsWithBirthdays.length > 0 && (
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center gap-2">
+              <Cake className="h-4 w-4 text-pink-500" /> Próximos aniversariantes
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {displayBirthdays.map(c => (
+                <div key={c.id} className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div>
+                      <p className="font-medium text-sm">{c.name}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {format(parseISO(c.birth_date!), "dd/MM", { locale: ptBR })}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Badge variant={c.daysRemaining === 0 ? 'default' : 'secondary'} className="text-xs">
+                      {daysLabel(c.daysRemaining)}
+                    </Badge>
+                    {c.whatsapp && (
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="h-7 w-7 text-green-600"
+                        onClick={() => window.open(`https://wa.me/${c.whatsapp}`, '_blank')}
+                      >
+                        <MessageCircle className="h-3.5 w-3.5" />
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+            {clientsWithBirthdays.length > 5 && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="mt-3 w-full text-xs"
+                onClick={() => setShowAllBirthdays(!showAllBirthdays)}
+              >
+                {showAllBirthdays ? 'Ver menos' : `Ver todos (${clientsWithBirthdays.length})`}
+              </Button>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
       {isLoading ? (
         <p className="text-muted-foreground">Carregando...</p>
       ) : (
