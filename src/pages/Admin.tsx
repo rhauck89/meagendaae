@@ -47,6 +47,11 @@ const Admin = () => {
       setPlatformName((data as any).system_name ?? '');
       setPlatformLogo((data as any).system_logo ?? '');
       setPlatformUrl((data as any).system_url ?? '');
+      setSeoTitle((data as any).site_title ?? '');
+      setSeoDescription((data as any).meta_description ?? '');
+      setSeoOgImage((data as any).og_image ?? '');
+      setSeoFavicon((data as any).favicon_url ?? '');
+      setSeoKeywords((data as any).default_keywords ?? '');
     }
   };
 
