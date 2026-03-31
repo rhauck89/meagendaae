@@ -271,7 +271,7 @@ export default function ProfessionalPublicProfile() {
           <div className="w-full max-w-xs">
             <div className="flex items-center gap-2 mb-3">
               <span className="text-base">🔥</span>
-              <h3 className="text-sm font-semibold" style={{ color: isDark ? '#FFFFFF' : '#1F2937' }}>Próximo horário disponível</h3>
+              <h3 className="text-sm font-semibold" style={{ color: T.text }}>Próximo horário disponível</h3>
             </div>
 
             {/* Primary highlighted slot */}
