@@ -278,8 +278,8 @@ export default function ProfessionalPublicProfile() {
             <div
               className="rounded-xl p-4 border-2 mb-3"
               style={{
-                background: isDark ? 'rgba(245,158,11,0.08)' : 'rgba(217,119,6,0.06)',
-                borderColor: isDark ? '#F59E0B' : '#D97706',
+                background: `${T.accent}14`,
+                borderColor: T.accent,
               }}
             >
               <p className="text-lg font-bold text-center capitalize" style={{ color: isDark ? '#FFFFFF' : '#1F2937' }}>
