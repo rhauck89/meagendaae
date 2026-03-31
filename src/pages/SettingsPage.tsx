@@ -46,6 +46,11 @@ const SettingsPage = () => {
   // Social
   const [companyInstagram, setCompanyInstagram] = useState('');
   const [companyFacebook, setCompanyFacebook] = useState('');
+  
+  // Branding colors
+  const [brandPrimaryColor, setBrandPrimaryColor] = useState('#6D28D9');
+  const [brandSecondaryColor, setBrandSecondaryColor] = useState('#F59E0B');
+  const [brandBackgroundColor, setBrandBackgroundColor] = useState('#0B132B');
   const [companyWebsite, setCompanyWebsite] = useState('');
 
   useEffect(() => {
