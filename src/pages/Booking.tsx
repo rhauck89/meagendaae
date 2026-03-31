@@ -1278,6 +1278,9 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
           );
         })()}
       </div>
+      <div className="text-center py-4">
+        <PlatformBranding isDark={isDark} />
+      </div>
     </div>
   );
 };
