@@ -636,19 +636,33 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
   };
   const currentStepIdx = stepList.indexOf(step);
 
+  const companySlugPath = company.business_type === 'esthetic' ? 'estetica' : 'barbearia';
+  const companyPageUrl = `/${companySlugPath}/${company.slug}`;
+  const displayCoverUrl = company.cover_url;
+  const companyWhatsapp = company.phone || companySettings?.whatsapp_number;
+
   // ─── Render ───
   return (
     <div className="min-h-screen" style={{ background: T.bg, color: T.text }}>
+      {/* Banner */}
+      {displayCoverUrl && (
+        <div className="w-full h-36 sm:h-48 overflow-hidden">
+          <img src={displayCoverUrl} alt={company.name} className="w-full h-full object-cover" />
+        </div>
+      )}
+
       {/* Header */}
       <header style={{ background: T.card, borderBottom: `1px solid ${T.border}` }}>
         <div className="max-w-2xl mx-auto px-4 py-4 flex items-center gap-3">
-          {displayLogoUrl ? (
-            <img src={displayLogoUrl} alt={company.name} className="w-11 h-11 rounded-2xl object-cover shadow-lg" />
-          ) : (
-            <div className="w-11 h-11 rounded-2xl flex items-center justify-center shadow-lg" style={{ background: T.accent }}>
-              <Icon className="h-5 w-5 text-black" />
-            </div>
-          )}
+          <a href={companyPageUrl} className="shrink-0">
+            {displayLogoUrl ? (
+              <img src={displayLogoUrl} alt={company.name} className="max-h-11 max-w-[120px] object-contain" />
+            ) : (
+              <div className="w-11 h-11 rounded-2xl flex items-center justify-center shadow-lg" style={{ background: T.accent }}>
+                <Icon className="h-5 w-5 text-black" />
+              </div>
+            )}
+          </a>
           <div>
             <h1 className="font-bold text-lg tracking-tight">{company.name}</h1>
             <p className="text-xs" style={{ color: T.textSec }}>
