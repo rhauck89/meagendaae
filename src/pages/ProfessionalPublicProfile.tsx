@@ -406,13 +406,13 @@ export default function ProfessionalPublicProfile() {
                   }}
                 >
                   <div>
-                    <p className="text-sm font-medium" style={{ color: isDark ? '#FFFFFF' : '#1F2937' }}>{svc.name}</p>
+                    <p className="text-sm font-medium" style={{ color: T.text }}>{svc.name}</p>
                     <div className="flex items-center gap-2 mt-0.5">
-                      <Clock className="w-3 h-3" style={{ color: isDark ? '#6B7280' : '#9CA3AF' }} />
-                      <span className="text-xs" style={{ color: isDark ? '#6B7280' : '#9CA3AF' }}>{svc.duration_minutes}min</span>
+                      <Clock className="w-3 h-3" style={{ color: T.textSec }} />
+                      <span className="text-xs" style={{ color: T.textSec }}>{svc.duration_minutes}min</span>
                     </div>
                   </div>
-                  <span className="text-sm font-semibold" style={{ color: isDark ? '#F59E0B' : '#D97706' }}>
+                  <span className="text-sm font-semibold" style={{ color: T.accent }}>
                     R$ {Number(svc.price).toFixed(2)}
                   </span>
                 </div>
