@@ -58,6 +58,7 @@ export default function BarbershopLanding({ routeBusinessType }: BarbershopLandi
   const [galleryImages, setGalleryImages] = useState<any[]>([]);
   const [showAllReviews, setShowAllReviews] = useState(false);
   const [allReviewsList, setAllReviewsList] = useState<any[]>([]);
+  const [companyEvents, setCompanyEvents] = useState<any[]>([]);
 
   const isDark = businessType === 'barbershop';
 
