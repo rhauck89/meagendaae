@@ -4,7 +4,10 @@ import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Building2, DollarSign, Users, ShieldCheck } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Building2, DollarSign, Users, ShieldCheck, Globe } from 'lucide-react';
+import { toast } from 'sonner';
 
 const statusColors: Record<string, string> = {
   active: 'bg-success/10 text-success',
