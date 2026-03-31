@@ -314,6 +314,17 @@ interface ClientProfileProps {
 }
 
 const ClientProfile = ({ client, companyId, profileMap, onBack }: ClientProfileProps) => {
+  const queryClient = useQueryClient();
+  const [editOpen, setEditOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [editForm, setEditForm] = useState({
+    name: client.name,
+    whatsapp: client.whatsapp || '',
+    email: client.email || '',
+    birth_date: client.birth_date || '',
+    notes: '',
+  });
+
   // Fetch appointments for this client
   const { data: appointments = [] } = useQuery({
     queryKey: ['client-detail-appointments', client.id, companyId],
@@ -398,6 +409,53 @@ const ClientProfile = ({ client, companyId, profileMap, onBack }: ClientProfileP
     no_show: 'bg-muted text-muted-foreground',
   };
 
+  const handleSaveClient = async () => {
+    if (!editForm.name.trim()) {
+      toast.error('Nome é obrigatório');
+      return;
+    }
+    if (editForm.name.length > 100) {
+      toast.error('Nome deve ter no máximo 100 caracteres');
+      return;
+    }
+    if (editForm.whatsapp && editForm.whatsapp.length > 20) {
+      toast.error('WhatsApp inválido');
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const updateData: Record<string, unknown> = {
+        name: editForm.name.trim(),
+        whatsapp: editForm.whatsapp.trim() || null,
+        email: editForm.email.trim() || null,
+        birth_date: editForm.birth_date || null,
+      };
+
+      const { error } = await supabase
+        .from('clients')
+        .update(updateData)
+        .eq('id', client.id)
+        .eq('company_id', companyId);
+
+      if (error) throw error;
+
+      // Update local client object
+      client.name = editForm.name.trim();
+      client.whatsapp = editForm.whatsapp.trim() || null;
+      client.email = editForm.email.trim() || null;
+      client.birth_date = editForm.birth_date || null;
+
+      queryClient.invalidateQueries({ queryKey: ['clients', companyId] });
+      toast.success('Cliente atualizado com sucesso');
+      setEditOpen(false);
+    } catch (err) {
+      toast.error('Erro ao atualizar cliente');
+    } finally {
+      setSaving(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <Button variant="ghost" onClick={onBack} className="gap-2">
@@ -413,15 +471,84 @@ const ClientProfile = ({ client, companyId, profileMap, onBack }: ClientProfileP
             {client.birth_date && ` • 🎂 ${format(parseISO(client.birth_date), 'dd/MM/yyyy', { locale: ptBR })}`}
           </p>
         </div>
-        {client.whatsapp && (
+        <div className="flex gap-2">
           <Button
-            className="bg-green-600 hover:bg-green-700 gap-2"
-            onClick={() => window.open(`https://wa.me/${client.whatsapp}`, '_blank')}
+            variant="outline"
+            className="gap-2"
+            onClick={() => {
+              setEditForm({
+                name: client.name,
+                whatsapp: client.whatsapp || '',
+                email: client.email || '',
+                birth_date: client.birth_date || '',
+                notes: '',
+              });
+              setEditOpen(true);
+            }}
           >
-            <MessageCircle className="h-4 w-4" /> WhatsApp
+            <Pencil className="h-4 w-4" /> Editar cliente
           </Button>
-        )}
+          {client.whatsapp && (
+            <Button
+              className="bg-green-600 hover:bg-green-700 gap-2"
+              onClick={() => window.open(`https://wa.me/${client.whatsapp}`, '_blank')}
+            >
+              <MessageCircle className="h-4 w-4" /> WhatsApp
+            </Button>
+          )}
+        </div>
       </div>
+
+      {/* Edit Client Modal */}
+      <Dialog open={editOpen} onOpenChange={setEditOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Editar cliente</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Nome *</Label>
+              <Input
+                value={editForm.name}
+                onChange={e => setEditForm(f => ({ ...f, name: e.target.value }))}
+                maxLength={100}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>WhatsApp</Label>
+              <Input
+                value={editForm.whatsapp}
+                onChange={e => setEditForm(f => ({ ...f, whatsapp: e.target.value }))}
+                maxLength={20}
+                placeholder="5511999999999"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Email</Label>
+              <Input
+                type="email"
+                value={editForm.email}
+                onChange={e => setEditForm(f => ({ ...f, email: e.target.value }))}
+                maxLength={255}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Data de nascimento (opcional)</Label>
+              <Input
+                type="date"
+                value={editForm.birth_date}
+                onChange={e => setEditForm(f => ({ ...f, birth_date: e.target.value }))}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditOpen(false)}>Cancelar</Button>
+            <Button onClick={handleSaveClient} disabled={saving}>
+              {saving ? 'Salvando...' : 'Salvar'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Stats cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
