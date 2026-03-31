@@ -74,7 +74,7 @@ const SettingsPage = () => {
   const fetchCompanySettings = async () => {
     const { data } = await supabase
       .from('companies')
-      .select('reminders_enabled, birthday_enabled, birthday_discount_type, birthday_discount_value, slug, business_type, buffer_minutes')
+      .select('reminders_enabled, birthday_enabled, birthday_discount_type, birthday_discount_value, slug, business_type, buffer_minutes, name, phone, logo_url')
       .eq('id', companyId!)
       .single();
     if (data) {
@@ -85,7 +85,35 @@ const SettingsPage = () => {
       setCompanySlug((data as any).slug ?? '');
       setCompanyBusinessType((data as any).business_type ?? 'barbershop');
       setBufferMinutes((data as any).buffer_minutes ?? 0);
+      setCompanyName(data.name ?? '');
+      setCompanyPhone((data as any).phone ?? '');
+      setCompanyLogoUrl((data as any).logo_url ?? '');
     }
+  };
+
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !companyId) return;
+    setLogoUploading(true);
+    const ext = file.name.split('.').pop();
+    const filePath = `${companyId}/logo.${ext}`;
+    const { error: uploadError } = await supabase.storage.from('logos').upload(filePath, file, { upsert: true });
+    if (uploadError) {
+      toast.error('Erro ao enviar logo');
+      setLogoUploading(false);
+      return;
+    }
+    const { data: { publicUrl } } = supabase.storage.from('logos').getPublicUrl(filePath);
+    const logoUrl = `${publicUrl}?t=${Date.now()}`;
+    await supabase.from('companies').update({ logo_url: logoUrl } as any).eq('id', companyId);
+    setCompanyLogoUrl(logoUrl);
+    setLogoUploading(false);
+    toast.success('Logo atualizado!');
+  };
+
+  const saveCompanyIdentity = async () => {
+    await supabase.from('companies').update({ name: companyName, phone: companyPhone } as any).eq('id', companyId!);
+    toast.success('Dados da empresa salvos');
   };
 
   const toggleReminders = async (enabled: boolean) => {
