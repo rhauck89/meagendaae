@@ -6,6 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import Index from "./pages/Index";
 import ProfessionalPublicProfile from "./pages/ProfessionalPublicProfile";
+import BarbershopLanding from "./pages/BarbershopLanding";
 import Auth from "./pages/Auth";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
@@ -55,10 +56,15 @@ const App = () => (
             <Route path="/auth" element={<Auth />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/reset-password" element={<ResetPassword />} />
-            {/* Typed public booking routes */}
-            <Route path="/barbearia/:slug" element={<Booking routeBusinessType="barbershop" />} />
+            {/* Public landing pages */}
+            <Route path="/barbearia/:slug" element={<BarbershopLanding routeBusinessType="barbershop" />} />
+            <Route path="/estetica/:slug" element={<BarbershopLanding routeBusinessType="esthetic" />} />
+            {/* Booking flow routes (started from landing or direct link) */}
+            <Route path="/barbearia/:slug/agendar" element={<Booking routeBusinessType="barbershop" />} />
+            <Route path="/barbearia/:slug/:professionalSlug/agendar" element={<Booking routeBusinessType="barbershop" />} />
             <Route path="/barbearia/:slug/:professionalSlug" element={<Booking routeBusinessType="barbershop" />} />
-            <Route path="/estetica/:slug" element={<Booking routeBusinessType="esthetic" />} />
+            <Route path="/estetica/:slug/agendar" element={<Booking routeBusinessType="esthetic" />} />
+            <Route path="/estetica/:slug/:professionalSlug/agendar" element={<Booking routeBusinessType="esthetic" />} />
             <Route path="/estetica/:slug/:professionalSlug" element={<Booking routeBusinessType="esthetic" />} />
             {/* Public profile routes */}
             <Route path="/perfil/barbearia/:slug/:professionalSlug" element={<ProfessionalPublicProfile />} />
