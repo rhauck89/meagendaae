@@ -1103,16 +1103,28 @@ export type Database = {
         Args: { p_appointment_id: string; p_services: Json }
         Returns: undefined
       }
-      create_client: {
-        Args: {
-          p_company_id: string
-          p_cpf: string
-          p_email: string
-          p_name: string
-          p_whatsapp: string
-        }
-        Returns: string
-      }
+      create_client:
+        | {
+            Args: {
+              p_company_id: string
+              p_cpf: string
+              p_email: string
+              p_name: string
+              p_whatsapp: string
+            }
+            Returns: string
+          }
+        | {
+            Args: {
+              p_birth_date?: string
+              p_company_id: string
+              p_cpf: string
+              p_email: string
+              p_name: string
+              p_whatsapp: string
+            }
+            Returns: string
+          }
       get_booking_appointments: {
         Args: {
           p_company_id: string
