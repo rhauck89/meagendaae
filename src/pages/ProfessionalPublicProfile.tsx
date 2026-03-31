@@ -424,7 +424,7 @@ export default function ProfessionalPublicProfile() {
         {/* Reviews */}
         {reviews.length > 0 && (
           <div className="w-full max-w-xs">
-            <h3 className="text-sm font-semibold mb-3" style={{ color: isDark ? '#FFFFFF' : '#1F2937' }}>
+            <h3 className="text-sm font-semibold mb-3" style={{ color: T.text }}>
               Avaliações ({totalReviews})
             </h3>
             <div className="flex flex-col gap-3">
@@ -433,20 +433,20 @@ export default function ProfessionalPublicProfile() {
                   key={i}
                   className="p-3 rounded-xl border"
                   style={{
-                    background: isDark ? '#111827' : '#FFFFFF',
-                    borderColor: isDark ? '#1F2937' : '#E5E7EB',
+                    background: T.card,
+                    borderColor: T.border,
                   }}
                 >
                   <div className="flex items-center gap-1 mb-1">
                     {[1, 2, 3, 4, 5].map(s => (
                       <Star key={s} className={cn("w-3 h-3", s <= rev.rating ? "fill-yellow-400 text-yellow-400" : "text-gray-600")} />
                     ))}
-                    <span className="text-xs ml-2" style={{ color: isDark ? '#6B7280' : '#9CA3AF' }}>
+                    <span className="text-xs ml-2" style={{ color: T.textSec }}>
                       {format(new Date(rev.created_at), 'dd/MM/yyyy')}
                     </span>
                   </div>
                   {rev.comment && (
-                    <p className="text-xs leading-relaxed" style={{ color: isDark ? '#D1D5DB' : '#4B5563' }}>
+                    <p className="text-xs leading-relaxed" style={{ color: T.textSec }}>
                       "{rev.comment}"
                     </p>
                   )}
@@ -457,7 +457,7 @@ export default function ProfessionalPublicProfile() {
               <button
                 onClick={() => setShowAllReviews(true)}
                 className="w-full text-xs font-medium mt-3 py-2 rounded-lg transition-colors hover:opacity-80"
-                style={{ color: isDark ? '#F59E0B' : '#D97706' }}
+                style={{ color: T.accent }}
               >
                 Ver todas avaliações ({totalReviews})
               </button>
