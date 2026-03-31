@@ -330,7 +330,7 @@ export default function ProfessionalPublicProfile() {
         <Button
           onClick={() => navigate(bookingUrl)}
           className="w-full max-w-xs h-12 text-base font-semibold rounded-xl shadow-lg"
-          style={{ background: isDark ? '#F59E0B' : '#D97706', color: '#0B132B' }}
+          style={{ background: T.accent, color: '#0B132B' }}
         >
           <Calendar className="w-5 h-5 mr-2" />
           Agendar horário
