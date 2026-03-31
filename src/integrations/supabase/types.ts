@@ -69,6 +69,7 @@ export type Database = {
           created_at: string
           delay_minutes: number | null
           end_time: string
+          event_id: string | null
           id: string
           notes: string | null
           professional_id: string
@@ -86,6 +87,7 @@ export type Database = {
           created_at?: string
           delay_minutes?: number | null
           end_time: string
+          event_id?: string | null
           id?: string
           notes?: string | null
           professional_id: string
@@ -103,6 +105,7 @@ export type Database = {
           created_at?: string
           delay_minutes?: number | null
           end_time?: string
+          event_id?: string | null
           id?: string
           notes?: string | null
           professional_id?: string
@@ -132,6 +135,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "public_company"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "appointments_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
             referencedColumns: ["id"]
           },
           {
@@ -610,6 +620,164 @@ export type Database = {
             foreignKeyName: "company_settings_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: true
+            referencedRelation: "public_company"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      event_service_prices: {
+        Row: {
+          event_id: string
+          id: string
+          override_price: number
+          service_id: string
+        }
+        Insert: {
+          event_id: string
+          id?: string
+          override_price: number
+          service_id: string
+        }
+        Update: {
+          event_id?: string
+          id?: string
+          override_price?: number
+          service_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_service_prices_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_service_prices_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "public_services"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_service_prices_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "services"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      event_slots: {
+        Row: {
+          created_at: string
+          current_bookings: number
+          end_time: string
+          event_id: string
+          id: string
+          max_bookings: number
+          professional_id: string
+          slot_date: string
+          start_time: string
+        }
+        Insert: {
+          created_at?: string
+          current_bookings?: number
+          end_time: string
+          event_id: string
+          id?: string
+          max_bookings?: number
+          professional_id: string
+          slot_date: string
+          start_time: string
+        }
+        Update: {
+          created_at?: string
+          current_bookings?: number
+          end_time?: string
+          event_id?: string
+          id?: string
+          max_bookings?: number
+          professional_id?: string
+          slot_date?: string
+          start_time?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_slots_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_slots_professional_id_fkey"
+            columns: ["professional_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_slots_professional_id_fkey"
+            columns: ["professional_id"]
+            isOneToOne: false
+            referencedRelation: "public_professionals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      events: {
+        Row: {
+          company_id: string
+          cover_image: string | null
+          created_at: string
+          description: string | null
+          end_date: string
+          id: string
+          name: string
+          slug: string
+          start_date: string
+          status: Database["public"]["Enums"]["event_status"]
+          updated_at: string
+        }
+        Insert: {
+          company_id: string
+          cover_image?: string | null
+          created_at?: string
+          description?: string | null
+          end_date: string
+          id?: string
+          name: string
+          slug: string
+          start_date: string
+          status?: Database["public"]["Enums"]["event_status"]
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string
+          cover_image?: string | null
+          created_at?: string
+          description?: string | null
+          end_date?: string
+          id?: string
+          name?: string
+          slug?: string
+          start_date?: string
+          status?: Database["public"]["Enums"]["event_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "events_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "events_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "public_company"
             referencedColumns: ["id"]
           },
@@ -1124,6 +1292,7 @@ export type Database = {
           created_at: string
           desired_date: string
           email: string | null
+          event_id: string | null
           id: string
           notified: boolean
           professional_id: string | null
@@ -1140,6 +1309,7 @@ export type Database = {
           created_at?: string
           desired_date: string
           email?: string | null
+          event_id?: string | null
           id?: string
           notified?: boolean
           professional_id?: string | null
@@ -1156,6 +1326,7 @@ export type Database = {
           created_at?: string
           desired_date?: string
           email?: string | null
+          event_id?: string | null
           id?: string
           notified?: boolean
           professional_id?: string | null
@@ -1191,6 +1362,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "public_company"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "waitlist_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
             referencedColumns: ["id"]
           },
         ]
@@ -1380,6 +1558,18 @@ export type Database = {
       }
     }
     Functions: {
+      book_event_slot: {
+        Args: {
+          p_client_cpf: string
+          p_client_email: string
+          p_client_name: string
+          p_client_whatsapp: string
+          p_notes?: string
+          p_service_ids: string[]
+          p_slot_id: string
+        }
+        Returns: string
+      }
       cancel_appointment_public: {
         Args: { p_appointment_id: string }
         Returns: Json
@@ -1573,6 +1763,7 @@ export type Database = {
       business_type: "barbershop" | "esthetic"
       collaborator_type: "partner" | "commissioned" | "independent"
       commission_type: "percentage" | "fixed" | "none"
+      event_status: "draft" | "published" | "cancelled" | "completed"
       subscription_status: "active" | "inactive" | "blocked" | "trial"
       waiting_list_status:
         | "waiting"
@@ -1729,6 +1920,7 @@ export const Constants = {
       business_type: ["barbershop", "esthetic"],
       collaborator_type: ["partner", "commissioned", "independent"],
       commission_type: ["percentage", "fixed", "none"],
+      event_status: ["draft", "published", "cancelled", "completed"],
       subscription_status: ["active", "inactive", "blocked", "trial"],
       waiting_list_status: [
         "waiting",
