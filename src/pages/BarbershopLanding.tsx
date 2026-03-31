@@ -332,30 +332,62 @@ export default function BarbershopLanding({ routeBusinessType }: BarbershopLandi
             <div className="flex items-center gap-2 mb-4">
               <Star className="w-5 h-5" style={{ color: '#FDBA2D' }} />
               <h2 className="text-lg font-bold" style={{ color: T.text }}>Avaliações</h2>
+              {companyStats && (
+                <span className="text-xs ml-auto" style={{ color: T.textSec }}>
+                  {companyStats.reviewCount} avaliações
+                </span>
+              )}
             </div>
             <div className="flex flex-col gap-3">
-              {reviews.map((rev: any, i: number) => (
+              {(showAllReviews ? allReviewsList : reviews).map((rev: any, i: number) => (
                 <div
                   key={i}
-                  className="p-3 rounded-xl"
+                  className="p-4 rounded-xl"
                   style={{ background: T.card, border: `1px solid ${T.border}` }}
                 >
-                  <div className="flex items-center gap-1 mb-1">
-                    {[1, 2, 3, 4, 5].map(s => (
-                      <Star key={s} className={cn("w-3 h-3", s <= rev.rating ? "fill-yellow-400 text-yellow-400" : "text-gray-600")} />
-                    ))}
-                    <span className="text-xs ml-2" style={{ color: T.textSec }}>
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      {rev.client_display_name && (
+                        <span className="text-sm font-semibold" style={{ color: T.text }}>
+                          {rev.client_display_name}
+                        </span>
+                      )}
+                      <div className="flex items-center gap-0.5">
+                        {[1, 2, 3, 4, 5].map(s => (
+                          <Star key={s} className={cn("w-3 h-3", s <= rev.rating ? "fill-yellow-400 text-yellow-400" : "text-gray-600")} />
+                        ))}
+                      </div>
+                    </div>
+                    <span className="text-xs" style={{ color: T.textSec }}>
                       {format(new Date(rev.created_at), 'dd/MM/yyyy')}
                     </span>
                   </div>
                   {rev.comment && (
-                    <p className="text-xs leading-relaxed" style={{ color: isDark ? '#D1D5DB' : '#4B5563' }}>
+                    <p className="text-sm leading-relaxed" style={{ color: isDark ? '#D1D5DB' : '#4B5563' }}>
                       "{rev.comment}"
                     </p>
                   )}
                 </div>
               ))}
             </div>
+            {allReviewsList.length > 3 && !showAllReviews && (
+              <button
+                onClick={() => setShowAllReviews(true)}
+                className="w-full mt-3 py-2 text-sm font-medium rounded-xl transition-colors"
+                style={{ color: T.accent, background: `${T.accent}15`, border: `1px solid ${T.accent}30` }}
+              >
+                Ver todas as {allReviewsList.length} avaliações
+              </button>
+            )}
+            {showAllReviews && allReviewsList.length > 3 && (
+              <button
+                onClick={() => setShowAllReviews(false)}
+                className="w-full mt-3 py-2 text-sm font-medium rounded-xl transition-colors"
+                style={{ color: T.textSec }}
+              >
+                Mostrar menos
+              </button>
+            )}
           </section>
         )}
 
