@@ -88,6 +88,8 @@ const App = () => (
             <Route path="/dashboard/waitlist" element={<DashboardRoute><Waitlist /></DashboardRoute>} />
             <Route path="/dashboard/clients" element={<DashboardRoute><Clients /></DashboardRoute>} />
             <Route path="/dashboard/profile" element={<DashboardRoute><ProfilePage /></DashboardRoute>} />
+            <Route path="/dashboard/events" element={<DashboardRoute><Events /></DashboardRoute>} />
+            <Route path="/event/:eventSlug" element={<EventPublic />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AuthProvider>
