@@ -52,7 +52,7 @@ export default function ProfessionalPublicProfile() {
 
     // Fetch full company data from public_company view for address/cover fields
     const { data: fullCompanyData } = await supabase.from('public_company' as any).select('*').eq('id', comp.id).single();
-    const companyFull = { ...comp, ...(fullCompanyData || {}) };
+    const companyFull = { ...comp, ...((fullCompanyData as any) || {}) };
     setCompany(companyFull);
     setBusinessType(companyFull.business_type || 'barbershop');
 
