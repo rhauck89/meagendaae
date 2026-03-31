@@ -89,7 +89,9 @@ const Events = () => {
   const [formCoverPreview, setFormCoverPreview] = useState('');
   const [uploadingCover, setUploadingCover] = useState(false);
   const [formStatus, setFormStatus] = useState<'draft' | 'published'>('draft');
+  const [formMaxBookingsPerClient, setFormMaxBookingsPerClient] = useState(0);
   const [saving, setSaving] = useState(false);
+  const [eventSlotStats, setEventSlotStats] = useState<Record<string, { total: number; booked: number }>>({});
   const coverInputRef = useRef<HTMLInputElement>(null);
 
   const [slotMode, setSlotMode] = useState<'manual' | 'auto'>('auto');
