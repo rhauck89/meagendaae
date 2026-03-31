@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Building2, DollarSign, Users, ShieldCheck, Globe } from 'lucide-react';
+import { Building2, DollarSign, Users, ShieldCheck, Globe, Search } from 'lucide-react';
 import { toast } from 'sonner';
 
 const statusColors: Record<string, string> = {
