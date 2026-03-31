@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useSearchParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -116,6 +116,9 @@ const T = {
 
 const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
   const { slug, professionalSlug } = useParams<{ slug: string; professionalSlug?: string }>();
+  const [searchParams] = useSearchParams();
+  const prefillDateRef = useRef(searchParams.get('date'));
+  const prefillTimeRef = useRef(searchParams.get('time'));
   const [company, setCompany] = useState<any>(null);
   const [services, setServices] = useState<any[]>([]);
   const [professionals, setProfessionals] = useState<any[]>([]);
@@ -298,6 +301,17 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
         fetchRecentBookings(profileId);
       }
     }
+
+    // Apply prefilled date/time from URL query params (e.g. from quick booking buttons)
+    if (prefillDateRef.current) {
+      const [y, mo, d] = prefillDateRef.current.split('-').map(Number);
+      const prefillDate = new Date(y, mo - 1, d);
+      setSelectedDate(prefillDate);
+      if (prefillTimeRef.current) {
+        setSelectedTime(prefillTimeRef.current);
+      }
+      prefillDateRef.current = null;
+    }
   };
 
   const fetchRecentBookings = async (profileId: string) => {
@@ -478,7 +492,13 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
   };
 
   useEffect(() => {
-    setSelectedTime(null);
+    // Don't reset time if it was prefilled from URL and this is the first date set
+    if (prefillTimeRef.current && selectedTime === prefillTimeRef.current) {
+      // Keep the prefilled time, but clear the ref so subsequent date changes reset normally
+      prefillTimeRef.current = null;
+    } else {
+      setSelectedTime(null);
+    }
     setAppointmentsLoaded(false);
     setAppointmentsForSelectedDate([]);
     setAvailableSlots([]);
