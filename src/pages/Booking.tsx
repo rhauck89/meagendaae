@@ -116,6 +116,9 @@ const T = {
 
 const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
   const { slug, professionalSlug } = useParams<{ slug: string; professionalSlug?: string }>();
+  const [searchParams] = useSearchParams();
+  const prefillDateRef = useRef(searchParams.get('date'));
+  const prefillTimeRef = useRef(searchParams.get('time'));
   const [company, setCompany] = useState<any>(null);
   const [services, setServices] = useState<any[]>([]);
   const [professionals, setProfessionals] = useState<any[]>([]);
