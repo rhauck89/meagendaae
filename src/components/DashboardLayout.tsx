@@ -12,6 +12,7 @@ import {
   X,
   User,
   UserCheck,
+  PartyPopper,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useState } from 'react';
@@ -23,6 +24,7 @@ const adminNavItems = [
   { href: '/dashboard/services', icon: Scissors, label: 'Serviços' },
   { href: '/dashboard/team', icon: Users, label: 'Equipe' },
   { href: '/dashboard/clients', icon: UserCheck, label: 'Clientes' },
+  { href: '/dashboard/events', icon: PartyPopper, label: 'Eventos' },
   { href: '/dashboard/reports', icon: BarChart3, label: 'Relatórios' },
   { href: '/dashboard/settings', icon: Settings, label: 'Configurações' },
   { href: '/dashboard/profile', icon: User, label: 'Meu Perfil' },

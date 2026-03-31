@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Star, MessageCircle, MapPin, Calendar, Clock, Scissors, Sparkles, Users, Instagram, Facebook, Globe, ExternalLink } from 'lucide-react';
 import { LocationBlock } from '@/components/LocationBlock';
 import { SEOHead, buildLocalBusinessJsonLd } from '@/components/SEOHead';
-import { format } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { formatWhatsApp } from '@/lib/whatsapp';
@@ -58,6 +58,7 @@ export default function BarbershopLanding({ routeBusinessType }: BarbershopLandi
   const [galleryImages, setGalleryImages] = useState<any[]>([]);
   const [showAllReviews, setShowAllReviews] = useState(false);
   const [allReviewsList, setAllReviewsList] = useState<any[]>([]);
+  const [companyEvents, setCompanyEvents] = useState<any[]>([]);
 
   const isDark = businessType === 'barbershop';
 
@@ -80,19 +81,21 @@ export default function BarbershopLanding({ routeBusinessType }: BarbershopLandi
     const resolvedType: BusinessType = routeBusinessType || comp.business_type || 'barbershop';
     setBusinessType(resolvedType);
 
-    const [servicesRes, profsRes, ratingsRes, reviewsRes, settingsRes, galleryRes] = await Promise.all([
+    const [servicesRes, profsRes, ratingsRes, reviewsRes, settingsRes, galleryRes, eventsRes] = await Promise.all([
       supabase.from('public_services' as any).select('*').eq('company_id', comp.id).order('name'),
       supabase.from('public_professionals' as any).select('*').eq('company_id', comp.id).eq('active', true),
       supabase.rpc('get_professional_ratings' as any, { p_company_id: comp.id }),
       supabase.from('reviews').select('rating, comment, created_at, professional_id, appointment_id').eq('company_id', comp.id).order('created_at', { ascending: false }),
       supabase.from('company_settings' as any).select('*').eq('company_id', comp.id).single(),
       supabase.from('company_gallery' as any).select('*').eq('company_id', comp.id).order('sort_order'),
+      supabase.from('events' as any).select('*').eq('company_id', comp.id).eq('status', 'published').order('start_date'),
     ]);
 
     if (servicesRes.data) setServices(servicesRes.data as any[]);
     if (profsRes.data) setProfessionals(profsRes.data as any[]);
     if (settingsRes.data) setCompanySettings(settingsRes.data);
     if (galleryRes.data) setGalleryImages(galleryRes.data as any[]);
+    if (eventsRes.data) setCompanyEvents(eventsRes.data as any[]);
 
     // Ratings map
     if (ratingsRes.data && Array.isArray(ratingsRes.data)) {
@@ -407,6 +410,41 @@ export default function BarbershopLanding({ routeBusinessType }: BarbershopLandi
                 Mostrar menos
               </button>
             )}
+          </section>
+        )}
+
+        {/* Event Banners */}
+        {companyEvents.length > 0 && (
+          <section>
+            <div className="flex items-center gap-2 mb-4">
+              <Calendar className="w-5 h-5" style={{ color: T.accent }} />
+              <h2 className="text-lg font-bold" style={{ color: T.text }}>Eventos Especiais</h2>
+            </div>
+            <div className="space-y-3">
+              {companyEvents.map((evt: any) => (
+                <button
+                  key={evt.id}
+                  onClick={() => navigate(`/event/${evt.slug}`)}
+                  className="w-full rounded-xl overflow-hidden text-left transition-transform hover:scale-[1.02]"
+                  style={{ background: T.card, border: `1px solid ${T.border}` }}
+                >
+                  {evt.cover_image && (
+                    <div className="h-32 overflow-hidden">
+                      <img src={evt.cover_image} alt={evt.name} className="w-full h-full object-cover" />
+                    </div>
+                  )}
+                  <div className="p-4">
+                    <p className="font-bold" style={{ color: T.text }}>{evt.name}</p>
+                    <p className="text-sm mt-1" style={{ color: T.textSec }}>
+                      📅 {format(parseISO(evt.start_date), "dd/MM/yyyy", { locale: ptBR })}
+                      {evt.start_date !== evt.end_date && ` - ${format(parseISO(evt.end_date), "dd/MM/yyyy", { locale: ptBR })}`}
+                    </p>
+                    {evt.description && <p className="text-sm mt-1 line-clamp-2" style={{ color: T.textSec }}>{evt.description}</p>}
+                    <span className="inline-block mt-2 text-sm font-semibold" style={{ color: T.accent }}>Ver horários →</span>
+                  </div>
+                </button>
+              ))}
+            </div>
           </section>
         )}
 
