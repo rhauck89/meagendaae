@@ -58,7 +58,21 @@ const getDisplayStatus = (apt: any): string => {
   if (apt.status === 'confirmed' && now >= parseISO(apt.start_time) && now <= parseISO(apt.end_time)) {
     return 'in_progress';
   }
+  if (apt.status === 'confirmed' && now > parseISO(apt.end_time)) {
+    return 'late';
+  }
   return apt.status;
+};
+
+const statusFilterMap: Record<StatusTab, (apt: any) => boolean> = {
+  all: () => true,
+  confirmed: (apt) => {
+    const ds = getDisplayStatus(apt);
+    return ds === 'confirmed' || ds === 'in_progress' || ds === 'late' || apt.status === 'pending';
+  },
+  completed: (apt) => apt.status === 'completed',
+  cancelled: (apt) => apt.status === 'cancelled' || apt.status === 'no_show',
+  rescheduled: (apt) => apt.status === 'rescheduled',
 };
 
 interface ReturnStats {
