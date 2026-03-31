@@ -1194,6 +1194,10 @@ export type Database = {
           review_count: number
         }[]
       }
+      get_professional_recent_bookings: {
+        Args: { p_professional_id: string }
+        Returns: number
+      }
       get_user_company_id: { Args: { _user_id: string }; Returns: string }
       has_company_role: {
         Args: {

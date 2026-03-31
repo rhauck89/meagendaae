@@ -90,6 +90,7 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
   const [professionalHours, setProfessionalHours] = useState<BusinessHours[]>([]);
   const [companySettings, setCompanySettings] = useState<any>(null);
   const [professionalRatings, setProfessionalRatings] = useState<Record<string, { avg: number; count: number }>>({});
+  const [recentBookings, setRecentBookings] = useState<number | null>(null);
 
   const [step, setStep] = useState<Step>('services');
   const [selectedServices, setSelectedServices] = useState<string[]>([]);
@@ -238,6 +239,10 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
         }
 
         setProfessionals([{ id: prof.id, full_name: prof.name, avatar_url: prof.avatar_url }]);
+
+        // Fetch recent bookings for social proof
+        const { data: recentCount } = await supabase.rpc('get_professional_recent_bookings' as any, { p_professional_id: profileId });
+        if (typeof recentCount === 'number') setRecentBookings(recentCount);
       }
     }
   };
@@ -696,6 +701,15 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
                   </p>
                 )}
                 <p className="text-xs mt-0.5 truncate" style={{ color: T.textSec }}>{company.name}</p>
+                {recentBookings !== null && recentBookings >= 1 && (
+                  <p className="text-xs mt-1 font-medium" style={{ color: T.greenText }}>
+                    {recentBookings >= 5
+                      ? '🔥 Muito procurado esta semana'
+                      : recentBookings >= 2
+                        ? `👥 ${recentBookings} pessoas agendaram recentemente`
+                        : '👤 1 pessoa agendou recentemente'}
+                  </p>
+                )}
               </div>
             </div>
           </div>
