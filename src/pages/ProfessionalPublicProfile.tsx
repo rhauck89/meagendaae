@@ -193,16 +193,16 @@ export default function ProfessionalPublicProfile() {
 
   return (
     <div className="min-h-screen" style={{ background: isDark ? '#0B132B' : 'linear-gradient(180deg, #FFF7ED, #FFFFFF)' }}>
-      {/* Banner - use company cover image */}
-      {(company?.cover_url || profile?.banner_url) && (
+      {/* Banner - professional banner first, fallback to company cover */}
+      {(profile?.banner_url || company?.cover_url) && (
         <div className="w-full max-w-md mx-auto h-36 md:h-48 overflow-hidden">
-          <img src={company?.cover_url || profile?.banner_url} alt="Banner" className="w-full h-full object-cover" />
+          <img src={profile?.banner_url || company?.cover_url} alt="Banner" className="w-full h-full object-cover" />
         </div>
       )}
-      <div className="max-w-md mx-auto px-4 flex flex-col items-center gap-6" style={{ paddingTop: (company?.cover_url || profile?.banner_url) ? '1rem' : '2rem', paddingBottom: '2rem' }}>
+      <div className="max-w-md mx-auto px-4 flex flex-col items-center gap-6" style={{ paddingTop: (profile?.banner_url || company?.cover_url) ? '1rem' : '2rem', paddingBottom: '2rem' }}>
 
         {/* Avatar */}
-        <div className="relative" style={{ marginTop: (company?.cover_url || profile?.banner_url) ? '-3rem' : '0' }}>
+        <div className="relative" style={{ marginTop: (profile?.banner_url || company?.cover_url) ? '-3rem' : '0' }}>
           {avatarUrl ? (
             <img src={avatarUrl} alt={professional.name} className="w-28 h-28 rounded-full object-cover border-4" style={{ borderColor: isDark ? '#F59E0B' : '#D97706' }} />
           ) : (

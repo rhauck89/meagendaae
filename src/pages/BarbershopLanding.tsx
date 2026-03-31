@@ -69,8 +69,12 @@ export default function BarbershopLanding({ routeBusinessType }: BarbershopLandi
   const load = async () => {
     setLoading(true);
     const { data: compArr } = await supabase.rpc('get_company_by_slug', { _slug: slug! });
-    const comp = compArr?.[0];
-    if (!comp) { setLoading(false); return; }
+    const rpcComp = compArr?.[0];
+    if (!rpcComp) { setLoading(false); return; }
+
+    // Fetch full company data from public_company view for address/cover fields
+    const { data: fullCompanyData } = await supabase.from('public_company' as any).select('*').eq('id', rpcComp.id).single();
+    const comp = { ...rpcComp, ...((fullCompanyData as any) || {}) };
     setCompany(comp);
     const resolvedType: BusinessType = routeBusinessType || comp.business_type || 'barbershop';
     setBusinessType(resolvedType);
