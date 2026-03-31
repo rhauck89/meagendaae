@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Star, MessageCircle, MapPin, Share2, Check, Calendar, Clock, Instagram, Sparkles, Scissors } from 'lucide-react';
+import { LocationBlock, buildMapsUrl } from '@/components/LocationBlock';
 import { format, addDays, startOfDay, isToday, isTomorrow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
@@ -48,8 +49,12 @@ export default function ProfessionalPublicProfile() {
     const { data: compArr } = await supabase.rpc('get_company_by_slug', { _slug: slug! });
     const comp = compArr?.[0];
     if (!comp) { setLoading(false); return; }
-    setCompany(comp);
-    setBusinessType(comp.business_type || 'barbershop');
+
+    // Fetch full company data from public_company view for address/cover fields
+    const { data: fullCompanyData } = await supabase.from('public_company' as any).select('*').eq('id', comp.id).single();
+    const companyFull = { ...comp, ...((fullCompanyData as any) || {}) };
+    setCompany(companyFull);
+    setBusinessType(companyFull.business_type || 'barbershop');
 
     const { data: pubProfs } = await supabase.from('public_professionals' as any).select('*').eq('company_id', comp.id).eq('slug', professionalSlug!);
     const prof = (pubProfs as any[])?.[0];
@@ -188,16 +193,16 @@ export default function ProfessionalPublicProfile() {
 
   return (
     <div className="min-h-screen" style={{ background: isDark ? '#0B132B' : 'linear-gradient(180deg, #FFF7ED, #FFFFFF)' }}>
-      {/* Banner */}
-      {profile?.banner_url && (
+      {/* Banner - use company cover image */}
+      {(company?.cover_url || profile?.banner_url) && (
         <div className="w-full max-w-md mx-auto h-36 md:h-48 overflow-hidden">
-          <img src={profile.banner_url} alt="Banner" className="w-full h-full object-cover" />
+          <img src={company?.cover_url || profile?.banner_url} alt="Banner" className="w-full h-full object-cover" />
         </div>
       )}
-      <div className="max-w-md mx-auto px-4 flex flex-col items-center gap-6" style={{ paddingTop: profile?.banner_url ? '1rem' : '2rem', paddingBottom: '2rem' }}>
+      <div className="max-w-md mx-auto px-4 flex flex-col items-center gap-6" style={{ paddingTop: (company?.cover_url || profile?.banner_url) ? '1rem' : '2rem', paddingBottom: '2rem' }}>
 
         {/* Avatar */}
-        <div className="relative" style={{ marginTop: profile?.banner_url ? '-3rem' : '0' }}>
+        <div className="relative" style={{ marginTop: (company?.cover_url || profile?.banner_url) ? '-3rem' : '0' }}>
           {avatarUrl ? (
             <img src={avatarUrl} alt={professional.name} className="w-28 h-28 rounded-full object-cover border-4" style={{ borderColor: isDark ? '#F59E0B' : '#D97706' }} />
           ) : (
@@ -439,45 +444,10 @@ export default function ProfessionalPublicProfile() {
           </div>
         )}
 
-        {/* Location with Map */}
-        {company.address && (
-          <div className="w-full max-w-xs">
-            <div className="flex items-center gap-2 mb-3">
-              <MapPin className="w-4 h-4" style={{ color: '#EF4444' }} />
-              <h3 className="text-sm font-semibold" style={{ color: isDark ? '#FFFFFF' : '#1F2937' }}>Localização</h3>
-            </div>
-            <a
-              href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(company.address)}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="block rounded-xl overflow-hidden border transition-transform hover:scale-[1.01]"
-              style={{
-                borderColor: isDark ? '#1F2937' : '#E5E7EB',
-              }}
-            >
-              <img
-                src={`https://maps.googleapis.com/maps/api/staticmap?center=${encodeURIComponent(company.address)}&zoom=15&size=400x180&scale=2&maptype=roadmap&markers=color:red%7C${encodeURIComponent(company.address)}&style=feature:all%7Celement:geometry%7Ccolor:${isDark ? '0x1a1a2e' : '0xf5f5f5'}&style=feature:water%7Celement:geometry%7Ccolor:${isDark ? '0x0d1b2a' : '0xc9d6ff'}&key=`}
-                alt="Mapa"
-                className="w-full h-[120px] object-cover"
-                style={{ background: isDark ? '#1F2937' : '#F3F4F6' }}
-                onError={(e) => {
-                  (e.target as HTMLImageElement).style.display = 'none';
-                }}
-              />
-              <div className="p-3" style={{ background: isDark ? '#111827' : '#FFFFFF' }}>
-                <p className="text-sm font-medium" style={{ color: isDark ? '#FFFFFF' : '#1F2937' }}>
-                  📍 {company.name}
-                </p>
-                <p className="text-xs mt-0.5" style={{ color: isDark ? '#9CA3AF' : '#6B7280' }}>
-                  {company.address}
-                </p>
-                <p className="text-xs mt-2 font-medium" style={{ color: isDark ? '#F59E0B' : '#D97706' }}>
-                  Abrir no Google Maps →
-                </p>
-              </div>
-            </a>
-          </div>
-        )}
+        {/* Location */}
+        <div className="w-full max-w-xs">
+          <LocationBlock company={company} isDark={isDark} />
+        </div>
 
         {/* Footer */}
         <div className="flex flex-col items-center gap-2 mt-4">

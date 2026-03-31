@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Star, MessageCircle, MapPin, Calendar, Clock, Scissors, Sparkles, Users, Instagram, Facebook, Globe, ExternalLink } from 'lucide-react';
+import { LocationBlock } from '@/components/LocationBlock';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
@@ -205,11 +206,6 @@ export default function BarbershopLanding({ routeBusinessType }: BarbershopLandi
           {company.description && (
             <p className="text-sm mt-2 leading-relaxed max-w-sm" style={{ color: T.textSec }}>{company.description}</p>
           )}
-          {(company.address || company.city) && (
-            <p className="text-sm mt-1" style={{ color: T.textSec }}>
-              📍 {[company.address, company.address_number, company.district, company.city, company.state].filter(Boolean).join(', ')}
-            </p>
-          )}
         </div>
 
         {/* Rating Summary */}
@@ -398,35 +394,7 @@ export default function BarbershopLanding({ routeBusinessType }: BarbershopLandi
         )}
 
         {/* 9) Address & Map */}
-        {fullAddress && (
-          <section>
-            <div className="flex items-center gap-2 mb-4">
-              <MapPin className="w-5 h-5" style={{ color: '#EF4444' }} />
-              <h2 className="text-lg font-bold" style={{ color: T.text }}>Localização</h2>
-            </div>
-            <div className="rounded-xl overflow-hidden" style={{ border: `1px solid ${T.border}` }}>
-              <div className="p-4" style={{ background: T.card }}>
-                <p className="text-sm font-medium" style={{ color: T.text }}>📍 {company.name}</p>
-                <p className="text-xs mt-1" style={{ color: T.textSec }}>{fullAddress}</p>
-                {company.postal_code && (
-                  <p className="text-xs mt-0.5" style={{ color: T.textSec }}>CEP: {company.postal_code}</p>
-                )}
-                {company.google_maps_url && (
-                  <a
-                    href={company.google_maps_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1 mt-3 text-xs font-medium"
-                    style={{ color: T.accent }}
-                  >
-                    <ExternalLink className="w-3 h-3" />
-                    Ver no mapa
-                  </a>
-                )}
-              </div>
-            </div>
-          </section>
-        )}
+        <LocationBlock company={company} isDark={isDark} />
 
         {/* Social Links */}
         {(company.instagram || company.facebook || company.website) && (
