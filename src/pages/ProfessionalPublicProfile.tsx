@@ -184,7 +184,7 @@ export default function ProfessionalPublicProfile() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center" style={{ background: isDark ? '#0B132B' : '#FFF7ED' }}>
+      <div className="min-h-screen flex items-center justify-center" style={{ background: T.bg }}>
         <div className="animate-pulse flex flex-col items-center gap-4">
           <div className="w-24 h-24 rounded-full bg-gray-700" />
           <div className="h-4 w-32 bg-gray-700 rounded" />
