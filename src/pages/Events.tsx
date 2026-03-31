@@ -420,8 +420,8 @@ const Events = () => {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-display font-bold">Eventos</h2>
-          <p className="text-muted-foreground">Gerencie eventos especiais e suas agendas</p>
+          <h2 className="text-2xl font-display font-bold">Agenda Aberta</h2>
+          <p className="text-muted-foreground">Gerencie agendas abertas e suas vagas</p>
         </div>
         <Button onClick={() => openCreateDialog()} className="gap-2">
           <Plus className="h-4 w-4" /> Criar Evento
