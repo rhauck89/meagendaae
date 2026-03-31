@@ -719,7 +719,10 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
         serviceNames: bookedServiceNames, date: selectedDate, time: selectedTime,
         totalPrice, totalDuration, companyName: company.name,
         companyPhone: (company as any).whatsapp || company.phone || companySettings?.whatsapp_number || null,
-        companyAddress: [(company as any).address, (company as any).address_number, (company as any).district].filter(Boolean).join(', ') || null,
+        companyAddress: [(company as any).address, (company as any).address_number ? `${(company as any).address_number}` : null].filter(Boolean).join(', ') + ((company as any).district ? ` - ${(company as any).district}` : '') || null,
+        companyCity: (company as any).city || null,
+        companyState: (company as any).state || null,
+        companyPostalCode: (company as any).postal_code || null,
       });
       setStep('success');
     } catch (err: any) {
