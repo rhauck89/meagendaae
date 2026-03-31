@@ -68,12 +68,13 @@ export default function BarbershopLanding({ routeBusinessType }: BarbershopLandi
     const resolvedType: BusinessType = routeBusinessType || comp.business_type || 'barbershop';
     setBusinessType(resolvedType);
 
-    const [servicesRes, profsRes, ratingsRes, reviewsRes, settingsRes] = await Promise.all([
+    const [servicesRes, profsRes, ratingsRes, reviewsRes, settingsRes, galleryRes] = await Promise.all([
       supabase.from('public_services' as any).select('*').eq('company_id', comp.id).order('name'),
       supabase.from('public_professionals' as any).select('*').eq('company_id', comp.id).eq('active', true),
       supabase.rpc('get_professional_ratings' as any, { p_company_id: comp.id }),
-      supabase.from('reviews').select('rating, comment, created_at, professional_id').eq('company_id', comp.id).order('created_at', { ascending: false }).limit(3),
+      supabase.from('reviews').select('rating, comment, created_at, professional_id, appointment_id').eq('company_id', comp.id).order('created_at', { ascending: false }),
       supabase.from('company_settings' as any).select('*').eq('company_id', comp.id).single(),
+      supabase.from('company_gallery' as any).select('*').eq('company_id', comp.id).order('sort_order'),
     ]);
 
     if (servicesRes.data) setServices(servicesRes.data as any[]);
