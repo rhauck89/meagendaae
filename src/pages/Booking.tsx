@@ -203,6 +203,19 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
       setProfessionalRatings(ratingsMap);
     }
 
+    // Fetch company-level stats (reviews + completed appointments)
+    const [reviewsRes, completedRes] = await Promise.all([
+      supabase.from('reviews').select('rating').eq('company_id', comp.id),
+      supabase.from('appointments').select('id', { count: 'exact', head: true }).eq('company_id', comp.id).eq('status', 'completed'),
+    ]);
+    const reviews = reviewsRes.data || [];
+    const reviewCount = reviews.length;
+    const avgRating = reviewCount > 0 ? reviews.reduce((sum: number, r: any) => sum + Number(r.rating), 0) / reviewCount : 0;
+    const completedCount = completedRes.count || 0;
+    if (reviewCount > 0 || completedCount > 0) {
+      setCompanyStats({ avgRating, reviewCount, completedCount });
+    }
+
     if (professionalSlug) {
       console.log('[Booking] Resolving professional by slug', { companyId: comp.id, professionalSlug });
       const { data: pubProfs, error: collabErr } = await supabase
