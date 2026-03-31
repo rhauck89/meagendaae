@@ -296,7 +296,28 @@ const EventPublic = () => {
 
         {/* Slots */}
         <div>
-          <h2 className="text-xl font-display font-semibold mb-4">Horários Disponíveis</h2>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-display font-semibold">Horários Disponíveis</h2>
+            {(() => {
+              const totalSlots = slots.reduce((sum, s) => sum + s.max_bookings, 0);
+              const totalBooked = slots.reduce((sum, s) => sum + s.current_bookings, 0);
+              const remaining = totalSlots - totalBooked;
+              if (totalSlots === 0) return null;
+              const isLow = remaining > 0 && remaining <= 5;
+              return (
+                <Badge variant="outline" className={cn(
+                  'text-sm font-semibold',
+                  remaining === 0 ? 'border-destructive text-destructive' :
+                  isLow ? 'border-orange-500 text-orange-600' :
+                  'border-primary text-primary'
+                )}>
+                  {remaining === 0 ? '❌ Esgotado' :
+                   isLow ? `🔥 Últimas ${remaining} vagas` :
+                   `${remaining} vagas`}
+                </Badge>
+              );
+            })()}
+          </div>
           {filteredSlots.length === 0 ? (
             <p className="text-muted-foreground">Nenhum horário disponível para esta data.</p>
           ) : (
