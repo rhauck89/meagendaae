@@ -288,7 +288,7 @@ export default function ProfessionalPublicProfile() {
               <Button
                 onClick={() => navigate(`${bookingUrl}?date=${format(nextAvailable.date, 'yyyy-MM-dd')}&time=${nextAvailable.slots[0]}`)}
                 className="w-full h-11 mt-3 text-sm font-semibold rounded-xl shadow-lg"
-                style={{ background: isDark ? '#F59E0B' : '#D97706', color: '#0B132B' }}
+                style={{ background: T.accent, color: '#0B132B' }}
               >
                 <Calendar className="w-4 h-4 mr-2" />
                 Agendar este horário
