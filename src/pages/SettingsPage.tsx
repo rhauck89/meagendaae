@@ -94,6 +94,7 @@ const SettingsPage = () => {
       setCompanyName(data.name ?? '');
       setCompanyPhone((data as any).phone ?? '');
       setCompanyLogoUrl((data as any).logo_url ?? '');
+      setCompanyCoverUrl((data as any).cover_url ?? '');
     }
   };
 
