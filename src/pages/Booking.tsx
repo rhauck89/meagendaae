@@ -453,12 +453,11 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
           .eq('company_id', company.id)
           .eq('professional_id', selectedProfessional)
           .eq('block_date', dateStr),
-        supabase
+        (supabase as any)
           .from('event_slots')
-          .select('slot_date, start_time, end_time, event_id, events!inner(status)')
+          .select('slot_date, start_time, end_time')
           .eq('professional_id', selectedProfessional)
-          .eq('slot_date', dateStr)
-          .eq('events.status' as any, 'published'),
+          .eq('slot_date', dateStr),
       ]);
 
       const blockedTimesData = blockedTimesRes.data;
