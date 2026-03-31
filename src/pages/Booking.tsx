@@ -488,7 +488,7 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
         slotInterval: 15,
         bufferMinutes,
         professionalHours: professionalHours.length > 0 ? professionalHours : undefined,
-        blockedTimes: ((blockedTimesData || []) as unknown as BlockedTime[]),
+        blockedTimes: allBlockedTimes,
         professionalId: selectedProfessional,
       });
 
