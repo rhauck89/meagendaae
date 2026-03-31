@@ -4,7 +4,10 @@ import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Building2, DollarSign, Users, ShieldCheck } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Building2, DollarSign, Users, ShieldCheck, Globe } from 'lucide-react';
+import { toast } from 'sonner';
 
 const statusColors: Record<string, string> = {
   active: 'bg-success/10 text-success',
@@ -16,9 +19,13 @@ const statusColors: Record<string, string> = {
 const Admin = () => {
   const { roles } = useAuth();
   const [companies, setCompanies] = useState<any[]>([]);
+  const [platformName, setPlatformName] = useState('');
+  const [platformLogo, setPlatformLogo] = useState('');
+  const [platformUrl, setPlatformUrl] = useState('');
 
   useEffect(() => {
     fetchCompanies();
+    fetchPlatformSettings();
   }, []);
 
   const fetchCompanies = async () => {
@@ -27,6 +34,24 @@ const Admin = () => {
       .select('*')
       .order('created_at', { ascending: false });
     if (data) setCompanies(data);
+  };
+
+  const fetchPlatformSettings = async () => {
+    const { data } = await supabase.from('platform_settings' as any).select('*').limit(1).single();
+    if (data) {
+      setPlatformName((data as any).system_name ?? '');
+      setPlatformLogo((data as any).system_logo ?? '');
+      setPlatformUrl((data as any).system_url ?? '');
+    }
+  };
+
+  const savePlatformSettings = async () => {
+    await supabase.from('platform_settings' as any).update({
+      system_name: platformName,
+      system_logo: platformLogo || null,
+      system_url: platformUrl || null,
+    } as any).neq('id', '00000000-0000-0000-0000-000000000000');
+    toast.success('Configurações da plataforma salvas');
   };
 
   const toggleBlock = async (id: string, currentStatus: string) => {
@@ -84,6 +109,35 @@ const Admin = () => {
             </CardContent>
           </Card>
         </div>
+
+        {/* Platform Settings */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Globe className="h-5 w-5" /> Configurações da Plataforma
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div className="space-y-1">
+                <Label className="text-xs">Nome do sistema</Label>
+                <Input value={platformName} onChange={(e) => setPlatformName(e.target.value)} />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">URL do logo</Label>
+                <Input value={platformLogo} onChange={(e) => setPlatformLogo(e.target.value)} placeholder="https://..." />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">URL do site</Label>
+                <Input value={platformUrl} onChange={(e) => setPlatformUrl(e.target.value)} placeholder="https://..." />
+              </div>
+            </div>
+            <Button size="sm" onClick={savePlatformSettings}>Salvar</Button>
+            <p className="text-xs text-muted-foreground">
+              Exibido como "Agendamento online por {platformName || '...'}" nas páginas públicas.
+            </p>
+          </CardContent>
+        </Card>
 
         <Card>
           <CardHeader>

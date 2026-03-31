@@ -8,6 +8,7 @@ import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { calculateAvailableSlots, type BusinessHours, type BusinessException, type BlockedTime, type ExistingAppointment } from '@/lib/availability-engine';
 import { formatWhatsApp } from '@/lib/whatsapp';
+import { PlatformBranding } from '@/components/PlatformBranding';
 
 type BusinessType = 'barbershop' | 'esthetic';
 
@@ -479,9 +480,15 @@ export default function ProfessionalPublicProfile() {
         )}
 
         {/* Footer */}
-        <p className="text-xs mt-4" style={{ color: isDark ? '#4B5563' : '#9CA3AF' }}>
-          {company.name}
-        </p>
+        <div className="flex flex-col items-center gap-2 mt-4">
+          {company.logo_url && (
+            <img src={company.logo_url} alt={company.name} className="w-10 h-10 rounded-xl object-cover" />
+          )}
+          <p className="text-xs" style={{ color: isDark ? '#4B5563' : '#9CA3AF' }}>
+            {company.name}
+          </p>
+          <PlatformBranding isDark={isDark} />
+        </div>
       </div>
     </div>
   );

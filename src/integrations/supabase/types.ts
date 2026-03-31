@@ -479,6 +479,33 @@ export type Database = {
           },
         ]
       }
+      platform_settings: {
+        Row: {
+          created_at: string
+          id: string
+          system_logo: string | null
+          system_name: string
+          system_url: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          system_logo?: string | null
+          system_name?: string
+          system_url?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          system_logo?: string | null
+          system_name?: string
+          system_url?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       professional_working_hours: {
         Row: {
           close_time: string

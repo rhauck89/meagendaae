@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
-import { Clock, Calendar as CalendarIcon, Plus, Trash2, Bell, Cake, Link2, Copy, Timer } from 'lucide-react';
+import { Clock, Calendar as CalendarIcon, Plus, Trash2, Bell, Cake, Link2, Copy, Timer, Building2, Camera, Phone } from 'lucide-react';
 
 const dayNames = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
 
@@ -24,6 +24,10 @@ const SettingsPage = () => {
   const [companySlug, setCompanySlug] = useState('');
   const [companyBusinessType, setCompanyBusinessType] = useState<string>('barbershop');
   const [bufferMinutes, setBufferMinutes] = useState(0);
+  const [companyName, setCompanyName] = useState('');
+  const [companyPhone, setCompanyPhone] = useState('');
+  const [companyLogoUrl, setCompanyLogoUrl] = useState('');
+  const [logoUploading, setLogoUploading] = useState(false);
 
   useEffect(() => {
     if (companyId) {
@@ -74,7 +78,7 @@ const SettingsPage = () => {
   const fetchCompanySettings = async () => {
     const { data } = await supabase
       .from('companies')
-      .select('reminders_enabled, birthday_enabled, birthday_discount_type, birthday_discount_value, slug, business_type, buffer_minutes')
+      .select('reminders_enabled, birthday_enabled, birthday_discount_type, birthday_discount_value, slug, business_type, buffer_minutes, name, phone, logo_url')
       .eq('id', companyId!)
       .single();
     if (data) {
@@ -85,7 +89,35 @@ const SettingsPage = () => {
       setCompanySlug((data as any).slug ?? '');
       setCompanyBusinessType((data as any).business_type ?? 'barbershop');
       setBufferMinutes((data as any).buffer_minutes ?? 0);
+      setCompanyName(data.name ?? '');
+      setCompanyPhone((data as any).phone ?? '');
+      setCompanyLogoUrl((data as any).logo_url ?? '');
     }
+  };
+
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !companyId) return;
+    setLogoUploading(true);
+    const ext = file.name.split('.').pop();
+    const filePath = `${companyId}/logo.${ext}`;
+    const { error: uploadError } = await supabase.storage.from('logos').upload(filePath, file, { upsert: true });
+    if (uploadError) {
+      toast.error('Erro ao enviar logo');
+      setLogoUploading(false);
+      return;
+    }
+    const { data: { publicUrl } } = supabase.storage.from('logos').getPublicUrl(filePath);
+    const logoUrl = `${publicUrl}?t=${Date.now()}`;
+    await supabase.from('companies').update({ logo_url: logoUrl } as any).eq('id', companyId);
+    setCompanyLogoUrl(logoUrl);
+    setLogoUploading(false);
+    toast.success('Logo atualizado!');
+  };
+
+  const saveCompanyIdentity = async () => {
+    await supabase.from('companies').update({ name: companyName, phone: companyPhone } as any).eq('id', companyId!);
+    toast.success('Dados da empresa salvos');
   };
 
   const toggleReminders = async (enabled: boolean) => {
@@ -142,6 +174,50 @@ const SettingsPage = () => {
         <h2 className="text-xl font-display font-bold">Configurações</h2>
         <p className="text-sm text-muted-foreground">Horários, lembretes e automações</p>
       </div>
+
+      {/* Company Identity */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Building2 className="h-5 w-5" /> Identidade da Empresa
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {/* Logo */}
+          <div className="flex items-center gap-4">
+            <div className="relative">
+              {companyLogoUrl ? (
+                <img src={companyLogoUrl} alt="Logo" className="w-20 h-20 rounded-xl object-cover border" />
+              ) : (
+                <div className="w-20 h-20 rounded-xl bg-muted flex items-center justify-center border">
+                  <Building2 className="w-8 h-8 text-muted-foreground" />
+                </div>
+              )}
+              <label className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full bg-primary text-primary-foreground flex items-center justify-center cursor-pointer shadow-md hover:opacity-90">
+                <Camera className="w-3.5 h-3.5" />
+                <input type="file" accept="image/*" className="hidden" onChange={handleLogoUpload} disabled={logoUploading} />
+              </label>
+            </div>
+            <div className="flex-1 space-y-1">
+              <p className="text-sm font-medium">Logo da empresa</p>
+              <p className="text-xs text-muted-foreground">Recomendado: 400x400px</p>
+            </div>
+          </div>
+
+          {/* Name & Phone */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <Label className="text-xs">Nome da empresa</Label>
+              <Input value={companyName} onChange={(e) => setCompanyName(e.target.value)} />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Telefone (opcional)</Label>
+              <Input value={companyPhone} onChange={(e) => setCompanyPhone(e.target.value)} placeholder="(11) 99999-9999" />
+            </div>
+          </div>
+          <Button size="sm" onClick={saveCompanyIdentity}>Salvar</Button>
+        </CardContent>
+      </Card>
 
       {/* Public Booking Link */}
       {companySlug && (
