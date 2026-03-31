@@ -42,6 +42,7 @@ const statusCardStyles: Record<string, string> = {
   completed: 'bg-muted/50 border-l-4 border-l-success opacity-75',
   no_show: 'bg-muted/30 border-l-4 border-l-muted-foreground opacity-60',
   rescheduled: 'bg-orange-50 border-l-4 border-l-orange-500 opacity-60',
+  late: 'bg-warning/10 border-l-4 border-l-warning',
 };
 
 const statusLabels: Record<string, string> = {
