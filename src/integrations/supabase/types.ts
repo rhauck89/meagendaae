@@ -72,6 +72,7 @@ export type Database = {
           id: string
           notes: string | null
           professional_id: string
+          rescheduled_from_id: string | null
           start_time: string
           status: Database["public"]["Enums"]["appointment_status"]
           total_price: number
@@ -88,6 +89,7 @@ export type Database = {
           id?: string
           notes?: string | null
           professional_id: string
+          rescheduled_from_id?: string | null
           start_time: string
           status?: Database["public"]["Enums"]["appointment_status"]
           total_price?: number
@@ -104,6 +106,7 @@ export type Database = {
           id?: string
           notes?: string | null
           professional_id?: string
+          rescheduled_from_id?: string | null
           start_time?: string
           status?: Database["public"]["Enums"]["appointment_status"]
           total_price?: number
@@ -143,6 +146,13 @@ export type Database = {
             columns: ["professional_id"]
             isOneToOne: false
             referencedRelation: "public_professionals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "appointments_rescheduled_from_id_fkey"
+            columns: ["rescheduled_from_id"]
+            isOneToOne: false
+            referencedRelation: "appointments"
             referencedColumns: ["id"]
           },
         ]
@@ -1528,6 +1538,7 @@ export type Database = {
         | "cancelled"
         | "completed"
         | "no_show"
+        | "rescheduled"
       business_type: "barbershop" | "esthetic"
       collaborator_type: "partner" | "commissioned" | "independent"
       commission_type: "percentage" | "fixed" | "none"
@@ -1682,6 +1693,7 @@ export const Constants = {
         "cancelled",
         "completed",
         "no_show",
+        "rescheduled",
       ],
       business_type: ["barbershop", "esthetic"],
       collaborator_type: ["partner", "commissioned", "independent"],
