@@ -440,37 +440,51 @@ export default function BarbershopLanding({ routeBusinessType }: BarbershopLandi
           </section>
         )}
 
-        {/* Event Banners */}
+        {/* Agenda Aberta */}
         {companyEvents.length > 0 && (
           <section>
             <div className="flex items-center gap-2 mb-4">
               <Calendar className="w-5 h-5" style={{ color: T.accent }} />
-              <h2 className="text-lg font-bold" style={{ color: T.text }}>Eventos Especiais</h2>
+              <h2 className="text-lg font-bold" style={{ color: T.text }}>Agenda Aberta</h2>
             </div>
             <div className="space-y-3">
-              {companyEvents.map((evt: any) => (
-                <button
-                  key={evt.id}
-                  onClick={() => navigate(`/event/${evt.slug}`)}
-                  className="w-full rounded-xl overflow-hidden text-left transition-transform hover:scale-[1.02]"
-                  style={{ background: T.card, border: `1px solid ${T.border}` }}
-                >
-                  {evt.cover_image && (
-                    <div className="h-32 overflow-hidden">
-                      <img src={evt.cover_image} alt={evt.name} className="w-full h-full object-cover" />
+              {companyEvents.map((evt: any) => {
+                const remaining = evt._remaining ?? 0;
+                const total = evt._total ?? 0;
+                const isLow = remaining > 0 && remaining <= 5;
+                return (
+                  <button
+                    key={evt.id}
+                    onClick={() => navigate(`/event/${evt.slug}`)}
+                    className="w-full rounded-xl overflow-hidden text-left transition-transform hover:scale-[1.02]"
+                    style={{ background: T.card, border: `1px solid ${T.border}` }}
+                  >
+                    {evt.cover_image && (
+                      <div className="h-32 overflow-hidden">
+                        <img src={evt.cover_image} alt={evt.name} className="w-full h-full object-cover" />
+                      </div>
+                    )}
+                    <div className="p-4">
+                      <p className="font-bold" style={{ color: T.text }}>{evt.name}</p>
+                      <p className="text-sm mt-1" style={{ color: T.textSec }}>
+                        📅 {format(parseISO(evt.start_date), "dd/MM/yyyy", { locale: ptBR })}
+                        {evt.start_date !== evt.end_date && ` - ${format(parseISO(evt.end_date), "dd/MM/yyyy", { locale: ptBR })}`}
+                      </p>
+                      {evt.description && <p className="text-sm mt-1 line-clamp-2" style={{ color: T.textSec }}>{evt.description}</p>}
+                      {total > 0 && (
+                        <p className={cn('text-sm font-semibold mt-2', 
+                          remaining === 0 ? 'text-destructive' : isLow ? 'text-orange-500' : ''
+                        )} style={remaining > 5 ? { color: T.accent } : undefined}>
+                          {remaining === 0 ? '❌ Esgotado' :
+                           isLow ? `🔥 Últimas ${remaining} vagas` :
+                           `${remaining} vagas disponíveis`}
+                        </p>
+                      )}
+                      <span className="inline-block mt-2 text-sm font-semibold" style={{ color: T.accent }}>Ver horários →</span>
                     </div>
-                  )}
-                  <div className="p-4">
-                    <p className="font-bold" style={{ color: T.text }}>{evt.name}</p>
-                    <p className="text-sm mt-1" style={{ color: T.textSec }}>
-                      📅 {format(parseISO(evt.start_date), "dd/MM/yyyy", { locale: ptBR })}
-                      {evt.start_date !== evt.end_date && ` - ${format(parseISO(evt.end_date), "dd/MM/yyyy", { locale: ptBR })}`}
-                    </p>
-                    {evt.description && <p className="text-sm mt-1 line-clamp-2" style={{ color: T.textSec }}>{evt.description}</p>}
-                    <span className="inline-block mt-2 text-sm font-semibold" style={{ color: T.accent }}>Ver horários →</span>
-                  </div>
-                </button>
-              ))}
+                  </button>
+                );
+              })}
             </div>
           </section>
         )}

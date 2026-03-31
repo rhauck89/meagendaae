@@ -602,6 +602,16 @@ const Events = () => {
             </div>
 
             <div>
+              <Label>Máx. agendamentos por cliente</Label>
+              <Input
+                type="number"
+                min={0}
+                value={formMaxBookingsPerClient}
+                onChange={e => setFormMaxBookingsPerClient(Number(e.target.value))}
+              />
+              <p className="text-xs text-muted-foreground mt-1">0 = ilimitado</p>
+            </div>
+            <div>
               <Label>Status</Label>
               <Select value={formStatus} onValueChange={(v) => setFormStatus(v as 'draft' | 'published')}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
