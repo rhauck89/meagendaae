@@ -413,6 +413,41 @@ export default function BarbershopLanding({ routeBusinessType }: BarbershopLandi
           </section>
         )}
 
+        {/* Event Banners */}
+        {companyEvents.length > 0 && (
+          <section>
+            <div className="flex items-center gap-2 mb-4">
+              <Calendar className="w-5 h-5" style={{ color: T.accent }} />
+              <h2 className="text-lg font-bold" style={{ color: T.text }}>Eventos Especiais</h2>
+            </div>
+            <div className="space-y-3">
+              {companyEvents.map((evt: any) => (
+                <button
+                  key={evt.id}
+                  onClick={() => navigate(`/event/${evt.slug}`)}
+                  className="w-full rounded-xl overflow-hidden text-left transition-transform hover:scale-[1.02]"
+                  style={{ background: T.card, border: `1px solid ${T.border}` }}
+                >
+                  {evt.cover_image && (
+                    <div className="h-32 overflow-hidden">
+                      <img src={evt.cover_image} alt={evt.name} className="w-full h-full object-cover" />
+                    </div>
+                  )}
+                  <div className="p-4">
+                    <p className="font-bold" style={{ color: T.text }}>{evt.name}</p>
+                    <p className="text-sm mt-1" style={{ color: T.textSec }}>
+                      📅 {format(parseISO(evt.start_date), "dd/MM/yyyy", { locale: ptBR })}
+                      {evt.start_date !== evt.end_date && ` - ${format(parseISO(evt.end_date), "dd/MM/yyyy", { locale: ptBR })}`}
+                    </p>
+                    {evt.description && <p className="text-sm mt-1 line-clamp-2" style={{ color: T.textSec }}>{evt.description}</p>}
+                    <span className="inline-block mt-2 text-sm font-semibold" style={{ color: T.accent }}>Ver horários →</span>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </section>
+        )}
+
         {/* 9) Address & Map */}
         <LocationBlock company={company} isDark={isDark} />
 
