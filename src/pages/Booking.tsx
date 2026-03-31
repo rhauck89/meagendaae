@@ -300,6 +300,17 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
         // Fetch recent bookings for social proof
         fetchRecentBookings(profileId);
       }
+
+      // Apply prefilled date/time from URL query params (e.g. from quick booking buttons)
+      if (prefillDateRef.current) {
+        const [y, mo, d] = prefillDateRef.current.split('-').map(Number);
+        const prefillDate = new Date(y, mo - 1, d);
+        setSelectedDate(prefillDate);
+        if (prefillTimeRef.current) {
+          setSelectedTime(prefillTimeRef.current);
+        }
+        prefillDateRef.current = null;
+      }
     }
   };
 
