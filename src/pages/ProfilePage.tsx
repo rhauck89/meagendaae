@@ -34,6 +34,7 @@ const ProfilePage = () => {
     whatsapp: '',
     bio: '',
     avatar_url: '',
+    banner_url: '',
     social_instagram: '',
   });
 
