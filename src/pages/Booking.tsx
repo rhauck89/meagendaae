@@ -722,26 +722,27 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
               </div>
             )}
           </a>
-          <div className="min-w-0">
+          <div className="min-w-0 flex-1">
             <h1 className="font-bold text-lg tracking-tight">{company.name}</h1>
             {companyStats && companyStats.reviewCount > 0 ? (
-              <p className="text-xs flex items-center gap-1 flex-wrap" style={{ color: T.textSec }}>
-                <Star className="h-3 w-3 fill-current" style={{ color: T.accent }} />
-                <span style={{ color: T.accent, fontWeight: 600 }}>{companyStats.avgRating.toFixed(1)}</span>
-                <span>({companyStats.reviewCount} avaliações)</span>
-                {companyStats.completedCount > 0 && (
-                  <>
-                    <span>•</span>
-                    <span>💈 {companyStats.completedCount} atendimentos</span>
-                  </>
-                )}
-              </p>
+              <div className="flex items-center gap-1.5 flex-wrap mt-0.5">
+                <StarRating rating={companyStats.avgRating} size={14} />
+                <span className="text-xs font-semibold" style={{ color: '#FDBA2D' }}>{companyStats.avgRating.toFixed(1)}</span>
+                <span className="text-xs" style={{ color: T.textSec }}>({companyStats.reviewCount} avaliações)</span>
+              </div>
             ) : (
               <p className="text-xs" style={{ color: T.textSec }}>
                 {businessType === 'barbershop' ? 'Barbearia' : 'Estética'} • Agendamento online
               </p>
             )}
           </div>
+          <button
+            onClick={() => setShowReviewModal(true)}
+            className="shrink-0 text-xs font-medium px-3 py-1.5 rounded-full transition-colors"
+            style={{ background: `${T.accent}20`, color: '#FDBA2D' }}
+          >
+            Avaliar
+          </button>
         </div>
       </header>
 
