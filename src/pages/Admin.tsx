@@ -60,6 +60,11 @@ const Admin = () => {
       system_name: platformName,
       system_logo: platformLogo || null,
       system_url: platformUrl || null,
+      site_title: seoTitle || null,
+      meta_description: seoDescription || null,
+      og_image: seoOgImage || null,
+      favicon_url: seoFavicon || null,
+      default_keywords: seoKeywords || null,
     } as any).neq('id', '00000000-0000-0000-0000-000000000000');
     toast.success('Configurações da plataforma salvas');
   };
