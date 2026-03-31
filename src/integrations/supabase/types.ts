@@ -1043,6 +1043,8 @@ export type Database = {
           professional_id: string | null
           service_ids: string[]
           status: Database["public"]["Enums"]["waiting_list_status"]
+          time_from: string | null
+          time_to: string | null
         }
         Insert: {
           client_id: string
@@ -1053,6 +1055,8 @@ export type Database = {
           professional_id?: string | null
           service_ids: string[]
           status?: Database["public"]["Enums"]["waiting_list_status"]
+          time_from?: string | null
+          time_to?: string | null
         }
         Update: {
           client_id?: string
@@ -1063,6 +1067,8 @@ export type Database = {
           professional_id?: string | null
           service_ids?: string[]
           status?: Database["public"]["Enums"]["waiting_list_status"]
+          time_from?: string | null
+          time_to?: string | null
         }
         Relationships: [
           {
@@ -1122,6 +1128,9 @@ export type Database = {
           notified: boolean
           professional_id: string | null
           service_ids: string[]
+          status: string
+          time_from: string | null
+          time_to: string | null
         }
         Insert: {
           client_id?: string | null
@@ -1135,6 +1144,9 @@ export type Database = {
           notified?: boolean
           professional_id?: string | null
           service_ids: string[]
+          status?: string
+          time_from?: string | null
+          time_to?: string | null
         }
         Update: {
           client_id?: string | null
@@ -1148,6 +1160,9 @@ export type Database = {
           notified?: boolean
           professional_id?: string | null
           service_ids?: string[]
+          status?: string
+          time_from?: string | null
+          time_to?: string | null
         }
         Relationships: [
           {
@@ -1419,6 +1434,7 @@ export type Database = {
             }
             Returns: string
           }
+      expire_old_waitlist_entries: { Args: never; Returns: undefined }
       get_booking_appointments: {
         Args: {
           p_company_id: string
@@ -1475,18 +1491,33 @@ export type Database = {
         }
         Returns: boolean
       }
-      join_public_waitlist: {
-        Args: {
-          p_client_name: string
-          p_client_whatsapp: string
-          p_company_id: string
-          p_desired_date: string
-          p_email: string
-          p_professional_id?: string
-          p_service_ids: string[]
-        }
-        Returns: string
-      }
+      join_public_waitlist:
+        | {
+            Args: {
+              p_client_name: string
+              p_client_whatsapp: string
+              p_company_id: string
+              p_desired_date: string
+              p_email: string
+              p_professional_id?: string
+              p_service_ids: string[]
+            }
+            Returns: string
+          }
+        | {
+            Args: {
+              p_client_name: string
+              p_client_whatsapp: string
+              p_company_id: string
+              p_desired_date: string
+              p_email: string
+              p_professional_id?: string
+              p_service_ids: string[]
+              p_time_from?: string
+              p_time_to?: string
+            }
+            Returns: string
+          }
       lookup_client_by_cpf: {
         Args: { _company_id: string; _cpf: string }
         Returns: string
