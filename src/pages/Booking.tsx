@@ -631,6 +631,22 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
         p_notes: null as string | null,
       };
 
+      // Final availability check to prevent double booking
+      const { data: conflictingAppts } = await supabase
+        .from('appointments')
+        .select('id')
+        .eq('professional_id', selectedProfessional)
+        .eq('start_time', startTime.toISOString())
+        .not('status', 'in', '("cancelled","no_show")')
+        .limit(1);
+
+      if (conflictingAppts && conflictingAppts.length > 0) {
+        toast.error('Este horário acabou de ser reservado. Escolha outro.');
+        setStep('datetime');
+        setLoading(false);
+        return;
+      }
+
       console.log('[Booking] Creating appointment:', appointmentPayload);
       const { data: appointmentId, error: aptError } = await supabase
         .rpc('create_appointment' as any, appointmentPayload as any);
