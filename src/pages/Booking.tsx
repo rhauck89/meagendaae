@@ -1211,26 +1211,6 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
               <p className="text-sm mt-1" style={{ color: T.textSec }}>Revise os detalhes antes de confirmar</p>
             </div>
             <div className="rounded-2xl p-5 space-y-5" style={{ background: T.card, border: `1px solid ${T.border}` }}>
-              {/* Professional */}
-              {(() => {
-                const prof = professionals.find((p) => p.id === selectedProfessional);
-                return (
-                  <div className="flex items-center gap-4">
-                    {prof?.avatar_url ? (
-                      <img src={prof.avatar_url} alt={prof.full_name} className="w-14 h-14 rounded-full object-cover" style={{ border: `3px solid ${T.accent}` }} />
-                    ) : (
-                      <div className="w-14 h-14 rounded-full flex items-center justify-center text-xl font-bold" style={{ background: `${T.accent}20`, color: T.accent }}>
-                        {prof?.full_name?.charAt(0)?.toUpperCase()}
-                      </div>
-                    )}
-                    <div>
-                      <p className="text-xs" style={{ color: T.textSec }}>Profissional</p>
-                      <p className="font-semibold text-base">{prof?.full_name}</p>
-                    </div>
-                  </div>
-                );
-              })()}
-              <div style={{ borderTop: `1px solid ${T.border}` }} />
               {/* Services */}
               <div>
                 <p className="text-xs mb-2" style={{ color: T.textSec }}>Serviços</p>
