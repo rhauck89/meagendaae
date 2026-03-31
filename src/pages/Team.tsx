@@ -359,7 +359,6 @@ const Team = () => {
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         {collaborators.map((collaborator) => {
-          const bookingLink = getCollaboratorBookingLink(collaborator);
           const profileLink = getCollaboratorProfileLink(collaborator);
           return (
             <Card key={collaborator.id}>
