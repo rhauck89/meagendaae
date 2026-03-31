@@ -171,6 +171,9 @@ export default function ProfessionalPublicProfile() {
     : '#';
 
   const isDark = businessType === 'barbershop';
+  const branding = getCompanyBranding(companySettings, isDark);
+  useApplyBranding(branding);
+  const T = buildThemeFromBranding(branding, isDark);
   const avatarUrl = profile?.avatar_url || professional?.avatar_url;
   const socialLinks = profile?.social_links as any;
   const instagramUrl = socialLinks?.instagram ? (socialLinks.instagram.startsWith('http') ? socialLinks.instagram : `https://instagram.com/${socialLinks.instagram.replace('@', '')}`) : null;
