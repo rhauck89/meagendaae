@@ -41,6 +41,11 @@ Deno.serve(async (req) => {
       );
     }
 
+    // Extract cancelled time for time-range matching
+    const cancelledTime = cancelled_start
+      ? cancelled_start.split("T")[1]?.substring(0, 5) || null
+      : null;
+
     // Get professional name
     let professionalName = "";
     if (professional_id) {
@@ -52,7 +57,7 @@ Deno.serve(async (req) => {
       professionalName = prof?.full_name || "";
     }
 
-    // Find waiting clients
+    // Find waiting clients from waiting_list (authenticated)
     let query = supabase
       .from("waiting_list")
       .select("*, client:profiles!waiting_list_client_id_fkey(full_name, whatsapp, email)")
@@ -68,7 +73,34 @@ Deno.serve(async (req) => {
     const { data: waitingClients, error: wErr } = await query;
     if (wErr) throw wErr;
 
-    if (!waitingClients || waitingClients.length === 0) {
+    // Also check public waitlist
+    let pubQuery = supabase
+      .from("waitlist")
+      .select("*")
+      .eq("company_id", company_id)
+      .eq("desired_date", cancelled_date)
+      .eq("status", "active")
+      .order("created_at", { ascending: true });
+
+    if (professional_id) {
+      pubQuery = pubQuery.or(`professional_id.eq.${professional_id},professional_id.is.null`);
+    }
+
+    const { data: pubWaiting } = await pubQuery;
+
+    // Filter by time range if the entry has time preferences
+    const matchesTimeRange = (entry: any): boolean => {
+      if (!cancelledTime) return true;
+      if (!entry.time_from && !entry.time_to) return true;
+      if (entry.time_from && cancelledTime < entry.time_from) return false;
+      if (entry.time_to && cancelledTime > entry.time_to) return false;
+      return true;
+    };
+
+    const matchedWaiting = (waitingClients || []).filter(matchesTimeRange);
+    const matchedPublic = (pubWaiting || []).filter(matchesTimeRange);
+
+    if (matchedWaiting.length === 0 && matchedPublic.length === 0) {
       return new Response(
         JSON.stringify({ success: true, notified: 0 }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -84,13 +116,13 @@ Deno.serve(async (req) => {
       .eq("event_type", "slot_available")
       .eq("active", true);
 
-    for (const entry of waitingClients) {
+    // Process authenticated waitlist entries
+    for (const entry of matchedWaiting) {
       await supabase
         .from("waiting_list")
         .update({ status: "notified" })
         .eq("id", entry.id);
 
-      // Resolve service names
       let serviceNames = "";
       if (entry.service_ids && entry.service_ids.length > 0) {
         const { data: svcs } = await supabase
@@ -111,8 +143,67 @@ Deno.serve(async (req) => {
         professional_name: professionalName,
         service_name: serviceNames,
         appointment_date: entry.desired_date,
-        appointment_time: cancelled_start ? cancelled_start.split("T")[1]?.substring(0, 5) || "" : "",
+        appointment_time: cancelledTime || "",
         desired_date: entry.desired_date,
+        time_from: entry.time_from,
+        time_to: entry.time_to,
+        service_ids: entry.service_ids,
+        cancelled_start,
+        cancelled_end,
+      };
+
+      await supabase.from("webhook_events").insert({
+        company_id,
+        event_type: "slot_available",
+        payload,
+        status: webhookConfigs && webhookConfigs.length > 0 ? "sent" : "no_config",
+      });
+
+      for (const config of webhookConfigs || []) {
+        try {
+          await fetch(config.url, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          });
+        } catch (err) {
+          console.error(`Webhook failed: ${config.url}`, err);
+        }
+      }
+
+      notifiedCount++;
+    }
+
+    // Process public waitlist entries
+    for (const entry of matchedPublic) {
+      await supabase
+        .from("waitlist")
+        .update({ status: "notified" })
+        .eq("id", entry.id);
+
+      let serviceNames = "";
+      if (entry.service_ids && entry.service_ids.length > 0) {
+        const { data: svcs } = await supabase
+          .from("services")
+          .select("name")
+          .in("id", entry.service_ids);
+        serviceNames = (svcs || []).map((s: any) => s.name).join(", ");
+      }
+
+      const payload = {
+        event: "slot_available",
+        company_id,
+        waitlist_id: entry.id,
+        client_name: entry.client_name || "",
+        client_whatsapp: entry.client_whatsapp || "",
+        client_email: entry.email || "",
+        professional_name: professionalName,
+        service_name: serviceNames,
+        appointment_date: entry.desired_date,
+        appointment_time: cancelledTime || "",
+        desired_date: entry.desired_date,
+        time_from: entry.time_from,
+        time_to: entry.time_to,
         service_ids: entry.service_ids,
         cancelled_start,
         cancelled_end,
