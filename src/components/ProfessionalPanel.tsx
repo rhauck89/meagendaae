@@ -103,6 +103,7 @@ const ProfessionalPanel = ({ collaborator, open, onOpenChange, onUpdated }: Prof
     } else {
       setSlug(existingSlug);
     }
+  };
 
   const saveSlug = async () => {
     const cleanSlug = slug.trim().toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-');
