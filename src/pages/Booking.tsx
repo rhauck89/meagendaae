@@ -682,11 +682,25 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
               </div>
             )}
           </a>
-          <div>
+          <div className="min-w-0">
             <h1 className="font-bold text-lg tracking-tight">{company.name}</h1>
-            <p className="text-xs" style={{ color: T.textSec }}>
-              {businessType === 'barbershop' ? 'Barbearia' : 'Estética'} • Agendamento online
-            </p>
+            {companyStats && companyStats.reviewCount > 0 ? (
+              <p className="text-xs flex items-center gap-1 flex-wrap" style={{ color: T.textSec }}>
+                <Star className="h-3 w-3 fill-current" style={{ color: T.accent }} />
+                <span style={{ color: T.accent, fontWeight: 600 }}>{companyStats.avgRating.toFixed(1)}</span>
+                <span>({companyStats.reviewCount} avaliações)</span>
+                {companyStats.completedCount > 0 && (
+                  <>
+                    <span>•</span>
+                    <span>💈 {companyStats.completedCount} atendimentos</span>
+                  </>
+                )}
+              </p>
+            ) : (
+              <p className="text-xs" style={{ color: T.textSec }}>
+                {businessType === 'barbershop' ? 'Barbearia' : 'Estética'} • Agendamento online
+              </p>
+            )}
           </div>
         </div>
       </header>
