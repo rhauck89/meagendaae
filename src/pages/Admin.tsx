@@ -22,6 +22,11 @@ const Admin = () => {
   const [platformName, setPlatformName] = useState('');
   const [platformLogo, setPlatformLogo] = useState('');
   const [platformUrl, setPlatformUrl] = useState('');
+  const [seoTitle, setSeoTitle] = useState('');
+  const [seoDescription, setSeoDescription] = useState('');
+  const [seoOgImage, setSeoOgImage] = useState('');
+  const [seoFavicon, setSeoFavicon] = useState('');
+  const [seoKeywords, setSeoKeywords] = useState('');
 
   useEffect(() => {
     fetchCompanies();
