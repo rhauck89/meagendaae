@@ -481,12 +481,13 @@ export default function ProfessionalPublicProfile() {
 
         {/* Footer */}
         <div className="flex flex-col items-center gap-2 mt-4">
-          {company.logo_url && (
-            <img src={company.logo_url} alt={company.name} className="w-10 h-10 rounded-xl object-cover" />
+          {company.logo_url ? (
+            <img src={company.logo_url} alt={company.name} className="max-h-[40px] object-contain" />
+          ) : (
+            <p className="text-xs font-medium" style={{ color: isDark ? '#4B5563' : '#9CA3AF' }}>
+              {company.name}
+            </p>
           )}
-          <p className="text-xs" style={{ color: isDark ? '#4B5563' : '#9CA3AF' }}>
-            {company.name}
-          </p>
           <PlatformBranding isDark={isDark} />
         </div>
       </div>
