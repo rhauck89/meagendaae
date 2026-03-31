@@ -24,6 +24,7 @@ import Admin from "./pages/Admin";
 import DebugAgenda from "./pages/DebugAgenda";
 import Waitlist from "./pages/Waitlist";
 import ProfilePage from "./pages/ProfilePage";
+import Clients from "./pages/Clients";
 import DashboardLayout from "./components/DashboardLayout";
 import NotFound from "./pages/NotFound";
 
