@@ -202,7 +202,7 @@ export default function ProfessionalPublicProfile() {
       <div className="max-w-md mx-auto px-4 flex flex-col items-center gap-6" style={{ paddingTop: (professional?.banner_url || company?.cover_url) ? '1rem' : '2rem', paddingBottom: '2rem' }}>
 
         {/* Avatar */}
-        <div className="relative" style={{ marginTop: (profile?.banner_url || company?.cover_url) ? '-3rem' : '0' }}>
+        <div className="relative" style={{ marginTop: (professional?.banner_url || company?.cover_url) ? '-3rem' : '0' }}>
           {avatarUrl ? (
             <img src={avatarUrl} alt={professional.name} className="w-28 h-28 rounded-full object-cover border-4" style={{ borderColor: isDark ? '#F59E0B' : '#D97706' }} />
           ) : (
