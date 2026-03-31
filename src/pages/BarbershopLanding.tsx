@@ -201,8 +201,13 @@ export default function BarbershopLanding({ routeBusinessType }: BarbershopLandi
 
         <div className="text-center">
           <h1 className="text-2xl font-bold" style={{ color: T.text }}>{company.name}</h1>
-          {company.address && (
-            <p className="text-sm mt-1" style={{ color: T.textSec }}>📍 {company.address}</p>
+          {company.description && (
+            <p className="text-sm mt-2 leading-relaxed max-w-sm" style={{ color: T.textSec }}>{company.description}</p>
+          )}
+          {(company.address || company.city) && (
+            <p className="text-sm mt-1" style={{ color: T.textSec }}>
+              📍 {[company.address, company.address_number, company.district, company.city, company.state].filter(Boolean).join(', ')}
+            </p>
           )}
         </div>
 
