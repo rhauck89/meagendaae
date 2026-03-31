@@ -8,6 +8,7 @@ import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { calculateAvailableSlots, type BusinessHours, type BusinessException, type BlockedTime, type ExistingAppointment } from '@/lib/availability-engine';
 import { formatWhatsApp } from '@/lib/whatsapp';
+import { PlatformBranding } from '@/components/PlatformBranding';
 
 type BusinessType = 'barbershop' | 'esthetic';
 
