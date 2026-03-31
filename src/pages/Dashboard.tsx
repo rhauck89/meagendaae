@@ -21,6 +21,7 @@ import { useNavigate as useRouterNavigate } from 'react-router-dom';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
 type ViewMode = 'day' | 'week' | 'month';
+type StatusTab = 'all' | 'confirmed' | 'completed' | 'cancelled' | 'rescheduled';
 
 const statusColors: Record<string, string> = {
   pending: 'bg-warning/10 text-warning border-warning/20',
