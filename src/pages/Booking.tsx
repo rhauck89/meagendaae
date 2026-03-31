@@ -446,12 +446,34 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
     const dateStr = format(date, 'yyyy-MM-dd');
     try {
       const existingAppointments = await fetchBookingAppointments(date, selectedProfessional);
-      const { data: blockedTimesData } = await supabase
-        .from('blocked_times' as any)
-        .select('block_date, start_time, end_time')
-        .eq('company_id', company.id)
-        .eq('professional_id', selectedProfessional)
-        .eq('block_date', dateStr);
+      const [blockedTimesRes, eventSlotsRes] = await Promise.all([
+        supabase
+          .from('blocked_times' as any)
+          .select('block_date, start_time, end_time')
+          .eq('company_id', company.id)
+          .eq('professional_id', selectedProfessional)
+          .eq('block_date', dateStr),
+        supabase
+          .from('event_slots')
+          .select('slot_date, start_time, end_time, event_id, events!inner(status)')
+          .eq('professional_id', selectedProfessional)
+          .eq('slot_date', dateStr)
+          .eq('events.status' as any, 'published'),
+      ]);
+
+      const blockedTimesData = blockedTimesRes.data;
+
+      // Convert event slots to blocked times format
+      const eventBlockedTimes: BlockedTime[] = ((eventSlotsRes.data || []) as any[]).map((es: any) => ({
+        block_date: es.slot_date,
+        start_time: es.start_time,
+        end_time: es.end_time,
+      }));
+
+      const allBlockedTimes: BlockedTime[] = [
+        ...((blockedTimesData || []) as unknown as BlockedTime[]),
+        ...eventBlockedTimes,
+      ];
 
       if (requestId !== slotRequestRef.current) return;
 
