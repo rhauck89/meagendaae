@@ -257,6 +257,7 @@ export type Database = {
       }
       clients: {
         Row: {
+          birth_date: string | null
           company_id: string
           cpf: string | null
           created_at: string
@@ -268,6 +269,7 @@ export type Database = {
           whatsapp: string | null
         }
         Insert: {
+          birth_date?: string | null
           company_id: string
           cpf?: string | null
           created_at?: string
@@ -279,6 +281,7 @@ export type Database = {
           whatsapp?: string | null
         }
         Update: {
+          birth_date?: string | null
           company_id?: string
           cpf?: string | null
           created_at?: string
