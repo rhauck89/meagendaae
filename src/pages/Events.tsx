@@ -155,8 +155,18 @@ const Events = () => {
       loadEvents();
       loadServices();
       loadProfessionals();
+      loadCompanyBranding();
     }
   }, [companyId]);
+
+  const loadCompanyBranding = async () => {
+    const [settingsRes, companyRes] = await Promise.all([
+      supabase.from('company_settings').select('*').eq('company_id', companyId!).maybeSingle(),
+      supabase.from('companies').select('name, logo_url, cover_url').eq('id', companyId!).maybeSingle(),
+    ]);
+    if (settingsRes.data) setCompanySettings(settingsRes.data);
+    if (companyRes.data) setCompanyData(companyRes.data);
+  };
 
   const loadEvents = async () => {
     setLoading(true);
