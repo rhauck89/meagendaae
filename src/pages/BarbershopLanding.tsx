@@ -183,8 +183,20 @@ export default function BarbershopLanding({ routeBusinessType }: BarbershopLandi
     );
   }
 
+  const seoTitle = `${company.name} | ${businessType === 'esthetic' ? 'Estética' : 'Barbearia'} em ${company.city || ''} ${company.state || ''}`.trim();
+  const seoDescription = `Agende seu horário na ${company.name}. ${businessType === 'esthetic' ? 'Estética' : 'Barbearia'} em ${company.city || ''} ${company.state || ''} com profissionais e agendamento online.`.trim();
+
   return (
     <div className="min-h-screen" style={{ background: isDark ? T.bg : T.bg }}>
+      <SEOHead
+        title={seoTitle}
+        description={seoDescription}
+        ogTitle={seoTitle}
+        ogDescription={seoDescription}
+        ogImage={company.cover_url || company.logo_url}
+        canonical={`${window.location.origin}/barbearia/${slug}`}
+        jsonLd={buildLocalBusinessJsonLd(company)}
+      />
       {/* 1) Cover Image */}
       {company.cover_url && (
         <div className="w-full h-44 sm:h-56 overflow-hidden">
