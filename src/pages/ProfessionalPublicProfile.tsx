@@ -392,8 +392,8 @@ export default function ProfessionalPublicProfile() {
         {services.length > 0 && (
           <div className="w-full max-w-xs">
             <div className="flex items-center gap-2 mb-3">
-              {isDark ? <Scissors className="w-4 h-4" style={{ color: '#F59E0B' }} /> : <Sparkles className="w-4 h-4" style={{ color: '#D97706' }} />}
-              <h3 className="text-sm font-semibold" style={{ color: isDark ? '#FFFFFF' : '#1F2937' }}>Serviços</h3>
+              {isDark ? <Scissors className="w-4 h-4" style={{ color: T.accent }} /> : <Sparkles className="w-4 h-4" style={{ color: T.accent }} />}
+              <h3 className="text-sm font-semibold" style={{ color: T.text }}>Serviços</h3>
             </div>
             <div className="flex flex-col gap-2">
               {services.map(svc => (
