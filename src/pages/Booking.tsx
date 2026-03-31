@@ -1423,6 +1423,69 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
           <MessageCircle className="h-6 w-6 text-white" />
         </a>
       )}
+
+      {/* Review Modal */}
+      <Dialog open={showReviewModal} onOpenChange={setShowReviewModal}>
+        <DialogContent className="max-w-sm" style={{ background: T.card, border: `1px solid ${T.border}`, color: T.text }}>
+          <DialogHeader>
+            <DialogTitle className="text-center text-lg" style={{ color: T.text }}>Avaliar {company?.name}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-5 pt-2">
+            <div className="flex flex-col items-center gap-2">
+              <p className="text-sm" style={{ color: T.textSec }}>Como foi sua experiência?</p>
+              <InteractiveStarRating rating={reviewRating} onRate={setReviewRating} size={36} />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium" style={{ color: T.textSec }}>Comentário (opcional)</label>
+              <textarea
+                value={reviewComment}
+                onChange={(e) => setReviewComment(e.target.value.slice(0, 500))}
+                maxLength={500}
+                rows={3}
+                placeholder="Conte como foi..."
+                className="w-full rounded-xl px-4 py-3 text-sm resize-none outline-none placeholder:opacity-50"
+                style={{ background: T.bg, border: `1px solid ${T.border}`, color: T.text }}
+              />
+              <p className="text-xs text-right" style={{ color: T.textSec }}>{reviewComment.length}/500</p>
+            </div>
+            <Button
+              disabled={submittingReview || reviewRating < 1}
+              onClick={async () => {
+                if (!company || reviewRating < 1) return;
+                setSubmittingReview(true);
+                try {
+                  const { error } = await supabase.from('reviews').insert({
+                    company_id: company.id,
+                    professional_id: company.owner_id || selectedProfessional || professionals[0]?.id,
+                    appointment_id: null as any,
+                    rating: reviewRating,
+                    comment: reviewComment.trim() || null,
+                  } as any);
+                  if (error) throw error;
+                  toast.success('Avaliação enviada com sucesso!');
+                  setShowReviewModal(false);
+                  setReviewRating(0);
+                  setReviewComment('');
+                  // Refresh stats
+                  const { data: newReviews } = await supabase.from('reviews').select('rating').eq('company_id', company.id);
+                  if (newReviews && newReviews.length > 0) {
+                    const avg = newReviews.reduce((s: number, r: any) => s + Number(r.rating), 0) / newReviews.length;
+                    setCompanyStats(prev => ({ avgRating: avg, reviewCount: newReviews.length, completedCount: prev?.completedCount || 0 }));
+                  }
+                } catch (err: any) {
+                  toast.error(err.message || 'Erro ao enviar avaliação');
+                } finally {
+                  setSubmittingReview(false);
+                }
+              }}
+              className="w-full rounded-xl py-5 font-semibold text-base"
+              style={{ background: reviewRating > 0 ? '#FDBA2D' : T.border, color: reviewRating > 0 ? '#000' : T.textSec }}
+            >
+              {submittingReview ? 'Enviando...' : '⭐ Enviar avaliação'}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
