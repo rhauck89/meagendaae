@@ -239,6 +239,10 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
         }
 
         setProfessionals([{ id: prof.id, full_name: prof.name, avatar_url: prof.avatar_url }]);
+
+        // Fetch recent bookings for social proof
+        const { data: recentCount } = await supabase.rpc('get_professional_recent_bookings' as any, { p_professional_id: profileId });
+        if (typeof recentCount === 'number') setRecentBookings(recentCount);
       }
     }
   };
