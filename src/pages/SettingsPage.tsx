@@ -24,6 +24,10 @@ const SettingsPage = () => {
   const [companySlug, setCompanySlug] = useState('');
   const [companyBusinessType, setCompanyBusinessType] = useState<string>('barbershop');
   const [bufferMinutes, setBufferMinutes] = useState(0);
+  const [companyName, setCompanyName] = useState('');
+  const [companyPhone, setCompanyPhone] = useState('');
+  const [companyLogoUrl, setCompanyLogoUrl] = useState('');
+  const [logoUploading, setLogoUploading] = useState(false);
 
   useEffect(() => {
     if (companyId) {
