@@ -170,6 +170,9 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
     companyName: string;
     companyPhone: string | null;
     companyAddress: string | null;
+    companyCity: string | null;
+    companyState: string | null;
+    companyPostalCode: string | null;
   } | null>(null);
 
   const isDark = businessType === 'barbershop';
@@ -716,7 +719,10 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
         serviceNames: bookedServiceNames, date: selectedDate, time: selectedTime,
         totalPrice, totalDuration, companyName: company.name,
         companyPhone: (company as any).whatsapp || company.phone || companySettings?.whatsapp_number || null,
-        companyAddress: [(company as any).address, (company as any).address_number, (company as any).district].filter(Boolean).join(', ') || null,
+        companyAddress: [(company as any).address, (company as any).address_number ? `${(company as any).address_number}` : null].filter(Boolean).join(', ') + ((company as any).district ? ` - ${(company as any).district}` : '') || null,
+        companyCity: (company as any).city || null,
+        companyState: (company as any).state || null,
+        companyPostalCode: (company as any).postal_code || null,
       });
       setStep('success');
     } catch (err: any) {
@@ -1329,21 +1335,27 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
           const waUrl = () => {
             const phone = bookingResult.companyPhone?.replace(/\D/g, '') || '';
             const baseUrl = window.location.origin;
+            const addressLines: string[] = [];
+            if (bookingResult.companyAddress) addressLines.push(bookingResult.companyAddress);
+            if (bookingResult.companyCity || bookingResult.companyState) {
+              addressLines.push([bookingResult.companyCity, bookingResult.companyState].filter(Boolean).join(' - '));
+            }
+            if (bookingResult.companyPostalCode) addressLines.push(`CEP: ${bookingResult.companyPostalCode}`);
             const msg = [
               'Ol\u00e1! \uD83D\uDC4B',
               '',
               `Seu agendamento foi confirmado na *${bookingResult.companyName}* \uD83D\uDC88`,
               '',
-              `\uD83D\uDCC5 Data: ${format(bookingResult.date, "dd/MM/yyyy")}`,
+              `\uD83D\uDCC5 Data: ${format(bookingResult.date, "dd 'de' MMMM, yyyy", { locale: ptBR })}`,
               `\u23F0 Hor\u00e1rio: ${bookingResult.time}`,
-              `\u2702\uFE0F Servi\u00e7o: ${bookingResult.serviceNames.join(', ')}`,
+              `\u2702\uFE0F Servi\u00E7o: ${bookingResult.serviceNames.join(', ')}`,
               `\uD83D\uDC64 Profissional: ${bookingResult.professionalName}`,
               `\uD83D\uDCB0 Valor: R$ ${bookingResult.totalPrice.toFixed(2)}`,
               '',
               `\uD83D\uDCCD Local: *${bookingResult.companyName}*`,
-              ...(bookingResult.companyAddress ? [`\uD83D\uDCCD Endere\u00e7o: ${bookingResult.companyAddress}`] : []),
+              ...addressLines,
               '',
-              'Caso precise alterar:',
+              'Se precisar alterar:',
               '',
               `\uD83D\uDD01 Reagendar:`,
               `${baseUrl}/reschedule/${bookingResult.appointmentId}`,
@@ -1351,7 +1363,7 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
               `\u274C Cancelar:`,
               `${baseUrl}/cancel/${bookingResult.appointmentId}`,
               '',
-              'Obrigado! \uD83D\uDE0A',
+              'Obrigado! \uD83D\uDE4F',
             ].join('\n');
             return `https://wa.me/${phone.startsWith('55') ? phone : '55' + phone}?text=${encodeURIComponent(msg)}`;
           };
