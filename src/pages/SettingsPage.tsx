@@ -118,6 +118,26 @@ const SettingsPage = () => {
     toast.success('Logo atualizado!');
   };
 
+  const handleCoverUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !companyId) return;
+    setCoverUploading(true);
+    const ext = file.name.split('.').pop();
+    const filePath = `${companyId}/cover.${ext}`;
+    const { error: uploadError } = await supabase.storage.from('logos').upload(filePath, file, { upsert: true });
+    if (uploadError) {
+      toast.error('Erro ao enviar capa');
+      setCoverUploading(false);
+      return;
+    }
+    const { data: { publicUrl } } = supabase.storage.from('logos').getPublicUrl(filePath);
+    const coverUrl = `${publicUrl}?t=${Date.now()}`;
+    await supabase.from('companies').update({ cover_url: coverUrl } as any).eq('id', companyId);
+    setCompanyCoverUrl(coverUrl);
+    setCoverUploading(false);
+    toast.success('Capa atualizada!');
+  };
+
   const saveCompanyIdentity = async () => {
     await supabase.from('companies').update({ name: companyName, phone: companyPhone } as any).eq('id', companyId!);
     toast.success('Dados da empresa salvos');
