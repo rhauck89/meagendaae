@@ -6,9 +6,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
+import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
-import { Clock, Calendar as CalendarIcon, Plus, Trash2, Bell, Cake, Link2, Copy, Timer, Building2, Camera, Phone } from 'lucide-react';
+import { Clock, Calendar as CalendarIcon, Plus, Trash2, Bell, Cake, Link2, Copy, Timer, Building2, Camera, Phone, MapPin, Globe, Instagram, Facebook } from 'lucide-react';
 
 const dayNames = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
 
@@ -26,10 +27,26 @@ const SettingsPage = () => {
   const [bufferMinutes, setBufferMinutes] = useState(0);
   const [companyName, setCompanyName] = useState('');
   const [companyPhone, setCompanyPhone] = useState('');
+  const [companyWhatsapp, setCompanyWhatsapp] = useState('');
+  const [companyDescription, setCompanyDescription] = useState('');
   const [companyLogoUrl, setCompanyLogoUrl] = useState('');
   const [companyCoverUrl, setCompanyCoverUrl] = useState('');
   const [logoUploading, setLogoUploading] = useState(false);
   const [coverUploading, setCoverUploading] = useState(false);
+
+  // Address fields
+  const [companyAddress, setCompanyAddress] = useState('');
+  const [companyAddressNumber, setCompanyAddressNumber] = useState('');
+  const [companyDistrict, setCompanyDistrict] = useState('');
+  const [companyCity, setCompanyCity] = useState('');
+  const [companyState, setCompanyState] = useState('');
+  const [companyPostalCode, setCompanyPostalCode] = useState('');
+  const [companyGoogleMapsUrl, setCompanyGoogleMapsUrl] = useState('');
+
+  // Social
+  const [companyInstagram, setCompanyInstagram] = useState('');
+  const [companyFacebook, setCompanyFacebook] = useState('');
+  const [companyWebsite, setCompanyWebsite] = useState('');
 
   useEffect(() => {
     if (companyId) {
@@ -80,7 +97,7 @@ const SettingsPage = () => {
   const fetchCompanySettings = async () => {
     const { data } = await supabase
       .from('companies')
-      .select('reminders_enabled, birthday_enabled, birthday_discount_type, birthday_discount_value, slug, business_type, buffer_minutes, name, phone, logo_url, cover_url')
+      .select('*')
       .eq('id', companyId!)
       .single();
     if (data) {
@@ -93,8 +110,20 @@ const SettingsPage = () => {
       setBufferMinutes((data as any).buffer_minutes ?? 0);
       setCompanyName(data.name ?? '');
       setCompanyPhone((data as any).phone ?? '');
+      setCompanyWhatsapp((data as any).whatsapp ?? '');
+      setCompanyDescription((data as any).description ?? '');
       setCompanyLogoUrl((data as any).logo_url ?? '');
       setCompanyCoverUrl((data as any).cover_url ?? '');
+      setCompanyAddress((data as any).address ?? '');
+      setCompanyAddressNumber((data as any).address_number ?? '');
+      setCompanyDistrict((data as any).district ?? '');
+      setCompanyCity((data as any).city ?? '');
+      setCompanyState((data as any).state ?? '');
+      setCompanyPostalCode((data as any).postal_code ?? '');
+      setCompanyGoogleMapsUrl((data as any).google_maps_url ?? '');
+      setCompanyInstagram((data as any).instagram ?? '');
+      setCompanyFacebook((data as any).facebook ?? '');
+      setCompanyWebsite((data as any).website ?? '');
     }
   };
 
@@ -138,8 +167,24 @@ const SettingsPage = () => {
     toast.success('Capa atualizada!');
   };
 
-  const saveCompanyIdentity = async () => {
-    await supabase.from('companies').update({ name: companyName, phone: companyPhone } as any).eq('id', companyId!);
+  const saveCompanyProfile = async () => {
+    const updateData: any = {
+      name: companyName,
+      phone: companyPhone,
+      whatsapp: companyWhatsapp,
+      description: companyDescription,
+      address: companyAddress,
+      address_number: companyAddressNumber,
+      district: companyDistrict,
+      city: companyCity,
+      state: companyState,
+      postal_code: companyPostalCode,
+      google_maps_url: companyGoogleMapsUrl,
+      instagram: companyInstagram,
+      facebook: companyFacebook,
+      website: companyWebsite,
+    };
+    await supabase.from('companies').update(updateData).eq('id', companyId!);
     toast.success('Dados da empresa salvos');
   };
 
@@ -198,11 +243,11 @@ const SettingsPage = () => {
         <p className="text-sm text-muted-foreground">Horários, lembretes e automações</p>
       </div>
 
-      {/* Company Identity */}
+      {/* Company Profile - Empresa */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Building2 className="h-5 w-5" /> Identidade da Empresa
+            <Building2 className="h-5 w-5" /> Empresa
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -229,8 +274,8 @@ const SettingsPage = () => {
 
           {/* Cover */}
           <div className="space-y-2">
-            <p className="text-sm font-medium">Capa da empresa</p>
-            <p className="text-xs text-muted-foreground">Recomendado: 1200x400px — exibida no topo da página de agendamento</p>
+            <p className="text-sm font-medium">Foto de capa</p>
+            <p className="text-xs text-muted-foreground">Recomendado: 1200x400px</p>
             {companyCoverUrl ? (
               <div className="relative">
                 <img src={companyCoverUrl} alt="Capa" className="w-full h-32 rounded-xl object-cover border" />
@@ -250,20 +295,118 @@ const SettingsPage = () => {
             )}
           </div>
 
-          {/* Name & Phone */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div className="space-y-1">
-              <Label className="text-xs">Nome da empresa</Label>
-              <Input value={companyName} onChange={(e) => setCompanyName(e.target.value)} />
-            </div>
-            <div className="space-y-1">
-              <Label className="text-xs">Telefone (opcional)</Label>
-              <Input value={companyPhone} onChange={(e) => setCompanyPhone(e.target.value)} placeholder="(11) 99999-9999" />
-            </div>
+          {/* Name */}
+          <div className="space-y-1">
+            <Label className="text-xs">Nome da empresa</Label>
+            <Input value={companyName} onChange={(e) => setCompanyName(e.target.value)} />
           </div>
-          <Button size="sm" onClick={saveCompanyIdentity}>Salvar</Button>
+
+          {/* Description */}
+          <div className="space-y-1">
+            <Label className="text-xs">Descrição</Label>
+            <Textarea
+              value={companyDescription}
+              onChange={(e) => setCompanyDescription(e.target.value)}
+              placeholder="Descreva sua empresa..."
+              rows={3}
+            />
+          </div>
         </CardContent>
       </Card>
+
+      {/* Contato */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Phone className="h-5 w-5" /> Contato
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <Label className="text-xs">WhatsApp</Label>
+              <Input value={companyWhatsapp} onChange={(e) => setCompanyWhatsapp(e.target.value)} placeholder="(11) 99999-9999" />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Telefone</Label>
+              <Input value={companyPhone} onChange={(e) => setCompanyPhone(e.target.value)} placeholder="(11) 3333-3333" />
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Endereço */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <MapPin className="h-5 w-5" /> Endereço
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="sm:col-span-2 space-y-1">
+              <Label className="text-xs">Rua</Label>
+              <Input value={companyAddress} onChange={(e) => setCompanyAddress(e.target.value)} placeholder="Rua Example" />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Número</Label>
+              <Input value={companyAddressNumber} onChange={(e) => setCompanyAddressNumber(e.target.value)} placeholder="123" />
+            </div>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="space-y-1">
+              <Label className="text-xs">Bairro</Label>
+              <Input value={companyDistrict} onChange={(e) => setCompanyDistrict(e.target.value)} />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Cidade</Label>
+              <Input value={companyCity} onChange={(e) => setCompanyCity(e.target.value)} />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Estado</Label>
+              <Input value={companyState} onChange={(e) => setCompanyState(e.target.value)} placeholder="SP" />
+            </div>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <Label className="text-xs">CEP</Label>
+              <Input value={companyPostalCode} onChange={(e) => setCompanyPostalCode(e.target.value)} placeholder="00000-000" />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Link do Google Maps</Label>
+              <Input value={companyGoogleMapsUrl} onChange={(e) => setCompanyGoogleMapsUrl(e.target.value)} placeholder="https://maps.google.com/..." />
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Redes Sociais */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Globe className="h-5 w-5" /> Redes Sociais
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="space-y-1">
+            <Label className="text-xs flex items-center gap-1"><Instagram className="w-3 h-3" /> Instagram</Label>
+            <Input value={companyInstagram} onChange={(e) => setCompanyInstagram(e.target.value)} placeholder="@suaempresa" />
+          </div>
+          <div className="space-y-1">
+            <Label className="text-xs flex items-center gap-1"><Facebook className="w-3 h-3" /> Facebook</Label>
+            <Input value={companyFacebook} onChange={(e) => setCompanyFacebook(e.target.value)} placeholder="https://facebook.com/suaempresa" />
+          </div>
+          <div className="space-y-1">
+            <Label className="text-xs flex items-center gap-1"><Globe className="w-3 h-3" /> Website</Label>
+            <Input value={companyWebsite} onChange={(e) => setCompanyWebsite(e.target.value)} placeholder="https://www.suaempresa.com" />
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Save all profile data */}
+      <Button onClick={saveCompanyProfile} className="w-full sm:w-auto">
+        Salvar dados da empresa
+      </Button>
 
       {/* Public Booking Link */}
       {companySlug && (
