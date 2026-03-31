@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useMemo } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -17,6 +17,7 @@ import { cn } from '@/lib/utils';
 import { formatWhatsApp, displayWhatsApp, isValidWhatsApp } from '@/lib/whatsapp';
 import { calculateAvailableSlots, type BusinessHours, type BusinessException, type ExistingAppointment, type BlockedTime } from '@/lib/availability-engine';
 import { PlatformBranding } from '@/components/PlatformBranding';
+import { getCompanyBranding, buildThemeFromBranding } from '@/hooks/useCompanyBranding';
 
 const StarRating = ({ rating, size = 14 }: { rating: number; size?: number }) => {
   return (
@@ -100,8 +101,8 @@ const filterOverlappingSlots = (
   });
 };
 
-// ─── Premium Theme Tokens ───
-const T = {
+// ─── Premium Theme Tokens (defaults, overridden dynamically below) ───
+const DEFAULT_T = {
   bg: '#0B132B',
   card: '#111827',
   cardHover: '#1a2332',
@@ -177,6 +178,24 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
 
   const isDark = businessType === 'barbershop';
   const bookingTimezone = companySettings?.timezone || DEFAULT_BOOKING_TIMEZONE;
+
+  // Dynamic theme based on company branding
+  const T = useMemo(() => {
+    const branding = getCompanyBranding(companySettings, isDark);
+    const theme = buildThemeFromBranding(branding, isDark);
+    return {
+      bg: theme.bg,
+      card: theme.card,
+      cardHover: isDark ? (() => { const r = Math.min(255, parseInt(theme.card.slice(1, 3), 16) + 10); const g = Math.min(255, parseInt(theme.card.slice(3, 5), 16) + 10); const b = Math.min(255, parseInt(theme.card.slice(5, 7), 16) + 10); return `#${r.toString(16).padStart(2,'0')}${g.toString(16).padStart(2,'0')}${b.toString(16).padStart(2,'0')}`; })() : '#F9FAFB',
+      accent: theme.accent,
+      accentHover: theme.accentHover,
+      text: theme.text,
+      textSec: theme.textSec,
+      border: theme.border,
+      green: 'rgba(34,197,94,0.15)',
+      greenText: '#4ADE80',
+    };
+  }, [companySettings, isDark]);
 
   // Load saved client from localStorage
   useEffect(() => {

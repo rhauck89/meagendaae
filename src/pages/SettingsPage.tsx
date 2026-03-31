@@ -9,7 +9,7 @@ import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
-import { Clock, Calendar as CalendarIcon, Plus, Trash2, Bell, Cake, Link2, Copy, Timer, Building2, Camera, Phone, MapPin, Globe, Instagram, Facebook, Palette } from 'lucide-react';
+import { Clock, Calendar as CalendarIcon, Plus, Trash2, Bell, Cake, Link2, Copy, Timer, Building2, Camera, Phone, MapPin, Globe, Instagram, Facebook, Palette, RotateCcw } from 'lucide-react';
 
 const dayNames = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
 
@@ -512,9 +512,22 @@ const SettingsPage = () => {
             </div>
           </div>
 
-          <Button onClick={saveBranding} variant="outline" className="w-full sm:w-auto">
-            Salvar cores
-          </Button>
+          <div className="flex gap-2">
+            <Button onClick={saveBranding} variant="outline" className="flex-1 sm:flex-none">
+              Salvar cores
+            </Button>
+            <Button
+              onClick={() => {
+                setBrandPrimaryColor('#7C3AED');
+                setBrandSecondaryColor('#111827');
+                setBrandBackgroundColor('#0B132B');
+              }}
+              variant="ghost"
+              className="flex-1 sm:flex-none text-muted-foreground"
+            >
+              <RotateCcw className="h-4 w-4 mr-1" /> Restaurar padrão
+            </Button>
+          </div>
         </CardContent>
       </Card>
 
