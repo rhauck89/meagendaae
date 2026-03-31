@@ -47,6 +47,7 @@ const ProfilePage = () => {
         whatsapp: profile.whatsapp || '',
         bio: (profile as any).bio || '',
         avatar_url: profile.avatar_url || '',
+        banner_url: (profile as any).banner_url || '',
         social_instagram: socialLinks.instagram || '',
       });
     }
