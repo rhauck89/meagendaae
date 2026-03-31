@@ -193,6 +193,8 @@ const EventPublic = () => {
     } catch (err: any) {
       if (err.message?.includes('Slot is full')) {
         toast.error('Este horário acabou de ser preenchido. Tente outro ou entre na lista de espera.');
+      } else if (err.message?.includes('limite de agendamentos')) {
+        toast.error('Você já atingiu o limite de agendamentos para este evento.');
       } else {
         toast.error(err.message || 'Erro ao agendar');
       }
