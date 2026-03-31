@@ -750,8 +750,8 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
         </div>
       </header>
 
-      {/* Professional Header (when booking via professional link) */}
-      {professionalSlug && selectedProfessional && professionals.length > 0 && step !== 'success' && (() => {
+      {/* Persistent Professional Card (visible after professional is selected) */}
+      {selectedProfessional && professionals.length > 0 && step !== 'success' && step !== 'services' && step !== 'professional' && (() => {
         const prof = professionals.find(p => p.id === selectedProfessional);
         if (!prof) return null;
         const rating = professionalRatings[prof.id];
