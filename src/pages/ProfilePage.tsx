@@ -184,6 +184,7 @@ const ProfilePage = () => {
     }
   };
 
+  const handleSave = async () => {
     if (!user) return;
     setLoading(true);
     try {
