@@ -101,8 +101,8 @@ const filterOverlappingSlots = (
   });
 };
 
-// ─── Premium Theme Tokens ───
-const T = {
+// ─── Premium Theme Tokens (defaults, overridden dynamically below) ───
+const DEFAULT_T = {
   bg: '#0B132B',
   card: '#111827',
   cardHover: '#1a2332',
