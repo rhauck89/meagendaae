@@ -25,7 +25,7 @@ const ProfilePage = () => {
   const [copied, setCopied] = useState(false);
   const [bookingLink, setBookingLink] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
-
+  const [cropImage, setCropImage] = useState<string | null>(null);
   const [form, setForm] = useState({
     full_name: '',
     email: '',
