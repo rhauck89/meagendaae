@@ -481,7 +481,13 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
   };
 
   useEffect(() => {
-    setSelectedTime(null);
+    // Don't reset time if it was prefilled from URL and this is the first date set
+    if (prefillTimeRef.current && selectedTime === prefillTimeRef.current) {
+      // Keep the prefilled time, but clear the ref so subsequent date changes reset normally
+      prefillTimeRef.current = null;
+    } else {
+      setSelectedTime(null);
+    }
     setAppointmentsLoaded(false);
     setAppointmentsForSelectedDate([]);
     setAvailableSlots([]);
