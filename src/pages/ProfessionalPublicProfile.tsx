@@ -282,7 +282,7 @@ export default function ProfessionalPublicProfile() {
                 borderColor: T.accent,
               }}
             >
-              <p className="text-lg font-bold text-center capitalize" style={{ color: isDark ? '#FFFFFF' : '#1F2937' }}>
+              <p className="text-lg font-bold text-center capitalize" style={{ color: T.text }}>
                 {nextAvailable.label} • {nextAvailable.slots[0]}
               </p>
               <Button
