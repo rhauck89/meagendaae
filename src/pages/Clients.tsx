@@ -112,6 +112,32 @@ const Clients = () => {
     (c.whatsapp && c.whatsapp.includes(search))
   );
 
+  // Birthday calculations
+  const [showAllBirthdays, setShowAllBirthdays] = useState(false);
+  const clientsWithBirthdays = clients
+    .filter(c => c.birth_date)
+    .map(c => {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const birth = parseISO(c.birth_date!);
+      let nextBirthday = new Date(today.getFullYear(), birth.getMonth(), birth.getDate());
+      if (nextBirthday < today) {
+        nextBirthday = new Date(today.getFullYear() + 1, birth.getMonth(), birth.getDate());
+      }
+      const diffTime = nextBirthday.getTime() - today.getTime();
+      const daysRemaining = Math.round(diffTime / (1000 * 60 * 60 * 24));
+      return { ...c, daysRemaining, nextBirthday };
+    })
+    .sort((a, b) => a.daysRemaining - b.daysRemaining);
+
+  const displayBirthdays = showAllBirthdays ? clientsWithBirthdays : clientsWithBirthdays.slice(0, 5);
+
+  const daysLabel = (days: number) => {
+    if (days === 0) return 'Hoje 🎂';
+    if (days === 1) return 'Amanhã';
+    return `${days} dias`;
+  };
+
   const selectedClient = clients.find(c => c.id === selectedClientId);
 
   if (selectedClient) {
