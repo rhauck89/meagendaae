@@ -988,9 +988,20 @@ const Dashboard = () => {
                       {statusLabels[getDisplayStatus(apt)]}
                     </Badge>
                     {apt.rescheduled_from_id && (
-                      <Badge className="text-xs bg-orange-500 text-white border-orange-500 hover:bg-orange-600">
-                        🔁 Reagendado
-                      </Badge>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <div>
+                            <Badge className="text-xs bg-orange-500 text-white border-orange-500 hover:bg-orange-600 cursor-help">
+                              🔁 Reagendado
+                            </Badge>
+                          </div>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          {apt.rescheduled_from?.start_time
+                            ? `Reagendado de ${format(parseISO(apt.rescheduled_from.start_time), "dd/MM/yyyy 'às' HH:mm")}`
+                            : 'Reagendado de horário anterior'}
+                        </TooltipContent>
+                      </Tooltip>
                     )}
                   </div>
                   <div className="flex gap-1 flex-wrap">
