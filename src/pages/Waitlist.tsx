@@ -7,12 +7,41 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Calendar } from '@/components/ui/calendar';
-import { Clock, CalendarPlus, Users, Loader2 } from 'lucide-react';
-import { format, parseISO, addMinutes } from 'date-fns';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Clock, CalendarPlus, Users, Loader2, AlertCircle, CheckCircle2, Bell, XCircle } from 'lucide-react';
+import { format, parseISO, addMinutes, isBefore, startOfDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
 import { calculateAvailableSlots } from '@/lib/availability-engine';
 import { formatWhatsApp } from '@/lib/whatsapp';
+
+type StatusTab = 'active' | 'notified' | 'expired' | 'converted' | 'all';
+
+const statusConfig: Record<string, { label: string; color: string; icon: any }> = {
+  active: { label: 'Ativo', color: 'bg-blue-500/10 text-blue-700 border-blue-200', icon: Clock },
+  waiting: { label: 'Ativo', color: 'bg-blue-500/10 text-blue-700 border-blue-200', icon: Clock },
+  notified: { label: 'Notificado', color: 'bg-warning/10 text-warning border-warning/30', icon: Bell },
+  expired: { label: 'Expirado', color: 'bg-muted text-muted-foreground border-border', icon: AlertCircle },
+  converted: { label: 'Convertido', color: 'bg-green-500/10 text-green-700 border-green-200', icon: CheckCircle2 },
+  confirmed: { label: 'Convertido', color: 'bg-green-500/10 text-green-700 border-green-200', icon: CheckCircle2 },
+  cancelled: { label: 'Cancelado', color: 'bg-destructive/10 text-destructive border-destructive/30', icon: XCircle },
+};
+
+const normalizeStatus = (status: string, source: string): string => {
+  if (source === 'waitlist') {
+    if (status === 'active') return 'active';
+    if (status === 'notified') return 'notified';
+    if (status === 'expired') return 'expired';
+    if (status === 'converted') return 'converted';
+    return status;
+  }
+  // waiting_list source
+  if (status === 'waiting') return 'active';
+  if (status === 'confirmed') return 'converted';
+  return status;
+};
 
 const Waitlist = () => {
   const { companyId } = useAuth();
@@ -20,6 +49,7 @@ const Waitlist = () => {
   const [loading, setLoading] = useState(true);
   const [serviceNamesMap, setServiceNamesMap] = useState<Record<string, string>>({});
   const [serviceDurationsMap, setServiceDurationsMap] = useState<Record<string, number>>({});
+  const [activeTab, setActiveTab] = useState<StatusTab>('active');
 
   // Booking modal state
   const [bookingTarget, setBookingTarget] = useState<any>(null);
@@ -57,14 +87,12 @@ const Waitlist = () => {
         professional:profiles!waiting_list_professional_id_fkey(full_name)
       `)
       .eq('company_id', companyId!)
-      .eq('status', 'waiting')
       .order('created_at', { ascending: true });
 
     const { data: wData } = await supabase
       .from('waitlist')
       .select('*')
       .eq('company_id', companyId!)
-      .eq('notified', false)
       .order('created_at', { ascending: true });
 
     const fromWl = (wlData || []).map((e: any) => ({
@@ -75,7 +103,10 @@ const Waitlist = () => {
       professional_id: e.professional_id || null,
       professional_name: e.professional?.full_name || null,
       desired_date: e.desired_date,
+      time_from: e.time_from || null,
+      time_to: e.time_to || null,
       created_at: e.created_at,
+      status: e.status,
       source: 'waiting_list' as const,
     }));
     const fromW = (wData || []).map((e: any) => ({
@@ -86,7 +117,10 @@ const Waitlist = () => {
       professional_id: e.professional_id || null,
       professional_name: null,
       desired_date: e.desired_date,
+      time_from: e.time_from || null,
+      time_to: e.time_to || null,
       created_at: e.created_at,
+      status: e.status || (e.notified ? 'notified' : 'active'),
       source: 'waitlist' as const,
     }));
     setEntries([...fromWl, ...fromW].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()));
@@ -123,6 +157,27 @@ const Waitlist = () => {
     return ids.reduce((sum, id) => sum + (serviceDurationsMap[id] || 30), 0);
   };
 
+  // Filter entries by tab
+  const filteredEntries = entries.filter(entry => {
+    const norm = normalizeStatus(entry.status, entry.source);
+    if (activeTab === 'all') return true;
+    return norm === activeTab;
+  });
+
+  // Count per status
+  const counts = entries.reduce((acc, entry) => {
+    const norm = normalizeStatus(entry.status, entry.source);
+    acc[norm] = (acc[norm] || 0) + 1;
+    return acc;
+  }, {} as Record<string, number>);
+
+  const formatTimeRange = (from: string | null, to: string | null) => {
+    if (!from && !to) return null;
+    if (from && to) return `${from.substring(0, 5)} - ${to.substring(0, 5)}`;
+    if (from) return `a partir de ${from.substring(0, 5)}`;
+    return `até ${to!.substring(0, 5)}`;
+  };
+
   const openBookingModal = (entry: any) => {
     setBookingTarget(entry);
     setSelectedProfessional(entry.professional_id || '');
@@ -132,7 +187,6 @@ const Waitlist = () => {
     setBookingOpen(true);
   };
 
-  // Fetch slots when professional + date are selected
   useEffect(() => {
     if (!bookingOpen || !selectedProfessional || !selectedDate || !companyId || !bookingTarget) return;
     fetchSlots();
@@ -182,7 +236,6 @@ const Waitlist = () => {
       const startTime = new Date(`${dateStr}T${selectedSlot}:00`);
       const endTime = addMinutes(startTime, totalDuration);
 
-      // Create client first
       const { data: clientId, error: clientErr } = await supabase.rpc('create_client', {
         p_company_id: companyId,
         p_name: bookingTarget.client_name,
@@ -192,7 +245,6 @@ const Waitlist = () => {
       });
       if (clientErr) throw clientErr;
 
-      // Create appointment
       const { data: appointmentId, error: aptErr } = await supabase.rpc('create_appointment', {
         p_client_id: clientId,
         p_professional_id: selectedProfessional,
@@ -205,7 +257,6 @@ const Waitlist = () => {
       });
       if (aptErr) throw aptErr;
 
-      // Create appointment services
       if (bookingTarget.service_ids && bookingTarget.service_ids.length > 0) {
         const servicesPayload = bookingTarget.service_ids.map((sid: string) => ({
           service_id: sid,
@@ -218,19 +269,18 @@ const Waitlist = () => {
         });
       }
 
-      // Mark waitlist entry as handled
+      // Mark waitlist entry as converted
       if (bookingTarget.source === 'waitlist') {
-        await supabase.from('waitlist').update({ notified: true }).eq('id', bookingTarget.id);
+        await supabase.from('waitlist').update({ status: 'converted' } as any).eq('id', bookingTarget.id);
       } else {
         await supabase.from('waiting_list').update({ status: 'confirmed' as any }).eq('id', bookingTarget.id);
       }
 
       toast.success('Agendamento criado com sucesso!');
 
-      // Send WhatsApp notification
       if (bookingTarget.client_whatsapp) {
         const msg = encodeURIComponent(
-          `✅ Seu horário foi confirmado!\n\n📅 ${format(selectedDate, "dd 'de' MMMM, yyyy", { locale: ptBR })}\n⏰ ${selectedSlot}\n\nObrigado pela paciência!`
+          `\u2705 Seu hor\u00e1rio foi confirmado!\n\n\uD83D\uDCC5 ${format(selectedDate, "dd 'de' MMMM, yyyy", { locale: ptBR })}\n\u23F0 ${selectedSlot}\n\nObrigado pela paci\u00eancia!`
         );
         window.open(`https://wa.me/${formatWhatsApp(bookingTarget.client_whatsapp)}?text=${msg}`, '_blank');
       }
@@ -246,6 +296,18 @@ const Waitlist = () => {
     }
   };
 
+  const getStatusBadge = (status: string, source: string) => {
+    const norm = normalizeStatus(status, source);
+    const config = statusConfig[norm] || statusConfig.active;
+    const Icon = config.icon;
+    return (
+      <Badge variant="outline" className={`${config.color} text-xs`}>
+        <Icon className="h-3 w-3 mr-1" />
+        {config.label}
+      </Badge>
+    );
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -253,76 +315,107 @@ const Waitlist = () => {
           <Users className="h-6 w-6" /> Lista de Espera
         </h1>
         <Badge variant="outline" className="text-sm">
-          {entries.length} aguardando
+          {counts.active || 0} aguardando
         </Badge>
       </div>
 
+      {/* Status Tabs */}
+      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as StatusTab)}>
+        <TabsList className="grid w-full grid-cols-5">
+          <TabsTrigger value="active">Ativos ({counts.active || 0})</TabsTrigger>
+          <TabsTrigger value="notified">Notificados ({counts.notified || 0})</TabsTrigger>
+          <TabsTrigger value="converted">Convertidos ({counts.converted || 0})</TabsTrigger>
+          <TabsTrigger value="expired">Expirados ({counts.expired || 0})</TabsTrigger>
+          <TabsTrigger value="all">Todos ({entries.length})</TabsTrigger>
+        </TabsList>
+      </Tabs>
+
       {loading ? (
         <p className="text-muted-foreground">Carregando...</p>
-      ) : entries.length === 0 ? (
+      ) : filteredEntries.length === 0 ? (
         <Card>
           <CardContent className="py-12 text-center text-muted-foreground">
             <Clock className="h-12 w-12 mx-auto mb-3 opacity-40" />
-            <p>Nenhum cliente na lista de espera</p>
+            <p>Nenhum cliente nesta categoria</p>
           </CardContent>
         </Card>
       ) : (
         <div className="space-y-3">
-          {entries.map((entry, idx) => (
-            <Card key={entry.id}>
-              <CardContent className="p-4 flex flex-col sm:flex-row sm:items-center gap-4">
-                <div className="flex items-center gap-3 flex-1">
-                  <div className="w-10 h-10 rounded-full bg-warning/10 flex items-center justify-center text-warning font-bold text-sm">
-                    {idx + 1}
-                  </div>
-                  <div className="flex-1">
-                    <p className="font-semibold">{entry.client_name}</p>
-                    <p className="text-sm text-muted-foreground">
-                      {getServiceNames(entry.service_ids)}
-                    </p>
-                    {entry.professional_name && (
-                      <p className="text-xs text-muted-foreground">
-                        Preferência: {entry.professional_name}
+          {filteredEntries.map((entry, idx) => {
+            const norm = normalizeStatus(entry.status, entry.source);
+            const isActionable = norm === 'active' || norm === 'notified';
+            const timeRange = formatTimeRange(entry.time_from, entry.time_to);
+            const isExpiredDate = isBefore(parseISO(entry.desired_date), startOfDay(new Date()));
+
+            return (
+              <Card key={entry.id} className={!isActionable ? 'opacity-60' : ''}>
+                <CardContent className="p-4 flex flex-col sm:flex-row sm:items-center gap-4">
+                  <div className="flex items-center gap-3 flex-1">
+                    <div className="w-10 h-10 rounded-full bg-warning/10 flex items-center justify-center text-warning font-bold text-sm">
+                      {idx + 1}
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <p className="font-semibold">{entry.client_name}</p>
+                        {getStatusBadge(entry.status, entry.source)}
+                        {isExpiredDate && norm === 'active' && (
+                          <Badge variant="destructive" className="text-xs">
+                            <AlertCircle className="h-3 w-3 mr-1" />
+                            Vencido
+                          </Badge>
+                        )}
+                      </div>
+                      <p className="text-sm text-muted-foreground">
+                        {getServiceNames(entry.service_ids)}
                       </p>
+                      {entry.professional_name && (
+                        <p className="text-xs text-muted-foreground">
+                          Preferência: {entry.professional_name}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 sm:gap-4">
+                    <div className="text-right">
+                      <p className="text-sm font-medium">
+                        📅 {format(parseISO(entry.desired_date), "dd 'de' MMM", { locale: ptBR })}
+                      </p>
+                      {timeRange && (
+                        <p className="text-xs font-medium text-primary">
+                          ⏰ {timeRange}
+                        </p>
+                      )}
+                      <p className="text-xs text-muted-foreground">
+                        Entrou {format(parseISO(entry.created_at), "dd/MM 'às' HH:mm", { locale: ptBR })}
+                      </p>
+                    </div>
+                    {isActionable && (
+                      <>
+                        {entry.client_whatsapp && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => {
+                              const msg = encodeURIComponent(
+                                `Ol\u00e1 ${entry.client_name}! \uD83D\uDC4B\n\nVimos que voc\u00ea est\u00e1 na nossa lista de espera.\n\nTemos novidades sobre disponibilidade! Gostaria de agendar?\n\nAguardamos seu retorno!`
+                              );
+                              window.open(`https://wa.me/${formatWhatsApp(entry.client_whatsapp)}?text=${msg}`, '_blank');
+                            }}
+                          >
+                            📲 WhatsApp
+                          </Button>
+                        )}
+                        <Button size="sm" onClick={() => openBookingModal(entry)}>
+                          <CalendarPlus className="h-4 w-4 mr-1" />
+                          Agendar
+                        </Button>
+                      </>
                     )}
                   </div>
-                </div>
-                <div className="flex items-center gap-2 sm:gap-4">
-                  <div className="text-right">
-                    <p className="text-sm font-medium">
-                      📅 {format(parseISO(entry.desired_date), "dd 'de' MMM", { locale: ptBR })}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      Entrou {format(parseISO(entry.created_at), "dd/MM 'às' HH:mm", { locale: ptBR })}
-                    </p>
-                    {entry.professional_name && (
-                      <p className="text-xs text-muted-foreground">
-                        Pref: {entry.professional_name}
-                      </p>
-                    )}
-                  </div>
-                  {entry.client_whatsapp && (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => {
-                        const msg = encodeURIComponent(
-                          `Olá ${entry.client_name}! 👋\n\nVimos que você está na nossa lista de espera.\n\nTemos novidades sobre disponibilidade! Gostaria de agendar?\n\nAguardamos seu retorno!`
-                        );
-                        window.open(`https://wa.me/${formatWhatsApp(entry.client_whatsapp)}?text=${msg}`, '_blank');
-                      }}
-                    >
-                      📲 WhatsApp
-                    </Button>
-                  )}
-                  <Button size="sm" onClick={() => openBookingModal(entry)}>
-                    <CalendarPlus className="h-4 w-4 mr-1" />
-                    Agendar
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+                </CardContent>
+              </Card>
+            );
+          })}
         </div>
       )}
 
@@ -333,12 +426,16 @@ const Waitlist = () => {
             <DialogTitle>Agendar para {bookingTarget?.client_name}</DialogTitle>
             <DialogDescription>
               {bookingTarget && getServiceNames(bookingTarget.service_ids)}
-              {bookingTarget?.client_whatsapp && ` • ${bookingTarget.client_whatsapp}`}
+              {bookingTarget?.client_whatsapp && ` \u2022 ${bookingTarget.client_whatsapp}`}
+              {bookingTarget?.time_from && bookingTarget?.time_to && (
+                <span className="block text-xs mt-1">
+                  Preferência de horário: {bookingTarget.time_from.substring(0, 5)} - {bookingTarget.time_to.substring(0, 5)}
+                </span>
+              )}
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4">
-            {/* Professional selector */}
             <div>
               <label className="text-sm font-medium block mb-1.5">Profissional</label>
               <Select value={selectedProfessional} onValueChange={setSelectedProfessional}>
@@ -355,7 +452,6 @@ const Waitlist = () => {
               </Select>
             </div>
 
-            {/* Date + Slots in two columns */}
             {selectedProfessional && (
               <div className="grid grid-cols-1 md:grid-cols-[320px_1fr] gap-4">
                 <div>
@@ -383,24 +479,28 @@ const Waitlist = () => {
                     <p className="text-sm text-muted-foreground mt-4">Nenhum horário disponível nesta data</p>
                   ) : (
                     <div className="grid grid-cols-3 gap-2 max-h-[280px] overflow-y-auto">
-                      {slots.map(slot => (
-                        <Button
-                          key={slot}
-                          variant={selectedSlot === slot ? 'default' : 'outline'}
-                          size="sm"
-                          onClick={() => setSelectedSlot(slot)}
-                          className="text-sm"
-                        >
-                          {slot}
-                        </Button>
-                      ))}
+                      {slots.map(slot => {
+                        const inRange = !bookingTarget?.time_from || !bookingTarget?.time_to ||
+                          (slot >= bookingTarget.time_from.substring(0, 5) && slot <= bookingTarget.time_to.substring(0, 5));
+                        return (
+                          <Button
+                            key={slot}
+                            variant={selectedSlot === slot ? 'default' : 'outline'}
+                            size="sm"
+                            onClick={() => setSelectedSlot(slot)}
+                            className={`text-sm ${inRange ? '' : 'opacity-50'}`}
+                          >
+                            {slot}
+                            {inRange && bookingTarget?.time_from && <span className="ml-1 text-xs">★</span>}
+                          </Button>
+                        );
+                      })}
                     </div>
                   )}
                 </div>
               </div>
             )}
 
-            {/* Confirm button */}
             {selectedSlot && selectedDate && (
               <div className="flex justify-end pt-2">
                 <Button onClick={confirmBooking} disabled={bookingLoading}>
