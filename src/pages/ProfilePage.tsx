@@ -224,7 +224,33 @@ const ProfilePage = () => {
   return (
     <div className="space-y-6 max-w-3xl mx-auto">
       {/* Profile Header */}
-      <Card>
+      <Card className="overflow-hidden">
+        {/* Banner */}
+        <div className="relative h-32 md:h-44 bg-muted">
+          {form.banner_url ? (
+            <img src={form.banner_url} alt="Banner" className="w-full h-full object-cover" />
+          ) : (
+            <div className="w-full h-full bg-gradient-to-r from-primary/20 to-primary/5" />
+          )}
+          <input
+            ref={bannerInputRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={handleBannerUpload}
+          />
+          <Button
+            variant="secondary"
+            size="sm"
+            className="absolute bottom-2 right-2 gap-1.5 opacity-80 hover:opacity-100"
+            onClick={() => bannerInputRef.current?.click()}
+            disabled={uploadingBanner}
+          >
+            {uploadingBanner ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ImagePlus className="h-3.5 w-3.5" />}
+            {uploadingBanner ? 'Enviando...' : 'Alterar banner'}
+          </Button>
+          <p className="absolute bottom-2 left-2 text-[10px] text-white/60">Recomendado: 1200×400</p>
+        </div>
         <CardHeader>
           <CardTitle className="text-xl font-display">Meu Perfil</CardTitle>
         </CardHeader>

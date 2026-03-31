@@ -55,7 +55,7 @@ export default function ProfessionalPublicProfile() {
     if (!prof) { setLoading(false); return; }
     setProfessional(prof);
 
-    const { data: profileData } = await supabase.from('profiles').select('bio, social_links, whatsapp, avatar_url').eq('id', prof.id).maybeSingle();
+    const { data: profileData } = await supabase.from('profiles').select('bio, social_links, whatsapp, avatar_url, banner_url').eq('id', prof.id).maybeSingle();
     setProfile(profileData);
 
     // Services
