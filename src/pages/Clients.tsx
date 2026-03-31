@@ -18,6 +18,7 @@ interface ClientRow {
   name: string;
   whatsapp: string | null;
   email: string | null;
+  birth_date: string | null;
   next_recommended_visit: string | null;
   created_at: string;
 }
