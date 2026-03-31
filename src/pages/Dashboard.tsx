@@ -31,6 +31,7 @@ const statusColors: Record<string, string> = {
   completed: 'bg-success/10 text-success border-success/20',
   no_show: 'bg-muted text-muted-foreground border-border',
   rescheduled: 'bg-orange-500/10 text-orange-600 border-orange-500/20',
+  late: 'bg-warning/10 text-warning border-warning/20',
 };
 
 const statusCardStyles: Record<string, string> = {
