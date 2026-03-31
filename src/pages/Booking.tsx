@@ -8,7 +8,8 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Calendar } from '@/components/ui/calendar';
-import { Scissors, Sparkles, Clock, DollarSign, ChevronRight, ChevronLeft, CheckCircle2, Bell, Zap, CalendarPlus, MessageCircle, RotateCcw, Home, User, Phone, Mail, CreditCard, Cake, MapPin, Star } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Scissors, Sparkles, Clock, DollarSign, ChevronRight, ChevronLeft, CheckCircle2, Bell, Zap, CalendarPlus, MessageCircle, RotateCcw, Home, User, Phone, Mail, CreditCard, Cake, MapPin, Star, X } from 'lucide-react';
 import { format, addMinutes, addDays, isToday, isTomorrow, startOfDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
@@ -16,6 +17,41 @@ import { cn } from '@/lib/utils';
 import { formatWhatsApp, displayWhatsApp, isValidWhatsApp } from '@/lib/whatsapp';
 import { calculateAvailableSlots, type BusinessHours, type BusinessException, type ExistingAppointment, type BlockedTime } from '@/lib/availability-engine';
 import { PlatformBranding } from '@/components/PlatformBranding';
+
+const StarRating = ({ rating, size = 14 }: { rating: number; size?: number }) => {
+  return (
+    <div className="flex items-center gap-0.5">
+      {[1, 2, 3, 4, 5].map((s) => {
+        const fill = rating >= s ? 1 : rating >= s - 0.5 ? 0.5 : 0;
+        return (
+          <svg key={s} width={size} height={size} viewBox="0 0 24 24" fill="none">
+            <defs>
+              <linearGradient id={`star-fill-${s}-${size}`}>
+                <stop offset={`${fill * 100}%`} stopColor="#FDBA2D" />
+                <stop offset={`${fill * 100}%`} stopColor="#374151" />
+              </linearGradient>
+            </defs>
+            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" fill={`url(#star-fill-${s}-${size})`} />
+          </svg>
+        );
+      })}
+    </div>
+  );
+};
+
+const InteractiveStarRating = ({ rating, onRate, size = 32 }: { rating: number; onRate: (r: number) => void; size?: number }) => {
+  return (
+    <div className="flex items-center gap-1">
+      {[1, 2, 3, 4, 5].map((s) => (
+        <button key={s} onClick={() => onRate(s)} className="transition-all hover:scale-110">
+          <Star
+            style={{ width: size, height: size, color: s <= rating ? '#FDBA2D' : '#374151', fill: s <= rating ? '#FDBA2D' : 'none' }}
+          />
+        </button>
+      ))}
+    </div>
+  );
+};
 
 type Step = 'services' | 'professional' | 'datetime' | 'client' | 'confirm' | 'success';
 type BusinessType = 'barbershop' | 'esthetic';
@@ -92,6 +128,10 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
   const [professionalRatings, setProfessionalRatings] = useState<Record<string, { avg: number; count: number }>>({});
   const [recentBookings, setRecentBookings] = useState<number | null>(null);
   const [companyStats, setCompanyStats] = useState<{ avgRating: number; reviewCount: number; completedCount: number } | null>(null);
+  const [showReviewModal, setShowReviewModal] = useState(false);
+  const [reviewRating, setReviewRating] = useState(0);
+  const [reviewComment, setReviewComment] = useState('');
+  const [submittingReview, setSubmittingReview] = useState(false);
 
   const [step, setStep] = useState<Step>('services');
   const [selectedServices, setSelectedServices] = useState<string[]>([]);
@@ -682,26 +722,27 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
               </div>
             )}
           </a>
-          <div className="min-w-0">
+          <div className="min-w-0 flex-1">
             <h1 className="font-bold text-lg tracking-tight">{company.name}</h1>
             {companyStats && companyStats.reviewCount > 0 ? (
-              <p className="text-xs flex items-center gap-1 flex-wrap" style={{ color: T.textSec }}>
-                <Star className="h-3 w-3 fill-current" style={{ color: T.accent }} />
-                <span style={{ color: T.accent, fontWeight: 600 }}>{companyStats.avgRating.toFixed(1)}</span>
-                <span>({companyStats.reviewCount} avaliações)</span>
-                {companyStats.completedCount > 0 && (
-                  <>
-                    <span>•</span>
-                    <span>💈 {companyStats.completedCount} atendimentos</span>
-                  </>
-                )}
-              </p>
+              <div className="flex items-center gap-1.5 flex-wrap mt-0.5">
+                <StarRating rating={companyStats.avgRating} size={14} />
+                <span className="text-xs font-semibold" style={{ color: '#FDBA2D' }}>{companyStats.avgRating.toFixed(1)}</span>
+                <span className="text-xs" style={{ color: T.textSec }}>({companyStats.reviewCount} avaliações)</span>
+              </div>
             ) : (
               <p className="text-xs" style={{ color: T.textSec }}>
                 {businessType === 'barbershop' ? 'Barbearia' : 'Estética'} • Agendamento online
               </p>
             )}
           </div>
+          <button
+            onClick={() => setShowReviewModal(true)}
+            className="shrink-0 text-xs font-medium px-3 py-1.5 rounded-full transition-colors"
+            style={{ background: `${T.accent}20`, color: '#FDBA2D' }}
+          >
+            Avaliar
+          </button>
         </div>
       </header>
 
@@ -1382,6 +1423,69 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
           <MessageCircle className="h-6 w-6 text-white" />
         </a>
       )}
+
+      {/* Review Modal */}
+      <Dialog open={showReviewModal} onOpenChange={setShowReviewModal}>
+        <DialogContent className="max-w-sm" style={{ background: T.card, border: `1px solid ${T.border}`, color: T.text }}>
+          <DialogHeader>
+            <DialogTitle className="text-center text-lg" style={{ color: T.text }}>Avaliar {company?.name}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-5 pt-2">
+            <div className="flex flex-col items-center gap-2">
+              <p className="text-sm" style={{ color: T.textSec }}>Como foi sua experiência?</p>
+              <InteractiveStarRating rating={reviewRating} onRate={setReviewRating} size={36} />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium" style={{ color: T.textSec }}>Comentário (opcional)</label>
+              <textarea
+                value={reviewComment}
+                onChange={(e) => setReviewComment(e.target.value.slice(0, 500))}
+                maxLength={500}
+                rows={3}
+                placeholder="Conte como foi..."
+                className="w-full rounded-xl px-4 py-3 text-sm resize-none outline-none placeholder:opacity-50"
+                style={{ background: T.bg, border: `1px solid ${T.border}`, color: T.text }}
+              />
+              <p className="text-xs text-right" style={{ color: T.textSec }}>{reviewComment.length}/500</p>
+            </div>
+            <Button
+              disabled={submittingReview || reviewRating < 1}
+              onClick={async () => {
+                if (!company || reviewRating < 1) return;
+                setSubmittingReview(true);
+                try {
+                  const { error } = await supabase.from('reviews').insert({
+                    company_id: company.id,
+                    professional_id: company.owner_id || selectedProfessional || professionals[0]?.id,
+                    appointment_id: null as any,
+                    rating: reviewRating,
+                    comment: reviewComment.trim() || null,
+                  } as any);
+                  if (error) throw error;
+                  toast.success('Avaliação enviada com sucesso!');
+                  setShowReviewModal(false);
+                  setReviewRating(0);
+                  setReviewComment('');
+                  // Refresh stats
+                  const { data: newReviews } = await supabase.from('reviews').select('rating').eq('company_id', company.id);
+                  if (newReviews && newReviews.length > 0) {
+                    const avg = newReviews.reduce((s: number, r: any) => s + Number(r.rating), 0) / newReviews.length;
+                    setCompanyStats(prev => ({ avgRating: avg, reviewCount: newReviews.length, completedCount: prev?.completedCount || 0 }));
+                  }
+                } catch (err: any) {
+                  toast.error(err.message || 'Erro ao enviar avaliação');
+                } finally {
+                  setSubmittingReview(false);
+                }
+              }}
+              className="w-full rounded-xl py-5 font-semibold text-base"
+              style={{ background: reviewRating > 0 ? '#FDBA2D' : T.border, color: reviewRating > 0 ? '#000' : T.textSec }}
+            >
+              {submittingReview ? 'Enviando...' : '⭐ Enviar avaliação'}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
