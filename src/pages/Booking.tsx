@@ -300,6 +300,11 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
     }
   };
 
+  const fetchRecentBookings = async (profileId: string) => {
+    const { data: recentCount } = await supabase.rpc('get_professional_recent_bookings' as any, { p_professional_id: profileId });
+    if (typeof recentCount === 'number') setRecentBookings(recentCount);
+  };
+
   const fetchProfessionals = async (): Promise<any[]> => {
     if (!company) return [];
 
