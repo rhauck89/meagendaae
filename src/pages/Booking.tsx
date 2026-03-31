@@ -15,6 +15,7 @@ import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { formatWhatsApp, displayWhatsApp, isValidWhatsApp } from '@/lib/whatsapp';
 import { calculateAvailableSlots, type BusinessHours, type BusinessException, type ExistingAppointment, type BlockedTime } from '@/lib/availability-engine';
+import { PlatformBranding } from '@/components/PlatformBranding';
 
 type Step = 'services' | 'professional' | 'datetime' | 'client' | 'confirm' | 'success';
 type BusinessType = 'barbershop' | 'esthetic';
