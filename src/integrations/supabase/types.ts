@@ -573,6 +573,7 @@ export type Database = {
       }
       company_settings: {
         Row: {
+          background_color: string
           booking_buffer_minutes: number
           company_id: string
           created_at: string
@@ -585,6 +586,7 @@ export type Database = {
           whatsapp_number: string | null
         }
         Insert: {
+          background_color?: string
           booking_buffer_minutes?: number
           company_id: string
           created_at?: string
@@ -597,6 +599,7 @@ export type Database = {
           whatsapp_number?: string | null
         }
         Update: {
+          background_color?: string
           booking_buffer_minutes?: number
           company_id?: string
           created_at?: string

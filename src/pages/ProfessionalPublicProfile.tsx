@@ -11,6 +11,7 @@ import { cn } from '@/lib/utils';
 import { calculateAvailableSlots, type BusinessHours, type BusinessException, type BlockedTime, type ExistingAppointment } from '@/lib/availability-engine';
 import { formatWhatsApp } from '@/lib/whatsapp';
 import { PlatformBranding } from '@/components/PlatformBranding';
+import { getCompanyBranding, buildThemeFromBranding, useApplyBranding } from '@/hooks/useCompanyBranding';
 
 type BusinessType = 'barbershop' | 'esthetic';
 
@@ -42,6 +43,7 @@ export default function ProfessionalPublicProfile() {
   const [businessType, setBusinessType] = useState<BusinessType>('barbershop');
   const [copied, setCopied] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [companySettings, setCompanySettings] = useState<any>(null);
 
   useEffect(() => { if (slug && professionalSlug) load(); }, [slug, professionalSlug]);
 
@@ -94,6 +96,10 @@ export default function ProfessionalPublicProfile() {
     // Completed appointments count
     const { count } = await supabase.from('appointments').select('id', { count: 'exact', head: true }).eq('professional_id', prof.id).eq('status', 'completed');
     setCompletedCount(count || 0);
+
+    // Fetch company settings for branding
+    const { data: csData } = await supabase.from('company_settings' as any).select('primary_color, secondary_color, background_color').eq('company_id', comp.id).single();
+    if (csData) setCompanySettings(csData);
 
     // Next available slots
     await fetchNextSlots(comp, prof);
@@ -165,6 +171,9 @@ export default function ProfessionalPublicProfile() {
     : '#';
 
   const isDark = businessType === 'barbershop';
+  const branding = getCompanyBranding(companySettings, isDark);
+  useApplyBranding(branding);
+  const T = buildThemeFromBranding(branding, isDark);
   const avatarUrl = profile?.avatar_url || professional?.avatar_url;
   const socialLinks = profile?.social_links as any;
   const instagramUrl = socialLinks?.instagram ? (socialLinks.instagram.startsWith('http') ? socialLinks.instagram : `https://instagram.com/${socialLinks.instagram.replace('@', '')}`) : null;
@@ -175,7 +184,7 @@ export default function ProfessionalPublicProfile() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center" style={{ background: isDark ? '#0B132B' : '#FFF7ED' }}>
+      <div className="min-h-screen flex items-center justify-center" style={{ background: T.bg }}>
         <div className="animate-pulse flex flex-col items-center gap-4">
           <div className="w-24 h-24 rounded-full bg-gray-700" />
           <div className="h-4 w-32 bg-gray-700 rounded" />
@@ -186,8 +195,8 @@ export default function ProfessionalPublicProfile() {
 
   if (!professional || !company) {
     return (
-      <div className="min-h-screen flex items-center justify-center" style={{ background: isDark ? '#0B132B' : '#FFF7ED' }}>
-        <p className="text-lg" style={{ color: isDark ? '#9CA3AF' : '#6B7280' }}>Profissional não encontrado.</p>
+      <div className="min-h-screen flex items-center justify-center" style={{ background: T.bg }}>
+        <p className="text-lg" style={{ color: T.textSec }}>Profissional não encontrado.</p>
       </div>
     );
   }
@@ -196,7 +205,7 @@ export default function ProfessionalPublicProfile() {
   const seoDescription = `Agende com ${professional.name} na ${company.name} em ${company.city || ''} ${company.state || ''}.`.trim();
 
   return (
-    <div className="min-h-screen" style={{ background: isDark ? '#0B132B' : 'linear-gradient(180deg, #FFF7ED, #FFFFFF)' }}>
+    <div className="min-h-screen" style={{ background: T.bg }}>
       <SEOHead
         title={seoTitle}
         description={seoDescription}
@@ -216,9 +225,9 @@ export default function ProfessionalPublicProfile() {
         {/* Avatar */}
         <div className="relative" style={{ marginTop: (professional?.banner_url || company?.cover_url) ? '-3rem' : '0' }}>
           {avatarUrl ? (
-            <img src={avatarUrl} alt={professional.name} className="w-28 h-28 rounded-full object-cover border-4" style={{ borderColor: isDark ? '#F59E0B' : '#D97706' }} />
+            <img src={avatarUrl} alt={professional.name} className="w-28 h-28 rounded-full object-cover border-4" style={{ borderColor: T.accent }} />
           ) : (
-            <div className="w-28 h-28 rounded-full flex items-center justify-center text-3xl font-bold" style={{ background: isDark ? '#1F2937' : '#FED7AA', color: isDark ? '#F59E0B' : '#9A3412' }}>
+            <div className="w-28 h-28 rounded-full flex items-center justify-center text-3xl font-bold" style={{ background: `${T.accent}20`, color: T.accent }}>
               {professional.name?.charAt(0)?.toUpperCase()}
             </div>
           )}
@@ -226,8 +235,8 @@ export default function ProfessionalPublicProfile() {
 
         {/* Name & Company */}
         <div className="text-center">
-          <h1 className="text-2xl font-bold" style={{ color: isDark ? '#FFFFFF' : '#1F2937' }}>{professional.name}</h1>
-          <p className="text-sm mt-1" style={{ color: isDark ? '#9CA3AF' : '#6B7280' }}>{company.name}</p>
+          <h1 className="text-2xl font-bold" style={{ color: T.text }}>{professional.name}</h1>
+          <p className="text-sm mt-1" style={{ color: T.textSec }}>{company.name}</p>
         </div>
 
         {/* Rating & Completed Count */}
@@ -239,12 +248,12 @@ export default function ProfessionalPublicProfile() {
                   <Star key={i} className={cn("w-4 h-4", i <= Math.round(rating.avg) ? "fill-yellow-400 text-yellow-400" : "text-gray-600")} />
                 ))}
               </div>
-              <span className="text-sm font-medium" style={{ color: isDark ? '#F59E0B' : '#D97706' }}>{rating.avg.toFixed(1)}</span>
-              <span className="text-xs" style={{ color: isDark ? '#6B7280' : '#9CA3AF' }}>({rating.count} avaliações)</span>
+              <span className="text-sm font-medium" style={{ color: T.accent }}>{rating.avg.toFixed(1)}</span>
+              <span className="text-xs" style={{ color: T.textSec }}>({rating.count} avaliações)</span>
             </div>
           )}
           {completedCount > 0 && (
-            <span className="text-xs font-medium" style={{ color: isDark ? '#9CA3AF' : '#6B7280' }}>
+            <span className="text-xs font-medium" style={{ color: T.textSec }}>
               ✂️ {completedCount} cortes realizados
             </span>
           )}
@@ -252,7 +261,7 @@ export default function ProfessionalPublicProfile() {
 
         {/* Bio */}
         {profile?.bio && (
-          <p className="text-center text-sm leading-relaxed max-w-xs" style={{ color: isDark ? '#D1D5DB' : '#4B5563' }}>
+          <p className="text-center text-sm leading-relaxed max-w-xs" style={{ color: T.textSec }}>
             {profile.bio}
           </p>
         )}
@@ -262,24 +271,24 @@ export default function ProfessionalPublicProfile() {
           <div className="w-full max-w-xs">
             <div className="flex items-center gap-2 mb-3">
               <span className="text-base">🔥</span>
-              <h3 className="text-sm font-semibold" style={{ color: isDark ? '#FFFFFF' : '#1F2937' }}>Próximo horário disponível</h3>
+              <h3 className="text-sm font-semibold" style={{ color: T.text }}>Próximo horário disponível</h3>
             </div>
 
             {/* Primary highlighted slot */}
             <div
               className="rounded-xl p-4 border-2 mb-3"
               style={{
-                background: isDark ? 'rgba(245,158,11,0.08)' : 'rgba(217,119,6,0.06)',
-                borderColor: isDark ? '#F59E0B' : '#D97706',
+                background: `${T.accent}14`,
+                borderColor: T.accent,
               }}
             >
-              <p className="text-lg font-bold text-center capitalize" style={{ color: isDark ? '#FFFFFF' : '#1F2937' }}>
+              <p className="text-lg font-bold text-center capitalize" style={{ color: T.text }}>
                 {nextAvailable.label} • {nextAvailable.slots[0]}
               </p>
               <Button
                 onClick={() => navigate(`${bookingUrl}?date=${format(nextAvailable.date, 'yyyy-MM-dd')}&time=${nextAvailable.slots[0]}`)}
                 className="w-full h-11 mt-3 text-sm font-semibold rounded-xl shadow-lg"
-                style={{ background: isDark ? '#F59E0B' : '#D97706', color: '#0B132B' }}
+                style={{ background: T.accent, color: '#0B132B' }}
               >
                 <Calendar className="w-4 h-4 mr-2" />
                 Agendar este horário
@@ -295,9 +304,9 @@ export default function ProfessionalPublicProfile() {
                     onClick={() => navigate(`${bookingUrl}?date=${format(nextAvailable.date, 'yyyy-MM-dd')}&time=${time}`)}
                     className="flex-1 py-2.5 rounded-lg text-sm font-semibold transition-all hover:scale-105 active:scale-95"
                     style={{
-                      background: isDark ? 'rgba(245,158,11,0.15)' : 'rgba(217,119,6,0.1)',
-                      color: isDark ? '#F59E0B' : '#D97706',
-                      border: `1px solid ${isDark ? 'rgba(245,158,11,0.25)' : 'rgba(217,119,6,0.2)'}`,
+                      background: `${T.accent}26`,
+                      color: T.accent,
+                      border: `1px solid ${T.accent}40`,
                     }}
                   >
                     {time}
@@ -309,7 +318,7 @@ export default function ProfessionalPublicProfile() {
               <button
                 onClick={() => navigate(`${bookingUrl}?date=${format(nextAvailable.date, 'yyyy-MM-dd')}`)}
                 className="w-full text-xs mt-2 py-1"
-                style={{ color: isDark ? '#6B7280' : '#9CA3AF' }}
+                style={{ color: T.textSec }}
               >
                 +{nextAvailable.slots.length - 3} horários disponíveis →
               </button>
@@ -321,7 +330,7 @@ export default function ProfessionalPublicProfile() {
         <Button
           onClick={() => navigate(bookingUrl)}
           className="w-full max-w-xs h-12 text-base font-semibold rounded-xl shadow-lg"
-          style={{ background: isDark ? '#F59E0B' : '#D97706', color: '#0B132B' }}
+          style={{ background: T.accent, color: '#0B132B' }}
         >
           <Calendar className="w-5 h-5 mr-2" />
           Agendar horário
@@ -354,9 +363,9 @@ export default function ProfessionalPublicProfile() {
               rel="noopener noreferrer"
               className="flex items-center justify-center gap-2 w-full h-11 rounded-xl border text-sm font-medium transition-colors hover:opacity-90"
               style={{
-                borderColor: isDark ? '#1F2937' : '#E5E7EB',
-                background: isDark ? '#111827' : '#FFFFFF',
-                color: isDark ? '#FFFFFF' : '#1F2937',
+                borderColor: T.border,
+                background: T.card,
+                color: T.text,
               }}
             >
               <Instagram className="w-4 h-4" style={{ color: '#E1306C' }} />
@@ -369,9 +378,9 @@ export default function ProfessionalPublicProfile() {
             onClick={handleShare}
             className="flex items-center justify-center gap-2 w-full h-11 rounded-xl border text-sm font-medium transition-colors hover:opacity-90"
             style={{
-              borderColor: isDark ? '#1F2937' : '#E5E7EB',
-              background: isDark ? '#111827' : '#FFFFFF',
-              color: isDark ? '#FFFFFF' : '#1F2937',
+              borderColor: T.border,
+              background: T.card,
+              color: T.text,
             }}
           >
             {copied ? <Check className="w-4 h-4 text-green-400" /> : <Share2 className="w-4 h-4" />}
@@ -383,8 +392,8 @@ export default function ProfessionalPublicProfile() {
         {services.length > 0 && (
           <div className="w-full max-w-xs">
             <div className="flex items-center gap-2 mb-3">
-              {isDark ? <Scissors className="w-4 h-4" style={{ color: '#F59E0B' }} /> : <Sparkles className="w-4 h-4" style={{ color: '#D97706' }} />}
-              <h3 className="text-sm font-semibold" style={{ color: isDark ? '#FFFFFF' : '#1F2937' }}>Serviços</h3>
+              {isDark ? <Scissors className="w-4 h-4" style={{ color: T.accent }} /> : <Sparkles className="w-4 h-4" style={{ color: T.accent }} />}
+              <h3 className="text-sm font-semibold" style={{ color: T.text }}>Serviços</h3>
             </div>
             <div className="flex flex-col gap-2">
               {services.map(svc => (
@@ -392,18 +401,18 @@ export default function ProfessionalPublicProfile() {
                   key={svc.id}
                   className="flex items-center justify-between p-3 rounded-xl border"
                   style={{
-                    background: isDark ? '#111827' : '#FFFFFF',
-                    borderColor: isDark ? '#1F2937' : '#E5E7EB',
+                    background: T.card,
+                    borderColor: T.border,
                   }}
                 >
                   <div>
-                    <p className="text-sm font-medium" style={{ color: isDark ? '#FFFFFF' : '#1F2937' }}>{svc.name}</p>
+                    <p className="text-sm font-medium" style={{ color: T.text }}>{svc.name}</p>
                     <div className="flex items-center gap-2 mt-0.5">
-                      <Clock className="w-3 h-3" style={{ color: isDark ? '#6B7280' : '#9CA3AF' }} />
-                      <span className="text-xs" style={{ color: isDark ? '#6B7280' : '#9CA3AF' }}>{svc.duration_minutes}min</span>
+                      <Clock className="w-3 h-3" style={{ color: T.textSec }} />
+                      <span className="text-xs" style={{ color: T.textSec }}>{svc.duration_minutes}min</span>
                     </div>
                   </div>
-                  <span className="text-sm font-semibold" style={{ color: isDark ? '#F59E0B' : '#D97706' }}>
+                  <span className="text-sm font-semibold" style={{ color: T.accent }}>
                     R$ {Number(svc.price).toFixed(2)}
                   </span>
                 </div>
@@ -415,7 +424,7 @@ export default function ProfessionalPublicProfile() {
         {/* Reviews */}
         {reviews.length > 0 && (
           <div className="w-full max-w-xs">
-            <h3 className="text-sm font-semibold mb-3" style={{ color: isDark ? '#FFFFFF' : '#1F2937' }}>
+            <h3 className="text-sm font-semibold mb-3" style={{ color: T.text }}>
               Avaliações ({totalReviews})
             </h3>
             <div className="flex flex-col gap-3">
@@ -424,20 +433,20 @@ export default function ProfessionalPublicProfile() {
                   key={i}
                   className="p-3 rounded-xl border"
                   style={{
-                    background: isDark ? '#111827' : '#FFFFFF',
-                    borderColor: isDark ? '#1F2937' : '#E5E7EB',
+                    background: T.card,
+                    borderColor: T.border,
                   }}
                 >
                   <div className="flex items-center gap-1 mb-1">
                     {[1, 2, 3, 4, 5].map(s => (
                       <Star key={s} className={cn("w-3 h-3", s <= rev.rating ? "fill-yellow-400 text-yellow-400" : "text-gray-600")} />
                     ))}
-                    <span className="text-xs ml-2" style={{ color: isDark ? '#6B7280' : '#9CA3AF' }}>
+                    <span className="text-xs ml-2" style={{ color: T.textSec }}>
                       {format(new Date(rev.created_at), 'dd/MM/yyyy')}
                     </span>
                   </div>
                   {rev.comment && (
-                    <p className="text-xs leading-relaxed" style={{ color: isDark ? '#D1D5DB' : '#4B5563' }}>
+                    <p className="text-xs leading-relaxed" style={{ color: T.textSec }}>
                       "{rev.comment}"
                     </p>
                   )}
@@ -448,7 +457,7 @@ export default function ProfessionalPublicProfile() {
               <button
                 onClick={() => setShowAllReviews(true)}
                 className="w-full text-xs font-medium mt-3 py-2 rounded-lg transition-colors hover:opacity-80"
-                style={{ color: isDark ? '#F59E0B' : '#D97706' }}
+                style={{ color: T.accent }}
               >
                 Ver todas avaliações ({totalReviews})
               </button>
@@ -466,7 +475,7 @@ export default function ProfessionalPublicProfile() {
           {company.logo_url ? (
             <img src={company.logo_url} alt={company.name} className="max-h-[40px] object-contain" />
           ) : (
-            <p className="text-xs font-medium" style={{ color: isDark ? '#4B5563' : '#9CA3AF' }}>
+            <p className="text-xs font-medium" style={{ color: T.textSec }}>
               {company.name}
             </p>
           )}

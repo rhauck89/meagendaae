@@ -9,7 +9,7 @@ import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
-import { Clock, Calendar as CalendarIcon, Plus, Trash2, Bell, Cake, Link2, Copy, Timer, Building2, Camera, Phone, MapPin, Globe, Instagram, Facebook } from 'lucide-react';
+import { Clock, Calendar as CalendarIcon, Plus, Trash2, Bell, Cake, Link2, Copy, Timer, Building2, Camera, Phone, MapPin, Globe, Instagram, Facebook, Palette } from 'lucide-react';
 
 const dayNames = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
 
@@ -46,6 +46,11 @@ const SettingsPage = () => {
   // Social
   const [companyInstagram, setCompanyInstagram] = useState('');
   const [companyFacebook, setCompanyFacebook] = useState('');
+  
+  // Branding colors
+  const [brandPrimaryColor, setBrandPrimaryColor] = useState('#6D28D9');
+  const [brandSecondaryColor, setBrandSecondaryColor] = useState('#F59E0B');
+  const [brandBackgroundColor, setBrandBackgroundColor] = useState('#0B132B');
   const [companyWebsite, setCompanyWebsite] = useState('');
 
   useEffect(() => {
@@ -95,11 +100,11 @@ const SettingsPage = () => {
   };
 
   const fetchCompanySettings = async () => {
-    const { data } = await supabase
-      .from('companies')
-      .select('*')
-      .eq('id', companyId!)
-      .single();
+    const [companyRes, settingsRes] = await Promise.all([
+      supabase.from('companies').select('*').eq('id', companyId!).single(),
+      supabase.from('company_settings').select('primary_color, secondary_color, background_color').eq('company_id', companyId!).single(),
+    ]);
+    const data = companyRes.data;
     if (data) {
       setRemindersEnabled(data.reminders_enabled ?? true);
       setBirthdayEnabled((data as any).birthday_enabled ?? true);
@@ -124,6 +129,11 @@ const SettingsPage = () => {
       setCompanyInstagram((data as any).instagram ?? '');
       setCompanyFacebook((data as any).facebook ?? '');
       setCompanyWebsite((data as any).website ?? '');
+    }
+    if (settingsRes.data) {
+      setBrandPrimaryColor((settingsRes.data as any).primary_color || '#6D28D9');
+      setBrandSecondaryColor((settingsRes.data as any).secondary_color || '#F59E0B');
+      setBrandBackgroundColor((settingsRes.data as any).background_color || '#0B132B');
     }
   };
 
@@ -186,6 +196,15 @@ const SettingsPage = () => {
     };
     await supabase.from('companies').update(updateData).eq('id', companyId!);
     toast.success('Dados da empresa salvos');
+  };
+
+  const saveBranding = async () => {
+    await supabase.from('company_settings').update({
+      primary_color: brandPrimaryColor,
+      secondary_color: brandSecondaryColor,
+      background_color: brandBackgroundColor,
+    } as any).eq('company_id', companyId!);
+    toast.success('Cores da marca salvas!');
   };
 
   const toggleReminders = async (enabled: boolean) => {
@@ -400,6 +419,102 @@ const SettingsPage = () => {
             <Label className="text-xs flex items-center gap-1"><Globe className="w-3 h-3" /> Website</Label>
             <Input value={companyWebsite} onChange={(e) => setCompanyWebsite(e.target.value)} placeholder="https://www.suaempresa.com" />
           </div>
+        </CardContent>
+      </Card>
+
+      {/* Branding Colors */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Palette className="h-5 w-5" /> Cores da Marca
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <p className="text-xs text-muted-foreground">
+            Personalize as cores das suas páginas públicas. As alterações serão aplicadas em tempo real.
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="space-y-2">
+              <Label className="text-xs">Cor primária</Label>
+              <div className="flex items-center gap-2">
+                <input
+                  type="color"
+                  value={brandPrimaryColor}
+                  onChange={(e) => setBrandPrimaryColor(e.target.value)}
+                  className="w-10 h-10 rounded-lg border cursor-pointer"
+                  style={{ padding: 0 }}
+                />
+                <Input
+                  value={brandPrimaryColor}
+                  onChange={(e) => setBrandPrimaryColor(e.target.value)}
+                  className="font-mono text-xs"
+                  maxLength={7}
+                />
+              </div>
+              <p className="text-[10px] text-muted-foreground">Botões, links, destaques</p>
+            </div>
+            <div className="space-y-2">
+              <Label className="text-xs">Cor secundária</Label>
+              <div className="flex items-center gap-2">
+                <input
+                  type="color"
+                  value={brandSecondaryColor}
+                  onChange={(e) => setBrandSecondaryColor(e.target.value)}
+                  className="w-10 h-10 rounded-lg border cursor-pointer"
+                  style={{ padding: 0 }}
+                />
+                <Input
+                  value={brandSecondaryColor}
+                  onChange={(e) => setBrandSecondaryColor(e.target.value)}
+                  className="font-mono text-xs"
+                  maxLength={7}
+                />
+              </div>
+              <p className="text-[10px] text-muted-foreground">Hover, acentos</p>
+            </div>
+            <div className="space-y-2">
+              <Label className="text-xs">Cor de fundo</Label>
+              <div className="flex items-center gap-2">
+                <input
+                  type="color"
+                  value={brandBackgroundColor}
+                  onChange={(e) => setBrandBackgroundColor(e.target.value)}
+                  className="w-10 h-10 rounded-lg border cursor-pointer"
+                  style={{ padding: 0 }}
+                />
+                <Input
+                  value={brandBackgroundColor}
+                  onChange={(e) => setBrandBackgroundColor(e.target.value)}
+                  className="font-mono text-xs"
+                  maxLength={7}
+                />
+              </div>
+              <p className="text-[10px] text-muted-foreground">Fundo das páginas públicas</p>
+            </div>
+          </div>
+
+          {/* Preview */}
+          <div className="mt-4 p-4 rounded-xl border" style={{ background: brandBackgroundColor }}>
+            <p className="text-xs font-semibold mb-2" style={{ color: brandPrimaryColor }}>Prévia das cores</p>
+            <div className="flex gap-2">
+              <button
+                className="px-4 py-2 rounded-lg text-sm font-semibold"
+                style={{ background: brandPrimaryColor, color: '#FFFFFF' }}
+              >
+                Botão primário
+              </button>
+              <button
+                className="px-4 py-2 rounded-lg text-sm font-semibold"
+                style={{ background: brandSecondaryColor, color: '#FFFFFF' }}
+              >
+                Botão secundário
+              </button>
+            </div>
+          </div>
+
+          <Button onClick={saveBranding} variant="outline" className="w-full sm:w-auto">
+            Salvar cores
+          </Button>
         </CardContent>
       </Card>
 
