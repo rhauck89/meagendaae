@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Star, Save, Camera, Instagram, Link2, Loader2, Copy, Check } from 'lucide-react';
+import { Star, Save, Camera, Instagram, Link2, Loader2, Copy, Check, ImagePlus } from 'lucide-react';
 import { toast } from 'sonner';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -25,13 +25,16 @@ const ProfilePage = () => {
   const [copied, setCopied] = useState(false);
   const [bookingLink, setBookingLink] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const bannerInputRef = useRef<HTMLInputElement>(null);
   const [cropImage, setCropImage] = useState<string | null>(null);
+  const [uploadingBanner, setUploadingBanner] = useState(false);
   const [form, setForm] = useState({
     full_name: '',
     email: '',
     whatsapp: '',
     bio: '',
     avatar_url: '',
+    banner_url: '',
     social_instagram: '',
   });
 
@@ -44,6 +47,7 @@ const ProfilePage = () => {
         whatsapp: profile.whatsapp || '',
         bio: (profile as any).bio || '',
         avatar_url: profile.avatar_url || '',
+        banner_url: (profile as any).banner_url || '',
         social_instagram: socialLinks.instagram || '',
       });
     }
@@ -155,6 +159,31 @@ const ProfilePage = () => {
     }
   };
 
+  const handleBannerUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user) return;
+    if (!file.type.startsWith('image/')) { toast.error('Selecione uma imagem'); return; }
+    if (file.size > 5 * 1024 * 1024) { toast.error('Banner deve ter no máximo 5MB'); return; }
+    setUploadingBanner(true);
+    try {
+      const ext = file.name.split('.').pop();
+      const filePath = `${user.id}/banner.${ext}`;
+      const { error: uploadError } = await supabase.storage.from('avatars').upload(filePath, file, { upsert: true });
+      if (uploadError) throw uploadError;
+      const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(filePath);
+      const bannerUrl = `${publicUrl}?t=${Date.now()}`;
+      const { error: updateError } = await supabase.from('profiles').update({ banner_url: bannerUrl } as any).eq('user_id', user.id);
+      if (updateError) throw updateError;
+      setForm(prev => ({ ...prev, banner_url: bannerUrl }));
+      toast.success('Banner atualizado!');
+    } catch (err: any) {
+      toast.error(err.message || 'Erro ao enviar banner');
+    } finally {
+      setUploadingBanner(false);
+      e.target.value = '';
+    }
+  };
+
   const handleSave = async () => {
     if (!user) return;
     setLoading(true);
@@ -195,7 +224,33 @@ const ProfilePage = () => {
   return (
     <div className="space-y-6 max-w-3xl mx-auto">
       {/* Profile Header */}
-      <Card>
+      <Card className="overflow-hidden">
+        {/* Banner */}
+        <div className="relative h-32 md:h-44 bg-muted">
+          {form.banner_url ? (
+            <img src={form.banner_url} alt="Banner" className="w-full h-full object-cover" />
+          ) : (
+            <div className="w-full h-full bg-gradient-to-r from-primary/20 to-primary/5" />
+          )}
+          <input
+            ref={bannerInputRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={handleBannerUpload}
+          />
+          <Button
+            variant="secondary"
+            size="sm"
+            className="absolute bottom-2 right-2 gap-1.5 opacity-80 hover:opacity-100"
+            onClick={() => bannerInputRef.current?.click()}
+            disabled={uploadingBanner}
+          >
+            {uploadingBanner ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ImagePlus className="h-3.5 w-3.5" />}
+            {uploadingBanner ? 'Enviando...' : 'Alterar banner'}
+          </Button>
+          <p className="absolute bottom-2 left-2 text-[10px] text-white/60">Recomendado: 1200×400</p>
+        </div>
         <CardHeader>
           <CardTitle className="text-xl font-display">Meu Perfil</CardTitle>
         </CardHeader>

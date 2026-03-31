@@ -541,6 +541,7 @@ export type Database = {
         Row: {
           avatar_url: string | null
           average_return_days: number | null
+          banner_url: string | null
           bio: string | null
           birth_date: string | null
           company_id: string | null
@@ -560,6 +561,7 @@ export type Database = {
         Insert: {
           avatar_url?: string | null
           average_return_days?: number | null
+          banner_url?: string | null
           bio?: string | null
           birth_date?: string | null
           company_id?: string | null
@@ -579,6 +581,7 @@ export type Database = {
         Update: {
           avatar_url?: string | null
           average_return_days?: number | null
+          banner_url?: string | null
           bio?: string | null
           birth_date?: string | null
           company_id?: string | null
