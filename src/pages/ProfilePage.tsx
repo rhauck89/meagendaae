@@ -101,23 +101,31 @@ const ProfilePage = () => {
     }
   };
 
-  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file || !user) return;
-
+    if (!file) return;
     if (!file.type.startsWith('image/')) {
       toast.error('Por favor, selecione uma imagem');
       return;
     }
-    if (file.size > 2 * 1024 * 1024) {
-      toast.error('Imagem deve ter no máximo 2MB');
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error('Imagem deve ter no máximo 10MB');
       return;
     }
+    const reader = new FileReader();
+    reader.onload = () => setCropImage(reader.result as string);
+    reader.readAsDataURL(file);
+    // Reset input so same file can be re-selected
+    e.target.value = '';
+  };
 
+  const handleCroppedUpload = async (blob: Blob) => {
+    if (!user) return;
+    setCropImage(null);
     setUploading(true);
     try {
-      const ext = file.name.split('.').pop();
-      const filePath = `${user.id}/avatar.${ext}`;
+      const filePath = `${user.id}/avatar.jpg`;
+      const file = new File([blob], 'avatar.jpg', { type: 'image/jpeg' });
 
       const { error: uploadError } = await supabase.storage
         .from('avatars')
