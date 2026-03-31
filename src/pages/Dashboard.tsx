@@ -28,6 +28,7 @@ const statusColors: Record<string, string> = {
   cancelled: 'bg-destructive/10 text-destructive border-destructive/20',
   completed: 'bg-success/10 text-success border-success/20',
   no_show: 'bg-muted text-muted-foreground border-border',
+  rescheduled: 'bg-orange-500/10 text-orange-600 border-orange-500/20',
 };
 
 const statusCardStyles: Record<string, string> = {
@@ -37,6 +38,7 @@ const statusCardStyles: Record<string, string> = {
   cancelled: 'bg-destructive/5 border-l-4 border-l-destructive opacity-60',
   completed: 'bg-muted/50 border-l-4 border-l-success opacity-75',
   no_show: 'bg-muted/30 border-l-4 border-l-muted-foreground opacity-60',
+  rescheduled: 'bg-orange-50 border-l-4 border-l-orange-500 opacity-60',
 };
 
 const statusLabels: Record<string, string> = {
@@ -46,6 +48,7 @@ const statusLabels: Record<string, string> = {
   cancelled: 'Cancelado',
   completed: 'Concluído',
   no_show: 'Não compareceu',
+  rescheduled: 'Reagendado',
 };
 
 const getDisplayStatus = (apt: any): string => {
@@ -202,7 +205,8 @@ const Dashboard = () => {
         *,
         client:clients!appointments_client_id_fkey(name, whatsapp),
         professional:profiles!appointments_professional_id_fkey(full_name),
-        appointment_services(*, service:services(name))
+        appointment_services(*, service:services(name)),
+        rescheduled_from:appointments!rescheduled_from_id(start_time)
       `)
       .eq('company_id', companyId!)
       .gte('start_time', toSpStart(start))
@@ -976,13 +980,29 @@ const Dashboard = () => {
                       </p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
                     <span className="font-display font-bold text-lg">
                       R$ {Number(apt.total_price).toFixed(2)}
                     </span>
                     <Badge variant="outline" className={cn('text-xs', statusColors[getDisplayStatus(apt)])}>
                       {statusLabels[getDisplayStatus(apt)]}
                     </Badge>
+                    {apt.rescheduled_from_id && (
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <div>
+                            <Badge className="text-xs bg-orange-500 text-white border-orange-500 hover:bg-orange-600 cursor-help">
+                              🔁 Reagendado
+                            </Badge>
+                          </div>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          {apt.rescheduled_from?.start_time
+                            ? `Reagendado de ${format(parseISO(apt.rescheduled_from.start_time), "dd/MM/yyyy 'às' HH:mm")}`
+                            : 'Reagendado de horário anterior'}
+                        </TooltipContent>
+                      </Tooltip>
+                    )}
                   </div>
                   <div className="flex gap-1 flex-wrap">
                     {apt.status === 'pending' && (
