@@ -979,13 +979,18 @@ const Dashboard = () => {
                       </p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
                     <span className="font-display font-bold text-lg">
                       R$ {Number(apt.total_price).toFixed(2)}
                     </span>
                     <Badge variant="outline" className={cn('text-xs', statusColors[getDisplayStatus(apt)])}>
                       {statusLabels[getDisplayStatus(apt)]}
                     </Badge>
+                    {apt.rescheduled_from_id && (
+                      <Badge className="text-xs bg-orange-500 text-white border-orange-500 hover:bg-orange-600">
+                        🔁 Reagendado
+                      </Badge>
+                    )}
                   </div>
                   <div className="flex gap-1 flex-wrap">
                     {apt.status === 'pending' && (
