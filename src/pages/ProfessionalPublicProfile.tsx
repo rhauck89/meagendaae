@@ -304,9 +304,9 @@ export default function ProfessionalPublicProfile() {
                     onClick={() => navigate(`${bookingUrl}?date=${format(nextAvailable.date, 'yyyy-MM-dd')}&time=${time}`)}
                     className="flex-1 py-2.5 rounded-lg text-sm font-semibold transition-all hover:scale-105 active:scale-95"
                     style={{
-                      background: isDark ? 'rgba(245,158,11,0.15)' : 'rgba(217,119,6,0.1)',
-                      color: isDark ? '#F59E0B' : '#D97706',
-                      border: `1px solid ${isDark ? 'rgba(245,158,11,0.25)' : 'rgba(217,119,6,0.2)'}`,
+                      background: `${T.accent}26`,
+                      color: T.accent,
+                      border: `1px solid ${T.accent}40`,
                     }}
                   >
                     {time}
