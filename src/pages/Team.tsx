@@ -422,34 +422,15 @@ const Team = () => {
                   </Button>
                 </div>
 
-                {bookingLink && (
-                  <div className="flex items-center gap-2 rounded-md border bg-muted/30 px-3 py-2">
-                    <LinkIcon className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                    <p className="text-xs text-muted-foreground truncate flex-1">{bookingLink}</p>
-                    <Button variant="ghost" size="sm" className="h-7 px-2" onClick={() => copyToClipboard(bookingLink, 'Link')}>
-                      <Copy className="h-3.5 w-3.5" />
-                    </Button>
-                  </div>
-                )}
                 {profileLink && (
-                  <div className="flex items-center gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="flex-1"
-                      onClick={() => window.open(profileLink, '_blank')}
-                    >
-                      <ExternalLink className="mr-1.5 h-3.5 w-3.5" /> Ver perfil público
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="flex-1"
-                      onClick={() => copyToClipboard(profileLink, 'Link do perfil')}
-                    >
-                      <Copy className="mr-1.5 h-3.5 w-3.5" /> Copiar link do perfil
-                    </Button>
-                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full"
+                    onClick={() => window.open(profileLink, '_blank')}
+                  >
+                    <ExternalLink className="mr-1.5 h-3.5 w-3.5" /> Ver página pública
+                  </Button>
                 )}
               </CardContent>
             </Card>
