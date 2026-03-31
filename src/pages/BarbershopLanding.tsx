@@ -15,6 +15,12 @@ interface BarbershopLandingProps {
   routeBusinessType?: BusinessType;
 }
 
+const formatReviewerName = (name: string): string => {
+  const parts = name.trim().split(/\s+/);
+  if (parts.length === 1) return parts[0];
+  return `${parts[0]} ${parts[parts.length - 1].charAt(0).toUpperCase()}.`;
+};
+
 const StarRating = ({ rating, size = 14 }: { rating: number; size?: number }) => (
   <div className="flex items-center gap-0.5">
     {[1, 2, 3, 4, 5].map((s) => {
@@ -47,6 +53,9 @@ export default function BarbershopLanding({ routeBusinessType }: BarbershopLandi
   const [businessType, setBusinessType] = useState<BusinessType>('barbershop');
   const [loading, setLoading] = useState(true);
   const [companySettings, setCompanySettings] = useState<any>(null);
+  const [galleryImages, setGalleryImages] = useState<any[]>([]);
+  const [showAllReviews, setShowAllReviews] = useState(false);
+  const [allReviewsList, setAllReviewsList] = useState<any[]>([]);
 
   const isDark = businessType === 'barbershop';
 
@@ -65,17 +74,19 @@ export default function BarbershopLanding({ routeBusinessType }: BarbershopLandi
     const resolvedType: BusinessType = routeBusinessType || comp.business_type || 'barbershop';
     setBusinessType(resolvedType);
 
-    const [servicesRes, profsRes, ratingsRes, reviewsRes, settingsRes] = await Promise.all([
+    const [servicesRes, profsRes, ratingsRes, reviewsRes, settingsRes, galleryRes] = await Promise.all([
       supabase.from('public_services' as any).select('*').eq('company_id', comp.id).order('name'),
       supabase.from('public_professionals' as any).select('*').eq('company_id', comp.id).eq('active', true),
       supabase.rpc('get_professional_ratings' as any, { p_company_id: comp.id }),
-      supabase.from('reviews').select('rating, comment, created_at, professional_id').eq('company_id', comp.id).order('created_at', { ascending: false }).limit(3),
+      supabase.from('reviews').select('rating, comment, created_at, professional_id, appointment_id').eq('company_id', comp.id).order('created_at', { ascending: false }),
       supabase.from('company_settings' as any).select('*').eq('company_id', comp.id).single(),
+      supabase.from('company_gallery' as any).select('*').eq('company_id', comp.id).order('sort_order'),
     ]);
 
     if (servicesRes.data) setServices(servicesRes.data as any[]);
     if (profsRes.data) setProfessionals(profsRes.data as any[]);
     if (settingsRes.data) setCompanySettings(settingsRes.data);
+    if (galleryRes.data) setGalleryImages(galleryRes.data as any[]);
 
     // Ratings map
     if (ratingsRes.data && Array.isArray(ratingsRes.data)) {
@@ -86,15 +97,60 @@ export default function BarbershopLanding({ routeBusinessType }: BarbershopLandi
       setProfessionalRatings(map);
     }
 
+    // Enrich reviews with client names from appointments
+    let enrichedReviews: any[] = [];
+    if (reviewsRes.data && reviewsRes.data.length > 0) {
+      const appointmentIds = reviewsRes.data
+        .filter((r: any) => r.appointment_id)
+        .map((r: any) => r.appointment_id);
+      
+      let clientNameMap: Record<string, string> = {};
+      if (appointmentIds.length > 0) {
+        const { data: appts } = await supabase
+          .from('appointments')
+          .select('id, client_name, client_id')
+          .in('id', appointmentIds);
+        
+        if (appts) {
+          // Get client names from clients table for those with client_id
+          const clientIds = appts.filter((a: any) => a.client_id).map((a: any) => a.client_id);
+          let clientNames: Record<string, string> = {};
+          if (clientIds.length > 0) {
+            const { data: clients } = await supabase
+              .from('clients')
+              .select('id, name')
+              .in('id', clientIds);
+            if (clients) {
+              for (const c of clients) {
+                clientNames[c.id] = c.name;
+              }
+            }
+          }
+          
+          for (const a of appts) {
+            const name = a.client_name || clientNames[a.client_id] || null;
+            if (name) clientNameMap[a.id] = name;
+          }
+        }
+      }
+      
+      enrichedReviews = reviewsRes.data.map((r: any) => ({
+        ...r,
+        client_display_name: r.appointment_id && clientNameMap[r.appointment_id]
+          ? formatReviewerName(clientNameMap[r.appointment_id])
+          : null,
+      }));
+    }
+
     // Company-level stats
-    const allReviews = await supabase.from('reviews').select('rating').eq('company_id', comp.id);
-    const revs = allReviews.data || [];
+    const revs = enrichedReviews;
     if (revs.length > 0) {
       const avg = revs.reduce((sum: number, r: any) => sum + Number(r.rating), 0) / revs.length;
       setCompanyStats({ avgRating: avg, reviewCount: revs.length });
     }
 
-    if (reviewsRes.data) setReviews(reviewsRes.data as any[]);
+    setAllReviewsList(enrichedReviews);
+    setReviews(enrichedReviews.slice(0, 3));
     setLoading(false);
   };
 
@@ -276,30 +332,62 @@ export default function BarbershopLanding({ routeBusinessType }: BarbershopLandi
             <div className="flex items-center gap-2 mb-4">
               <Star className="w-5 h-5" style={{ color: '#FDBA2D' }} />
               <h2 className="text-lg font-bold" style={{ color: T.text }}>Avaliações</h2>
+              {companyStats && (
+                <span className="text-xs ml-auto" style={{ color: T.textSec }}>
+                  {companyStats.reviewCount} avaliações
+                </span>
+              )}
             </div>
             <div className="flex flex-col gap-3">
-              {reviews.map((rev: any, i: number) => (
+              {(showAllReviews ? allReviewsList : reviews).map((rev: any, i: number) => (
                 <div
                   key={i}
-                  className="p-3 rounded-xl"
+                  className="p-4 rounded-xl"
                   style={{ background: T.card, border: `1px solid ${T.border}` }}
                 >
-                  <div className="flex items-center gap-1 mb-1">
-                    {[1, 2, 3, 4, 5].map(s => (
-                      <Star key={s} className={cn("w-3 h-3", s <= rev.rating ? "fill-yellow-400 text-yellow-400" : "text-gray-600")} />
-                    ))}
-                    <span className="text-xs ml-2" style={{ color: T.textSec }}>
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      {rev.client_display_name && (
+                        <span className="text-sm font-semibold" style={{ color: T.text }}>
+                          {rev.client_display_name}
+                        </span>
+                      )}
+                      <div className="flex items-center gap-0.5">
+                        {[1, 2, 3, 4, 5].map(s => (
+                          <Star key={s} className={cn("w-3 h-3", s <= rev.rating ? "fill-yellow-400 text-yellow-400" : "text-gray-600")} />
+                        ))}
+                      </div>
+                    </div>
+                    <span className="text-xs" style={{ color: T.textSec }}>
                       {format(new Date(rev.created_at), 'dd/MM/yyyy')}
                     </span>
                   </div>
                   {rev.comment && (
-                    <p className="text-xs leading-relaxed" style={{ color: isDark ? '#D1D5DB' : '#4B5563' }}>
+                    <p className="text-sm leading-relaxed" style={{ color: isDark ? '#D1D5DB' : '#4B5563' }}>
                       "{rev.comment}"
                     </p>
                   )}
                 </div>
               ))}
             </div>
+            {allReviewsList.length > 3 && !showAllReviews && (
+              <button
+                onClick={() => setShowAllReviews(true)}
+                className="w-full mt-3 py-2 text-sm font-medium rounded-xl transition-colors"
+                style={{ color: T.accent, background: `${T.accent}15`, border: `1px solid ${T.accent}30` }}
+              >
+                Ver todas as {allReviewsList.length} avaliações
+              </button>
+            )}
+            {showAllReviews && allReviewsList.length > 3 && (
+              <button
+                onClick={() => setShowAllReviews(false)}
+                className="w-full mt-3 py-2 text-sm font-medium rounded-xl transition-colors"
+                style={{ color: T.textSec }}
+              >
+                Mostrar menos
+              </button>
+            )}
           </section>
         )}
 
@@ -333,23 +421,19 @@ export default function BarbershopLanding({ routeBusinessType }: BarbershopLandi
           </section>
         )}
 
-        {/* 10) Photo Gallery - Placeholder */}
-        {/* Gallery images would come from a company_photos table - shown as placeholder if cover exists */}
-        {company.cover_url && (
+        {/* 10) Photo Gallery */}
+        {galleryImages.length > 0 && (
           <section>
             <div className="flex items-center gap-2 mb-4">
               <Sparkles className="w-5 h-5" style={{ color: T.accent }} />
               <h2 className="text-lg font-bold" style={{ color: T.text }}>Galeria</h2>
             </div>
             <div className="grid grid-cols-2 gap-2">
-              <div className="rounded-xl overflow-hidden aspect-square">
-                <img src={company.cover_url} alt="Galeria" className="w-full h-full object-cover" />
-              </div>
-              {company.logo_url && (
-                <div className="rounded-xl overflow-hidden aspect-square flex items-center justify-center" style={{ background: T.card, border: `1px solid ${T.border}` }}>
-                  <img src={company.logo_url} alt="Logo" className="max-h-[60%] max-w-[80%] object-contain" />
+              {galleryImages.slice(0, 8).map((img: any, i: number) => (
+                <div key={img.id || i} className="rounded-xl overflow-hidden aspect-square">
+                  <img src={img.image_url} alt={img.caption || 'Galeria'} className="w-full h-full object-cover" />
                 </div>
-              )}
+              ))}
             </div>
           </section>
         )}
