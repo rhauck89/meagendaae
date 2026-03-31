@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
 import { Scissors } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 const friendlyError = (msg: string): string => {
   if (msg.includes('Invalid login')) return 'Email ou senha incorretos.';
@@ -141,6 +142,13 @@ const Auth = () => {
                 autoComplete={isLogin ? 'current-password' : 'new-password'}
               />
               {errors.password && <p className="text-sm text-destructive">{errors.password}</p>}
+              {isLogin && (
+                <div className="text-right">
+                  <Link to="/forgot-password" className="text-xs text-muted-foreground hover:text-primary hover:underline">
+                    Esqueceu sua senha?
+                  </Link>
+                </div>
+              )}
             </div>
             <Button type="submit" className="w-full" disabled={loading}>
               {loading ? 'Processando...' : isLogin ? 'Entrar' : 'Criar Conta'}
