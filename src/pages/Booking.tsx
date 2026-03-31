@@ -701,6 +701,15 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
                   </p>
                 )}
                 <p className="text-xs mt-0.5 truncate" style={{ color: T.textSec }}>{company.name}</p>
+                {recentBookings !== null && recentBookings >= 1 && (
+                  <p className="text-xs mt-1 font-medium" style={{ color: T.greenText }}>
+                    {recentBookings >= 5
+                      ? '🔥 Muito procurado esta semana'
+                      : recentBookings >= 2
+                        ? `👥 ${recentBookings} pessoas agendaram recentemente`
+                        : '👤 1 pessoa agendou recentemente'}
+                  </p>
+                )}
               </div>
             </div>
           </div>
