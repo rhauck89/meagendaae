@@ -257,7 +257,7 @@ const EventPublic = () => {
         {event?.cover_image && <img src={event.cover_image} alt={event.name} className="absolute inset-0 w-full h-full object-cover opacity-60" />}
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
         <div className="relative z-10 h-full flex flex-col justify-end p-6 md:p-10 max-w-4xl mx-auto">
-          <Badge className="w-fit mb-2 bg-white/20 text-white border-white/30">Evento Especial</Badge>
+          <Badge className="w-fit mb-2 bg-white/20 text-white border-white/30">Agenda Aberta</Badge>
           <h1 className="text-3xl md:text-4xl font-display font-bold text-white">{event?.name}</h1>
           <p className="text-white/80 mt-1 flex items-center gap-2">
             <Calendar className="h-4 w-4" />
