@@ -679,12 +679,17 @@ const Events = () => {
                 </div>
 
                 {event.status === 'published' && (
-                  <div className="flex gap-1.5">
-                    <Button size="sm" variant="secondary" className="flex-1 gap-1.5" onClick={() => window.open(getPublicUrl(event), '_blank')}>
-                      <ExternalLink className="h-3.5 w-3.5" /> Ver página
-                    </Button>
-                    <Button size="sm" variant="outline" onClick={() => { navigator.clipboard.writeText(getPublicUrl(event)); toast.success('Link copiado!'); }}>
-                      <Copy className="h-3.5 w-3.5" />
+                  <div className="flex flex-col gap-1.5">
+                    <div className="flex gap-1.5">
+                      <Button size="sm" variant="secondary" className="flex-1 gap-1.5" onClick={() => window.open(getPublicUrl(event), '_blank')}>
+                        <ExternalLink className="h-3.5 w-3.5" /> Ver página
+                      </Button>
+                      <Button size="sm" variant="outline" onClick={() => { navigator.clipboard.writeText(getPublicUrl(event)); toast.success('Link copiado!'); }}>
+                        <Copy className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                    <Button size="sm" variant="outline" className="w-full gap-1.5" onClick={() => generateStoryImage(event)}>
+                      <Instagram className="h-3.5 w-3.5" /> Compartilhar nos Stories
                     </Button>
                   </div>
                 )}
