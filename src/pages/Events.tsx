@@ -456,84 +456,175 @@ const Events = () => {
 
   const getPublicUrl = (event: Event) => `${window.location.origin}/event/${event.slug}`;
 
-  const generateStoryImage = async (event: Event) => {
+  const openStorySourceDialog = (event: Event) => {
     setStoryEvent(event);
+    setStoryImageUrl(null);
+    setShowStorySourceDialog(true);
+  };
+
+  const handleStorySourceCover = () => {
+    setShowStorySourceDialog(false);
+    if (storyEvent) generateStoryImage(storyEvent, storyEvent.cover_image || null);
+  };
+
+  const handleStorySourceCamera = () => {
+    setShowStorySourceDialog(false);
+    cameraInputRef.current?.click();
+  };
+
+  const handleCameraCapture = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !storyEvent) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      generateStoryImage(storyEvent, reader.result as string);
+    };
+    reader.readAsDataURL(file);
+    if (cameraInputRef.current) cameraInputRef.current.value = '';
+  };
+
+  const generateStoryImage = async (event: Event, backgroundImage: string | null) => {
     setStoryImageUrl(null);
     setGeneratingStory(true);
     setShowStoryDialog(true);
 
     try {
+      const branding = getCompanyBranding(companySettings, true);
+      const primaryColor = branding.primaryColor;
+      const secondaryColor = branding.secondaryColor;
+      const bgColor = branding.backgroundColor;
+
       const canvas = document.createElement('canvas');
       canvas.width = 1080;
       canvas.height = 1920;
       const ctx = canvas.getContext('2d')!;
 
-      // Background gradient
-      const grad = ctx.createLinearGradient(0, 0, 0, 1920);
-      grad.addColorStop(0, '#0B132B');
-      grad.addColorStop(0.5, '#1C2541');
-      grad.addColorStop(1, '#0B132B');
-      ctx.fillStyle = grad;
+      // Background: use secondary/bg color as base
+      ctx.fillStyle = bgColor;
       ctx.fillRect(0, 0, 1080, 1920);
 
-      // Cover image
-      if (event.cover_image) {
+      // Draw background image (cover or camera photo) full-bleed
+      if (backgroundImage) {
         try {
           const img = new Image();
           img.crossOrigin = 'anonymous';
           await new Promise<void>((resolve, reject) => {
             img.onload = () => resolve();
             img.onerror = () => reject();
-            img.src = event.cover_image!;
+            img.src = backgroundImage;
           });
-          // Draw cover with rounded corners effect
-          ctx.save();
-          const coverY = 180;
-          const coverH = 500;
-          const coverX = 60;
-          const coverW = 960;
-          const radius = 24;
-          ctx.beginPath();
-          ctx.moveTo(coverX + radius, coverY);
-          ctx.lineTo(coverX + coverW - radius, coverY);
-          ctx.quadraticCurveTo(coverX + coverW, coverY, coverX + coverW, coverY + radius);
-          ctx.lineTo(coverX + coverW, coverY + coverH - radius);
-          ctx.quadraticCurveTo(coverX + coverW, coverY + coverH, coverX + coverW - radius, coverY + coverH);
-          ctx.lineTo(coverX + radius, coverY + coverH);
-          ctx.quadraticCurveTo(coverX, coverY + coverH, coverX, coverY + coverH - radius);
-          ctx.lineTo(coverX, coverY + radius);
-          ctx.quadraticCurveTo(coverX, coverY, coverX + radius, coverY);
-          ctx.closePath();
-          ctx.clip();
-          ctx.drawImage(img, coverX, coverY, coverW, coverH);
-          ctx.restore();
+          // Draw full cover
+          const scale = Math.max(1080 / img.width, 1920 / img.height);
+          const w = img.width * scale;
+          const h = img.height * scale;
+          ctx.drawImage(img, (1080 - w) / 2, (1920 - h) / 2, w, h);
         } catch {
-          // Cover failed to load, skip
+          // Image failed, keep solid bg
         }
       }
 
+      // Gradient overlay bottom-to-top for text readability
+      const gradOverlay = ctx.createLinearGradient(0, 1920, 0, 600);
+      gradOverlay.addColorStop(0, 'rgba(0,0,0,0.85)');
+      gradOverlay.addColorStop(0.5, 'rgba(0,0,0,0.5)');
+      gradOverlay.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = gradOverlay;
+      ctx.fillRect(0, 0, 1080, 1920);
+
+      // Top gradient for header
+      const gradTop = ctx.createLinearGradient(0, 0, 0, 400);
+      gradTop.addColorStop(0, 'rgba(0,0,0,0.7)');
+      gradTop.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = gradTop;
+      ctx.fillRect(0, 0, 1080, 400);
+
+      // Header: "🔥 AGENDA ABERTA"
+      ctx.textAlign = 'center';
+      ctx.fillStyle = primaryColor;
+      ctx.font = 'bold 52px system-ui, -apple-system, sans-serif';
+      ctx.fillText('🔥 AGENDA ABERTA', 540, 120);
+
+      // Profile display: find professional or use company
+      const eventSlotsList = eventSlots.length > 0 ? eventSlots : [];
+      let profileName = companyData?.name || '';
+      let profileImageUrl: string | null = companyData?.logo_url || null;
+
+      // Check if event has a specific professional
+      if (eventSlotsList.length > 0) {
+        const profId = eventSlotsList[0].professional_id;
+        const prof = professionals.find(p => p.profile_id === profId);
+        if (prof?.profiles) {
+          profileName = prof.profiles.full_name || profileName;
+          profileImageUrl = prof.profiles.avatar_url || profileImageUrl;
+        }
+      } else {
+        // Try loading slots for this event
+        const { data: slots } = await supabase.from('event_slots').select('professional_id').eq('event_id', event.id).limit(1);
+        if (slots && slots.length > 0) {
+          const prof = professionals.find(p => p.profile_id === slots[0].professional_id);
+          if (prof?.profiles) {
+            profileName = prof.profiles.full_name || profileName;
+            profileImageUrl = prof.profiles.avatar_url || profileImageUrl;
+          }
+        }
+      }
+
+      // Draw profile photo circle
+      const profileY = 200;
+      if (profileImageUrl) {
+        try {
+          const profImg = new Image();
+          profImg.crossOrigin = 'anonymous';
+          await new Promise<void>((resolve, reject) => {
+            profImg.onload = () => resolve();
+            profImg.onerror = () => reject();
+            profImg.src = profileImageUrl!;
+          });
+          ctx.save();
+          ctx.beginPath();
+          ctx.arc(540, profileY + 80, 80, 0, Math.PI * 2);
+          ctx.closePath();
+          ctx.clip();
+          ctx.drawImage(profImg, 460, profileY, 160, 160);
+          ctx.restore();
+
+          // Circle border
+          ctx.strokeStyle = primaryColor;
+          ctx.lineWidth = 4;
+          ctx.beginPath();
+          ctx.arc(540, profileY + 80, 82, 0, Math.PI * 2);
+          ctx.stroke();
+        } catch {
+          // skip profile image
+        }
+      }
+
+      // Profile name
+      ctx.fillStyle = '#FFFFFF';
+      ctx.font = 'bold 40px system-ui, -apple-system, sans-serif';
+      ctx.fillText(profileName, 540, profileY + 200);
+
       // Accent bar
-      const accentGrad = ctx.createLinearGradient(60, 750, 1020, 750);
-      accentGrad.addColorStop(0, '#F59E0B');
-      accentGrad.addColorStop(1, '#D97706');
+      const accentGrad = ctx.createLinearGradient(300, 0, 780, 0);
+      accentGrad.addColorStop(0, primaryColor);
+      accentGrad.addColorStop(1, secondaryColor);
       ctx.fillStyle = accentGrad;
-      roundRect(ctx, 60, 740, 960, 6, 3);
+      roundRect(ctx, 300, profileY + 230, 480, 6, 3);
       ctx.fill();
 
-      // Event name
+      // Event name - positioned in lower section
       ctx.fillStyle = '#FFFFFF';
-      ctx.font = 'bold 64px system-ui, -apple-system, sans-serif';
-      ctx.textAlign = 'center';
-      wrapText(ctx, event.name.toUpperCase(), 540, 840, 900, 76);
+      ctx.font = 'bold 68px system-ui, -apple-system, sans-serif';
+      wrapText(ctx, event.name.toUpperCase(), 540, 1100, 900, 80);
 
       // Date
       const dateText = event.start_date === event.end_date
         ? format(parseISO(event.start_date), "dd 'de' MMMM", { locale: ptBR })
         : `${format(parseISO(event.start_date), "dd/MM", { locale: ptBR })} a ${format(parseISO(event.end_date), "dd/MM/yyyy", { locale: ptBR })}`;
 
-      ctx.fillStyle = '#F59E0B';
+      ctx.fillStyle = primaryColor;
       ctx.font = 'bold 48px system-ui, -apple-system, sans-serif';
-      ctx.fillText(`📅 ${dateText}`, 540, 1020);
+      ctx.fillText(`📅 ${dateText}`, 540, 1300);
 
       // Slot counter
       const stats = eventSlotStats[event.id];
@@ -547,31 +638,25 @@ const Events = () => {
 
         ctx.fillStyle = remaining <= 5 && remaining > 0 ? '#FB923C' : remaining <= 0 ? '#EF4444' : '#34D399';
         ctx.font = 'bold 44px system-ui, -apple-system, sans-serif';
-        ctx.fillText(slotText, 540, 1120);
+        ctx.fillText(slotText, 540, 1400);
       }
 
-      // Booking URL
-      const bookingUrl = getPublicUrl(event);
-      ctx.fillStyle = 'rgba(245, 158, 11, 0.15)';
-      roundRect(ctx, 60, 1260, 960, 120, 20);
+      // CTA button instead of URL
+      const ctaY = 1560;
+      const ctaW = 600;
+      const ctaH = 100;
+      const ctaX = (1080 - ctaW) / 2;
+
+      const ctaGrad = ctx.createLinearGradient(ctaX, ctaY, ctaX + ctaW, ctaY);
+      ctaGrad.addColorStop(0, primaryColor);
+      ctaGrad.addColorStop(1, secondaryColor);
+      ctx.fillStyle = ctaGrad;
+      roundRect(ctx, ctaX, ctaY, ctaW, ctaH, 50);
       ctx.fill();
-      ctx.strokeStyle = '#F59E0B';
-      ctx.lineWidth = 2;
-      roundRect(ctx, 60, 1260, 960, 120, 20);
-      ctx.stroke();
 
-      ctx.fillStyle = '#F59E0B';
-      ctx.font = 'bold 32px system-ui, -apple-system, sans-serif';
-      ctx.fillText('AGENDE AGORA', 540, 1310);
       ctx.fillStyle = '#FFFFFF';
-      ctx.font = '28px system-ui, -apple-system, sans-serif';
-      const shortUrl = bookingUrl.replace(/^https?:\/\//, '');
-      ctx.fillText(shortUrl.length > 45 ? shortUrl.slice(0, 45) + '...' : shortUrl, 540, 1355);
-
-      // Swipe up indicator
-      ctx.fillStyle = 'rgba(255,255,255,0.5)';
-      ctx.font = '28px system-ui, -apple-system, sans-serif';
-      ctx.fillText('⬆ Deslize para agendar', 540, 1800);
+      ctx.font = 'bold 40px system-ui, -apple-system, sans-serif';
+      ctx.fillText('AGENDE AGORA', 540, ctaY + 62);
 
       const dataUrl = canvas.toDataURL('image/png');
       setStoryImageUrl(dataUrl);
