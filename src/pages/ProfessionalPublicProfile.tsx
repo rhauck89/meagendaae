@@ -97,6 +97,10 @@ export default function ProfessionalPublicProfile() {
     const { count } = await supabase.from('appointments').select('id', { count: 'exact', head: true }).eq('professional_id', prof.id).eq('status', 'completed');
     setCompletedCount(count || 0);
 
+    // Fetch company settings for branding
+    const { data: csData } = await supabase.from('company_settings' as any).select('primary_color, secondary_color, background_color').eq('company_id', comp.id).single();
+    if (csData) setCompanySettings(csData);
+
     // Next available slots
     await fetchNextSlots(comp, prof);
     setLoading(false);
