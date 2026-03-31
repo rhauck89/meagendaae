@@ -215,7 +215,7 @@ const ProfilePage = () => {
                 accept="image/*"
                 capture="environment"
                 className="hidden"
-                onChange={handleAvatarUpload}
+                onChange={handleFileSelect}
               />
               <Button
                 variant="outline"
