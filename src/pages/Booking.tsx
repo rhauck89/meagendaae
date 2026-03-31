@@ -588,16 +588,26 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
   };
 
   const handleBook = async () => {
-    if (!company || !selectedDate || !selectedTime || !selectedProfessional) return;
+    if (!company || !selectedDate || !selectedTime || !selectedProfessional) {
+      console.error('[Booking] Missing required data:', { company: !!company, selectedDate, selectedTime, selectedProfessional });
+      toast.error('Dados incompletos. Tente novamente.');
+      return;
+    }
     setLoading(true);
     try {
       const formattedWhatsapp = clientForm.whatsapp ? formatWhatsApp(clientForm.whatsapp) : null;
+      console.log('[Booking] Creating client:', { name: clientForm.full_name, company_id: company.id });
       const { data: clientIdFromRpc, error: clientError } = await supabase.rpc('create_client', {
         p_name: clientForm.full_name, p_cpf: clientForm.cpf || '', p_whatsapp: formattedWhatsapp || '',
         p_email: clientForm.email || '', p_company_id: company.id,
+        p_birth_date: clientForm.birth_date || null,
       });
-      if (clientError) throw clientError;
+      if (clientError) {
+        console.error('[Booking] Client creation error:', clientError);
+        throw clientError;
+      }
       const clientId = clientIdFromRpc;
+      console.log('[Booking] Client ID:', clientId);
       if (clientId) {
         localStorage.setItem(`client_id_${company.id}`, clientId);
         localStorage.setItem(`client_data_${company.id}`, JSON.stringify({
@@ -615,15 +625,20 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
 
       const appointmentPayload = {
         p_professional_id: selectedProfessional, p_client_id: clientId,
-        p_start_time: startTime, p_end_time: endTime, p_total_price: totalPrice,
+        p_start_time: startTime.toISOString(), p_end_time: endTime.toISOString(), p_total_price: totalPrice,
         p_client_name: clientForm.full_name ?? null,
         p_client_whatsapp: formattedWhatsapp ?? null,
         p_notes: null as string | null,
       };
 
+      console.log('[Booking] Creating appointment:', appointmentPayload);
       const { data: appointmentId, error: aptError } = await supabase
         .rpc('create_appointment' as any, appointmentPayload as any);
-      if (aptError) throw aptError;
+      if (aptError) {
+        console.error('[Booking] Appointment creation error:', aptError);
+        throw aptError;
+      }
+      console.log('[Booking] Appointment created:', appointmentId);
       if (!appointmentId) throw new Error('Falha ao criar agendamento');
 
       const aptServicesPayload = selectedServices.map((sid) => {
