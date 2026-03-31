@@ -401,8 +401,8 @@ export default function ProfessionalPublicProfile() {
                   key={svc.id}
                   className="flex items-center justify-between p-3 rounded-xl border"
                   style={{
-                    background: isDark ? '#111827' : '#FFFFFF',
-                    borderColor: isDark ? '#1F2937' : '#E5E7EB',
+                    background: T.card,
+                    borderColor: T.border,
                   }}
                 >
                   <div>
