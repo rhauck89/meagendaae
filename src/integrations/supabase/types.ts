@@ -734,6 +734,7 @@ export type Database = {
           description: string | null
           end_date: string
           id: string
+          max_bookings_per_client: number
           name: string
           slug: string
           start_date: string
@@ -747,6 +748,7 @@ export type Database = {
           description?: string | null
           end_date: string
           id?: string
+          max_bookings_per_client?: number
           name: string
           slug: string
           start_date: string
@@ -760,6 +762,7 @@ export type Database = {
           description?: string | null
           end_date?: string
           id?: string
+          max_bookings_per_client?: number
           name?: string
           slug?: string
           start_date?: string

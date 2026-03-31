@@ -193,6 +193,8 @@ const EventPublic = () => {
     } catch (err: any) {
       if (err.message?.includes('Slot is full')) {
         toast.error('Este horário acabou de ser preenchido. Tente outro ou entre na lista de espera.');
+      } else if (err.message?.includes('limite de agendamentos')) {
+        toast.error('Você já atingiu o limite de agendamentos para este evento.');
       } else {
         toast.error(err.message || 'Erro ao agendar');
       }
@@ -255,7 +257,7 @@ const EventPublic = () => {
         {event?.cover_image && <img src={event.cover_image} alt={event.name} className="absolute inset-0 w-full h-full object-cover opacity-60" />}
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
         <div className="relative z-10 h-full flex flex-col justify-end p-6 md:p-10 max-w-4xl mx-auto">
-          <Badge className="w-fit mb-2 bg-white/20 text-white border-white/30">Evento Especial</Badge>
+          <Badge className="w-fit mb-2 bg-white/20 text-white border-white/30">Agenda Aberta</Badge>
           <h1 className="text-3xl md:text-4xl font-display font-bold text-white">{event?.name}</h1>
           <p className="text-white/80 mt-1 flex items-center gap-2">
             <Calendar className="h-4 w-4" />
@@ -294,7 +296,28 @@ const EventPublic = () => {
 
         {/* Slots */}
         <div>
-          <h2 className="text-xl font-display font-semibold mb-4">Horários Disponíveis</h2>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-display font-semibold">Horários Disponíveis</h2>
+            {(() => {
+              const totalSlots = slots.reduce((sum, s) => sum + s.max_bookings, 0);
+              const totalBooked = slots.reduce((sum, s) => sum + s.current_bookings, 0);
+              const remaining = totalSlots - totalBooked;
+              if (totalSlots === 0) return null;
+              const isLow = remaining > 0 && remaining <= 5;
+              return (
+                <Badge variant="outline" className={cn(
+                  'text-sm font-semibold',
+                  remaining === 0 ? 'border-destructive text-destructive' :
+                  isLow ? 'border-orange-500 text-orange-600' :
+                  'border-primary text-primary'
+                )}>
+                  {remaining === 0 ? '❌ Esgotado' :
+                   isLow ? `🔥 Últimas ${remaining} vagas` :
+                   `${remaining} vagas`}
+                </Badge>
+              );
+            })()}
+          </div>
           {filteredSlots.length === 0 ? (
             <p className="text-muted-foreground">Nenhum horário disponível para esta data.</p>
           ) : (

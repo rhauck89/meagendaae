@@ -10,7 +10,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Calendar, Plus, Pencil, Trash2, Clock, DollarSign, Copy, ExternalLink, Upload, X, ImageIcon } from 'lucide-react';
+import { Calendar, Plus, Pencil, Trash2, Clock, DollarSign, Copy, ExternalLink, Upload, X, ImageIcon, Users } from 'lucide-react';
 import { format, parseISO, eachDayOfInterval } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
@@ -27,6 +27,7 @@ type Event = {
   end_date: string;
   status: 'draft' | 'published' | 'cancelled' | 'completed';
   created_at: string;
+  max_bookings_per_client: number;
 };
 
 type EventSlot = {
@@ -88,7 +89,9 @@ const Events = () => {
   const [formCoverPreview, setFormCoverPreview] = useState('');
   const [uploadingCover, setUploadingCover] = useState(false);
   const [formStatus, setFormStatus] = useState<'draft' | 'published'>('draft');
+  const [formMaxBookingsPerClient, setFormMaxBookingsPerClient] = useState(0);
   const [saving, setSaving] = useState(false);
+  const [eventSlotStats, setEventSlotStats] = useState<Record<string, { total: number; booked: number }>>({});
   const coverInputRef = useRef<HTMLInputElement>(null);
 
   const [slotMode, setSlotMode] = useState<'manual' | 'auto'>('auto');
@@ -122,7 +125,26 @@ const Events = () => {
       .select('*')
       .eq('company_id', companyId!)
       .order('start_date', { ascending: false });
-    setEvents((data as any[]) || []);
+    const eventsList = (data as any[]) || [];
+    setEvents(eventsList);
+
+    // Load slot stats for all events
+    if (eventsList.length > 0) {
+      const eventIds = eventsList.map(e => e.id);
+      const { data: slotsData } = await supabase
+        .from('event_slots')
+        .select('event_id, max_bookings, current_bookings')
+        .in('event_id', eventIds);
+      
+      const stats: Record<string, { total: number; booked: number }> = {};
+      (slotsData || []).forEach((s: any) => {
+        if (!stats[s.event_id]) stats[s.event_id] = { total: 0, booked: 0 };
+        stats[s.event_id].total += s.max_bookings;
+        stats[s.event_id].booked += s.current_bookings;
+      });
+      setEventSlotStats(stats);
+    }
+
     setLoading(false);
   };
 
@@ -205,6 +227,7 @@ const Events = () => {
       setFormCoverImage(event.cover_image || '');
       setFormCoverPreview(event.cover_image || '');
       setFormStatus(event.status as 'draft' | 'published');
+      setFormMaxBookingsPerClient(event.max_bookings_per_client || 0);
     } else {
       setEditingEvent(null);
       setFormName('');
@@ -214,6 +237,7 @@ const Events = () => {
       setFormCoverImage('');
       setFormCoverPreview('');
       setFormStatus('draft');
+      setFormMaxBookingsPerClient(0);
     }
     setShowCreateDialog(true);
   };
@@ -235,6 +259,7 @@ const Events = () => {
         start_date: formStartDate,
         end_date: formEndDate,
         status: formStatus,
+        max_bookings_per_client: formMaxBookingsPerClient,
       };
 
       if (editingEvent) {
@@ -395,8 +420,8 @@ const Events = () => {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-display font-bold">Eventos</h2>
-          <p className="text-muted-foreground">Gerencie eventos especiais e suas agendas</p>
+          <h2 className="text-2xl font-display font-bold">Agenda Aberta</h2>
+          <p className="text-muted-foreground">Gerencie agendas abertas e suas vagas</p>
         </div>
         <Button onClick={() => openCreateDialog()} className="gap-2">
           <Plus className="h-4 w-4" /> Criar Evento
@@ -441,6 +466,27 @@ const Events = () => {
                   <Calendar className="h-4 w-4" />
                   {format(parseISO(event.start_date), "dd/MM/yyyy", { locale: ptBR })} - {format(parseISO(event.end_date), "dd/MM/yyyy", { locale: ptBR })}
                 </div>
+
+                {/* Slot counter */}
+                {(() => {
+                  const stats = eventSlotStats[event.id];
+                  if (!stats || stats.total === 0) return null;
+                  const remaining = stats.total - stats.booked;
+                  const isLow = remaining <= 5 && remaining > 0;
+                  return (
+                    <div className={cn(
+                      'flex items-center gap-2 text-sm font-medium px-3 py-1.5 rounded-lg',
+                      remaining === 0 ? 'bg-destructive/10 text-destructive' :
+                      isLow ? 'bg-orange-500/10 text-orange-600 dark:text-orange-400' :
+                      'bg-primary/10 text-primary'
+                    )}>
+                      <Users className="h-4 w-4" />
+                      {remaining === 0 ? 'Esgotado' :
+                       isLow ? `🔥 Últimas ${remaining} vagas` :
+                       `${remaining} vagas disponíveis`}
+                    </div>
+                  );
+                })()}
 
                 <div className="flex flex-wrap gap-1.5">
                   <Button size="sm" variant="outline" onClick={() => openCreateDialog(event)} className="gap-1.5">
@@ -555,6 +601,16 @@ const Events = () => {
               )}
             </div>
 
+            <div>
+              <Label>Máx. agendamentos por cliente</Label>
+              <Input
+                type="number"
+                min={0}
+                value={formMaxBookingsPerClient}
+                onChange={e => setFormMaxBookingsPerClient(Number(e.target.value))}
+              />
+              <p className="text-xs text-muted-foreground mt-1">0 = ilimitado</p>
+            </div>
             <div>
               <Label>Status</Label>
               <Select value={formStatus} onValueChange={(v) => setFormStatus(v as 'draft' | 'published')}>
