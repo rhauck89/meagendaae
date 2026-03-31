@@ -43,6 +43,7 @@ export default function ProfessionalPublicProfile() {
   const [businessType, setBusinessType] = useState<BusinessType>('barbershop');
   const [copied, setCopied] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [companySettings, setCompanySettings] = useState<any>(null);
 
   useEffect(() => { if (slug && professionalSlug) load(); }, [slug, professionalSlug]);
 
