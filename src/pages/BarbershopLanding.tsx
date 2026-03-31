@@ -81,19 +81,21 @@ export default function BarbershopLanding({ routeBusinessType }: BarbershopLandi
     const resolvedType: BusinessType = routeBusinessType || comp.business_type || 'barbershop';
     setBusinessType(resolvedType);
 
-    const [servicesRes, profsRes, ratingsRes, reviewsRes, settingsRes, galleryRes] = await Promise.all([
+    const [servicesRes, profsRes, ratingsRes, reviewsRes, settingsRes, galleryRes, eventsRes] = await Promise.all([
       supabase.from('public_services' as any).select('*').eq('company_id', comp.id).order('name'),
       supabase.from('public_professionals' as any).select('*').eq('company_id', comp.id).eq('active', true),
       supabase.rpc('get_professional_ratings' as any, { p_company_id: comp.id }),
       supabase.from('reviews').select('rating, comment, created_at, professional_id, appointment_id').eq('company_id', comp.id).order('created_at', { ascending: false }),
       supabase.from('company_settings' as any).select('*').eq('company_id', comp.id).single(),
       supabase.from('company_gallery' as any).select('*').eq('company_id', comp.id).order('sort_order'),
+      supabase.from('events' as any).select('*').eq('company_id', comp.id).eq('status', 'published').order('start_date'),
     ]);
 
     if (servicesRes.data) setServices(servicesRes.data as any[]);
     if (profsRes.data) setProfessionals(profsRes.data as any[]);
     if (settingsRes.data) setCompanySettings(settingsRes.data);
     if (galleryRes.data) setGalleryImages(galleryRes.data as any[]);
+    if (eventsRes.data) setCompanyEvents(eventsRes.data as any[]);
 
     // Ratings map
     if (ratingsRes.data && Array.isArray(ratingsRes.data)) {
