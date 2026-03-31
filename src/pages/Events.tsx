@@ -259,6 +259,7 @@ const Events = () => {
         start_date: formStartDate,
         end_date: formEndDate,
         status: formStatus,
+        max_bookings_per_client: formMaxBookingsPerClient,
       };
 
       if (editingEvent) {
