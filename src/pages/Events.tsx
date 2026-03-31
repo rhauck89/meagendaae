@@ -956,6 +956,56 @@ const Events = () => {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Story Share Dialog */}
+      <Dialog open={showStoryDialog} onOpenChange={setShowStoryDialog}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Instagram className="h-5 w-5" /> Compartilhar nos Stories
+            </DialogTitle>
+            <DialogDescription>
+              Imagem otimizada para Instagram Stories (1080×1920)
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            {generatingStory ? (
+              <div className="h-64 flex items-center justify-center bg-muted rounded-lg">
+                <p className="text-sm text-muted-foreground animate-pulse">Gerando imagem...</p>
+              </div>
+            ) : storyImageUrl ? (
+              <div className="rounded-lg overflow-hidden border bg-muted">
+                <img
+                  src={storyImageUrl}
+                  alt="Story preview"
+                  className="w-full h-auto"
+                />
+              </div>
+            ) : null}
+
+            <div className="flex gap-2">
+              <Button
+                className="flex-1 gap-2"
+                onClick={handleDownloadStory}
+                disabled={!storyImageUrl}
+              >
+                <Download className="h-4 w-4" /> Baixar Imagem
+              </Button>
+              <Button
+                variant="outline"
+                className="gap-2"
+                onClick={handleCopyBookingLink}
+              >
+                <Link className="h-4 w-4" /> Copiar Link
+              </Button>
+            </div>
+
+            <p className="text-xs text-muted-foreground text-center">
+              Baixe a imagem e compartilhe diretamente no Instagram Stories. Cole o link no sticker de link.
+            </p>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
