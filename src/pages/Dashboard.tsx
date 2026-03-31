@@ -205,7 +205,8 @@ const Dashboard = () => {
         *,
         client:clients!appointments_client_id_fkey(name, whatsapp),
         professional:profiles!appointments_professional_id_fkey(full_name),
-        appointment_services(*, service:services(name))
+        appointment_services(*, service:services(name)),
+        rescheduled_from:appointments!rescheduled_from_id(start_time)
       `)
       .eq('company_id', companyId!)
       .gte('start_time', toSpStart(start))
