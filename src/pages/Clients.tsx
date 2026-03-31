@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Search, MessageCircle, Users, ArrowLeft, Calendar, DollarSign, Star, Scissors } from 'lucide-react';
+import { Search, MessageCircle, Users, ArrowLeft, Calendar, DollarSign, Star, Scissors, Cake } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { displayWhatsApp } from '@/lib/whatsapp';
@@ -18,6 +18,7 @@ interface ClientRow {
   name: string;
   whatsapp: string | null;
   email: string | null;
+  birth_date: string | null;
   next_recommended_visit: string | null;
   created_at: string;
 }
@@ -37,6 +38,7 @@ const Clients = () => {
   const { isAdmin, profileId } = useUserRole();
   const [search, setSearch] = useState('');
   const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
+  const [showAllBirthdays, setShowAllBirthdays] = useState(false);
 
   // Fetch all clients
   const { data: clients = [], isLoading } = useQuery({
@@ -112,6 +114,31 @@ const Clients = () => {
     (c.whatsapp && c.whatsapp.includes(search))
   );
 
+   // Birthday calculations
+  const clientsWithBirthdays = clients
+    .filter(c => c.birth_date)
+    .map(c => {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const birth = parseISO(c.birth_date!);
+      let nextBirthday = new Date(today.getFullYear(), birth.getMonth(), birth.getDate());
+      if (nextBirthday < today) {
+        nextBirthday = new Date(today.getFullYear() + 1, birth.getMonth(), birth.getDate());
+      }
+      const diffTime = nextBirthday.getTime() - today.getTime();
+      const daysRemaining = Math.round(diffTime / (1000 * 60 * 60 * 24));
+      return { ...c, daysRemaining, nextBirthday };
+    })
+    .sort((a, b) => a.daysRemaining - b.daysRemaining);
+
+  const displayBirthdays = showAllBirthdays ? clientsWithBirthdays : clientsWithBirthdays.slice(0, 5);
+
+  const daysLabel = (days: number) => {
+    if (days === 0) return 'Hoje 🎂';
+    if (days === 1) return 'Amanhã';
+    return `${days} dias`;
+  };
+
   const selectedClient = clients.find(c => c.id === selectedClientId);
 
   if (selectedClient) {
@@ -143,6 +170,58 @@ const Clients = () => {
           className="pl-10"
         />
       </div>
+
+      {/* Upcoming Birthdays */}
+      {clientsWithBirthdays.length > 0 && (
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center gap-2">
+              <Cake className="h-4 w-4 text-pink-500" /> Próximos aniversariantes
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {displayBirthdays.map(c => (
+                <div key={c.id} className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div>
+                      <p className="font-medium text-sm">{c.name}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {format(parseISO(c.birth_date!), "dd/MM", { locale: ptBR })}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Badge variant={c.daysRemaining === 0 ? 'default' : 'secondary'} className="text-xs">
+                      {daysLabel(c.daysRemaining)}
+                    </Badge>
+                    {c.whatsapp && (
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="h-7 w-7 text-green-600"
+                        onClick={() => window.open(`https://wa.me/${c.whatsapp}`, '_blank')}
+                      >
+                        <MessageCircle className="h-3.5 w-3.5" />
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+            {clientsWithBirthdays.length > 5 && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="mt-3 w-full text-xs"
+                onClick={() => setShowAllBirthdays(!showAllBirthdays)}
+              >
+                {showAllBirthdays ? 'Ver menos' : `Ver todos (${clientsWithBirthdays.length})`}
+              </Button>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {isLoading ? (
         <p className="text-muted-foreground">Carregando...</p>
