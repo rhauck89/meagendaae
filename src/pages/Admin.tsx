@@ -110,6 +110,35 @@ const Admin = () => {
           </Card>
         </div>
 
+        {/* Platform Settings */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Globe className="h-5 w-5" /> Configurações da Plataforma
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div className="space-y-1">
+                <Label className="text-xs">Nome do sistema</Label>
+                <Input value={platformName} onChange={(e) => setPlatformName(e.target.value)} />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">URL do logo</Label>
+                <Input value={platformLogo} onChange={(e) => setPlatformLogo(e.target.value)} placeholder="https://..." />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">URL do site</Label>
+                <Input value={platformUrl} onChange={(e) => setPlatformUrl(e.target.value)} placeholder="https://..." />
+              </div>
+            </div>
+            <Button size="sm" onClick={savePlatformSettings}>Salvar</Button>
+            <p className="text-xs text-muted-foreground">
+              Exibido como "Agendamento online por {platformName || '...'}" nas páginas públicas.
+            </p>
+          </CardContent>
+        </Card>
+
         <Card>
           <CardHeader>
             <CardTitle>Empresas Cadastradas</CardTitle>
