@@ -318,7 +318,7 @@ export default function ProfessionalPublicProfile() {
               <button
                 onClick={() => navigate(`${bookingUrl}?date=${format(nextAvailable.date, 'yyyy-MM-dd')}`)}
                 className="w-full text-xs mt-2 py-1"
-                style={{ color: isDark ? '#6B7280' : '#9CA3AF' }}
+                style={{ color: T.textSec }}
               >
                 +{nextAvailable.slots.length - 3} horários disponíveis →
               </button>
