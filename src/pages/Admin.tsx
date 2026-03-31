@@ -19,9 +19,13 @@ const statusColors: Record<string, string> = {
 const Admin = () => {
   const { roles } = useAuth();
   const [companies, setCompanies] = useState<any[]>([]);
+  const [platformName, setPlatformName] = useState('');
+  const [platformLogo, setPlatformLogo] = useState('');
+  const [platformUrl, setPlatformUrl] = useState('');
 
   useEffect(() => {
     fetchCompanies();
+    fetchPlatformSettings();
   }, []);
 
   const fetchCompanies = async () => {
