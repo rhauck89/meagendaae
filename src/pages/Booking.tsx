@@ -1296,6 +1296,20 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
       <div className="text-center py-4">
         <PlatformBranding isDark={isDark} />
       </div>
+
+      {/* Floating WhatsApp Button */}
+      {companyWhatsapp && step !== 'success' && (
+        <a
+          href={`https://wa.me/${companyWhatsapp.replace(/\D/g, '')}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="fixed bottom-6 right-6 z-50 w-14 h-14 rounded-full flex items-center justify-center shadow-xl transition-transform hover:scale-110"
+          style={{ background: '#25D366' }}
+          title="WhatsApp"
+        >
+          <MessageCircle className="h-6 w-6 text-white" />
+        </a>
+      )}
     </div>
   );
 };
