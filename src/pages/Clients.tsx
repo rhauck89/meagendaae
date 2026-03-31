@@ -406,6 +406,7 @@ const ClientProfile = ({ client, companyId, profileMap, onBack }: ClientProfileP
           <p className="text-muted-foreground">
             {client.whatsapp ? displayWhatsApp(client.whatsapp) : 'Sem WhatsApp'}
             {client.email && ` • ${client.email}`}
+            {client.birth_date && ` • 🎂 ${format(parseISO(client.birth_date), 'dd/MM/yyyy', { locale: ptBR })}`}
           </p>
         </div>
         {client.whatsapp && (
