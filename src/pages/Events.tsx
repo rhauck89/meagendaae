@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -10,7 +10,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Calendar, Plus, Pencil, Trash2, Clock, DollarSign, Copy, ExternalLink } from 'lucide-react';
+import { Calendar, Plus, Pencil, Trash2, Clock, DollarSign, Copy, ExternalLink, Upload, X, ImageIcon } from 'lucide-react';
 import { format, parseISO, eachDayOfInterval } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
@@ -85,14 +85,18 @@ const Events = () => {
   const [formStartDate, setFormStartDate] = useState('');
   const [formEndDate, setFormEndDate] = useState('');
   const [formCoverImage, setFormCoverImage] = useState('');
+  const [formCoverPreview, setFormCoverPreview] = useState('');
+  const [uploadingCover, setUploadingCover] = useState(false);
   const [formStatus, setFormStatus] = useState<'draft' | 'published'>('draft');
   const [saving, setSaving] = useState(false);
+  const coverInputRef = useRef<HTMLInputElement>(null);
 
   const [slotMode, setSlotMode] = useState<'manual' | 'auto'>('auto');
   const [slotProfessional, setSlotProfessional] = useState('');
   const [slotStartTime, setSlotStartTime] = useState('09:00');
   const [slotEndTime, setSlotEndTime] = useState('18:00');
-  const [slotInterval, setSlotInterval] = useState(30);
+  const [slotServiceDuration, setSlotServiceDuration] = useState(30);
+  const [slotBreakMinutes, setSlotBreakMinutes] = useState(0);
   const [slotMaxBookings, setSlotMaxBookings] = useState(1);
   const [eventSlots, setEventSlots] = useState<EventSlot[]>([]);
 
@@ -145,6 +149,52 @@ const Events = () => {
     setPriceOverrides(overrides);
   };
 
+  const handleCoverUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/jpg'];
+    if (!allowedTypes.includes(file.type)) {
+      toast.error('Formato não permitido. Use JPG ou PNG.');
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('Imagem muito grande. Máximo 5MB.');
+      return;
+    }
+
+    setUploadingCover(true);
+    try {
+      const ext = file.name.split('.').pop();
+      const filePath = `${companyId}/${Date.now()}.${ext}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('event-covers')
+        .upload(filePath, file, { upsert: true });
+
+      if (uploadError) throw uploadError;
+
+      const { data: urlData } = supabase.storage
+        .from('event-covers')
+        .getPublicUrl(filePath);
+
+      setFormCoverImage(urlData.publicUrl);
+      setFormCoverPreview(urlData.publicUrl);
+      toast.success('Imagem enviada!');
+    } catch (err: any) {
+      toast.error(err.message || 'Erro ao enviar imagem');
+    } finally {
+      setUploadingCover(false);
+      if (coverInputRef.current) coverInputRef.current.value = '';
+    }
+  };
+
+  const handleRemoveCover = () => {
+    setFormCoverImage('');
+    setFormCoverPreview('');
+  };
+
   const openCreateDialog = (event?: Event) => {
     if (event) {
       setEditingEvent(event);
@@ -153,6 +203,7 @@ const Events = () => {
       setFormStartDate(event.start_date);
       setFormEndDate(event.end_date);
       setFormCoverImage(event.cover_image || '');
+      setFormCoverPreview(event.cover_image || '');
       setFormStatus(event.status as 'draft' | 'published');
     } else {
       setEditingEvent(null);
@@ -161,6 +212,7 @@ const Events = () => {
       setFormStartDate('');
       setFormEndDate('');
       setFormCoverImage('');
+      setFormCoverPreview('');
       setFormStatus('draft');
     }
     setShowCreateDialog(true);
@@ -227,26 +279,37 @@ const Events = () => {
         end: parseISO(selectedEvent.end_date),
       });
 
+      const totalSlotMinutes = slotServiceDuration + slotBreakMinutes;
+
       const slots: any[] = [];
       for (const day of days) {
         const dateStr = format(day, 'yyyy-MM-dd');
         let current = slotStartTime;
         while (current < slotEndTime) {
           const [h, m] = current.split(':').map(Number);
-          const endMin = h * 60 + m + slotInterval;
-          const endH = Math.floor(endMin / 60).toString().padStart(2, '0');
-          const endM = (endMin % 60).toString().padStart(2, '0');
-          const end = `${endH}:${endM}`;
-          if (end > slotEndTime) break;
+          const startMin = h * 60 + m;
+          // End time is based on service duration only (break is between appointments)
+          const serviceEndMin = startMin + slotServiceDuration;
+          const serviceEndH = Math.floor(serviceEndMin / 60).toString().padStart(2, '0');
+          const serviceEndM = (serviceEndMin % 60).toString().padStart(2, '0');
+          const slotEnd = `${serviceEndH}:${serviceEndM}`;
+
+          if (slotEnd > slotEndTime) break;
+
           slots.push({
             event_id: selectedEvent.id,
             professional_id: slotProfessional,
             slot_date: dateStr,
             start_time: current,
-            end_time: end,
+            end_time: slotEnd,
             max_bookings: slotMaxBookings,
           });
-          current = end;
+
+          // Next slot starts after service duration + break
+          const nextMin = startMin + totalSlotMinutes;
+          const nextH = Math.floor(nextMin / 60).toString().padStart(2, '0');
+          const nextM = (nextMin % 60).toString().padStart(2, '0');
+          current = `${nextH}:${nextM}`;
         }
       }
 
@@ -411,6 +474,7 @@ const Events = () => {
         </div>
       )}
 
+      {/* Create/Edit Event Dialog */}
       <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
         <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
@@ -436,10 +500,61 @@ const Events = () => {
                 <Input type="date" value={formEndDate} onChange={e => setFormEndDate(e.target.value)} />
               </div>
             </div>
+
+            {/* Cover Image Upload */}
             <div>
-              <Label>URL da imagem de capa</Label>
-              <Input value={formCoverImage} onChange={e => setFormCoverImage(e.target.value)} placeholder="https://..." />
+              <Label>Imagem de capa</Label>
+              <p className="text-xs text-muted-foreground mb-2">Recomendado: 1200×400 px · JPG ou PNG</p>
+              <input
+                ref={coverInputRef}
+                type="file"
+                accept="image/jpeg,image/png,image/jpg"
+                className="hidden"
+                onChange={handleCoverUpload}
+              />
+              {formCoverPreview ? (
+                <div className="relative rounded-lg overflow-hidden border bg-muted">
+                  <img src={formCoverPreview} alt="Capa" className="w-full h-36 object-cover" />
+                  <div className="absolute top-2 right-2 flex gap-1.5">
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      className="h-8 gap-1.5 bg-background/80 backdrop-blur-sm"
+                      onClick={() => coverInputRef.current?.click()}
+                      disabled={uploadingCover}
+                    >
+                      <Upload className="h-3.5 w-3.5" /> Trocar
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      className="h-8 gap-1.5"
+                      onClick={handleRemoveCover}
+                    >
+                      <X className="h-3.5 w-3.5" /> Remover
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => coverInputRef.current?.click()}
+                  disabled={uploadingCover}
+                  className="w-full h-36 border-2 border-dashed rounded-lg flex flex-col items-center justify-center gap-2 text-muted-foreground hover:border-primary hover:text-primary transition-colors cursor-pointer disabled:opacity-50"
+                >
+                  {uploadingCover ? (
+                    <p className="text-sm">Enviando...</p>
+                  ) : (
+                    <>
+                      <ImageIcon className="h-8 w-8" />
+                      <p className="text-sm font-medium">Clique para enviar imagem</p>
+                      <p className="text-xs">JPG ou PNG, máx 5MB</p>
+                    </>
+                  )}
+                </button>
+              )}
             </div>
+
             <div>
               <Label>Status</Label>
               <Select value={formStatus} onValueChange={(v) => setFormStatus(v as 'draft' | 'published')}>
@@ -457,6 +572,7 @@ const Events = () => {
         </DialogContent>
       </Dialog>
 
+      {/* Slots Dialog */}
       <Dialog open={showSlotsDialog} onOpenChange={setShowSlotsDialog}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
@@ -491,7 +607,7 @@ const Events = () => {
             {slotMode === 'auto' ? (
               <div className="space-y-3 p-4 border rounded-lg bg-muted/30">
                 <p className="text-sm text-muted-foreground">Gerar slots para todos os dias do evento</p>
-                <div className="grid grid-cols-3 gap-3">
+                <div className="grid grid-cols-2 gap-3">
                   <div>
                     <Label>Início</Label>
                     <Input type="time" value={slotStartTime} onChange={e => setSlotStartTime(e.target.value)} />
@@ -500,11 +616,22 @@ const Events = () => {
                     <Label>Fim</Label>
                     <Input type="time" value={slotEndTime} onChange={e => setSlotEndTime(e.target.value)} />
                   </div>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <Label>Intervalo (min)</Label>
-                    <Input type="number" min={5} step={5} value={slotInterval} onChange={e => setSlotInterval(Number(e.target.value))} />
+                    <Label>Duração do serviço (min)</Label>
+                    <Input type="number" min={5} step={5} value={slotServiceDuration} onChange={e => setSlotServiceDuration(Number(e.target.value))} />
+                  </div>
+                  <div>
+                    <Label>Intervalo entre atendimentos (min)</Label>
+                    <Input type="number" min={0} step={5} value={slotBreakMinutes} onChange={e => setSlotBreakMinutes(Number(e.target.value))} />
                   </div>
                 </div>
+                <p className="text-xs text-muted-foreground">
+                  Cada slot terá {slotServiceDuration} min de atendimento
+                  {slotBreakMinutes > 0 ? ` + ${slotBreakMinutes} min de intervalo` : ''}
+                  {' '}= próximo horário a cada {slotServiceDuration + slotBreakMinutes} min
+                </p>
                 <Button onClick={handleGenerateSlots} disabled={saving} className="w-full">
                   {saving ? 'Gerando...' : 'Gerar Slots'}
                 </Button>
@@ -558,6 +685,7 @@ const Events = () => {
         </DialogContent>
       </Dialog>
 
+      {/* Prices Dialog */}
       <Dialog open={showPricesDialog} onOpenChange={setShowPricesDialog}>
         <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
