@@ -608,7 +608,12 @@ export type Database = {
       platform_settings: {
         Row: {
           created_at: string
+          default_keywords: string | null
+          favicon_url: string | null
           id: string
+          meta_description: string | null
+          og_image: string | null
+          site_title: string | null
           system_logo: string | null
           system_name: string
           system_url: string | null
@@ -616,7 +621,12 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          default_keywords?: string | null
+          favicon_url?: string | null
           id?: string
+          meta_description?: string | null
+          og_image?: string | null
+          site_title?: string | null
           system_logo?: string | null
           system_name?: string
           system_url?: string | null
@@ -624,7 +634,12 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          default_keywords?: string | null
+          favicon_url?: string | null
           id?: string
+          meta_description?: string | null
+          og_image?: string | null
+          site_title?: string | null
           system_logo?: string | null
           system_name?: string
           system_url?: string | null
