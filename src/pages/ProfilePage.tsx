@@ -13,6 +13,7 @@ import { Star, Save, Camera, Instagram, Link2, Loader2, Copy, Check } from 'luci
 import { toast } from 'sonner';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import AvatarCropDialog from '@/components/AvatarCropDialog';
 
 const ProfilePage = () => {
   const { user, profile, companyId } = useAuth();
