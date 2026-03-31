@@ -378,9 +378,9 @@ export default function ProfessionalPublicProfile() {
             onClick={handleShare}
             className="flex items-center justify-center gap-2 w-full h-11 rounded-xl border text-sm font-medium transition-colors hover:opacity-90"
             style={{
-              borderColor: isDark ? '#1F2937' : '#E5E7EB',
-              background: isDark ? '#111827' : '#FFFFFF',
-              color: isDark ? '#FFFFFF' : '#1F2937',
+              borderColor: T.border,
+              background: T.card,
+              color: T.text,
             }}
           >
             {copied ? <Check className="w-4 h-4 text-green-400" /> : <Share2 className="w-4 h-4" />}
