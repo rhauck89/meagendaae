@@ -38,6 +38,7 @@ const Clients = () => {
   const { isAdmin, profileId } = useUserRole();
   const [search, setSearch] = useState('');
   const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
+  const [showAllBirthdays, setShowAllBirthdays] = useState(false);
 
   // Fetch all clients
   const { data: clients = [], isLoading } = useQuery({
