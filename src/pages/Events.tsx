@@ -125,7 +125,26 @@ const Events = () => {
       .select('*')
       .eq('company_id', companyId!)
       .order('start_date', { ascending: false });
-    setEvents((data as any[]) || []);
+    const eventsList = (data as any[]) || [];
+    setEvents(eventsList);
+
+    // Load slot stats for all events
+    if (eventsList.length > 0) {
+      const eventIds = eventsList.map(e => e.id);
+      const { data: slotsData } = await supabase
+        .from('event_slots')
+        .select('event_id, max_bookings, current_bookings')
+        .in('event_id', eventIds);
+      
+      const stats: Record<string, { total: number; booked: number }> = {};
+      (slotsData || []).forEach((s: any) => {
+        if (!stats[s.event_id]) stats[s.event_id] = { total: 0, booked: 0 };
+        stats[s.event_id].total += s.max_bookings;
+        stats[s.event_id].booked += s.current_bookings;
+      });
+      setEventSlotStats(stats);
+    }
+
     setLoading(false);
   };
 
