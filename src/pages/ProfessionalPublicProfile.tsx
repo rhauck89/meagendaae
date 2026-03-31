@@ -225,7 +225,7 @@ export default function ProfessionalPublicProfile() {
         {/* Avatar */}
         <div className="relative" style={{ marginTop: (professional?.banner_url || company?.cover_url) ? '-3rem' : '0' }}>
           {avatarUrl ? (
-            <img src={avatarUrl} alt={professional.name} className="w-28 h-28 rounded-full object-cover border-4" style={{ borderColor: isDark ? '#F59E0B' : '#D97706' }} />
+            <img src={avatarUrl} alt={professional.name} className="w-28 h-28 rounded-full object-cover border-4" style={{ borderColor: T.accent }} />
           ) : (
             <div className="w-28 h-28 rounded-full flex items-center justify-center text-3xl font-bold" style={{ background: isDark ? '#1F2937' : '#FED7AA', color: isDark ? '#F59E0B' : '#9A3412' }}>
               {professional.name?.charAt(0)?.toUpperCase()}
