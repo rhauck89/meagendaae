@@ -691,6 +691,24 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
         return;
       }
 
+      // Check for event slot conflicts
+      const dateStr = format(selectedDate, 'yyyy-MM-dd');
+      const timeStr = selectedTime;
+      const { data: eventSlotConflicts } = await (supabase as any)
+        .from('event_slots')
+        .select('id')
+        .eq('professional_id', selectedProfessional)
+        .eq('slot_date', dateStr)
+        .lte('start_time', timeStr)
+        .gt('end_time', timeStr)
+        .limit(1);
+
+      if (eventSlotConflicts && eventSlotConflicts.length > 0) {
+        toast.error('Este horário está reservado para uma Agenda Aberta.');
+        setStep('datetime');
+        setLoading(false);
+        return;
+
       console.log('[Booking] Creating appointment:', appointmentPayload);
       const { data: appointmentId, error: aptError } = await supabase
         .rpc('create_appointment' as any, appointmentPayload as any);
