@@ -415,14 +415,27 @@ const Team = () => {
                 </div>
 
                 {profileLink && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="w-full"
-                    onClick={() => window.open(profileLink, '_blank')}
-                  >
-                    <ExternalLink className="mr-1.5 h-3.5 w-3.5" /> Ver página pública
-                  </Button>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="flex-[7]"
+                      onClick={() => window.open(profileLink, '_blank')}
+                    >
+                      <ExternalLink className="mr-1.5 h-3.5 w-3.5" /> Ver página pública
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="flex-[3]"
+                      onClick={() => {
+                        navigator.clipboard.writeText(profileLink);
+                        toast.success('Link do profissional copiado');
+                      }}
+                    >
+                      <Copy className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
                 )}
               </CardContent>
             </Card>
