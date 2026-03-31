@@ -1276,6 +1276,7 @@ export type Database = {
         Row: {
           active: boolean | null
           avatar_url: string | null
+          banner_url: string | null
           company_id: string | null
           id: string | null
           name: string | null
