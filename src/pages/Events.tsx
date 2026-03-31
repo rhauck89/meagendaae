@@ -27,6 +27,7 @@ type Event = {
   end_date: string;
   status: 'draft' | 'published' | 'cancelled' | 'completed';
   created_at: string;
+  max_bookings_per_client: number;
 };
 
 type EventSlot = {
