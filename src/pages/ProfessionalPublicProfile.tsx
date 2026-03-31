@@ -235,8 +235,8 @@ export default function ProfessionalPublicProfile() {
 
         {/* Name & Company */}
         <div className="text-center">
-          <h1 className="text-2xl font-bold" style={{ color: isDark ? '#FFFFFF' : '#1F2937' }}>{professional.name}</h1>
-          <p className="text-sm mt-1" style={{ color: isDark ? '#9CA3AF' : '#6B7280' }}>{company.name}</p>
+          <h1 className="text-2xl font-bold" style={{ color: T.text }}>{professional.name}</h1>
+          <p className="text-sm mt-1" style={{ color: T.textSec }}>{company.name}</p>
         </div>
 
         {/* Rating & Completed Count */}
