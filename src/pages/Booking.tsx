@@ -1373,14 +1373,18 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
                     ))}
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-3 gap-4">
                   <div>
                     <p className="text-xs mb-1" style={{ color: T.textSec }}>📅 Data</p>
                     <p className="font-semibold text-sm">{format(bookingResult.date, "dd 'de' MMMM, yyyy", { locale: ptBR })}</p>
                   </div>
                   <div>
                     <p className="text-xs mb-1" style={{ color: T.textSec }}>🕐 Horário</p>
-                    <p className="font-semibold text-sm">{bookingResult.time} - {format(et, 'HH:mm')}</p>
+                    <p className="font-semibold text-sm">{bookingResult.time}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs mb-1" style={{ color: T.textSec }}>⏱️ Duração</p>
+                    <p className="font-semibold text-sm">{bookingResult.totalDuration} min</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
