@@ -227,6 +227,7 @@ const Events = () => {
       setFormCoverImage(event.cover_image || '');
       setFormCoverPreview(event.cover_image || '');
       setFormStatus(event.status as 'draft' | 'published');
+      setFormMaxBookingsPerClient(event.max_bookings_per_client || 0);
     } else {
       setEditingEvent(null);
       setFormName('');
@@ -236,6 +237,7 @@ const Events = () => {
       setFormCoverImage('');
       setFormCoverPreview('');
       setFormStatus('draft');
+      setFormMaxBookingsPerClient(0);
     }
     setShowCreateDialog(true);
   };
