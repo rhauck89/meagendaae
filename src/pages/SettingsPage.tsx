@@ -100,11 +100,11 @@ const SettingsPage = () => {
   };
 
   const fetchCompanySettings = async () => {
-    const { data } = await supabase
-      .from('companies')
-      .select('*')
-      .eq('id', companyId!)
-      .single();
+    const [companyRes, settingsRes] = await Promise.all([
+      supabase.from('companies').select('*').eq('id', companyId!).single(),
+      supabase.from('company_settings').select('primary_color, secondary_color, background_color').eq('company_id', companyId!).single(),
+    ]);
+    const data = companyRes.data;
     if (data) {
       setRemindersEnabled(data.reminders_enabled ?? true);
       setBirthdayEnabled((data as any).birthday_enabled ?? true);
@@ -129,6 +129,11 @@ const SettingsPage = () => {
       setCompanyInstagram((data as any).instagram ?? '');
       setCompanyFacebook((data as any).facebook ?? '');
       setCompanyWebsite((data as any).website ?? '');
+    }
+    if (settingsRes.data) {
+      setBrandPrimaryColor((settingsRes.data as any).primary_color || '#6D28D9');
+      setBrandSecondaryColor((settingsRes.data as any).secondary_color || '#F59E0B');
+      setBrandBackgroundColor((settingsRes.data as any).background_color || '#0B132B');
     }
   };
 
