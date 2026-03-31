@@ -248,8 +248,8 @@ export default function ProfessionalPublicProfile() {
                   <Star key={i} className={cn("w-4 h-4", i <= Math.round(rating.avg) ? "fill-yellow-400 text-yellow-400" : "text-gray-600")} />
                 ))}
               </div>
-              <span className="text-sm font-medium" style={{ color: isDark ? '#F59E0B' : '#D97706' }}>{rating.avg.toFixed(1)}</span>
-              <span className="text-xs" style={{ color: isDark ? '#6B7280' : '#9CA3AF' }}>({rating.count} avaliações)</span>
+              <span className="text-sm font-medium" style={{ color: T.accent }}>{rating.avg.toFixed(1)}</span>
+              <span className="text-xs" style={{ color: T.textSec }}>({rating.count} avaliações)</span>
             </div>
           )}
           {completedCount > 0 && (
