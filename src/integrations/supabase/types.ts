@@ -401,72 +401,111 @@ export type Database = {
       companies: {
         Row: {
           address: string | null
+          address_number: string | null
           birthday_discount_type: string
           birthday_discount_value: number
           birthday_enabled: boolean
           buffer_minutes: number
           business_type: Database["public"]["Enums"]["business_type"]
+          city: string | null
           cover_url: string | null
           created_at: string
+          description: string | null
+          district: string | null
+          facebook: string | null
+          google_maps_url: string | null
           google_review_url: string | null
           id: string
+          instagram: string | null
+          latitude: number | null
           logo_url: string | null
+          longitude: number | null
           name: string
           owner_id: string | null
           phone: string | null
+          postal_code: string | null
           reminders_enabled: boolean
           slug: string
+          state: string | null
           stripe_customer_id: string | null
           stripe_subscription_id: string | null
           subscription_status: Database["public"]["Enums"]["subscription_status"]
           timezone: string
           updated_at: string
+          website: string | null
+          whatsapp: string | null
         }
         Insert: {
           address?: string | null
+          address_number?: string | null
           birthday_discount_type?: string
           birthday_discount_value?: number
           birthday_enabled?: boolean
           buffer_minutes?: number
           business_type?: Database["public"]["Enums"]["business_type"]
+          city?: string | null
           cover_url?: string | null
           created_at?: string
+          description?: string | null
+          district?: string | null
+          facebook?: string | null
+          google_maps_url?: string | null
           google_review_url?: string | null
           id?: string
+          instagram?: string | null
+          latitude?: number | null
           logo_url?: string | null
+          longitude?: number | null
           name: string
           owner_id?: string | null
           phone?: string | null
+          postal_code?: string | null
           reminders_enabled?: boolean
           slug: string
+          state?: string | null
           stripe_customer_id?: string | null
           stripe_subscription_id?: string | null
           subscription_status?: Database["public"]["Enums"]["subscription_status"]
           timezone?: string
           updated_at?: string
+          website?: string | null
+          whatsapp?: string | null
         }
         Update: {
           address?: string | null
+          address_number?: string | null
           birthday_discount_type?: string
           birthday_discount_value?: number
           birthday_enabled?: boolean
           buffer_minutes?: number
           business_type?: Database["public"]["Enums"]["business_type"]
+          city?: string | null
           cover_url?: string | null
           created_at?: string
+          description?: string | null
+          district?: string | null
+          facebook?: string | null
+          google_maps_url?: string | null
           google_review_url?: string | null
           id?: string
+          instagram?: string | null
+          latitude?: number | null
           logo_url?: string | null
+          longitude?: number | null
           name?: string
           owner_id?: string | null
           phone?: string | null
+          postal_code?: string | null
           reminders_enabled?: boolean
           slug?: string
+          state?: string | null
           stripe_customer_id?: string | null
           stripe_subscription_id?: string | null
           subscription_status?: Database["public"]["Enums"]["subscription_status"]
           timezone?: string
           updated_at?: string
+          website?: string | null
+          whatsapp?: string | null
         }
         Relationships: []
       }
