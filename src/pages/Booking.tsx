@@ -708,6 +708,7 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
         setStep('datetime');
         setLoading(false);
         return;
+      }
 
       console.log('[Booking] Creating appointment:', appointmentPayload);
       const { data: appointmentId, error: aptError } = await supabase
