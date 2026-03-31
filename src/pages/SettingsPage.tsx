@@ -27,7 +27,9 @@ const SettingsPage = () => {
   const [companyName, setCompanyName] = useState('');
   const [companyPhone, setCompanyPhone] = useState('');
   const [companyLogoUrl, setCompanyLogoUrl] = useState('');
+  const [companyCoverUrl, setCompanyCoverUrl] = useState('');
   const [logoUploading, setLogoUploading] = useState(false);
+  const [coverUploading, setCoverUploading] = useState(false);
 
   useEffect(() => {
     if (companyId) {
