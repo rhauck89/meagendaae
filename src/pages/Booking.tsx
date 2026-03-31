@@ -1309,7 +1309,27 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
           const waUrl = () => {
             const phone = bookingResult.companyPhone?.replace(/\D/g, '') || '';
             const baseUrl = window.location.origin;
-            const msg = `Olá! 👋\n\nConfirmando meu agendamento na ${bookingResult.companyName}:\n\n📅 Data: ${format(bookingResult.date, "dd/MM/yyyy")}\n⏰ Horário: ${bookingResult.time}\n✂️ Serviço: ${bookingResult.serviceNames.join(', ')}\n💈 Profissional: ${bookingResult.professionalName}\n💰 Valor: R$ ${bookingResult.totalPrice.toFixed(2)}\n\n📋 Gerenciar agendamento:\n🔄 Reagendar: ${baseUrl}/reschedule/${bookingResult.appointmentId}\n❌ Cancelar: ${baseUrl}/cancel/${bookingResult.appointmentId}\n\nObrigado!`;
+            const msg = [
+              'Ol\u00e1! \uD83D\uDC4B',
+              '',
+              `Seu agendamento foi confirmado na *${bookingResult.companyName}* \uD83D\uDC88`,
+              '',
+              `\uD83D\uDCC5 Data: ${format(bookingResult.date, "dd/MM/yyyy")}`,
+              `\u23F0 Hor\u00e1rio: ${bookingResult.time}`,
+              `\u2702\uFE0F Servi\u00e7o: ${bookingResult.serviceNames.join(', ')}`,
+              `\uD83D\uDC64 Profissional: ${bookingResult.professionalName}`,
+              `\uD83D\uDCB0 Valor: R$ ${bookingResult.totalPrice.toFixed(2)}`,
+              '',
+              'Caso precise alterar:',
+              '',
+              `\uD83D\uDD01 Reagendar:`,
+              `${baseUrl}/reschedule/${bookingResult.appointmentId}`,
+              '',
+              `\u274C Cancelar:`,
+              `${baseUrl}/cancel/${bookingResult.appointmentId}`,
+              '',
+              'Obrigado! \uD83D\uDE0A',
+            ].join('\n');
             return `https://wa.me/${phone.startsWith('55') ? phone : '55' + phone}?text=${encodeURIComponent(msg)}`;
           };
 
