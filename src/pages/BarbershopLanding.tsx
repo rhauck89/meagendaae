@@ -95,7 +95,34 @@ export default function BarbershopLanding({ routeBusinessType }: BarbershopLandi
     if (profsRes.data) setProfessionals(profsRes.data as any[]);
     if (settingsRes.data) setCompanySettings(settingsRes.data);
     if (galleryRes.data) setGalleryImages(galleryRes.data as any[]);
-    if (eventsRes.data) setCompanyEvents(eventsRes.data as any[]);
+    
+    // Load events with slot stats
+    if (eventsRes.data) {
+      const eventsList = eventsRes.data as any[];
+      if (eventsList.length > 0) {
+        const eventIds = eventsList.map((e: any) => e.id);
+        const { data: slotsData } = await supabase
+          .from('event_slots')
+          .select('event_id, max_bookings, current_bookings')
+          .in('event_id', eventIds);
+        
+        const statsMap: Record<string, { total: number; booked: number }> = {};
+        (slotsData || []).forEach((s: any) => {
+          if (!statsMap[s.event_id]) statsMap[s.event_id] = { total: 0, booked: 0 };
+          statsMap[s.event_id].total += s.max_bookings;
+          statsMap[s.event_id].booked += s.current_bookings;
+        });
+        
+        const enriched = eventsList.map((evt: any) => ({
+          ...evt,
+          _remaining: statsMap[evt.id] ? statsMap[evt.id].total - statsMap[evt.id].booked : 0,
+          _total: statsMap[evt.id]?.total || 0,
+        }));
+        setCompanyEvents(enriched);
+      } else {
+        setCompanyEvents([]);
+      }
+    }
 
     // Ratings map
     if (ratingsRes.data && Array.isArray(ratingsRes.data)) {
