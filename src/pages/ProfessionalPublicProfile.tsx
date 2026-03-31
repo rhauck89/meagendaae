@@ -99,7 +99,7 @@ export default function ProfessionalPublicProfile() {
     const [hoursRes, exceptionsRes, companyRes, settingsRes, profHoursRes] = await Promise.all([
       supabase.from('business_hours').select('*').eq('company_id', comp.id),
       supabase.from('business_exceptions').select('*').eq('company_id', comp.id),
-      supabase.from('companies').select('buffer_minutes').eq('id', comp.id).single(),
+      supabase.from('public_company' as any).select('buffer_minutes').eq('id', comp.id).single(),
       supabase.from('company_settings' as any).select('timezone, booking_buffer_minutes').eq('company_id', comp.id).single(),
       supabase.from('professional_working_hours' as any).select('*').eq('professional_id', prof.id),
     ]);
