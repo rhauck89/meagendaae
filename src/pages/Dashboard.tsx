@@ -53,6 +53,7 @@ const statusLabels: Record<string, string> = {
   completed: 'Concluído',
   no_show: 'Não compareceu',
   rescheduled: 'Reagendado',
+  late: '⚠️ Atrasado',
 };
 
 const getDisplayStatus = (apt: any): string => {
