@@ -512,9 +512,22 @@ const SettingsPage = () => {
             </div>
           </div>
 
-          <Button onClick={saveBranding} variant="outline" className="w-full sm:w-auto">
-            Salvar cores
-          </Button>
+          <div className="flex gap-2">
+            <Button onClick={saveBranding} variant="outline" className="flex-1 sm:flex-none">
+              Salvar cores
+            </Button>
+            <Button
+              onClick={() => {
+                setBrandPrimaryColor('#7C3AED');
+                setBrandSecondaryColor('#111827');
+                setBrandBackgroundColor('#0B132B');
+              }}
+              variant="ghost"
+              className="flex-1 sm:flex-none text-muted-foreground"
+            >
+              <RotateCcw className="h-4 w-4 mr-1" /> Restaurar padrão
+            </Button>
+          </div>
         </CardContent>
       </Card>
 

@@ -186,7 +186,7 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
     return {
       bg: theme.bg,
       card: theme.card,
-      cardHover: isDark ? lightenHex(theme.card, 10) : '#F9FAFB',
+      cardHover: isDark ? (() => { const r = Math.min(255, parseInt(theme.card.slice(1, 3), 16) + 10); const g = Math.min(255, parseInt(theme.card.slice(3, 5), 16) + 10); const b = Math.min(255, parseInt(theme.card.slice(5, 7), 16) + 10); return `#${r.toString(16).padStart(2,'0')}${g.toString(16).padStart(2,'0')}${b.toString(16).padStart(2,'0')}`; })() : '#F9FAFB',
       accent: theme.accent,
       accentHover: theme.accentHover,
       text: theme.text,
