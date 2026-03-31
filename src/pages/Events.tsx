@@ -467,6 +467,27 @@ const Events = () => {
                   {format(parseISO(event.start_date), "dd/MM/yyyy", { locale: ptBR })} - {format(parseISO(event.end_date), "dd/MM/yyyy", { locale: ptBR })}
                 </div>
 
+                {/* Slot counter */}
+                {(() => {
+                  const stats = eventSlotStats[event.id];
+                  if (!stats || stats.total === 0) return null;
+                  const remaining = stats.total - stats.booked;
+                  const isLow = remaining <= 5 && remaining > 0;
+                  return (
+                    <div className={cn(
+                      'flex items-center gap-2 text-sm font-medium px-3 py-1.5 rounded-lg',
+                      remaining === 0 ? 'bg-destructive/10 text-destructive' :
+                      isLow ? 'bg-orange-500/10 text-orange-600 dark:text-orange-400' :
+                      'bg-primary/10 text-primary'
+                    )}>
+                      <Users className="h-4 w-4" />
+                      {remaining === 0 ? 'Esgotado' :
+                       isLow ? `🔥 Últimas ${remaining} vagas` :
+                       `${remaining} vagas disponíveis`}
+                    </div>
+                  );
+                })()}
+
                 <div className="flex flex-wrap gap-1.5">
                   <Button size="sm" variant="outline" onClick={() => openCreateDialog(event)} className="gap-1.5">
                     <Pencil className="h-3.5 w-3.5" /> Editar
