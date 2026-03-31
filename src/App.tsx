@@ -26,6 +26,8 @@ import DebugAgenda from "./pages/DebugAgenda";
 import Waitlist from "./pages/Waitlist";
 import ProfilePage from "./pages/ProfilePage";
 import Clients from "./pages/Clients";
+import Events from "./pages/Events";
+import EventPublic from "./pages/EventPublic";
 import DashboardLayout from "./components/DashboardLayout";
 import NotFound from "./pages/NotFound";
 
