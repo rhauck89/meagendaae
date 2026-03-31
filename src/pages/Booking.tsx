@@ -446,12 +446,33 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
     const dateStr = format(date, 'yyyy-MM-dd');
     try {
       const existingAppointments = await fetchBookingAppointments(date, selectedProfessional);
-      const { data: blockedTimesData } = await supabase
-        .from('blocked_times' as any)
-        .select('block_date, start_time, end_time')
-        .eq('company_id', company.id)
-        .eq('professional_id', selectedProfessional)
-        .eq('block_date', dateStr);
+      const [blockedTimesRes, eventSlotsRes] = await Promise.all([
+        supabase
+          .from('blocked_times' as any)
+          .select('block_date, start_time, end_time')
+          .eq('company_id', company.id)
+          .eq('professional_id', selectedProfessional)
+          .eq('block_date', dateStr),
+        (supabase as any)
+          .from('event_slots')
+          .select('slot_date, start_time, end_time')
+          .eq('professional_id', selectedProfessional)
+          .eq('slot_date', dateStr),
+      ]);
+
+      const blockedTimesData = blockedTimesRes.data;
+
+      // Convert event slots to blocked times format
+      const eventBlockedTimes: BlockedTime[] = ((eventSlotsRes.data || []) as any[]).map((es: any) => ({
+        block_date: es.slot_date,
+        start_time: es.start_time,
+        end_time: es.end_time,
+      }));
+
+      const allBlockedTimes: BlockedTime[] = [
+        ...((blockedTimesData || []) as unknown as BlockedTime[]),
+        ...eventBlockedTimes,
+      ];
 
       if (requestId !== slotRequestRef.current) return;
 
@@ -467,7 +488,7 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
         slotInterval: 15,
         bufferMinutes,
         professionalHours: professionalHours.length > 0 ? professionalHours : undefined,
-        blockedTimes: ((blockedTimesData || []) as unknown as BlockedTime[]),
+        blockedTimes: allBlockedTimes,
         professionalId: selectedProfessional,
       });
 
@@ -665,6 +686,25 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
 
       if (conflictingAppts && conflictingAppts.length > 0) {
         toast.error('Este horário acabou de ser reservado. Escolha outro.');
+        setStep('datetime');
+        setLoading(false);
+        return;
+      }
+
+      // Check for event slot conflicts
+      const dateStr = format(selectedDate, 'yyyy-MM-dd');
+      const timeStr = selectedTime;
+      const { data: eventSlotConflicts } = await (supabase as any)
+        .from('event_slots')
+        .select('id')
+        .eq('professional_id', selectedProfessional)
+        .eq('slot_date', dateStr)
+        .lte('start_time', timeStr)
+        .gt('end_time', timeStr)
+        .limit(1);
+
+      if (eventSlotConflicts && eventSlotConflicts.length > 0) {
+        toast.error('Este horário está reservado para uma Agenda Aberta.');
         setStep('datetime');
         setLoading(false);
         return;
