@@ -295,10 +295,14 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
         setProfessionals([{ id: prof.id, full_name: prof.name, avatar_url: prof.avatar_url }]);
 
         // Fetch recent bookings for social proof
-        const { data: recentCount } = await supabase.rpc('get_professional_recent_bookings' as any, { p_professional_id: profileId });
-        if (typeof recentCount === 'number') setRecentBookings(recentCount);
+        fetchRecentBookings(profileId);
       }
     }
+  };
+
+  const fetchRecentBookings = async (profileId: string) => {
+    const { data: recentCount } = await supabase.rpc('get_professional_recent_bookings' as any, { p_professional_id: profileId });
+    if (typeof recentCount === 'number') setRecentBookings(recentCount);
   };
 
   const fetchProfessionals = async (): Promise<any[]> => {
@@ -746,8 +750,8 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
         </div>
       </header>
 
-      {/* Professional Header (when booking via professional link) */}
-      {professionalSlug && selectedProfessional && professionals.length > 0 && step !== 'success' && (() => {
+      {/* Persistent Professional Card (visible after professional is selected) */}
+      {selectedProfessional && professionals.length > 0 && step !== 'success' && step !== 'services' && step !== 'professional' && (() => {
         const prof = professionals.find(p => p.id === selectedProfessional);
         if (!prof) return null;
         const rating = professionalRatings[prof.id];
@@ -876,7 +880,7 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
                 return (
                   <div
                     key={p.id}
-                    onClick={() => { setSelectedProfessional(p.id); fetchProfessionalHours(p.id); setStep('datetime'); }}
+                    onClick={() => { setSelectedProfessional(p.id); fetchProfessionalHours(p.id); fetchRecentBookings(p.id); setStep('datetime'); }}
                     className="p-5 rounded-2xl cursor-pointer transition-all duration-200 hover:scale-[1.02] text-center"
                     style={{
                       background: sel ? `${T.accent}10` : T.card,
@@ -1207,26 +1211,6 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
               <p className="text-sm mt-1" style={{ color: T.textSec }}>Revise os detalhes antes de confirmar</p>
             </div>
             <div className="rounded-2xl p-5 space-y-5" style={{ background: T.card, border: `1px solid ${T.border}` }}>
-              {/* Professional */}
-              {(() => {
-                const prof = professionals.find((p) => p.id === selectedProfessional);
-                return (
-                  <div className="flex items-center gap-4">
-                    {prof?.avatar_url ? (
-                      <img src={prof.avatar_url} alt={prof.full_name} className="w-14 h-14 rounded-full object-cover" style={{ border: `3px solid ${T.accent}` }} />
-                    ) : (
-                      <div className="w-14 h-14 rounded-full flex items-center justify-center text-xl font-bold" style={{ background: `${T.accent}20`, color: T.accent }}>
-                        {prof?.full_name?.charAt(0)?.toUpperCase()}
-                      </div>
-                    )}
-                    <div>
-                      <p className="text-xs" style={{ color: T.textSec }}>Profissional</p>
-                      <p className="font-semibold text-base">{prof?.full_name}</p>
-                    </div>
-                  </div>
-                );
-              })()}
-              <div style={{ borderTop: `1px solid ${T.border}` }} />
               {/* Services */}
               <div>
                 <p className="text-xs mb-2" style={{ color: T.textSec }}>Serviços</p>
