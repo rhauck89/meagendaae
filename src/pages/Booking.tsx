@@ -179,6 +179,24 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
   const isDark = businessType === 'barbershop';
   const bookingTimezone = companySettings?.timezone || DEFAULT_BOOKING_TIMEZONE;
 
+  // Dynamic theme based on company branding
+  const T = useMemo(() => {
+    const branding = getCompanyBranding(companySettings, isDark);
+    const theme = buildThemeFromBranding(branding, isDark);
+    return {
+      bg: theme.bg,
+      card: theme.card,
+      cardHover: isDark ? lightenHex(theme.card, 10) : '#F9FAFB',
+      accent: theme.accent,
+      accentHover: theme.accentHover,
+      text: theme.text,
+      textSec: theme.textSec,
+      border: theme.border,
+      green: 'rgba(34,197,94,0.15)',
+      greenText: '#4ADE80',
+    };
+  }, [companySettings, isDark]);
+
   // Load saved client from localStorage
   useEffect(() => {
     const loadSavedClient = () => {
