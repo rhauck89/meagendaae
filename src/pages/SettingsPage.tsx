@@ -27,7 +27,9 @@ const SettingsPage = () => {
   const [companyName, setCompanyName] = useState('');
   const [companyPhone, setCompanyPhone] = useState('');
   const [companyLogoUrl, setCompanyLogoUrl] = useState('');
+  const [companyCoverUrl, setCompanyCoverUrl] = useState('');
   const [logoUploading, setLogoUploading] = useState(false);
+  const [coverUploading, setCoverUploading] = useState(false);
 
   useEffect(() => {
     if (companyId) {
@@ -78,7 +80,7 @@ const SettingsPage = () => {
   const fetchCompanySettings = async () => {
     const { data } = await supabase
       .from('companies')
-      .select('reminders_enabled, birthday_enabled, birthday_discount_type, birthday_discount_value, slug, business_type, buffer_minutes, name, phone, logo_url')
+      .select('reminders_enabled, birthday_enabled, birthday_discount_type, birthday_discount_value, slug, business_type, buffer_minutes, name, phone, logo_url, cover_url')
       .eq('id', companyId!)
       .single();
     if (data) {
@@ -92,6 +94,7 @@ const SettingsPage = () => {
       setCompanyName(data.name ?? '');
       setCompanyPhone((data as any).phone ?? '');
       setCompanyLogoUrl((data as any).logo_url ?? '');
+      setCompanyCoverUrl((data as any).cover_url ?? '');
     }
   };
 
@@ -113,6 +116,26 @@ const SettingsPage = () => {
     setCompanyLogoUrl(logoUrl);
     setLogoUploading(false);
     toast.success('Logo atualizado!');
+  };
+
+  const handleCoverUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !companyId) return;
+    setCoverUploading(true);
+    const ext = file.name.split('.').pop();
+    const filePath = `${companyId}/cover.${ext}`;
+    const { error: uploadError } = await supabase.storage.from('logos').upload(filePath, file, { upsert: true });
+    if (uploadError) {
+      toast.error('Erro ao enviar capa');
+      setCoverUploading(false);
+      return;
+    }
+    const { data: { publicUrl } } = supabase.storage.from('logos').getPublicUrl(filePath);
+    const coverUrl = `${publicUrl}?t=${Date.now()}`;
+    await supabase.from('companies').update({ cover_url: coverUrl } as any).eq('id', companyId);
+    setCompanyCoverUrl(coverUrl);
+    setCoverUploading(false);
+    toast.success('Capa atualizada!');
   };
 
   const saveCompanyIdentity = async () => {
@@ -202,6 +225,29 @@ const SettingsPage = () => {
               <p className="text-sm font-medium">Logo da empresa</p>
               <p className="text-xs text-muted-foreground">Recomendado: 400x400px</p>
             </div>
+          </div>
+
+          {/* Cover */}
+          <div className="space-y-2">
+            <p className="text-sm font-medium">Capa da empresa</p>
+            <p className="text-xs text-muted-foreground">Recomendado: 1200x400px — exibida no topo da página de agendamento</p>
+            {companyCoverUrl ? (
+              <div className="relative">
+                <img src={companyCoverUrl} alt="Capa" className="w-full h-32 rounded-xl object-cover border" />
+                <label className="absolute bottom-2 right-2 px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-xs font-medium cursor-pointer shadow-md hover:opacity-90">
+                  <Camera className="w-3.5 h-3.5 inline mr-1" /> Alterar
+                  <input type="file" accept="image/*" className="hidden" onChange={handleCoverUpload} disabled={coverUploading} />
+                </label>
+              </div>
+            ) : (
+              <label className="flex items-center justify-center w-full h-32 rounded-xl border-2 border-dashed border-muted-foreground/30 cursor-pointer hover:border-primary/50 transition-colors">
+                <div className="text-center">
+                  <Camera className="w-6 h-6 mx-auto text-muted-foreground mb-1" />
+                  <span className="text-xs text-muted-foreground">Clique para enviar a capa</span>
+                </div>
+                <input type="file" accept="image/*" className="hidden" onChange={handleCoverUpload} disabled={coverUploading} />
+              </label>
+            )}
           </div>
 
           {/* Name & Phone */}

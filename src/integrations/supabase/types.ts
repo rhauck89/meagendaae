@@ -371,6 +371,7 @@ export type Database = {
           birthday_enabled: boolean
           buffer_minutes: number
           business_type: Database["public"]["Enums"]["business_type"]
+          cover_url: string | null
           created_at: string
           google_review_url: string | null
           id: string
@@ -393,6 +394,7 @@ export type Database = {
           birthday_enabled?: boolean
           buffer_minutes?: number
           business_type?: Database["public"]["Enums"]["business_type"]
+          cover_url?: string | null
           created_at?: string
           google_review_url?: string | null
           id?: string
@@ -415,6 +417,7 @@ export type Database = {
           birthday_enabled?: boolean
           buffer_minutes?: number
           business_type?: Database["public"]["Enums"]["business_type"]
+          cover_url?: string | null
           created_at?: string
           google_review_url?: string | null
           id?: string
@@ -1173,6 +1176,7 @@ export type Database = {
         Returns: {
           address: string
           business_type: Database["public"]["Enums"]["business_type"]
+          cover_url: string
           google_review_url: string
           id: string
           logo_url: string
