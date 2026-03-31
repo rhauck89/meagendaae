@@ -642,8 +642,8 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
 
       if (conflictingAppts && conflictingAppts.length > 0) {
         toast.error('Este horário acabou de ser reservado. Escolha outro.');
-        setBookingStep('time');
-        setIsBooking(false);
+        setStep('time');
+        setLoading(false);
         return;
       }
 
