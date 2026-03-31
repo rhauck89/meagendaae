@@ -382,6 +382,15 @@ const ProfilePage = () => {
           )}
         </CardContent>
       </Card>
+
+      {cropImage && (
+        <AvatarCropDialog
+          open={!!cropImage}
+          imageSrc={cropImage}
+          onClose={() => setCropImage(null)}
+          onConfirm={handleCroppedUpload}
+        />
+      )}
     </div>
   );
 };
