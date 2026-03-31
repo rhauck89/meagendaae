@@ -80,6 +80,7 @@ export default function BarbershopLanding({ routeBusinessType }: BarbershopLandi
     if (servicesRes.data) setServices(servicesRes.data as any[]);
     if (profsRes.data) setProfessionals(profsRes.data as any[]);
     if (settingsRes.data) setCompanySettings(settingsRes.data);
+    if (galleryRes.data) setGalleryImages(galleryRes.data as any[]);
 
     // Ratings map
     if (ratingsRes.data && Array.isArray(ratingsRes.data)) {
@@ -90,15 +91,60 @@ export default function BarbershopLanding({ routeBusinessType }: BarbershopLandi
       setProfessionalRatings(map);
     }
 
+    // Enrich reviews with client names from appointments
+    let enrichedReviews: any[] = [];
+    if (reviewsRes.data && reviewsRes.data.length > 0) {
+      const appointmentIds = reviewsRes.data
+        .filter((r: any) => r.appointment_id)
+        .map((r: any) => r.appointment_id);
+      
+      let clientNameMap: Record<string, string> = {};
+      if (appointmentIds.length > 0) {
+        const { data: appts } = await supabase
+          .from('appointments')
+          .select('id, client_name, client_id')
+          .in('id', appointmentIds);
+        
+        if (appts) {
+          // Get client names from clients table for those with client_id
+          const clientIds = appts.filter((a: any) => a.client_id).map((a: any) => a.client_id);
+          let clientNames: Record<string, string> = {};
+          if (clientIds.length > 0) {
+            const { data: clients } = await supabase
+              .from('clients')
+              .select('id, name')
+              .in('id', clientIds);
+            if (clients) {
+              for (const c of clients) {
+                clientNames[c.id] = c.name;
+              }
+            }
+          }
+          
+          for (const a of appts) {
+            const name = a.client_name || clientNames[a.client_id] || null;
+            if (name) clientNameMap[a.id] = name;
+          }
+        }
+      }
+      
+      enrichedReviews = reviewsRes.data.map((r: any) => ({
+        ...r,
+        client_display_name: r.appointment_id && clientNameMap[r.appointment_id]
+          ? formatReviewerName(clientNameMap[r.appointment_id])
+          : null,
+      }));
+    }
+
     // Company-level stats
-    const allReviews = await supabase.from('reviews').select('rating').eq('company_id', comp.id);
-    const revs = allReviews.data || [];
+    const revs = enrichedReviews;
     if (revs.length > 0) {
       const avg = revs.reduce((sum: number, r: any) => sum + Number(r.rating), 0) / revs.length;
       setCompanyStats({ avgRating: avg, reviewCount: revs.length });
     }
 
-    if (reviewsRes.data) setReviews(reviewsRes.data as any[]);
+    setAllReviewsList(enrichedReviews);
+    setReviews(enrichedReviews.slice(0, 3));
     setLoading(false);
   };
 
