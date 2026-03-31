@@ -114,8 +114,7 @@ const Clients = () => {
     (c.whatsapp && c.whatsapp.includes(search))
   );
 
-  // Birthday calculations
-  const [showAllBirthdays, setShowAllBirthdays] = useState(false);
+   // Birthday calculations
   const clientsWithBirthdays = clients
     .filter(c => c.birth_date)
     .map(c => {
