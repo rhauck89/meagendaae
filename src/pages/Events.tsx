@@ -523,33 +523,49 @@ const Events = () => {
         }
       }
 
-      // Gradient overlay bottom-to-top for text readability
-      const gradOverlay = ctx.createLinearGradient(0, 1920, 0, 600);
-      gradOverlay.addColorStop(0, 'rgba(0,0,0,0.85)');
-      gradOverlay.addColorStop(0.5, 'rgba(0,0,0,0.5)');
+      // Stronger gradient overlay bottom-to-top for text readability
+      const gradOverlay = ctx.createLinearGradient(0, 1920, 0, 400);
+      gradOverlay.addColorStop(0, 'rgba(0,0,0,0.92)');
+      gradOverlay.addColorStop(0.4, 'rgba(0,0,0,0.7)');
+      gradOverlay.addColorStop(0.7, 'rgba(0,0,0,0.3)');
       gradOverlay.addColorStop(1, 'rgba(0,0,0,0)');
       ctx.fillStyle = gradOverlay;
       ctx.fillRect(0, 0, 1080, 1920);
 
       // Top gradient for header
-      const gradTop = ctx.createLinearGradient(0, 0, 0, 400);
-      gradTop.addColorStop(0, 'rgba(0,0,0,0.7)');
+      const gradTop = ctx.createLinearGradient(0, 0, 0, 500);
+      gradTop.addColorStop(0, 'rgba(0,0,0,0.75)');
       gradTop.addColorStop(1, 'rgba(0,0,0,0)');
       ctx.fillStyle = gradTop;
-      ctx.fillRect(0, 0, 1080, 400);
+      ctx.fillRect(0, 0, 1080, 500);
 
+      // === TOP SECTION ===
       // Header: "🔥 AGENDA ABERTA"
       ctx.textAlign = 'center';
-      ctx.fillStyle = primaryColor;
-      ctx.font = 'bold 52px system-ui, -apple-system, sans-serif';
-      ctx.fillText('🔥 AGENDA ABERTA', 540, 120);
+      ctx.fillStyle = '#FFFFFF';
+      ctx.font = 'bold 48px system-ui, -apple-system, sans-serif';
+      ctx.fillText('🔥 AGENDA ABERTA', 540, 140);
 
+      // Event name
+      ctx.fillStyle = '#FFFFFF';
+      ctx.font = 'bold 64px system-ui, -apple-system, sans-serif';
+      wrapText(ctx, event.name.toUpperCase(), 540, 280, 900, 76);
+
+      // Date (secondary text)
+      const dateText = event.start_date === event.end_date
+        ? format(parseISO(event.start_date), "dd 'de' MMMM", { locale: ptBR })
+        : `${format(parseISO(event.start_date), "dd/MM", { locale: ptBR })} a ${format(parseISO(event.end_date), "dd/MM/yyyy", { locale: ptBR })}`;
+
+      ctx.fillStyle = 'rgba(255,255,255,0.8)';
+      ctx.font = '44px system-ui, -apple-system, sans-serif';
+      ctx.fillText(`📅 ${dateText}`, 540, 480);
+
+      // === BOTTOM SECTION ===
       // Profile display: find professional or use company
       const eventSlotsList = eventSlots.length > 0 ? eventSlots : [];
       let profileName = companyData?.name || '';
       let profileImageUrl: string | null = companyData?.logo_url || null;
 
-      // Check if event has a specific professional
       if (eventSlotsList.length > 0) {
         const profId = eventSlotsList[0].professional_id;
         const prof = professionals.find(p => p.profile_id === profId);
@@ -558,7 +574,6 @@ const Events = () => {
           profileImageUrl = prof.profiles.avatar_url || profileImageUrl;
         }
       } else {
-        // Try loading slots for this event
         const { data: slots } = await supabase.from('event_slots').select('professional_id').eq('event_id', event.id).limit(1);
         if (slots && slots.length > 0) {
           const prof = professionals.find(p => p.profile_id === slots[0].professional_id);
@@ -569,8 +584,8 @@ const Events = () => {
         }
       }
 
-      // Draw profile photo circle
-      const profileY = 200;
+      // Profile photo circle at bottom
+      const profileY = 1280;
       if (profileImageUrl) {
         try {
           const profImg = new Image();
@@ -582,17 +597,17 @@ const Events = () => {
           });
           ctx.save();
           ctx.beginPath();
-          ctx.arc(540, profileY + 80, 80, 0, Math.PI * 2);
+          ctx.arc(540, profileY, 70, 0, Math.PI * 2);
           ctx.closePath();
           ctx.clip();
-          ctx.drawImage(profImg, 460, profileY, 160, 160);
+          ctx.drawImage(profImg, 470, profileY - 70, 140, 140);
           ctx.restore();
 
-          // Circle border
-          ctx.strokeStyle = primaryColor;
-          ctx.lineWidth = 4;
+          // Subtle white border
+          ctx.strokeStyle = 'rgba(255,255,255,0.6)';
+          ctx.lineWidth = 3;
           ctx.beginPath();
-          ctx.arc(540, profileY + 80, 82, 0, Math.PI * 2);
+          ctx.arc(540, profileY, 72, 0, Math.PI * 2);
           ctx.stroke();
         } catch {
           // skip profile image
@@ -600,31 +615,9 @@ const Events = () => {
       }
 
       // Profile name
-      ctx.fillStyle = '#FFFFFF';
-      ctx.font = 'bold 40px system-ui, -apple-system, sans-serif';
-      ctx.fillText(profileName, 540, profileY + 200);
-
-      // Accent bar
-      const accentGrad = ctx.createLinearGradient(300, 0, 780, 0);
-      accentGrad.addColorStop(0, primaryColor);
-      accentGrad.addColorStop(1, secondaryColor);
-      ctx.fillStyle = accentGrad;
-      roundRect(ctx, 300, profileY + 230, 480, 6, 3);
-      ctx.fill();
-
-      // Event name - positioned in lower section
-      ctx.fillStyle = '#FFFFFF';
-      ctx.font = 'bold 68px system-ui, -apple-system, sans-serif';
-      wrapText(ctx, event.name.toUpperCase(), 540, 1100, 900, 80);
-
-      // Date
-      const dateText = event.start_date === event.end_date
-        ? format(parseISO(event.start_date), "dd 'de' MMMM", { locale: ptBR })
-        : `${format(parseISO(event.start_date), "dd/MM", { locale: ptBR })} a ${format(parseISO(event.end_date), "dd/MM/yyyy", { locale: ptBR })}`;
-
-      ctx.fillStyle = primaryColor;
-      ctx.font = 'bold 48px system-ui, -apple-system, sans-serif';
-      ctx.fillText(`📅 ${dateText}`, 540, 1300);
+      ctx.fillStyle = 'rgba(255,255,255,0.8)';
+      ctx.font = '36px system-ui, -apple-system, sans-serif';
+      ctx.fillText(profileName, 540, profileY + 110);
 
       // Slot counter
       const stats = eventSlotStats[event.id];
@@ -634,23 +627,20 @@ const Events = () => {
           ? '🔥 ESGOTADO'
           : remaining <= 5
           ? `🔥 ÚLTIMAS ${remaining} VAGAS`
-          : `✅ ${remaining} VAGAS DISPONÍVEIS`;
+          : `${remaining} vagas disponíveis`;
 
-        ctx.fillStyle = remaining <= 5 && remaining > 0 ? '#FB923C' : remaining <= 0 ? '#EF4444' : '#34D399';
-        ctx.font = 'bold 44px system-ui, -apple-system, sans-serif';
-        ctx.fillText(slotText, 540, 1400);
+        ctx.fillStyle = '#FFFFFF';
+        ctx.font = remaining <= 5 && remaining > 0 ? 'bold 42px system-ui, -apple-system, sans-serif' : '40px system-ui, -apple-system, sans-serif';
+        ctx.fillText(slotText, 540, profileY + 180);
       }
 
-      // CTA button instead of URL
-      const ctaY = 1560;
+      // CTA button with company primary color
+      const ctaY = 1660;
       const ctaW = 600;
       const ctaH = 100;
       const ctaX = (1080 - ctaW) / 2;
 
-      const ctaGrad = ctx.createLinearGradient(ctaX, ctaY, ctaX + ctaW, ctaY);
-      ctaGrad.addColorStop(0, primaryColor);
-      ctaGrad.addColorStop(1, secondaryColor);
-      ctx.fillStyle = ctaGrad;
+      ctx.fillStyle = primaryColor;
       roundRect(ctx, ctaX, ctaY, ctaW, ctaH, 50);
       ctx.fill();
 
