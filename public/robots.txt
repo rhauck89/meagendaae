@@ -12,3 +12,13 @@ Allow: /
 
 User-agent: *
 Allow: /
+Disallow: /dashboard
+Disallow: /admin
+Disallow: /auth
+Disallow: /settings
+Disallow: /services
+Disallow: /clients
+Disallow: /reports
+Disallow: /automations
+Disallow: /team
+Disallow: /waitlist

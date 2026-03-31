@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Building2, DollarSign, Users, ShieldCheck, Globe } from 'lucide-react';
+import { Building2, DollarSign, Users, ShieldCheck, Globe, Search } from 'lucide-react';
 import { toast } from 'sonner';
 
 const statusColors: Record<string, string> = {
@@ -22,6 +22,11 @@ const Admin = () => {
   const [platformName, setPlatformName] = useState('');
   const [platformLogo, setPlatformLogo] = useState('');
   const [platformUrl, setPlatformUrl] = useState('');
+  const [seoTitle, setSeoTitle] = useState('');
+  const [seoDescription, setSeoDescription] = useState('');
+  const [seoOgImage, setSeoOgImage] = useState('');
+  const [seoFavicon, setSeoFavicon] = useState('');
+  const [seoKeywords, setSeoKeywords] = useState('');
 
   useEffect(() => {
     fetchCompanies();
@@ -42,6 +47,11 @@ const Admin = () => {
       setPlatformName((data as any).system_name ?? '');
       setPlatformLogo((data as any).system_logo ?? '');
       setPlatformUrl((data as any).system_url ?? '');
+      setSeoTitle((data as any).site_title ?? '');
+      setSeoDescription((data as any).meta_description ?? '');
+      setSeoOgImage((data as any).og_image ?? '');
+      setSeoFavicon((data as any).favicon_url ?? '');
+      setSeoKeywords((data as any).default_keywords ?? '');
     }
   };
 
@@ -50,6 +60,11 @@ const Admin = () => {
       system_name: platformName,
       system_logo: platformLogo || null,
       system_url: platformUrl || null,
+      site_title: seoTitle || null,
+      meta_description: seoDescription || null,
+      og_image: seoOgImage || null,
+      favicon_url: seoFavicon || null,
+      default_keywords: seoKeywords || null,
     } as any).neq('id', '00000000-0000-0000-0000-000000000000');
     toast.success('Configurações da plataforma salvas');
   };
@@ -135,6 +150,43 @@ const Admin = () => {
             <Button size="sm" onClick={savePlatformSettings}>Salvar</Button>
             <p className="text-xs text-muted-foreground">
               Exibido como "Agendamento online por {platformName || '...'}" nas páginas públicas.
+            </p>
+          </CardContent>
+        </Card>
+
+        {/* SEO Settings */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Search className="h-5 w-5" /> SEO da Plataforma
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label className="text-xs">Título do site</Label>
+                <Input value={seoTitle} onChange={(e) => setSeoTitle(e.target.value)} placeholder="AgendaPro - Agendamento Online" />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Palavras-chave</Label>
+                <Input value={seoKeywords} onChange={(e) => setSeoKeywords(e.target.value)} placeholder="agendamento, barbearia, estética" />
+              </div>
+              <div className="space-y-1 sm:col-span-2">
+                <Label className="text-xs">Meta descrição</Label>
+                <Input value={seoDescription} onChange={(e) => setSeoDescription(e.target.value)} placeholder="Plataforma de agendamento online..." />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">URL da imagem OG</Label>
+                <Input value={seoOgImage} onChange={(e) => setSeoOgImage(e.target.value)} placeholder="https://..." />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">URL do favicon</Label>
+                <Input value={seoFavicon} onChange={(e) => setSeoFavicon(e.target.value)} placeholder="https://..." />
+              </div>
+            </div>
+            <Button size="sm" onClick={savePlatformSettings}>Salvar SEO</Button>
+            <p className="text-xs text-muted-foreground">
+              Estas configurações são aplicadas às páginas principais da plataforma.
             </p>
           </CardContent>
         </Card>

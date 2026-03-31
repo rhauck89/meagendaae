@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Star, MessageCircle, MapPin, Share2, Check, Calendar, Clock, Instagram, Sparkles, Scissors } from 'lucide-react';
 import { LocationBlock, buildMapsUrl } from '@/components/LocationBlock';
+import { SEOHead } from '@/components/SEOHead';
 import { format, addDays, startOfDay, isToday, isTomorrow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
@@ -191,8 +192,19 @@ export default function ProfessionalPublicProfile() {
     );
   }
 
+  const seoTitle = `${professional.name} | ${businessType === 'esthetic' ? 'Profissional' : 'Barbeiro'} na ${company.name}`;
+  const seoDescription = `Agende com ${professional.name} na ${company.name} em ${company.city || ''} ${company.state || ''}.`.trim();
+
   return (
     <div className="min-h-screen" style={{ background: isDark ? '#0B132B' : 'linear-gradient(180deg, #FFF7ED, #FFFFFF)' }}>
+      <SEOHead
+        title={seoTitle}
+        description={seoDescription}
+        ogTitle={seoTitle}
+        ogDescription={seoDescription}
+        ogImage={professional.avatar_url || company.logo_url}
+        canonical={`${window.location.origin}/barbearia/${slug}/${professionalSlug}`}
+      />
       {/* Banner - professional banner first, fallback to company cover */}
       {(professional?.banner_url || company?.cover_url) && (
         <div className="w-full max-w-md mx-auto h-36 md:h-48 overflow-hidden">
