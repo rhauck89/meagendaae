@@ -261,7 +261,7 @@ export default function ProfessionalPublicProfile() {
 
         {/* Bio */}
         {profile?.bio && (
-          <p className="text-center text-sm leading-relaxed max-w-xs" style={{ color: isDark ? '#D1D5DB' : '#4B5563' }}>
+          <p className="text-center text-sm leading-relaxed max-w-xs" style={{ color: T.textSec }}>
             {profile.bio}
           </p>
         )}
