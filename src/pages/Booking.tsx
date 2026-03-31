@@ -696,7 +696,7 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
         serviceNames: bookedServiceNames, date: selectedDate, time: selectedTime,
         totalPrice, totalDuration, companyName: company.name,
         companyPhone: company.phone || companySettings?.whatsapp_number || null,
-        companyAddress: (company as any).address || null,
+        companyAddress: [(company as any).address, (company as any).address_number, (company as any).district].filter(Boolean).join(', ') || null,
       });
       setStep('success');
     } catch (err: any) {
