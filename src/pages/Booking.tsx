@@ -91,6 +91,7 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
   const [companySettings, setCompanySettings] = useState<any>(null);
   const [professionalRatings, setProfessionalRatings] = useState<Record<string, { avg: number; count: number }>>({});
   const [recentBookings, setRecentBookings] = useState<number | null>(null);
+  const [companyStats, setCompanyStats] = useState<{ avgRating: number; reviewCount: number; completedCount: number } | null>(null);
 
   const [step, setStep] = useState<Step>('services');
   const [selectedServices, setSelectedServices] = useState<string[]>([]);
@@ -200,6 +201,19 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
         ratingsMap[r.professional_id] = { avg: Number(r.avg_rating), count: Number(r.review_count) };
       }
       setProfessionalRatings(ratingsMap);
+    }
+
+    // Fetch company-level stats (reviews + completed appointments)
+    const [reviewsRes, completedRes] = await Promise.all([
+      supabase.from('reviews').select('rating').eq('company_id', comp.id),
+      supabase.from('appointments').select('id', { count: 'exact', head: true }).eq('company_id', comp.id).eq('status', 'completed'),
+    ]);
+    const reviews = reviewsRes.data || [];
+    const reviewCount = reviews.length;
+    const avgRating = reviewCount > 0 ? reviews.reduce((sum: number, r: any) => sum + Number(r.rating), 0) / reviewCount : 0;
+    const completedCount = completedRes.count || 0;
+    if (reviewCount > 0 || completedCount > 0) {
+      setCompanyStats({ avgRating, reviewCount, completedCount });
     }
 
     if (professionalSlug) {
@@ -668,11 +682,25 @@ const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
               </div>
             )}
           </a>
-          <div>
+          <div className="min-w-0">
             <h1 className="font-bold text-lg tracking-tight">{company.name}</h1>
-            <p className="text-xs" style={{ color: T.textSec }}>
-              {businessType === 'barbershop' ? 'Barbearia' : 'Estética'} • Agendamento online
-            </p>
+            {companyStats && companyStats.reviewCount > 0 ? (
+              <p className="text-xs flex items-center gap-1 flex-wrap" style={{ color: T.textSec }}>
+                <Star className="h-3 w-3 fill-current" style={{ color: T.accent }} />
+                <span style={{ color: T.accent, fontWeight: 600 }}>{companyStats.avgRating.toFixed(1)}</span>
+                <span>({companyStats.reviewCount} avaliações)</span>
+                {companyStats.completedCount > 0 && (
+                  <>
+                    <span>•</span>
+                    <span>💈 {companyStats.completedCount} atendimentos</span>
+                  </>
+                )}
+              </p>
+            ) : (
+              <p className="text-xs" style={{ color: T.textSec }}>
+                {businessType === 'barbershop' ? 'Barbearia' : 'Estética'} • Agendamento online
+              </p>
+            )}
           </div>
         </div>
       </header>
