@@ -227,7 +227,7 @@ export default function ProfessionalPublicProfile() {
           {avatarUrl ? (
             <img src={avatarUrl} alt={professional.name} className="w-28 h-28 rounded-full object-cover border-4" style={{ borderColor: T.accent }} />
           ) : (
-            <div className="w-28 h-28 rounded-full flex items-center justify-center text-3xl font-bold" style={{ background: isDark ? '#1F2937' : '#FED7AA', color: isDark ? '#F59E0B' : '#9A3412' }}>
+            <div className="w-28 h-28 rounded-full flex items-center justify-center text-3xl font-bold" style={{ background: `${T.accent}20`, color: T.accent }}>
               {professional.name?.charAt(0)?.toUpperCase()}
             </div>
           )}
