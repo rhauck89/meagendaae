@@ -171,6 +171,50 @@ const SettingsPage = () => {
         <p className="text-sm text-muted-foreground">Horários, lembretes e automações</p>
       </div>
 
+      {/* Company Identity */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Building2 className="h-5 w-5" /> Identidade da Empresa
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {/* Logo */}
+          <div className="flex items-center gap-4">
+            <div className="relative">
+              {companyLogoUrl ? (
+                <img src={companyLogoUrl} alt="Logo" className="w-20 h-20 rounded-xl object-cover border" />
+              ) : (
+                <div className="w-20 h-20 rounded-xl bg-muted flex items-center justify-center border">
+                  <Building2 className="w-8 h-8 text-muted-foreground" />
+                </div>
+              )}
+              <label className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full bg-primary text-primary-foreground flex items-center justify-center cursor-pointer shadow-md hover:opacity-90">
+                <Camera className="w-3.5 h-3.5" />
+                <input type="file" accept="image/*" className="hidden" onChange={handleLogoUpload} disabled={logoUploading} />
+              </label>
+            </div>
+            <div className="flex-1 space-y-1">
+              <p className="text-sm font-medium">Logo da empresa</p>
+              <p className="text-xs text-muted-foreground">Recomendado: 400x400px</p>
+            </div>
+          </div>
+
+          {/* Name & Phone */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <Label className="text-xs">Nome da empresa</Label>
+              <Input value={companyName} onChange={(e) => setCompanyName(e.target.value)} />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Telefone (opcional)</Label>
+              <Input value={companyPhone} onChange={(e) => setCompanyPhone(e.target.value)} placeholder="(11) 99999-9999" />
+            </div>
+          </div>
+          <Button size="sm" onClick={saveCompanyIdentity}>Salvar</Button>
+        </CardContent>
+      </Card>
+
       {/* Public Booking Link */}
       {companySlug && (
         <Card>
