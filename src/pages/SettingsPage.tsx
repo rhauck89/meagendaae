@@ -198,6 +198,15 @@ const SettingsPage = () => {
     toast.success('Dados da empresa salvos');
   };
 
+  const saveBranding = async () => {
+    await supabase.from('company_settings').update({
+      primary_color: brandPrimaryColor,
+      secondary_color: brandSecondaryColor,
+      background_color: brandBackgroundColor,
+    } as any).eq('company_id', companyId!);
+    toast.success('Cores da marca salvas!');
+  };
+
   const toggleReminders = async (enabled: boolean) => {
     setRemindersEnabled(enabled);
     await supabase.from('companies').update({ reminders_enabled: enabled } as any).eq('id', companyId!);
