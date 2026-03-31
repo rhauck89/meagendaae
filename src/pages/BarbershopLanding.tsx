@@ -421,23 +421,19 @@ export default function BarbershopLanding({ routeBusinessType }: BarbershopLandi
           </section>
         )}
 
-        {/* 10) Photo Gallery - Placeholder */}
-        {/* Gallery images would come from a company_photos table - shown as placeholder if cover exists */}
-        {company.cover_url && (
+        {/* 10) Photo Gallery */}
+        {galleryImages.length > 0 && (
           <section>
             <div className="flex items-center gap-2 mb-4">
               <Sparkles className="w-5 h-5" style={{ color: T.accent }} />
               <h2 className="text-lg font-bold" style={{ color: T.text }}>Galeria</h2>
             </div>
             <div className="grid grid-cols-2 gap-2">
-              <div className="rounded-xl overflow-hidden aspect-square">
-                <img src={company.cover_url} alt="Galeria" className="w-full h-full object-cover" />
-              </div>
-              {company.logo_url && (
-                <div className="rounded-xl overflow-hidden aspect-square flex items-center justify-center" style={{ background: T.card, border: `1px solid ${T.border}` }}>
-                  <img src={company.logo_url} alt="Logo" className="max-h-[60%] max-w-[80%] object-contain" />
+              {galleryImages.slice(0, 8).map((img: any, i: number) => (
+                <div key={img.id || i} className="rounded-xl overflow-hidden aspect-square">
+                  <img src={img.image_url} alt={img.caption || 'Galeria'} className="w-full h-full object-cover" />
                 </div>
-              )}
+              ))}
             </div>
           </section>
         )}
