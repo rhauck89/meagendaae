@@ -1105,6 +1105,38 @@ const Events = () => {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Story Source Selection Dialog */}
+      <Dialog open={showStorySourceDialog} onOpenChange={setShowStorySourceDialog}>
+        <DialogContent className="max-w-xs">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Instagram className="h-5 w-5" /> Imagem do Story
+            </DialogTitle>
+            <DialogDescription>
+              Escolha a imagem de fundo para o Story
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <Button className="w-full gap-2" variant="outline" onClick={handleStorySourceCover}>
+              <ImageIcon className="h-4 w-4" /> Usar capa do evento
+            </Button>
+            <Button className="w-full gap-2" variant="outline" onClick={handleStorySourceCamera}>
+              <Camera className="h-4 w-4" /> Tirar uma foto
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Hidden camera input */}
+      <input
+        ref={cameraInputRef}
+        type="file"
+        accept="image/*"
+        capture="environment"
+        className="hidden"
+        onChange={handleCameraCapture}
+      />
     </div>
   );
 };
