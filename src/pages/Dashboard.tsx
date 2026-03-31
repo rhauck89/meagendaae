@@ -967,124 +967,160 @@ const Dashboard = () => {
               ))}
             </div>
           )}
-          {appointments.length === 0 ? (
-            <div className="text-center py-12 text-muted-foreground">
-              <CalendarIcon className="h-12 w-12 mx-auto mb-3 opacity-40" />
-              <p>Nenhum agendamento neste período</p>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {appointments.map((apt) => (
-                <div
-                  key={apt.id}
-                  className={cn("flex flex-col sm:flex-row sm:items-center gap-3 p-4 rounded-xl border transition-shadow hover:shadow-md", statusCardStyles[getDisplayStatus(apt)] || 'bg-card')}
-                >
-                  <div className="flex items-center gap-3 flex-1">
-                    <div className="text-center min-w-[60px]">
-                      <p className="text-lg font-display font-bold">
-                        {viewMode !== 'day'
-                          ? `${format(parseISO(apt.start_time), 'dd/MM')} • ${format(parseISO(apt.start_time), 'HH:mm')}`
-                          : format(parseISO(apt.start_time), 'HH:mm')}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {format(parseISO(apt.end_time), 'HH:mm')}
-                      </p>
-                    </div>
-                    <div className="flex-1">
-                      <p className="font-semibold">{apt.client_name || apt.client?.name || 'Cliente'}</p>
-                      <p className="text-sm text-muted-foreground">
-                        {apt.appointment_services?.map((s: any) => s.service?.name).join(', ')}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        com {apt.professional?.full_name}
-                      </p>
-                    </div>
+
+          {/* Status Tabs */}
+          {(() => {
+            const counts = {
+              all: appointments.length,
+              confirmed: appointments.filter(statusFilterMap.confirmed).length,
+              completed: appointments.filter(statusFilterMap.completed).length,
+              cancelled: appointments.filter(statusFilterMap.cancelled).length,
+              rescheduled: appointments.filter(statusFilterMap.rescheduled).length,
+            };
+            const filteredAppts = appointments.filter(statusFilterMap[statusTab]);
+
+            return (
+              <>
+                <Tabs value={statusTab} onValueChange={(v) => setStatusTab(v as StatusTab)} className="mb-4">
+                  <TabsList className="w-full flex flex-wrap h-auto gap-1">
+                    <TabsTrigger value="all" className="text-xs sm:text-sm">Todos ({counts.all})</TabsTrigger>
+                    <TabsTrigger value="confirmed" className="text-xs sm:text-sm">Confirmados ({counts.confirmed})</TabsTrigger>
+                    <TabsTrigger value="completed" className="text-xs sm:text-sm">Concluídos ({counts.completed})</TabsTrigger>
+                    <TabsTrigger value="cancelled" className="text-xs sm:text-sm">Cancelados ({counts.cancelled})</TabsTrigger>
+                    <TabsTrigger value="rescheduled" className="text-xs sm:text-sm">Reagendados ({counts.rescheduled})</TabsTrigger>
+                  </TabsList>
+                </Tabs>
+
+                {filteredAppts.length === 0 ? (
+                  <div className="text-center py-12 text-muted-foreground">
+                    <CalendarIcon className="h-12 w-12 mx-auto mb-3 opacity-40" />
+                    <p>Nenhum agendamento neste período</p>
                   </div>
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="font-display font-bold text-lg">
-                      R$ {Number(apt.total_price).toFixed(2)}
-                    </span>
-                    <Badge variant="outline" className={cn('text-xs', statusColors[getDisplayStatus(apt)])}>
-                      {statusLabels[getDisplayStatus(apt)]}
-                    </Badge>
-                    {apt.rescheduled_from_id && (
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <div>
-                            <Badge className="text-xs bg-orange-500 text-white border-orange-500 hover:bg-orange-600 cursor-help">
-                              🔁 Reagendado
-                            </Badge>
+                ) : (
+                  <div className="space-y-3">
+                    {filteredAppts.map((apt) => {
+                      const displayStatus = getDisplayStatus(apt);
+                      return (
+                        <div
+                          key={apt.id}
+                          className={cn("flex flex-col sm:flex-row sm:items-center gap-3 p-4 rounded-xl border transition-shadow hover:shadow-md", statusCardStyles[displayStatus] || 'bg-card')}
+                        >
+                          <div className="flex items-center gap-3 flex-1">
+                            <div className="text-center min-w-[60px]">
+                              <p className="text-lg font-display font-bold">
+                                {viewMode !== 'day'
+                                  ? `${format(parseISO(apt.start_time), 'dd/MM')} • ${format(parseISO(apt.start_time), 'HH:mm')}`
+                                  : format(parseISO(apt.start_time), 'HH:mm')}
+                              </p>
+                              <p className="text-xs text-muted-foreground">
+                                {format(parseISO(apt.end_time), 'HH:mm')}
+                              </p>
+                            </div>
+                            <div className="flex-1">
+                              <p className="font-semibold">{apt.client_name || apt.client?.name || 'Cliente'}</p>
+                              <p className="text-sm text-muted-foreground">
+                                {apt.appointment_services?.map((s: any) => s.service?.name).join(', ')}
+                              </p>
+                              <p className="text-xs text-muted-foreground">
+                                com {apt.professional?.full_name}
+                              </p>
+                            </div>
                           </div>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          {apt.rescheduled_from?.start_time
-                            ? `Reagendado de ${format(parseISO(apt.rescheduled_from.start_time), "dd/MM/yyyy 'às' HH:mm")}`
-                            : 'Reagendado de horário anterior'}
-                        </TooltipContent>
-                      </Tooltip>
-                    )}
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="font-display font-bold text-lg">
+                              R$ {Number(apt.total_price).toFixed(2)}
+                            </span>
+                            <Badge variant="outline" className={cn('text-xs', statusColors[displayStatus])}>
+                              {statusLabels[displayStatus]}
+                            </Badge>
+                            {displayStatus === 'late' && (
+                              <Badge variant="outline" className="text-xs border-warning bg-warning/10 text-warning">
+                                <AlertCircle className="h-3 w-3 mr-1" />
+                                Atrasado
+                              </Badge>
+                            )}
+                            {apt.rescheduled_from_id && (
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <div>
+                                    <Badge className="text-xs bg-orange-500 text-white border-orange-500 hover:bg-orange-600 cursor-help">
+                                      🔁 Reagendado
+                                    </Badge>
+                                  </div>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  {apt.rescheduled_from?.start_time
+                                    ? `Reagendado de ${format(parseISO(apt.rescheduled_from.start_time), "dd/MM/yyyy 'às' HH:mm")}`
+                                    : 'Reagendado de horário anterior'}
+                                </TooltipContent>
+                              </Tooltip>
+                            )}
+                          </div>
+                          <div className="flex gap-1 flex-wrap">
+                            {apt.status === 'pending' && (
+                              <Button size="sm" onClick={() => updateStatus(apt.id, 'confirmed')}>
+                                Confirmar
+                              </Button>
+                            )}
+                            {(apt.status === 'pending' || apt.status === 'confirmed') && (
+                              <>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => {
+                                    setCompleteTarget(apt);
+                                    setCompleteDialogOpen(true);
+                                  }}
+                                >
+                                  Concluir
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => {
+                                    setDelayTargetId(apt.id);
+                                    setDelayDialogOpen(true);
+                                  }}
+                                >
+                                  <Timer className="h-4 w-4 mr-1" />
+                                  Atraso
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => openRescheduleDialog(apt)}
+                                >
+                                  <RefreshCw className="h-4 w-4 mr-1" />
+                                  Reagendar
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  className="text-destructive"
+                                  onClick={() => {
+                                    setCancelTarget(apt);
+                                    setCancelDialogOpen(true);
+                                  }}
+                                >
+                                  Cancelar
+                                </Button>
+                              </>
+                            )}
+                            {apt.delay_minutes > 0 && (
+                              <Badge variant="outline" className="text-xs border-warning text-warning">
+                                <Timer className="h-3 w-3 mr-1" />
+                                +{apt.delay_minutes}min
+                              </Badge>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
-                  <div className="flex gap-1 flex-wrap">
-                    {apt.status === 'pending' && (
-                      <Button size="sm" onClick={() => updateStatus(apt.id, 'confirmed')}>
-                        Confirmar
-                      </Button>
-                    )}
-                    {(apt.status === 'pending' || apt.status === 'confirmed') && (
-                      <>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => {
-                            setCompleteTarget(apt);
-                            setCompleteDialogOpen(true);
-                          }}
-                        >
-                          Concluir
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => {
-                            setDelayTargetId(apt.id);
-                            setDelayDialogOpen(true);
-                          }}
-                        >
-                          <Timer className="h-4 w-4 mr-1" />
-                          Atraso
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => openRescheduleDialog(apt)}
-                        >
-                          <RefreshCw className="h-4 w-4 mr-1" />
-                          Reagendar
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          className="text-destructive"
-                          onClick={() => {
-                            setCancelTarget(apt);
-                            setCancelDialogOpen(true);
-                          }}
-                        >
-                          Cancelar
-                        </Button>
-                      </>
-                    )}
-                    {apt.delay_minutes > 0 && (
-                      <Badge variant="outline" className="text-xs border-warning text-warning">
-                        <Timer className="h-3 w-3 mr-1" />
-                        +{apt.delay_minutes}min
-                      </Badge>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
+                )}
+              </>
+            );
+          })()}
         </CardContent>
       </Card>
 
