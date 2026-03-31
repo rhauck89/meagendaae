@@ -36,6 +36,24 @@ const Admin = () => {
     if (data) setCompanies(data);
   };
 
+  const fetchPlatformSettings = async () => {
+    const { data } = await supabase.from('platform_settings' as any).select('*').limit(1).single();
+    if (data) {
+      setPlatformName((data as any).system_name ?? '');
+      setPlatformLogo((data as any).system_logo ?? '');
+      setPlatformUrl((data as any).system_url ?? '');
+    }
+  };
+
+  const savePlatformSettings = async () => {
+    await supabase.from('platform_settings' as any).update({
+      system_name: platformName,
+      system_logo: platformLogo || null,
+      system_url: platformUrl || null,
+    } as any).neq('id', '00000000-0000-0000-0000-000000000000');
+    toast.success('Configurações da plataforma salvas');
+  };
+
   const toggleBlock = async (id: string, currentStatus: string) => {
     const newStatus = currentStatus === 'blocked' ? 'active' : 'blocked';
     await supabase.from('companies').update({ subscription_status: newStatus as any }).eq('id', id);
