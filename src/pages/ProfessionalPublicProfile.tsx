@@ -195,8 +195,8 @@ export default function ProfessionalPublicProfile() {
 
   if (!professional || !company) {
     return (
-      <div className="min-h-screen flex items-center justify-center" style={{ background: isDark ? '#0B132B' : '#FFF7ED' }}>
-        <p className="text-lg" style={{ color: isDark ? '#9CA3AF' : '#6B7280' }}>Profissional não encontrado.</p>
+      <div className="min-h-screen flex items-center justify-center" style={{ background: T.bg }}>
+        <p className="text-lg" style={{ color: T.textSec }}>Profissional não encontrado.</p>
       </div>
     );
   }
