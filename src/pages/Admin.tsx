@@ -154,6 +154,43 @@ const Admin = () => {
           </CardContent>
         </Card>
 
+        {/* SEO Settings */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Search className="h-5 w-5" /> SEO da Plataforma
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label className="text-xs">Título do site</Label>
+                <Input value={seoTitle} onChange={(e) => setSeoTitle(e.target.value)} placeholder="AgendaPro - Agendamento Online" />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Palavras-chave</Label>
+                <Input value={seoKeywords} onChange={(e) => setSeoKeywords(e.target.value)} placeholder="agendamento, barbearia, estética" />
+              </div>
+              <div className="space-y-1 sm:col-span-2">
+                <Label className="text-xs">Meta descrição</Label>
+                <Input value={seoDescription} onChange={(e) => setSeoDescription(e.target.value)} placeholder="Plataforma de agendamento online..." />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">URL da imagem OG</Label>
+                <Input value={seoOgImage} onChange={(e) => setSeoOgImage(e.target.value)} placeholder="https://..." />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">URL do favicon</Label>
+                <Input value={seoFavicon} onChange={(e) => setSeoFavicon(e.target.value)} placeholder="https://..." />
+              </div>
+            </div>
+            <Button size="sm" onClick={savePlatformSettings}>Salvar SEO</Button>
+            <p className="text-xs text-muted-foreground">
+              Estas configurações são aplicadas às páginas principais da plataforma.
+            </p>
+          </CardContent>
+        </Card>
+
         <Card>
           <CardHeader>
             <CardTitle>Empresas Cadastradas</CardTitle>
