@@ -411,6 +411,148 @@ const Events = () => {
 
   const getPublicUrl = (event: Event) => `${window.location.origin}/event/${event.slug}`;
 
+  const generateStoryImage = async (event: Event) => {
+    setStoryEvent(event);
+    setStoryImageUrl(null);
+    setGeneratingStory(true);
+    setShowStoryDialog(true);
+
+    try {
+      const canvas = document.createElement('canvas');
+      canvas.width = 1080;
+      canvas.height = 1920;
+      const ctx = canvas.getContext('2d')!;
+
+      // Background gradient
+      const grad = ctx.createLinearGradient(0, 0, 0, 1920);
+      grad.addColorStop(0, '#0B132B');
+      grad.addColorStop(0.5, '#1C2541');
+      grad.addColorStop(1, '#0B132B');
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, 1080, 1920);
+
+      // Cover image
+      if (event.cover_image) {
+        try {
+          const img = new Image();
+          img.crossOrigin = 'anonymous';
+          await new Promise<void>((resolve, reject) => {
+            img.onload = () => resolve();
+            img.onerror = () => reject();
+            img.src = event.cover_image!;
+          });
+          // Draw cover with rounded corners effect
+          ctx.save();
+          const coverY = 180;
+          const coverH = 500;
+          const coverX = 60;
+          const coverW = 960;
+          const radius = 24;
+          ctx.beginPath();
+          ctx.moveTo(coverX + radius, coverY);
+          ctx.lineTo(coverX + coverW - radius, coverY);
+          ctx.quadraticCurveTo(coverX + coverW, coverY, coverX + coverW, coverY + radius);
+          ctx.lineTo(coverX + coverW, coverY + coverH - radius);
+          ctx.quadraticCurveTo(coverX + coverW, coverY + coverH, coverX + coverW - radius, coverY + coverH);
+          ctx.lineTo(coverX + radius, coverY + coverH);
+          ctx.quadraticCurveTo(coverX, coverY + coverH, coverX, coverY + coverH - radius);
+          ctx.lineTo(coverX, coverY + radius);
+          ctx.quadraticCurveTo(coverX, coverY, coverX + radius, coverY);
+          ctx.closePath();
+          ctx.clip();
+          ctx.drawImage(img, coverX, coverY, coverW, coverH);
+          ctx.restore();
+        } catch {
+          // Cover failed to load, skip
+        }
+      }
+
+      // Accent bar
+      const accentGrad = ctx.createLinearGradient(60, 750, 1020, 750);
+      accentGrad.addColorStop(0, '#F59E0B');
+      accentGrad.addColorStop(1, '#D97706');
+      ctx.fillStyle = accentGrad;
+      roundRect(ctx, 60, 740, 960, 6, 3);
+      ctx.fill();
+
+      // Event name
+      ctx.fillStyle = '#FFFFFF';
+      ctx.font = 'bold 64px system-ui, -apple-system, sans-serif';
+      ctx.textAlign = 'center';
+      wrapText(ctx, event.name.toUpperCase(), 540, 840, 900, 76);
+
+      // Date
+      const dateText = event.start_date === event.end_date
+        ? format(parseISO(event.start_date), "dd 'de' MMMM", { locale: ptBR })
+        : `${format(parseISO(event.start_date), "dd/MM", { locale: ptBR })} a ${format(parseISO(event.end_date), "dd/MM/yyyy", { locale: ptBR })}`;
+
+      ctx.fillStyle = '#F59E0B';
+      ctx.font = 'bold 48px system-ui, -apple-system, sans-serif';
+      ctx.fillText(`📅 ${dateText}`, 540, 1020);
+
+      // Slot counter
+      const stats = eventSlotStats[event.id];
+      if (stats && stats.total > 0) {
+        const remaining = stats.total - stats.booked;
+        const slotText = remaining <= 0
+          ? '🔥 ESGOTADO'
+          : remaining <= 5
+          ? `🔥 ÚLTIMAS ${remaining} VAGAS`
+          : `✅ ${remaining} VAGAS DISPONÍVEIS`;
+
+        ctx.fillStyle = remaining <= 5 && remaining > 0 ? '#FB923C' : remaining <= 0 ? '#EF4444' : '#34D399';
+        ctx.font = 'bold 44px system-ui, -apple-system, sans-serif';
+        ctx.fillText(slotText, 540, 1120);
+      }
+
+      // Booking URL
+      const bookingUrl = getPublicUrl(event);
+      ctx.fillStyle = 'rgba(245, 158, 11, 0.15)';
+      roundRect(ctx, 60, 1260, 960, 120, 20);
+      ctx.fill();
+      ctx.strokeStyle = '#F59E0B';
+      ctx.lineWidth = 2;
+      roundRect(ctx, 60, 1260, 960, 120, 20);
+      ctx.stroke();
+
+      ctx.fillStyle = '#F59E0B';
+      ctx.font = 'bold 32px system-ui, -apple-system, sans-serif';
+      ctx.fillText('AGENDE AGORA', 540, 1310);
+      ctx.fillStyle = '#FFFFFF';
+      ctx.font = '28px system-ui, -apple-system, sans-serif';
+      const shortUrl = bookingUrl.replace(/^https?:\/\//, '');
+      ctx.fillText(shortUrl.length > 45 ? shortUrl.slice(0, 45) + '...' : shortUrl, 540, 1355);
+
+      // Swipe up indicator
+      ctx.fillStyle = 'rgba(255,255,255,0.5)';
+      ctx.font = '28px system-ui, -apple-system, sans-serif';
+      ctx.fillText('⬆ Deslize para agendar', 540, 1800);
+
+      const dataUrl = canvas.toDataURL('image/png');
+      setStoryImageUrl(dataUrl);
+    } catch (err) {
+      console.error('Error generating story image:', err);
+      toast.error('Erro ao gerar imagem');
+    } finally {
+      setGeneratingStory(false);
+    }
+  };
+
+  const handleDownloadStory = () => {
+    if (!storyImageUrl || !storyEvent) return;
+    const link = document.createElement('a');
+    link.download = `story-${storyEvent.slug}.png`;
+    link.href = storyImageUrl;
+    link.click();
+    toast.success('Imagem baixada!');
+  };
+
+  const handleCopyBookingLink = () => {
+    if (!storyEvent) return;
+    navigator.clipboard.writeText(getPublicUrl(storyEvent));
+    toast.success('Link copiado!');
+  };
+
   const filteredEvents = events.filter(e => statusFilter === 'all' || e.status === statusFilter);
 
   const statusCounts = {
