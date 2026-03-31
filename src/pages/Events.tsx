@@ -787,7 +787,7 @@ const Events = () => {
                         <Copy className="h-3.5 w-3.5" />
                       </Button>
                     </div>
-                    <Button size="sm" variant="outline" className="w-full gap-1.5" onClick={() => generateStoryImage(event)}>
+                    <Button size="sm" variant="outline" className="w-full gap-1.5" onClick={() => openStorySourceDialog(event)}>
                       <Instagram className="h-3.5 w-3.5" /> Compartilhar nos Stories
                     </Button>
                   </div>
