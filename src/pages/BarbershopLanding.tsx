@@ -15,6 +15,12 @@ interface BarbershopLandingProps {
   routeBusinessType?: BusinessType;
 }
 
+const formatReviewerName = (name: string): string => {
+  const parts = name.trim().split(/\s+/);
+  if (parts.length === 1) return parts[0];
+  return `${parts[0]} ${parts[parts.length - 1].charAt(0).toUpperCase()}.`;
+};
+
 const StarRating = ({ rating, size = 14 }: { rating: number; size?: number }) => (
   <div className="flex items-center gap-0.5">
     {[1, 2, 3, 4, 5].map((s) => {
