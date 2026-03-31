@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Plus, Users, Percent, DollarSign, Settings, Copy, Link as LinkIcon, ExternalLink, Mail, KeyRound, MessageCircle } from 'lucide-react';
+import { Plus, Users, Percent, DollarSign, Settings, Copy, ExternalLink, Mail, KeyRound, MessageCircle } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import ProfessionalPanel from '@/components/ProfessionalPanel';
@@ -202,13 +202,6 @@ const Team = () => {
     return 'Sem comissão';
   };
 
-  const getCollaboratorBookingLink = (collaborator: any) => {
-    if (!company) return '';
-    const businessPrefix = company.business_type === 'esthetic' ? 'estetica' : 'barbearia';
-    const slug = collaborator.slug || generateSlug(collaborator.profile?.full_name || '');
-    return `${window.location.origin}/${businessPrefix}/${company.slug}/${slug}`;
-  };
-
   const getCollaboratorProfileLink = (collaborator: any) => {
     if (!company) return '';
     const businessPrefix = company.business_type === 'esthetic' ? 'estetica' : 'barbearia';
@@ -366,7 +359,6 @@ const Team = () => {
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         {collaborators.map((collaborator) => {
-          const bookingLink = getCollaboratorBookingLink(collaborator);
           const profileLink = getCollaboratorProfileLink(collaborator);
           return (
             <Card key={collaborator.id}>
@@ -422,34 +414,15 @@ const Team = () => {
                   </Button>
                 </div>
 
-                {bookingLink && (
-                  <div className="flex items-center gap-2 rounded-md border bg-muted/30 px-3 py-2">
-                    <LinkIcon className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                    <p className="text-xs text-muted-foreground truncate flex-1">{bookingLink}</p>
-                    <Button variant="ghost" size="sm" className="h-7 px-2" onClick={() => copyToClipboard(bookingLink, 'Link')}>
-                      <Copy className="h-3.5 w-3.5" />
-                    </Button>
-                  </div>
-                )}
                 {profileLink && (
-                  <div className="flex items-center gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="flex-1"
-                      onClick={() => window.open(profileLink, '_blank')}
-                    >
-                      <ExternalLink className="mr-1.5 h-3.5 w-3.5" /> Ver perfil público
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="flex-1"
-                      onClick={() => copyToClipboard(profileLink, 'Link do perfil')}
-                    >
-                      <Copy className="mr-1.5 h-3.5 w-3.5" /> Copiar link do perfil
-                    </Button>
-                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full"
+                    onClick={() => window.open(profileLink, '_blank')}
+                  >
+                    <ExternalLink className="mr-1.5 h-3.5 w-3.5" /> Ver página pública
+                  </Button>
                 )}
               </CardContent>
             </Card>
