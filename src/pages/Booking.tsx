@@ -1594,7 +1594,6 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
               '',
               'Obrigado! 🙏',
             ].join('\n');
-            ].join('\n');
             return `https://wa.me/${phone.startsWith('55') ? phone : '55' + phone}?text=${encodeURIComponent(msg)}`;
           };
 
