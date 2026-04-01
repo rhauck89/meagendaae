@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Clock, DollarSign, Users, UserCheck, UserMinus, AlertTriangle, Bell, Mail, Cake, Ban, Trash2, Timer, RefreshCw, AlertCircle } from 'lucide-react';
+import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Clock, DollarSign, Users, UserCheck, UserMinus, AlertTriangle, Bell, Mail, Cake, Ban, Trash2, Timer, RefreshCw, AlertCircle, TrendingUp, BarChart3, XCircle, Percent, Receipt } from 'lucide-react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { BlockTimeDialog } from '@/components/BlockTimeDialog';
 import { Calendar as DatePickerCalendar } from '@/components/ui/calendar';
@@ -98,6 +98,7 @@ const Dashboard = () => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [appointments, setAppointments] = useState<any[]>([]);
   const [stats, setStats] = useState({ total: 0, revenue: 0, revenueCompleted: 0, clients: 0 });
+  const [monthlyStats, setMonthlyStats] = useState({ revenue: 0, revenueCompleted: 0, clients: 0, cancellations: 0, occupancyRate: 0, avgTicket: 0 });
   const [returnStats, setReturnStats] = useState<ReturnStats>({ onTime: 0, approaching: 0, overdue: 0, approachingClients: [], overdueClients: [] });
   const [waitlistCount, setWaitlistCount] = useState(0);
   const [waitlistServiceBreakdown, setWaitlistServiceBreakdown] = useState<Record<string, number>>({});
@@ -158,6 +159,7 @@ const Dashboard = () => {
     fetchReminderCount();
     fetchBirthdays();
     fetchBlockedTimes();
+    fetchMonthlyStats();
   }, [companyId, currentDate, viewMode, filterProfessional]);
 
   const fetchCollaborators = async () => {
@@ -257,6 +259,50 @@ const Dashboard = () => {
         clients: new Set(todayAppts.map((a) => a.client_id)).size,
       });
     }
+  };
+
+  const fetchMonthlyStats = async () => {
+    if (!companyId) return;
+    const monthStart = startOfMonth(new Date());
+    const monthEnd = endOfMonth(new Date());
+
+    let query = supabase
+      .from('appointments')
+      .select('status, total_price, client_id')
+      .eq('company_id', companyId!)
+      .gte('start_time', toSpStart(monthStart))
+      .lte('start_time', toSpEnd(monthEnd));
+
+    if (!isAdmin && profileId) {
+      query = query.eq('professional_id', profileId);
+    } else if (filterProfessional !== 'all') {
+      query = query.eq('professional_id', filterProfessional);
+    }
+
+    const { data } = await query;
+    if (!data) return;
+
+    const confirmed = data.filter(a => a.status === 'confirmed' || a.status === 'completed');
+    const completed = data.filter(a => a.status === 'completed');
+    const cancelled = data.filter(a => a.status === 'cancelled');
+    const uniqueClients = new Set(data.filter(a => a.status !== 'cancelled' && a.status !== 'no_show').map(a => a.client_id)).size;
+
+    const revenue = confirmed.reduce((sum, a) => sum + Number(a.total_price), 0);
+    const revenueCompleted = completed.reduce((sum, a) => sum + Number(a.total_price), 0);
+    const totalAppts = data.filter(a => a.status !== 'cancelled' && a.status !== 'no_show').length;
+
+    // Rough occupancy: confirmed+completed vs total non-cancelled
+    const occupancyRate = totalAppts > 0 ? Math.round((confirmed.length / Math.max(totalAppts, 1)) * 100) : 0;
+    const avgTicket = uniqueClients > 0 ? revenue / uniqueClients : 0;
+
+    setMonthlyStats({
+      revenue,
+      revenueCompleted,
+      clients: uniqueClients,
+      cancellations: cancelled.length,
+      occupancyRate,
+      avgTicket,
+    });
   };
 
   const fetchReturnStats = async () => {
@@ -698,7 +744,79 @@ const Dashboard = () => {
         </Card>
       </div>
 
-      {/* Return Frequency Indicators - Admin only */}
+      {/* Monthly Stats */}
+      <div>
+        <h3 className="text-lg font-display font-semibold mb-3">📊 Resumo do mês</h3>
+        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
+          <Card>
+            <CardContent className="p-4 flex items-center gap-4">
+              <div className="w-12 h-12 rounded-xl bg-success/10 flex items-center justify-center">
+                <TrendingUp className="h-6 w-6 text-success" />
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Receita do mês</p>
+                <p className="text-2xl font-display font-bold">R$ {monthlyStats.revenue.toFixed(2)}</p>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4 flex items-center gap-4">
+              <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
+                <DollarSign className="h-6 w-6 text-primary" />
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Receita realizada</p>
+                <p className="text-2xl font-display font-bold">R$ {monthlyStats.revenueCompleted.toFixed(2)}</p>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4 flex items-center gap-4">
+              <div className="w-12 h-12 rounded-xl bg-accent/10 flex items-center justify-center">
+                <Users className="h-6 w-6 text-accent" />
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Clientes atendidos</p>
+                <p className="text-2xl font-display font-bold">{monthlyStats.clients}</p>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4 flex items-center gap-4">
+              <div className="w-12 h-12 rounded-xl bg-destructive/10 flex items-center justify-center">
+                <XCircle className="h-6 w-6 text-destructive" />
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Cancelamentos</p>
+                <p className="text-2xl font-display font-bold">{monthlyStats.cancellations}</p>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4 flex items-center gap-4">
+              <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
+                <BarChart3 className="h-6 w-6 text-primary" />
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Taxa de ocupação</p>
+                <p className="text-2xl font-display font-bold">{monthlyStats.occupancyRate}%</p>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4 flex items-center gap-4">
+              <div className="w-12 h-12 rounded-xl bg-warning/10 flex items-center justify-center">
+                <Receipt className="h-6 w-6 text-warning" />
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Ticket médio</p>
+                <p className="text-2xl font-display font-bold">R$ {monthlyStats.avgTicket.toFixed(2)}</p>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+
       {isAdmin && (
       <Card>
         <CardHeader className="pb-3">
