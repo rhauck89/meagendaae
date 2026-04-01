@@ -221,11 +221,21 @@ const SuperAdminPlans = () => {
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
                 <Label className="text-xs">Preço mensal (R$)</Label>
-                <Input type="number" min={0} step={0.01} value={form.price} onChange={(e) => setForm(f => ({ ...f, price: parseFloat(e.target.value) || 0 }))} />
+                <Input type="number" min={0} step={0.01} value={form.monthly_price} onChange={(e) => setForm(f => ({ ...f, monthly_price: parseFloat(e.target.value) || 0 }))} />
               </div>
               <div className="space-y-1">
                 <Label className="text-xs">Limite de membros</Label>
                 <Input type="number" min={1} value={form.members_limit} onChange={(e) => setForm(f => ({ ...f, members_limit: parseInt(e.target.value) || 1 }))} />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label className="text-xs">Preço anual (R$)</Label>
+                <Input type="number" min={0} step={0.01} value={form.yearly_price} onChange={(e) => setForm(f => ({ ...f, yearly_price: parseFloat(e.target.value) || 0 }))} />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Desconto anual (%)</Label>
+                <Input type="number" min={0} max={100} step={1} value={form.yearly_discount} onChange={(e) => setForm(f => ({ ...f, yearly_discount: parseFloat(e.target.value) || 0 }))} />
               </div>
             </div>
 
