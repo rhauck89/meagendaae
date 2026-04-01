@@ -23,6 +23,7 @@ import ReviewPage from "./pages/ReviewPage";
 import CancelAppointment from "./pages/CancelAppointment";
 import RescheduleAppointment from "./pages/RescheduleAppointment";
 import Admin from "./pages/Admin";
+import RequireRole from "./components/RequireRole";
 import DebugAgenda from "./pages/DebugAgenda";
 import Waitlist from "./pages/Waitlist";
 import ProfilePage from "./pages/ProfilePage";
