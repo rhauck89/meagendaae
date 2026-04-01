@@ -744,7 +744,79 @@ const Dashboard = () => {
         </Card>
       </div>
 
-      {/* Return Frequency Indicators - Admin only */}
+      {/* Monthly Stats */}
+      <div>
+        <h3 className="text-lg font-display font-semibold mb-3">📊 Resumo do mês</h3>
+        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
+          <Card>
+            <CardContent className="p-4 flex items-center gap-4">
+              <div className="w-12 h-12 rounded-xl bg-success/10 flex items-center justify-center">
+                <TrendingUp className="h-6 w-6 text-success" />
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Receita do mês</p>
+                <p className="text-2xl font-display font-bold">R$ {monthlyStats.revenue.toFixed(2)}</p>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4 flex items-center gap-4">
+              <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
+                <DollarSign className="h-6 w-6 text-primary" />
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Receita realizada</p>
+                <p className="text-2xl font-display font-bold">R$ {monthlyStats.revenueCompleted.toFixed(2)}</p>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4 flex items-center gap-4">
+              <div className="w-12 h-12 rounded-xl bg-accent/10 flex items-center justify-center">
+                <Users className="h-6 w-6 text-accent" />
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Clientes atendidos</p>
+                <p className="text-2xl font-display font-bold">{monthlyStats.clients}</p>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4 flex items-center gap-4">
+              <div className="w-12 h-12 rounded-xl bg-destructive/10 flex items-center justify-center">
+                <XCircle className="h-6 w-6 text-destructive" />
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Cancelamentos</p>
+                <p className="text-2xl font-display font-bold">{monthlyStats.cancellations}</p>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4 flex items-center gap-4">
+              <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
+                <BarChart3 className="h-6 w-6 text-primary" />
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Taxa de ocupação</p>
+                <p className="text-2xl font-display font-bold">{monthlyStats.occupancyRate}%</p>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4 flex items-center gap-4">
+              <div className="w-12 h-12 rounded-xl bg-warning/10 flex items-center justify-center">
+                <Receipt className="h-6 w-6 text-warning" />
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Ticket médio</p>
+                <p className="text-2xl font-display font-bold">R$ {monthlyStats.avgTicket.toFixed(2)}</p>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+
       {isAdmin && (
       <Card>
         <CardHeader className="pb-3">
