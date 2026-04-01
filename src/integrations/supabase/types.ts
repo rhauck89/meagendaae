@@ -950,7 +950,13 @@ export type Database = {
           description: string
           expense_date: string
           id: string
+          is_recurring: boolean
           notes: string | null
+          parent_recurring_id: string | null
+          recurrence_count: number | null
+          recurrence_end_date: string | null
+          recurrence_interval: number | null
+          recurrence_type: string | null
           updated_at: string
         }
         Insert: {
@@ -960,7 +966,13 @@ export type Database = {
           description: string
           expense_date?: string
           id?: string
+          is_recurring?: boolean
           notes?: string | null
+          parent_recurring_id?: string | null
+          recurrence_count?: number | null
+          recurrence_end_date?: string | null
+          recurrence_interval?: number | null
+          recurrence_type?: string | null
           updated_at?: string
         }
         Update: {
@@ -970,7 +982,13 @@ export type Database = {
           description?: string
           expense_date?: string
           id?: string
+          is_recurring?: boolean
           notes?: string | null
+          parent_recurring_id?: string | null
+          recurrence_count?: number | null
+          recurrence_end_date?: string | null
+          recurrence_interval?: number | null
+          recurrence_type?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -981,6 +999,13 @@ export type Database = {
             referencedRelation: "expense_categories"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "expenses_parent_recurring_id_fkey"
+            columns: ["parent_recurring_id"]
+            isOneToOne: false
+            referencedRelation: "expenses"
+            referencedColumns: ["id"]
+          },
         ]
       }
       manual_revenues: {
@@ -989,7 +1014,13 @@ export type Database = {
           created_at: string
           description: string
           id: string
+          is_recurring: boolean
           notes: string | null
+          parent_recurring_id: string | null
+          recurrence_count: number | null
+          recurrence_end_date: string | null
+          recurrence_interval: number | null
+          recurrence_type: string | null
           revenue_date: string
           source: string | null
           updated_at: string
@@ -999,7 +1030,13 @@ export type Database = {
           created_at?: string
           description: string
           id?: string
+          is_recurring?: boolean
           notes?: string | null
+          parent_recurring_id?: string | null
+          recurrence_count?: number | null
+          recurrence_end_date?: string | null
+          recurrence_interval?: number | null
+          recurrence_type?: string | null
           revenue_date?: string
           source?: string | null
           updated_at?: string
@@ -1009,12 +1046,26 @@ export type Database = {
           created_at?: string
           description?: string
           id?: string
+          is_recurring?: boolean
           notes?: string | null
+          parent_recurring_id?: string | null
+          recurrence_count?: number | null
+          recurrence_end_date?: string | null
+          recurrence_interval?: number | null
+          recurrence_type?: string | null
           revenue_date?: string
           source?: string | null
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "manual_revenues_parent_recurring_id_fkey"
+            columns: ["parent_recurring_id"]
+            isOneToOne: false
+            referencedRelation: "manual_revenues"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       plans: {
         Row: {

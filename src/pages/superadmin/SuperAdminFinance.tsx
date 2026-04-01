@@ -5,20 +5,21 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
-import { DollarSign, TrendingUp, TrendingDown, Plus, Pencil, Trash2, Tag } from 'lucide-react';
+import { DollarSign, TrendingUp, TrendingDown, Plus, Pencil, Trash2, Repeat } from 'lucide-react';
 import { toast } from 'sonner';
-import { format, startOfMonth, endOfMonth, subMonths, startOfYear } from 'date-fns';
+import { format, startOfMonth, endOfMonth, subMonths, addWeeks, addMonths, addYears } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 
 interface ExpenseCategory { id: string; name: string; description: string | null; type: string; }
-interface Expense { id: string; category_id: string | null; description: string; amount: number; expense_date: string; notes: string | null; }
-interface ManualRevenue { id: string; description: string; amount: number; revenue_date: string; source: string | null; notes: string | null; }
+interface Expense { id: string; category_id: string | null; description: string; amount: number; expense_date: string; notes: string | null; is_recurring: boolean; recurrence_type: string | null; recurrence_interval: number | null; recurrence_count: number | null; recurrence_end_date: string | null; parent_recurring_id: string | null; }
+interface ManualRevenue { id: string; description: string; amount: number; revenue_date: string; source: string | null; notes: string | null; is_recurring: boolean; recurrence_type: string | null; recurrence_interval: number | null; recurrence_count: number | null; recurrence_end_date: string | null; parent_recurring_id: string | null; }
 
 const SuperAdminFinance = () => {
   const [categories, setCategories] = useState<ExpenseCategory[]>([]);
@@ -34,11 +35,11 @@ const SuperAdminFinance = () => {
 
   const [expDialogOpen, setExpDialogOpen] = useState(false);
   const [editingExp, setEditingExp] = useState<Expense | null>(null);
-  const [expForm, setExpForm] = useState({ category_id: '', description: '', amount: 0, expense_date: format(new Date(), 'yyyy-MM-dd'), notes: '' });
+  const [expForm, setExpForm] = useState({ category_id: '', description: '', amount: 0, expense_date: format(new Date(), 'yyyy-MM-dd'), notes: '', is_recurring: false, recurrence_type: 'monthly', recurrence_interval: 1, recurrence_count: 0, recurrence_end_date: '' });
 
   const [revDialogOpen, setRevDialogOpen] = useState(false);
   const [editingRev, setEditingRev] = useState<ManualRevenue | null>(null);
-  const [revForm, setRevForm] = useState({ description: '', amount: 0, revenue_date: format(new Date(), 'yyyy-MM-dd'), source: '', notes: '' });
+  const [revForm, setRevForm] = useState({ description: '', amount: 0, revenue_date: format(new Date(), 'yyyy-MM-dd'), source: '', notes: '', is_recurring: false, recurrence_type: 'monthly', recurrence_interval: 1, recurrence_count: 0, recurrence_end_date: '' });
 
   const [deleteTarget, setDeleteTarget] = useState<{ type: string; id: string } | null>(null);
 
@@ -104,6 +105,23 @@ const SuperAdminFinance = () => {
     return months;
   }, [revenues, expenses]);
 
+  // Generate future recurring entries
+  const generateRecurringEntries = (baseDate: string, recurrenceType: string, interval: number, count: number, endDate: string | null): string[] => {
+    const dates: string[] = [];
+    let current = new Date(baseDate);
+    const maxEntries = count > 0 ? count : 60;
+    const end = endDate ? new Date(endDate) : addYears(new Date(), 2);
+
+    for (let i = 1; i <= maxEntries; i++) {
+      if (recurrenceType === 'weekly') current = addWeeks(new Date(baseDate), i * interval);
+      else if (recurrenceType === 'monthly') current = addMonths(new Date(baseDate), i * interval);
+      else if (recurrenceType === 'yearly') current = addYears(new Date(baseDate), i * interval);
+      if (current > end) break;
+      dates.push(format(current, 'yyyy-MM-dd'));
+    }
+    return dates;
+  };
+
   // Category CRUD
   const saveCat = async () => {
     if (!catForm.name.trim()) { toast.error('Nome obrigatório'); return; }
@@ -123,18 +141,42 @@ const SuperAdminFinance = () => {
   const saveExp = async () => {
     if (!expForm.description.trim()) { toast.error('Descrição obrigatória'); return; }
     if (expForm.amount <= 0) { toast.error('Valor deve ser maior que zero'); return; }
-    const payload = {
+    const payload: any = {
       category_id: expForm.category_id || null,
       description: expForm.description,
       amount: expForm.amount,
       expense_date: expForm.expense_date,
       notes: expForm.notes || null,
+      is_recurring: expForm.is_recurring,
+      recurrence_type: expForm.is_recurring ? expForm.recurrence_type : null,
+      recurrence_interval: expForm.is_recurring ? expForm.recurrence_interval : 1,
+      recurrence_count: expForm.is_recurring && expForm.recurrence_count > 0 ? expForm.recurrence_count : null,
+      recurrence_end_date: expForm.is_recurring && expForm.recurrence_end_date ? expForm.recurrence_end_date : null,
     };
     if (editingExp) {
-      await supabase.from('expenses').update(payload as any).eq('id', editingExp.id);
+      await supabase.from('expenses').update(payload).eq('id', editingExp.id);
       toast.success('Despesa atualizada');
     } else {
-      await supabase.from('expenses').insert(payload as any);
+      const { data: parentData } = await supabase.from('expenses').insert(payload).select().single();
+      if (parentData && expForm.is_recurring) {
+        const futureDates = generateRecurringEntries(
+          expForm.expense_date, expForm.recurrence_type, expForm.recurrence_interval,
+          expForm.recurrence_count, expForm.recurrence_end_date || null
+        );
+        if (futureDates.length > 0) {
+          const childEntries = futureDates.map(d => ({
+            ...payload,
+            expense_date: d,
+            is_recurring: false,
+            recurrence_type: null,
+            recurrence_interval: 1,
+            recurrence_count: null,
+            recurrence_end_date: null,
+            parent_recurring_id: (parentData as any).id,
+          }));
+          await supabase.from('expenses').insert(childEntries as any);
+        }
+      }
       toast.success('Despesa registrada');
     }
     setExpDialogOpen(false);
@@ -145,18 +187,42 @@ const SuperAdminFinance = () => {
   const saveRev = async () => {
     if (!revForm.description.trim()) { toast.error('Descrição obrigatória'); return; }
     if (revForm.amount <= 0) { toast.error('Valor deve ser maior que zero'); return; }
-    const payload = {
+    const payload: any = {
       description: revForm.description,
       amount: revForm.amount,
       revenue_date: revForm.revenue_date,
       source: revForm.source || null,
       notes: revForm.notes || null,
+      is_recurring: revForm.is_recurring,
+      recurrence_type: revForm.is_recurring ? revForm.recurrence_type : null,
+      recurrence_interval: revForm.is_recurring ? revForm.recurrence_interval : 1,
+      recurrence_count: revForm.is_recurring && revForm.recurrence_count > 0 ? revForm.recurrence_count : null,
+      recurrence_end_date: revForm.is_recurring && revForm.recurrence_end_date ? revForm.recurrence_end_date : null,
     };
     if (editingRev) {
-      await supabase.from('manual_revenues').update(payload as any).eq('id', editingRev.id);
+      await supabase.from('manual_revenues').update(payload).eq('id', editingRev.id);
       toast.success('Receita atualizada');
     } else {
-      await supabase.from('manual_revenues').insert(payload as any);
+      const { data: parentData } = await supabase.from('manual_revenues').insert(payload).select().single();
+      if (parentData && revForm.is_recurring) {
+        const futureDates = generateRecurringEntries(
+          revForm.revenue_date, revForm.recurrence_type, revForm.recurrence_interval,
+          revForm.recurrence_count, revForm.recurrence_end_date || null
+        );
+        if (futureDates.length > 0) {
+          const childEntries = futureDates.map(d => ({
+            ...payload,
+            revenue_date: d,
+            is_recurring: false,
+            recurrence_type: null,
+            recurrence_interval: 1,
+            recurrence_count: null,
+            recurrence_end_date: null,
+            parent_recurring_id: (parentData as any).id,
+          }));
+          await supabase.from('manual_revenues').insert(childEntries as any);
+        }
+      }
       toast.success('Receita registrada');
     }
     setRevDialogOpen(false);
@@ -167,12 +233,64 @@ const SuperAdminFinance = () => {
     if (!deleteTarget) return;
     const table = deleteTarget.type === 'expense' ? 'expenses' : deleteTarget.type === 'revenue' ? 'manual_revenues' : 'expense_categories';
     await supabase.from(table).delete().eq('id', deleteTarget.id);
+    // Also delete child recurring entries
+    if (deleteTarget.type === 'expense') {
+      await supabase.from('expenses').delete().eq('parent_recurring_id', deleteTarget.id);
+    } else if (deleteTarget.type === 'revenue') {
+      await supabase.from('manual_revenues').delete().eq('parent_recurring_id', deleteTarget.id);
+    }
     toast.success('Registro excluído');
     setDeleteTarget(null);
     fetchAll();
   };
 
   const formatCurrency = (v: number) => `R$${v.toFixed(2).replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, '.')}`;
+
+  const recurrenceLabel = (type: string | null) => {
+    if (type === 'weekly') return 'Semanal';
+    if (type === 'monthly') return 'Mensal';
+    if (type === 'yearly') return 'Anual';
+    return '';
+  };
+
+  // Recurring fields UI component
+  const RecurringFields = ({ form, setForm }: { form: any; setForm: (fn: (f: any) => any) => void }) => (
+    <div className="space-y-3 border-t pt-3">
+      <div className="flex items-center justify-between">
+        <Label className="text-xs flex items-center gap-1.5"><Repeat className="h-3.5 w-3.5" /> Recorrente</Label>
+        <Switch checked={form.is_recurring} onCheckedChange={v => setForm((f: any) => ({ ...f, is_recurring: v }))} />
+      </div>
+      {form.is_recurring && (
+        <div className="space-y-3 pl-1">
+          <div className="space-y-1">
+            <Label className="text-xs">Frequência</Label>
+            <Select value={form.recurrence_type} onValueChange={v => setForm((f: any) => ({ ...f, recurrence_type: v }))}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="weekly">Semanal</SelectItem>
+                <SelectItem value="monthly">Mensal</SelectItem>
+                <SelectItem value="yearly">Anual</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <Label className="text-xs">Repetir a cada</Label>
+              <Input type="number" min={1} value={form.recurrence_interval} onChange={e => setForm((f: any) => ({ ...f, recurrence_interval: parseInt(e.target.value) || 1 }))} />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Nº repetições (0=ilimitado)</Label>
+              <Input type="number" min={0} value={form.recurrence_count} onChange={e => setForm((f: any) => ({ ...f, recurrence_count: parseInt(e.target.value) || 0 }))} />
+            </div>
+          </div>
+          <div className="space-y-1">
+            <Label className="text-xs">Data final (opcional)</Label>
+            <Input type="date" value={form.recurrence_end_date} onChange={e => setForm((f: any) => ({ ...f, recurrence_end_date: e.target.value }))} />
+          </div>
+        </div>
+      )}
+    </div>
+  );
 
   if (loading) {
     return <div className="flex items-center justify-center py-12"><p className="text-muted-foreground">Carregando...</p></div>;
@@ -255,7 +373,7 @@ const SuperAdminFinance = () => {
         {/* Expenses Tab */}
         <TabsContent value="expenses" className="space-y-4">
           <div className="flex justify-end">
-            <Button onClick={() => { setEditingExp(null); setExpForm({ category_id: '', description: '', amount: 0, expense_date: format(new Date(), 'yyyy-MM-dd'), notes: '' }); setExpDialogOpen(true); }}>
+            <Button onClick={() => { setEditingExp(null); setExpForm({ category_id: '', description: '', amount: 0, expense_date: format(new Date(), 'yyyy-MM-dd'), notes: '', is_recurring: false, recurrence_type: 'monthly', recurrence_interval: 1, recurrence_count: 0, recurrence_end_date: '' }); setExpDialogOpen(true); }}>
               <Plus className="h-4 w-4 mr-1" /> Nova Despesa
             </Button>
           </div>
@@ -277,7 +395,16 @@ const SuperAdminFinance = () => {
                       <TableRow><TableCell colSpan={5} className="text-center py-6 text-muted-foreground">Nenhuma despesa</TableCell></TableRow>
                     ) : expenses.map(e => (
                       <TableRow key={e.id}>
-                        <TableCell className="font-medium text-sm">{e.description}</TableCell>
+                        <TableCell className="font-medium text-sm">
+                          <div className="flex items-center gap-1.5">
+                            {(e.is_recurring || e.parent_recurring_id) && (
+                              <span title={e.is_recurring ? `Recorrente: ${recurrenceLabel(e.recurrence_type)}` : 'Gerado por recorrência'}>
+                                <Repeat className="h-3.5 w-3.5 text-primary shrink-0" />
+                              </span>
+                            )}
+                            {e.description}
+                          </div>
+                        </TableCell>
                         <TableCell>
                           <Badge variant="outline" className="text-xs">
                             {categories.find(c => c.id === e.category_id)?.name || '—'}
@@ -289,7 +416,7 @@ const SuperAdminFinance = () => {
                           <div className="flex gap-1">
                             <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => {
                               setEditingExp(e);
-                              setExpForm({ category_id: e.category_id || '', description: e.description, amount: Number(e.amount), expense_date: e.expense_date, notes: e.notes || '' });
+                              setExpForm({ category_id: e.category_id || '', description: e.description, amount: Number(e.amount), expense_date: e.expense_date, notes: e.notes || '', is_recurring: e.is_recurring, recurrence_type: e.recurrence_type || 'monthly', recurrence_interval: e.recurrence_interval || 1, recurrence_count: e.recurrence_count || 0, recurrence_end_date: e.recurrence_end_date || '' });
                               setExpDialogOpen(true);
                             }}><Pencil className="h-3.5 w-3.5" /></Button>
                             <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => setDeleteTarget({ type: 'expense', id: e.id })}><Trash2 className="h-3.5 w-3.5" /></Button>
@@ -307,7 +434,7 @@ const SuperAdminFinance = () => {
         {/* Revenues Tab */}
         <TabsContent value="revenues" className="space-y-4">
           <div className="flex justify-end">
-            <Button onClick={() => { setEditingRev(null); setRevForm({ description: '', amount: 0, revenue_date: format(new Date(), 'yyyy-MM-dd'), source: '', notes: '' }); setRevDialogOpen(true); }}>
+            <Button onClick={() => { setEditingRev(null); setRevForm({ description: '', amount: 0, revenue_date: format(new Date(), 'yyyy-MM-dd'), source: '', notes: '', is_recurring: false, recurrence_type: 'monthly', recurrence_interval: 1, recurrence_count: 0, recurrence_end_date: '' }); setRevDialogOpen(true); }}>
               <Plus className="h-4 w-4 mr-1" /> Nova Receita
             </Button>
           </div>
@@ -329,7 +456,16 @@ const SuperAdminFinance = () => {
                       <TableRow><TableCell colSpan={5} className="text-center py-6 text-muted-foreground">Nenhuma receita</TableCell></TableRow>
                     ) : revenues.map(r => (
                       <TableRow key={r.id}>
-                        <TableCell className="font-medium text-sm">{r.description}</TableCell>
+                        <TableCell className="font-medium text-sm">
+                          <div className="flex items-center gap-1.5">
+                            {(r.is_recurring || r.parent_recurring_id) && (
+                              <span title={r.is_recurring ? `Recorrente: ${recurrenceLabel(r.recurrence_type)}` : 'Gerado por recorrência'}>
+                                <Repeat className="h-3.5 w-3.5 text-primary shrink-0" />
+                              </span>
+                            )}
+                            {r.description}
+                          </div>
+                        </TableCell>
                         <TableCell className="text-sm text-muted-foreground">{r.source || '—'}</TableCell>
                         <TableCell className="text-success font-medium">{formatCurrency(Number(r.amount))}</TableCell>
                         <TableCell className="hidden md:table-cell text-sm text-muted-foreground">{format(new Date(r.revenue_date), 'dd/MM/yyyy')}</TableCell>
@@ -337,7 +473,7 @@ const SuperAdminFinance = () => {
                           <div className="flex gap-1">
                             <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => {
                               setEditingRev(r);
-                              setRevForm({ description: r.description, amount: Number(r.amount), revenue_date: r.revenue_date, source: r.source || '', notes: r.notes || '' });
+                              setRevForm({ description: r.description, amount: Number(r.amount), revenue_date: r.revenue_date, source: r.source || '', notes: r.notes || '', is_recurring: r.is_recurring, recurrence_type: r.recurrence_type || 'monthly', recurrence_interval: r.recurrence_interval || 1, recurrence_count: r.recurrence_count || 0, recurrence_end_date: r.recurrence_end_date || '' });
                               setRevDialogOpen(true);
                             }}><Pencil className="h-3.5 w-3.5" /></Button>
                             <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => setDeleteTarget({ type: 'revenue', id: r.id })}><Trash2 className="h-3.5 w-3.5" /></Button>
@@ -472,6 +608,7 @@ const SuperAdminFinance = () => {
               <Label className="text-xs">Observações</Label>
               <Textarea value={expForm.notes} onChange={e => setExpForm(f => ({ ...f, notes: e.target.value }))} rows={2} />
             </div>
+            <RecurringFields form={expForm} setForm={setExpForm} />
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setExpDialogOpen(false)}>Cancelar</Button>
@@ -517,6 +654,7 @@ const SuperAdminFinance = () => {
               <Label className="text-xs">Observações</Label>
               <Textarea value={revForm.notes} onChange={e => setRevForm(f => ({ ...f, notes: e.target.value }))} rows={2} />
             </div>
+            <RecurringFields form={revForm} setForm={setRevForm} />
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setRevDialogOpen(false)}>Cancelar</Button>
@@ -529,7 +667,7 @@ const SuperAdminFinance = () => {
       <Dialog open={!!deleteTarget} onOpenChange={() => setDeleteTarget(null)}>
         <DialogContent className="max-w-sm">
           <DialogHeader><DialogTitle>Confirmar exclusão?</DialogTitle></DialogHeader>
-          <p className="text-sm text-muted-foreground">Esta ação não pode ser desfeita.</p>
+          <p className="text-sm text-muted-foreground">Esta ação não pode ser desfeita. {deleteTarget?.type !== 'category' && 'Se for recorrente, todas as entradas futuras também serão excluídas.'}</p>
           <DialogFooter>
             <Button variant="outline" onClick={() => setDeleteTarget(null)}>Cancelar</Button>
             <Button variant="destructive" onClick={handleDelete}>Excluir</Button>
