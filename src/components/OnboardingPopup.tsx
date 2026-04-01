@@ -129,7 +129,7 @@ export const OnboardingPopup = () => {
               </Button>
             )}
             {step < videos.length - 1 ? (
-              <Button size="sm" onClick={() => setStep(s => s + 1)}>
+              <Button size="sm" onClick={async () => { await markVideoCompleted(videos[step].id); setStep(s => s + 1); }}>
                 Próximo <ChevronRight className="h-4 w-4 ml-1" />
               </Button>
             ) : (
