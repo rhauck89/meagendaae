@@ -460,6 +460,7 @@ export type Database = {
           name: string
           owner_id: string | null
           phone: string | null
+          plan_id: string | null
           postal_code: string | null
           reminders_enabled: boolean
           slug: string
@@ -496,6 +497,7 @@ export type Database = {
           name: string
           owner_id?: string | null
           phone?: string | null
+          plan_id?: string | null
           postal_code?: string | null
           reminders_enabled?: boolean
           slug: string
@@ -532,6 +534,7 @@ export type Database = {
           name?: string
           owner_id?: string | null
           phone?: string | null
+          plan_id?: string | null
           postal_code?: string | null
           reminders_enabled?: boolean
           slug?: string
@@ -544,7 +547,15 @@ export type Database = {
           website?: string | null
           whatsapp?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "companies_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "plans"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       company_domains: {
         Row: {
@@ -850,6 +861,57 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      plans: {
+        Row: {
+          active: boolean
+          advanced_reports: boolean
+          appointments_limit: number
+          created_at: string
+          custom_branding: boolean
+          id: string
+          members_limit: number
+          multi_location: boolean
+          name: string
+          price: number
+          services_limit: number
+          sort_order: number
+          updated_at: string
+          whatsapp_reminders: boolean
+        }
+        Insert: {
+          active?: boolean
+          advanced_reports?: boolean
+          appointments_limit?: number
+          created_at?: string
+          custom_branding?: boolean
+          id?: string
+          members_limit?: number
+          multi_location?: boolean
+          name: string
+          price?: number
+          services_limit?: number
+          sort_order?: number
+          updated_at?: string
+          whatsapp_reminders?: boolean
+        }
+        Update: {
+          active?: boolean
+          advanced_reports?: boolean
+          appointments_limit?: number
+          created_at?: string
+          custom_branding?: boolean
+          id?: string
+          members_limit?: number
+          multi_location?: boolean
+          name?: string
+          price?: number
+          services_limit?: number
+          sort_order?: number
+          updated_at?: string
+          whatsapp_reminders?: boolean
+        }
+        Relationships: []
       }
       platform_settings: {
         Row: {
