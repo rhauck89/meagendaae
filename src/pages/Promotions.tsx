@@ -362,7 +362,14 @@ export default function Promotions() {
     toast({ title: 'Promoção criada com sucesso! 🎉' });
     setDialogOpen(false);
     resetForm();
-    setActiveTab('active');
+
+    // Determine the right tab for the new promotion
+    const todayCheck = new Date();
+    todayCheck.setHours(0, 0, 0, 0);
+    const promoStartDate = new Date(startDate);
+    const targetTab = promoStartDate > todayCheck ? 'scheduled' : 'active';
+    setActiveTab(targetTab);
+
     await fetchPromotions();
     if (data?.id) setHighlightedPromoId(data.id);
   };
@@ -416,10 +423,18 @@ export default function Promotions() {
     return m[f] || f;
   };
 
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const isScheduled = (p: Promotion) => p.status === 'active' && new Date(p.start_date) > today;
+  const isActivePromo = (p: Promotion) => p.status === 'active' && new Date(p.start_date) <= today && new Date(p.end_date) >= today;
+  const isExpiredPromo = (p: Promotion) => (p.status === 'active' && new Date(p.end_date) < today) || p.status === 'expired';
+
   const filteredPromotions = promotions.filter(p => {
-    if (activeTab === 'active') return p.status === 'active' && new Date(p.end_date) >= new Date();
+    if (activeTab === 'active') return isActivePromo(p);
+    if (activeTab === 'scheduled') return isScheduled(p);
     if (activeTab === 'paused') return p.status === 'paused';
-    if (activeTab === 'expired') return p.status !== 'active' || new Date(p.end_date) < new Date();
+    if (activeTab === 'expired') return isExpiredPromo(p);
     return true;
   });
 
@@ -670,9 +685,10 @@ export default function Promotions() {
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList>
-          <TabsTrigger value="active">Ativas ({promotions.filter(p => p.status === 'active' && new Date(p.end_date) >= new Date()).length})</TabsTrigger>
+          <TabsTrigger value="active">Ativas ({promotions.filter(p => isActivePromo(p)).length})</TabsTrigger>
+          <TabsTrigger value="scheduled">Programadas ({promotions.filter(p => isScheduled(p)).length})</TabsTrigger>
           <TabsTrigger value="paused">Pausadas ({promotions.filter(p => p.status === 'paused').length})</TabsTrigger>
-          <TabsTrigger value="expired">Encerradas ({promotions.filter(p => p.status !== 'active' || new Date(p.end_date) < new Date()).length})</TabsTrigger>
+          <TabsTrigger value="expired">Encerradas ({promotions.filter(p => isExpiredPromo(p)).length})</TabsTrigger>
         </TabsList>
 
         <TabsContent value={activeTab} className="mt-4">
@@ -701,9 +717,10 @@ export default function Promotions() {
                       <div className="flex items-start justify-between">
                         <CardTitle className="text-lg">{promo.title}</CardTitle>
                         <div className="flex gap-1">
-                          {isActive && <Badge className="bg-emerald-600 text-white">Ativa</Badge>}
+                          {isScheduled(promo) && <Badge className="bg-blue-600 text-white">Programada</Badge>}
+                          {isActivePromo(promo) && <Badge className="bg-emerald-600 text-white">Ativa</Badge>}
                           {promo.status === 'paused' && <Badge variant="secondary">Pausada</Badge>}
-                          {isExpired && <Badge variant="outline">Expirada</Badge>}
+                          {isExpiredPromo(promo) && <Badge variant="outline">Expirada</Badge>}
                         </div>
                       </div>
                     </CardHeader>
