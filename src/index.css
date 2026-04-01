@@ -6,88 +6,88 @@
 
 @layer base {
   :root {
-    --background: 210 20% 98%;
-    --foreground: 220 25% 10%;
+    --background: 210 40% 98%;
+    --foreground: 220 26% 12%;
 
     --card: 0 0% 100%;
-    --card-foreground: 220 25% 10%;
+    --card-foreground: 220 26% 12%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 220 25% 10%;
+    --popover-foreground: 220 26% 12%;
 
-    --primary: 252 85% 60%;
+    --primary: 224 92% 21%;
     --primary-foreground: 0 0% 100%;
 
     --secondary: 220 14% 96%;
-    --secondary-foreground: 220 25% 10%;
+    --secondary-foreground: 220 26% 12%;
 
     --muted: 220 14% 96%;
-    --muted-foreground: 220 10% 46%;
+    --muted-foreground: 220 9% 46%;
 
-    --accent: 170 80% 45%;
-    --accent-foreground: 0 0% 100%;
+    --accent: 152 79% 49%;
+    --accent-foreground: 224 92% 21%;
 
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
 
     --border: 220 13% 91%;
     --input: 220 13% 91%;
-    --ring: 252 85% 60%;
+    --ring: 152 79% 49%;
 
     --radius: 0.75rem;
 
-    --sidebar-background: 220 25% 10%;
-    --sidebar-foreground: 220 14% 96%;
-    --sidebar-primary: 252 85% 60%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 220 20% 18%;
-    --sidebar-accent-foreground: 220 14% 96%;
-    --sidebar-border: 220 20% 18%;
-    --sidebar-ring: 252 85% 60%;
+    --sidebar-background: 224 92% 21%;
+    --sidebar-foreground: 0 0% 100%;
+    --sidebar-primary: 152 79% 49%;
+    --sidebar-primary-foreground: 224 92% 21%;
+    --sidebar-accent: 152 79% 49% / 0.15;
+    --sidebar-accent-foreground: 0 0% 100%;
+    --sidebar-border: 224 80% 28%;
+    --sidebar-ring: 152 79% 49%;
 
-    --success: 152 69% 45%;
-    --success-foreground: 0 0% 100%;
+    --success: 152 79% 49%;
+    --success-foreground: 224 92% 21%;
     --warning: 38 92% 50%;
     --warning-foreground: 0 0% 100%;
   }
 
   .dark {
-    --background: 220 25% 6%;
-    --foreground: 210 20% 98%;
+    --background: 224 40% 6%;
+    --foreground: 210 40% 98%;
 
-    --card: 220 25% 10%;
-    --card-foreground: 210 20% 98%;
+    --card: 224 30% 10%;
+    --card-foreground: 210 40% 98%;
 
-    --popover: 220 25% 10%;
-    --popover-foreground: 210 20% 98%;
+    --popover: 224 30% 10%;
+    --popover-foreground: 210 40% 98%;
 
-    --primary: 252 85% 60%;
+    --primary: 224 92% 21%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 220 20% 18%;
-    --secondary-foreground: 210 20% 98%;
+    --secondary: 224 20% 18%;
+    --secondary-foreground: 210 40% 98%;
 
-    --muted: 220 20% 18%;
+    --muted: 224 20% 18%;
     --muted-foreground: 220 10% 60%;
 
-    --accent: 170 80% 45%;
-    --accent-foreground: 0 0% 100%;
+    --accent: 152 79% 49%;
+    --accent-foreground: 224 92% 21%;
 
     --destructive: 0 62% 30%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 220 20% 18%;
-    --input: 220 20% 18%;
-    --ring: 252 85% 60%;
+    --border: 224 20% 18%;
+    --input: 224 20% 18%;
+    --ring: 152 79% 49%;
 
-    --sidebar-background: 220 30% 6%;
-    --sidebar-foreground: 220 14% 96%;
-    --sidebar-primary: 252 85% 60%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 220 20% 14%;
-    --sidebar-accent-foreground: 220 14% 96%;
-    --sidebar-border: 220 20% 14%;
-    --sidebar-ring: 252 85% 60%;
+    --sidebar-background: 224 92% 14%;
+    --sidebar-foreground: 0 0% 100%;
+    --sidebar-primary: 152 79% 49%;
+    --sidebar-primary-foreground: 224 92% 21%;
+    --sidebar-accent: 152 79% 49% / 0.15;
+    --sidebar-accent-foreground: 0 0% 100%;
+    --sidebar-border: 224 60% 20%;
+    --sidebar-ring: 152 79% 49%;
   }
 }
 
@@ -107,8 +107,8 @@
 /* Booking dark-theme calendar overrides */
 .booking-dark-calendar .rdp {
   --rdp-cell-size: 40px;
-  --rdp-accent-color: #F59E0B;
-  --rdp-background-color: #F59E0B;
+  --rdp-accent-color: #18e384;
+  --rdp-background-color: #18e384;
   color: #FFFFFF;
 }
 .booking-dark-calendar .rdp-caption_label {
@@ -118,11 +118,11 @@
 .booking-dark-calendar .rdp-nav_button {
   color: #9CA3AF;
   border-color: #1F2937;
-  background: #1a2332;
+  background: #0a2d7a;
 }
 .booking-dark-calendar .rdp-nav_button:hover {
-  background: #F59E0B;
-  color: #000;
+  background: #18e384;
+  color: #051d67;
 }
 .booking-dark-calendar .rdp-head_cell {
   color: #9CA3AF;
@@ -135,13 +135,13 @@
   background: #1F2937;
 }
 .booking-dark-calendar .rdp-day_selected {
-  background: #F59E0B !important;
-  color: #000 !important;
+  background: #18e384 !important;
+  color: #051d67 !important;
   font-weight: 700;
 }
 .booking-dark-calendar .rdp-day_today:not(.rdp-day_selected) {
-  border: 1px solid #F59E0B;
-  color: #F59E0B;
+  border: 1px solid #18e384;
+  color: #18e384;
   background: transparent;
   font-weight: 600;
 }
