@@ -632,9 +632,16 @@ const Dashboard = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 flex flex-col">
+      {/* Próximos atendimentos - mobile first (order-first on mobile, order-last on desktop) */}
+      <div className="order-first lg:order-none lg:hidden">
+        {renderUpcomingAppointments()}
+      </div>
+
       {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
+      <div className="order-2 lg:order-none">
+        <h3 className="text-lg font-display font-semibold mb-3">📊 Resumo do Dia</h3>
+        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
         <Card>
           <CardContent className="p-4 flex items-center gap-4">
             <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
