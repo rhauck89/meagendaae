@@ -7,12 +7,15 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { BarChart3, TrendingUp, DollarSign, Users, Briefcase } from 'lucide-react';
-import { startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth } from 'date-fns';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
+import { BarChart3, TrendingUp, DollarSign, Users, Briefcase, CalendarIcon } from 'lucide-react';
+import { startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, subDays, subMonths, format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { cn } from '@/lib/utils';
 import { calculateFinancials, collaboratorTypeLabel, commissionLabel } from '@/lib/financial-engine';
 
-type Period = 'day' | 'week' | 'month';
+type Period = 'day' | 'week' | 'month' | 'custom';
 
 interface ProfessionalReport {
   id: string;
@@ -26,10 +29,24 @@ interface ProfessionalReport {
   companyValue: number;
 }
 
+type Shortcut = { label: string; getRange: () => { start: Date; end: Date } };
+
+const shortcuts: Shortcut[] = [
+  { label: 'Hoje', getRange: () => ({ start: startOfDay(new Date()), end: endOfDay(new Date()) }) },
+  { label: 'Ontem', getRange: () => ({ start: startOfDay(subDays(new Date(), 1)), end: endOfDay(subDays(new Date(), 1)) }) },
+  { label: 'Últimos 7 dias', getRange: () => ({ start: startOfDay(subDays(new Date(), 6)), end: endOfDay(new Date()) }) },
+  { label: 'Últimos 30 dias', getRange: () => ({ start: startOfDay(subDays(new Date(), 29)), end: endOfDay(new Date()) }) },
+  { label: 'Este mês', getRange: () => ({ start: startOfMonth(new Date()), end: endOfMonth(new Date()) }) },
+  { label: 'Mês passado', getRange: () => { const prev = subMonths(new Date(), 1); return { start: startOfMonth(prev), end: endOfMonth(prev) }; } },
+];
+
 const Reports = () => {
   const { companyId } = useAuth();
   const { isAdmin, profileId } = useUserRole();
   const [period, setPeriod] = useState<Period>('month');
+  const [customStart, setCustomStart] = useState<Date | undefined>();
+  const [customEnd, setCustomEnd] = useState<Date | undefined>();
+  const [activeShortcut, setActiveShortcut] = useState<string | null>(null);
   const [filterProfessional, setFilterProfessional] = useState<string>('all');
   const [filterRoleType, setFilterRoleType] = useState<string>('all');
   const [totalRevenue, setTotalRevenue] = useState(0);
@@ -40,14 +57,12 @@ const Reports = () => {
   const [collaboratorsList, setCollaboratorsList] = useState<any[]>([]);
 
   useEffect(() => {
-    if (companyId) {
-      fetchCollaborators();
-    }
+    if (companyId) fetchCollaborators();
   }, [companyId]);
 
   useEffect(() => {
     if (companyId) fetchReport();
-  }, [companyId, period, filterProfessional, filterRoleType]);
+  }, [companyId, period, customStart, customEnd, filterProfessional, filterRoleType]);
 
   const fetchCollaborators = async () => {
     const { data } = await supabase
@@ -58,10 +73,26 @@ const Reports = () => {
   };
 
   const getRange = () => {
+    if (period === 'custom' && customStart && customEnd) {
+      return { start: startOfDay(customStart), end: endOfDay(customEnd) };
+    }
     const now = new Date();
     if (period === 'day') return { start: startOfDay(now), end: endOfDay(now) };
     if (period === 'week') return { start: startOfWeek(now, { locale: ptBR }), end: endOfWeek(now, { locale: ptBR }) };
     return { start: startOfMonth(now), end: endOfMonth(now) };
+  };
+
+  const handleShortcut = (s: Shortcut) => {
+    const { start, end } = s.getRange();
+    setCustomStart(start);
+    setCustomEnd(end);
+    setPeriod('custom');
+    setActiveShortcut(s.label);
+  };
+
+  const handlePeriodClick = (p: 'day' | 'week' | 'month') => {
+    setPeriod(p);
+    setActiveShortcut(null);
   };
 
   const fetchReport = async () => {
@@ -75,7 +106,6 @@ const Reports = () => {
       .gte('start_time', start.toISOString())
       .lte('start_time', end.toISOString());
 
-    // Non-admin professionals can only see their own data
     if (!isAdmin && profileId) {
       query = query.eq('professional_id', profileId);
     } else if (filterProfessional !== 'all') {
@@ -113,39 +143,29 @@ const Reports = () => {
     let reports: ProfessionalReport[] = Object.entries(grouped).map(([id, g]) => {
       const collab = collabMap[g.profileId] || { type: 'commissioned', commType: 'none', value: 0 };
       const fin = calculateFinancials(g.revenue, g.count, collab.type, collab.commType, collab.value);
-
       return {
-        id,
-        name: g.name,
-        totalServices: g.count,
-        totalRevenue: g.revenue,
-        collaboratorType: collab.type,
-        commissionType: collab.commType,
-        commissionValue: collab.value,
-        professionalValue: fin.professionalValue,
-        companyValue: fin.companyValue,
+        id, name: g.name, totalServices: g.count, totalRevenue: g.revenue,
+        collaboratorType: collab.type, commissionType: collab.commType, commissionValue: collab.value,
+        professionalValue: fin.professionalValue, companyValue: fin.companyValue,
       };
     });
 
-    // Filter by role type
     if (filterRoleType !== 'all') {
       reports = reports.filter((r) => r.collaboratorType === filterRoleType);
     }
 
     reports.sort((a, b) => b.totalRevenue - a.totalRevenue);
 
-    const revenue = reports.reduce((s, r) => s + r.totalRevenue, 0);
-    const profValue = reports.reduce((s, r) => s + r.professionalValue, 0);
-    const compValue = reports.reduce((s, r) => s + r.companyValue, 0);
-
-    setTotalRevenue(revenue);
+    setTotalRevenue(reports.reduce((s, r) => s + r.totalRevenue, 0));
     setTotalCount(reports.reduce((s, r) => s + r.totalServices, 0));
     setProfessionals(reports);
-    setTotalProfessionalValue(profValue);
-    setTotalCompanyValue(compValue);
+    setTotalProfessionalValue(reports.reduce((s, r) => s + r.professionalValue, 0));
+    setTotalCompanyValue(reports.reduce((s, r) => s + r.companyValue, 0));
   };
 
-  const periodLabel = period === 'day' ? 'do Dia' : period === 'week' ? 'da Semana' : 'do Mês';
+  const periodLabel = period === 'custom' && customStart && customEnd
+    ? `${format(customStart, 'dd/MM', { locale: ptBR })} – ${format(customEnd, 'dd/MM', { locale: ptBR })}`
+    : period === 'day' ? 'do Dia' : period === 'week' ? 'da Semana' : 'do Mês';
 
   return (
     <div className="space-y-6">
@@ -184,14 +204,57 @@ const Reports = () => {
             </>
           )}
           <div className="flex gap-1 rounded-lg bg-muted p-1">
-            {(['day', 'week', 'month'] as Period[]).map((p) => (
-              <Button key={p} variant={period === p ? 'default' : 'ghost'} size="sm" onClick={() => setPeriod(p)}>
+            {(['day', 'week', 'month'] as const).map((p) => (
+              <Button key={p} variant={period === p ? 'default' : 'ghost'} size="sm" onClick={() => handlePeriodClick(p)}>
                 {p === 'day' ? 'Dia' : p === 'week' ? 'Semana' : 'Mês'}
               </Button>
             ))}
           </div>
         </div>
       </div>
+
+      {/* Custom date range & shortcuts */}
+      <Card>
+        <CardContent className="p-4">
+          <div className="flex flex-wrap items-end gap-3">
+            <div className="flex items-center gap-2">
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" size="sm" className={cn('w-[140px] justify-start text-left font-normal', !customStart && 'text-muted-foreground')}>
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {customStart ? format(customStart, 'dd/MM/yyyy') : 'Início'}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar mode="single" selected={customStart} onSelect={(d) => { setCustomStart(d); setActiveShortcut(null); }} initialFocus className="p-3 pointer-events-auto" />
+                </PopoverContent>
+              </Popover>
+              <span className="text-muted-foreground">→</span>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" size="sm" className={cn('w-[140px] justify-start text-left font-normal', !customEnd && 'text-muted-foreground')}>
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {customEnd ? format(customEnd, 'dd/MM/yyyy') : 'Fim'}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar mode="single" selected={customEnd} onSelect={(d) => { setCustomEnd(d); setActiveShortcut(null); }} disabled={(d) => customStart ? d < customStart : false} initialFocus className="p-3 pointer-events-auto" />
+                </PopoverContent>
+              </Popover>
+              <Button size="sm" disabled={!customStart || !customEnd} onClick={() => { setPeriod('custom'); setActiveShortcut(null); }}>
+                Aplicar
+              </Button>
+            </div>
+            <div className="flex flex-wrap gap-1">
+              {shortcuts.map((s) => (
+                <Button key={s.label} variant={activeShortcut === s.label ? 'default' : 'outline'} size="sm" className="text-xs" onClick={() => handleShortcut(s)}>
+                  {s.label}
+                </Button>
+              ))}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
         <Card>
@@ -274,25 +337,15 @@ const Reports = () => {
                       </div>
                     </TableCell>
                     <TableCell className="text-center">
-                      <Badge variant="outline" className="text-xs">
-                        {collaboratorTypeLabel(p.collaboratorType)}
-                      </Badge>
+                      <Badge variant="outline" className="text-xs">{collaboratorTypeLabel(p.collaboratorType)}</Badge>
                     </TableCell>
                     <TableCell className="text-center">{p.totalServices}</TableCell>
-                    <TableCell className="text-right font-display font-semibold">
-                      R$ {p.totalRevenue.toFixed(2)}
-                    </TableCell>
+                    <TableCell className="text-right font-display font-semibold">R$ {p.totalRevenue.toFixed(2)}</TableCell>
                     <TableCell className="text-center">
-                      <Badge variant="outline" className="text-xs">
-                        {commissionLabel(p.commissionType, p.commissionValue)}
-                      </Badge>
+                      <Badge variant="outline" className="text-xs">{commissionLabel(p.commissionType, p.commissionValue)}</Badge>
                     </TableCell>
-                    <TableCell className="text-right font-semibold text-warning">
-                      R$ {p.professionalValue.toFixed(2)}
-                    </TableCell>
-                    <TableCell className="text-right font-display font-bold">
-                      R$ {p.companyValue.toFixed(2)}
-                    </TableCell>
+                    <TableCell className="text-right font-semibold text-warning">R$ {p.professionalValue.toFixed(2)}</TableCell>
+                    <TableCell className="text-right font-display font-bold">R$ {p.companyValue.toFixed(2)}</TableCell>
                   </TableRow>
                 ))}
                 <TableRow className="border-t-2 font-bold">
