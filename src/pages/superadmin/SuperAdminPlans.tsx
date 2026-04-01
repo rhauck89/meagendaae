@@ -153,7 +153,18 @@ const SuperAdminPlans = () => {
                     <TableRow key={plan.id}>
                       <TableCell className="font-medium">{plan.name}</TableCell>
                       <TableCell>
-                        R${Number(plan.price).toFixed(2).replace('.', ',')}
+                        <div className="text-sm">
+                          <span className="font-medium">R${Number(plan.monthly_price).toFixed(2).replace('.', ',')}</span>
+                          <span className="text-muted-foreground">/mês</span>
+                        </div>
+                        {Number(plan.yearly_price) > 0 && (
+                          <div className="text-xs text-muted-foreground">
+                            R${Number(plan.yearly_price).toFixed(2).replace('.', ',')}/ano
+                            {Number(plan.yearly_discount) > 0 && (
+                              <Badge variant="outline" className="ml-1 text-[10px] text-success">{plan.yearly_discount}% off</Badge>
+                            )}
+                          </div>
+                        )}
                       </TableCell>
                       <TableCell className="hidden md:table-cell">{plan.members_limit}</TableCell>
                       <TableCell className="hidden lg:table-cell">
