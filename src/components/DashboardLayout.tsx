@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
 import CompanySetup from './CompanySetup';
+import { OnboardingPopup } from './OnboardingPopup';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 
 const adminNavItems = [
