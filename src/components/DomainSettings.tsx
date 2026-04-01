@@ -18,9 +18,10 @@ interface DomainRecord {
 
 interface DomainSettingsProps {
   companyId: string;
+  companySlug?: string;
 }
 
-const DomainSettings = ({ companyId }: DomainSettingsProps) => {
+const DomainSettings = ({ companyId, companySlug }: DomainSettingsProps) => {
   const [domains, setDomains] = useState<DomainRecord[]>([]);
   const [newDomain, setNewDomain] = useState('');
   const [adding, setAdding] = useState(false);
