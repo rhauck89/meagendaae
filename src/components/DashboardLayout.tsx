@@ -249,6 +249,9 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
         </div>
       </main>
       <OnboardingPopup />
+      <footer className="lg:ml-64">
+        <PlatformFooter isWhitelabel={brandInfo.isWhitelabel} />
+      </footer>
     </div>
   );
 };
