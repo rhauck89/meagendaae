@@ -1089,20 +1089,85 @@ export type Database = {
           },
         ]
       }
+      promotion_clicks: {
+        Row: {
+          client_id: string | null
+          company_id: string
+          created_at: string
+          id: string
+          promotion_id: string
+        }
+        Insert: {
+          client_id?: string | null
+          company_id: string
+          created_at?: string
+          id?: string
+          promotion_id: string
+        }
+        Update: {
+          client_id?: string | null
+          company_id?: string
+          created_at?: string
+          id?: string
+          promotion_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "promotion_clicks_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "promotion_clicks_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "promotion_clicks_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "public_company"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "promotion_clicks_promotion_id_fkey"
+            columns: ["promotion_id"]
+            isOneToOne: false
+            referencedRelation: "promotions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "promotion_clicks_promotion_id_fkey"
+            columns: ["promotion_id"]
+            isOneToOne: false
+            referencedRelation: "public_promotions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       promotions: {
         Row: {
           client_filter: string
           client_filter_value: number | null
           company_id: string
           created_at: string
+          created_by: string | null
           description: string | null
           end_date: string
           end_time: string | null
           id: string
           max_slots: number
           message_template: string | null
+          original_price: number | null
           professional_filter: string
           professional_ids: string[] | null
+          promotion_price: number | null
+          service_id: string | null
+          slug: string | null
           start_date: string
           start_time: string | null
           status: string
@@ -1115,14 +1180,19 @@ export type Database = {
           client_filter_value?: number | null
           company_id: string
           created_at?: string
+          created_by?: string | null
           description?: string | null
           end_date: string
           end_time?: string | null
           id?: string
           max_slots?: number
           message_template?: string | null
+          original_price?: number | null
           professional_filter?: string
           professional_ids?: string[] | null
+          promotion_price?: number | null
+          service_id?: string | null
+          slug?: string | null
           start_date: string
           start_time?: string | null
           status?: string
@@ -1135,14 +1205,19 @@ export type Database = {
           client_filter_value?: number | null
           company_id?: string
           created_at?: string
+          created_by?: string | null
           description?: string | null
           end_date?: string
           end_time?: string | null
           id?: string
           max_slots?: number
           message_template?: string | null
+          original_price?: number | null
           professional_filter?: string
           professional_ids?: string[] | null
+          promotion_price?: number | null
+          service_id?: string | null
+          slug?: string | null
           start_date?: string
           start_time?: string | null
           status?: string
@@ -1163,6 +1238,20 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "public_company"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "promotions_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "public_services"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "promotions_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "services"
             referencedColumns: ["id"]
           },
         ]
@@ -1719,42 +1808,25 @@ export type Database = {
       public_promotions: {
         Row: {
           company_id: string | null
+          created_by: string | null
           description: string | null
           end_date: string | null
           end_time: string | null
           id: string | null
           max_slots: number | null
+          original_price: number | null
+          professional_filter: string | null
+          professional_ids: string[] | null
+          promotion_price: number | null
+          service_duration: number | null
+          service_id: string | null
+          service_name: string | null
+          slug: string | null
           start_date: string | null
           start_time: string | null
           status: string | null
           title: string | null
           used_slots: number | null
-        }
-        Insert: {
-          company_id?: string | null
-          description?: string | null
-          end_date?: string | null
-          end_time?: string | null
-          id?: string | null
-          max_slots?: number | null
-          start_date?: string | null
-          start_time?: string | null
-          status?: string | null
-          title?: string | null
-          used_slots?: number | null
-        }
-        Update: {
-          company_id?: string | null
-          description?: string | null
-          end_date?: string | null
-          end_time?: string | null
-          id?: string | null
-          max_slots?: number | null
-          start_date?: string | null
-          start_time?: string | null
-          status?: string | null
-          title?: string | null
-          used_slots?: number | null
         }
         Relationships: [
           {
@@ -1769,6 +1841,20 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "public_company"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "promotions_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "public_services"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "promotions_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "services"
             referencedColumns: ["id"]
           },
         ]
