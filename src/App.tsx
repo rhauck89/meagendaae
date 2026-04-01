@@ -29,6 +29,7 @@ import ProfilePage from "./pages/ProfilePage";
 import Clients from "./pages/Clients";
 import Events from "./pages/Events";
 import EventPublic from "./pages/EventPublic";
+import Promotions from "./pages/Promotions";
 import DashboardLayout from "./components/DashboardLayout";
 import NotFound from "./pages/NotFound";
 
