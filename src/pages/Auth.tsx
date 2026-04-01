@@ -182,6 +182,7 @@ const Auth = () => {
           </div>
         </CardContent>
       </Card>
+      <PlatformFooter className="mt-6" />
     </div>
   );
 };
