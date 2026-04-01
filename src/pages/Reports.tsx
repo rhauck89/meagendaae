@@ -215,7 +215,7 @@ const Reports = () => {
                 </SelectContent>
               </Select>
               <Select value={filterRoleType} onValueChange={setFilterRoleType}>
-                <SelectTrigger className="w-[160px]">
+                <SelectTrigger className="w-full sm:w-[160px]">
                   <SelectValue placeholder="Tipo" />
                 </SelectTrigger>
                 <SelectContent>
