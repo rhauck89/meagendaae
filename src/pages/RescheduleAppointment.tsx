@@ -201,7 +201,7 @@ const RescheduleAppointment = () => {
     );
   }
 
-  const canReschedule = !['cancelled', 'completed', 'no_show'].includes(appointment.status);
+  const canReschedule = !['cancelled', 'completed', 'no_show'].includes(appointment.status) && !appointment.promotion_id;
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4" style={{ background: T.bg, color: T.text }}>
@@ -210,7 +210,7 @@ const RescheduleAppointment = () => {
           <div className="text-center space-y-4">
             <XCircle className="h-16 w-16 mx-auto text-red-400" />
             <h1 className="text-xl font-bold">Não é possível reagendar</h1>
-            <p style={{ color: T.textSec }}>Este agendamento já foi cancelado ou concluído.</p>
+            <p style={{ color: T.textSec }}>{appointment.promotion_id ? 'Agendamentos de promoção não podem ser reagendados. Cancele e agende novamente.' : 'Este agendamento já foi cancelado ou concluído.'}</p>
           </div>
         )}
 
