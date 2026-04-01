@@ -1547,11 +1547,18 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
               addressLines.push([bookingResult.companyCity, bookingResult.companyState].filter(Boolean).join(' - '));
             }
             if (bookingResult.companyPostalCode) addressLines.push(`CEP: ${bookingResult.companyPostalCode}`);
+            const promoLines = isPromoMode && promoData ? [
+              `🔥 Promoção: *${promoData.title}*`,
+              promoData.original_price != null ? `Preço normal: R$ ${Number(promoData.original_price).toFixed(2)}` : '',
+              promoData.promotion_price != null ? `Preço promocional: R$ ${Number(promoData.promotion_price).toFixed(2)}` : '',
+              '',
+            ].filter(Boolean) : [];
             const msg = [
               'Ol\u00e1! \uD83D\uDC4B',
               '',
               `Seu agendamento foi confirmado na *${bookingResult.companyName}* \uD83D\uDC88`,
               '',
+              ...promoLines,
               `\uD83D\uDCC5 Data: ${format(bookingResult.date, "dd 'de' MMMM, yyyy", { locale: ptBR })}`,
               `\u23F0 Hor\u00e1rio: ${bookingResult.time}`,
               `\u2702\uFE0F Servi\u00E7o: ${bookingResult.serviceNames.join(', ')}`,
