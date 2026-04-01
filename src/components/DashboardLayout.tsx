@@ -178,6 +178,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
         </header>
         <div className="flex-1 p-4 lg:p-8 overflow-auto">{children}</div>
       </main>
+      <OnboardingPopup />
     </div>
   );
 };
