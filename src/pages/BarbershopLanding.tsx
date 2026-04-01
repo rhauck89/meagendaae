@@ -16,6 +16,7 @@ type BusinessType = 'barbershop' | 'esthetic';
 
 interface BarbershopLandingProps {
   routeBusinessType?: BusinessType;
+  customSlug?: string;
 }
 
 const formatReviewerName = (name: string): string => {

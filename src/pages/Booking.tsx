@@ -59,6 +59,7 @@ type BusinessType = 'barbershop' | 'esthetic';
 
 interface BookingPageProps {
   routeBusinessType?: BusinessType;
+  customSlug?: string;
 }
 
 const DEFAULT_BOOKING_TIMEZONE = 'America/Sao_Paulo';
