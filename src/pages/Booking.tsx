@@ -665,7 +665,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
       const dateStr = format(day, 'yyyy-MM-dd');
       const existingAppointments = await fetchBookingAppointments(day, selectedProfessional);
       const { data: blockedData } = await supabase
-        .from('blocked_times' as any)
+        .from('public_blocked_times' as any)
         .select('block_date, start_time, end_time')
         .eq('company_id', company.id)
         .eq('professional_id', selectedProfessional)
