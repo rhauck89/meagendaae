@@ -779,6 +779,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
         p_client_name: clientForm.full_name ?? null,
         p_client_whatsapp: formattedWhatsapp ?? null,
         p_notes: null as string | null,
+        p_promotion_id: promoData?.id ?? null,
       };
 
       // Final availability check to prevent double booking
