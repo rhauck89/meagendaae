@@ -41,6 +41,9 @@ const SettingsPage = () => {
   const [companyDistrict, setCompanyDistrict] = useState('');
   const [companyCity, setCompanyCity] = useState('');
   const [companyState, setCompanyState] = useState('');
+  const [brStates, setBrStates] = useState<{ id: number; name: string; uf: string }[]>([]);
+  const [brCities, setBrCities] = useState<{ id: number; name: string }[]>([]);
+  const [loadingCities, setLoadingCities] = useState(false);
   const [companyPostalCode, setCompanyPostalCode] = useState('');
   const [companyGoogleMapsUrl, setCompanyGoogleMapsUrl] = useState('');
 
