@@ -63,6 +63,7 @@ export default function BarbershopLanding({ routeBusinessType, customSlug }: Bar
   const [allReviewsList, setAllReviewsList] = useState<any[]>([]);
   const [companyEvents, setCompanyEvents] = useState<any[]>([]);
   const [companyPromotions, setCompanyPromotions] = useState<any[]>([]);
+  const [isWhitelabel, setIsWhitelabel] = useState(false);
 
   const isDark = businessType === 'barbershop';
 
