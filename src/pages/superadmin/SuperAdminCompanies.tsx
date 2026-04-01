@@ -141,9 +141,29 @@ const SuperAdminCompanies = () => {
   };
 
   const handleLoginAs = async (company: CompanyWithOwner) => {
-    // For security, this creates a note that the admin wants to impersonate.
-    // True impersonation requires a server-side edge function.
-    toast.info(`Funcionalidade "Login como" requer implementação via backend function para segurança. Company ID: ${company.id}`);
+    if (!company.owner_id) {
+      toast.error('Empresa não possui um proprietário cadastrado');
+      return;
+    }
+    
+    toast.loading('Gerando acesso...', { id: 'impersonate' });
+    
+    try {
+      const { data, error } = await supabase.functions.invoke('impersonate-company', {
+        body: { company_id: company.id },
+      });
+
+      if (error || !data?.action_link) {
+        toast.error('Erro ao gerar acesso. Verifique os logs.', { id: 'impersonate' });
+        return;
+      }
+
+      // Open the magic link in a new tab
+      toast.success(`Abrindo como ${data.owner_name || data.owner_email}...`, { id: 'impersonate' });
+      window.open(data.action_link, '_blank');
+    } catch (err) {
+      toast.error('Erro ao conectar com o servidor', { id: 'impersonate' });
+    }
   };
 
   const resetFilters = () => {
