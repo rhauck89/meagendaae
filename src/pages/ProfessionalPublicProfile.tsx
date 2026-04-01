@@ -98,7 +98,7 @@ export default function ProfessionalPublicProfile() {
     setCompletedCount(count || 0);
 
     // Fetch company settings for branding
-    const { data: csData } = await supabase.from('company_settings' as any).select('primary_color, secondary_color, background_color').eq('company_id', comp.id).single();
+    const { data: csData } = await supabase.from('public_company_settings' as any).select('primary_color, secondary_color, background_color').eq('company_id', comp.id).single();
     if (csData) setCompanySettings(csData);
 
     // Next available slots
