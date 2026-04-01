@@ -121,7 +121,7 @@ function promoVisualStatus(p: Promotion, now: Date): 'scheduled' | 'active' | 'p
 }
 
 function formatCountdown(ms: number): string {
-  if (ms <= 0) return 'Encerrada';
+  if (!isFinite(ms) || isNaN(ms) || ms <= 0) return '';
   const totalMin = Math.floor(ms / 60000);
   const h = Math.floor(totalMin / 60);
   const m = totalMin % 60;
@@ -129,7 +129,7 @@ function formatCountdown(ms: number): string {
     const d = Math.floor(h / 24);
     return `${d}d ${h % 24}h`;
   }
-  return `${String(h).padStart(2, '0')}h ${String(m).padStart(2, '0')}m`;
+  return `${h}h ${String(m).padStart(2, '0')}m`;
 }
 
 export default function Promotions() {
