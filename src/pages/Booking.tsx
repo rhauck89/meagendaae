@@ -1172,7 +1172,16 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                 mode="single" selected={selectedDate}
                 onSelect={(date) => { setSelectedDate(date); setSelectedTime(null); }}
                 locale={ptBR}
-                disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
+                disabled={(date) => {
+                  const today = new Date(new Date().setHours(0, 0, 0, 0));
+                  if (date < today) return true;
+                  if (isPromoMode && promoData) {
+                    const startDate = new Date(promoData.start_date + 'T00:00:00');
+                    const endDate = new Date(promoData.end_date + 'T23:59:59');
+                    return date < startDate || date > endDate;
+                  }
+                  return false;
+                }}
                 className="mx-auto"
               />
             </div>
