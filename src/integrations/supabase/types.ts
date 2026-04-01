@@ -974,6 +974,7 @@ export type Database = {
           last_visit_date: string | null
           opt_in_date: string | null
           opt_in_whatsapp: boolean
+          role: string | null
           social_links: Json | null
           updated_at: string
           user_id: string
@@ -994,6 +995,7 @@ export type Database = {
           last_visit_date?: string | null
           opt_in_date?: string | null
           opt_in_whatsapp?: boolean
+          role?: string | null
           social_links?: Json | null
           updated_at?: string
           user_id: string
@@ -1014,6 +1016,7 @@ export type Database = {
           last_visit_date?: string | null
           opt_in_date?: string | null
           opt_in_whatsapp?: boolean
+          role?: string | null
           social_links?: Json | null
           updated_at?: string
           user_id?: string

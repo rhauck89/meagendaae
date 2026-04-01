@@ -23,6 +23,7 @@ import ReviewPage from "./pages/ReviewPage";
 import CancelAppointment from "./pages/CancelAppointment";
 import RescheduleAppointment from "./pages/RescheduleAppointment";
 import Admin from "./pages/Admin";
+import RequireRole from "./components/RequireRole";
 import DebugAgenda from "./pages/DebugAgenda";
 import Waitlist from "./pages/Waitlist";
 import ProfilePage from "./pages/ProfilePage";
@@ -106,8 +107,9 @@ const PlatformRoutes = () => (
     <Route path="/review/:appointmentId" element={<ReviewPage />} />
     <Route path="/cancel/:appointmentId" element={<CancelAppointment />} />
     <Route path="/reschedule/:appointmentId" element={<RescheduleAppointment />} />
-    <Route path="/admin" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
-    <Route path="/admin/debug-agenda" element={<ProtectedRoute><DebugAgenda /></ProtectedRoute>} />
+    <Route path="/admin" element={<RequireRole role="super_admin"><Admin /></RequireRole>} />
+    <Route path="/super-admin" element={<RequireRole role="super_admin"><Admin /></RequireRole>} />
+    <Route path="/admin/debug-agenda" element={<RequireRole role="super_admin"><DebugAgenda /></RequireRole>} />
     <Route path="/dashboard" element={<DashboardRoute><Dashboard /></DashboardRoute>} />
     <Route path="/dashboard/services" element={<DashboardRoute><Services /></DashboardRoute>} />
     <Route path="/dashboard/team" element={<DashboardRoute><Team /></DashboardRoute>} />
