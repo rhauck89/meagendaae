@@ -57,12 +57,17 @@ const statusLabels: Record<string, string> = {
 };
 
 const getDisplayStatus = (apt: any): string => {
-  const now = new Date();
-  if (apt.status === 'confirmed' && now >= parseISO(apt.start_time) && now <= parseISO(apt.end_time)) {
-    return 'in_progress';
+  if (['completed', 'cancelled', 'no_show', 'rescheduled'].includes(apt.status)) {
+    return apt.status;
   }
-  if (apt.status === 'confirmed' && now > parseISO(apt.end_time)) {
+  const now = new Date();
+  const endTime = parseISO(apt.end_time);
+  const startTime = parseISO(apt.start_time);
+  if ((apt.status === 'confirmed' || apt.status === 'pending') && now > endTime) {
     return 'late';
+  }
+  if (apt.status === 'confirmed' && now >= startTime && now <= endTime) {
+    return 'in_progress';
   }
   return apt.status;
 };
@@ -1051,23 +1056,37 @@ const Dashboard = () => {
                             )}
                           </div>
                           <div className="flex gap-1 flex-wrap">
-                            {apt.status === 'pending' && (
+                            {(displayStatus === 'in_progress' || displayStatus === 'late') && (
+                              <Button
+                                size="sm"
+                                className="bg-success hover:bg-success/90 text-white"
+                                onClick={() => {
+                                  setCompleteTarget(apt);
+                                  setCompleteDialogOpen(true);
+                                }}
+                              >
+                                ✓ Concluir atendimento
+                              </Button>
+                            )}
+                            {apt.status === 'pending' && displayStatus !== 'late' && (
                               <Button size="sm" onClick={() => updateStatus(apt.id, 'confirmed')}>
                                 Confirmar
                               </Button>
                             )}
+                            {(apt.status === 'pending' || apt.status === 'confirmed') && displayStatus !== 'in_progress' && displayStatus !== 'late' && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => {
+                                  setCompleteTarget(apt);
+                                  setCompleteDialogOpen(true);
+                                }}
+                              >
+                                Concluir
+                              </Button>
+                            )}
                             {(apt.status === 'pending' || apt.status === 'confirmed') && (
                               <>
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => {
-                                    setCompleteTarget(apt);
-                                    setCompleteDialogOpen(true);
-                                  }}
-                                >
-                                  Concluir
-                                </Button>
                                 <Button
                                   size="sm"
                                   variant="outline"
