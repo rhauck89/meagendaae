@@ -1741,7 +1741,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
         })()}
       </div>
       <div className="text-center py-4">
-        <PlatformBranding isDark={isDark} />
+        <PlatformBranding isDark={isDark} hide={isWhitelabel} />
       </div>
 
       {/* Floating WhatsApp Button */}
