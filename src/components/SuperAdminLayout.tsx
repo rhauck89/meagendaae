@@ -40,12 +40,12 @@ const SuperAdminLayout = ({ children }: { children: React.ReactNode }) => {
       )}
 
       <aside className={cn(
-        'fixed inset-y-0 left-0 z-50 w-64 bg-sidebar text-sidebar-foreground flex flex-col transition-transform lg:translate-x-0 lg:static',
+        'fixed inset-y-0 left-0 z-50 w-64 bg-sidebar text-sidebar-foreground flex flex-col transition-transform lg:translate-x-0',
         sidebarOpen ? 'translate-x-0' : '-translate-x-full'
       )}>
         <div className="p-6 flex items-center gap-3">
-          <div className="w-10 h-10 bg-destructive/10 rounded-xl flex items-center justify-center">
-            <ShieldCheck className="h-5 w-5 text-destructive" />
+          <div className="w-10 h-10 bg-sidebar-primary/15 rounded-xl flex items-center justify-center">
+            <ShieldCheck className="h-5 w-5 text-sidebar-primary" />
           </div>
           <span className="font-display font-bold text-lg">Super Admin</span>
           <button className="ml-auto lg:hidden" onClick={() => setSidebarOpen(false)}>
@@ -53,7 +53,7 @@ const SuperAdminLayout = ({ children }: { children: React.ReactNode }) => {
           </button>
         </div>
 
-        <nav className="flex-1 px-3 space-y-1">
+        <nav className="flex-1 px-3 space-y-1 overflow-y-auto">
           {navItems.map((item) => {
             const isActive = location.pathname === item.href || (item.href !== '/super-admin' && location.pathname.startsWith(item.href));
             const badge = item.href === '/super-admin/support' ? ticketCounts.total_pending : 0;
@@ -100,7 +100,7 @@ const SuperAdminLayout = ({ children }: { children: React.ReactNode }) => {
         </div>
       </aside>
 
-      <main className="flex-1 flex flex-col min-h-screen">
+      <main className="flex-1 flex flex-col min-h-screen lg:ml-64">
         <header className="h-16 border-b flex items-center px-4 lg:px-8 bg-card">
           <button className="lg:hidden mr-4" onClick={() => setSidebarOpen(true)}>
             <Menu className="h-6 w-6" />

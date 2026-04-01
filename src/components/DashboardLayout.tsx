@@ -104,7 +104,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
     <div className="min-h-screen flex bg-background">
       {sidebarOpen && <div className="fixed inset-0 bg-foreground/50 z-40 lg:hidden" onClick={() => setSidebarOpen(false)} />}
 
-      <aside className={cn('fixed inset-y-0 left-0 z-50 w-64 bg-sidebar text-sidebar-foreground flex flex-col transition-transform lg:translate-x-0 lg:static', sidebarOpen ? 'translate-x-0' : '-translate-x-full')}>
+      <aside className={cn('fixed inset-y-0 left-0 z-50 w-64 bg-sidebar text-sidebar-foreground flex flex-col transition-transform lg:translate-x-0', sidebarOpen ? 'translate-x-0' : '-translate-x-full')}>
         <div className="p-6 flex items-center gap-3">
           <div className="w-10 h-10 bg-sidebar-primary rounded-xl flex items-center justify-center"><Scissors className="h-5 w-5 text-sidebar-primary-foreground" /></div>
           <span className="font-display font-bold text-lg">AgendaPro</span>
@@ -171,7 +171,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
         </div>
       </aside>
 
-      <main className="flex-1 flex flex-col min-h-screen">
+      <main className="flex-1 flex flex-col min-h-screen lg:ml-64">
         <header className="h-16 border-b flex items-center px-4 lg:px-8 bg-card">
           <button className="lg:hidden mr-4" onClick={() => setSidebarOpen(true)}><Menu className="h-6 w-6" /></button>
           <h1 className="text-lg font-display font-semibold flex-1">{currentLabel}</h1>
