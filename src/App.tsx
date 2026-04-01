@@ -14,9 +14,7 @@ import ResetPassword from "./pages/ResetPassword";
 import Dashboard from "./pages/Dashboard";
 import Services from "./pages/Services";
 import Team from "./pages/Team";
-import SettingsPage from "./pages/SettingsPage";
 import Reports from "./pages/Reports";
-import Automations from "./pages/Automations";
 import Booking from "./pages/Booking";
 import MyAppointments from "./pages/MyAppointments";
 import ReviewPage from "./pages/ReviewPage";
@@ -45,6 +43,15 @@ import Support from "./pages/Support";
 import PlansPage from "./pages/PlansPage";
 import NotFound from "./pages/NotFound";
 
+// Settings sub-pages
+import SettingsGeneral from "./pages/settings/SettingsGeneral";
+import SettingsCompany from "./pages/settings/SettingsCompany";
+import SettingsSchedule from "./pages/settings/SettingsSchedule";
+import SettingsAutomation from "./pages/settings/SettingsAutomation";
+import SettingsBranding from "./pages/settings/SettingsBranding";
+import SettingsDomain from "./pages/settings/SettingsDomain";
+import SettingsPlan from "./pages/settings/SettingsPlan";
+
 const queryClient = new QueryClient();
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
@@ -60,17 +67,6 @@ const DashboardRoute = ({ children }: { children: React.ReactNode }) => (
   </ProtectedRoute>
 );
 
-/**
- * Tenant-scoped routes — rendered when the host resolves to a company
- * (either via subdomain like hckbarber.agendapro.com or a custom domain).
- *
- * Route structure:
- *   /                           → Company landing page
- *   /agendar                    → Booking flow (company level)
- *   /evento/:eventSlug          → Public event page
- *   /:professionalSlug          → Professional booking page
- *   /:professionalSlug/agendar  → Professional booking flow
- */
 const TenantRoutes = ({ slug, businessType }: { slug: string; businessType: string }) => {
   const routeType = businessType === 'esthetic' ? 'esthetic' : 'barbershop';
   return (
@@ -86,20 +82,14 @@ const TenantRoutes = ({ slug, businessType }: { slug: string; businessType: stri
   );
 };
 
-/**
- * Platform routes — used on the main domain, dashboard, or localhost dev.
- * Includes path-based slug routing (/barbearia/:slug) and all admin routes.
- */
 const PlatformRoutes = () => (
   <Routes>
     <Route path="/" element={<Index />} />
     <Route path="/auth" element={<Auth />} />
     <Route path="/forgot-password" element={<ForgotPassword />} />
     <Route path="/reset-password" element={<ResetPassword />} />
-    {/* Public landing pages */}
     <Route path="/barbearia/:slug" element={<BarbershopLanding routeBusinessType="barbershop" />} />
     <Route path="/estetica/:slug" element={<BarbershopLanding routeBusinessType="esthetic" />} />
-    {/* Booking flow routes */}
     <Route path="/barbearia/:slug/promo/:promoSlug" element={<PromotionPublic />} />
     <Route path="/estetica/:slug/promo/:promoSlug" element={<PromotionPublic />} />
     <Route path="/barbearia/:slug/agendar" element={<Booking routeBusinessType="barbershop" />} />
@@ -108,10 +98,8 @@ const PlatformRoutes = () => (
     <Route path="/estetica/:slug/agendar" element={<Booking routeBusinessType="esthetic" />} />
     <Route path="/estetica/:slug/:professionalSlug/agendar" element={<Booking routeBusinessType="esthetic" />} />
     <Route path="/estetica/:slug/:professionalSlug" element={<Booking routeBusinessType="esthetic" />} />
-    {/* Public profile routes */}
     <Route path="/perfil/barbearia/:slug/:professionalSlug" element={<ProfessionalPublicProfile />} />
     <Route path="/perfil/estetica/:slug/:professionalSlug" element={<ProfessionalPublicProfile />} />
-    {/* Legacy booking route */}
     <Route path="/booking/:slug" element={<Booking />} />
     <Route path="/my-appointments" element={<MyAppointments />} />
     <Route path="/review/:appointmentId" element={<ReviewPage />} />
@@ -129,15 +117,22 @@ const PlatformRoutes = () => (
     <Route path="/dashboard" element={<DashboardRoute><Dashboard /></DashboardRoute>} />
     <Route path="/dashboard/services" element={<DashboardRoute><Services /></DashboardRoute>} />
     <Route path="/dashboard/team" element={<DashboardRoute><Team /></DashboardRoute>} />
-    <Route path="/dashboard/settings" element={<DashboardRoute><SettingsPage /></DashboardRoute>} />
     <Route path="/dashboard/reports" element={<DashboardRoute><Reports /></DashboardRoute>} />
-    <Route path="/dashboard/automations" element={<DashboardRoute><Automations /></DashboardRoute>} />
     <Route path="/dashboard/waitlist" element={<DashboardRoute><Waitlist /></DashboardRoute>} />
     <Route path="/dashboard/clients" element={<DashboardRoute><Clients /></DashboardRoute>} />
     <Route path="/dashboard/profile" element={<DashboardRoute><ProfilePage /></DashboardRoute>} />
     <Route path="/dashboard/events" element={<DashboardRoute><Events /></DashboardRoute>} />
     <Route path="/dashboard/promotions" element={<DashboardRoute><Promotions /></DashboardRoute>} />
     <Route path="/dashboard/support" element={<DashboardRoute><Support /></DashboardRoute>} />
+    {/* Settings sub-routes */}
+    <Route path="/dashboard/settings" element={<Navigate to="/dashboard/settings/general" replace />} />
+    <Route path="/dashboard/settings/general" element={<DashboardRoute><SettingsGeneral /></DashboardRoute>} />
+    <Route path="/dashboard/settings/company" element={<DashboardRoute><SettingsCompany /></DashboardRoute>} />
+    <Route path="/dashboard/settings/schedule" element={<DashboardRoute><SettingsSchedule /></DashboardRoute>} />
+    <Route path="/dashboard/settings/automation" element={<DashboardRoute><SettingsAutomation /></DashboardRoute>} />
+    <Route path="/dashboard/settings/branding" element={<DashboardRoute><SettingsBranding /></DashboardRoute>} />
+    <Route path="/dashboard/settings/domain" element={<DashboardRoute><SettingsDomain /></DashboardRoute>} />
+    <Route path="/dashboard/settings/plan" element={<DashboardRoute><SettingsPlan /></DashboardRoute>} />
     <Route path="/settings/plans" element={<ProtectedRoute><PlansPage /></ProtectedRoute>} />
     <Route path="/event/:eventSlug" element={<EventPublic />} />
     <Route path="*" element={<NotFound />} />
@@ -146,17 +141,8 @@ const PlatformRoutes = () => (
 
 const AppRoutes = () => {
   const { tenant, isTenantResolved, loading } = useDomainRouting();
-
-  if (loading) {
-    return <div className="min-h-screen flex items-center justify-center"><p>Carregando...</p></div>;
-  }
-
-  // Tenant resolved via subdomain or custom domain → render tenant-scoped routes
-  if (isTenantResolved && tenant) {
-    return <TenantRoutes slug={tenant.slug} businessType={tenant.businessType} />;
-  }
-
-  // No tenant context → render platform routes (path-based slug routing)
+  if (loading) return <div className="min-h-screen flex items-center justify-center"><p>Carregando...</p></div>;
+  if (isTenantResolved && tenant) return <TenantRoutes slug={tenant.slug} businessType={tenant.businessType} />;
   return <PlatformRoutes />;
 };
 
