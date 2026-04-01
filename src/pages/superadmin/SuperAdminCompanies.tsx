@@ -63,6 +63,7 @@ const SuperAdminCompanies = () => {
   const [filterCity, setFilterCity] = useState('all');
   const [filterPlan, setFilterPlan] = useState('all');
   const [filterStatus, setFilterStatus] = useState('all');
+  const [filterBusinessType, setFilterBusinessType] = useState('all');
   const [loading, setLoading] = useState(true);
   const [selectedCompany, setSelectedCompany] = useState<CompanyWithOwner | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
