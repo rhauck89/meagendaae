@@ -266,7 +266,7 @@ const SuperAdminCompanies = () => {
             </SelectContent>
           </Select>
           <Select value={filterBusinessType} onValueChange={setFilterBusinessType}>
-            <SelectTrigger className="w-[160px]"><SelectValue placeholder="Categoria" /></SelectTrigger>
+            <SelectTrigger className="w-full sm:w-[160px]"><SelectValue placeholder="Categoria" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Todas categorias</SelectItem>
               <SelectItem value="barbershop">Barbearia</SelectItem>
