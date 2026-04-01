@@ -1008,6 +1008,28 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
           </div>
         )}
 
+        {/* Promotion Banner */}
+        {isPromoMode && promoData && step !== 'success' && (
+          <div className="rounded-2xl p-4 space-y-2" style={{ background: `${T.accent}15`, border: `1px solid ${T.accent}40` }}>
+            <div className="flex items-center gap-2">
+              <Sparkles className="h-4 w-4" style={{ color: T.accent }} />
+              <span className="text-xs font-bold uppercase tracking-wider" style={{ color: T.accent }}>Promoção</span>
+            </div>
+            <p className="font-bold text-base">{promoData.title}</p>
+            {promoData.service_name && (
+              <div className="flex items-center gap-3">
+                <span className="text-sm" style={{ color: T.textSec }}>{promoData.service_name}</span>
+                {promoData.original_price != null && promoData.promotion_price != null && (
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm line-through" style={{ color: T.textSec }}>R$ {Number(promoData.original_price).toFixed(2)}</span>
+                    <span className="text-sm font-bold" style={{ color: T.accent }}>R$ {Number(promoData.promotion_price).toFixed(2)}</span>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
         {/* ═══ SERVICES ═══ */}
         {step === 'services' && (
           <div className="space-y-5 animate-fade-in">
