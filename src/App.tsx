@@ -33,6 +33,13 @@ import EventPublic from "./pages/EventPublic";
 import Promotions from "./pages/Promotions";
 import PromotionPublic from "./pages/PromotionPublic";
 import DashboardLayout from "./components/DashboardLayout";
+import SuperAdminLayout from "./components/SuperAdminLayout";
+import SuperAdminDashboard from "./pages/superadmin/SuperAdminDashboard";
+import SuperAdminCompanies from "./pages/superadmin/SuperAdminCompanies";
+import SuperAdminPlans from "./pages/superadmin/SuperAdminPlans";
+import SuperAdminFinance from "./pages/superadmin/SuperAdminFinance";
+import SuperAdminReports from "./pages/superadmin/SuperAdminReports";
+import SuperAdminSettings from "./pages/superadmin/SuperAdminSettings";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
