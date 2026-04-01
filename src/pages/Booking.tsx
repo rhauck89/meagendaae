@@ -360,6 +360,67 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
       }
       prefillDateRef.current = null;
     }
+
+    // Load promotion data if ?promo= param is present
+    if (promoIdRef.current) {
+      const { data: promos } = await supabase
+        .from('public_promotions' as any)
+        .select('*')
+        .eq('id', promoIdRef.current)
+        .limit(1);
+      const pd = (promos as any)?.[0];
+      if (pd && pd.company_id === comp.id) {
+        setPromoData(pd as PromotionInfo);
+        // Auto-select the promo service
+        if (pd.service_id) {
+          setSelectedServices([pd.service_id]);
+        }
+        // Auto-select professional if only one
+        if (pd.professional_ids?.length === 1) {
+          const profId = pd.professional_ids[0];
+          setSelectedProfessional(profId);
+          const { data: profHoursData } = await supabase
+            .from('professional_working_hours' as any)
+            .select('*')
+            .eq('professional_id', profId);
+          if (profHoursData && (profHoursData as any[]).length > 0) {
+            setProfessionalHours(profHoursData as unknown as BusinessHours[]);
+          }
+          // Fetch professional for display
+          const { data: promoProfs } = await supabase
+            .from('public_professionals' as any)
+            .select('*')
+            .eq('company_id', comp.id)
+            .in('id', pd.professional_ids);
+          if (promoProfs) {
+            setProfessionals((promoProfs as any[]).map((p: any) => ({
+              id: p.id, name: p.name, full_name: p.name, avatar_url: p.avatar_url, slug: p.slug,
+            })));
+          }
+        } else if (pd.professional_ids?.length > 1) {
+          // Fetch specific professionals for selection
+          const { data: promoProfs } = await supabase
+            .from('public_professionals' as any)
+            .select('*')
+            .eq('company_id', comp.id)
+            .in('id', pd.professional_ids);
+          if (promoProfs) {
+            setProfessionals((promoProfs as any[]).map((p: any) => ({
+              id: p.id, name: p.name, full_name: p.name, avatar_url: p.avatar_url, slug: p.slug,
+            })));
+          }
+        }
+        // Skip to appropriate step
+        if (pd.professional_ids?.length === 1) {
+          setStep('datetime');
+        } else if (pd.professional_ids?.length > 1) {
+          setStep('professional');
+        } else {
+          setStep('datetime');
+        }
+      }
+      promoIdRef.current = null;
+    }
   };
 
   const fetchRecentBookings = async (profileId: string) => {
