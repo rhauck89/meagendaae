@@ -63,6 +63,7 @@ export default function BarbershopLanding({ routeBusinessType, customSlug }: Bar
   const [allReviewsList, setAllReviewsList] = useState<any[]>([]);
   const [companyEvents, setCompanyEvents] = useState<any[]>([]);
   const [companyPromotions, setCompanyPromotions] = useState<any[]>([]);
+  const [isWhitelabel, setIsWhitelabel] = useState(false);
 
   const isDark = businessType === 'barbershop';
 
@@ -84,6 +85,19 @@ export default function BarbershopLanding({ routeBusinessType, customSlug }: Bar
     setCompany(comp);
     const resolvedType: BusinessType = routeBusinessType || comp.business_type || 'barbershop';
     setBusinessType(resolvedType);
+
+    // Check whitelabel via company plan (best-effort, may fail without auth)
+    try {
+      const { data: compPlan } = await supabase
+        .from('companies')
+        .select('plan_id')
+        .eq('id', comp.id)
+        .single();
+      if (compPlan?.plan_id) {
+        const { data: planData } = await supabase.from('plans').select('whitelabel').eq('id', compPlan.plan_id).single();
+        if (planData?.whitelabel) setIsWhitelabel(true);
+      }
+    } catch { /* ignore - will show platform branding by default */ }
 
     const [servicesRes, profsRes, ratingsRes, reviewsRes, settingsRes, galleryRes, eventsRes, promosRes] = await Promise.all([
       supabase.from('public_services' as any).select('*').eq('company_id', comp.id).order('name'),
@@ -629,7 +643,7 @@ export default function BarbershopLanding({ routeBusinessType, customSlug }: Bar
             ) : (
               <p className="text-xs font-medium" style={{ color: isDark ? '#4B5563' : '#9CA3AF' }}>{company.name}</p>
             )}
-            <PlatformBranding isDark={isDark} />
+            <PlatformBranding isDark={isDark} hide={isWhitelabel} />
           </div>
         </div>
       </div>

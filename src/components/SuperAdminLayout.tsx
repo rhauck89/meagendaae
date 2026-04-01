@@ -8,6 +8,8 @@ import {
 import { Button } from '@/components/ui/button';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
+import { PlatformLogo } from './PlatformLogo';
+import { PlatformFooter } from './PlatformFooter';
 
 const navItems = [
   { href: '/super-admin', icon: LayoutDashboard, label: 'Dashboard' },
@@ -44,10 +46,7 @@ const SuperAdminLayout = ({ children }: { children: React.ReactNode }) => {
         sidebarOpen ? 'translate-x-0' : '-translate-x-full'
       )}>
         <div className="p-6 flex items-center gap-3">
-          <div className="w-10 h-10 bg-sidebar-primary/15 rounded-xl flex items-center justify-center">
-            <ShieldCheck className="h-5 w-5 text-sidebar-primary" />
-          </div>
-          <span className="font-display font-bold text-lg">Super Admin</span>
+          <PlatformLogo />
           <button className="ml-auto lg:hidden" onClick={() => setSidebarOpen(false)}>
             <X className="h-5 w-5" />
           </button>
@@ -122,6 +121,9 @@ const SuperAdminLayout = ({ children }: { children: React.ReactNode }) => {
         </header>
         <div className="flex-1 p-3 sm:p-4 lg:p-8 overflow-auto overflow-x-hidden">{children}</div>
       </main>
+      <footer className="lg:ml-64">
+        <PlatformFooter />
+      </footer>
     </div>
   );
 };

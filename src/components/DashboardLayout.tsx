@@ -3,6 +3,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useUserRole } from '@/hooks/useUserRole';
 import { useUserTicketCounts } from '@/hooks/useSupportTicketCounts';
 import { usePlatformMessages } from '@/hooks/usePlatformMessages';
+import { useCompanyBrandInfo } from '@/hooks/useCompanyBrandInfo';
 import {
   Calendar, Scissors, Users, BarChart3, Settings, LogOut, Menu, X, User, UserCheck,
   PartyPopper, Megaphone, MessageSquare, ChevronDown, Building2, Clock, Zap, Palette, Globe, CreditCard, Bell, HelpCircle, Info, AlertTriangle,
@@ -12,6 +13,8 @@ import { useState } from 'react';
 import { cn } from '@/lib/utils';
 import CompanySetup from './CompanySetup';
 import { OnboardingPopup } from './OnboardingPopup';
+import { PlatformLogo } from './PlatformLogo';
+import { PlatformFooter } from './PlatformFooter';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -47,6 +50,7 @@ const professionalNavItems = [
 const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
   const { profile, companyId, signOut, loading: authLoading } = useAuth();
   const { isAdmin } = useUserRole();
+  const brandInfo = useCompanyBrandInfo();
   const location = useLocation();
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -106,8 +110,11 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
 
       <aside className={cn('fixed inset-y-0 left-0 z-50 w-64 bg-sidebar text-sidebar-foreground flex flex-col transition-transform lg:translate-x-0', sidebarOpen ? 'translate-x-0' : '-translate-x-full')}>
         <div className="p-6 flex items-center gap-3">
-          <div className="w-10 h-10 bg-sidebar-primary rounded-xl flex items-center justify-center"><Scissors className="h-5 w-5 text-sidebar-primary-foreground" /></div>
-          <span className="font-display font-bold text-lg">AgendaPro</span>
+          <PlatformLogo
+            companyLogo={brandInfo.logo_url}
+            companyName={brandInfo.name}
+            isWhitelabel={brandInfo.isWhitelabel}
+          />
           <button className="ml-auto lg:hidden" onClick={() => setSidebarOpen(false)}><X className="h-5 w-5" /></button>
         </div>
 
@@ -242,6 +249,9 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
         </div>
       </main>
       <OnboardingPopup />
+      <footer className="lg:ml-64">
+        <PlatformFooter isWhitelabel={brandInfo.isWhitelabel} />
+      </footer>
     </div>
   );
 };
