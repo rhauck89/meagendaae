@@ -51,7 +51,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const unreadTickets = useUserTicketCounts();
-  const { data: platformMessages } = usePlatformMessages();
+  const { data: platformMessages, dismiss: dismissMessage } = usePlatformMessages();
   const totalNotifications = (unreadTickets || 0) + (platformMessages?.length || 0);
 
   const isSettingsActive = location.pathname.startsWith('/dashboard/settings');
