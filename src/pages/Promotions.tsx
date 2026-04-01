@@ -95,11 +95,20 @@ const WIZARD_STEPS = [
 ];
 
 // --- Datetime helpers ---
+function normalizeTime(t: string | null, fallback: string): string {
+  if (!t) return fallback;
+  // Handle "HH:MM:SS" or "HH:MM" — always return "HH:MM:SS"
+  const parts = t.split(':');
+  const hh = parts[0] || '00';
+  const mm = parts[1] || '00';
+  const ss = parts[2] || '00';
+  return `${hh}:${mm}:${ss}`;
+}
 function getPromoStart(p: Promotion): Date {
-  return new Date(p.start_date + 'T' + (p.start_time || '00:00') + ':00');
+  return new Date(`${p.start_date}T${normalizeTime(p.start_time, '00:00:00')}`);
 }
 function getPromoEnd(p: Promotion): Date {
-  return new Date(p.end_date + 'T' + (p.end_time || '23:59') + ':00');
+  return new Date(`${p.end_date}T${normalizeTime(p.end_time, '23:59:59')}`);
 }
 
 function promoVisualStatus(p: Promotion, now: Date): 'scheduled' | 'active' | 'paused' | 'expired' {
