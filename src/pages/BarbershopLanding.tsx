@@ -499,7 +499,52 @@ export default function BarbershopLanding({ routeBusinessType, customSlug }: Bar
           </section>
         )}
 
-        {/* 9) Address & Map */}
+        {/* Promoções */}
+        {companyPromotions.length > 0 && (
+          <section>
+            <div className="flex items-center gap-2 mb-4">
+              <Sparkles className="w-5 h-5" style={{ color: T.accent }} />
+              <h2 className="text-lg font-bold" style={{ color: T.text }}>Promoções</h2>
+            </div>
+            <div className="space-y-3">
+              {companyPromotions.map((promo: any) => {
+                const remaining = promo.max_slots > 0 ? promo.max_slots - promo.used_slots : null;
+                const isLow = remaining !== null && remaining > 0 && remaining <= 5;
+                return (
+                  <div
+                    key={promo.id}
+                    className="rounded-xl p-4"
+                    style={{ background: T.card, border: `1px solid ${T.border}` }}
+                  >
+                    <p className="font-bold" style={{ color: T.text }}>{promo.title}</p>
+                    {promo.description && (
+                      <p className="text-sm mt-1 line-clamp-2" style={{ color: T.textSec }}>{promo.description}</p>
+                    )}
+                    <p className="text-sm mt-1" style={{ color: T.textSec }}>
+                      📅 {format(parseISO(promo.start_date), "dd/MM/yyyy", { locale: ptBR })}
+                      {promo.start_date !== promo.end_date && ` - ${format(parseISO(promo.end_date), "dd/MM/yyyy", { locale: ptBR })}`}
+                    </p>
+                    {promo.start_time && promo.end_time && (
+                      <p className="text-sm" style={{ color: T.textSec }}>
+                        ⏰ {promo.start_time.slice(0, 5)} - {promo.end_time.slice(0, 5)}
+                      </p>
+                    )}
+                    {remaining !== null && (
+                      <p className={cn('text-sm font-semibold mt-2',
+                        remaining === 0 ? 'text-destructive' : isLow ? 'text-orange-500' : ''
+                      )} style={remaining > 5 ? { color: T.accent } : undefined}>
+                        {remaining === 0 ? '❌ Esgotado' :
+                         isLow ? `🔥 Últimas ${remaining} vagas` :
+                         `${remaining} vagas disponíveis`}
+                      </p>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+        )}
+
         <LocationBlock company={company} isDark={isDark} />
 
         {/* Social Links */}
