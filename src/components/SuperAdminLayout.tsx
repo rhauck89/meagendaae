@@ -16,6 +16,7 @@ const navItems = [
   { href: '/super-admin/finance', icon: DollarSign, label: 'Financeiro' },
   { href: '/super-admin/reports', icon: BarChart3, label: 'Relatórios' },
   { href: '/super-admin/support', icon: MessageSquare, label: 'Suporte' },
+  { href: '/super-admin/tutorials', icon: Video, label: 'Tutoriais' },
   { href: '/super-admin/settings', icon: Settings, label: 'Configurações' },
 ];
 
