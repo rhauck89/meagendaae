@@ -16,7 +16,7 @@ import { format, startOfMonth, endOfMonth, subMonths, startOfYear } from 'date-f
 import { ptBR } from 'date-fns/locale';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 
-interface ExpenseCategory { id: string; name: string; description: string | null; }
+interface ExpenseCategory { id: string; name: string; description: string | null; type: string; }
 interface Expense { id: string; category_id: string | null; description: string; amount: number; expense_date: string; notes: string | null; }
 interface ManualRevenue { id: string; description: string; amount: number; revenue_date: string; source: string | null; notes: string | null; }
 
@@ -30,7 +30,7 @@ const SuperAdminFinance = () => {
   // Dialogs
   const [catDialogOpen, setCatDialogOpen] = useState(false);
   const [editingCat, setEditingCat] = useState<ExpenseCategory | null>(null);
-  const [catForm, setCatForm] = useState({ name: '', description: '' });
+  const [catForm, setCatForm] = useState({ name: '', description: '', type: 'expense' });
 
   const [expDialogOpen, setExpDialogOpen] = useState(false);
   const [editingExp, setEditingExp] = useState<Expense | null>(null);
@@ -86,11 +86,12 @@ const SuperAdminFinance = () => {
   // Category CRUD
   const saveCat = async () => {
     if (!catForm.name.trim()) { toast.error('Nome obrigatório'); return; }
+    const catPayload = { name: catForm.name, description: catForm.description || null, type: catForm.type };
     if (editingCat) {
-      await supabase.from('expense_categories').update({ name: catForm.name, description: catForm.description || null } as any).eq('id', editingCat.id);
+      await supabase.from('expense_categories').update(catPayload as any).eq('id', editingCat.id);
       toast.success('Categoria atualizada');
     } else {
-      await supabase.from('expense_categories').insert({ name: catForm.name, description: catForm.description || null } as any);
+      await supabase.from('expense_categories').insert(catPayload as any);
       toast.success('Categoria criada');
     }
     setCatDialogOpen(false);
@@ -333,7 +334,7 @@ const SuperAdminFinance = () => {
         {/* Categories Tab */}
         <TabsContent value="categories" className="space-y-4">
           <div className="flex justify-end">
-            <Button onClick={() => { setEditingCat(null); setCatForm({ name: '', description: '' }); setCatDialogOpen(true); }}>
+            <Button onClick={() => { setEditingCat(null); setCatForm({ name: '', description: '', type: 'expense' }); setCatDialogOpen(true); }}>
               <Plus className="h-4 w-4 mr-1" /> Nova Categoria
             </Button>
           </div>
@@ -344,22 +345,28 @@ const SuperAdminFinance = () => {
                   <TableHeader>
                     <TableRow>
                       <TableHead>Nome</TableHead>
+                      <TableHead>Tipo</TableHead>
                       <TableHead>Descrição</TableHead>
                       <TableHead className="w-[80px]">Ações</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {categories.length === 0 ? (
-                      <TableRow><TableCell colSpan={3} className="text-center py-6 text-muted-foreground">Nenhuma categoria</TableCell></TableRow>
+                      <TableRow><TableCell colSpan={4} className="text-center py-6 text-muted-foreground">Nenhuma categoria</TableCell></TableRow>
                     ) : categories.map(c => (
                       <TableRow key={c.id}>
                         <TableCell className="font-medium">{c.name}</TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className="text-xs">
+                            {c.type === 'expense' ? 'Despesa' : c.type === 'revenue' ? 'Receita' : 'Ambos'}
+                          </Badge>
+                        </TableCell>
                         <TableCell className="text-sm text-muted-foreground">{c.description || '—'}</TableCell>
                         <TableCell>
                           <div className="flex gap-1">
                             <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => {
                               setEditingCat(c);
-                              setCatForm({ name: c.name, description: c.description || '' });
+                              setCatForm({ name: c.name, description: c.description || '', type: c.type || 'expense' });
                               setCatDialogOpen(true);
                             }}><Pencil className="h-3.5 w-3.5" /></Button>
                             <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => setDeleteTarget({ type: 'category', id: c.id })}><Trash2 className="h-3.5 w-3.5" /></Button>
@@ -387,6 +394,17 @@ const SuperAdminFinance = () => {
             <div className="space-y-1">
               <Label className="text-xs">Descrição</Label>
               <Input value={catForm.description} onChange={e => setCatForm(f => ({ ...f, description: e.target.value }))} />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Tipo</Label>
+              <Select value={catForm.type} onValueChange={v => setCatForm(f => ({ ...f, type: v }))}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="expense">Despesa</SelectItem>
+                  <SelectItem value="revenue">Receita</SelectItem>
+                  <SelectItem value="both">Ambos</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
           <DialogFooter>
@@ -420,7 +438,7 @@ const SuperAdminFinance = () => {
               <Select value={expForm.category_id} onValueChange={v => setExpForm(f => ({ ...f, category_id: v }))}>
                 <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
                 <SelectContent>
-                  {categories.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                  {categories.filter(c => c.type === 'expense' || c.type === 'both').map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
@@ -456,8 +474,13 @@ const SuperAdminFinance = () => {
               </div>
             </div>
             <div className="space-y-1">
-              <Label className="text-xs">Fonte</Label>
-              <Input value={revForm.source} onChange={e => setRevForm(f => ({ ...f, source: e.target.value }))} placeholder="Ex: Stripe, Manual, Outro" />
+              <Label className="text-xs">Categoria</Label>
+              <Select value={revForm.source} onValueChange={v => setRevForm(f => ({ ...f, source: v }))}>
+                <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                <SelectContent>
+                  {categories.filter(c => c.type === 'revenue' || c.type === 'both').map(c => <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
             </div>
             <div className="space-y-1">
               <Label className="text-xs">Observações</Label>
