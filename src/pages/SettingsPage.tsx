@@ -533,7 +533,7 @@ const SettingsPage = () => {
       </Card>
 
       {/* Custom Domain */}
-      {companyId && <DomainSettings companyId={companyId} />}
+      {companyId && <DomainSettings companyId={companyId} companySlug={companySlug} />}
 
       {/* Save all profile data */}
       <Button onClick={saveCompanyProfile} className="w-full sm:w-auto">
