@@ -122,8 +122,8 @@ const HelpCenter = () => {
           {filtered.map(v => (
             <Card
               key={v.id}
-              className="cursor-pointer hover:shadow-md transition-shadow overflow-hidden"
-              onClick={() => setSelectedVideo(v)}
+              className={`cursor-pointer hover:shadow-md transition-shadow overflow-hidden ${completedIds.has(v.id) ? 'ring-2 ring-success/30' : ''}`}
+              onClick={() => { setSelectedVideo(v); markCompleted(v.id); }}
             >
               <div className="relative aspect-video bg-muted">
                 <img
@@ -133,11 +133,18 @@ const HelpCenter = () => {
                   onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
                 />
                 <div className="absolute inset-0 flex items-center justify-center bg-foreground/10 hover:bg-foreground/20 transition-colors">
-                  <PlayCircle className="h-12 w-12 text-background/90" />
+                  {completedIds.has(v.id) ? (
+                    <CheckCircle2 className="h-12 w-12 text-success" />
+                  ) : (
+                    <PlayCircle className="h-12 w-12 text-background/90" />
+                  )}
                 </div>
               </div>
               <CardContent className="p-4">
-                <h3 className="font-semibold text-sm line-clamp-1">{v.title}</h3>
+                <div className="flex items-center gap-1.5">
+                  <h3 className="font-semibold text-sm line-clamp-1 flex-1">{v.title}</h3>
+                  {completedIds.has(v.id) && <CheckCircle2 className="h-4 w-4 text-success shrink-0" />}
+                </div>
                 {v.description && <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{v.description}</p>}
                 {v.menu_reference && (
                   <Badge variant="outline" className="text-xs mt-2">{v.menu_reference}</Badge>
