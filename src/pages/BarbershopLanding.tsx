@@ -93,7 +93,7 @@ export default function BarbershopLanding({ routeBusinessType, customSlug }: Bar
       supabase.from('company_settings' as any).select('*').eq('company_id', comp.id).single(),
       supabase.from('company_gallery' as any).select('*').eq('company_id', comp.id).order('sort_order'),
       supabase.from('events' as any).select('*').eq('company_id', comp.id).eq('status', 'published').order('start_date') as any,
-      supabase.from('promotions' as any).select('*').eq('company_id', comp.id).eq('status', 'active').gte('end_date', new Date().toISOString().split('T')[0]).order('start_date') as any,
+      supabase.from('public_promotions' as any).select('*').eq('company_id', comp.id).order('start_date') as any,
     ]);
 
     if (servicesRes.data) setServices(servicesRes.data as any[]);
