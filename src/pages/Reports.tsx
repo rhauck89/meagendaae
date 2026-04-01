@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
-import { BarChart3, TrendingUp, DollarSign, Users, Briefcase, CalendarIcon, RotateCcw } from 'lucide-react';
+import { BarChart3, TrendingUp, DollarSign, Users, Briefcase, CalendarIcon, RotateCcw, Scissors } from 'lucide-react';
 import { startOfDay, endOfDay, startOfMonth, format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
@@ -27,6 +27,11 @@ interface ProfessionalReport {
   companyValue: number;
 }
 
+interface ServiceOption {
+  id: string;
+  name: string;
+}
+
 const Reports = () => {
   const { companyId } = useAuth();
   const { isAdmin, profileId } = useUserRole();
@@ -34,20 +39,25 @@ const Reports = () => {
   const [endDate, setEndDate] = useState<Date>(new Date());
   const [filterProfessional, setFilterProfessional] = useState<string>('all');
   const [filterRoleType, setFilterRoleType] = useState<string>('all');
+  const [filterService, setFilterService] = useState<string>('all');
   const [totalRevenue, setTotalRevenue] = useState(0);
   const [totalCount, setTotalCount] = useState(0);
   const [professionals, setProfessionals] = useState<ProfessionalReport[]>([]);
   const [totalProfessionalValue, setTotalProfessionalValue] = useState(0);
   const [totalCompanyValue, setTotalCompanyValue] = useState(0);
   const [collaboratorsList, setCollaboratorsList] = useState<any[]>([]);
+  const [servicesList, setServicesList] = useState<ServiceOption[]>([]);
 
   useEffect(() => {
-    if (companyId) fetchCollaborators();
+    if (companyId) {
+      fetchCollaborators();
+      fetchServices();
+    }
   }, [companyId]);
 
   useEffect(() => {
     if (companyId) fetchReport();
-  }, [companyId, startDate, endDate, filterProfessional, filterRoleType]);
+  }, [companyId, startDate, endDate, filterProfessional, filterRoleType, filterService]);
 
   const fetchCollaborators = async () => {
     const { data } = await supabase
@@ -55,6 +65,16 @@ const Reports = () => {
       .select('profile_id, collaborator_type, commission_type, commission_value, commission_percent, profile:profiles(full_name)')
       .eq('company_id', companyId!);
     if (data) setCollaboratorsList(data);
+  };
+
+  const fetchServices = async () => {
+    const { data } = await supabase
+      .from('services')
+      .select('id, name')
+      .eq('company_id', companyId!)
+      .eq('active', true)
+      .order('name');
+    if (data) setServicesList(data);
   };
 
   const handleReset = () => {
@@ -65,6 +85,27 @@ const Reports = () => {
   const fetchReport = async () => {
     const start = startOfDay(startDate);
     const end = endOfDay(endDate);
+
+    // If filtering by service, first get matching appointment IDs
+    let serviceAppointmentIds: string[] | null = null;
+    if (filterService !== 'all') {
+      const { data: aptServices } = await supabase
+        .from('appointment_services')
+        .select('appointment_id')
+        .eq('service_id', filterService);
+      if (aptServices) {
+        serviceAppointmentIds = aptServices.map((s) => s.appointment_id);
+      }
+      if (!serviceAppointmentIds || serviceAppointmentIds.length === 0) {
+        // No appointments match this service
+        setTotalRevenue(0);
+        setTotalCount(0);
+        setProfessionals([]);
+        setTotalProfessionalValue(0);
+        setTotalCompanyValue(0);
+        return;
+      }
+    }
 
     let query = supabase
       .from('appointments')
@@ -78,6 +119,10 @@ const Reports = () => {
       query = query.eq('professional_id', profileId);
     } else if (filterProfessional !== 'all') {
       query = query.eq('professional_id', filterProfessional);
+    }
+
+    if (serviceAppointmentIds) {
+      query = query.in('id', serviceAppointmentIds);
     }
 
     const { data: appointments } = await query;
@@ -131,14 +176,14 @@ const Reports = () => {
     setTotalCompanyValue(reports.reduce((s, r) => s + r.companyValue, 0));
   };
 
-  const periodLabel = `${format(startDate, 'dd/MM', { locale: ptBR })} – ${format(endDate, 'dd/MM', { locale: ptBR })}`;
+  const periodLabel = `${format(startDate, 'dd/MM/yyyy', { locale: ptBR })} — ${format(endDate, 'dd/MM/yyyy', { locale: ptBR })}`;
 
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-xl font-display font-bold">Relatórios Financeiros</h2>
-          <p className="text-sm text-muted-foreground">Faturamento e comissões — {periodLabel}</p>
+          <p className="text-sm text-muted-foreground">Faturamento e comissões</p>
         </div>
         <div className="flex flex-wrap gap-2">
           {isAdmin && (
@@ -152,6 +197,19 @@ const Reports = () => {
                   {collaboratorsList.map((c) => (
                     <SelectItem key={c.profile_id} value={c.profile_id}>
                       {(c.profile as any)?.full_name || 'Sem nome'}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select value={filterService} onValueChange={setFilterService}>
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue placeholder="Serviço" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos os serviços</SelectItem>
+                  {servicesList.map((s) => (
+                    <SelectItem key={s.id} value={s.id}>
+                      {s.name}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -172,7 +230,7 @@ const Reports = () => {
         </div>
       </div>
 
-      {/* Date range filter */}
+      {/* Date range filter + period highlight */}
       <Card>
         <CardContent className="p-4">
           <div className="flex flex-wrap items-center gap-3">
@@ -203,6 +261,11 @@ const Reports = () => {
               <RotateCcw className="h-3 w-3" />
               Resetar período
             </Button>
+            <div className="ml-auto">
+              <Badge variant="secondary" className="text-xs font-medium">
+                📅 Período analisado: {periodLabel}
+              </Badge>
+            </div>
           </div>
         </CardContent>
       </Card>
