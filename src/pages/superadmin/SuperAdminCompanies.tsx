@@ -63,6 +63,7 @@ const SuperAdminCompanies = () => {
   const [filterCity, setFilterCity] = useState('all');
   const [filterPlan, setFilterPlan] = useState('all');
   const [filterStatus, setFilterStatus] = useState('all');
+  const [filterBusinessType, setFilterBusinessType] = useState('all');
   const [loading, setLoading] = useState(true);
   const [selectedCompany, setSelectedCompany] = useState<CompanyWithOwner | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
@@ -141,9 +142,10 @@ const SuperAdminCompanies = () => {
       if (filterCity !== 'all' && c.city !== filterCity) return false;
       if (filterPlan !== 'all' && c.subscription_status !== filterPlan) return false;
       if (filterStatus !== 'all' && c.subscription_status !== filterStatus) return false;
+      if (filterBusinessType !== 'all' && c.business_type !== filterBusinessType) return false;
       return true;
     });
-  }, [companies, search, filterState, filterCity, filterPlan, filterStatus]);
+  }, [companies, search, filterState, filterCity, filterPlan, filterStatus, filterBusinessType]);
 
   const updateStatus = async (id: string, status: string) => {
     await supabase.from('companies').update({ subscription_status: status as any }).eq('id', id);
@@ -207,10 +209,10 @@ const SuperAdminCompanies = () => {
   };
 
   const resetFilters = () => {
-    setSearch(''); setFilterState('all'); setFilterCity('all'); setFilterPlan('all'); setFilterStatus('all');
+    setSearch(''); setFilterState('all'); setFilterCity('all'); setFilterPlan('all'); setFilterStatus('all'); setFilterBusinessType('all');
   };
 
-  const hasActiveFilters = search || filterState !== 'all' || filterCity !== 'all' || filterPlan !== 'all' || filterStatus !== 'all';
+  const hasActiveFilters = search || filterState !== 'all' || filterCity !== 'all' || filterPlan !== 'all' || filterStatus !== 'all' || filterBusinessType !== 'all';
 
   const getTrialInfo = (c: CompanyWithOwner) => {
     if (!c.trial_active || !c.trial_end_date) return null;
@@ -261,6 +263,14 @@ const SuperAdminCompanies = () => {
               <SelectItem value="trial">Trial</SelectItem>
               <SelectItem value="blocked">Suspenso</SelectItem>
               <SelectItem value="inactive">Inativo</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select value={filterBusinessType} onValueChange={setFilterBusinessType}>
+            <SelectTrigger className="w-[160px]"><SelectValue placeholder="Categoria" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todas categorias</SelectItem>
+              <SelectItem value="barbershop">Barbearia</SelectItem>
+              <SelectItem value="esthetic">Estética</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -410,8 +420,8 @@ const SuperAdminCompanies = () => {
                   <p className="font-medium">/{selectedCompany.slug}</p>
                 </div>
                 <div>
-                  <p className="text-muted-foreground text-xs">Tipo</p>
-                  <p className="font-medium">{selectedCompany.business_type}</p>
+                  <p className="text-muted-foreground text-xs">Categoria</p>
+                  <p className="font-medium">{selectedCompany.business_type === 'esthetic' ? 'Estética' : 'Barbearia'}</p>
                 </div>
                 <div>
                   <p className="text-muted-foreground text-xs">Email do dono</p>

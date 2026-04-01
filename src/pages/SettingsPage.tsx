@@ -207,6 +207,7 @@ const SettingsPage = () => {
       phone: companyPhone,
       whatsapp: companyWhatsapp,
       description: companyDescription,
+      business_type: companyBusinessType,
       address: companyAddress,
       address_number: companyAddressNumber,
       district: companyDistrict,
@@ -345,6 +346,18 @@ const SettingsPage = () => {
           <div className="space-y-1">
             <Label className="text-xs">Nome da empresa</Label>
             <Input value={companyName} onChange={(e) => setCompanyName(e.target.value)} />
+          </div>
+
+          {/* Business Category */}
+          <div className="space-y-1">
+            <Label className="text-xs">Categoria do Negócio</Label>
+            <Select value={companyBusinessType} onValueChange={setCompanyBusinessType}>
+              <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="barbershop">Barbearia</SelectItem>
+                <SelectItem value="esthetic">Estética</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           {/* Description */}
