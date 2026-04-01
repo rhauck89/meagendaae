@@ -73,6 +73,7 @@ export type Database = {
           id: string
           notes: string | null
           professional_id: string
+          promotion_id: string | null
           rescheduled_from_id: string | null
           start_time: string
           status: Database["public"]["Enums"]["appointment_status"]
@@ -91,6 +92,7 @@ export type Database = {
           id?: string
           notes?: string | null
           professional_id: string
+          promotion_id?: string | null
           rescheduled_from_id?: string | null
           start_time: string
           status?: Database["public"]["Enums"]["appointment_status"]
@@ -109,6 +111,7 @@ export type Database = {
           id?: string
           notes?: string | null
           professional_id?: string
+          promotion_id?: string | null
           rescheduled_from_id?: string | null
           start_time?: string
           status?: Database["public"]["Enums"]["appointment_status"]
@@ -156,6 +159,20 @@ export type Database = {
             columns: ["professional_id"]
             isOneToOne: false
             referencedRelation: "public_professionals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "appointments_promotion_id_fkey"
+            columns: ["promotion_id"]
+            isOneToOne: false
+            referencedRelation: "promotions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "appointments_promotion_id_fkey"
+            columns: ["promotion_id"]
+            isOneToOne: false
+            referencedRelation: "public_promotions"
             referencedColumns: ["id"]
           },
           {
