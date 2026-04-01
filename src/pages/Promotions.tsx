@@ -12,10 +12,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Progress } from '@/components/ui/progress';
 import { toast } from '@/hooks/use-toast';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Plus, MessageCircle, Send, Users, Tag, Megaphone, Copy, BarChart3, Eye, TrendingUp, MousePointerClick, CalendarCheck } from 'lucide-react';
+import { Plus, MessageCircle, Send, Users, Tag, Megaphone, Copy, BarChart3, Eye, TrendingUp, MousePointerClick, CalendarCheck, ChevronLeft, ChevronRight, Check } from 'lucide-react';
 import { formatWhatsApp, displayWhatsApp } from '@/lib/whatsapp';
 
 interface Promotion {
@@ -87,6 +88,12 @@ function generateSlug(title: string): string {
     .replace(/^-|-$/g, '');
 }
 
+const WIZARD_STEPS = [
+  { num: 1, label: 'Serviço' },
+  { num: 2, label: 'Agenda' },
+  { num: 3, label: 'Mensagem' },
+];
+
 export default function Promotions() {
   const { companyId, profile } = useAuth();
   const { isAdmin } = useUserRole();
@@ -97,6 +104,10 @@ export default function Promotions() {
   const [clientsDialogOpen, setClientsDialogOpen] = useState(false);
   const [metricsDialogOpen, setMetricsDialogOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('active');
+  const [highlightedPromoId, setHighlightedPromoId] = useState<string | null>(null);
+
+  // Wizard step
+  const [wizardStep, setWizardStep] = useState(1);
 
   // Form state
   const [title, setTitle] = useState('');
@@ -106,6 +117,7 @@ export default function Promotions() {
   const [originalPrice, setOriginalPrice] = useState('');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
+  const [singleDay, setSingleDay] = useState(false);
   const [startTime, setStartTime] = useState('');
   const [endTime, setEndTime] = useState('');
   const [maxSlots, setMaxSlots] = useState('10');
@@ -126,10 +138,16 @@ export default function Promotions() {
   const [lowOccupancy, setLowOccupancy] = useState(false);
 
   useEffect(() => {
-    if (companyId) {
-      fetchAll();
-    }
+    if (companyId) fetchAll();
   }, [companyId]);
+
+  // Clear highlight after a few seconds
+  useEffect(() => {
+    if (highlightedPromoId) {
+      const t = setTimeout(() => setHighlightedPromoId(null), 4000);
+      return () => clearTimeout(t);
+    }
+  }, [highlightedPromoId]);
 
   const fetchAll = async () => {
     setLoading(true);
@@ -166,11 +184,9 @@ export default function Promotions() {
   };
 
   const checkOccupancy = async () => {
-    // Check tomorrow's occupancy
     const tomorrow = new Date();
     tomorrow.setDate(tomorrow.getDate() + 1);
     const dateStr = format(tomorrow, 'yyyy-MM-dd');
-
     const { data: appointments } = await supabase
       .from('appointments')
       .select('id')
@@ -178,7 +194,6 @@ export default function Promotions() {
       .gte('start_time', `${dateStr}T00:00:00`)
       .lte('start_time', `${dateStr}T23:59:59`)
       .in('status', ['confirmed', 'pending']);
-
     setLowOccupancy((appointments?.length || 0) < 3);
   };
 
@@ -190,6 +205,39 @@ export default function Promotions() {
       setPromotionPrice('');
     }
   };
+
+  // --- Wizard validation ---
+  const validateStep1 = (): string | null => {
+    if (!title.trim()) return 'Preencha o título da promoção';
+    if (!selectedServiceId) return 'Selecione um serviço';
+    if (!promotionPrice) return 'Informe o preço promocional';
+    const promo = parseFloat(promotionPrice);
+    const orig = parseFloat(originalPrice);
+    if (promo >= orig) return 'O preço promocional deve ser menor que o preço original';
+    if (promo <= 0) return 'O preço promocional deve ser maior que zero';
+    return null;
+  };
+
+  const validateStep2 = (): string | null => {
+    if (!startDate) return 'Informe a data de início';
+    if (!singleDay && !endDate) return 'Informe a data de término';
+    if (!singleDay && endDate < startDate) return 'A data de término deve ser posterior à data de início';
+    if (startTime && endTime && endTime <= startTime) return 'O horário final deve ser posterior ao horário inicial';
+    return null;
+  };
+
+  const goNext = () => {
+    if (wizardStep === 1) {
+      const err = validateStep1();
+      if (err) { toast({ title: err, variant: 'destructive' }); return; }
+    } else if (wizardStep === 2) {
+      const err = validateStep2();
+      if (err) { toast({ title: err, variant: 'destructive' }); return; }
+    }
+    setWizardStep(prev => Math.min(prev + 1, 3));
+  };
+
+  const goBack = () => setWizardStep(prev => Math.max(prev - 1, 1));
 
   const fetchFilteredClients = async (promotion: Promotion) => {
     setClientsLoading(true);
@@ -267,12 +315,16 @@ export default function Promotions() {
   };
 
   const handleCreate = async () => {
-    if (!title || !startDate || !endDate) {
-      toast({ title: 'Preencha título e datas', variant: 'destructive' });
+    // Final validation
+    const err1 = validateStep1();
+    const err2 = validateStep2();
+    if (err1 || err2) {
+      toast({ title: err1 || err2 || 'Verifique os campos', variant: 'destructive' });
       return;
     }
 
     const slug = generateSlug(title);
+    const finalEndDate = singleDay ? startDate : endDate;
 
     const payload: any = {
       company_id: companyId!,
@@ -283,7 +335,7 @@ export default function Promotions() {
       promotion_price: promotionPrice ? parseFloat(promotionPrice) : null,
       original_price: originalPrice ? parseFloat(originalPrice) : null,
       start_date: startDate,
-      end_date: endDate,
+      end_date: finalEndDate,
       start_time: startTime || null,
       end_time: endTime || null,
       max_slots: parseInt(maxSlots) || 0,
@@ -296,29 +348,31 @@ export default function Promotions() {
       status: 'active',
     };
 
-    // If non-admin professional, force their own ID
     if (!isAdmin && profile?.id) {
       payload.professional_filter = 'selected';
       payload.professional_ids = [profile.id];
       payload.created_by = profile.id;
     }
 
-    const { error } = await supabase.from('promotions').insert(payload);
+    const { data, error } = await supabase.from('promotions').insert(payload).select('id').single();
     if (error) {
       toast({ title: 'Erro ao criar promoção', description: error.message, variant: 'destructive' });
       return;
     }
-    toast({ title: 'Promoção criada!' });
+    toast({ title: 'Promoção criada com sucesso! 🎉' });
     setDialogOpen(false);
     resetForm();
-    fetchPromotions();
+    setActiveTab('active');
+    await fetchPromotions();
+    if (data?.id) setHighlightedPromoId(data.id);
   };
 
   const resetForm = () => {
     setTitle(''); setDescription(''); setSelectedServiceId(''); setPromotionPrice(''); setOriginalPrice('');
-    setStartDate(''); setEndDate(''); setStartTime(''); setEndTime(''); setMaxSlots('10');
+    setStartDate(''); setEndDate(''); setSingleDay(false); setStartTime(''); setEndTime(''); setMaxSlots('10');
     setClientFilter('all'); setClientFilterValue('30'); setProfessionalFilter('all');
     setSelectedProfessionalIds([]); setMessageTemplate(DEFAULT_TEMPLATE);
+    setWizardStep(1);
   };
 
   const toggleStatus = async (promo: Promotion) => {
@@ -369,6 +423,166 @@ export default function Promotions() {
     return true;
   });
 
+  // --- Wizard step rendering ---
+  const renderStep1 = () => (
+    <div className="space-y-4">
+      <div>
+        <Label>Título *</Label>
+        <Input value={title} onChange={e => setTitle(e.target.value)} placeholder="Ex: Corte Promocional" />
+      </div>
+      <div>
+        <Label>Descrição</Label>
+        <Textarea value={description} onChange={e => setDescription(e.target.value)} placeholder="Detalhes da promoção" rows={2} />
+      </div>
+      <div>
+        <Label>Serviço *</Label>
+        <Select value={selectedServiceId} onValueChange={handleServiceChange}>
+          <SelectTrigger><SelectValue placeholder="Selecionar serviço" /></SelectTrigger>
+          <SelectContent>
+            {services.map(s => (
+              <SelectItem key={s.id} value={s.id}>
+                {s.name} — R$ {Number(s.price).toFixed(2)}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+      {selectedServiceId && (
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <Label>Preço Original</Label>
+            <Input value={originalPrice ? `R$ ${Number(originalPrice).toFixed(2)}` : ''} readOnly className="bg-muted" />
+          </div>
+          <div>
+            <Label>Preço Promocional *</Label>
+            <Input type="number" value={promotionPrice} onChange={e => setPromotionPrice(e.target.value)} placeholder="Ex: 25.00" step="0.01" />
+            {promotionPrice && originalPrice && parseFloat(promotionPrice) < parseFloat(originalPrice) && (
+              <p className="text-xs text-emerald-600 mt-1">
+                💰 Desconto de {Math.round(((parseFloat(originalPrice) - parseFloat(promotionPrice)) / parseFloat(originalPrice)) * 100)}%
+              </p>
+            )}
+            {promotionPrice && originalPrice && parseFloat(promotionPrice) >= parseFloat(originalPrice) && (
+              <p className="text-xs text-destructive mt-1">O preço promocional deve ser menor que o original</p>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+
+  const renderStep2 = () => (
+    <div className="space-y-4">
+      <label className="flex items-center gap-2 cursor-pointer">
+        <Checkbox checked={singleDay} onCheckedChange={(v) => setSingleDay(!!v)} />
+        <span className="text-sm font-medium">Promoção de um único dia</span>
+      </label>
+
+      <div className={singleDay ? '' : 'grid grid-cols-2 gap-4'}>
+        <div>
+          <Label>{singleDay ? 'Data *' : 'Data Início *'}</Label>
+          <Input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} />
+        </div>
+        {!singleDay && (
+          <div>
+            <Label>Data Fim *</Label>
+            <Input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} />
+          </div>
+        )}
+      </div>
+
+      {singleDay && startDate && (
+        <p className="text-sm text-muted-foreground">
+          📅 {format(parseISO(startDate), "dd/MM/yyyy (EEEE)", { locale: ptBR })}
+        </p>
+      )}
+
+      <div className="grid grid-cols-2 gap-4">
+        <div><Label>Horário Início</Label><Input type="time" value={startTime} onChange={e => setStartTime(e.target.value)} /></div>
+        <div><Label>Horário Fim</Label><Input type="time" value={endTime} onChange={e => setEndTime(e.target.value)} /></div>
+      </div>
+
+      {singleDay && startDate && startTime && endTime && (
+        <div className="rounded-lg bg-muted p-3 text-sm">
+          <p>📅 {format(parseISO(startDate), 'dd/MM/yyyy')}</p>
+          <p>🕒 {startTime} – {endTime}</p>
+        </div>
+      )}
+
+      <div>
+        <Label>Vagas máximas</Label>
+        <Input type="number" value={maxSlots} onChange={e => setMaxSlots(e.target.value)} min="0" />
+        <p className="text-xs text-muted-foreground mt-1">0 = ilimitado</p>
+      </div>
+
+      {isAdmin && (
+        <div>
+          <Label>Profissionais participantes</Label>
+          <Select value={professionalFilter} onValueChange={setProfessionalFilter}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos os profissionais</SelectItem>
+              <SelectItem value="selected">Selecionar</SelectItem>
+            </SelectContent>
+          </Select>
+          {professionalFilter === 'selected' && (
+            <div className="space-y-2 pl-2 mt-2">
+              {professionals.map((p: any) => (
+                <label key={p.profile_id} className="flex items-center gap-2 cursor-pointer">
+                  <Checkbox
+                    checked={selectedProfessionalIds.includes(p.profile_id)}
+                    onCheckedChange={(ch) => setSelectedProfessionalIds(prev => ch ? [...prev, p.profile_id] : prev.filter(id => id !== p.profile_id))}
+                  />
+                  <span className="text-sm">{p.profiles?.full_name}</span>
+                </label>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+
+  const renderStep3 = () => (
+    <div className="space-y-4">
+      <div>
+        <Label>Filtro de clientes</Label>
+        <Select value={clientFilter} onValueChange={setClientFilter}>
+          <SelectTrigger><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todos os clientes</SelectItem>
+            <SelectItem value="birthday_month">Aniversariantes do mês</SelectItem>
+            <SelectItem value="top_spending">Maiores gastos</SelectItem>
+            <SelectItem value="inactive">Inativos</SelectItem>
+            <SelectItem value="new_clients">Novos</SelectItem>
+            <SelectItem value="frequent">Frequentes</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      {['inactive', 'new_clients'].includes(clientFilter) && (
+        <div><Label>Dias</Label><Input type="number" value={clientFilterValue} onChange={e => setClientFilterValue(e.target.value)} /></div>
+      )}
+      {clientFilter === 'top_spending' && (
+        <div><Label>Quantidade</Label><Input type="number" value={clientFilterValue} onChange={e => setClientFilterValue(e.target.value)} /></div>
+      )}
+      {clientFilter === 'frequent' && (
+        <div><Label>Mínimo de visitas</Label><Input type="number" value={clientFilterValue} onChange={e => setClientFilterValue(e.target.value)} /></div>
+      )}
+
+      <div>
+        <Label>Mensagem WhatsApp</Label>
+        <div className="flex flex-wrap gap-1 mb-2">
+          {MESSAGE_TAGS.map(t => (
+            <Button key={t.tag} type="button" variant="outline" size="sm" onClick={() => setMessageTemplate(prev => prev + t.tag)} className="text-xs h-7">
+              <Tag className="h-3 w-3 mr-1" />{t.label}
+            </Button>
+          ))}
+        </div>
+        <Textarea value={messageTemplate} onChange={e => setMessageTemplate(e.target.value)} rows={8} className="font-mono text-sm" />
+      </div>
+    </div>
+  );
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -377,7 +591,7 @@ export default function Promotions() {
           <h2 className="text-2xl font-display font-bold">Promoções</h2>
           <p className="text-muted-foreground">Crie campanhas e preencha horários vazios</p>
         </div>
-        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) resetForm(); }}>
           <DialogTrigger asChild>
             <Button onClick={resetForm}>
               <Plus className="h-4 w-4 mr-2" />
@@ -388,130 +602,48 @@ export default function Promotions() {
             <DialogHeader>
               <DialogTitle>Criar Promoção</DialogTitle>
             </DialogHeader>
-            <div className="space-y-4">
-              <div>
-                <Label>Título *</Label>
-                <Input value={title} onChange={e => setTitle(e.target.value)} placeholder="Ex: Corte Promocional" />
-              </div>
 
-              <div>
-                <Label>Descrição</Label>
-                <Textarea value={description} onChange={e => setDescription(e.target.value)} placeholder="Detalhes da promoção" rows={2} />
-              </div>
-
-              {/* Service selection */}
-              <div>
-                <Label>Serviço</Label>
-                <Select value={selectedServiceId} onValueChange={handleServiceChange}>
-                  <SelectTrigger><SelectValue placeholder="Selecionar serviço" /></SelectTrigger>
-                  <SelectContent>
-                    {services.map(s => (
-                      <SelectItem key={s.id} value={s.id}>
-                        {s.name} — R$ {Number(s.price).toFixed(2)}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {selectedServiceId && (
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label>Preço Original</Label>
-                    <Input value={originalPrice} readOnly className="bg-muted" />
-                  </div>
-                  <div>
-                    <Label>Preço Promocional *</Label>
-                    <Input type="number" value={promotionPrice} onChange={e => setPromotionPrice(e.target.value)} placeholder="Ex: 25.00" step="0.01" />
-                  </div>
-                </div>
-              )}
-
-              <div className="grid grid-cols-2 gap-4">
-                <div><Label>Data Início *</Label><Input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} /></div>
-                <div><Label>Data Fim *</Label><Input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} /></div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div><Label>Horário Início</Label><Input type="time" value={startTime} onChange={e => setStartTime(e.target.value)} /></div>
-                <div><Label>Horário Fim</Label><Input type="time" value={endTime} onChange={e => setEndTime(e.target.value)} /></div>
-              </div>
-
-              <div>
-                <Label>Vagas máximas</Label>
-                <Input type="number" value={maxSlots} onChange={e => setMaxSlots(e.target.value)} min="0" />
-                <p className="text-xs text-muted-foreground mt-1">0 = ilimitado</p>
-              </div>
-
-              {/* Professional selection */}
-              {isAdmin && (
-                <div>
-                  <Label>Profissionais participantes</Label>
-                  <Select value={professionalFilter} onValueChange={setProfessionalFilter}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">Todos os profissionais</SelectItem>
-                      <SelectItem value="selected">Selecionar</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  {professionalFilter === 'selected' && (
-                    <div className="space-y-2 pl-2 mt-2">
-                      {professionals.map((p: any) => (
-                        <label key={p.profile_id} className="flex items-center gap-2 cursor-pointer">
-                          <Checkbox
-                            checked={selectedProfessionalIds.includes(p.profile_id)}
-                            onCheckedChange={(ch) => setSelectedProfessionalIds(prev => ch ? [...prev, p.profile_id] : prev.filter(id => id !== p.profile_id))}
-                          />
-                          <span className="text-sm">{p.profiles?.full_name}</span>
-                        </label>
-                      ))}
+            {/* Progress indicator */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between text-xs text-muted-foreground">
+                {WIZARD_STEPS.map((step) => (
+                  <div key={step.num} className={`flex items-center gap-1.5 ${wizardStep >= step.num ? 'text-primary font-medium' : ''}`}>
+                    <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs border-2 transition-colors ${
+                      wizardStep > step.num ? 'bg-primary border-primary text-primary-foreground' :
+                      wizardStep === step.num ? 'border-primary text-primary' :
+                      'border-muted-foreground/30'
+                    }`}>
+                      {wizardStep > step.num ? <Check className="h-3 w-3" /> : step.num}
                     </div>
-                  )}
-                </div>
-              )}
-
-              {/* Client filter */}
-              <div>
-                <Label>Filtro de clientes</Label>
-                <Select value={clientFilter} onValueChange={setClientFilter}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Todos os clientes</SelectItem>
-                    <SelectItem value="birthday_month">Aniversariantes do mês</SelectItem>
-                    <SelectItem value="top_spending">Maiores gastos</SelectItem>
-                    <SelectItem value="inactive">Inativos</SelectItem>
-                    <SelectItem value="new_clients">Novos</SelectItem>
-                    <SelectItem value="frequent">Frequentes</SelectItem>
-                  </SelectContent>
-                </Select>
+                    <span className="hidden sm:inline">{step.label}</span>
+                  </div>
+                ))}
               </div>
+              <Progress value={(wizardStep / 3) * 100} className="h-1.5" />
+            </div>
 
-              {['inactive', 'new_clients'].includes(clientFilter) && (
-                <div><Label>Dias</Label><Input type="number" value={clientFilterValue} onChange={e => setClientFilterValue(e.target.value)} /></div>
-              )}
-              {clientFilter === 'top_spending' && (
-                <div><Label>Quantidade</Label><Input type="number" value={clientFilterValue} onChange={e => setClientFilterValue(e.target.value)} /></div>
-              )}
-              {clientFilter === 'frequent' && (
-                <div><Label>Mínimo de visitas</Label><Input type="number" value={clientFilterValue} onChange={e => setClientFilterValue(e.target.value)} /></div>
-              )}
+            {/* Step content */}
+            {wizardStep === 1 && renderStep1()}
+            {wizardStep === 2 && renderStep2()}
+            {wizardStep === 3 && renderStep3()}
 
-              {/* Message template */}
-              <div>
-                <Label>Mensagem WhatsApp</Label>
-                <div className="flex flex-wrap gap-1 mb-2">
-                  {MESSAGE_TAGS.map(t => (
-                    <Button key={t.tag} type="button" variant="outline" size="sm" onClick={() => setMessageTemplate(prev => prev + t.tag)} className="text-xs h-7">
-                      <Tag className="h-3 w-3 mr-1" />{t.label}
-                    </Button>
-                  ))}
-                </div>
-                <Textarea value={messageTemplate} onChange={e => setMessageTemplate(e.target.value)} rows={8} className="font-mono text-sm" />
-              </div>
+            {/* Navigation */}
+            <div className="flex justify-between pt-2">
+              {wizardStep > 1 ? (
+                <Button variant="outline" onClick={goBack}>
+                  <ChevronLeft className="h-4 w-4 mr-1" />Voltar
+                </Button>
+              ) : <div />}
 
-              <Button onClick={handleCreate} className="w-full">
-                <Megaphone className="h-4 w-4 mr-2" />Criar Promoção
-              </Button>
+              {wizardStep < 3 ? (
+                <Button onClick={goNext}>
+                  Próximo<ChevronRight className="h-4 w-4 ml-1" />
+                </Button>
+              ) : (
+                <Button onClick={handleCreate}>
+                  <Megaphone className="h-4 w-4 mr-2" />Criar Promoção
+                </Button>
+              )}
             </div>
           </DialogContent>
         </Dialog>
@@ -561,9 +693,10 @@ export default function Promotions() {
                 const isExpired = new Date(promo.end_date) < new Date();
                 const isActive = promo.status === 'active' && !isExpired;
                 const svc = services.find(s => s.id === promo.service_id);
+                const isHighlighted = promo.id === highlightedPromoId;
 
                 return (
-                  <Card key={promo.id} className={!isActive ? 'opacity-70' : ''}>
+                  <Card key={promo.id} className={`transition-all duration-500 ${!isActive ? 'opacity-70' : ''} ${isHighlighted ? 'ring-2 ring-primary shadow-lg animate-pulse' : ''}`}>
                     <CardHeader className="pb-2">
                       <div className="flex items-start justify-between">
                         <CardTitle className="text-lg">{promo.title}</CardTitle>
@@ -577,7 +710,6 @@ export default function Promotions() {
                     <CardContent className="space-y-3">
                       {promo.description && <p className="text-sm text-muted-foreground">{promo.description}</p>}
 
-                      {/* Service & price */}
                       {svc && (
                         <div className="flex items-center gap-2 text-sm">
                           <span className="text-muted-foreground">✂️ {svc.name}</span>
@@ -591,8 +723,12 @@ export default function Promotions() {
                       )}
 
                       <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
-                        <span>📅 {format(parseISO(promo.start_date), 'dd/MM/yyyy')} - {format(parseISO(promo.end_date), 'dd/MM/yyyy')}</span>
-                        {promo.start_time && promo.end_time && <span>⏰ {promo.start_time.slice(0, 5)} - {promo.end_time.slice(0, 5)}</span>}
+                        {promo.start_date === promo.end_date ? (
+                          <span>📅 {format(parseISO(promo.start_date), 'dd/MM/yyyy')}</span>
+                        ) : (
+                          <span>📅 {format(parseISO(promo.start_date), 'dd/MM/yyyy')} - {format(parseISO(promo.end_date), 'dd/MM/yyyy')}</span>
+                        )}
+                        {promo.start_time && promo.end_time && <span>🕒 {promo.start_time.slice(0, 5)} - {promo.end_time.slice(0, 5)}</span>}
                       </div>
 
                       <div className="flex flex-wrap gap-2 text-xs">
@@ -604,7 +740,6 @@ export default function Promotions() {
                         )}
                       </div>
 
-                      {/* Promotion link */}
                       {promo.slug && (
                         <div className="flex items-center gap-2">
                           <Input readOnly value={getPromoLink(promo)} className="text-xs h-8 bg-muted" />
