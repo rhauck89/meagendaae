@@ -249,7 +249,7 @@ const SuperAdminCompanies = () => {
             </SelectContent>
           </Select>
           <Select value={filterCity} onValueChange={setFilterCity}>
-            <SelectTrigger className="w-[150px]"><SelectValue placeholder="Cidade" /></SelectTrigger>
+            <SelectTrigger className="w-full sm:w-[150px]"><SelectValue placeholder="Cidade" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Todas cidades</SelectItem>
               {cities.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
