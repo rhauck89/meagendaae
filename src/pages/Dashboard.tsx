@@ -261,7 +261,51 @@ const Dashboard = () => {
     }
   };
 
-  const fetchReturnStats = async () => {
+  const fetchMonthlyStats = async () => {
+    if (!companyId) return;
+    const monthStart = startOfMonth(new Date());
+    const monthEnd = endOfMonth(new Date());
+
+    let query = supabase
+      .from('appointments')
+      .select('status, total_price, client_id')
+      .eq('company_id', companyId!)
+      .gte('start_time', toSpStart(monthStart))
+      .lte('start_time', toSpEnd(monthEnd));
+
+    if (!isAdmin && profileId) {
+      query = query.eq('professional_id', profileId);
+    } else if (filterProfessional !== 'all') {
+      query = query.eq('professional_id', filterProfessional);
+    }
+
+    const { data } = await query;
+    if (!data) return;
+
+    const confirmed = data.filter(a => a.status === 'confirmed' || a.status === 'completed');
+    const completed = data.filter(a => a.status === 'completed');
+    const cancelled = data.filter(a => a.status === 'cancelled');
+    const uniqueClients = new Set(data.filter(a => a.status !== 'cancelled' && a.status !== 'no_show').map(a => a.client_id)).size;
+
+    const revenue = confirmed.reduce((sum, a) => sum + Number(a.total_price), 0);
+    const revenueCompleted = completed.reduce((sum, a) => sum + Number(a.total_price), 0);
+    const totalAppts = data.filter(a => a.status !== 'cancelled' && a.status !== 'no_show').length;
+
+    // Rough occupancy: confirmed+completed vs total non-cancelled
+    const occupancyRate = totalAppts > 0 ? Math.round((confirmed.length / Math.max(totalAppts, 1)) * 100) : 0;
+    const avgTicket = uniqueClients > 0 ? revenue / uniqueClients : 0;
+
+    setMonthlyStats({
+      revenue,
+      revenueCompleted,
+      clients: uniqueClients,
+      cancellations: cancelled.length,
+      occupancyRate,
+      avgTicket,
+    });
+  };
+
+
     if (!companyId) return;
     const { data: clients } = await supabase
       .from('profiles')
