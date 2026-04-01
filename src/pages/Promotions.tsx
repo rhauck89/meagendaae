@@ -364,10 +364,8 @@ export default function Promotions() {
     resetForm();
 
     // Determine the right tab for the new promotion
-    const todayCheck = new Date();
-    todayCheck.setHours(0, 0, 0, 0);
-    const promoStartDate = new Date(startDate);
-    const targetTab = promoStartDate > todayCheck ? 'scheduled' : 'active';
+    const promoStartDt = new Date(startDate + 'T' + (startTime || '00:00') + ':00');
+    const targetTab = promoStartDt > new Date() ? 'scheduled' : 'active';
     setActiveTab(targetTab);
 
     await fetchPromotions();
