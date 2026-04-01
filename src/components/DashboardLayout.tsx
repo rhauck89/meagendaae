@@ -210,7 +210,25 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
             </PopoverContent>
           </Popover>
         </header>
-        <div className="flex-1 p-4 lg:p-8 overflow-auto">{children}</div>
+        <div className="flex-1 p-4 lg:p-8 overflow-auto">
+          {platformMessages && platformMessages.length > 0 && (
+            <div className="mb-4 space-y-2">
+              {platformMessages.slice(0, 3).map((msg: any) => (
+                <div key={msg.id} className={cn(
+                  'flex items-start gap-3 p-3 rounded-lg border text-sm',
+                  msg.type === 'warning' ? 'bg-yellow-500/5 border-yellow-500/20' : 'bg-primary/5 border-primary/20'
+                )}>
+                  {msg.type === 'warning' ? <AlertTriangle className="h-4 w-4 text-yellow-500 shrink-0 mt-0.5" /> : <Megaphone className="h-4 w-4 text-primary shrink-0 mt-0.5" />}
+                  <div>
+                    <p className="font-medium">{msg.title}</p>
+                    <p className="text-muted-foreground text-xs mt-0.5">{msg.content}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+          {children}
+        </div>
       </main>
       <OnboardingPopup />
     </div>
