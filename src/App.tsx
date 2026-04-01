@@ -41,6 +41,7 @@ import SuperAdminSettings from "./pages/superadmin/SuperAdminSettings";
 import SuperAdminSupport from "./pages/superadmin/SuperAdminSupport";
 import SuperAdminSupportReports from "./pages/superadmin/SuperAdminSupportReports";
 import SuperAdminTutorials from "./pages/superadmin/SuperAdminTutorials";
+import SuperAdminMessages from "./pages/superadmin/SuperAdminMessages";
 import Support from "./pages/Support";
 import HelpCenter from "./pages/HelpCenter";
 import PlansPage from "./pages/PlansPage";
