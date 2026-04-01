@@ -1,9 +1,10 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUserRole } from '@/hooks/useUserRole';
+import { useUserTicketCounts } from '@/hooks/useSupportTicketCounts';
 import {
   Calendar, Scissors, Users, BarChart3, Settings, LogOut, Menu, X, User, UserCheck,
-  PartyPopper, Megaphone, MessageSquare, ChevronDown, Building2, Clock, Zap, Palette, Globe, CreditCard,
+  PartyPopper, Megaphone, MessageSquare, ChevronDown, Building2, Clock, Zap, Palette, Globe, CreditCard, Bell,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useState } from 'react';
@@ -43,6 +44,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
   const location = useLocation();
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const unreadTickets = useUserTicketCounts();
 
   const isSettingsActive = location.pathname.startsWith('/dashboard/settings');
   const [settingsOpen, setSettingsOpen] = useState(isSettingsActive);
@@ -58,7 +60,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
     return <CompanySetup onComplete={() => { window.location.reload(); }} />;
   }
 
-  const renderNavLink = (item: { href: string; icon: any; label: string }) => {
+  const renderNavLink = (item: { href: string; icon: any; label: string }, badge?: number) => {
     const isActive = location.pathname === item.href || (item.href !== '/dashboard' && location.pathname.startsWith(item.href));
     return (
       <Link
@@ -71,7 +73,12 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
         )}
       >
         <item.icon className="h-5 w-5" />
-        {item.label}
+        <span className="flex-1">{item.label}</span>
+        {badge != null && badge > 0 && (
+          <span className="min-w-5 h-5 px-1.5 flex items-center justify-center rounded-full bg-destructive text-destructive-foreground text-xs font-bold">
+            {badge}
+          </span>
+        )}
       </Link>
     );
   };
@@ -97,9 +104,8 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
         </div>
 
         <nav className="flex-1 px-3 space-y-1 overflow-y-auto">
-          {navItems.map(renderNavLink)}
+          {navItems.map(item => renderNavLink(item))}
 
-          {/* Settings collapsible - only for admin */}
           {isAdmin && (
             <Collapsible open={settingsOpen} onOpenChange={setSettingsOpen}>
               <CollapsibleTrigger className={cn(
@@ -133,7 +139,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
           )}
 
           {renderNavLink({ href: '/dashboard/profile', icon: User, label: 'Meu Perfil' })}
-          {isAdmin && renderNavLink({ href: '/dashboard/support', icon: MessageSquare, label: 'Suporte' })}
+          {isAdmin && renderNavLink({ href: '/dashboard/support', icon: MessageSquare, label: 'Suporte' }, unreadTickets)}
         </nav>
 
         <div className="p-4 border-t border-sidebar-border">
@@ -155,7 +161,18 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
       <main className="flex-1 flex flex-col min-h-screen">
         <header className="h-16 border-b flex items-center px-4 lg:px-8 bg-card">
           <button className="lg:hidden mr-4" onClick={() => setSidebarOpen(true)}><Menu className="h-6 w-6" /></button>
-          <h1 className="text-lg font-display font-semibold">{currentLabel}</h1>
+          <h1 className="text-lg font-display font-semibold flex-1">{currentLabel}</h1>
+          {unreadTickets > 0 && (
+            <button
+              onClick={() => navigate('/dashboard/support')}
+              className="relative p-2 rounded-lg hover:bg-muted transition-colors"
+            >
+              <Bell className="h-5 w-5 text-muted-foreground" />
+              <span className="absolute -top-0.5 -right-0.5 min-w-4 h-4 px-1 flex items-center justify-center rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold">
+                {unreadTickets}
+              </span>
+            </button>
+          )}
         </header>
         <div className="flex-1 p-4 lg:p-8 overflow-auto">{children}</div>
       </main>
