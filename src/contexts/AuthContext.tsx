@@ -33,10 +33,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [roles, setRoles] = useState<string[]>([]);
 
   const fetchUserData = async (userId: string) => {
+    console.log('[AuthContext] Fetching user data for userId:', userId);
+    
     const [profileRes, rolesRes] = await Promise.all([
       supabase.from('profiles').select('*').eq('user_id', userId).single(),
       supabase.from('user_roles').select('role').eq('user_id', userId),
     ]);
+
+    console.log('[AuthContext] Profile response:', profileRes.data, profileRes.error);
+    console.log('[AuthContext] Profile role field:', profileRes.data?.role);
+    console.log('[AuthContext] user_roles response:', rolesRes.data, rolesRes.error);
 
     if (profileRes.data) {
       setProfile(profileRes.data);
@@ -44,7 +50,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
 
     if (rolesRes.data) {
-      setRoles(rolesRes.data.map((r) => r.role));
+      const mappedRoles = rolesRes.data.map((r) => r.role);
+      console.log('[AuthContext] Mapped roles from user_roles table:', mappedRoles);
+      setRoles(mappedRoles);
+    } else {
+      console.warn('[AuthContext] No roles found in user_roles table for user:', userId);
     }
   };
 
