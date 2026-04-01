@@ -9,13 +9,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
-import { BarChart3, TrendingUp, DollarSign, Users, Briefcase, CalendarIcon } from 'lucide-react';
-import { startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, subDays, subMonths, format } from 'date-fns';
+import { BarChart3, TrendingUp, DollarSign, Users, Briefcase, CalendarIcon, RotateCcw } from 'lucide-react';
+import { startOfDay, endOfDay, startOfMonth, format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { calculateFinancials, collaboratorTypeLabel, commissionLabel } from '@/lib/financial-engine';
-
-type Period = 'day' | 'week' | 'month' | 'custom';
 
 interface ProfessionalReport {
   id: string;
@@ -29,24 +27,11 @@ interface ProfessionalReport {
   companyValue: number;
 }
 
-type Shortcut = { label: string; getRange: () => { start: Date; end: Date } };
-
-const shortcuts: Shortcut[] = [
-  { label: 'Hoje', getRange: () => ({ start: startOfDay(new Date()), end: endOfDay(new Date()) }) },
-  { label: 'Ontem', getRange: () => ({ start: startOfDay(subDays(new Date(), 1)), end: endOfDay(subDays(new Date(), 1)) }) },
-  { label: 'Últimos 7 dias', getRange: () => ({ start: startOfDay(subDays(new Date(), 6)), end: endOfDay(new Date()) }) },
-  { label: 'Últimos 30 dias', getRange: () => ({ start: startOfDay(subDays(new Date(), 29)), end: endOfDay(new Date()) }) },
-  { label: 'Este mês', getRange: () => ({ start: startOfMonth(new Date()), end: endOfMonth(new Date()) }) },
-  { label: 'Mês passado', getRange: () => { const prev = subMonths(new Date(), 1); return { start: startOfMonth(prev), end: endOfMonth(prev) }; } },
-];
-
 const Reports = () => {
   const { companyId } = useAuth();
   const { isAdmin, profileId } = useUserRole();
-  const [period, setPeriod] = useState<Period>('month');
-  const [customStart, setCustomStart] = useState<Date | undefined>();
-  const [customEnd, setCustomEnd] = useState<Date | undefined>();
-  const [activeShortcut, setActiveShortcut] = useState<string | null>(null);
+  const [startDate, setStartDate] = useState<Date>(startOfMonth(new Date()));
+  const [endDate, setEndDate] = useState<Date>(new Date());
   const [filterProfessional, setFilterProfessional] = useState<string>('all');
   const [filterRoleType, setFilterRoleType] = useState<string>('all');
   const [totalRevenue, setTotalRevenue] = useState(0);
@@ -62,7 +47,7 @@ const Reports = () => {
 
   useEffect(() => {
     if (companyId) fetchReport();
-  }, [companyId, period, customStart, customEnd, filterProfessional, filterRoleType]);
+  }, [companyId, startDate, endDate, filterProfessional, filterRoleType]);
 
   const fetchCollaborators = async () => {
     const { data } = await supabase
@@ -72,31 +57,14 @@ const Reports = () => {
     if (data) setCollaboratorsList(data);
   };
 
-  const getRange = () => {
-    if (period === 'custom' && customStart && customEnd) {
-      return { start: startOfDay(customStart), end: endOfDay(customEnd) };
-    }
-    const now = new Date();
-    if (period === 'day') return { start: startOfDay(now), end: endOfDay(now) };
-    if (period === 'week') return { start: startOfWeek(now, { locale: ptBR }), end: endOfWeek(now, { locale: ptBR }) };
-    return { start: startOfMonth(now), end: endOfMonth(now) };
-  };
-
-  const handleShortcut = (s: Shortcut) => {
-    const { start, end } = s.getRange();
-    setCustomStart(start);
-    setCustomEnd(end);
-    setPeriod('custom');
-    setActiveShortcut(s.label);
-  };
-
-  const handlePeriodClick = (p: 'day' | 'week' | 'month') => {
-    setPeriod(p);
-    setActiveShortcut(null);
+  const handleReset = () => {
+    setStartDate(startOfMonth(new Date()));
+    setEndDate(new Date());
   };
 
   const fetchReport = async () => {
-    const { start, end } = getRange();
+    const start = startOfDay(startDate);
+    const end = endOfDay(endDate);
 
     let query = supabase
       .from('appointments')
@@ -163,16 +131,14 @@ const Reports = () => {
     setTotalCompanyValue(reports.reduce((s, r) => s + r.companyValue, 0));
   };
 
-  const periodLabel = period === 'custom' && customStart && customEnd
-    ? `${format(customStart, 'dd/MM', { locale: ptBR })} – ${format(customEnd, 'dd/MM', { locale: ptBR })}`
-    : period === 'day' ? 'do Dia' : period === 'week' ? 'da Semana' : 'do Mês';
+  const periodLabel = `${format(startDate, 'dd/MM', { locale: ptBR })} – ${format(endDate, 'dd/MM', { locale: ptBR })}`;
 
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-xl font-display font-bold">Relatórios Financeiros</h2>
-          <p className="text-sm text-muted-foreground">Faturamento e comissões {periodLabel.toLowerCase()}</p>
+          <p className="text-sm text-muted-foreground">Faturamento e comissões — {periodLabel}</p>
         </div>
         <div className="flex flex-wrap gap-2">
           {isAdmin && (
@@ -203,55 +169,40 @@ const Reports = () => {
               </Select>
             </>
           )}
-          <div className="flex gap-1 rounded-lg bg-muted p-1">
-            {(['day', 'week', 'month'] as const).map((p) => (
-              <Button key={p} variant={period === p ? 'default' : 'ghost'} size="sm" onClick={() => handlePeriodClick(p)}>
-                {p === 'day' ? 'Dia' : p === 'week' ? 'Semana' : 'Mês'}
-              </Button>
-            ))}
-          </div>
         </div>
       </div>
 
-      {/* Custom date range & shortcuts */}
+      {/* Date range filter */}
       <Card>
         <CardContent className="p-4">
-          <div className="flex flex-wrap items-end gap-3">
-            <div className="flex items-center gap-2">
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button variant="outline" size="sm" className={cn('w-[140px] justify-start text-left font-normal', !customStart && 'text-muted-foreground')}>
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {customStart ? format(customStart, 'dd/MM/yyyy') : 'Início'}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar mode="single" selected={customStart} onSelect={(d) => { setCustomStart(d); setActiveShortcut(null); }} initialFocus className="p-3 pointer-events-auto" />
-                </PopoverContent>
-              </Popover>
-              <span className="text-muted-foreground">→</span>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button variant="outline" size="sm" className={cn('w-[140px] justify-start text-left font-normal', !customEnd && 'text-muted-foreground')}>
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {customEnd ? format(customEnd, 'dd/MM/yyyy') : 'Fim'}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar mode="single" selected={customEnd} onSelect={(d) => { setCustomEnd(d); setActiveShortcut(null); }} disabled={(d) => customStart ? d < customStart : false} initialFocus className="p-3 pointer-events-auto" />
-                </PopoverContent>
-              </Popover>
-              <Button size="sm" disabled={!customStart || !customEnd} onClick={() => { setPeriod('custom'); setActiveShortcut(null); }}>
-                Aplicar
-              </Button>
-            </div>
-            <div className="flex flex-wrap gap-1">
-              {shortcuts.map((s) => (
-                <Button key={s.label} variant={activeShortcut === s.label ? 'default' : 'outline'} size="sm" className="text-xs" onClick={() => handleShortcut(s)}>
-                  {s.label}
+          <div className="flex flex-wrap items-center gap-3">
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" size="sm" className="w-[150px] justify-start text-left font-normal">
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {format(startDate, 'dd/MM/yyyy')}
                 </Button>
-              ))}
-            </div>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar mode="single" selected={startDate} onSelect={(d) => d && setStartDate(d)} initialFocus className="p-3 pointer-events-auto" />
+              </PopoverContent>
+            </Popover>
+            <span className="text-muted-foreground">—</span>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" size="sm" className="w-[150px] justify-start text-left font-normal">
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {format(endDate, 'dd/MM/yyyy')}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar mode="single" selected={endDate} onSelect={(d) => d && setEndDate(d)} disabled={(d) => d < startDate} initialFocus className="p-3 pointer-events-auto" />
+              </PopoverContent>
+            </Popover>
+            <Button variant="ghost" size="sm" onClick={handleReset} className="text-xs gap-1">
+              <RotateCcw className="h-3 w-3" />
+              Resetar período
+            </Button>
           </div>
         </CardContent>
       </Card>
@@ -263,7 +214,7 @@ const Reports = () => {
               <DollarSign className="h-6 w-6 text-success" />
             </div>
             <div>
-              <p className="text-sm text-muted-foreground">Faturamento {periodLabel}</p>
+              <p className="text-sm text-muted-foreground">Faturamento</p>
               <p className="text-2xl font-display font-bold">R$ {totalRevenue.toFixed(2)}</p>
             </div>
           </CardContent>
