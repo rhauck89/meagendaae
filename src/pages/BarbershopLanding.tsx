@@ -86,6 +86,12 @@ export default function BarbershopLanding({ routeBusinessType, customSlug }: Bar
     const resolvedType: BusinessType = routeBusinessType || comp.business_type || 'barbershop';
     setBusinessType(resolvedType);
 
+    // Check whitelabel via plan
+    if (comp.plan_id) {
+      const { data: planData } = await supabase.from('plans').select('whitelabel').eq('id', comp.plan_id).single();
+      if (planData?.whitelabel) setIsWhitelabel(true);
+    }
+
     const [servicesRes, profsRes, ratingsRes, reviewsRes, settingsRes, galleryRes, eventsRes, promosRes] = await Promise.all([
       supabase.from('public_services' as any).select('*').eq('company_id', comp.id).order('name'),
       supabase.from('public_professionals' as any).select('*').eq('company_id', comp.id).eq('active', true),
