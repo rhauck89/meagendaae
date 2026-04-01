@@ -207,6 +207,7 @@ const SettingsPage = () => {
       phone: companyPhone,
       whatsapp: companyWhatsapp,
       description: companyDescription,
+      business_type: companyBusinessType,
       address: companyAddress,
       address_number: companyAddressNumber,
       district: companyDistrict,
