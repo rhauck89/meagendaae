@@ -51,7 +51,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const unreadTickets = useUserTicketCounts();
-  const { data: platformMessages } = usePlatformMessages();
+  const { data: platformMessages, dismiss: dismissMessage } = usePlatformMessages();
   const totalNotifications = (unreadTickets || 0) + (platformMessages?.length || 0);
 
   const isSettingsActive = location.pathname.startsWith('/dashboard/settings');
@@ -199,11 +199,14 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
                   <div key={msg.id} className="px-3 py-2.5 border-b last:border-0">
                     <div className="flex items-start gap-2">
                       {msg.type === 'warning' ? <AlertTriangle className="h-4 w-4 text-yellow-500 shrink-0 mt-0.5" /> : <Info className="h-4 w-4 text-primary shrink-0 mt-0.5" />}
-                      <div className="min-w-0">
+                      <div className="min-w-0 flex-1">
                         <p className="text-sm font-medium">{msg.title}</p>
                         <p className="text-xs text-muted-foreground line-clamp-2">{msg.content}</p>
                         <p className="text-[10px] text-muted-foreground mt-1">{format(new Date(msg.created_at), 'dd/MM/yyyy HH:mm')}</p>
                       </div>
+                      <button onClick={() => dismissMessage(msg.id)} className="text-muted-foreground hover:text-foreground shrink-0 p-0.5" title="Dispensar">
+                        <X className="h-3.5 w-3.5" />
+                      </button>
                     </div>
                   </div>
                 ))}
@@ -223,10 +226,14 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
                   msg.type === 'warning' ? 'bg-yellow-500/5 border-yellow-500/20' : 'bg-primary/5 border-primary/20'
                 )}>
                   {msg.type === 'warning' ? <AlertTriangle className="h-4 w-4 text-yellow-500 shrink-0 mt-0.5" /> : <Megaphone className="h-4 w-4 text-primary shrink-0 mt-0.5" />}
-                  <div>
+                  <div className="flex-1 min-w-0">
                     <p className="font-medium">{msg.title}</p>
                     <p className="text-muted-foreground text-xs mt-0.5">{msg.content}</p>
+                    <p className="text-[10px] text-muted-foreground mt-1">{format(new Date(msg.created_at), 'dd/MM/yyyy HH:mm')}</p>
                   </div>
+                  <button onClick={() => dismissMessage(msg.id)} className="text-muted-foreground hover:text-foreground shrink-0 p-1" title="Dispensar">
+                    <X className="h-4 w-4" />
+                  </button>
                 </div>
               ))}
             </div>

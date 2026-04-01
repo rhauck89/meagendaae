@@ -1,14 +1,31 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { useState, useCallback } from 'react';
+
+const DISMISSED_KEY = 'dismissed_platform_messages';
+
+const getDismissedIds = (): string[] => {
+  try {
+    return JSON.parse(localStorage.getItem(DISMISSED_KEY) || '[]');
+  } catch { return []; }
+};
 
 export const usePlatformMessages = () => {
   const { companyId } = useAuth();
+  const [dismissedIds, setDismissedIds] = useState<string[]>(getDismissedIds);
 
-  return useQuery({
+  const dismiss = useCallback((id: string) => {
+    setDismissedIds(prev => {
+      const next = [...prev, id];
+      localStorage.setItem(DISMISSED_KEY, JSON.stringify(next));
+      return next;
+    });
+  }, []);
+
+  const query = useQuery({
     queryKey: ['platform-messages-user', companyId],
     queryFn: async () => {
-      // Get company info to filter messages
       let businessType: string | null = null;
       let planId: string | null = null;
 
@@ -34,7 +51,6 @@ export const usePlatformMessages = () => {
 
       if (error) throw error;
 
-      // Client-side filter by target
       return (data || []).filter((msg: any) => {
         if (msg.target_business_type && msg.target_business_type !== 'all' && msg.target_business_type !== businessType) return false;
         if (msg.target_plan && msg.target_plan !== planId) return false;
@@ -43,4 +59,8 @@ export const usePlatformMessages = () => {
     },
     enabled: !!companyId,
   });
+
+  const visibleMessages = (query.data || []).filter((msg: any) => !dismissedIds.includes(msg.id));
+
+  return { ...query, data: visibleMessages, allData: query.data, dismiss };
 };
