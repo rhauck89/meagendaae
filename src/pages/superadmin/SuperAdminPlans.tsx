@@ -14,7 +14,9 @@ import { toast } from 'sonner';
 interface Plan {
   id: string;
   name: string;
-  price: number;
+  monthly_price: number;
+  yearly_price: number;
+  yearly_discount: number;
   members_limit: number;
   automatic_messages: boolean;
   open_scheduling: boolean;
@@ -27,7 +29,9 @@ interface Plan {
 
 const emptyPlan: Omit<Plan, 'id'> = {
   name: '',
-  price: 0,
+  monthly_price: 0,
+  yearly_price: 0,
+  yearly_discount: 0,
   members_limit: 1,
   automatic_messages: false,
   open_scheduling: false,
@@ -80,7 +84,7 @@ const SuperAdminPlans = () => {
 
   const handleSave = async () => {
     if (!form.name.trim()) { toast.error('Nome é obrigatório'); return; }
-    if (form.price < 0) { toast.error('Preço inválido'); return; }
+    if (form.monthly_price < 0) { toast.error('Preço inválido'); return; }
 
     if (editingPlan) {
       const { error } = await supabase.from('plans').update(form as any).eq('id', editingPlan.id);
@@ -149,7 +153,18 @@ const SuperAdminPlans = () => {
                     <TableRow key={plan.id}>
                       <TableCell className="font-medium">{plan.name}</TableCell>
                       <TableCell>
-                        R${Number(plan.price).toFixed(2).replace('.', ',')}
+                        <div className="text-sm">
+                          <span className="font-medium">R${Number(plan.monthly_price).toFixed(2).replace('.', ',')}</span>
+                          <span className="text-muted-foreground">/mês</span>
+                        </div>
+                        {Number(plan.yearly_price) > 0 && (
+                          <div className="text-xs text-muted-foreground">
+                            R${Number(plan.yearly_price).toFixed(2).replace('.', ',')}/ano
+                            {Number(plan.yearly_discount) > 0 && (
+                              <Badge variant="outline" className="ml-1 text-[10px] text-success">{plan.yearly_discount}% off</Badge>
+                            )}
+                          </div>
+                        )}
                       </TableCell>
                       <TableCell className="hidden md:table-cell">{plan.members_limit}</TableCell>
                       <TableCell className="hidden lg:table-cell">
@@ -206,11 +221,21 @@ const SuperAdminPlans = () => {
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
                 <Label className="text-xs">Preço mensal (R$)</Label>
-                <Input type="number" min={0} step={0.01} value={form.price} onChange={(e) => setForm(f => ({ ...f, price: parseFloat(e.target.value) || 0 }))} />
+                <Input type="number" min={0} step={0.01} value={form.monthly_price} onChange={(e) => setForm(f => ({ ...f, monthly_price: parseFloat(e.target.value) || 0 }))} />
               </div>
               <div className="space-y-1">
                 <Label className="text-xs">Limite de membros</Label>
                 <Input type="number" min={1} value={form.members_limit} onChange={(e) => setForm(f => ({ ...f, members_limit: parseInt(e.target.value) || 1 }))} />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label className="text-xs">Preço anual (R$)</Label>
+                <Input type="number" min={0} step={0.01} value={form.yearly_price} onChange={(e) => setForm(f => ({ ...f, yearly_price: parseFloat(e.target.value) || 0 }))} />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Desconto anual (%)</Label>
+                <Input type="number" min={0} max={100} step={1} value={form.yearly_discount} onChange={(e) => setForm(f => ({ ...f, yearly_discount: parseFloat(e.target.value) || 0 }))} />
               </div>
             </div>
 
