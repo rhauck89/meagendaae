@@ -630,7 +630,7 @@ export default function BarbershopLanding({ routeBusinessType, customSlug }: Bar
             ) : (
               <p className="text-xs font-medium" style={{ color: isDark ? '#4B5563' : '#9CA3AF' }}>{company.name}</p>
             )}
-            <PlatformBranding isDark={isDark} />
+            <PlatformBranding isDark={isDark} hide={isWhitelabel} />
           </div>
         </div>
       </div>
