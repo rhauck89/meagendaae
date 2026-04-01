@@ -968,13 +968,15 @@ export type Database = {
           discount_coupons: boolean
           id: string
           members_limit: number
+          monthly_price: number
           name: string
           open_scheduling: boolean
-          price: number
           promotions: boolean
           sort_order: number
           updated_at: string
           whitelabel: boolean
+          yearly_discount: number
+          yearly_price: number
         }
         Insert: {
           active?: boolean
@@ -983,13 +985,15 @@ export type Database = {
           discount_coupons?: boolean
           id?: string
           members_limit?: number
+          monthly_price?: number
           name: string
           open_scheduling?: boolean
-          price?: number
           promotions?: boolean
           sort_order?: number
           updated_at?: string
           whitelabel?: boolean
+          yearly_discount?: number
+          yearly_price?: number
         }
         Update: {
           active?: boolean
@@ -998,13 +1002,15 @@ export type Database = {
           discount_coupons?: boolean
           id?: string
           members_limit?: number
+          monthly_price?: number
           name?: string
           open_scheduling?: boolean
-          price?: number
           promotions?: boolean
           sort_order?: number
           updated_at?: string
           whitelabel?: boolean
+          yearly_discount?: number
+          yearly_price?: number
         }
         Relationships: []
       }
