@@ -416,10 +416,18 @@ export default function Promotions() {
     return m[f] || f;
   };
 
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const isScheduled = (p: Promotion) => p.status === 'active' && new Date(p.start_date) > today;
+  const isActivePromo = (p: Promotion) => p.status === 'active' && new Date(p.start_date) <= today && new Date(p.end_date) >= today;
+  const isExpiredPromo = (p: Promotion) => (p.status === 'active' && new Date(p.end_date) < today) || p.status === 'expired';
+
   const filteredPromotions = promotions.filter(p => {
-    if (activeTab === 'active') return p.status === 'active' && new Date(p.end_date) >= new Date();
+    if (activeTab === 'active') return isActivePromo(p);
+    if (activeTab === 'scheduled') return isScheduled(p);
     if (activeTab === 'paused') return p.status === 'paused';
-    if (activeTab === 'expired') return p.status !== 'active' || new Date(p.end_date) < new Date();
+    if (activeTab === 'expired') return isExpiredPromo(p);
     return true;
   });
 
