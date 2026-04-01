@@ -1667,10 +1667,12 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                 )}
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <button onClick={() => window.location.href = `/reschedule/${bookingResult.appointmentId}`} className="flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-medium transition-all hover:scale-105" style={{ background: T.card, border: `1px solid ${T.border}`, color: T.text }}>
-                  🔄 Reagendar
-                </button>
+              <div className={`grid ${isPromoMode ? 'grid-cols-1' : 'grid-cols-2'} gap-3`}>
+                {!isPromoMode && (
+                  <button onClick={() => window.location.href = `/reschedule/${bookingResult.appointmentId}`} className="flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-medium transition-all hover:scale-105" style={{ background: T.card, border: `1px solid ${T.border}`, color: T.text }}>
+                    🔄 Reagendar
+                  </button>
+                )}
                 <button onClick={() => window.location.href = `/cancel/${bookingResult.appointmentId}`} className="flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-medium transition-all hover:scale-105" style={{ background: T.card, border: `1px solid ${T.border}`, color: '#F87171' }}>
                   ❌ Cancelar
                 </button>

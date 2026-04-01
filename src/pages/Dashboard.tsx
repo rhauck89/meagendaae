@@ -1104,14 +1104,16 @@ const Dashboard = () => {
                                   <Timer className="h-4 w-4 mr-1" />
                                   Atraso
                                 </Button>
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => openRescheduleDialog(apt)}
-                                >
-                                  <RefreshCw className="h-4 w-4 mr-1" />
-                                  Reagendar
-                                </Button>
+                                {!apt.promotion_id && (
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => openRescheduleDialog(apt)}
+                                  >
+                                    <RefreshCw className="h-4 w-4 mr-1" />
+                                    Reagendar
+                                  </Button>
+                                )}
                                 <Button
                                   size="sm"
                                   variant="ghost"
