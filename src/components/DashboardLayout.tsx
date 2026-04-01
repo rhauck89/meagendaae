@@ -110,8 +110,11 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
 
       <aside className={cn('fixed inset-y-0 left-0 z-50 w-64 bg-sidebar text-sidebar-foreground flex flex-col transition-transform lg:translate-x-0', sidebarOpen ? 'translate-x-0' : '-translate-x-full')}>
         <div className="p-6 flex items-center gap-3">
-          <div className="w-10 h-10 bg-sidebar-primary rounded-xl flex items-center justify-center"><Scissors className="h-5 w-5 text-sidebar-primary-foreground" /></div>
-          <span className="font-display font-bold text-lg">AgendaPro</span>
+          <PlatformLogo
+            companyLogo={brandInfo.logo_url}
+            companyName={brandInfo.name}
+            isWhitelabel={brandInfo.isWhitelabel}
+          />
           <button className="ml-auto lg:hidden" onClick={() => setSidebarOpen(false)}><X className="h-5 w-5" /></button>
         </div>
 
