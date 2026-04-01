@@ -1,6 +1,7 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { useUserRole } from '@/hooks/useUserRole';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -12,15 +13,19 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Checkbox } from '@/components/ui/checkbox';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from '@/hooks/use-toast';
-import { format, parseISO, differenceInDays } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Plus, MessageCircle, Send, Users, Tag, Megaphone, Copy, Eye } from 'lucide-react';
+import { Plus, MessageCircle, Send, Users, Tag, Megaphone, Copy, BarChart3, Eye, TrendingUp, MousePointerClick, CalendarCheck } from 'lucide-react';
 import { formatWhatsApp, displayWhatsApp } from '@/lib/whatsapp';
 
 interface Promotion {
   id: string;
   title: string;
   description: string | null;
+  slug: string | null;
+  service_id: string | null;
+  promotion_price: number | null;
+  original_price: number | null;
   start_date: string;
   end_date: string;
   start_time: string | null;
@@ -34,6 +39,7 @@ interface Promotion {
   message_template: string | null;
   status: string;
   created_at: string;
+  created_by: string | null;
 }
 
 interface ClientRow {
@@ -43,35 +49,61 @@ interface ClientRow {
   last_visit?: string | null;
   total_spent?: number;
   birth_date?: string | null;
+  visit_count?: number;
+}
+
+interface PromoMetrics {
+  clicks: number;
+  bookings: number;
+  clientsReached: number;
 }
 
 const MESSAGE_TAGS = [
-  { tag: '{{cliente_nome}}', label: 'Nome do Cliente' },
+  { tag: '{{cliente_nome}}', label: 'Nome' },
+  { tag: '{{cliente_primeiro_nome}}', label: 'Primeiro Nome' },
   { tag: '{{cliente_aniversario}}', label: 'Aniversário' },
-  { tag: '{{empresa_nome}}', label: 'Nome da Empresa' },
-  { tag: '{{link_promocao}}', label: 'Link da Promoção' },
+  { tag: '{{empresa_nome}}', label: 'Empresa' },
+  { tag: '{{profissional_nome}}', label: 'Profissional' },
+  { tag: '{{valor_normal}}', label: 'Valor Normal' },
+  { tag: '{{valor_promocional}}', label: 'Valor Promo' },
+  { tag: '{{link_promocao}}', label: 'Link' },
 ];
 
 const DEFAULT_TEMPLATE = `Olá {{cliente_nome}}! 👋
 
-Temos uma promoção especial para você na *{{empresa_nome}}*! 🎉
+Estamos com uma promoção especial na *{{empresa_nome}}*! 🎉
 
-Acesse o link para agendar:
+✂️ De R$ {{valor_normal}} por apenas *R$ {{valor_promocional}}*
+
+Garanta seu horário:
 {{link_promocao}}
 
 Te esperamos! 🙏`;
 
+function generateSlug(title: string): string {
+  return title.toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '');
+}
+
 export default function Promotions() {
-  const { companyId } = useAuth();
+  const { companyId, profile } = useAuth();
+  const { isAdmin } = useUserRole();
   const [promotions, setPromotions] = useState<Promotion[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedPromotion, setSelectedPromotion] = useState<Promotion | null>(null);
   const [clientsDialogOpen, setClientsDialogOpen] = useState(false);
+  const [metricsDialogOpen, setMetricsDialogOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState('active');
 
   // Form state
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
+  const [selectedServiceId, setSelectedServiceId] = useState('');
+  const [promotionPrice, setPromotionPrice] = useState('');
+  const [originalPrice, setOriginalPrice] = useState('');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [startTime, setStartTime] = useState('');
@@ -83,35 +115,45 @@ export default function Promotions() {
   const [selectedProfessionalIds, setSelectedProfessionalIds] = useState<string[]>([]);
   const [messageTemplate, setMessageTemplate] = useState(DEFAULT_TEMPLATE);
 
-  // Data for filters
+  // Data
+  const [services, setServices] = useState<any[]>([]);
   const [professionals, setProfessionals] = useState<any[]>([]);
   const [filteredClients, setFilteredClients] = useState<ClientRow[]>([]);
   const [clientsLoading, setClientsLoading] = useState(false);
   const [companyName, setCompanyName] = useState('');
+  const [companySlug, setCompanySlug] = useState('');
+  const [metrics, setMetrics] = useState<PromoMetrics>({ clicks: 0, bookings: 0, clientsReached: 0 });
+  const [lowOccupancy, setLowOccupancy] = useState(false);
 
   useEffect(() => {
     if (companyId) {
-      fetchPromotions();
-      fetchProfessionals();
-      fetchCompanyName();
+      fetchAll();
     }
   }, [companyId]);
 
-  const fetchCompanyName = async () => {
-    const { data } = await supabase.from('companies').select('name').eq('id', companyId!).single();
-    if (data) setCompanyName(data.name);
+  const fetchAll = async () => {
+    setLoading(true);
+    await Promise.all([fetchPromotions(), fetchServices(), fetchProfessionals(), fetchCompanyInfo(), checkOccupancy()]);
+    setLoading(false);
+  };
+
+  const fetchCompanyInfo = async () => {
+    const { data } = await supabase.from('companies').select('name, slug').eq('id', companyId!).single();
+    if (data) { setCompanyName(data.name); setCompanySlug(data.slug); }
   };
 
   const fetchPromotions = async () => {
-    setLoading(true);
-    const { data, error } = await supabase
+    const { data } = await supabase
       .from('promotions')
       .select('*')
       .eq('company_id', companyId!)
       .order('created_at', { ascending: false });
+    if (data) setPromotions(data as unknown as Promotion[]);
+  };
 
-    if (!error && data) setPromotions(data as unknown as Promotion[]);
-    setLoading(false);
+  const fetchServices = async () => {
+    const { data } = await supabase.from('services').select('id, name, price, duration_minutes').eq('company_id', companyId!).eq('active', true).order('name');
+    if (data) setServices(data);
   };
 
   const fetchProfessionals = async () => {
@@ -123,81 +165,86 @@ export default function Promotions() {
     if (data) setProfessionals(data);
   };
 
+  const checkOccupancy = async () => {
+    // Check tomorrow's occupancy
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const dateStr = format(tomorrow, 'yyyy-MM-dd');
+
+    const { data: appointments } = await supabase
+      .from('appointments')
+      .select('id')
+      .eq('company_id', companyId!)
+      .gte('start_time', `${dateStr}T00:00:00`)
+      .lte('start_time', `${dateStr}T23:59:59`)
+      .in('status', ['confirmed', 'pending']);
+
+    setLowOccupancy((appointments?.length || 0) < 3);
+  };
+
+  const handleServiceChange = (serviceId: string) => {
+    setSelectedServiceId(serviceId);
+    const svc = services.find(s => s.id === serviceId);
+    if (svc) {
+      setOriginalPrice(String(svc.price));
+      setPromotionPrice('');
+    }
+  };
+
   const fetchFilteredClients = async (promotion: Promotion) => {
     setClientsLoading(true);
     setSelectedPromotion(promotion);
 
-    let query = supabase
+    const { data: clients } = await supabase
       .from('clients')
       .select('id, name, whatsapp, birth_date, created_at')
       .eq('company_id', companyId!);
 
-    const { data: clients } = await query;
-    if (!clients) {
-      setClientsLoading(false);
-      return;
-    }
+    if (!clients) { setClientsLoading(false); return; }
 
-    // Fetch appointment stats for each client
     const { data: appointments } = await supabase
       .from('appointments')
       .select('client_id, total_price, start_time, status')
       .eq('company_id', companyId!)
       .in('status', ['completed', 'confirmed']);
 
-    const clientStats = new Map<string, { totalSpent: number; lastVisit: string | null }>();
+    const clientStats = new Map<string, { totalSpent: number; lastVisit: string | null; visitCount: number }>();
     appointments?.forEach(apt => {
       if (!apt.client_id) return;
-      const current = clientStats.get(apt.client_id) || { totalSpent: 0, lastVisit: null };
-      current.totalSpent += Number(apt.total_price) || 0;
-      if (!current.lastVisit || apt.start_time > current.lastVisit) {
-        current.lastVisit = apt.start_time;
-      }
-      clientStats.set(apt.client_id, current);
+      const c = clientStats.get(apt.client_id) || { totalSpent: 0, lastVisit: null, visitCount: 0 };
+      c.totalSpent += Number(apt.total_price) || 0;
+      c.visitCount++;
+      if (!c.lastVisit || apt.start_time > c.lastVisit) c.lastVisit = apt.start_time;
+      clientStats.set(apt.client_id, c);
     });
 
     let result: ClientRow[] = clients.map(c => {
-      const stats = clientStats.get(c.id);
-      return {
-        id: c.id,
-        name: c.name,
-        whatsapp: c.whatsapp,
-        birth_date: c.birth_date,
-        last_visit: stats?.lastVisit || null,
-        total_spent: stats?.totalSpent || 0,
-      };
+      const s = clientStats.get(c.id);
+      return { id: c.id, name: c.name, whatsapp: c.whatsapp, birth_date: c.birth_date, last_visit: s?.lastVisit || null, total_spent: s?.totalSpent || 0, visit_count: s?.visitCount || 0 };
     });
 
-    // Apply filters
     const filter = promotion.client_filter;
     const filterVal = promotion.client_filter_value;
 
     if (filter === 'birthday_month') {
-      const currentMonth = new Date().getMonth() + 1;
-      result = result.filter(c => {
-        if (!c.birth_date) return false;
-        const month = parseInt(c.birth_date.split('-')[1], 10);
-        return month === currentMonth;
-      });
+      const m = new Date().getMonth() + 1;
+      result = result.filter(c => c.birth_date && parseInt(c.birth_date.split('-')[1], 10) === m);
     } else if (filter === 'top_spending') {
       result.sort((a, b) => (b.total_spent || 0) - (a.total_spent || 0));
       result = result.slice(0, filterVal || 20);
     } else if (filter === 'inactive') {
       const days = filterVal || 30;
-      const cutoff = new Date();
-      cutoff.setDate(cutoff.getDate() - days);
-      result = result.filter(c => {
-        if (!c.last_visit) return true;
-        return new Date(c.last_visit) < cutoff;
-      });
+      const cutoff = new Date(); cutoff.setDate(cutoff.getDate() - days);
+      result = result.filter(c => !c.last_visit || new Date(c.last_visit) < cutoff);
     } else if (filter === 'new_clients') {
       const days = filterVal || 30;
-      const cutoff = new Date();
-      cutoff.setDate(cutoff.getDate() - days);
+      const cutoff = new Date(); cutoff.setDate(cutoff.getDate() - days);
       result = result.filter(c => {
-        const firstVisit = clients.find(cl => cl.id === c.id)?.created_at;
-        return firstVisit && new Date(firstVisit) >= cutoff;
+        const cl = clients.find(cl2 => cl2.id === c.id);
+        return cl && new Date(cl.created_at) >= cutoff;
       });
+    } else if (filter === 'frequent') {
+      result = result.filter(c => (c.visit_count || 0) >= (filterVal || 5));
     }
 
     setFilteredClients(result);
@@ -205,55 +252,73 @@ export default function Promotions() {
     setClientsDialogOpen(true);
   };
 
+  const fetchMetrics = async (promo: Promotion) => {
+    setSelectedPromotion(promo);
+    const [clicksRes, bookingsRes] = await Promise.all([
+      supabase.from('promotion_clicks').select('id', { count: 'exact' }).eq('promotion_id', promo.id),
+      supabase.from('promotion_bookings').select('id', { count: 'exact' }).eq('promotion_id', promo.id),
+    ]);
+    setMetrics({
+      clicks: clicksRes.count || 0,
+      bookings: bookingsRes.count || 0,
+      clientsReached: 0,
+    });
+    setMetricsDialogOpen(true);
+  };
+
   const handleCreate = async () => {
     if (!title || !startDate || !endDate) {
-      toast({ title: 'Preencha todos os campos obrigatórios', variant: 'destructive' });
+      toast({ title: 'Preencha título e datas', variant: 'destructive' });
       return;
     }
 
-    const { error } = await supabase.from('promotions').insert({
+    const slug = generateSlug(title);
+
+    const payload: any = {
       company_id: companyId!,
       title,
+      slug,
       description: description || null,
+      service_id: selectedServiceId || null,
+      promotion_price: promotionPrice ? parseFloat(promotionPrice) : null,
+      original_price: originalPrice ? parseFloat(originalPrice) : null,
       start_date: startDate,
       end_date: endDate,
       start_time: startTime || null,
       end_time: endTime || null,
       max_slots: parseInt(maxSlots) || 0,
       client_filter: clientFilter,
-      client_filter_value: ['inactive', 'new_clients', 'top_spending'].includes(clientFilter)
-        ? parseInt(clientFilterValue) || null
-        : null,
+      client_filter_value: ['inactive', 'new_clients', 'top_spending', 'frequent'].includes(clientFilter) ? parseInt(clientFilterValue) || null : null,
       professional_filter: professionalFilter,
       professional_ids: professionalFilter === 'selected' ? selectedProfessionalIds : null,
       message_template: messageTemplate,
+      created_by: profile?.id || null,
       status: 'active',
-    } as any);
+    };
 
+    // If non-admin professional, force their own ID
+    if (!isAdmin && profile?.id) {
+      payload.professional_filter = 'selected';
+      payload.professional_ids = [profile.id];
+      payload.created_by = profile.id;
+    }
+
+    const { error } = await supabase.from('promotions').insert(payload);
     if (error) {
       toast({ title: 'Erro ao criar promoção', description: error.message, variant: 'destructive' });
       return;
     }
-
-    toast({ title: 'Promoção criada com sucesso!' });
+    toast({ title: 'Promoção criada!' });
     setDialogOpen(false);
     resetForm();
     fetchPromotions();
   };
 
   const resetForm = () => {
-    setTitle('');
-    setDescription('');
-    setStartDate('');
-    setEndDate('');
-    setStartTime('');
-    setEndTime('');
-    setMaxSlots('10');
-    setClientFilter('all');
-    setClientFilterValue('30');
-    setProfessionalFilter('all');
-    setSelectedProfessionalIds([]);
-    setMessageTemplate(DEFAULT_TEMPLATE);
+    setTitle(''); setDescription(''); setSelectedServiceId(''); setPromotionPrice(''); setOriginalPrice('');
+    setStartDate(''); setEndDate(''); setStartTime(''); setEndTime(''); setMaxSlots('10');
+    setClientFilter('all'); setClientFilterValue('30'); setProfessionalFilter('all');
+    setSelectedProfessionalIds([]); setMessageTemplate(DEFAULT_TEMPLATE);
   };
 
   const toggleStatus = async (promo: Promotion) => {
@@ -262,43 +327,55 @@ export default function Promotions() {
     fetchPromotions();
   };
 
+  const getPromoLink = (promo: Promotion) => {
+    return `${window.location.origin}/barbearia/${companySlug}/promo/${promo.slug || promo.id}`;
+  };
+
   const buildWhatsAppLink = (client: ClientRow, promotion: Promotion) => {
     if (!client.whatsapp) return '';
     const number = formatWhatsApp(client.whatsapp);
-    const promoLink = `${window.location.origin}/barbearia/${companyName.toLowerCase().replace(/\s+/g, '-')}`;
+    const promoLink = getPromoLink(promotion);
+
+    const profName = (() => {
+      if (promotion.professional_ids?.length === 1) {
+        const p = professionals.find((pr: any) => pr.profile_id === promotion.professional_ids![0]);
+        return p?.profiles?.full_name || '';
+      }
+      return companyName;
+    })();
 
     let msg = promotion.message_template || DEFAULT_TEMPLATE;
     msg = msg.replace(/\{\{cliente_nome\}\}/g, client.name);
+    msg = msg.replace(/\{\{cliente_primeiro_nome\}\}/g, client.name.split(' ')[0]);
     msg = msg.replace(/\{\{cliente_aniversario\}\}/g, client.birth_date ? format(parseISO(client.birth_date), 'dd/MM') : '');
     msg = msg.replace(/\{\{empresa_nome\}\}/g, companyName);
+    msg = msg.replace(/\{\{profissional_nome\}\}/g, profName);
+    msg = msg.replace(/\{\{valor_normal\}\}/g, promotion.original_price ? `R$ ${Number(promotion.original_price).toFixed(2)}` : '');
+    msg = msg.replace(/\{\{valor_promocional\}\}/g, promotion.promotion_price ? `R$ ${Number(promotion.promotion_price).toFixed(2)}` : '');
     msg = msg.replace(/\{\{link_promocao\}\}/g, promoLink);
 
     return `https://wa.me/${number}?text=${encodeURIComponent(msg)}`;
   };
 
-  const insertTag = (tag: string) => {
-    setMessageTemplate(prev => prev + tag);
+  const getFilterLabel = (f: string) => {
+    const m: Record<string, string> = { all: 'Todos', birthday_month: 'Aniversariantes', top_spending: 'Maiores gastos', inactive: 'Inativos', new_clients: 'Novos', frequent: 'Frequentes' };
+    return m[f] || f;
   };
 
-  const getFilterLabel = (filter: string) => {
-    const labels: Record<string, string> = {
-      all: 'Todos os clientes',
-      birthday_month: 'Aniversariantes do mês',
-      top_spending: 'Maiores gastos',
-      inactive: 'Clientes inativos',
-      new_clients: 'Clientes novos',
-    };
-    return labels[filter] || filter;
-  };
-
-  const remainingSlots = (p: Promotion) => p.max_slots > 0 ? p.max_slots - p.used_slots : null;
+  const filteredPromotions = promotions.filter(p => {
+    if (activeTab === 'active') return p.status === 'active' && new Date(p.end_date) >= new Date();
+    if (activeTab === 'paused') return p.status === 'paused';
+    if (activeTab === 'expired') return p.status !== 'active' || new Date(p.end_date) < new Date();
+    return true;
+  });
 
   return (
     <div className="space-y-6">
+      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-display font-bold">Promoções</h2>
-          <p className="text-muted-foreground">Crie campanhas promocionais e envie via WhatsApp</p>
+          <p className="text-muted-foreground">Crie campanhas e preencha horários vazios</p>
         </div>
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogTrigger asChild>
@@ -312,80 +389,84 @@ export default function Promotions() {
               <DialogTitle>Criar Promoção</DialogTitle>
             </DialogHeader>
             <div className="space-y-4">
-              {/* Title */}
               <div>
                 <Label>Título *</Label>
-                <Input value={title} onChange={e => setTitle(e.target.value)} placeholder="Ex: Semana do Corte" />
+                <Input value={title} onChange={e => setTitle(e.target.value)} placeholder="Ex: Corte Promocional" />
               </div>
 
-              {/* Description */}
               <div>
                 <Label>Descrição</Label>
-                <Textarea value={description} onChange={e => setDescription(e.target.value)} placeholder="Detalhes da promoção" />
+                <Textarea value={description} onChange={e => setDescription(e.target.value)} placeholder="Detalhes da promoção" rows={2} />
               </div>
 
-              {/* Dates */}
+              {/* Service selection */}
+              <div>
+                <Label>Serviço</Label>
+                <Select value={selectedServiceId} onValueChange={handleServiceChange}>
+                  <SelectTrigger><SelectValue placeholder="Selecionar serviço" /></SelectTrigger>
+                  <SelectContent>
+                    {services.map(s => (
+                      <SelectItem key={s.id} value={s.id}>
+                        {s.name} — R$ {Number(s.price).toFixed(2)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {selectedServiceId && (
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label>Preço Original</Label>
+                    <Input value={originalPrice} readOnly className="bg-muted" />
+                  </div>
+                  <div>
+                    <Label>Preço Promocional *</Label>
+                    <Input type="number" value={promotionPrice} onChange={e => setPromotionPrice(e.target.value)} placeholder="Ex: 25.00" step="0.01" />
+                  </div>
+                </div>
+              )}
+
               <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label>Data Início *</Label>
-                  <Input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} />
-                </div>
-                <div>
-                  <Label>Data Fim *</Label>
-                  <Input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} />
-                </div>
+                <div><Label>Data Início *</Label><Input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} /></div>
+                <div><Label>Data Fim *</Label><Input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} /></div>
               </div>
 
-              {/* Times */}
               <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label>Horário Início</Label>
-                  <Input type="time" value={startTime} onChange={e => setStartTime(e.target.value)} />
-                </div>
-                <div>
-                  <Label>Horário Fim</Label>
-                  <Input type="time" value={endTime} onChange={e => setEndTime(e.target.value)} />
-                </div>
+                <div><Label>Horário Início</Label><Input type="time" value={startTime} onChange={e => setStartTime(e.target.value)} /></div>
+                <div><Label>Horário Fim</Label><Input type="time" value={endTime} onChange={e => setEndTime(e.target.value)} /></div>
               </div>
 
-              {/* Max slots */}
               <div>
                 <Label>Vagas máximas</Label>
                 <Input type="number" value={maxSlots} onChange={e => setMaxSlots(e.target.value)} min="0" />
                 <p className="text-xs text-muted-foreground mt-1">0 = ilimitado</p>
               </div>
 
-              {/* Professional filter */}
-              <div>
-                <Label>Profissionais participantes</Label>
-                <Select value={professionalFilter} onValueChange={setProfessionalFilter}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Todos os profissionais</SelectItem>
-                    <SelectItem value="selected">Selecionar profissionais</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {professionalFilter === 'selected' && (
-                <div className="space-y-2 pl-2">
-                  {professionals.map((p: any) => (
-                    <label key={p.profile_id} className="flex items-center gap-2 cursor-pointer">
-                      <Checkbox
-                        checked={selectedProfessionalIds.includes(p.profile_id)}
-                        onCheckedChange={(checked) => {
-                          setSelectedProfessionalIds(prev =>
-                            checked
-                              ? [...prev, p.profile_id]
-                              : prev.filter(id => id !== p.profile_id)
-                          );
-                        }}
-                      />
-                      <span className="text-sm">{p.profiles?.full_name}</span>
-                    </label>
-                  ))}
+              {/* Professional selection */}
+              {isAdmin && (
+                <div>
+                  <Label>Profissionais participantes</Label>
+                  <Select value={professionalFilter} onValueChange={setProfessionalFilter}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todos os profissionais</SelectItem>
+                      <SelectItem value="selected">Selecionar</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  {professionalFilter === 'selected' && (
+                    <div className="space-y-2 pl-2 mt-2">
+                      {professionals.map((p: any) => (
+                        <label key={p.profile_id} className="flex items-center gap-2 cursor-pointer">
+                          <Checkbox
+                            checked={selectedProfessionalIds.includes(p.profile_id)}
+                            onCheckedChange={(ch) => setSelectedProfessionalIds(prev => ch ? [...prev, p.profile_id] : prev.filter(id => id !== p.profile_id))}
+                          />
+                          <span className="text-sm">{p.profiles?.full_name}</span>
+                        </label>
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -393,31 +474,26 @@ export default function Promotions() {
               <div>
                 <Label>Filtro de clientes</Label>
                 <Select value={clientFilter} onValueChange={setClientFilter}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">Todos os clientes</SelectItem>
                     <SelectItem value="birthday_month">Aniversariantes do mês</SelectItem>
                     <SelectItem value="top_spending">Maiores gastos</SelectItem>
-                    <SelectItem value="inactive">Clientes inativos</SelectItem>
-                    <SelectItem value="new_clients">Clientes novos</SelectItem>
+                    <SelectItem value="inactive">Inativos</SelectItem>
+                    <SelectItem value="new_clients">Novos</SelectItem>
+                    <SelectItem value="frequent">Frequentes</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
               {['inactive', 'new_clients'].includes(clientFilter) && (
-                <div>
-                  <Label>{clientFilter === 'inactive' ? 'Dias sem visita' : 'Novos nos últimos X dias'}</Label>
-                  <Input type="number" value={clientFilterValue} onChange={e => setClientFilterValue(e.target.value)} />
-                </div>
+                <div><Label>Dias</Label><Input type="number" value={clientFilterValue} onChange={e => setClientFilterValue(e.target.value)} /></div>
               )}
-
               {clientFilter === 'top_spending' && (
-                <div>
-                  <Label>Quantidade de clientes</Label>
-                  <Input type="number" value={clientFilterValue} onChange={e => setClientFilterValue(e.target.value)} />
-                </div>
+                <div><Label>Quantidade</Label><Input type="number" value={clientFilterValue} onChange={e => setClientFilterValue(e.target.value)} /></div>
+              )}
+              {clientFilter === 'frequent' && (
+                <div><Label>Mínimo de visitas</Label><Input type="number" value={clientFilterValue} onChange={e => setClientFilterValue(e.target.value)} /></div>
               )}
 
               {/* Message template */}
@@ -425,131 +501,158 @@ export default function Promotions() {
                 <Label>Mensagem WhatsApp</Label>
                 <div className="flex flex-wrap gap-1 mb-2">
                   {MESSAGE_TAGS.map(t => (
-                    <Button
-                      key={t.tag}
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => insertTag(t.tag)}
-                      className="text-xs"
-                    >
-                      <Tag className="h-3 w-3 mr-1" />
-                      {t.label}
+                    <Button key={t.tag} type="button" variant="outline" size="sm" onClick={() => setMessageTemplate(prev => prev + t.tag)} className="text-xs h-7">
+                      <Tag className="h-3 w-3 mr-1" />{t.label}
                     </Button>
                   ))}
                 </div>
-                <Textarea
-                  value={messageTemplate}
-                  onChange={e => setMessageTemplate(e.target.value)}
-                  rows={8}
-                  className="font-mono text-sm"
-                />
+                <Textarea value={messageTemplate} onChange={e => setMessageTemplate(e.target.value)} rows={8} className="font-mono text-sm" />
               </div>
 
               <Button onClick={handleCreate} className="w-full">
-                <Megaphone className="h-4 w-4 mr-2" />
-                Criar Promoção
+                <Megaphone className="h-4 w-4 mr-2" />Criar Promoção
               </Button>
             </div>
           </DialogContent>
         </Dialog>
       </div>
 
-      {/* Promotions list */}
-      {loading ? (
-        <p className="text-muted-foreground">Carregando...</p>
-      ) : promotions.length === 0 ? (
-        <Card>
-          <CardContent className="py-12 text-center">
-            <Megaphone className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-            <h3 className="text-lg font-semibold mb-2">Nenhuma promoção</h3>
-            <p className="text-muted-foreground">Crie sua primeira promoção para engajar seus clientes.</p>
+      {/* Low occupancy suggestion */}
+      {lowOccupancy && (
+        <Card className="border-dashed border-primary/40 bg-primary/5">
+          <CardContent className="py-4 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <TrendingUp className="h-5 w-5 text-primary" />
+              <div>
+                <p className="font-medium text-sm">Agenda com vagas amanhã!</p>
+                <p className="text-xs text-muted-foreground">Crie uma promoção para preencher horários vazios</p>
+              </div>
+            </div>
+            <Button size="sm" variant="outline" onClick={() => { resetForm(); setDialogOpen(true); }}>
+              Criar promoção rápida
+            </Button>
           </CardContent>
         </Card>
-      ) : (
-        <div className="grid gap-4 md:grid-cols-2">
-          {promotions.map(promo => {
-            const remaining = remainingSlots(promo);
-            const isExpired = new Date(promo.end_date) < new Date();
-            const isActive = promo.status === 'active' && !isExpired;
-
-            return (
-              <Card key={promo.id} className={!isActive ? 'opacity-70' : ''}>
-                <CardHeader className="pb-2">
-                  <div className="flex items-start justify-between">
-                    <CardTitle className="text-lg">{promo.title}</CardTitle>
-                    <div className="flex gap-1">
-                      {isActive && <Badge className="bg-green-600 text-white">Ativa</Badge>}
-                      {promo.status === 'paused' && <Badge variant="secondary">Pausada</Badge>}
-                      {isExpired && <Badge variant="outline">Expirada</Badge>}
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  {promo.description && (
-                    <p className="text-sm text-muted-foreground">{promo.description}</p>
-                  )}
-
-                  <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
-                    <span>📅 {format(parseISO(promo.start_date), 'dd/MM/yyyy')} - {format(parseISO(promo.end_date), 'dd/MM/yyyy')}</span>
-                    {promo.start_time && promo.end_time && (
-                      <span>⏰ {promo.start_time.slice(0, 5)} - {promo.end_time.slice(0, 5)}</span>
-                    )}
-                  </div>
-
-                  <div className="flex flex-wrap gap-2 text-xs">
-                    <Badge variant="outline">
-                      <Users className="h-3 w-3 mr-1" />
-                      {getFilterLabel(promo.client_filter)}
-                    </Badge>
-                    {remaining !== null && (
-                      <Badge variant={remaining <= 5 ? 'destructive' : 'outline'}>
-                        {remaining <= 0 ? 'Esgotado' : remaining <= 5 ? `Últimas ${remaining} vagas` : `${remaining} vagas`}
-                      </Badge>
-                    )}
-                  </div>
-
-                  <div className="flex gap-2 pt-2">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => toggleStatus(promo)}
-                    >
-                      {promo.status === 'active' ? 'Pausar' : 'Ativar'}
-                    </Button>
-                    <Button
-                      size="sm"
-                      onClick={() => fetchFilteredClients(promo)}
-                      disabled={!isActive}
-                    >
-                      <Send className="h-3 w-3 mr-1" />
-                      Enviar
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
       )}
+
+      {/* Tabs */}
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <TabsList>
+          <TabsTrigger value="active">Ativas ({promotions.filter(p => p.status === 'active' && new Date(p.end_date) >= new Date()).length})</TabsTrigger>
+          <TabsTrigger value="paused">Pausadas ({promotions.filter(p => p.status === 'paused').length})</TabsTrigger>
+          <TabsTrigger value="expired">Encerradas ({promotions.filter(p => p.status !== 'active' || new Date(p.end_date) < new Date()).length})</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value={activeTab} className="mt-4">
+          {loading ? (
+            <p className="text-muted-foreground">Carregando...</p>
+          ) : filteredPromotions.length === 0 ? (
+            <Card>
+              <CardContent className="py-12 text-center">
+                <Megaphone className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                <h3 className="text-lg font-semibold mb-2">Nenhuma promoção</h3>
+                <p className="text-muted-foreground">Crie sua primeira promoção para engajar seus clientes.</p>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="grid gap-4 md:grid-cols-2">
+              {filteredPromotions.map(promo => {
+                const remaining = promo.max_slots > 0 ? promo.max_slots - promo.used_slots : null;
+                const isExpired = new Date(promo.end_date) < new Date();
+                const isActive = promo.status === 'active' && !isExpired;
+                const svc = services.find(s => s.id === promo.service_id);
+
+                return (
+                  <Card key={promo.id} className={!isActive ? 'opacity-70' : ''}>
+                    <CardHeader className="pb-2">
+                      <div className="flex items-start justify-between">
+                        <CardTitle className="text-lg">{promo.title}</CardTitle>
+                        <div className="flex gap-1">
+                          {isActive && <Badge className="bg-emerald-600 text-white">Ativa</Badge>}
+                          {promo.status === 'paused' && <Badge variant="secondary">Pausada</Badge>}
+                          {isExpired && <Badge variant="outline">Expirada</Badge>}
+                        </div>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                      {promo.description && <p className="text-sm text-muted-foreground">{promo.description}</p>}
+
+                      {/* Service & price */}
+                      {svc && (
+                        <div className="flex items-center gap-2 text-sm">
+                          <span className="text-muted-foreground">✂️ {svc.name}</span>
+                          {promo.original_price && promo.promotion_price && (
+                            <>
+                              <span className="line-through text-muted-foreground">R$ {Number(promo.original_price).toFixed(2)}</span>
+                              <span className="font-bold text-primary">R$ {Number(promo.promotion_price).toFixed(2)}</span>
+                            </>
+                          )}
+                        </div>
+                      )}
+
+                      <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
+                        <span>📅 {format(parseISO(promo.start_date), 'dd/MM/yyyy')} - {format(parseISO(promo.end_date), 'dd/MM/yyyy')}</span>
+                        {promo.start_time && promo.end_time && <span>⏰ {promo.start_time.slice(0, 5)} - {promo.end_time.slice(0, 5)}</span>}
+                      </div>
+
+                      <div className="flex flex-wrap gap-2 text-xs">
+                        <Badge variant="outline"><Users className="h-3 w-3 mr-1" />{getFilterLabel(promo.client_filter)}</Badge>
+                        {remaining !== null && (
+                          <Badge variant={remaining <= 0 ? 'destructive' : remaining <= 5 ? 'default' : 'outline'} className={remaining > 0 && remaining <= 5 ? 'bg-orange-500' : ''}>
+                            {remaining <= 0 ? 'Esgotado' : remaining <= 5 ? `🔥 Últimas ${remaining}` : `${remaining} vagas`}
+                          </Badge>
+                        )}
+                      </div>
+
+                      {/* Promotion link */}
+                      {promo.slug && (
+                        <div className="flex items-center gap-2">
+                          <Input readOnly value={getPromoLink(promo)} className="text-xs h-8 bg-muted" />
+                          <Button size="sm" variant="ghost" className="h-8" onClick={() => { navigator.clipboard.writeText(getPromoLink(promo)); toast({ title: 'Link copiado!' }); }}>
+                            <Copy className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      )}
+
+                      <div className="flex gap-2 pt-2 flex-wrap">
+                        <Button size="sm" variant="outline" onClick={() => toggleStatus(promo)}>
+                          {promo.status === 'active' ? 'Pausar' : 'Ativar'}
+                        </Button>
+                        <Button size="sm" onClick={() => fetchFilteredClients(promo)} disabled={!isActive}>
+                          <Send className="h-3 w-3 mr-1" />Enviar
+                        </Button>
+                        <Button size="sm" variant="outline" onClick={() => fetchMetrics(promo)}>
+                          <BarChart3 className="h-3 w-3 mr-1" />Métricas
+                        </Button>
+                        <Button size="sm" variant="ghost" asChild>
+                          <a href={getPromoLink(promo)} target="_blank" rel="noopener noreferrer">
+                            <Eye className="h-3 w-3 mr-1" />Ver
+                          </a>
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          )}
+        </TabsContent>
+      </Tabs>
 
       {/* Client list dialog */}
       <Dialog open={clientsDialogOpen} onOpenChange={setClientsDialogOpen}>
         <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>
-              Clientes - {selectedPromotion?.title}
-            </DialogTitle>
+            <DialogTitle>Clientes — {selectedPromotion?.title}</DialogTitle>
           </DialogHeader>
-
           {clientsLoading ? (
-            <p className="text-muted-foreground py-4">Carregando clientes...</p>
+            <p className="text-muted-foreground py-4">Carregando...</p>
           ) : filteredClients.length === 0 ? (
-            <p className="text-muted-foreground py-4">Nenhum cliente encontrado com os filtros aplicados.</p>
+            <p className="text-muted-foreground py-4">Nenhum cliente encontrado.</p>
           ) : (
             <div className="space-y-2">
-              <p className="text-sm text-muted-foreground">{filteredClients.length} cliente(s) encontrado(s)</p>
-              <div className="border rounded-lg overflow-hidden">
+              <p className="text-sm text-muted-foreground">{filteredClients.length} cliente(s)</p>
+              <div className="border rounded-lg overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead className="bg-muted">
                     <tr>
@@ -564,38 +667,62 @@ export default function Promotions() {
                     {filteredClients.map(client => (
                       <tr key={client.id} className="border-t">
                         <td className="p-3">{client.name}</td>
-                        <td className="p-3 text-muted-foreground">
-                          {client.whatsapp ? displayWhatsApp(client.whatsapp) : '-'}
-                        </td>
-                        <td className="p-3 text-muted-foreground">
-                          {client.last_visit
-                            ? format(parseISO(client.last_visit), 'dd/MM/yyyy')
-                            : '-'}
-                        </td>
-                        <td className="p-3 text-right">
-                          R$ {(client.total_spent || 0).toFixed(2)}
-                        </td>
+                        <td className="p-3 text-muted-foreground">{client.whatsapp ? displayWhatsApp(client.whatsapp) : '-'}</td>
+                        <td className="p-3 text-muted-foreground">{client.last_visit ? format(parseISO(client.last_visit), 'dd/MM/yyyy') : '-'}</td>
+                        <td className="p-3 text-right">R$ {(client.total_spent || 0).toFixed(2)}</td>
                         <td className="p-3 text-right">
                           {client.whatsapp && selectedPromotion ? (
-                            <a
-                              href={buildWhatsAppLink(client, selectedPromotion)}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                            >
-                              <Button size="sm" variant="outline" className="text-green-600">
-                                <MessageCircle className="h-3 w-3 mr-1" />
-                                WhatsApp
+                            <a href={buildWhatsAppLink(client, selectedPromotion)} target="_blank" rel="noopener noreferrer">
+                              <Button size="sm" variant="outline" className="text-emerald-600 border-emerald-600/30 hover:bg-emerald-50">
+                                <MessageCircle className="h-3 w-3 mr-1" />WhatsApp
                               </Button>
                             </a>
-                          ) : (
-                            <span className="text-xs text-muted-foreground">Sem WhatsApp</span>
-                          )}
+                          ) : <span className="text-xs text-muted-foreground">Sem WhatsApp</span>}
                         </td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
               </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Metrics dialog */}
+      <Dialog open={metricsDialogOpen} onOpenChange={setMetricsDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Métricas — {selectedPromotion?.title}</DialogTitle>
+          </DialogHeader>
+          <div className="grid grid-cols-3 gap-4">
+            <Card>
+              <CardContent className="pt-6 text-center">
+                <MousePointerClick className="h-8 w-8 mx-auto text-primary mb-2" />
+                <p className="text-2xl font-bold">{metrics.clicks}</p>
+                <p className="text-xs text-muted-foreground">Cliques</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="pt-6 text-center">
+                <CalendarCheck className="h-8 w-8 mx-auto text-primary mb-2" />
+                <p className="text-2xl font-bold">{metrics.bookings}</p>
+                <p className="text-xs text-muted-foreground">Agendamentos</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="pt-6 text-center">
+                <TrendingUp className="h-8 w-8 mx-auto text-primary mb-2" />
+                <p className="text-2xl font-bold">
+                  {metrics.clicks > 0 ? `${Math.round((metrics.bookings / metrics.clicks) * 100)}%` : '0%'}
+                </p>
+                <p className="text-xs text-muted-foreground">Conversão</p>
+              </CardContent>
+            </Card>
+          </div>
+          {selectedPromotion && (
+            <div className="mt-4 text-sm text-muted-foreground">
+              <p>Vagas utilizadas: {selectedPromotion.used_slots} / {selectedPromotion.max_slots || '∞'}</p>
             </div>
           )}
         </DialogContent>

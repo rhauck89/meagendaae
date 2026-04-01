@@ -30,6 +30,7 @@ import Clients from "./pages/Clients";
 import Events from "./pages/Events";
 import EventPublic from "./pages/EventPublic";
 import Promotions from "./pages/Promotions";
+import PromotionPublic from "./pages/PromotionPublic";
 import DashboardLayout from "./components/DashboardLayout";
 import NotFound from "./pages/NotFound";
 
@@ -66,6 +67,7 @@ const TenantRoutes = ({ slug, businessType }: { slug: string; businessType: stri
       <Route path="/" element={<BarbershopLanding routeBusinessType={routeType} customSlug={slug} />} />
       <Route path="/agendar" element={<Booking routeBusinessType={routeType} customSlug={slug} />} />
       <Route path="/evento/:eventSlug" element={<EventPublic />} />
+      <Route path="/promo/:promoSlug" element={<PromotionPublic />} />
       <Route path="/:professionalSlug/agendar" element={<Booking routeBusinessType={routeType} customSlug={slug} />} />
       <Route path="/:professionalSlug" element={<Booking routeBusinessType={routeType} customSlug={slug} />} />
       <Route path="*" element={<NotFound />} />
@@ -87,6 +89,8 @@ const PlatformRoutes = () => (
     <Route path="/barbearia/:slug" element={<BarbershopLanding routeBusinessType="barbershop" />} />
     <Route path="/estetica/:slug" element={<BarbershopLanding routeBusinessType="esthetic" />} />
     {/* Booking flow routes */}
+    <Route path="/barbearia/:slug/promo/:promoSlug" element={<PromotionPublic />} />
+    <Route path="/estetica/:slug/promo/:promoSlug" element={<PromotionPublic />} />
     <Route path="/barbearia/:slug/agendar" element={<Booking routeBusinessType="barbershop" />} />
     <Route path="/barbearia/:slug/:professionalSlug/agendar" element={<Booking routeBusinessType="barbershop" />} />
     <Route path="/barbearia/:slug/:professionalSlug" element={<Booking routeBusinessType="barbershop" />} />
