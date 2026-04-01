@@ -189,7 +189,7 @@ const Reports = () => {
           {isAdmin && (
             <>
               <Select value={filterProfessional} onValueChange={setFilterProfessional}>
-                <SelectTrigger className="w-[180px]">
+                <SelectTrigger className="w-full sm:w-[180px]">
                   <SelectValue placeholder="Profissional" />
                 </SelectTrigger>
                 <SelectContent>
