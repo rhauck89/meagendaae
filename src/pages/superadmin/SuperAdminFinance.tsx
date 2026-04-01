@@ -474,8 +474,13 @@ const SuperAdminFinance = () => {
               </div>
             </div>
             <div className="space-y-1">
-              <Label className="text-xs">Fonte</Label>
-              <Input value={revForm.source} onChange={e => setRevForm(f => ({ ...f, source: e.target.value }))} placeholder="Ex: Stripe, Manual, Outro" />
+              <Label className="text-xs">Categoria</Label>
+              <Select value={revForm.source} onValueChange={v => setRevForm(f => ({ ...f, source: v }))}>
+                <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                <SelectContent>
+                  {categories.filter(c => c.type === 'revenue' || c.type === 'both').map(c => <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
             </div>
             <div className="space-y-1">
               <Label className="text-xs">Observações</Label>
