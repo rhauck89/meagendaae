@@ -75,7 +75,7 @@ export default function PromotionPublic() {
     if (comp) setCompany(comp);
 
     // Get settings
-    const { data: settings } = await supabase.from('company_settings' as any).select('*').eq('company_id', promoData.company_id).single();
+    const { data: settings } = await supabase.from('public_company_settings' as any).select('*').eq('company_id', promoData.company_id).single();
     if (settings) setCompanySettings(settings);
 
     // Get professionals

@@ -270,7 +270,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
       supabase.from('business_hours').select('*').eq('company_id', comp.id),
       supabase.from('business_exceptions').select('*').eq('company_id', comp.id),
       supabase.from('public_company' as any).select('buffer_minutes').eq('id', comp.id).single(),
-      supabase.from('company_settings' as any).select('*').eq('company_id', comp.id).single(),
+      supabase.from('public_company_settings' as any).select('*').eq('company_id', comp.id).single(),
     ]);
 
     if (servicesRes.data) setServices(servicesRes.data);
@@ -554,7 +554,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
       const existingAppointments = await fetchBookingAppointments(date, selectedProfessional);
       const [blockedTimesRes, eventSlotsRes] = await Promise.all([
         supabase
-          .from('blocked_times' as any)
+          .from('public_blocked_times' as any)
           .select('block_date, start_time, end_time')
           .eq('company_id', company.id)
           .eq('professional_id', selectedProfessional)
@@ -665,7 +665,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
       const dateStr = format(day, 'yyyy-MM-dd');
       const existingAppointments = await fetchBookingAppointments(day, selectedProfessional);
       const { data: blockedData } = await supabase
-        .from('blocked_times' as any)
+        .from('public_blocked_times' as any)
         .select('block_date, start_time, end_time')
         .eq('company_id', company.id)
         .eq('professional_id', selectedProfessional)

@@ -98,7 +98,7 @@ export default function ProfessionalPublicProfile() {
     setCompletedCount(count || 0);
 
     // Fetch company settings for branding
-    const { data: csData } = await supabase.from('company_settings' as any).select('primary_color, secondary_color, background_color').eq('company_id', comp.id).single();
+    const { data: csData } = await supabase.from('public_company_settings' as any).select('primary_color, secondary_color, background_color').eq('company_id', comp.id).single();
     if (csData) setCompanySettings(csData);
 
     // Next available slots
@@ -112,7 +112,7 @@ export default function ProfessionalPublicProfile() {
       supabase.from('business_hours').select('*').eq('company_id', comp.id),
       supabase.from('business_exceptions').select('*').eq('company_id', comp.id),
       supabase.from('public_company' as any).select('buffer_minutes').eq('id', comp.id).single(),
-      supabase.from('company_settings' as any).select('timezone, booking_buffer_minutes').eq('company_id', comp.id).single(),
+      supabase.from('public_company_settings' as any).select('timezone, booking_buffer_minutes').eq('company_id', comp.id).single(),
       supabase.from('professional_working_hours' as any).select('*').eq('professional_id', prof.id),
     ]);
 
@@ -131,7 +131,7 @@ export default function ProfessionalPublicProfile() {
       const dateStr = format(day, 'yyyy-MM-dd');
       const { data: aptData } = await (supabase as any).rpc('get_booking_appointments', { p_company_id: comp.id, p_professional_id: prof.id, p_selected_date: dateStr, p_timezone: tz });
       const apts = ((aptData as ExistingAppointment[]) || []).map(a => ({ start_time: a.start_time, end_time: a.end_time }));
-      const { data: blockedData } = await supabase.from('blocked_times' as any).select('block_date, start_time, end_time').eq('company_id', comp.id).eq('professional_id', prof.id).eq('block_date', dateStr);
+      const { data: blockedData } = await supabase.from('public_blocked_times' as any).select('block_date, start_time, end_time').eq('company_id', comp.id).eq('professional_id', prof.id).eq('block_date', dateStr);
 
       let slots = calculateAvailableSlots({ date: day, totalDuration: avgDur, businessHours: bh, exceptions: exc, existingAppointments: apts, slotInterval: 15, bufferMinutes: buf, professionalHours: ph, blockedTimes: ((blockedData || []) as unknown as BlockedTime[]), professionalId: prof.id });
       slots = filterOverlapping(slots, apts, avgDur, buf, tz);
