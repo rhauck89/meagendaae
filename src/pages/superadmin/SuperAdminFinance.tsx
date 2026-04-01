@@ -501,12 +501,17 @@ const SuperAdminFinance = () => {
             </div>
             <div className="space-y-1">
               <Label className="text-xs">Categoria</Label>
-              <Select value={revForm.source} onValueChange={v => setRevForm(f => ({ ...f, source: v }))}>
-                <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-                <SelectContent>
-                  {categories.filter(c => c.type === 'revenue' || c.type === 'both').map(c => <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>)}
-                </SelectContent>
-              </Select>
+              <div className="flex gap-2">
+                <Select value={revForm.source} onValueChange={v => setRevForm(f => ({ ...f, source: v }))}>
+                  <SelectTrigger className="flex-1"><SelectValue placeholder="Selecione" /></SelectTrigger>
+                  <SelectContent>
+                    {categories.filter(c => c.type === 'revenue' || c.type === 'both').map(c => <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+                <Button type="button" variant="outline" size="sm" className="shrink-0 gap-1 text-xs" onClick={() => { setQuickCatTarget('revenue'); setQuickCatForm({ name: '', type: 'revenue' }); setQuickCatOpen(true); }}>
+                  <Plus className="h-3 w-3" /> Nova
+                </Button>
+              </div>
             </div>
             <div className="space-y-1">
               <Label className="text-xs">Observações</Label>
