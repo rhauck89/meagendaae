@@ -2026,6 +2026,35 @@ export type Database = {
           },
         ]
       }
+      user_tutorial_progress: {
+        Row: {
+          completed_at: string
+          id: string
+          user_id: string
+          video_id: string
+        }
+        Insert: {
+          completed_at?: string
+          id?: string
+          user_id: string
+          video_id: string
+        }
+        Update: {
+          completed_at?: string
+          id?: string
+          user_id?: string
+          video_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_tutorial_progress_video_id_fkey"
+            columns: ["video_id"]
+            isOneToOne: false
+            referencedRelation: "tutorial_videos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       waiting_list: {
         Row: {
           client_id: string

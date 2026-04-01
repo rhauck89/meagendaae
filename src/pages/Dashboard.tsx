@@ -3,6 +3,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useUserRole } from '@/hooks/useUserRole';
 import { supabase } from '@/integrations/supabase/client';
 import TrialBanner from '@/components/TrialBanner';
+import TutorialProgressWidget from '@/components/TutorialProgressWidget';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -691,6 +692,7 @@ const Dashboard = () => {
   return (
     <div className="space-y-6">
       <TrialBanner />
+      <TutorialProgressWidget />
       {/* Próximos atendimentos - shown first on mobile only */}
       <div className="block lg:hidden">
         {renderUpcomingAppointments()}

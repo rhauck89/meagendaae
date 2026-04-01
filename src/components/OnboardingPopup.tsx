@@ -57,7 +57,18 @@ export const OnboardingPopup = () => {
     check();
   }, []);
 
+  const markVideoCompleted = async (videoId: string) => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    await supabase.from('user_tutorial_progress').upsert(
+      { user_id: user.id, video_id: videoId },
+      { onConflict: 'user_id,video_id' }
+    );
+  };
+
   const handleComplete = async () => {
+    // Mark current video as completed
+    if (videos[step]) await markVideoCompleted(videos[step].id);
     const { data: { user } } = await supabase.auth.getUser();
     if (user) {
       await supabase.from('user_onboarding').update({ completed: true, completed_at: new Date().toISOString() }).eq('user_id', user.id);
@@ -118,7 +129,7 @@ export const OnboardingPopup = () => {
               </Button>
             )}
             {step < videos.length - 1 ? (
-              <Button size="sm" onClick={() => setStep(s => s + 1)}>
+              <Button size="sm" onClick={async () => { await markVideoCompleted(videos[step].id); setStep(s => s + 1); }}>
                 Próximo <ChevronRight className="h-4 w-4 ml-1" />
               </Button>
             ) : (
