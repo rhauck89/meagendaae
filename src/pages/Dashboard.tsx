@@ -631,10 +631,73 @@ const Dashboard = () => {
     }
   };
 
+  const renderUpcomingAppointments = () => {
+    const now = new Date();
+    const todayAppts = appointments
+      .filter(a => a.status === 'confirmed' || a.status === 'completed')
+      .sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime());
+
+    const currentApt = todayAppts.find(
+      a => a.status === 'confirmed' && now >= parseISO(a.start_time) && now <= parseISO(a.end_time)
+    );
+    const futureAppts = todayAppts.filter(a => parseISO(a.start_time) > now && a.status === 'confirmed');
+    const nextApt = futureAppts[0] || null;
+    const followingAppts = futureAppts.slice(1, 3);
+
+    const upcomingItems: { apt: any; label: string; icon: string; style: string }[] = [];
+    if (currentApt) upcomingItems.push({ apt: currentApt, label: 'Em atendimento', icon: '🔵', style: 'bg-blue-50 border-l-4 border-l-blue-500' });
+    if (nextApt) upcomingItems.push({ apt: nextApt, label: 'Próximo', icon: '⏭', style: 'bg-primary/5 border-l-4 border-l-primary' });
+    followingAppts.forEach(a => upcomingItems.push({ apt: a, label: 'Depois', icon: '🕒', style: 'bg-muted/50 border-l-4 border-l-muted-foreground' }));
+
+    if (upcomingItems.length === 0) return null;
+
+    return (
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-lg font-display flex items-center gap-2">
+            <Clock className="h-5 w-5" /> Próximos atendimentos
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-3">
+            {upcomingItems.map(({ apt, label, icon, style }) => (
+              <div key={apt.id} className={cn('flex items-center gap-4 p-4 rounded-xl border transition-shadow', style)}>
+                <div className="text-center min-w-[60px]">
+                  <p className="text-lg font-display font-bold">{format(parseISO(apt.start_time), 'HH:mm')}</p>
+                  <p className="text-xs text-muted-foreground">{format(parseISO(apt.end_time), 'HH:mm')}</p>
+                </div>
+                <div className="flex-1">
+                  <p className="font-semibold">{apt.client_name || apt.client?.name || 'Cliente'}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {apt.appointment_services?.map((s: any) => s.service?.name).join(', ')}
+                  </p>
+                  {apt.promotion_id && (
+                    <span className="inline-flex items-center gap-1 text-xs font-medium px-1.5 py-0.5 rounded bg-orange-500/10 text-orange-500 mt-0.5">🔥 Promoção</span>
+                  )}
+                  <p className="text-xs text-muted-foreground">com {apt.professional?.full_name}</p>
+                </div>
+                <Badge variant="outline" className="text-xs whitespace-nowrap">
+                  {icon} {label}
+                </Badge>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+    );
+  };
+
   return (
     <div className="space-y-6">
-      {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
+      {/* Próximos atendimentos - shown first on mobile only */}
+      <div className="block lg:hidden">
+        {renderUpcomingAppointments()}
+      </div>
+
+      {/* Daily Stats */}
+      <div>
+        <h3 className="text-lg font-display font-semibold mb-3">📊 Resumo do Dia</h3>
+        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
         <Card>
           <CardContent className="p-4 flex items-center gap-4">
             <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
@@ -742,11 +805,12 @@ const Dashboard = () => {
             </div>
           </CardContent>
         </Card>
+        </div>
       </div>
 
       {/* Monthly Stats */}
       <div>
-        <h3 className="text-lg font-display font-semibold mb-3">📊 Resumo do mês</h3>
+        <h3 className="text-lg font-display font-semibold mb-3">📈 Resumo do Mês</h3>
         <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
           <Card>
             <CardContent className="p-4 flex items-center gap-4">
@@ -945,63 +1009,10 @@ const Dashboard = () => {
         </Card>
       )}
 
-      {/* Calendar Controls */}
-      {/* Próximos atendimentos */}
-      {(() => {
-        const now = new Date();
-        const todayAppts = appointments
-          .filter(a => a.status === 'confirmed' || a.status === 'completed')
-          .sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime());
-
-        const currentApt = todayAppts.find(
-          a => a.status === 'confirmed' && now >= parseISO(a.start_time) && now <= parseISO(a.end_time)
-        );
-        const futureAppts = todayAppts.filter(a => parseISO(a.start_time) > now && a.status === 'confirmed');
-        const nextApt = futureAppts[0] || null;
-        const followingAppts = futureAppts.slice(1, 3);
-
-        const upcomingItems: { apt: any; label: string; icon: string; style: string }[] = [];
-        if (currentApt) upcomingItems.push({ apt: currentApt, label: 'Em atendimento', icon: '🔵', style: 'bg-blue-50 border-l-4 border-l-blue-500' });
-        if (nextApt) upcomingItems.push({ apt: nextApt, label: 'Próximo', icon: '⏭', style: 'bg-primary/5 border-l-4 border-l-primary' });
-        followingAppts.forEach(a => upcomingItems.push({ apt: a, label: 'Depois', icon: '🕒', style: 'bg-muted/50 border-l-4 border-l-muted-foreground' }));
-
-        if (upcomingItems.length === 0) return null;
-
-        return (
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-lg font-display flex items-center gap-2">
-                <Clock className="h-5 w-5" /> Próximos atendimentos
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {upcomingItems.map(({ apt, label, icon, style }) => (
-                  <div key={apt.id} className={cn('flex items-center gap-4 p-4 rounded-xl border transition-shadow', style)}>
-                    <div className="text-center min-w-[60px]">
-                      <p className="text-lg font-display font-bold">{format(parseISO(apt.start_time), 'HH:mm')}</p>
-                      <p className="text-xs text-muted-foreground">{format(parseISO(apt.end_time), 'HH:mm')}</p>
-                    </div>
-                    <div className="flex-1">
-                      <p className="font-semibold">{apt.client_name || apt.client?.name || 'Cliente'}</p>
-                      <p className="text-sm text-muted-foreground">
-                        {apt.appointment_services?.map((s: any) => s.service?.name).join(', ')}
-                      </p>
-                      {apt.promotion_id && (
-                        <span className="inline-flex items-center gap-1 text-xs font-medium px-1.5 py-0.5 rounded bg-orange-500/10 text-orange-500 mt-0.5">🔥 Promoção</span>
-                      )}
-                      <p className="text-xs text-muted-foreground">com {apt.professional?.full_name}</p>
-                    </div>
-                    <Badge variant="outline" className="text-xs whitespace-nowrap">
-                      {icon} {label}
-                    </Badge>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        );
-      })()}
+      {/* Próximos atendimentos - desktop only (already shown on mobile above) */}
+      <div className="hidden lg:block">
+        {renderUpcomingAppointments()}
+      </div>
 
       <Card>
         <CardHeader className="pb-3">
