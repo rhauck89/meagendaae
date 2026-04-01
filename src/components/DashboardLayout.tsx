@@ -165,7 +165,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
               <p className="text-xs text-sidebar-foreground/50 truncate">{profile?.email}</p>
             </div>
           </div>
-          <Button variant="ghost" size="sm" onClick={handleSignOut} className="w-full justify-start text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent">
+          <Button variant="ghost" size="sm" onClick={handleSignOut} className="w-full justify-start text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent/12">
             <LogOut className="h-4 w-4 mr-2" /> Sair
           </Button>
         </div>
