@@ -963,51 +963,48 @@ export type Database = {
       plans: {
         Row: {
           active: boolean
-          advanced_reports: boolean
-          appointments_limit: number
+          automatic_messages: boolean
           created_at: string
-          custom_branding: boolean
+          discount_coupons: boolean
           id: string
           members_limit: number
-          multi_location: boolean
           name: string
+          open_scheduling: boolean
           price: number
-          services_limit: number
+          promotions: boolean
           sort_order: number
           updated_at: string
-          whatsapp_reminders: boolean
+          whitelabel: boolean
         }
         Insert: {
           active?: boolean
-          advanced_reports?: boolean
-          appointments_limit?: number
+          automatic_messages?: boolean
           created_at?: string
-          custom_branding?: boolean
+          discount_coupons?: boolean
           id?: string
           members_limit?: number
-          multi_location?: boolean
           name: string
+          open_scheduling?: boolean
           price?: number
-          services_limit?: number
+          promotions?: boolean
           sort_order?: number
           updated_at?: string
-          whatsapp_reminders?: boolean
+          whitelabel?: boolean
         }
         Update: {
           active?: boolean
-          advanced_reports?: boolean
-          appointments_limit?: number
+          automatic_messages?: boolean
           created_at?: string
-          custom_branding?: boolean
+          discount_coupons?: boolean
           id?: string
           members_limit?: number
-          multi_location?: boolean
           name?: string
+          open_scheduling?: boolean
           price?: number
-          services_limit?: number
+          promotions?: boolean
           sort_order?: number
           updated_at?: string
-          whatsapp_reminders?: boolean
+          whitelabel?: boolean
         }
         Relationships: []
       }
