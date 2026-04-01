@@ -692,6 +692,7 @@ const Dashboard = () => {
   return (
     <div className="space-y-6">
       <TrialBanner />
+      <TutorialProgressWidget />
       {/* Próximos atendimentos - shown first on mobile only */}
       <div className="block lg:hidden">
         {renderUpcomingAppointments()}
