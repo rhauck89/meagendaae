@@ -4,12 +4,13 @@ import { useUserRole } from '@/hooks/useUserRole';
 import { useUserTicketCounts } from '@/hooks/useSupportTicketCounts';
 import {
   Calendar, Scissors, Users, BarChart3, Settings, LogOut, Menu, X, User, UserCheck,
-  PartyPopper, Megaphone, MessageSquare, ChevronDown, Building2, Clock, Zap, Palette, Globe, CreditCard, Bell,
+  PartyPopper, Megaphone, MessageSquare, ChevronDown, Building2, Clock, Zap, Palette, Globe, CreditCard, Bell, HelpCircle,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
 import CompanySetup from './CompanySetup';
+import { OnboardingPopup } from './OnboardingPopup';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 
 const adminNavItems = [
@@ -140,6 +141,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
 
           {renderNavLink({ href: '/dashboard/profile', icon: User, label: 'Meu Perfil' })}
           {isAdmin && renderNavLink({ href: '/dashboard/support', icon: MessageSquare, label: 'Suporte' }, unreadTickets)}
+          {renderNavLink({ href: '/dashboard/help', icon: HelpCircle, label: 'Central de Ajuda' })}
         </nav>
 
         <div className="p-4 border-t border-sidebar-border">
@@ -176,6 +178,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
         </header>
         <div className="flex-1 p-4 lg:p-8 overflow-auto">{children}</div>
       </main>
+      <OnboardingPopup />
     </div>
   );
 };

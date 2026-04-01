@@ -1877,6 +1877,66 @@ export type Database = {
           },
         ]
       }
+      tutorial_videos: {
+        Row: {
+          active: boolean
+          created_at: string
+          description: string | null
+          id: string
+          menu_reference: string | null
+          sort_order: number
+          title: string
+          updated_at: string
+          youtube_url: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          description?: string | null
+          id?: string
+          menu_reference?: string | null
+          sort_order?: number
+          title: string
+          updated_at?: string
+          youtube_url: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          description?: string | null
+          id?: string
+          menu_reference?: string | null
+          sort_order?: number
+          title?: string
+          updated_at?: string
+          youtube_url?: string
+        }
+        Relationships: []
+      }
+      user_onboarding: {
+        Row: {
+          completed: boolean
+          completed_at: string | null
+          created_at: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          completed?: boolean
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          completed?: boolean
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           company_id: string | null

@@ -40,7 +40,9 @@ import SuperAdminReports from "./pages/superadmin/SuperAdminReports";
 import SuperAdminSettings from "./pages/superadmin/SuperAdminSettings";
 import SuperAdminSupport from "./pages/superadmin/SuperAdminSupport";
 import SuperAdminSupportReports from "./pages/superadmin/SuperAdminSupportReports";
+import SuperAdminTutorials from "./pages/superadmin/SuperAdminTutorials";
 import Support from "./pages/Support";
+import HelpCenter from "./pages/HelpCenter";
 import PlansPage from "./pages/PlansPage";
 import NotFound from "./pages/NotFound";
 
@@ -115,6 +117,7 @@ const PlatformRoutes = () => (
     <Route path="/super-admin/settings" element={<RequireRole role="super_admin"><SuperAdminLayout><SuperAdminSettings /></SuperAdminLayout></RequireRole>} />
     <Route path="/super-admin/support" element={<RequireRole role="super_admin"><SuperAdminLayout><SuperAdminSupport /></SuperAdminLayout></RequireRole>} />
     <Route path="/super-admin/support/reports" element={<RequireRole role="super_admin"><SuperAdminLayout><SuperAdminSupportReports /></SuperAdminLayout></RequireRole>} />
+    <Route path="/super-admin/tutorials" element={<RequireRole role="super_admin"><SuperAdminLayout><SuperAdminTutorials /></SuperAdminLayout></RequireRole>} />
     <Route path="/admin/debug-agenda" element={<RequireRole role="super_admin"><DebugAgenda /></RequireRole>} />
     <Route path="/dashboard" element={<DashboardRoute><Dashboard /></DashboardRoute>} />
     <Route path="/dashboard/services" element={<DashboardRoute><Services /></DashboardRoute>} />
@@ -126,6 +129,7 @@ const PlatformRoutes = () => (
     <Route path="/dashboard/events" element={<DashboardRoute><Events /></DashboardRoute>} />
     <Route path="/dashboard/promotions" element={<DashboardRoute><Promotions /></DashboardRoute>} />
     <Route path="/dashboard/support" element={<DashboardRoute><Support /></DashboardRoute>} />
+    <Route path="/dashboard/help" element={<DashboardRoute><HelpCenter /></DashboardRoute>} />
     {/* Settings sub-routes */}
     <Route path="/dashboard/settings" element={<Navigate to="/dashboard/settings/general" replace />} />
     <Route path="/dashboard/settings/general" element={<DashboardRoute><SettingsGeneral /></DashboardRoute>} />
