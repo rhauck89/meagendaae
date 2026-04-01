@@ -398,7 +398,9 @@ const SuperAdminFinance = () => {
                         <TableCell className="font-medium text-sm">
                           <div className="flex items-center gap-1.5">
                             {(e.is_recurring || e.parent_recurring_id) && (
-                              <Repeat className="h-3.5 w-3.5 text-primary shrink-0" title={e.is_recurring ? `Recorrente: ${recurrenceLabel(e.recurrence_type)}` : 'Gerado por recorrência'} />
+                              <span title={e.is_recurring ? `Recorrente: ${recurrenceLabel(e.recurrence_type)}` : 'Gerado por recorrência'}>
+                                <Repeat className="h-3.5 w-3.5 text-primary shrink-0" />
+                              </span>
                             )}
                             {e.description}
                           </div>
