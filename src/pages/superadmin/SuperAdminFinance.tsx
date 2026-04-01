@@ -42,6 +42,27 @@ const SuperAdminFinance = () => {
 
   const [deleteTarget, setDeleteTarget] = useState<{ type: string; id: string } | null>(null);
 
+  // Inline quick category creation
+  const [quickCatOpen, setQuickCatOpen] = useState(false);
+  const [quickCatForm, setQuickCatForm] = useState({ name: '', type: 'expense' });
+  const [quickCatTarget, setQuickCatTarget] = useState<'expense' | 'revenue'>('expense');
+
+  const saveQuickCat = async () => {
+    if (!quickCatForm.name.trim()) { toast.error('Nome obrigatório'); return; }
+    const { data } = await supabase.from('expense_categories').insert({ name: quickCatForm.name, description: null, type: quickCatForm.type } as any).select().single();
+    if (data) {
+      const newCat = data as unknown as ExpenseCategory;
+      setCategories(prev => [...prev, newCat].sort((a, b) => a.name.localeCompare(b.name)));
+      if (quickCatTarget === 'expense') {
+        setExpForm(f => ({ ...f, category_id: newCat.id }));
+      } else {
+        setRevForm(f => ({ ...f, source: newCat.name }));
+      }
+      toast.success('Categoria criada');
+    }
+    setQuickCatOpen(false);
+  };
+
   const fetchAll = async () => {
     const [catRes, expRes, revRes, compRes] = await Promise.all([
       supabase.from('expense_categories').select('*').order('name'),
@@ -435,12 +456,17 @@ const SuperAdminFinance = () => {
             </div>
             <div className="space-y-1">
               <Label className="text-xs">Categoria</Label>
-              <Select value={expForm.category_id} onValueChange={v => setExpForm(f => ({ ...f, category_id: v }))}>
-                <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-                <SelectContent>
-                  {categories.filter(c => c.type === 'expense' || c.type === 'both').map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
-                </SelectContent>
-              </Select>
+              <div className="flex gap-2">
+                <Select value={expForm.category_id} onValueChange={v => setExpForm(f => ({ ...f, category_id: v }))}>
+                  <SelectTrigger className="flex-1"><SelectValue placeholder="Selecione" /></SelectTrigger>
+                  <SelectContent>
+                    {categories.filter(c => c.type === 'expense' || c.type === 'both').map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+                <Button type="button" variant="outline" size="sm" className="shrink-0 gap-1 text-xs" onClick={() => { setQuickCatTarget('expense'); setQuickCatForm({ name: '', type: 'expense' }); setQuickCatOpen(true); }}>
+                  <Plus className="h-3 w-3" /> Nova
+                </Button>
+              </div>
             </div>
             <div className="space-y-1">
               <Label className="text-xs">Observações</Label>
@@ -475,12 +501,17 @@ const SuperAdminFinance = () => {
             </div>
             <div className="space-y-1">
               <Label className="text-xs">Categoria</Label>
-              <Select value={revForm.source} onValueChange={v => setRevForm(f => ({ ...f, source: v }))}>
-                <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-                <SelectContent>
-                  {categories.filter(c => c.type === 'revenue' || c.type === 'both').map(c => <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>)}
-                </SelectContent>
-              </Select>
+              <div className="flex gap-2">
+                <Select value={revForm.source} onValueChange={v => setRevForm(f => ({ ...f, source: v }))}>
+                  <SelectTrigger className="flex-1"><SelectValue placeholder="Selecione" /></SelectTrigger>
+                  <SelectContent>
+                    {categories.filter(c => c.type === 'revenue' || c.type === 'both').map(c => <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+                <Button type="button" variant="outline" size="sm" className="shrink-0 gap-1 text-xs" onClick={() => { setQuickCatTarget('revenue'); setQuickCatForm({ name: '', type: 'revenue' }); setQuickCatOpen(true); }}>
+                  <Plus className="h-3 w-3" /> Nova
+                </Button>
+              </div>
             </div>
             <div className="space-y-1">
               <Label className="text-xs">Observações</Label>
@@ -502,6 +533,34 @@ const SuperAdminFinance = () => {
           <DialogFooter>
             <Button variant="outline" onClick={() => setDeleteTarget(null)}>Cancelar</Button>
             <Button variant="destructive" onClick={handleDelete}>Excluir</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Quick Category Dialog */}
+      <Dialog open={quickCatOpen} onOpenChange={setQuickCatOpen}>
+        <DialogContent className="max-w-xs">
+          <DialogHeader><DialogTitle>Nova Categoria</DialogTitle></DialogHeader>
+          <div className="space-y-3">
+            <div className="space-y-1">
+              <Label className="text-xs">Nome</Label>
+              <Input value={quickCatForm.name} onChange={e => setQuickCatForm(f => ({ ...f, name: e.target.value }))} autoFocus />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Tipo</Label>
+              <Select value={quickCatForm.type} onValueChange={v => setQuickCatForm(f => ({ ...f, type: v }))}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="expense">Despesa</SelectItem>
+                  <SelectItem value="revenue">Receita</SelectItem>
+                  <SelectItem value="both">Ambos</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" size="sm" onClick={() => setQuickCatOpen(false)}>Cancelar</Button>
+            <Button size="sm" onClick={saveQuickCat}>Criar</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
