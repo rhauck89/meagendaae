@@ -1019,6 +1019,154 @@ export type Database = {
           },
         ]
       }
+      promotion_bookings: {
+        Row: {
+          appointment_id: string | null
+          client_id: string | null
+          company_id: string
+          created_at: string
+          id: string
+          promotion_id: string
+        }
+        Insert: {
+          appointment_id?: string | null
+          client_id?: string | null
+          company_id: string
+          created_at?: string
+          id?: string
+          promotion_id: string
+        }
+        Update: {
+          appointment_id?: string | null
+          client_id?: string | null
+          company_id?: string
+          created_at?: string
+          id?: string
+          promotion_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "promotion_bookings_appointment_id_fkey"
+            columns: ["appointment_id"]
+            isOneToOne: false
+            referencedRelation: "appointments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "promotion_bookings_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "promotion_bookings_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "promotion_bookings_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "public_company"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "promotion_bookings_promotion_id_fkey"
+            columns: ["promotion_id"]
+            isOneToOne: false
+            referencedRelation: "promotions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "promotion_bookings_promotion_id_fkey"
+            columns: ["promotion_id"]
+            isOneToOne: false
+            referencedRelation: "public_promotions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      promotions: {
+        Row: {
+          client_filter: string
+          client_filter_value: number | null
+          company_id: string
+          created_at: string
+          description: string | null
+          end_date: string
+          end_time: string | null
+          id: string
+          max_slots: number
+          message_template: string | null
+          professional_filter: string
+          professional_ids: string[] | null
+          start_date: string
+          start_time: string | null
+          status: string
+          title: string
+          updated_at: string
+          used_slots: number
+        }
+        Insert: {
+          client_filter?: string
+          client_filter_value?: number | null
+          company_id: string
+          created_at?: string
+          description?: string | null
+          end_date: string
+          end_time?: string | null
+          id?: string
+          max_slots?: number
+          message_template?: string | null
+          professional_filter?: string
+          professional_ids?: string[] | null
+          start_date: string
+          start_time?: string | null
+          status?: string
+          title: string
+          updated_at?: string
+          used_slots?: number
+        }
+        Update: {
+          client_filter?: string
+          client_filter_value?: number | null
+          company_id?: string
+          created_at?: string
+          description?: string | null
+          end_date?: string
+          end_time?: string | null
+          id?: string
+          max_slots?: number
+          message_template?: string | null
+          professional_filter?: string
+          professional_ids?: string[] | null
+          start_date?: string
+          start_time?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+          used_slots?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "promotions_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "promotions_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "public_company"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       reviews: {
         Row: {
           appointment_id: string | null
@@ -1561,6 +1709,63 @@ export type Database = {
           },
           {
             foreignKeyName: "collaborators_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "public_company"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      public_promotions: {
+        Row: {
+          company_id: string | null
+          description: string | null
+          end_date: string | null
+          end_time: string | null
+          id: string | null
+          max_slots: number | null
+          start_date: string | null
+          start_time: string | null
+          status: string | null
+          title: string | null
+          used_slots: number | null
+        }
+        Insert: {
+          company_id?: string | null
+          description?: string | null
+          end_date?: string | null
+          end_time?: string | null
+          id?: string | null
+          max_slots?: number | null
+          start_date?: string | null
+          start_time?: string | null
+          status?: string | null
+          title?: string | null
+          used_slots?: number | null
+        }
+        Update: {
+          company_id?: string | null
+          description?: string | null
+          end_date?: string | null
+          end_time?: string | null
+          id?: string | null
+          max_slots?: number | null
+          start_date?: string | null
+          start_time?: string | null
+          status?: string | null
+          title?: string | null
+          used_slots?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "promotions_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "promotions_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "public_company"

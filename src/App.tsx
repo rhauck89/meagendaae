@@ -29,6 +29,7 @@ import ProfilePage from "./pages/ProfilePage";
 import Clients from "./pages/Clients";
 import Events from "./pages/Events";
 import EventPublic from "./pages/EventPublic";
+import Promotions from "./pages/Promotions";
 import DashboardLayout from "./components/DashboardLayout";
 import NotFound from "./pages/NotFound";
 
@@ -113,6 +114,7 @@ const PlatformRoutes = () => (
     <Route path="/dashboard/clients" element={<DashboardRoute><Clients /></DashboardRoute>} />
     <Route path="/dashboard/profile" element={<DashboardRoute><ProfilePage /></DashboardRoute>} />
     <Route path="/dashboard/events" element={<DashboardRoute><Events /></DashboardRoute>} />
+    <Route path="/dashboard/promotions" element={<DashboardRoute><Promotions /></DashboardRoute>} />
     <Route path="/event/:eventSlug" element={<EventPublic />} />
     <Route path="*" element={<NotFound />} />
   </Routes>

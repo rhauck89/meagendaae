@@ -62,6 +62,7 @@ export default function BarbershopLanding({ routeBusinessType, customSlug }: Bar
   const [showAllReviews, setShowAllReviews] = useState(false);
   const [allReviewsList, setAllReviewsList] = useState<any[]>([]);
   const [companyEvents, setCompanyEvents] = useState<any[]>([]);
+  const [companyPromotions, setCompanyPromotions] = useState<any[]>([]);
 
   const isDark = businessType === 'barbershop';
 
@@ -84,7 +85,7 @@ export default function BarbershopLanding({ routeBusinessType, customSlug }: Bar
     const resolvedType: BusinessType = routeBusinessType || comp.business_type || 'barbershop';
     setBusinessType(resolvedType);
 
-    const [servicesRes, profsRes, ratingsRes, reviewsRes, settingsRes, galleryRes, eventsRes] = await Promise.all([
+    const [servicesRes, profsRes, ratingsRes, reviewsRes, settingsRes, galleryRes, eventsRes, promosRes] = await Promise.all([
       supabase.from('public_services' as any).select('*').eq('company_id', comp.id).order('name'),
       supabase.from('public_professionals' as any).select('*').eq('company_id', comp.id).eq('active', true),
       supabase.rpc('get_professional_ratings' as any, { p_company_id: comp.id }),
@@ -92,6 +93,7 @@ export default function BarbershopLanding({ routeBusinessType, customSlug }: Bar
       supabase.from('company_settings' as any).select('*').eq('company_id', comp.id).single(),
       supabase.from('company_gallery' as any).select('*').eq('company_id', comp.id).order('sort_order'),
       supabase.from('events' as any).select('*').eq('company_id', comp.id).eq('status', 'published').order('start_date') as any,
+      supabase.from('public_promotions' as any).select('*').eq('company_id', comp.id).order('start_date') as any,
     ]);
 
     if (servicesRes.data) setServices(servicesRes.data as any[]);
@@ -125,6 +127,11 @@ export default function BarbershopLanding({ routeBusinessType, customSlug }: Bar
       } else {
         setCompanyEvents([]);
       }
+    }
+
+    // Load promotions
+    if (promosRes.data) {
+      setCompanyPromotions(promosRes.data as any[]);
     }
 
     // Ratings map
@@ -492,7 +499,52 @@ export default function BarbershopLanding({ routeBusinessType, customSlug }: Bar
           </section>
         )}
 
-        {/* 9) Address & Map */}
+        {/* Promoções */}
+        {companyPromotions.length > 0 && (
+          <section>
+            <div className="flex items-center gap-2 mb-4">
+              <Sparkles className="w-5 h-5" style={{ color: T.accent }} />
+              <h2 className="text-lg font-bold" style={{ color: T.text }}>Promoções</h2>
+            </div>
+            <div className="space-y-3">
+              {companyPromotions.map((promo: any) => {
+                const remaining = promo.max_slots > 0 ? promo.max_slots - promo.used_slots : null;
+                const isLow = remaining !== null && remaining > 0 && remaining <= 5;
+                return (
+                  <div
+                    key={promo.id}
+                    className="rounded-xl p-4"
+                    style={{ background: T.card, border: `1px solid ${T.border}` }}
+                  >
+                    <p className="font-bold" style={{ color: T.text }}>{promo.title}</p>
+                    {promo.description && (
+                      <p className="text-sm mt-1 line-clamp-2" style={{ color: T.textSec }}>{promo.description}</p>
+                    )}
+                    <p className="text-sm mt-1" style={{ color: T.textSec }}>
+                      📅 {format(parseISO(promo.start_date), "dd/MM/yyyy", { locale: ptBR })}
+                      {promo.start_date !== promo.end_date && ` - ${format(parseISO(promo.end_date), "dd/MM/yyyy", { locale: ptBR })}`}
+                    </p>
+                    {promo.start_time && promo.end_time && (
+                      <p className="text-sm" style={{ color: T.textSec }}>
+                        ⏰ {promo.start_time.slice(0, 5)} - {promo.end_time.slice(0, 5)}
+                      </p>
+                    )}
+                    {remaining !== null && (
+                      <p className={cn('text-sm font-semibold mt-2',
+                        remaining === 0 ? 'text-destructive' : isLow ? 'text-orange-500' : ''
+                      )} style={remaining > 5 ? { color: T.accent } : undefined}>
+                        {remaining === 0 ? '❌ Esgotado' :
+                         isLow ? `🔥 Últimas ${remaining} vagas` :
+                         `${remaining} vagas disponíveis`}
+                      </p>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+        )}
+
         <LocationBlock company={company} isDark={isDark} />
 
         {/* Social Links */}
