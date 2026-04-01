@@ -717,9 +717,10 @@ export default function Promotions() {
                       <div className="flex items-start justify-between">
                         <CardTitle className="text-lg">{promo.title}</CardTitle>
                         <div className="flex gap-1">
-                          {isActive && <Badge className="bg-emerald-600 text-white">Ativa</Badge>}
+                          {isScheduled(promo) && <Badge className="bg-blue-600 text-white">Programada</Badge>}
+                          {isActivePromo(promo) && <Badge className="bg-emerald-600 text-white">Ativa</Badge>}
                           {promo.status === 'paused' && <Badge variant="secondary">Pausada</Badge>}
-                          {isExpired && <Badge variant="outline">Expirada</Badge>}
+                          {isExpiredPromo(promo) && <Badge variant="outline">Expirada</Badge>}
                         </div>
                       </div>
                     </CardHeader>
