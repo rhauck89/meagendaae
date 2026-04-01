@@ -1033,12 +1033,6 @@ const Dashboard = () => {
                             <Badge variant="outline" className={cn('text-xs', statusColors[displayStatus])}>
                               {statusLabels[displayStatus]}
                             </Badge>
-                            {displayStatus === 'late' && (
-                              <Badge variant="outline" className="text-xs border-warning bg-warning/10 text-warning">
-                                <AlertCircle className="h-3 w-3 mr-1" />
-                                Atrasado
-                              </Badge>
-                            )}
                             {apt.rescheduled_from_id && (
                               <Tooltip>
                                 <TooltipTrigger asChild>
