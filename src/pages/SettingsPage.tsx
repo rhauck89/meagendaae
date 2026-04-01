@@ -401,12 +401,22 @@ const SettingsPage = () => {
               <Input value={companyDistrict} onChange={(e) => setCompanyDistrict(e.target.value)} />
             </div>
             <div className="space-y-1">
-              <Label className="text-xs">Cidade</Label>
-              <Input value={companyCity} onChange={(e) => setCompanyCity(e.target.value)} />
+              <Label className="text-xs">Estado</Label>
+              <Select value={companyState} onValueChange={(v) => { setCompanyState(v); setCompanyCity(''); }}>
+                <SelectTrigger><SelectValue placeholder="Selecione o estado" /></SelectTrigger>
+                <SelectContent>
+                  {brStates.map(s => <SelectItem key={s.id} value={s.uf}>{s.name} ({s.uf})</SelectItem>)}
+                </SelectContent>
+              </Select>
             </div>
             <div className="space-y-1">
-              <Label className="text-xs">Estado</Label>
-              <Input value={companyState} onChange={(e) => setCompanyState(e.target.value)} placeholder="SP" />
+              <Label className="text-xs">Cidade</Label>
+              <Select value={companyCity} onValueChange={setCompanyCity} disabled={!companyState || loadingCities}>
+                <SelectTrigger><SelectValue placeholder={loadingCities ? 'Carregando...' : 'Selecione a cidade'} /></SelectTrigger>
+                <SelectContent>
+                  {brCities.map(c => <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
             </div>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
