@@ -805,6 +805,7 @@ const Dashboard = () => {
             </div>
           </CardContent>
         </Card>
+        </div>
       </div>
 
       {/* Monthly Stats */}
