@@ -202,7 +202,7 @@ const Reports = () => {
                 </SelectContent>
               </Select>
               <Select value={filterService} onValueChange={setFilterService}>
-                <SelectTrigger className="w-[180px]">
+                <SelectTrigger className="w-full sm:w-[180px]">
                   <SelectValue placeholder="Serviço" />
                 </SelectTrigger>
                 <SelectContent>
