@@ -1056,23 +1056,37 @@ const Dashboard = () => {
                             )}
                           </div>
                           <div className="flex gap-1 flex-wrap">
-                            {apt.status === 'pending' && (
+                            {(displayStatus === 'in_progress' || displayStatus === 'late') && (
+                              <Button
+                                size="sm"
+                                className="bg-success hover:bg-success/90 text-white"
+                                onClick={() => {
+                                  setCompleteTarget(apt);
+                                  setCompleteDialogOpen(true);
+                                }}
+                              >
+                                ✓ Concluir atendimento
+                              </Button>
+                            )}
+                            {apt.status === 'pending' && displayStatus !== 'late' && (
                               <Button size="sm" onClick={() => updateStatus(apt.id, 'confirmed')}>
                                 Confirmar
                               </Button>
                             )}
+                            {(apt.status === 'pending' || apt.status === 'confirmed') && displayStatus !== 'in_progress' && displayStatus !== 'late' && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => {
+                                  setCompleteTarget(apt);
+                                  setCompleteDialogOpen(true);
+                                }}
+                              >
+                                Concluir
+                              </Button>
+                            )}
                             {(apt.status === 'pending' || apt.status === 'confirmed') && (
                               <>
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => {
-                                    setCompleteTarget(apt);
-                                    setCompleteDialogOpen(true);
-                                  }}
-                                >
-                                  Concluir
-                                </Button>
                                 <Button
                                   size="sm"
                                   variant="outline"
