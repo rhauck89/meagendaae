@@ -2,9 +2,10 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUserRole } from '@/hooks/useUserRole';
 import { useUserTicketCounts } from '@/hooks/useSupportTicketCounts';
+import { usePlatformMessages } from '@/hooks/usePlatformMessages';
 import {
   Calendar, Scissors, Users, BarChart3, Settings, LogOut, Menu, X, User, UserCheck,
-  PartyPopper, Megaphone, MessageSquare, ChevronDown, Building2, Clock, Zap, Palette, Globe, CreditCard, Bell, HelpCircle,
+  PartyPopper, Megaphone, MessageSquare, ChevronDown, Building2, Clock, Zap, Palette, Globe, CreditCard, Bell, HelpCircle, Info, AlertTriangle,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useState } from 'react';
@@ -12,6 +13,10 @@ import { cn } from '@/lib/utils';
 import CompanySetup from './CompanySetup';
 import { OnboardingPopup } from './OnboardingPopup';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Badge } from '@/components/ui/badge';
+import { format } from 'date-fns';
 
 const adminNavItems = [
   { href: '/dashboard', icon: Calendar, label: 'Agenda' },
