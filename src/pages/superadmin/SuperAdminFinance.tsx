@@ -30,7 +30,7 @@ const SuperAdminFinance = () => {
   // Dialogs
   const [catDialogOpen, setCatDialogOpen] = useState(false);
   const [editingCat, setEditingCat] = useState<ExpenseCategory | null>(null);
-  const [catForm, setCatForm] = useState({ name: '', description: '' });
+  const [catForm, setCatForm] = useState({ name: '', description: '', type: 'expense' });
 
   const [expDialogOpen, setExpDialogOpen] = useState(false);
   const [editingExp, setEditingExp] = useState<Expense | null>(null);
