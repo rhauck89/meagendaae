@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import CurrentPlanCard from '@/components/CurrentPlanCard';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -284,6 +285,9 @@ const SettingsPage = () => {
         <h2 className="text-xl font-display font-bold">Configurações</h2>
         <p className="text-sm text-muted-foreground">Horários, lembretes e automações</p>
       </div>
+
+      {/* Current Plan */}
+      <CurrentPlanCard />
 
       {/* Company Profile - Empresa */}
       <Card>

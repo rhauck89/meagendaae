@@ -40,6 +40,7 @@ import SuperAdminPlans from "./pages/superadmin/SuperAdminPlans";
 import SuperAdminFinance from "./pages/superadmin/SuperAdminFinance";
 import SuperAdminReports from "./pages/superadmin/SuperAdminReports";
 import SuperAdminSettings from "./pages/superadmin/SuperAdminSettings";
+import PlansPage from "./pages/PlansPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -133,6 +134,7 @@ const PlatformRoutes = () => (
     <Route path="/dashboard/profile" element={<DashboardRoute><ProfilePage /></DashboardRoute>} />
     <Route path="/dashboard/events" element={<DashboardRoute><Events /></DashboardRoute>} />
     <Route path="/dashboard/promotions" element={<DashboardRoute><Promotions /></DashboardRoute>} />
+    <Route path="/settings/plans" element={<ProtectedRoute><PlansPage /></ProtectedRoute>} />
     <Route path="/event/:eventSlug" element={<EventPublic />} />
     <Route path="*" element={<NotFound />} />
   </Routes>

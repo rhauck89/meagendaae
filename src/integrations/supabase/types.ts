@@ -483,6 +483,7 @@ export type Database = {
         Row: {
           address: string | null
           address_number: string | null
+          billing_cycle: string
           birthday_discount_type: string
           birthday_discount_value: number
           birthday_enabled: boolean
@@ -513,6 +514,9 @@ export type Database = {
           stripe_subscription_id: string | null
           subscription_status: Database["public"]["Enums"]["subscription_status"]
           timezone: string
+          trial_active: boolean
+          trial_end_date: string | null
+          trial_start_date: string | null
           updated_at: string
           website: string | null
           whatsapp: string | null
@@ -520,6 +524,7 @@ export type Database = {
         Insert: {
           address?: string | null
           address_number?: string | null
+          billing_cycle?: string
           birthday_discount_type?: string
           birthday_discount_value?: number
           birthday_enabled?: boolean
@@ -550,6 +555,9 @@ export type Database = {
           stripe_subscription_id?: string | null
           subscription_status?: Database["public"]["Enums"]["subscription_status"]
           timezone?: string
+          trial_active?: boolean
+          trial_end_date?: string | null
+          trial_start_date?: string | null
           updated_at?: string
           website?: string | null
           whatsapp?: string | null
@@ -557,6 +565,7 @@ export type Database = {
         Update: {
           address?: string | null
           address_number?: string | null
+          billing_cycle?: string
           birthday_discount_type?: string
           birthday_discount_value?: number
           birthday_enabled?: boolean
@@ -587,6 +596,9 @@ export type Database = {
           stripe_subscription_id?: string | null
           subscription_status?: Database["public"]["Enums"]["subscription_status"]
           timezone?: string
+          trial_active?: boolean
+          trial_end_date?: string | null
+          trial_start_date?: string | null
           updated_at?: string
           website?: string | null
           whatsapp?: string | null
