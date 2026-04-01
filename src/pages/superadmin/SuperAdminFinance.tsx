@@ -366,7 +366,7 @@ const SuperAdminFinance = () => {
                           <div className="flex gap-1">
                             <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => {
                               setEditingCat(c);
-                              setCatForm({ name: c.name, description: c.description || '' });
+                              setCatForm({ name: c.name, description: c.description || '', type: c.type || 'expense' });
                               setCatDialogOpen(true);
                             }}><Pencil className="h-3.5 w-3.5" /></Button>
                             <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => setDeleteTarget({ type: 'category', id: c.id })}><Trash2 className="h-3.5 w-3.5" /></Button>
