@@ -1767,6 +1767,33 @@ export type Database = {
       }
     }
     Views: {
+      public_blocked_times: {
+        Row: {
+          block_date: string | null
+          company_id: string | null
+          end_time: string | null
+          id: string | null
+          professional_id: string | null
+          start_time: string | null
+        }
+        Insert: {
+          block_date?: string | null
+          company_id?: string | null
+          end_time?: string | null
+          id?: string | null
+          professional_id?: string | null
+          start_time?: string | null
+        }
+        Update: {
+          block_date?: string | null
+          company_id?: string | null
+          end_time?: string | null
+          id?: string | null
+          professional_id?: string | null
+          start_time?: string | null
+        }
+        Relationships: []
+      }
       public_company: {
         Row: {
           address: string | null
@@ -1794,6 +1821,51 @@ export type Database = {
           whatsapp: string | null
         }
         Relationships: []
+      }
+      public_company_settings: {
+        Row: {
+          background_color: string | null
+          booking_buffer_minutes: number | null
+          company_id: string | null
+          logo_url: string | null
+          primary_color: string | null
+          secondary_color: string | null
+          timezone: string | null
+        }
+        Insert: {
+          background_color?: string | null
+          booking_buffer_minutes?: number | null
+          company_id?: string | null
+          logo_url?: string | null
+          primary_color?: string | null
+          secondary_color?: string | null
+          timezone?: string | null
+        }
+        Update: {
+          background_color?: string | null
+          booking_buffer_minutes?: number | null
+          company_id?: string | null
+          logo_url?: string | null
+          primary_color?: string | null
+          secondary_color?: string | null
+          timezone?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_settings_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: true
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_settings_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: true
+            referencedRelation: "public_company"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       public_professionals: {
         Row: {
