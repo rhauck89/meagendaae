@@ -84,7 +84,7 @@ const SuperAdminPlans = () => {
 
   const handleSave = async () => {
     if (!form.name.trim()) { toast.error('Nome é obrigatório'); return; }
-    if (form.price < 0) { toast.error('Preço inválido'); return; }
+    if (form.monthly_price < 0) { toast.error('Preço inválido'); return; }
 
     if (editingPlan) {
       const { error } = await supabase.from('plans').update(form as any).eq('id', editingPlan.id);
