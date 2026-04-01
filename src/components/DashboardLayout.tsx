@@ -2,9 +2,10 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUserRole } from '@/hooks/useUserRole';
 import { useUserTicketCounts } from '@/hooks/useSupportTicketCounts';
+import { usePlatformMessages } from '@/hooks/usePlatformMessages';
 import {
   Calendar, Scissors, Users, BarChart3, Settings, LogOut, Menu, X, User, UserCheck,
-  PartyPopper, Megaphone, MessageSquare, ChevronDown, Building2, Clock, Zap, Palette, Globe, CreditCard, Bell, HelpCircle,
+  PartyPopper, Megaphone, MessageSquare, ChevronDown, Building2, Clock, Zap, Palette, Globe, CreditCard, Bell, HelpCircle, Info, AlertTriangle,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useState } from 'react';
@@ -12,6 +13,10 @@ import { cn } from '@/lib/utils';
 import CompanySetup from './CompanySetup';
 import { OnboardingPopup } from './OnboardingPopup';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Badge } from '@/components/ui/badge';
+import { format } from 'date-fns';
 
 const adminNavItems = [
   { href: '/dashboard', icon: Calendar, label: 'Agenda' },
@@ -46,6 +51,8 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const unreadTickets = useUserTicketCounts();
+  const { data: platformMessages } = usePlatformMessages();
+  const totalNotifications = (unreadTickets || 0) + (platformMessages?.length || 0);
 
   const isSettingsActive = location.pathname.startsWith('/dashboard/settings');
   const [settingsOpen, setSettingsOpen] = useState(isSettingsActive);
@@ -164,19 +171,64 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
         <header className="h-16 border-b flex items-center px-4 lg:px-8 bg-card">
           <button className="lg:hidden mr-4" onClick={() => setSidebarOpen(true)}><Menu className="h-6 w-6" /></button>
           <h1 className="text-lg font-display font-semibold flex-1">{currentLabel}</h1>
-          {unreadTickets > 0 && (
-            <button
-              onClick={() => navigate('/dashboard/support')}
-              className="relative p-2 rounded-lg hover:bg-muted transition-colors"
-            >
-              <Bell className="h-5 w-5 text-muted-foreground" />
-              <span className="absolute -top-0.5 -right-0.5 min-w-4 h-4 px-1 flex items-center justify-center rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold">
-                {unreadTickets}
-              </span>
-            </button>
-          )}
+          <Popover>
+            <PopoverTrigger asChild>
+              <button className="relative p-2 rounded-lg hover:bg-muted transition-colors">
+                <Bell className="h-5 w-5 text-muted-foreground" />
+                {totalNotifications > 0 && (
+                  <span className="absolute -top-0.5 -right-0.5 min-w-4 h-4 px-1 flex items-center justify-center rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold">
+                    {totalNotifications}
+                  </span>
+                )}
+              </button>
+            </PopoverTrigger>
+            <PopoverContent className="w-80 p-0" align="end">
+              <div className="p-3 border-b"><h3 className="font-semibold text-sm">Notificações</h3></div>
+              <ScrollArea className="max-h-80">
+                {unreadTickets > 0 && (
+                  <button onClick={() => navigate('/dashboard/support')} className="w-full text-left px-3 py-2.5 hover:bg-muted border-b flex items-center gap-2">
+                    <MessageSquare className="h-4 w-4 text-primary shrink-0" />
+                    <span className="text-sm">{unreadTickets} ticket(s) com atualização</span>
+                  </button>
+                )}
+                {platformMessages?.map((msg: any) => (
+                  <div key={msg.id} className="px-3 py-2.5 border-b last:border-0">
+                    <div className="flex items-start gap-2">
+                      {msg.type === 'warning' ? <AlertTriangle className="h-4 w-4 text-yellow-500 shrink-0 mt-0.5" /> : <Info className="h-4 w-4 text-primary shrink-0 mt-0.5" />}
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium">{msg.title}</p>
+                        <p className="text-xs text-muted-foreground line-clamp-2">{msg.content}</p>
+                        <p className="text-[10px] text-muted-foreground mt-1">{format(new Date(msg.created_at), 'dd/MM/yyyy HH:mm')}</p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+                {totalNotifications === 0 && (
+                  <p className="text-center text-sm text-muted-foreground py-6">Nenhuma notificação</p>
+                )}
+              </ScrollArea>
+            </PopoverContent>
+          </Popover>
         </header>
-        <div className="flex-1 p-4 lg:p-8 overflow-auto">{children}</div>
+        <div className="flex-1 p-4 lg:p-8 overflow-auto">
+          {platformMessages && platformMessages.length > 0 && (
+            <div className="mb-4 space-y-2">
+              {platformMessages.slice(0, 3).map((msg: any) => (
+                <div key={msg.id} className={cn(
+                  'flex items-start gap-3 p-3 rounded-lg border text-sm',
+                  msg.type === 'warning' ? 'bg-yellow-500/5 border-yellow-500/20' : 'bg-primary/5 border-primary/20'
+                )}>
+                  {msg.type === 'warning' ? <AlertTriangle className="h-4 w-4 text-yellow-500 shrink-0 mt-0.5" /> : <Megaphone className="h-4 w-4 text-primary shrink-0 mt-0.5" />}
+                  <div>
+                    <p className="font-medium">{msg.title}</p>
+                    <p className="text-muted-foreground text-xs mt-0.5">{msg.content}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+          {children}
+        </div>
       </main>
       <OnboardingPopup />
     </div>
