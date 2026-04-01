@@ -1038,13 +1038,17 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
               <p className="text-sm mt-1" style={{ color: T.textSec }}>{isPromoMode ? 'Este serviço está incluído na promoção' : 'Selecione um ou mais serviços desejados'}</p>
             </div>
             <div className="space-y-3">
-              {services.map((svc) => {
+              {(isPromoMode && promoData?.service_id
+                ? services.filter(s => s.id === promoData.service_id)
+                : services
+              ).map((svc) => {
                 const sel = selectedServices.includes(svc.id);
+                const isLocked = isPromoMode && promoData?.service_id === svc.id;
                 return (
                   <div
                     key={svc.id}
-                    onClick={() => toggleService(svc.id)}
-                    className="p-4 rounded-2xl cursor-pointer transition-all duration-200 hover:scale-[1.01]"
+                    onClick={() => !isLocked && toggleService(svc.id)}
+                    className={`p-4 rounded-2xl transition-all duration-200 ${isLocked ? '' : 'cursor-pointer hover:scale-[1.01]'}`}
                     style={{
                       background: sel ? `${T.accent}10` : T.card,
                       border: `1.5px solid ${sel ? T.accent : T.border}`,
@@ -1061,7 +1065,14 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                           <Clock className="h-3.5 w-3.5" /> {svc.duration_minutes} min
                         </span>
                       </div>
-                      <p className="font-bold text-lg shrink-0" style={{ color: T.accent }}>R$ {Number(svc.price).toFixed(2)}</p>
+                      {isPromoMode && promoData?.original_price != null && promoData?.promotion_price != null ? (
+                        <div className="text-right shrink-0">
+                          <p className="text-sm line-through" style={{ color: T.textSec }}>R$ {Number(promoData.original_price).toFixed(2)}</p>
+                          <p className="font-bold text-lg" style={{ color: T.accent }}>R$ {Number(promoData.promotion_price).toFixed(2)}</p>
+                        </div>
+                      ) : (
+                        <p className="font-bold text-lg shrink-0" style={{ color: T.accent }}>R$ {Number(svc.price).toFixed(2)}</p>
+                      )}
                     </div>
                   </div>
                 );
