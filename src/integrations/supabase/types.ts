@@ -217,6 +217,50 @@ export type Database = {
         }
         Relationships: []
       }
+      brazilian_cities: {
+        Row: {
+          id: number
+          name: string
+          state_id: number
+        }
+        Insert: {
+          id?: number
+          name: string
+          state_id: number
+        }
+        Update: {
+          id?: number
+          name?: string
+          state_id?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "brazilian_cities_state_id_fkey"
+            columns: ["state_id"]
+            isOneToOne: false
+            referencedRelation: "brazilian_states"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      brazilian_states: {
+        Row: {
+          id: number
+          name: string
+          uf: string
+        }
+        Insert: {
+          id?: number
+          name: string
+          uf: string
+        }
+        Update: {
+          id?: number
+          name?: string
+          uf?: string
+        }
+        Relationships: []
+      }
       business_exceptions: {
         Row: {
           close_time: string | null

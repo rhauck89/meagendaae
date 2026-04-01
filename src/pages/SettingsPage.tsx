@@ -41,6 +41,9 @@ const SettingsPage = () => {
   const [companyDistrict, setCompanyDistrict] = useState('');
   const [companyCity, setCompanyCity] = useState('');
   const [companyState, setCompanyState] = useState('');
+  const [brStates, setBrStates] = useState<{ id: number; name: string; uf: string }[]>([]);
+  const [brCities, setBrCities] = useState<{ id: number; name: string }[]>([]);
+  const [loadingCities, setLoadingCities] = useState(false);
   const [companyPostalCode, setCompanyPostalCode] = useState('');
   const [companyGoogleMapsUrl, setCompanyGoogleMapsUrl] = useState('');
 
@@ -137,6 +140,25 @@ const SettingsPage = () => {
       setBrandBackgroundColor((settingsRes.data as any).background_color || '#0B132B');
     }
   };
+
+  // Fetch Brazilian states on mount
+  useEffect(() => {
+    supabase.from('brazilian_states' as any).select('id, name, uf').order('name').then(({ data }) => {
+      if (data) setBrStates(data as any);
+    });
+  }, []);
+
+  // Fetch cities when state changes
+  useEffect(() => {
+    if (!companyState) { setBrCities([]); return; }
+    const stateRecord = brStates.find(s => s.uf === companyState);
+    if (!stateRecord) { setBrCities([]); return; }
+    setLoadingCities(true);
+    supabase.from('brazilian_cities' as any).select('id, name').eq('state_id', stateRecord.id).order('name').then(({ data }) => {
+      if (data) setBrCities(data as any);
+      setLoadingCities(false);
+    });
+  }, [companyState, brStates]);
 
   const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -379,12 +401,22 @@ const SettingsPage = () => {
               <Input value={companyDistrict} onChange={(e) => setCompanyDistrict(e.target.value)} />
             </div>
             <div className="space-y-1">
-              <Label className="text-xs">Cidade</Label>
-              <Input value={companyCity} onChange={(e) => setCompanyCity(e.target.value)} />
+              <Label className="text-xs">Estado</Label>
+              <Select value={companyState} onValueChange={(v) => { setCompanyState(v); setCompanyCity(''); }}>
+                <SelectTrigger><SelectValue placeholder="Selecione o estado" /></SelectTrigger>
+                <SelectContent>
+                  {brStates.map(s => <SelectItem key={s.id} value={s.uf}>{s.name} ({s.uf})</SelectItem>)}
+                </SelectContent>
+              </Select>
             </div>
             <div className="space-y-1">
-              <Label className="text-xs">Estado</Label>
-              <Input value={companyState} onChange={(e) => setCompanyState(e.target.value)} placeholder="SP" />
+              <Label className="text-xs">Cidade</Label>
+              <Select value={companyCity} onValueChange={setCompanyCity} disabled={!companyState || loadingCities}>
+                <SelectTrigger><SelectValue placeholder={loadingCities ? 'Carregando...' : 'Selecione a cidade'} /></SelectTrigger>
+                <SelectContent>
+                  {brCities.map(c => <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
             </div>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
