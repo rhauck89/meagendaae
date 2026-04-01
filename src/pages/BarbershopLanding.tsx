@@ -85,7 +85,7 @@ export default function BarbershopLanding({ routeBusinessType, customSlug }: Bar
     const resolvedType: BusinessType = routeBusinessType || comp.business_type || 'barbershop';
     setBusinessType(resolvedType);
 
-    const [servicesRes, profsRes, ratingsRes, reviewsRes, settingsRes, galleryRes, eventsRes] = await Promise.all([
+    const [servicesRes, profsRes, ratingsRes, reviewsRes, settingsRes, galleryRes, eventsRes, promosRes] = await Promise.all([
       supabase.from('public_services' as any).select('*').eq('company_id', comp.id).order('name'),
       supabase.from('public_professionals' as any).select('*').eq('company_id', comp.id).eq('active', true),
       supabase.rpc('get_professional_ratings' as any, { p_company_id: comp.id }),
@@ -93,6 +93,7 @@ export default function BarbershopLanding({ routeBusinessType, customSlug }: Bar
       supabase.from('company_settings' as any).select('*').eq('company_id', comp.id).single(),
       supabase.from('company_gallery' as any).select('*').eq('company_id', comp.id).order('sort_order'),
       supabase.from('events' as any).select('*').eq('company_id', comp.id).eq('status', 'published').order('start_date') as any,
+      supabase.from('promotions' as any).select('*').eq('company_id', comp.id).eq('status', 'active').gte('end_date', new Date().toISOString().split('T')[0]).order('start_date') as any,
     ]);
 
     if (servicesRes.data) setServices(servicesRes.data as any[]);
