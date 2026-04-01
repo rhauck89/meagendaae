@@ -142,9 +142,10 @@ const SuperAdminCompanies = () => {
       if (filterCity !== 'all' && c.city !== filterCity) return false;
       if (filterPlan !== 'all' && c.subscription_status !== filterPlan) return false;
       if (filterStatus !== 'all' && c.subscription_status !== filterStatus) return false;
+      if (filterBusinessType !== 'all' && c.business_type !== filterBusinessType) return false;
       return true;
     });
-  }, [companies, search, filterState, filterCity, filterPlan, filterStatus]);
+  }, [companies, search, filterState, filterCity, filterPlan, filterStatus, filterBusinessType]);
 
   const updateStatus = async (id: string, status: string) => {
     await supabase.from('companies').update({ subscription_status: status as any }).eq('id', id);
