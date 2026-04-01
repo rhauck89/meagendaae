@@ -509,9 +509,9 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
     .filter((s) => selectedServices.includes(s.id))
     .reduce((sum, s) => sum + (Number(s.duration_minutes) || 0), 0);
 
-  const totalPrice = services
-    .filter((s) => selectedServices.includes(s.id))
-    .reduce((sum, s) => sum + Number(s.price), 0);
+  const totalPrice = isPromoMode && promoData?.promotion_price != null
+    ? Number(promoData.promotion_price)
+    : services.filter((s) => selectedServices.includes(s.id)).reduce((sum, s) => sum + Number(s.price), 0);
 
   const toggleService = (id: string) => {
     setSelectedServices((prev) =>
