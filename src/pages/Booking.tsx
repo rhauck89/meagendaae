@@ -265,6 +265,12 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
     const resolvedType: BusinessType = routeBusinessType || comp.business_type || 'barbershop';
     setBusinessType(resolvedType);
 
+    // Check whitelabel
+    if (comp.plan_id) {
+      const { data: planData } = await supabase.from('plans').select('whitelabel').eq('id', comp.plan_id).single();
+      if (planData?.whitelabel) setIsWhitelabel(true);
+    }
+
     const [servicesRes, hoursRes, exceptionsRes, companyRes, settingsRes] = await Promise.all([
       supabase.from('public_services' as any).select('*').eq('company_id', comp.id).order('name'),
       supabase.from('business_hours').select('*').eq('company_id', comp.id),
