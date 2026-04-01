@@ -438,7 +438,7 @@ const SuperAdminFinance = () => {
               <Select value={expForm.category_id} onValueChange={v => setExpForm(f => ({ ...f, category_id: v }))}>
                 <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
                 <SelectContent>
-                  {categories.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                  {categories.filter(c => c.type === 'expense' || c.type === 'both').map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
