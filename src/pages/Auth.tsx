@@ -22,6 +22,7 @@ const friendlyError = (msg: string): string => {
 
 const Auth = () => {
   const navigate = useNavigate();
+  const platform = usePlatformSettings();
   const [isLogin, setIsLogin] = useState(true);
   const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState('');
