@@ -1029,6 +1029,9 @@ const Dashboard = () => {
                               <p className="text-sm text-muted-foreground">
                                 {apt.appointment_services?.map((s: any) => s.service?.name).join(', ')}
                               </p>
+                              {apt.promotion_id && (
+                                <span className="inline-flex items-center gap-1 text-xs font-medium px-1.5 py-0.5 rounded bg-orange-500/10 text-orange-500 mt-0.5">🔥 Promoção</span>
+                              )}
                               <p className="text-xs text-muted-foreground">
                                 com {apt.professional?.full_name}
                               </p>
