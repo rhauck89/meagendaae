@@ -14,7 +14,9 @@ import { toast } from 'sonner';
 interface Plan {
   id: string;
   name: string;
-  price: number;
+  monthly_price: number;
+  yearly_price: number;
+  yearly_discount: number;
   members_limit: number;
   automatic_messages: boolean;
   open_scheduling: boolean;
@@ -27,7 +29,9 @@ interface Plan {
 
 const emptyPlan: Omit<Plan, 'id'> = {
   name: '',
-  price: 0,
+  monthly_price: 0,
+  yearly_price: 0,
+  yearly_discount: 0,
   members_limit: 1,
   automatic_messages: false,
   open_scheduling: false,
