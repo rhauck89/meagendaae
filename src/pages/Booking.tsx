@@ -116,12 +116,32 @@ const DEFAULT_T = {
   greenText: '#4ADE80',
 };
 
+interface PromotionInfo {
+  id: string;
+  title: string;
+  description: string | null;
+  service_id: string | null;
+  service_name: string | null;
+  service_duration: number | null;
+  promotion_price: number | null;
+  original_price: number | null;
+  start_date: string;
+  end_date: string;
+  start_time: string | null;
+  end_time: string | null;
+  max_slots: number;
+  used_slots: number;
+  professional_ids: string[] | null;
+  professional_filter: string;
+}
+
 const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
   const { slug: paramSlug, professionalSlug } = useParams<{ slug: string; professionalSlug?: string }>();
   const slug = customSlug || paramSlug;
   const [searchParams] = useSearchParams();
   const prefillDateRef = useRef(searchParams.get('date'));
   const prefillTimeRef = useRef(searchParams.get('time'));
+  const promoIdRef = useRef(searchParams.get('promo'));
   const [company, setCompany] = useState<any>(null);
   const [services, setServices] = useState<any[]>([]);
   const [professionals, setProfessionals] = useState<any[]>([]);
@@ -138,6 +158,10 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
   const [reviewRating, setReviewRating] = useState(0);
   const [reviewComment, setReviewComment] = useState('');
   const [submittingReview, setSubmittingReview] = useState(false);
+
+  // Promotion state
+  const [promoData, setPromoData] = useState<PromotionInfo | null>(null);
+  const isPromoMode = !!promoData;
 
   const [step, setStep] = useState<Step>('services');
   const [selectedServices, setSelectedServices] = useState<string[]>([]);
@@ -336,6 +360,67 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
       }
       prefillDateRef.current = null;
     }
+
+    // Load promotion data if ?promo= param is present
+    if (promoIdRef.current) {
+      const { data: promos } = await supabase
+        .from('public_promotions' as any)
+        .select('*')
+        .eq('id', promoIdRef.current)
+        .limit(1);
+      const pd = (promos as any)?.[0];
+      if (pd && pd.company_id === comp.id) {
+        setPromoData(pd as PromotionInfo);
+        // Auto-select the promo service
+        if (pd.service_id) {
+          setSelectedServices([pd.service_id]);
+        }
+        // Auto-select professional if only one
+        if (pd.professional_ids?.length === 1) {
+          const profId = pd.professional_ids[0];
+          setSelectedProfessional(profId);
+          const { data: profHoursData } = await supabase
+            .from('professional_working_hours' as any)
+            .select('*')
+            .eq('professional_id', profId);
+          if (profHoursData && (profHoursData as any[]).length > 0) {
+            setProfessionalHours(profHoursData as unknown as BusinessHours[]);
+          }
+          // Fetch professional for display
+          const { data: promoProfs } = await supabase
+            .from('public_professionals' as any)
+            .select('*')
+            .eq('company_id', comp.id)
+            .in('id', pd.professional_ids);
+          if (promoProfs) {
+            setProfessionals((promoProfs as any[]).map((p: any) => ({
+              id: p.id, name: p.name, full_name: p.name, avatar_url: p.avatar_url, slug: p.slug,
+            })));
+          }
+        } else if (pd.professional_ids?.length > 1) {
+          // Fetch specific professionals for selection
+          const { data: promoProfs } = await supabase
+            .from('public_professionals' as any)
+            .select('*')
+            .eq('company_id', comp.id)
+            .in('id', pd.professional_ids);
+          if (promoProfs) {
+            setProfessionals((promoProfs as any[]).map((p: any) => ({
+              id: p.id, name: p.name, full_name: p.name, avatar_url: p.avatar_url, slug: p.slug,
+            })));
+          }
+        }
+        // Skip to appropriate step
+        if (pd.professional_ids?.length === 1) {
+          setStep('datetime');
+        } else if (pd.professional_ids?.length > 1) {
+          setStep('professional');
+        } else {
+          setStep('datetime');
+        }
+      }
+      promoIdRef.current = null;
+    }
   };
 
   const fetchRecentBookings = async (profileId: string) => {
@@ -424,9 +509,9 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
     .filter((s) => selectedServices.includes(s.id))
     .reduce((sum, s) => sum + (Number(s.duration_minutes) || 0), 0);
 
-  const totalPrice = services
-    .filter((s) => selectedServices.includes(s.id))
-    .reduce((sum, s) => sum + Number(s.price), 0);
+  const totalPrice = isPromoMode && promoData?.promotion_price != null
+    ? Number(promoData.promotion_price)
+    : services.filter((s) => selectedServices.includes(s.id)).reduce((sum, s) => sum + Number(s.price), 0);
 
   const toggleService = (id: string) => {
     setSelectedServices((prev) =>
@@ -694,6 +779,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
         p_client_name: clientForm.full_name ?? null,
         p_client_whatsapp: formattedWhatsapp ?? null,
         p_notes: null as string | null,
+        p_promotion_id: promoData?.id ?? null,
       };
 
       // Final availability check to prevent double booking
@@ -922,21 +1008,47 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
           </div>
         )}
 
+        {/* Promotion Banner */}
+        {isPromoMode && promoData && step !== 'success' && (
+          <div className="rounded-2xl p-4 space-y-2" style={{ background: `${T.accent}15`, border: `1px solid ${T.accent}40` }}>
+            <div className="flex items-center gap-2">
+              <Sparkles className="h-4 w-4" style={{ color: T.accent }} />
+              <span className="text-xs font-bold uppercase tracking-wider" style={{ color: T.accent }}>Promoção</span>
+            </div>
+            <p className="font-bold text-base">{promoData.title}</p>
+            {promoData.service_name && (
+              <div className="flex items-center gap-3">
+                <span className="text-sm" style={{ color: T.textSec }}>{promoData.service_name}</span>
+                {promoData.original_price != null && promoData.promotion_price != null && (
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm line-through" style={{ color: T.textSec }}>R$ {Number(promoData.original_price).toFixed(2)}</span>
+                    <span className="text-sm font-bold" style={{ color: T.accent }}>R$ {Number(promoData.promotion_price).toFixed(2)}</span>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
         {/* ═══ SERVICES ═══ */}
         {step === 'services' && (
           <div className="space-y-5 animate-fade-in">
             <div>
-              <h2 className="text-2xl font-bold tracking-tight">Escolha os serviços</h2>
-              <p className="text-sm mt-1" style={{ color: T.textSec }}>Selecione um ou mais serviços desejados</p>
+              <h2 className="text-2xl font-bold tracking-tight">{isPromoMode ? 'Serviço da promoção' : 'Escolha os serviços'}</h2>
+              <p className="text-sm mt-1" style={{ color: T.textSec }}>{isPromoMode ? 'Este serviço está incluído na promoção' : 'Selecione um ou mais serviços desejados'}</p>
             </div>
             <div className="space-y-3">
-              {services.map((svc) => {
+              {(isPromoMode && promoData?.service_id
+                ? services.filter(s => s.id === promoData.service_id)
+                : services
+              ).map((svc) => {
                 const sel = selectedServices.includes(svc.id);
+                const isLocked = isPromoMode && promoData?.service_id === svc.id;
                 return (
                   <div
                     key={svc.id}
-                    onClick={() => toggleService(svc.id)}
-                    className="p-4 rounded-2xl cursor-pointer transition-all duration-200 hover:scale-[1.01]"
+                    onClick={() => !isLocked && toggleService(svc.id)}
+                    className={`p-4 rounded-2xl transition-all duration-200 ${isLocked ? '' : 'cursor-pointer hover:scale-[1.01]'}`}
                     style={{
                       background: sel ? `${T.accent}10` : T.card,
                       border: `1.5px solid ${sel ? T.accent : T.border}`,
@@ -953,7 +1065,14 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                           <Clock className="h-3.5 w-3.5" /> {svc.duration_minutes} min
                         </span>
                       </div>
-                      <p className="font-bold text-lg shrink-0" style={{ color: T.accent }}>R$ {Number(svc.price).toFixed(2)}</p>
+                      {isPromoMode && promoData?.original_price != null && promoData?.promotion_price != null ? (
+                        <div className="text-right shrink-0">
+                          <p className="text-sm line-through" style={{ color: T.textSec }}>R$ {Number(promoData.original_price).toFixed(2)}</p>
+                          <p className="font-bold text-lg" style={{ color: T.accent }}>R$ {Number(promoData.promotion_price).toFixed(2)}</p>
+                        </div>
+                      ) : (
+                        <p className="font-bold text-lg shrink-0" style={{ color: T.accent }}>R$ {Number(svc.price).toFixed(2)}</p>
+                      )}
                     </div>
                   </div>
                 );
@@ -1086,7 +1205,16 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                 mode="single" selected={selectedDate}
                 onSelect={(date) => { setSelectedDate(date); setSelectedTime(null); }}
                 locale={ptBR}
-                disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
+                disabled={(date) => {
+                  const today = new Date(new Date().setHours(0, 0, 0, 0));
+                  if (date < today) return true;
+                  if (isPromoMode && promoData) {
+                    const startDate = new Date(promoData.start_date + 'T00:00:00');
+                    const endDate = new Date(promoData.end_date + 'T23:59:59');
+                    return date < startDate || date > endDate;
+                  }
+                  return false;
+                }}
                 className="mx-auto"
               />
             </div>
@@ -1329,6 +1457,16 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
               <p className="text-sm mt-1" style={{ color: T.textSec }}>Revise os detalhes antes de confirmar</p>
             </div>
             <div className="rounded-2xl p-5 space-y-5" style={{ background: T.card, border: `1px solid ${T.border}` }}>
+              {/* Promotion details */}
+              {isPromoMode && promoData && (
+                <>
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="h-4 w-4" style={{ color: T.accent }} />
+                    <span className="text-xs font-bold uppercase tracking-wider" style={{ color: T.accent }}>Promoção: {promoData.title}</span>
+                  </div>
+                  <div style={{ borderTop: `1px solid ${T.border}` }} />
+                </>
+              )}
               {/* Services */}
               <div>
                 <p className="text-xs mb-2" style={{ color: T.textSec }}>Serviços</p>
@@ -1340,7 +1478,14 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                         <span className="text-sm font-medium">{s.name}</span>
                         <span className="text-xs" style={{ color: T.textSec }}>{s.duration_minutes} min</span>
                       </div>
-                      <span className="text-sm font-semibold" style={{ color: T.accent }}>R$ {Number(s.price).toFixed(2)}</span>
+                      {isPromoMode && promoData?.original_price != null && promoData?.promotion_price != null ? (
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm line-through" style={{ color: T.textSec }}>R$ {Number(promoData.original_price).toFixed(2)}</span>
+                          <span className="text-sm font-semibold" style={{ color: T.accent }}>R$ {Number(promoData.promotion_price).toFixed(2)}</span>
+                        </div>
+                      ) : (
+                        <span className="text-sm font-semibold" style={{ color: T.accent }}>R$ {Number(s.price).toFixed(2)}</span>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -1402,11 +1547,18 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
               addressLines.push([bookingResult.companyCity, bookingResult.companyState].filter(Boolean).join(' - '));
             }
             if (bookingResult.companyPostalCode) addressLines.push(`CEP: ${bookingResult.companyPostalCode}`);
+            const promoLines = isPromoMode && promoData ? [
+              `🔥 Promoção: *${promoData.title}*`,
+              promoData.original_price != null ? `Preço normal: R$ ${Number(promoData.original_price).toFixed(2)}` : '',
+              promoData.promotion_price != null ? `Preço promocional: R$ ${Number(promoData.promotion_price).toFixed(2)}` : '',
+              '',
+            ].filter(Boolean) : [];
             const msg = [
               'Ol\u00e1! \uD83D\uDC4B',
               '',
               `Seu agendamento foi confirmado na *${bookingResult.companyName}* \uD83D\uDC88`,
               '',
+              ...promoLines,
               `\uD83D\uDCC5 Data: ${format(bookingResult.date, "dd 'de' MMMM, yyyy", { locale: ptBR })}`,
               `\u23F0 Hor\u00e1rio: ${bookingResult.time}`,
               `\u2702\uFE0F Servi\u00E7o: ${bookingResult.serviceNames.join(', ')}`,

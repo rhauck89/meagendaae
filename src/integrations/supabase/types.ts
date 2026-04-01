@@ -73,6 +73,7 @@ export type Database = {
           id: string
           notes: string | null
           professional_id: string
+          promotion_id: string | null
           rescheduled_from_id: string | null
           start_time: string
           status: Database["public"]["Enums"]["appointment_status"]
@@ -91,6 +92,7 @@ export type Database = {
           id?: string
           notes?: string | null
           professional_id: string
+          promotion_id?: string | null
           rescheduled_from_id?: string | null
           start_time: string
           status?: Database["public"]["Enums"]["appointment_status"]
@@ -109,6 +111,7 @@ export type Database = {
           id?: string
           notes?: string | null
           professional_id?: string
+          promotion_id?: string | null
           rescheduled_from_id?: string | null
           start_time?: string
           status?: Database["public"]["Enums"]["appointment_status"]
@@ -156,6 +159,20 @@ export type Database = {
             columns: ["professional_id"]
             isOneToOne: false
             referencedRelation: "public_professionals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "appointments_promotion_id_fkey"
+            columns: ["promotion_id"]
+            isOneToOne: false
+            referencedRelation: "promotions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "appointments_promotion_id_fkey"
+            columns: ["promotion_id"]
+            isOneToOne: false
+            referencedRelation: "public_promotions"
             referencedColumns: ["id"]
           },
           {
@@ -1935,6 +1952,20 @@ export type Database = {
               p_end_time: string
               p_notes: string
               p_professional_id: string
+              p_start_time: string
+              p_total_price: number
+            }
+            Returns: string
+          }
+        | {
+            Args: {
+              p_client_id: string
+              p_client_name: string
+              p_client_whatsapp: string
+              p_end_time: string
+              p_notes: string
+              p_professional_id: string
+              p_promotion_id?: string
               p_start_time: string
               p_total_price: number
             }
