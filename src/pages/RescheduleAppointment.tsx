@@ -201,7 +201,7 @@ const RescheduleAppointment = () => {
     );
   }
 
-  const canReschedule = !['cancelled', 'completed', 'no_show'].includes(appointment.status);
+  const canReschedule = !['cancelled', 'completed', 'no_show'].includes(appointment.status) && !appointment.promotion_id;
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4" style={{ background: T.bg, color: T.text }}>
