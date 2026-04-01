@@ -16,12 +16,11 @@ interface Plan {
   name: string;
   price: number;
   members_limit: number;
-  services_limit: number;
-  appointments_limit: number;
-  whatsapp_reminders: boolean;
-  advanced_reports: boolean;
-  multi_location: boolean;
-  custom_branding: boolean;
+  automatic_messages: boolean;
+  open_scheduling: boolean;
+  promotions: boolean;
+  discount_coupons: boolean;
+  whitelabel: boolean;
   active: boolean;
   sort_order: number;
 }
@@ -30,21 +29,21 @@ const emptyPlan: Omit<Plan, 'id'> = {
   name: '',
   price: 0,
   members_limit: 1,
-  services_limit: 10,
-  appointments_limit: 100,
-  whatsapp_reminders: false,
-  advanced_reports: false,
-  multi_location: false,
-  custom_branding: false,
+  automatic_messages: false,
+  open_scheduling: false,
+  promotions: false,
+  discount_coupons: false,
+  whitelabel: false,
   active: true,
   sort_order: 0,
 };
 
-const featureLabels: { key: keyof Pick<Plan, 'whatsapp_reminders' | 'advanced_reports' | 'multi_location' | 'custom_branding'>; label: string }[] = [
-  { key: 'whatsapp_reminders', label: 'Lembretes WhatsApp' },
-  { key: 'advanced_reports', label: 'Relatórios Avançados' },
-  { key: 'multi_location', label: 'Multi-localização' },
-  { key: 'custom_branding', label: 'Marca Personalizada' },
+const featureLabels: { key: keyof Pick<Plan, 'automatic_messages' | 'open_scheduling' | 'promotions' | 'discount_coupons' | 'whitelabel'>; label: string }[] = [
+  { key: 'automatic_messages', label: 'Mensagens Automáticas' },
+  { key: 'open_scheduling', label: 'Agendamento Aberto' },
+  { key: 'promotions', label: 'Promoções' },
+  { key: 'discount_coupons', label: 'Cupons de Desconto' },
+  { key: 'whitelabel', label: 'Whitelabel' },
 ];
 
 const SuperAdminPlans = () => {
@@ -60,7 +59,7 @@ const SuperAdminPlans = () => {
       .from('plans')
       .select('*')
       .order('sort_order', { ascending: true });
-    if (data) setPlans(data as Plan[]);
+    if (data) setPlans(data as unknown as Plan[]);
     setLoading(false);
   };
 
@@ -74,19 +73,8 @@ const SuperAdminPlans = () => {
 
   const openEdit = (plan: Plan) => {
     setEditingPlan(plan);
-    setForm({
-      name: plan.name,
-      price: plan.price,
-      members_limit: plan.members_limit,
-      services_limit: plan.services_limit,
-      appointments_limit: plan.appointments_limit,
-      whatsapp_reminders: plan.whatsapp_reminders,
-      advanced_reports: plan.advanced_reports,
-      multi_location: plan.multi_location,
-      custom_branding: plan.custom_branding,
-      active: plan.active,
-      sort_order: plan.sort_order,
-    });
+    const { id, ...rest } = plan;
+    setForm(rest);
     setDialogOpen(true);
   };
 
@@ -151,8 +139,6 @@ const SuperAdminPlans = () => {
                     <TableHead>Nome</TableHead>
                     <TableHead>Preço</TableHead>
                     <TableHead className="hidden md:table-cell">Membros</TableHead>
-                    <TableHead className="hidden md:table-cell">Serviços</TableHead>
-                    <TableHead className="hidden lg:table-cell">Agendamentos</TableHead>
                     <TableHead className="hidden lg:table-cell">Recursos</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead className="w-[100px]">Ações</TableHead>
@@ -163,18 +149,17 @@ const SuperAdminPlans = () => {
                     <TableRow key={plan.id}>
                       <TableCell className="font-medium">{plan.name}</TableCell>
                       <TableCell>
-                        R${plan.price.toFixed(2).replace('.', ',')}
+                        R${Number(plan.price).toFixed(2).replace('.', ',')}
                       </TableCell>
                       <TableCell className="hidden md:table-cell">{plan.members_limit}</TableCell>
-                      <TableCell className="hidden md:table-cell">{plan.services_limit}</TableCell>
-                      <TableCell className="hidden lg:table-cell">{plan.appointments_limit}</TableCell>
                       <TableCell className="hidden lg:table-cell">
                         <div className="flex flex-wrap gap-1">
-                          {plan.whatsapp_reminders && <Badge variant="outline" className="text-xs">WhatsApp</Badge>}
-                          {plan.advanced_reports && <Badge variant="outline" className="text-xs">Relatórios</Badge>}
-                          {plan.multi_location && <Badge variant="outline" className="text-xs">Multi-loc</Badge>}
-                          {plan.custom_branding && <Badge variant="outline" className="text-xs">Branding</Badge>}
-                          {!plan.whatsapp_reminders && !plan.advanced_reports && !plan.multi_location && !plan.custom_branding && (
+                          {plan.automatic_messages && <Badge variant="outline" className="text-xs">Mensagens</Badge>}
+                          {plan.open_scheduling && <Badge variant="outline" className="text-xs">Agendamento</Badge>}
+                          {plan.promotions && <Badge variant="outline" className="text-xs">Promoções</Badge>}
+                          {plan.discount_coupons && <Badge variant="outline" className="text-xs">Cupons</Badge>}
+                          {plan.whitelabel && <Badge variant="outline" className="text-xs">Whitelabel</Badge>}
+                          {!plan.automatic_messages && !plan.open_scheduling && !plan.promotions && !plan.discount_coupons && !plan.whitelabel && (
                             <span className="text-xs text-muted-foreground">Básico</span>
                           )}
                         </div>
@@ -218,23 +203,14 @@ const SuperAdminPlans = () => {
               <Label className="text-xs">Nome do plano</Label>
               <Input value={form.name} onChange={(e) => setForm(f => ({ ...f, name: e.target.value }))} placeholder="Ex: Profissional" />
             </div>
-            <div className="space-y-1">
-              <Label className="text-xs">Preço mensal (R$)</Label>
-              <Input type="number" min={0} step={0.01} value={form.price} onChange={(e) => setForm(f => ({ ...f, price: parseFloat(e.target.value) || 0 }))} />
-            </div>
-
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
-                <Label className="text-xs">Membros</Label>
+                <Label className="text-xs">Preço mensal (R$)</Label>
+                <Input type="number" min={0} step={0.01} value={form.price} onChange={(e) => setForm(f => ({ ...f, price: parseFloat(e.target.value) || 0 }))} />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Limite de membros</Label>
                 <Input type="number" min={1} value={form.members_limit} onChange={(e) => setForm(f => ({ ...f, members_limit: parseInt(e.target.value) || 1 }))} />
-              </div>
-              <div className="space-y-1">
-                <Label className="text-xs">Serviços</Label>
-                <Input type="number" min={1} value={form.services_limit} onChange={(e) => setForm(f => ({ ...f, services_limit: parseInt(e.target.value) || 1 }))} />
-              </div>
-              <div className="space-y-1">
-                <Label className="text-xs">Agendamentos</Label>
-                <Input type="number" min={1} value={form.appointments_limit} onChange={(e) => setForm(f => ({ ...f, appointments_limit: parseInt(e.target.value) || 1 }))} />
               </div>
             </div>
 
