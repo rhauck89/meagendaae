@@ -1550,9 +1550,6 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
               addressLines.push([bookingResult.companyCity, bookingResult.companyState].filter(Boolean).join(' - '));
             }
             if (bookingResult.companyPostalCode) addressLines.push(`CEP: ${bookingResult.companyPostalCode}`);
-            const savings = isPromoMode && promoData?.original_price != null && promoData?.promotion_price != null
-              ? Number(promoData.original_price) - Number(promoData.promotion_price)
-              : 0;
             const promoLines = isPromoMode && promoData ? [
               `🎉 Promoção: *${promoData.title}*`,
               '',
