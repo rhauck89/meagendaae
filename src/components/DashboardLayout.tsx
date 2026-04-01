@@ -147,8 +147,12 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
           )}
 
           {renderNavLink({ href: '/dashboard/profile', icon: User, label: 'Meu Perfil' })}
-          {isAdmin && renderNavLink({ href: '/dashboard/support', icon: MessageSquare, label: 'Suporte' }, unreadTickets)}
-          {renderNavLink({ href: '/dashboard/help', icon: HelpCircle, label: 'Central de Ajuda' })}
+
+          <div className="pt-2 mt-2 border-t border-sidebar-border">
+            <p className="px-3 py-1.5 text-xs font-semibold text-sidebar-foreground/40 uppercase tracking-wider">Ajuda</p>
+            {renderNavLink({ href: '/dashboard/help', icon: HelpCircle, label: 'Tutoriais' })}
+            {isAdmin && renderNavLink({ href: '/dashboard/support', icon: MessageSquare, label: 'Suporte' }, unreadTickets)}
+          </div>
         </nav>
 
         <div className="p-4 border-t border-sidebar-border">
