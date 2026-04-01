@@ -209,10 +209,10 @@ const SuperAdminCompanies = () => {
   };
 
   const resetFilters = () => {
-    setSearch(''); setFilterState('all'); setFilterCity('all'); setFilterPlan('all'); setFilterStatus('all');
+    setSearch(''); setFilterState('all'); setFilterCity('all'); setFilterPlan('all'); setFilterStatus('all'); setFilterBusinessType('all');
   };
 
-  const hasActiveFilters = search || filterState !== 'all' || filterCity !== 'all' || filterPlan !== 'all' || filterStatus !== 'all';
+  const hasActiveFilters = search || filterState !== 'all' || filterCity !== 'all' || filterPlan !== 'all' || filterStatus !== 'all' || filterBusinessType !== 'all';
 
   const getTrialInfo = (c: CompanyWithOwner) => {
     if (!c.trial_active || !c.trial_end_date) return null;
