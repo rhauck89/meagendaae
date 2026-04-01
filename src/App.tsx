@@ -115,7 +115,12 @@ const PlatformRoutes = () => (
     <Route path="/cancel/:appointmentId" element={<CancelAppointment />} />
     <Route path="/reschedule/:appointmentId" element={<RescheduleAppointment />} />
     <Route path="/admin" element={<RequireRole role="super_admin"><Admin /></RequireRole>} />
-    <Route path="/super-admin" element={<RequireRole role="super_admin"><Admin /></RequireRole>} />
+    <Route path="/super-admin" element={<RequireRole role="super_admin"><SuperAdminLayout><SuperAdminDashboard /></SuperAdminLayout></RequireRole>} />
+    <Route path="/super-admin/companies" element={<RequireRole role="super_admin"><SuperAdminLayout><SuperAdminCompanies /></SuperAdminLayout></RequireRole>} />
+    <Route path="/super-admin/plans" element={<RequireRole role="super_admin"><SuperAdminLayout><SuperAdminPlans /></SuperAdminLayout></RequireRole>} />
+    <Route path="/super-admin/finance" element={<RequireRole role="super_admin"><SuperAdminLayout><SuperAdminFinance /></SuperAdminLayout></RequireRole>} />
+    <Route path="/super-admin/reports" element={<RequireRole role="super_admin"><SuperAdminLayout><SuperAdminReports /></SuperAdminLayout></RequireRole>} />
+    <Route path="/super-admin/settings" element={<RequireRole role="super_admin"><SuperAdminLayout><SuperAdminSettings /></SuperAdminLayout></RequireRole>} />
     <Route path="/admin/debug-agenda" element={<RequireRole role="super_admin"><DebugAgenda /></RequireRole>} />
     <Route path="/dashboard" element={<DashboardRoute><Dashboard /></DashboardRoute>} />
     <Route path="/dashboard/services" element={<DashboardRoute><Services /></DashboardRoute>} />
