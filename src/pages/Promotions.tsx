@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUserRole } from '@/hooks/useUserRole';
@@ -16,7 +16,7 @@ import { Progress } from '@/components/ui/progress';
 import { toast } from '@/hooks/use-toast';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Plus, MessageCircle, Send, Users, Tag, Megaphone, Copy, BarChart3, Eye, TrendingUp, MousePointerClick, CalendarCheck, ChevronLeft, ChevronRight, Check } from 'lucide-react';
+import { Plus, MessageCircle, Send, Users, Tag, Megaphone, Copy, BarChart3, Eye, TrendingUp, MousePointerClick, CalendarCheck, ChevronLeft, ChevronRight, Check, Clock, Flame, Timer } from 'lucide-react';
 import { formatWhatsApp, displayWhatsApp } from '@/lib/whatsapp';
 
 interface Promotion {
@@ -94,6 +94,35 @@ const WIZARD_STEPS = [
   { num: 3, label: 'Mensagem' },
 ];
 
+// --- Datetime helpers ---
+function getPromoStart(p: Promotion): Date {
+  return new Date(p.start_date + 'T' + (p.start_time || '00:00') + ':00');
+}
+function getPromoEnd(p: Promotion): Date {
+  return new Date(p.end_date + 'T' + (p.end_time || '23:59') + ':00');
+}
+
+function promoVisualStatus(p: Promotion, now: Date): 'scheduled' | 'active' | 'paused' | 'expired' {
+  if (p.status === 'paused') return 'paused';
+  const start = getPromoStart(p);
+  const end = getPromoEnd(p);
+  if (now > end) return 'expired';
+  if (now < start) return 'scheduled';
+  return 'active';
+}
+
+function formatCountdown(ms: number): string {
+  if (ms <= 0) return 'Encerrada';
+  const totalMin = Math.floor(ms / 60000);
+  const h = Math.floor(totalMin / 60);
+  const m = totalMin % 60;
+  if (h > 24) {
+    const d = Math.floor(h / 24);
+    return `${d}d ${h % 24}h`;
+  }
+  return `${String(h).padStart(2, '0')}h ${String(m).padStart(2, '0')}m`;
+}
+
 export default function Promotions() {
   const { companyId, profile } = useAuth();
   const { isAdmin } = useUserRole();
@@ -105,6 +134,7 @@ export default function Promotions() {
   const [metricsDialogOpen, setMetricsDialogOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('active');
   const [highlightedPromoId, setHighlightedPromoId] = useState<string | null>(null);
+  const [now, setNow] = useState(new Date());
 
   // Wizard step
   const [wizardStep, setWizardStep] = useState(1);
@@ -136,6 +166,12 @@ export default function Promotions() {
   const [companySlug, setCompanySlug] = useState('');
   const [metrics, setMetrics] = useState<PromoMetrics>({ clicks: 0, bookings: 0, clientsReached: 0 });
   const [lowOccupancy, setLowOccupancy] = useState(false);
+
+  // Update clock every 60s for countdown
+  useEffect(() => {
+    const interval = setInterval(() => setNow(new Date()), 60000);
+    return () => clearInterval(interval);
+  }, []);
 
   useEffect(() => {
     if (companyId) fetchAll();
@@ -222,7 +258,7 @@ export default function Promotions() {
     if (!startDate) return 'Informe a data de início';
     if (!singleDay && !endDate) return 'Informe a data de término';
     if (!singleDay && endDate < startDate) return 'A data de término deve ser posterior à data de início';
-    if (startTime && endTime && endTime <= startTime) return 'O horário final deve ser posterior ao horário inicial';
+    if (startTime && endTime && endTime <= startTime && (singleDay || startDate === endDate)) return 'O horário final deve ser posterior ao horário inicial';
     return null;
   };
 
@@ -315,7 +351,6 @@ export default function Promotions() {
   };
 
   const handleCreate = async () => {
-    // Final validation
     const err1 = validateStep1();
     const err2 = validateStep2();
     if (err1 || err2) {
@@ -363,7 +398,7 @@ export default function Promotions() {
     setDialogOpen(false);
     resetForm();
 
-    // Determine the right tab for the new promotion
+    // Determine the right tab
     const promoStartDt = new Date(startDate + 'T' + (startTime || '00:00') + ':00');
     const targetTab = promoStartDt > new Date() ? 'scheduled' : 'active';
     setActiveTab(targetTab);
@@ -421,20 +456,10 @@ export default function Promotions() {
     return m[f] || f;
   };
 
-  const now = new Date();
-
-  const getPromoStart = (p: Promotion): Date => {
-    const d = new Date(p.start_date + 'T' + (p.start_time || '00:00') + ':00');
-    return d;
-  };
-  const getPromoEnd = (p: Promotion): Date => {
-    const d = new Date(p.end_date + 'T' + (p.end_time || '23:59') + ':00');
-    return d;
-  };
-
-  const isScheduled = (p: Promotion) => p.status === 'active' && getPromoStart(p) > now;
-  const isActivePromo = (p: Promotion) => p.status === 'active' && getPromoStart(p) <= now && getPromoEnd(p) >= now;
-  const isExpiredPromo = (p: Promotion) => (p.status === 'active' && getPromoEnd(p) < now) || p.status === 'expired';
+  // --- Status-based filtering using datetime ---
+  const isScheduled = (p: Promotion) => promoVisualStatus(p, now) === 'scheduled';
+  const isActivePromo = (p: Promotion) => promoVisualStatus(p, now) === 'active';
+  const isExpiredPromo = (p: Promotion) => promoVisualStatus(p, now) === 'expired';
 
   const filteredPromotions = promotions.filter(p => {
     if (activeTab === 'active') return isActivePromo(p);
@@ -443,6 +468,50 @@ export default function Promotions() {
     if (activeTab === 'expired') return isExpiredPromo(p);
     return true;
   });
+
+  // --- Status badge renderer ---
+  const renderStatusBadge = (promo: Promotion) => {
+    const status = promoVisualStatus(promo, now);
+    switch (status) {
+      case 'scheduled':
+        return (
+          <Badge className="bg-blue-600 text-white gap-1">
+            <Clock className="h-3 w-3" />
+            Começa às {promo.start_time?.slice(0, 5) || '00:00'}
+          </Badge>
+        );
+      case 'active':
+        return (
+          <Badge className="bg-emerald-600 text-white gap-1">
+            <Flame className="h-3 w-3" />
+            Ativa agora
+          </Badge>
+        );
+      case 'paused':
+        return <Badge variant="secondary">Pausada</Badge>;
+      case 'expired':
+        return (
+          <Badge variant="outline" className="gap-1 text-muted-foreground">
+            ⛔ Encerrada às {promo.end_time?.slice(0, 5) || '23:59'}
+          </Badge>
+        );
+    }
+  };
+
+  // --- Countdown for active promos ---
+  const renderCountdown = (promo: Promotion) => {
+    const status = promoVisualStatus(promo, now);
+    if (status !== 'active') return null;
+    const end = getPromoEnd(promo);
+    const remaining = end.getTime() - now.getTime();
+    if (remaining <= 0) return null;
+    return (
+      <div className="flex items-center gap-1.5 text-xs text-amber-600 font-medium">
+        <Timer className="h-3 w-3" />
+        Termina em {formatCountdown(remaining)}
+      </div>
+    );
+  };
 
   // --- Wizard step rendering ---
   const renderStep1 = () => (
@@ -712,27 +781,22 @@ export default function Promotions() {
             <div className="grid gap-4 md:grid-cols-2">
               {filteredPromotions.map(promo => {
                 const remaining = promo.max_slots > 0 ? promo.max_slots - promo.used_slots : null;
-                const isExpired = new Date(promo.end_date) < new Date();
-                const isActive = promo.status === 'active' && !isExpired;
+                const status = promoVisualStatus(promo, now);
                 const svc = services.find(s => s.id === promo.service_id);
                 const isHighlighted = promo.id === highlightedPromoId;
 
                 return (
-                  <Card key={promo.id} className={`transition-all duration-500 ${!isActive ? 'opacity-70' : ''} ${isHighlighted ? 'ring-2 ring-primary shadow-lg animate-pulse' : ''}`}>
+                  <Card key={promo.id} className={`transition-all duration-500 ${status === 'expired' || status === 'paused' ? 'opacity-70' : ''} ${isHighlighted ? 'ring-2 ring-primary shadow-lg animate-pulse' : ''}`}>
                     <CardHeader className="pb-2">
-                      <div className="flex items-start justify-between">
+                      <div className="flex items-start justify-between gap-2">
                         <CardTitle className="text-lg">{promo.title}</CardTitle>
-                        <div className="flex gap-1">
-                          {isScheduled(promo) && <Badge className="bg-blue-600 text-white">Programada</Badge>}
-                          {isActivePromo(promo) && <Badge className="bg-emerald-600 text-white">Ativa</Badge>}
-                          {promo.status === 'paused' && <Badge variant="secondary">Pausada</Badge>}
-                          {isExpiredPromo(promo) && <Badge variant="outline">Expirada</Badge>}
-                        </div>
+                        {renderStatusBadge(promo)}
                       </div>
                     </CardHeader>
                     <CardContent className="space-y-3">
                       {promo.description && <p className="text-sm text-muted-foreground">{promo.description}</p>}
 
+                      {/* Service + pricing */}
                       {svc && (
                         <div className="flex items-center gap-2 text-sm">
                           <span className="text-muted-foreground">✂️ {svc.name}</span>
@@ -745,6 +809,7 @@ export default function Promotions() {
                         </div>
                       )}
 
+                      {/* Date + time range */}
                       <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
                         {promo.start_date === promo.end_date ? (
                           <span>📅 {format(parseISO(promo.start_date), 'dd/MM/yyyy')}</span>
@@ -754,11 +819,20 @@ export default function Promotions() {
                         {promo.start_time && promo.end_time && <span>🕒 {promo.start_time.slice(0, 5)} - {promo.end_time.slice(0, 5)}</span>}
                       </div>
 
+                      {/* Countdown timer for active promos */}
+                      {renderCountdown(promo)}
+
+                      {/* Slots + urgency */}
                       <div className="flex flex-wrap gap-2 text-xs">
                         <Badge variant="outline"><Users className="h-3 w-3 mr-1" />{getFilterLabel(promo.client_filter)}</Badge>
                         {remaining !== null && (
-                          <Badge variant={remaining <= 0 ? 'destructive' : remaining <= 5 ? 'default' : 'outline'} className={remaining > 0 && remaining <= 5 ? 'bg-orange-500' : ''}>
-                            {remaining <= 0 ? 'Esgotado' : remaining <= 5 ? `🔥 Últimas ${remaining}` : `${remaining} vagas`}
+                          <Badge
+                            variant={remaining <= 0 ? 'destructive' : 'outline'}
+                            className={remaining > 0 && remaining <= 5 ? 'bg-orange-500 text-white border-orange-500' : ''}
+                          >
+                            {remaining <= 0 ? 'Esgotado' : remaining <= 5 ? (
+                              <><Flame className="h-3 w-3 mr-1" />Últimas {remaining} vagas</>
+                            ) : `${remaining} vagas`}
                           </Badge>
                         )}
                       </div>
@@ -776,7 +850,7 @@ export default function Promotions() {
                         <Button size="sm" variant="outline" onClick={() => toggleStatus(promo)}>
                           {promo.status === 'active' ? 'Pausar' : 'Ativar'}
                         </Button>
-                        <Button size="sm" onClick={() => fetchFilteredClients(promo)} disabled={!isActive}>
+                        <Button size="sm" onClick={() => fetchFilteredClients(promo)} disabled={status !== 'active'}>
                           <Send className="h-3 w-3 mr-1" />Enviar
                         </Button>
                         <Button size="sm" variant="outline" onClick={() => fetchMetrics(promo)}>
