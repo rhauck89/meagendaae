@@ -1121,6 +1121,59 @@ export type Database = {
         }
         Relationships: []
       }
+      platform_messages: {
+        Row: {
+          active: boolean
+          content: string
+          created_at: string
+          created_by: string | null
+          id: string
+          send_dashboard_notification: boolean
+          send_whatsapp: boolean
+          target_business_type: string | null
+          target_plan: string | null
+          title: string
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          content: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          send_dashboard_notification?: boolean
+          send_whatsapp?: boolean
+          target_business_type?: string | null
+          target_plan?: string | null
+          title: string
+          type?: string
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          content?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          send_dashboard_notification?: boolean
+          send_whatsapp?: boolean
+          target_business_type?: string | null
+          target_plan?: string | null
+          title?: string
+          type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "platform_messages_target_plan_fkey"
+            columns: ["target_plan"]
+            isOneToOne: false
+            referencedRelation: "plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       platform_settings: {
         Row: {
           created_at: string
