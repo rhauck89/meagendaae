@@ -40,6 +40,8 @@ import SuperAdminPlans from "./pages/superadmin/SuperAdminPlans";
 import SuperAdminFinance from "./pages/superadmin/SuperAdminFinance";
 import SuperAdminReports from "./pages/superadmin/SuperAdminReports";
 import SuperAdminSettings from "./pages/superadmin/SuperAdminSettings";
+import SuperAdminSupport from "./pages/superadmin/SuperAdminSupport";
+import Support from "./pages/Support";
 import PlansPage from "./pages/PlansPage";
 import NotFound from "./pages/NotFound";
 
@@ -122,6 +124,7 @@ const PlatformRoutes = () => (
     <Route path="/super-admin/finance" element={<RequireRole role="super_admin"><SuperAdminLayout><SuperAdminFinance /></SuperAdminLayout></RequireRole>} />
     <Route path="/super-admin/reports" element={<RequireRole role="super_admin"><SuperAdminLayout><SuperAdminReports /></SuperAdminLayout></RequireRole>} />
     <Route path="/super-admin/settings" element={<RequireRole role="super_admin"><SuperAdminLayout><SuperAdminSettings /></SuperAdminLayout></RequireRole>} />
+    <Route path="/super-admin/support" element={<RequireRole role="super_admin"><SuperAdminLayout><SuperAdminSupport /></SuperAdminLayout></RequireRole>} />
     <Route path="/admin/debug-agenda" element={<RequireRole role="super_admin"><DebugAgenda /></RequireRole>} />
     <Route path="/dashboard" element={<DashboardRoute><Dashboard /></DashboardRoute>} />
     <Route path="/dashboard/services" element={<DashboardRoute><Services /></DashboardRoute>} />
@@ -134,6 +137,7 @@ const PlatformRoutes = () => (
     <Route path="/dashboard/profile" element={<DashboardRoute><ProfilePage /></DashboardRoute>} />
     <Route path="/dashboard/events" element={<DashboardRoute><Events /></DashboardRoute>} />
     <Route path="/dashboard/promotions" element={<DashboardRoute><Promotions /></DashboardRoute>} />
+    <Route path="/dashboard/support" element={<DashboardRoute><Support /></DashboardRoute>} />
     <Route path="/settings/plans" element={<ProtectedRoute><PlansPage /></ProtectedRoute>} />
     <Route path="/event/:eventSlug" element={<EventPublic />} />
     <Route path="*" element={<NotFound />} />

@@ -11,6 +11,7 @@ import {
   Menu,
   X,
   ShieldCheck,
+  MessageSquare,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useState } from 'react';
@@ -22,6 +23,7 @@ const navItems = [
   { href: '/super-admin/plans', icon: CreditCard, label: 'Planos' },
   { href: '/super-admin/finance', icon: DollarSign, label: 'Financeiro' },
   { href: '/super-admin/reports', icon: BarChart3, label: 'Relatórios' },
+  { href: '/super-admin/support', icon: MessageSquare, label: 'Suporte' },
   { href: '/super-admin/settings', icon: Settings, label: 'Configurações' },
 ];
 
