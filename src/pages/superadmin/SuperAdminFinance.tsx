@@ -352,7 +352,7 @@ const SuperAdminFinance = () => {
                   </TableHeader>
                   <TableBody>
                     {categories.length === 0 ? (
-                      <TableRow><TableCell colSpan={3} className="text-center py-6 text-muted-foreground">Nenhuma categoria</TableCell></TableRow>
+                      <TableRow><TableCell colSpan={4} className="text-center py-6 text-muted-foreground">Nenhuma categoria</TableCell></TableRow>
                     ) : categories.map(c => (
                       <TableRow key={c.id}>
                         <TableCell className="font-medium">{c.name}</TableCell>
