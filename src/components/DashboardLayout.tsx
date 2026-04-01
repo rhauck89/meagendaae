@@ -13,6 +13,8 @@ import { useState } from 'react';
 import { cn } from '@/lib/utils';
 import CompanySetup from './CompanySetup';
 import { OnboardingPopup } from './OnboardingPopup';
+import { PlatformLogo } from './PlatformLogo';
+import { PlatformFooter } from './PlatformFooter';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { ScrollArea } from '@/components/ui/scroll-area';
