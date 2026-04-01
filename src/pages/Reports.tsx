@@ -189,7 +189,7 @@ const Reports = () => {
           {isAdmin && (
             <>
               <Select value={filterProfessional} onValueChange={setFilterProfessional}>
-                <SelectTrigger className="w-[180px]">
+                <SelectTrigger className="w-full sm:w-[180px]">
                   <SelectValue placeholder="Profissional" />
                 </SelectTrigger>
                 <SelectContent>
@@ -202,7 +202,7 @@ const Reports = () => {
                 </SelectContent>
               </Select>
               <Select value={filterService} onValueChange={setFilterService}>
-                <SelectTrigger className="w-[180px]">
+                <SelectTrigger className="w-full sm:w-[180px]">
                   <SelectValue placeholder="Serviço" />
                 </SelectTrigger>
                 <SelectContent>
@@ -215,7 +215,7 @@ const Reports = () => {
                 </SelectContent>
               </Select>
               <Select value={filterRoleType} onValueChange={setFilterRoleType}>
-                <SelectTrigger className="w-[160px]">
+                <SelectTrigger className="w-full sm:w-[160px]">
                   <SelectValue placeholder="Tipo" />
                 </SelectTrigger>
                 <SelectContent>
@@ -236,7 +236,7 @@ const Reports = () => {
           <div className="flex flex-wrap items-center gap-3">
             <Popover>
               <PopoverTrigger asChild>
-                <Button variant="outline" size="sm" className="w-[150px] justify-start text-left font-normal">
+                <Button variant="outline" size="sm" className="w-full sm:w-[150px] justify-start text-left font-normal">
                   <CalendarIcon className="mr-2 h-4 w-4" />
                   {format(startDate, 'dd/MM/yyyy')}
                 </Button>
@@ -248,7 +248,7 @@ const Reports = () => {
             <span className="text-muted-foreground">—</span>
             <Popover>
               <PopoverTrigger asChild>
-                <Button variant="outline" size="sm" className="w-[150px] justify-start text-left font-normal">
+                <Button variant="outline" size="sm" className="w-full sm:w-[150px] justify-start text-left font-normal">
                   <CalendarIcon className="mr-2 h-4 w-4" />
                   {format(endDate, 'dd/MM/yyyy')}
                 </Button>

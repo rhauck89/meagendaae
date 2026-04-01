@@ -95,12 +95,28 @@
   * {
     @apply border-border;
   }
-  body {
+  html, body {
     @apply bg-background text-foreground font-sans;
     font-family: 'Inter', sans-serif;
+    overflow-x: hidden;
   }
   h1, h2, h3, h4, h5, h6 {
     font-family: 'Space Grotesk', sans-serif;
+  }
+}
+
+@layer components {
+  .container-dashboard {
+    @apply w-full max-w-[1400px] mx-auto px-3 sm:px-4;
+  }
+  .table-container {
+    @apply w-full overflow-x-auto -mx-3 px-3 sm:mx-0 sm:px-0;
+  }
+  .responsive-grid {
+    @apply grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4;
+  }
+  .responsive-select-trigger {
+    @apply w-full sm:w-[150px];
   }
 }
 

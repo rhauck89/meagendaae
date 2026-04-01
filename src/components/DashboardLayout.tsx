@@ -217,7 +217,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
             </PopoverContent>
           </Popover>
         </header>
-        <div className="flex-1 p-4 lg:p-8 overflow-auto">
+        <div className="flex-1 p-3 sm:p-4 lg:p-8 overflow-auto overflow-x-hidden">
           {platformMessages && platformMessages.length > 0 && (
             <div className="mb-4 space-y-2">
               {platformMessages.slice(0, 3).map((msg: any) => (
