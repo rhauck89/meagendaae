@@ -158,7 +158,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
   const [reviewRating, setReviewRating] = useState(0);
   const [reviewComment, setReviewComment] = useState('');
   const [submittingReview, setSubmittingReview] = useState(false);
-
+  const [isWhitelabel, setIsWhitelabel] = useState(false);
   // Promotion state
   const [promoData, setPromoData] = useState<PromotionInfo | null>(null);
   const isPromoMode = !!promoData;
