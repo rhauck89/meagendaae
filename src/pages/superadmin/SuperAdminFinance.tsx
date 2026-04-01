@@ -345,6 +345,7 @@ const SuperAdminFinance = () => {
                   <TableHeader>
                     <TableRow>
                       <TableHead>Nome</TableHead>
+                      <TableHead>Tipo</TableHead>
                       <TableHead>Descrição</TableHead>
                       <TableHead className="w-[80px]">Ações</TableHead>
                     </TableRow>
