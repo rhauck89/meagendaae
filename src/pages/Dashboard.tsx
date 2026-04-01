@@ -57,12 +57,17 @@ const statusLabels: Record<string, string> = {
 };
 
 const getDisplayStatus = (apt: any): string => {
-  const now = new Date();
-  if (apt.status === 'confirmed' && now >= parseISO(apt.start_time) && now <= parseISO(apt.end_time)) {
-    return 'in_progress';
+  if (['completed', 'cancelled', 'no_show', 'rescheduled'].includes(apt.status)) {
+    return apt.status;
   }
-  if (apt.status === 'confirmed' && now > parseISO(apt.end_time)) {
+  const now = new Date();
+  const endTime = parseISO(apt.end_time);
+  const startTime = parseISO(apt.start_time);
+  if ((apt.status === 'confirmed' || apt.status === 'pending') && now > endTime) {
     return 'late';
+  }
+  if (apt.status === 'confirmed' && now >= startTime && now <= endTime) {
+    return 'in_progress';
   }
   return apt.status;
 };
