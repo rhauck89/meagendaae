@@ -159,6 +159,7 @@ const Dashboard = () => {
     fetchReminderCount();
     fetchBirthdays();
     fetchBlockedTimes();
+    fetchMonthlyStats();
   }, [companyId, currentDate, viewMode, filterProfessional]);
 
   const fetchCollaborators = async () => {
