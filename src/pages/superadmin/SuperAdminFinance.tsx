@@ -86,11 +86,12 @@ const SuperAdminFinance = () => {
   // Category CRUD
   const saveCat = async () => {
     if (!catForm.name.trim()) { toast.error('Nome obrigatório'); return; }
+    const catPayload = { name: catForm.name, description: catForm.description || null, type: catForm.type };
     if (editingCat) {
-      await supabase.from('expense_categories').update({ name: catForm.name, description: catForm.description || null } as any).eq('id', editingCat.id);
+      await supabase.from('expense_categories').update(catPayload as any).eq('id', editingCat.id);
       toast.success('Categoria atualizada');
     } else {
-      await supabase.from('expense_categories').insert({ name: catForm.name, description: catForm.description || null } as any);
+      await supabase.from('expense_categories').insert(catPayload as any);
       toast.success('Categoria criada');
     }
     setCatDialogOpen(false);
