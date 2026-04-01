@@ -112,7 +112,7 @@ export default function ProfessionalPublicProfile() {
       supabase.from('business_hours').select('*').eq('company_id', comp.id),
       supabase.from('business_exceptions').select('*').eq('company_id', comp.id),
       supabase.from('public_company' as any).select('buffer_minutes').eq('id', comp.id).single(),
-      supabase.from('company_settings' as any).select('timezone, booking_buffer_minutes').eq('company_id', comp.id).single(),
+      supabase.from('public_company_settings' as any).select('timezone, booking_buffer_minutes').eq('company_id', comp.id).single(),
       supabase.from('professional_working_hours' as any).select('*').eq('professional_id', prof.id),
     ]);
 
