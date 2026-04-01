@@ -44,8 +44,9 @@ const StarRating = ({ rating, size = 14 }: { rating: number; size?: number }) =>
   </div>
 );
 
-export default function BarbershopLanding({ routeBusinessType }: BarbershopLandingProps) {
-  const { slug } = useParams<{ slug: string }>();
+export default function BarbershopLanding({ routeBusinessType, customSlug }: BarbershopLandingProps) {
+  const { slug: paramSlug } = useParams<{ slug: string }>();
+  const slug = customSlug || paramSlug;
   const navigate = useNavigate();
 
   const [company, setCompany] = useState<any>(null);

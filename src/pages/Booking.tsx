@@ -116,8 +116,9 @@ const DEFAULT_T = {
   greenText: '#4ADE80',
 };
 
-const BookingPage = ({ routeBusinessType }: BookingPageProps) => {
-  const { slug, professionalSlug } = useParams<{ slug: string; professionalSlug?: string }>();
+const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
+  const { slug: paramSlug, professionalSlug } = useParams<{ slug: string; professionalSlug?: string }>();
+  const slug = customSlug || paramSlug;
   const [searchParams] = useSearchParams();
   const prefillDateRef = useRef(searchParams.get('date'));
   const prefillTimeRef = useRef(searchParams.get('time'));
