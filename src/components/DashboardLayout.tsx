@@ -3,6 +3,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useUserRole } from '@/hooks/useUserRole';
 import { useUserTicketCounts } from '@/hooks/useSupportTicketCounts';
 import { usePlatformMessages } from '@/hooks/usePlatformMessages';
+import { useCompanyBrandInfo } from '@/hooks/useCompanyBrandInfo';
 import {
   Calendar, Scissors, Users, BarChart3, Settings, LogOut, Menu, X, User, UserCheck,
   PartyPopper, Megaphone, MessageSquare, ChevronDown, Building2, Clock, Zap, Palette, Globe, CreditCard, Bell, HelpCircle, Info, AlertTriangle,
