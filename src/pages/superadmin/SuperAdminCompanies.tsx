@@ -420,8 +420,8 @@ const SuperAdminCompanies = () => {
                   <p className="font-medium">/{selectedCompany.slug}</p>
                 </div>
                 <div>
-                  <p className="text-muted-foreground text-xs">Tipo</p>
-                  <p className="font-medium">{selectedCompany.business_type}</p>
+                  <p className="text-muted-foreground text-xs">Categoria</p>
+                  <p className="font-medium">{selectedCompany.business_type === 'esthetic' ? 'Estética' : 'Barbearia'}</p>
                 </div>
                 <div>
                   <p className="text-muted-foreground text-xs">Email do dono</p>
