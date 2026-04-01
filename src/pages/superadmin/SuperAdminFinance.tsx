@@ -16,7 +16,7 @@ import { format, startOfMonth, endOfMonth, subMonths, startOfYear } from 'date-f
 import { ptBR } from 'date-fns/locale';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 
-interface ExpenseCategory { id: string; name: string; description: string | null; }
+interface ExpenseCategory { id: string; name: string; description: string | null; type: string; }
 interface Expense { id: string; category_id: string | null; description: string; amount: number; expense_date: string; notes: string | null; }
 interface ManualRevenue { id: string; description: string; amount: number; revenue_date: string; source: string | null; notes: string | null; }
 
