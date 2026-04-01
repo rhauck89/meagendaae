@@ -334,7 +334,7 @@ const SuperAdminFinance = () => {
         {/* Categories Tab */}
         <TabsContent value="categories" className="space-y-4">
           <div className="flex justify-end">
-            <Button onClick={() => { setEditingCat(null); setCatForm({ name: '', description: '' }); setCatDialogOpen(true); }}>
+            <Button onClick={() => { setEditingCat(null); setCatForm({ name: '', description: '', type: 'expense' }); setCatDialogOpen(true); }}>
               <Plus className="h-4 w-4 mr-1" /> Nova Categoria
             </Button>
           </div>
