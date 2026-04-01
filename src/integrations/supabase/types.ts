@@ -1957,6 +1957,20 @@ export type Database = {
             }
             Returns: string
           }
+        | {
+            Args: {
+              p_client_id: string
+              p_client_name: string
+              p_client_whatsapp: string
+              p_end_time: string
+              p_notes: string
+              p_professional_id: string
+              p_promotion_id?: string
+              p_start_time: string
+              p_total_price: number
+            }
+            Returns: string
+          }
       create_appointment_services: {
         Args: { p_appointment_id: string; p_services: Json }
         Returns: undefined
