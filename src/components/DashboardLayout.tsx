@@ -157,7 +157,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
 
         <div className="p-4 border-t border-sidebar-border">
           <div className="flex items-center gap-3 mb-3">
-            <div className="w-9 h-9 bg-sidebar-accent rounded-full flex items-center justify-center text-sm font-semibold">
+            <div className="w-9 h-9 bg-sidebar-accent/20 rounded-full flex items-center justify-center text-sm font-semibold">
               {profile?.full_name?.charAt(0)?.toUpperCase() || '?'}
             </div>
             <div className="flex-1 min-w-0">
