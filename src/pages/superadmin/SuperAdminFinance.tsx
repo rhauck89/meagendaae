@@ -456,12 +456,17 @@ const SuperAdminFinance = () => {
             </div>
             <div className="space-y-1">
               <Label className="text-xs">Categoria</Label>
-              <Select value={expForm.category_id} onValueChange={v => setExpForm(f => ({ ...f, category_id: v }))}>
-                <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-                <SelectContent>
-                  {categories.filter(c => c.type === 'expense' || c.type === 'both').map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
-                </SelectContent>
-              </Select>
+              <div className="flex gap-2">
+                <Select value={expForm.category_id} onValueChange={v => setExpForm(f => ({ ...f, category_id: v }))}>
+                  <SelectTrigger className="flex-1"><SelectValue placeholder="Selecione" /></SelectTrigger>
+                  <SelectContent>
+                    {categories.filter(c => c.type === 'expense' || c.type === 'both').map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+                <Button type="button" variant="outline" size="sm" className="shrink-0 gap-1 text-xs" onClick={() => { setQuickCatTarget('expense'); setQuickCatForm({ name: '', type: 'expense' }); setQuickCatOpen(true); }}>
+                  <Plus className="h-3 w-3" /> Nova
+                </Button>
+              </div>
             </div>
             <div className="space-y-1">
               <Label className="text-xs">Observações</Label>
