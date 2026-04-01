@@ -3,7 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Search, PlayCircle, Video } from 'lucide-react';
+import { Search, PlayCircle, Video, CheckCircle2 } from 'lucide-react';
 import SettingsBreadcrumb from '@/components/SettingsBreadcrumb';
 
 interface TutorialVideo {
