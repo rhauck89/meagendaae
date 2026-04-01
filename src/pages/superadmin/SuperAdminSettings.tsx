@@ -1,11 +1,97 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Globe, Search } from 'lucide-react';
+import { Globe, Search, Upload, X, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+
+const BUCKET = 'platform-assets';
+
+const getPublicUrl = (path: string) => {
+  const { data } = supabase.storage.from(BUCKET).getPublicUrl(path);
+  return data.publicUrl;
+};
+
+interface ImageUploadFieldProps {
+  label: string;
+  value: string;
+  onChange: (url: string) => void;
+  folder: string;
+  accept?: string;
+}
+
+const ImageUploadField = ({ label, value, onChange, folder, accept = 'image/*' }: ImageUploadFieldProps) => {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
+
+  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error('Arquivo muito grande (máx. 2MB)');
+      return;
+    }
+
+    setUploading(true);
+    try {
+      const ext = file.name.split('.').pop();
+      const fileName = `${folder}/${Date.now()}.${ext}`;
+
+      const { error } = await supabase.storage.from(BUCKET).upload(fileName, file, {
+        cacheControl: '3600',
+        upsert: true,
+      });
+
+      if (error) throw error;
+
+      const publicUrl = getPublicUrl(fileName);
+      onChange(publicUrl);
+      toast.success(`${label} enviado com sucesso`);
+    } catch (err: any) {
+      toast.error(`Erro ao enviar: ${err.message}`);
+    } finally {
+      setUploading(false);
+      if (inputRef.current) inputRef.current.value = '';
+    }
+  };
+
+  const handleRemove = () => {
+    onChange('');
+  };
+
+  return (
+    <div className="space-y-2">
+      <Label className="text-xs">{label}</Label>
+      <div className="flex items-center gap-2">
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={() => inputRef.current?.click()}
+          disabled={uploading}
+          className="gap-1.5"
+        >
+          {uploading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}
+          {uploading ? 'Enviando...' : 'Upload'}
+        </Button>
+        {value && (
+          <Button type="button" variant="ghost" size="sm" onClick={handleRemove} className="gap-1 text-destructive hover:text-destructive">
+            <X className="h-3.5 w-3.5" /> Remover
+          </Button>
+        )}
+      </div>
+      <input ref={inputRef} type="file" accept={accept} className="hidden" onChange={handleUpload} />
+      {value && (
+        <div className="mt-2 rounded-lg border border-border bg-muted/30 p-2 inline-block">
+          <img src={value} alt={label} className="max-h-20 max-w-[160px] rounded object-contain" />
+        </div>
+      )}
+    </div>
+  );
+};
 
 const SuperAdminSettings = () => {
   const [platformName, setPlatformName] = useState('');
@@ -18,7 +104,7 @@ const SuperAdminSettings = () => {
   const [seoKeywords, setSeoKeywords] = useState('');
 
   useEffect(() => {
-    const fetch = async () => {
+    const fetchSettings = async () => {
       const { data } = await supabase.from('platform_settings').select('*').limit(1).single();
       if (data) {
         setPlatformName(data.system_name ?? '');
@@ -31,7 +117,7 @@ const SuperAdminSettings = () => {
         setSeoKeywords(data.default_keywords ?? '');
       }
     };
-    fetch();
+    fetchSettings();
   }, []);
 
   const save = async () => {
@@ -57,20 +143,22 @@ const SuperAdminSettings = () => {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-1">
               <Label className="text-xs">Nome do sistema</Label>
               <Input value={platformName} onChange={(e) => setPlatformName(e.target.value)} />
-            </div>
-            <div className="space-y-1">
-              <Label className="text-xs">URL do logo</Label>
-              <Input value={platformLogo} onChange={(e) => setPlatformLogo(e.target.value)} placeholder="https://..." />
             </div>
             <div className="space-y-1">
               <Label className="text-xs">URL do site</Label>
               <Input value={platformUrl} onChange={(e) => setPlatformUrl(e.target.value)} placeholder="https://..." />
             </div>
           </div>
+          <ImageUploadField
+            label="Logo da Plataforma"
+            value={platformLogo}
+            onChange={setPlatformLogo}
+            folder="logo"
+          />
           <Button size="sm" onClick={save}>Salvar</Button>
         </CardContent>
       </Card>
@@ -95,14 +183,21 @@ const SuperAdminSettings = () => {
               <Label className="text-xs">Meta descrição</Label>
               <Input value={seoDescription} onChange={(e) => setSeoDescription(e.target.value)} />
             </div>
-            <div className="space-y-1">
-              <Label className="text-xs">URL da imagem OG</Label>
-              <Input value={seoOgImage} onChange={(e) => setSeoOgImage(e.target.value)} />
-            </div>
-            <div className="space-y-1">
-              <Label className="text-xs">URL do favicon</Label>
-              <Input value={seoFavicon} onChange={(e) => setSeoFavicon(e.target.value)} />
-            </div>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <ImageUploadField
+              label="Imagem OG"
+              value={seoOgImage}
+              onChange={setSeoOgImage}
+              folder="og"
+            />
+            <ImageUploadField
+              label="Favicon"
+              value={seoFavicon}
+              onChange={setSeoFavicon}
+              folder="favicon"
+              accept="image/png,image/x-icon,image/svg+xml"
+            />
           </div>
           <Button size="sm" onClick={save}>Salvar SEO</Button>
         </CardContent>
