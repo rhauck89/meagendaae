@@ -512,12 +512,15 @@ export default function Promotions() {
     const status = promoVisualStatus(promo, now);
     if (status !== 'active') return null;
     const end = getPromoEnd(promo);
+    if (isNaN(end.getTime())) return null;
     const remaining = end.getTime() - now.getTime();
-    if (remaining <= 0) return null;
+    if (!isFinite(remaining) || remaining <= 0) return null;
+    const text = formatCountdown(remaining);
+    if (!text) return null;
     return (
       <div className="flex items-center gap-1.5 text-xs text-amber-600 font-medium">
         <Timer className="h-3 w-3" />
-        Termina em {formatCountdown(remaining)}
+        ⏰ Termina em {text}
       </div>
     );
   };
