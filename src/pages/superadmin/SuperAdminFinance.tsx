@@ -356,6 +356,11 @@ const SuperAdminFinance = () => {
                     ) : categories.map(c => (
                       <TableRow key={c.id}>
                         <TableCell className="font-medium">{c.name}</TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className="text-xs">
+                            {c.type === 'expense' ? 'Despesa' : c.type === 'revenue' ? 'Receita' : 'Ambos'}
+                          </Badge>
+                        </TableCell>
                         <TableCell className="text-sm text-muted-foreground">{c.description || '—'}</TableCell>
                         <TableCell>
                           <div className="flex gap-1">
