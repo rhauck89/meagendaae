@@ -3,7 +3,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useSupportTicketCounts } from '@/hooks/useSupportTicketCounts';
 import {
   LayoutDashboard, Building2, CreditCard, DollarSign, BarChart3, Settings, LogOut, Menu, X,
-  ShieldCheck, MessageSquare, Bell, Video,
+  ShieldCheck, MessageSquare, Bell, Video, Megaphone,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useState } from 'react';
