@@ -529,6 +529,51 @@ export type Database = {
         }
         Relationships: []
       }
+      company_domains: {
+        Row: {
+          company_id: string
+          created_at: string
+          domain: string
+          id: string
+          ssl_status: string
+          updated_at: string
+          verified: boolean
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          domain: string
+          id?: string
+          ssl_status?: string
+          updated_at?: string
+          verified?: boolean
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          domain?: string
+          id?: string
+          ssl_status?: string
+          updated_at?: string
+          verified?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_domains_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_domains_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "public_company"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       company_gallery: {
         Row: {
           caption: string | null
