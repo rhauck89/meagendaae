@@ -171,17 +171,44 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
         <header className="h-16 border-b flex items-center px-4 lg:px-8 bg-card">
           <button className="lg:hidden mr-4" onClick={() => setSidebarOpen(true)}><Menu className="h-6 w-6" /></button>
           <h1 className="text-lg font-display font-semibold flex-1">{currentLabel}</h1>
-          {unreadTickets > 0 && (
-            <button
-              onClick={() => navigate('/dashboard/support')}
-              className="relative p-2 rounded-lg hover:bg-muted transition-colors"
-            >
-              <Bell className="h-5 w-5 text-muted-foreground" />
-              <span className="absolute -top-0.5 -right-0.5 min-w-4 h-4 px-1 flex items-center justify-center rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold">
-                {unreadTickets}
-              </span>
-            </button>
-          )}
+          <Popover>
+            <PopoverTrigger asChild>
+              <button className="relative p-2 rounded-lg hover:bg-muted transition-colors">
+                <Bell className="h-5 w-5 text-muted-foreground" />
+                {totalNotifications > 0 && (
+                  <span className="absolute -top-0.5 -right-0.5 min-w-4 h-4 px-1 flex items-center justify-center rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold">
+                    {totalNotifications}
+                  </span>
+                )}
+              </button>
+            </PopoverTrigger>
+            <PopoverContent className="w-80 p-0" align="end">
+              <div className="p-3 border-b"><h3 className="font-semibold text-sm">Notificações</h3></div>
+              <ScrollArea className="max-h-80">
+                {unreadTickets > 0 && (
+                  <button onClick={() => navigate('/dashboard/support')} className="w-full text-left px-3 py-2.5 hover:bg-muted border-b flex items-center gap-2">
+                    <MessageSquare className="h-4 w-4 text-primary shrink-0" />
+                    <span className="text-sm">{unreadTickets} ticket(s) com atualização</span>
+                  </button>
+                )}
+                {platformMessages?.map((msg: any) => (
+                  <div key={msg.id} className="px-3 py-2.5 border-b last:border-0">
+                    <div className="flex items-start gap-2">
+                      {msg.type === 'warning' ? <AlertTriangle className="h-4 w-4 text-yellow-500 shrink-0 mt-0.5" /> : <Info className="h-4 w-4 text-primary shrink-0 mt-0.5" />}
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium">{msg.title}</p>
+                        <p className="text-xs text-muted-foreground line-clamp-2">{msg.content}</p>
+                        <p className="text-[10px] text-muted-foreground mt-1">{format(new Date(msg.created_at), 'dd/MM/yyyy HH:mm')}</p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+                {totalNotifications === 0 && (
+                  <p className="text-center text-sm text-muted-foreground py-6">Nenhuma notificação</p>
+                )}
+              </ScrollArea>
+            </PopoverContent>
+          </Popover>
         </header>
         <div className="flex-1 p-4 lg:p-8 overflow-auto">{children}</div>
       </main>
