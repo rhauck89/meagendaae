@@ -50,6 +50,7 @@ const professionalNavItems = [
 const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
   const { profile, companyId, signOut, loading: authLoading } = useAuth();
   const { isAdmin } = useUserRole();
+  const brandInfo = useCompanyBrandInfo();
   const location = useLocation();
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
