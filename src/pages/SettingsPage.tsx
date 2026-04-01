@@ -141,6 +141,25 @@ const SettingsPage = () => {
     }
   };
 
+  // Fetch Brazilian states on mount
+  useEffect(() => {
+    supabase.from('brazilian_states' as any).select('id, name, uf').order('name').then(({ data }) => {
+      if (data) setBrStates(data as any);
+    });
+  }, []);
+
+  // Fetch cities when state changes
+  useEffect(() => {
+    if (!companyState) { setBrCities([]); return; }
+    const stateRecord = brStates.find(s => s.uf === companyState);
+    if (!stateRecord) { setBrCities([]); return; }
+    setLoadingCities(true);
+    supabase.from('brazilian_cities' as any).select('id, name').eq('state_id', stateRecord.id).order('name').then(({ data }) => {
+      if (data) setBrCities(data as any);
+      setLoadingCities(false);
+    });
+  }, [companyState, brStates]);
+
   const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !companyId) return;
