@@ -286,6 +286,9 @@ const SettingsPage = () => {
         <p className="text-sm text-muted-foreground">Horários, lembretes e automações</p>
       </div>
 
+      {/* Current Plan */}
+      <CurrentPlanCard />
+
       {/* Company Profile - Empresa */}
       <Card>
         <CardHeader>
