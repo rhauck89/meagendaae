@@ -395,6 +395,17 @@ const SuperAdminFinance = () => {
               <Label className="text-xs">Descrição</Label>
               <Input value={catForm.description} onChange={e => setCatForm(f => ({ ...f, description: e.target.value }))} />
             </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Tipo</Label>
+              <Select value={catForm.type} onValueChange={v => setCatForm(f => ({ ...f, type: v }))}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="expense">Despesa</SelectItem>
+                  <SelectItem value="revenue">Receita</SelectItem>
+                  <SelectItem value="both">Ambos</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setCatDialogOpen(false)}>Cancelar</Button>
