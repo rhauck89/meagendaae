@@ -362,7 +362,14 @@ export default function Promotions() {
     toast({ title: 'Promoção criada com sucesso! 🎉' });
     setDialogOpen(false);
     resetForm();
-    setActiveTab('active');
+
+    // Determine the right tab for the new promotion
+    const todayCheck = new Date();
+    todayCheck.setHours(0, 0, 0, 0);
+    const promoStartDate = new Date(startDate);
+    const targetTab = promoStartDate > todayCheck ? 'scheduled' : 'active';
+    setActiveTab(targetTab);
+
     await fetchPromotions();
     if (data?.id) setHighlightedPromoId(data.id);
   };
