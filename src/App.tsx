@@ -40,6 +40,7 @@ import SuperAdminPlans from "./pages/superadmin/SuperAdminPlans";
 import SuperAdminFinance from "./pages/superadmin/SuperAdminFinance";
 import SuperAdminReports from "./pages/superadmin/SuperAdminReports";
 import SuperAdminSettings from "./pages/superadmin/SuperAdminSettings";
+import PlansPage from "./pages/PlansPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
