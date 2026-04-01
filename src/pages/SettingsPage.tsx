@@ -347,6 +347,18 @@ const SettingsPage = () => {
             <Input value={companyName} onChange={(e) => setCompanyName(e.target.value)} />
           </div>
 
+          {/* Business Category */}
+          <div className="space-y-1">
+            <Label className="text-xs">Categoria do Negócio</Label>
+            <Select value={companyBusinessType} onValueChange={setCompanyBusinessType}>
+              <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="barbershop">Barbearia</SelectItem>
+                <SelectItem value="esthetic">Estética</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
           {/* Description */}
           <div className="space-y-1">
             <Label className="text-xs">Descrição</Label>
