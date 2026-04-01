@@ -1080,6 +1080,13 @@ export type Database = {
             referencedRelation: "promotions"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "promotion_bookings_promotion_id_fkey"
+            columns: ["promotion_id"]
+            isOneToOne: false
+            referencedRelation: "public_promotions"
+            referencedColumns: ["id"]
+          },
         ]
       }
       promotions: {
@@ -1702,6 +1709,63 @@ export type Database = {
           },
           {
             foreignKeyName: "collaborators_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "public_company"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      public_promotions: {
+        Row: {
+          company_id: string | null
+          description: string | null
+          end_date: string | null
+          end_time: string | null
+          id: string | null
+          max_slots: number | null
+          start_date: string | null
+          start_time: string | null
+          status: string | null
+          title: string | null
+          used_slots: number | null
+        }
+        Insert: {
+          company_id?: string | null
+          description?: string | null
+          end_date?: string | null
+          end_time?: string | null
+          id?: string | null
+          max_slots?: number | null
+          start_date?: string | null
+          start_time?: string | null
+          status?: string | null
+          title?: string | null
+          used_slots?: number | null
+        }
+        Update: {
+          company_id?: string | null
+          description?: string | null
+          end_date?: string | null
+          end_time?: string | null
+          id?: string | null
+          max_slots?: number | null
+          start_date?: string | null
+          start_time?: string | null
+          status?: string | null
+          title?: string | null
+          used_slots?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "promotions_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "promotions_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "public_company"
