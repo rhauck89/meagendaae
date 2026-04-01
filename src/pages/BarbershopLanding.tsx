@@ -129,6 +129,11 @@ export default function BarbershopLanding({ routeBusinessType, customSlug }: Bar
       }
     }
 
+    // Load promotions
+    if (promosRes.data) {
+      setCompanyPromotions(promosRes.data as any[]);
+    }
+
     // Ratings map
     if (ratingsRes.data && Array.isArray(ratingsRes.data)) {
       const map: Record<string, { avg: number; count: number }> = {};
