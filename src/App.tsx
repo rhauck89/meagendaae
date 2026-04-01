@@ -43,7 +43,6 @@ import SuperAdminSupportReports from "./pages/superadmin/SuperAdminSupportReport
 import SuperAdminTutorials from "./pages/superadmin/SuperAdminTutorials";
 import Support from "./pages/Support";
 import HelpCenter from "./pages/HelpCenter";
-import Support from "./pages/Support";
 import PlansPage from "./pages/PlansPage";
 import NotFound from "./pages/NotFound";
 
