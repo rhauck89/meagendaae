@@ -116,12 +116,32 @@ const DEFAULT_T = {
   greenText: '#4ADE80',
 };
 
+interface PromotionInfo {
+  id: string;
+  title: string;
+  description: string | null;
+  service_id: string | null;
+  service_name: string | null;
+  service_duration: number | null;
+  promotion_price: number | null;
+  original_price: number | null;
+  start_date: string;
+  end_date: string;
+  start_time: string | null;
+  end_time: string | null;
+  max_slots: number;
+  used_slots: number;
+  professional_ids: string[] | null;
+  professional_filter: string;
+}
+
 const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
   const { slug: paramSlug, professionalSlug } = useParams<{ slug: string; professionalSlug?: string }>();
   const slug = customSlug || paramSlug;
   const [searchParams] = useSearchParams();
   const prefillDateRef = useRef(searchParams.get('date'));
   const prefillTimeRef = useRef(searchParams.get('time'));
+  const promoIdRef = useRef(searchParams.get('promo'));
   const [company, setCompany] = useState<any>(null);
   const [services, setServices] = useState<any[]>([]);
   const [professionals, setProfessionals] = useState<any[]>([]);
@@ -138,6 +158,10 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
   const [reviewRating, setReviewRating] = useState(0);
   const [reviewComment, setReviewComment] = useState('');
   const [submittingReview, setSubmittingReview] = useState(false);
+
+  // Promotion state
+  const [promoData, setPromoData] = useState<PromotionInfo | null>(null);
+  const isPromoMode = !!promoData;
 
   const [step, setStep] = useState<Step>('services');
   const [selectedServices, setSelectedServices] = useState<string[]>([]);
