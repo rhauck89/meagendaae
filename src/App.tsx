@@ -89,6 +89,8 @@ const PlatformRoutes = () => (
     <Route path="/barbearia/:slug" element={<BarbershopLanding routeBusinessType="barbershop" />} />
     <Route path="/estetica/:slug" element={<BarbershopLanding routeBusinessType="esthetic" />} />
     {/* Booking flow routes */}
+    <Route path="/barbearia/:slug/promo/:promoSlug" element={<PromotionPublic />} />
+    <Route path="/estetica/:slug/promo/:promoSlug" element={<PromotionPublic />} />
     <Route path="/barbearia/:slug/agendar" element={<Booking routeBusinessType="barbershop" />} />
     <Route path="/barbearia/:slug/:professionalSlug/agendar" element={<Booking routeBusinessType="barbershop" />} />
     <Route path="/barbearia/:slug/:professionalSlug" element={<Booking routeBusinessType="barbershop" />} />
