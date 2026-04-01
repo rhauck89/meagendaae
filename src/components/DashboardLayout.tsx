@@ -77,7 +77,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
         onClick={() => setSidebarOpen(false)}
         className={cn(
           'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors',
-          isActive ? 'bg-sidebar-accent text-sidebar-primary' : 'text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground'
+          isActive ? 'bg-sidebar-accent/15 text-sidebar-primary' : 'text-sidebar-foreground/70 hover:bg-sidebar-accent/12 hover:text-sidebar-foreground'
         )}
       >
         <item.icon className="h-5 w-5" />
@@ -104,7 +104,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
     <div className="min-h-screen flex bg-background">
       {sidebarOpen && <div className="fixed inset-0 bg-foreground/50 z-40 lg:hidden" onClick={() => setSidebarOpen(false)} />}
 
-      <aside className={cn('fixed inset-y-0 left-0 z-50 w-64 bg-sidebar text-sidebar-foreground flex flex-col transition-transform lg:translate-x-0 lg:static', sidebarOpen ? 'translate-x-0' : '-translate-x-full')}>
+      <aside className={cn('fixed inset-y-0 left-0 z-50 w-64 bg-sidebar text-sidebar-foreground flex flex-col transition-transform lg:translate-x-0', sidebarOpen ? 'translate-x-0' : '-translate-x-full')}>
         <div className="p-6 flex items-center gap-3">
           <div className="w-10 h-10 bg-sidebar-primary rounded-xl flex items-center justify-center"><Scissors className="h-5 w-5 text-sidebar-primary-foreground" /></div>
           <span className="font-display font-bold text-lg">AgendaPro</span>
@@ -118,7 +118,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
             <Collapsible open={settingsOpen} onOpenChange={setSettingsOpen}>
               <CollapsibleTrigger className={cn(
                 'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors w-full',
-                isSettingsActive ? 'bg-sidebar-accent text-sidebar-primary' : 'text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground'
+                isSettingsActive ? 'bg-sidebar-accent/15 text-sidebar-primary' : 'text-sidebar-foreground/70 hover:bg-sidebar-accent/12 hover:text-sidebar-foreground'
               )}>
                 <Settings className="h-5 w-5" />
                 <span className="flex-1 text-left">Configurações</span>
@@ -134,7 +134,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
                       onClick={() => setSidebarOpen(false)}
                       className={cn(
                         'flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors',
-                        isActive ? 'bg-sidebar-accent text-sidebar-primary font-medium' : 'text-sidebar-foreground/60 hover:bg-sidebar-accent hover:text-sidebar-foreground'
+                        isActive ? 'bg-sidebar-accent/15 text-sidebar-primary font-medium' : 'text-sidebar-foreground/60 hover:bg-sidebar-accent/12 hover:text-sidebar-foreground'
                       )}
                     >
                       <item.icon className="h-4 w-4" />
@@ -157,7 +157,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
 
         <div className="p-4 border-t border-sidebar-border">
           <div className="flex items-center gap-3 mb-3">
-            <div className="w-9 h-9 bg-sidebar-accent rounded-full flex items-center justify-center text-sm font-semibold">
+            <div className="w-9 h-9 bg-sidebar-accent/20 rounded-full flex items-center justify-center text-sm font-semibold">
               {profile?.full_name?.charAt(0)?.toUpperCase() || '?'}
             </div>
             <div className="flex-1 min-w-0">
@@ -165,13 +165,13 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
               <p className="text-xs text-sidebar-foreground/50 truncate">{profile?.email}</p>
             </div>
           </div>
-          <Button variant="ghost" size="sm" onClick={handleSignOut} className="w-full justify-start text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent">
+          <Button variant="ghost" size="sm" onClick={handleSignOut} className="w-full justify-start text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent/12">
             <LogOut className="h-4 w-4 mr-2" /> Sair
           </Button>
         </div>
       </aside>
 
-      <main className="flex-1 flex flex-col min-h-screen">
+      <main className="flex-1 flex flex-col min-h-screen lg:ml-64">
         <header className="h-16 border-b flex items-center px-4 lg:px-8 bg-card">
           <button className="lg:hidden mr-4" onClick={() => setSidebarOpen(true)}><Menu className="h-6 w-6" /></button>
           <h1 className="text-lg font-display font-semibold flex-1">{currentLabel}</h1>
@@ -198,7 +198,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
                 {platformMessages?.map((msg: any) => (
                   <div key={msg.id} className="px-3 py-2.5 border-b last:border-0">
                     <div className="flex items-start gap-2">
-                      {msg.type === 'warning' ? <AlertTriangle className="h-4 w-4 text-yellow-500 shrink-0 mt-0.5" /> : <Info className="h-4 w-4 text-primary shrink-0 mt-0.5" />}
+                      {msg.type === 'warning' ? <AlertTriangle className="h-4 w-4 text-warning shrink-0 mt-0.5" /> : <Info className="h-4 w-4 text-primary shrink-0 mt-0.5" />}
                       <div className="min-w-0 flex-1">
                         <p className="text-sm font-medium">{msg.title}</p>
                         <p className="text-xs text-muted-foreground line-clamp-2">{msg.content}</p>
@@ -223,9 +223,9 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
               {platformMessages.slice(0, 3).map((msg: any) => (
                 <div key={msg.id} className={cn(
                   'flex items-start gap-3 p-3 rounded-lg border text-sm',
-                  msg.type === 'warning' ? 'bg-yellow-500/5 border-yellow-500/20' : 'bg-primary/5 border-primary/20'
+                  msg.type === 'warning' ? 'bg-warning/5 border-warning/20' : 'bg-primary/5 border-primary/20'
                 )}>
-                  {msg.type === 'warning' ? <AlertTriangle className="h-4 w-4 text-yellow-500 shrink-0 mt-0.5" /> : <Megaphone className="h-4 w-4 text-primary shrink-0 mt-0.5" />}
+                  {msg.type === 'warning' ? <AlertTriangle className="h-4 w-4 text-warning shrink-0 mt-0.5" /> : <Megaphone className="h-4 w-4 text-primary shrink-0 mt-0.5" />}
                   <div className="flex-1 min-w-0">
                     <p className="font-medium">{msg.title}</p>
                     <p className="text-muted-foreground text-xs mt-0.5">{msg.content}</p>

@@ -141,6 +141,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "appointments_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "public_company_view"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "appointments_event_id_fkey"
             columns: ["event_id"]
             isOneToOne: false
@@ -307,6 +314,13 @@ export type Database = {
             referencedRelation: "public_company"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "business_exceptions_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "public_company_view"
+            referencedColumns: ["id"]
+          },
         ]
       }
       business_hours: {
@@ -353,6 +367,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "public_company"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "business_hours_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "public_company_view"
             referencedColumns: ["id"]
           },
         ]
@@ -409,6 +430,13 @@ export type Database = {
             referencedRelation: "public_company"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "clients_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "public_company_view"
+            referencedColumns: ["id"]
+          },
         ]
       }
       collaborators: {
@@ -461,6 +489,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "public_company"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "collaborators_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "public_company_view"
             referencedColumns: ["id"]
           },
           {
@@ -656,6 +691,13 @@ export type Database = {
             referencedRelation: "public_company"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "company_domains_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "public_company_view"
+            referencedColumns: ["id"]
+          },
         ]
       }
       company_gallery: {
@@ -696,6 +738,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "public_company"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_gallery_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "public_company_view"
             referencedColumns: ["id"]
           },
         ]
@@ -753,6 +802,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: true
             referencedRelation: "public_company"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_settings_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: true
+            referencedRelation: "public_company_view"
             referencedColumns: ["id"]
           },
         ]
@@ -914,6 +970,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "public_company"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "events_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "public_company_view"
             referencedColumns: ["id"]
           },
         ]
@@ -1266,6 +1329,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "professional_working_hours_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "public_company_view"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "professional_working_hours_professional_id_fkey"
             columns: ["professional_id"]
             isOneToOne: false
@@ -1360,6 +1430,13 @@ export type Database = {
             referencedRelation: "public_company"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "profiles_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "public_company_view"
+            referencedColumns: ["id"]
+          },
         ]
       }
       promotion_bookings: {
@@ -1414,6 +1491,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "public_company"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "promotion_bookings_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "public_company_view"
             referencedColumns: ["id"]
           },
           {
@@ -1474,6 +1558,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "public_company"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "promotion_clicks_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "public_company_view"
             referencedColumns: ["id"]
           },
           {
@@ -1584,6 +1675,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "promotions_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "public_company_view"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "promotions_service_id_fkey"
             columns: ["service_id"]
             isOneToOne: false
@@ -1663,6 +1761,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "reviews_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "public_company_view"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "reviews_professional_id_fkey"
             columns: ["professional_id"]
             isOneToOne: false
@@ -1713,6 +1818,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "public_company"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "service_professionals_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "public_company_view"
             referencedColumns: ["id"]
           },
           {
@@ -1792,6 +1904,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "public_company"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "services_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "public_company_view"
             referencedColumns: ["id"]
           },
         ]
@@ -1928,6 +2047,13 @@ export type Database = {
             referencedRelation: "public_company"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "support_tickets_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "public_company_view"
+            referencedColumns: ["id"]
+          },
         ]
       }
       tutorial_videos: {
@@ -2022,6 +2148,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "public_company"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_roles_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "public_company_view"
             referencedColumns: ["id"]
           },
         ]
@@ -2122,6 +2255,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "waiting_list_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "public_company_view"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "waiting_list_professional_id_fkey"
             columns: ["professional_id"]
             isOneToOne: false
@@ -2219,6 +2359,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "waitlist_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "public_company_view"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "waitlist_event_id_fkey"
             columns: ["event_id"]
             isOneToOne: false
@@ -2267,6 +2414,13 @@ export type Database = {
             referencedRelation: "public_company"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "webhook_configs_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "public_company_view"
+            referencedColumns: ["id"]
+          },
         ]
       }
       webhook_events: {
@@ -2310,6 +2464,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "public_company"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "webhook_events_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "public_company_view"
             referencedColumns: ["id"]
           },
         ]
@@ -2414,7 +2575,44 @@ export type Database = {
             referencedRelation: "public_company"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "company_settings_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: true
+            referencedRelation: "public_company_view"
+            referencedColumns: ["id"]
+          },
         ]
+      }
+      public_company_view: {
+        Row: {
+          business_type: Database["public"]["Enums"]["business_type"] | null
+          city: string | null
+          created_at: string | null
+          id: string | null
+          name: string | null
+          slug: string | null
+          state: string | null
+        }
+        Insert: {
+          business_type?: Database["public"]["Enums"]["business_type"] | null
+          city?: string | null
+          created_at?: string | null
+          id?: string | null
+          name?: string | null
+          slug?: string | null
+          state?: string | null
+        }
+        Update: {
+          business_type?: Database["public"]["Enums"]["business_type"] | null
+          city?: string | null
+          created_at?: string | null
+          id?: string | null
+          name?: string | null
+          slug?: string | null
+          state?: string | null
+        }
+        Relationships: []
       }
       public_professionals: {
         Row: {
@@ -2439,6 +2637,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "public_company"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "collaborators_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "public_company_view"
             referencedColumns: ["id"]
           },
         ]
@@ -2479,6 +2684,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "public_company"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "promotions_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "public_company_view"
             referencedColumns: ["id"]
           },
           {
@@ -2532,6 +2744,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "public_company"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "services_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "public_company_view"
             referencedColumns: ["id"]
           },
         ]
