@@ -63,10 +63,20 @@ const Auth = () => {
 
     try {
       if (isLogin) {
-        const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
+        const { data, error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
         if (error) throw error;
+        
+        // Check user roles to determine redirect
+        const { data: rolesData } = await supabase
+          .from('user_roles')
+          .select('role')
+          .eq('user_id', data.user.id);
+        
+        const roles = rolesData?.map(r => r.role) || [];
+        const isSuperAdmin = roles.includes('super_admin');
+        
         toast.success('Login realizado com sucesso!');
-        navigate('/dashboard');
+        navigate(isSuperAdmin ? '/super-admin' : '/dashboard');
       } else {
         const { error: authError } = await supabase.auth.signUp({
           email: email.trim(),
