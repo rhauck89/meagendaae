@@ -685,9 +685,10 @@ export default function Promotions() {
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList>
-          <TabsTrigger value="active">Ativas ({promotions.filter(p => p.status === 'active' && new Date(p.end_date) >= new Date()).length})</TabsTrigger>
+          <TabsTrigger value="active">Ativas ({promotions.filter(p => isActivePromo(p)).length})</TabsTrigger>
+          <TabsTrigger value="scheduled">Programadas ({promotions.filter(p => isScheduled(p)).length})</TabsTrigger>
           <TabsTrigger value="paused">Pausadas ({promotions.filter(p => p.status === 'paused').length})</TabsTrigger>
-          <TabsTrigger value="expired">Encerradas ({promotions.filter(p => p.status !== 'active' || new Date(p.end_date) < new Date()).length})</TabsTrigger>
+          <TabsTrigger value="expired">Encerradas ({promotions.filter(p => isExpiredPromo(p)).length})</TabsTrigger>
         </TabsList>
 
         <TabsContent value={activeTab} className="mt-4">
