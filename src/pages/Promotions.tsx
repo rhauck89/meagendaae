@@ -423,12 +423,20 @@ export default function Promotions() {
     return m[f] || f;
   };
 
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  const now = new Date();
 
-  const isScheduled = (p: Promotion) => p.status === 'active' && new Date(p.start_date) > today;
-  const isActivePromo = (p: Promotion) => p.status === 'active' && new Date(p.start_date) <= today && new Date(p.end_date) >= today;
-  const isExpiredPromo = (p: Promotion) => (p.status === 'active' && new Date(p.end_date) < today) || p.status === 'expired';
+  const getPromoStart = (p: Promotion): Date => {
+    const d = new Date(p.start_date + 'T' + (p.start_time || '00:00') + ':00');
+    return d;
+  };
+  const getPromoEnd = (p: Promotion): Date => {
+    const d = new Date(p.end_date + 'T' + (p.end_time || '23:59') + ':00');
+    return d;
+  };
+
+  const isScheduled = (p: Promotion) => p.status === 'active' && getPromoStart(p) > now;
+  const isActivePromo = (p: Promotion) => p.status === 'active' && getPromoStart(p) <= now && getPromoEnd(p) >= now;
+  const isExpiredPromo = (p: Promotion) => (p.status === 'active' && getPromoEnd(p) < now) || p.status === 'expired';
 
   const filteredPromotions = promotions.filter(p => {
     if (activeTab === 'active') return isActivePromo(p);
