@@ -242,7 +242,7 @@ const SuperAdminCompanies = () => {
         </div>
         <div className="flex flex-wrap gap-3">
           <Select value={filterState} onValueChange={(v) => { setFilterState(v); setFilterCity('all'); }}>
-            <SelectTrigger className="w-[150px]"><SelectValue placeholder="Estado" /></SelectTrigger>
+            <SelectTrigger className="w-full sm:w-[150px]"><SelectValue placeholder="Estado" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Todos estados</SelectItem>
               {states.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
