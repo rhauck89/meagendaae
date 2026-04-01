@@ -305,7 +305,7 @@ const Dashboard = () => {
     });
   };
 
-
+  const fetchReturnStats = async () => {
     if (!companyId) return;
     const { data: clients } = await supabase
       .from('profiles')
