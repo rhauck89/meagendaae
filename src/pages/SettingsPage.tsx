@@ -532,6 +532,9 @@ const SettingsPage = () => {
         </CardContent>
       </Card>
 
+      {/* Custom Domain */}
+      {companyId && <DomainSettings companyId={companyId} />}
+
       {/* Save all profile data */}
       <Button onClick={saveCompanyProfile} className="w-full sm:w-auto">
         Salvar dados da empresa
