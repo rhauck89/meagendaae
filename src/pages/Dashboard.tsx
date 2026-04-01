@@ -810,7 +810,7 @@ const Dashboard = () => {
 
       {/* Monthly Stats */}
       <div>
-        <h3 className="text-lg font-display font-semibold mb-3">📊 Resumo do mês</h3>
+        <h3 className="text-lg font-display font-semibold mb-3">📈 Resumo do Mês</h3>
         <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
           <Card>
             <CardContent className="p-4 flex items-center gap-4">
