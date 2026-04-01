@@ -1532,6 +1532,9 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
           const [h, m] = bookingResult.time.split(':').map(Number);
           st.setHours(h, m, 0, 0);
           const et = addMinutes(st, bookingResult.totalDuration);
+          const savings = isPromoMode && promoData?.original_price != null && promoData?.promotion_price != null
+            ? Number(promoData.original_price) - Number(promoData.promotion_price)
+            : 0;
 
           const calUrl = () => {
             const fmt = (d: Date) => d.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
