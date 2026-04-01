@@ -116,6 +116,32 @@ const DomainSettings = ({ companyId, companySlug }: DomainSettingsProps) => {
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
+        {/* Default subdomain */}
+        {companySlug && (
+          <div className="p-4 rounded-xl bg-muted/50 border space-y-1">
+            <p className="text-sm font-medium">Subdomínio padrão</p>
+            <div className="flex items-center gap-2">
+              <code className="text-xs bg-background px-3 py-1.5 rounded-lg border font-mono flex-1">
+                {companySlug}.agendapro.com
+              </code>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8"
+                onClick={() => {
+                  navigator.clipboard.writeText(`${companySlug}.agendapro.com`);
+                  toast.success('Copiado!');
+                }}
+              >
+                <Copy className="h-3.5 w-3.5" />
+              </Button>
+            </div>
+            <p className="text-[10px] text-muted-foreground">
+              Este subdomínio está sempre ativo como fallback, mesmo com um domínio personalizado configurado.
+            </p>
+          </div>
+        )}
+
         <p className="text-xs text-muted-foreground">
           Configure um domínio personalizado para sua página de agendamento. Seus clientes poderão acessar diretamente pelo seu domínio.
         </p>
