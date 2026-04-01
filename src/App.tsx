@@ -33,6 +33,13 @@ import EventPublic from "./pages/EventPublic";
 import Promotions from "./pages/Promotions";
 import PromotionPublic from "./pages/PromotionPublic";
 import DashboardLayout from "./components/DashboardLayout";
+import SuperAdminLayout from "./components/SuperAdminLayout";
+import SuperAdminDashboard from "./pages/superadmin/SuperAdminDashboard";
+import SuperAdminCompanies from "./pages/superadmin/SuperAdminCompanies";
+import SuperAdminPlans from "./pages/superadmin/SuperAdminPlans";
+import SuperAdminFinance from "./pages/superadmin/SuperAdminFinance";
+import SuperAdminReports from "./pages/superadmin/SuperAdminReports";
+import SuperAdminSettings from "./pages/superadmin/SuperAdminSettings";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -108,7 +115,12 @@ const PlatformRoutes = () => (
     <Route path="/cancel/:appointmentId" element={<CancelAppointment />} />
     <Route path="/reschedule/:appointmentId" element={<RescheduleAppointment />} />
     <Route path="/admin" element={<RequireRole role="super_admin"><Admin /></RequireRole>} />
-    <Route path="/super-admin" element={<RequireRole role="super_admin"><Admin /></RequireRole>} />
+    <Route path="/super-admin" element={<RequireRole role="super_admin"><SuperAdminLayout><SuperAdminDashboard /></SuperAdminLayout></RequireRole>} />
+    <Route path="/super-admin/companies" element={<RequireRole role="super_admin"><SuperAdminLayout><SuperAdminCompanies /></SuperAdminLayout></RequireRole>} />
+    <Route path="/super-admin/plans" element={<RequireRole role="super_admin"><SuperAdminLayout><SuperAdminPlans /></SuperAdminLayout></RequireRole>} />
+    <Route path="/super-admin/finance" element={<RequireRole role="super_admin"><SuperAdminLayout><SuperAdminFinance /></SuperAdminLayout></RequireRole>} />
+    <Route path="/super-admin/reports" element={<RequireRole role="super_admin"><SuperAdminLayout><SuperAdminReports /></SuperAdminLayout></RequireRole>} />
+    <Route path="/super-admin/settings" element={<RequireRole role="super_admin"><SuperAdminLayout><SuperAdminSettings /></SuperAdminLayout></RequireRole>} />
     <Route path="/admin/debug-agenda" element={<RequireRole role="super_admin"><DebugAgenda /></RequireRole>} />
     <Route path="/dashboard" element={<DashboardRoute><Dashboard /></DashboardRoute>} />
     <Route path="/dashboard/services" element={<DashboardRoute><Services /></DashboardRoute>} />
