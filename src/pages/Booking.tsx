@@ -1034,8 +1034,8 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
         {step === 'services' && (
           <div className="space-y-5 animate-fade-in">
             <div>
-              <h2 className="text-2xl font-bold tracking-tight">Escolha os serviços</h2>
-              <p className="text-sm mt-1" style={{ color: T.textSec }}>Selecione um ou mais serviços desejados</p>
+              <h2 className="text-2xl font-bold tracking-tight">{isPromoMode ? 'Serviço da promoção' : 'Escolha os serviços'}</h2>
+              <p className="text-sm mt-1" style={{ color: T.textSec }}>{isPromoMode ? 'Este serviço está incluído na promoção' : 'Selecione um ou mais serviços desejados'}</p>
             </div>
             <div className="space-y-3">
               {services.map((svc) => {
