@@ -30,19 +30,39 @@ const HelpCenter = () => {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [selectedVideo, setSelectedVideo] = useState<TutorialVideo | null>(null);
+  const [completedIds, setCompletedIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
-    const fetch = async () => {
+    const load = async () => {
       const { data } = await supabase
         .from('tutorial_videos')
         .select('id, title, description, youtube_url, menu_reference, sort_order')
         .eq('active', true)
         .order('sort_order');
       if (data) setVideos(data as TutorialVideo[]);
+
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data: progress } = await supabase
+          .from('user_tutorial_progress')
+          .select('video_id')
+          .eq('user_id', user.id);
+        if (progress) setCompletedIds(new Set(progress.map(p => p.video_id)));
+      }
       setLoading(false);
     };
-    fetch();
+    load();
   }, []);
+
+  const markCompleted = async (videoId: string) => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user || completedIds.has(videoId)) return;
+    await supabase.from('user_tutorial_progress').upsert(
+      { user_id: user.id, video_id: videoId },
+      { onConflict: 'user_id,video_id' }
+    );
+    setCompletedIds(prev => new Set(prev).add(videoId));
+  };
 
   const filtered = videos.filter(v =>
     v.title.toLowerCase().includes(search.toLowerCase()) ||
