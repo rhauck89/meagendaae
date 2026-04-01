@@ -536,6 +536,34 @@ const SuperAdminFinance = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Quick Category Dialog */}
+      <Dialog open={quickCatOpen} onOpenChange={setQuickCatOpen}>
+        <DialogContent className="max-w-xs">
+          <DialogHeader><DialogTitle>Nova Categoria</DialogTitle></DialogHeader>
+          <div className="space-y-3">
+            <div className="space-y-1">
+              <Label className="text-xs">Nome</Label>
+              <Input value={quickCatForm.name} onChange={e => setQuickCatForm(f => ({ ...f, name: e.target.value }))} autoFocus />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Tipo</Label>
+              <Select value={quickCatForm.type} onValueChange={v => setQuickCatForm(f => ({ ...f, type: v }))}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="expense">Despesa</SelectItem>
+                  <SelectItem value="revenue">Receita</SelectItem>
+                  <SelectItem value="both">Ambos</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" size="sm" onClick={() => setQuickCatOpen(false)}>Cancelar</Button>
+            <Button size="sm" onClick={saveQuickCat}>Criar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
