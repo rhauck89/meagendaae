@@ -95,11 +95,20 @@ const WIZARD_STEPS = [
 ];
 
 // --- Datetime helpers ---
+function normalizeTime(t: string | null, fallback: string): string {
+  if (!t) return fallback;
+  // Handle "HH:MM:SS" or "HH:MM" — always return "HH:MM:SS"
+  const parts = t.split(':');
+  const hh = parts[0] || '00';
+  const mm = parts[1] || '00';
+  const ss = parts[2] || '00';
+  return `${hh}:${mm}:${ss}`;
+}
 function getPromoStart(p: Promotion): Date {
-  return new Date(p.start_date + 'T' + (p.start_time || '00:00') + ':00');
+  return new Date(`${p.start_date}T${normalizeTime(p.start_time, '00:00:00')}`);
 }
 function getPromoEnd(p: Promotion): Date {
-  return new Date(p.end_date + 'T' + (p.end_time || '23:59') + ':00');
+  return new Date(`${p.end_date}T${normalizeTime(p.end_time, '23:59:59')}`);
 }
 
 function promoVisualStatus(p: Promotion, now: Date): 'scheduled' | 'active' | 'paused' | 'expired' {
@@ -112,7 +121,7 @@ function promoVisualStatus(p: Promotion, now: Date): 'scheduled' | 'active' | 'p
 }
 
 function formatCountdown(ms: number): string {
-  if (ms <= 0) return 'Encerrada';
+  if (!isFinite(ms) || isNaN(ms) || ms <= 0) return '';
   const totalMin = Math.floor(ms / 60000);
   const h = Math.floor(totalMin / 60);
   const m = totalMin % 60;
@@ -120,7 +129,7 @@ function formatCountdown(ms: number): string {
     const d = Math.floor(h / 24);
     return `${d}d ${h % 24}h`;
   }
-  return `${String(h).padStart(2, '0')}h ${String(m).padStart(2, '0')}m`;
+  return `${h}h ${String(m).padStart(2, '0')}m`;
 }
 
 export default function Promotions() {
@@ -503,12 +512,15 @@ export default function Promotions() {
     const status = promoVisualStatus(promo, now);
     if (status !== 'active') return null;
     const end = getPromoEnd(promo);
+    if (isNaN(end.getTime())) return null;
     const remaining = end.getTime() - now.getTime();
-    if (remaining <= 0) return null;
+    if (!isFinite(remaining) || remaining <= 0) return null;
+    const text = formatCountdown(remaining);
+    if (!text) return null;
     return (
       <div className="flex items-center gap-1.5 text-xs text-amber-600 font-medium">
         <Timer className="h-3 w-3" />
-        Termina em {formatCountdown(remaining)}
+        ⏰ Termina em {text}
       </div>
     );
   };
