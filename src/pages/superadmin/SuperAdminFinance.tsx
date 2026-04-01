@@ -42,6 +42,27 @@ const SuperAdminFinance = () => {
 
   const [deleteTarget, setDeleteTarget] = useState<{ type: string; id: string } | null>(null);
 
+  // Inline quick category creation
+  const [quickCatOpen, setQuickCatOpen] = useState(false);
+  const [quickCatForm, setQuickCatForm] = useState({ name: '', type: 'expense' });
+  const [quickCatTarget, setQuickCatTarget] = useState<'expense' | 'revenue'>('expense');
+
+  const saveQuickCat = async () => {
+    if (!quickCatForm.name.trim()) { toast.error('Nome obrigatório'); return; }
+    const { data } = await supabase.from('expense_categories').insert({ name: quickCatForm.name, description: null, type: quickCatForm.type } as any).select().single();
+    if (data) {
+      const newCat = data as unknown as ExpenseCategory;
+      setCategories(prev => [...prev, newCat].sort((a, b) => a.name.localeCompare(b.name)));
+      if (quickCatTarget === 'expense') {
+        setExpForm(f => ({ ...f, category_id: newCat.id }));
+      } else {
+        setRevForm(f => ({ ...f, source: newCat.name }));
+      }
+      toast.success('Categoria criada');
+    }
+    setQuickCatOpen(false);
+  };
+
   const fetchAll = async () => {
     const [catRes, expRes, revRes, compRes] = await Promise.all([
       supabase.from('expense_categories').select('*').order('name'),
