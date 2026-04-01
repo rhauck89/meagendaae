@@ -226,10 +226,14 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
                   msg.type === 'warning' ? 'bg-yellow-500/5 border-yellow-500/20' : 'bg-primary/5 border-primary/20'
                 )}>
                   {msg.type === 'warning' ? <AlertTriangle className="h-4 w-4 text-yellow-500 shrink-0 mt-0.5" /> : <Megaphone className="h-4 w-4 text-primary shrink-0 mt-0.5" />}
-                  <div>
+                  <div className="flex-1 min-w-0">
                     <p className="font-medium">{msg.title}</p>
                     <p className="text-muted-foreground text-xs mt-0.5">{msg.content}</p>
+                    <p className="text-[10px] text-muted-foreground mt-1">{format(new Date(msg.created_at), 'dd/MM/yyyy HH:mm')}</p>
                   </div>
+                  <button onClick={() => dismissMessage(msg.id)} className="text-muted-foreground hover:text-foreground shrink-0 p-1" title="Dispensar">
+                    <X className="h-4 w-4" />
+                  </button>
                 </div>
               ))}
             </div>
