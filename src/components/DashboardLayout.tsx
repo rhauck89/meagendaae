@@ -225,7 +225,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
                   'flex items-start gap-3 p-3 rounded-lg border text-sm',
                   msg.type === 'warning' ? 'bg-warning/5 border-warning/20' : 'bg-primary/5 border-primary/20'
                 )}>
-                  {msg.type === 'warning' ? <AlertTriangle className="h-4 w-4 text-yellow-500 shrink-0 mt-0.5" /> : <Megaphone className="h-4 w-4 text-primary shrink-0 mt-0.5" />}
+                  {msg.type === 'warning' ? <AlertTriangle className="h-4 w-4 text-warning shrink-0 mt-0.5" /> : <Megaphone className="h-4 w-4 text-primary shrink-0 mt-0.5" />}
                   <div className="flex-1 min-w-0">
                     <p className="font-medium">{msg.title}</p>
                     <p className="text-muted-foreground text-xs mt-0.5">{msg.content}</p>
