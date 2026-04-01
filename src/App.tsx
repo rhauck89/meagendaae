@@ -114,6 +114,7 @@ const PlatformRoutes = () => (
     <Route path="/super-admin/reports" element={<RequireRole role="super_admin"><SuperAdminLayout><SuperAdminReports /></SuperAdminLayout></RequireRole>} />
     <Route path="/super-admin/settings" element={<RequireRole role="super_admin"><SuperAdminLayout><SuperAdminSettings /></SuperAdminLayout></RequireRole>} />
     <Route path="/super-admin/support" element={<RequireRole role="super_admin"><SuperAdminLayout><SuperAdminSupport /></SuperAdminLayout></RequireRole>} />
+    <Route path="/super-admin/support/reports" element={<RequireRole role="super_admin"><SuperAdminLayout><SuperAdminSupportReports /></SuperAdminLayout></RequireRole>} />
     <Route path="/admin/debug-agenda" element={<RequireRole role="super_admin"><DebugAgenda /></RequireRole>} />
     <Route path="/dashboard" element={<DashboardRoute><Dashboard /></DashboardRoute>} />
     <Route path="/dashboard/services" element={<DashboardRoute><Services /></DashboardRoute>} />
