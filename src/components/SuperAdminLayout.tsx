@@ -48,10 +48,7 @@ const SuperAdminLayout = ({ children }: { children: React.ReactNode }) => {
         sidebarOpen ? 'translate-x-0' : '-translate-x-full'
       )}>
         <div className="p-6 flex items-center gap-3">
-          <div className="w-10 h-10 bg-sidebar-primary/15 rounded-xl flex items-center justify-center">
-            <ShieldCheck className="h-5 w-5 text-sidebar-primary" />
-          </div>
-          <span className="font-display font-bold text-lg">Super Admin</span>
+          <PlatformLogo />
           <button className="ml-auto lg:hidden" onClick={() => setSidebarOpen(false)}>
             <X className="h-5 w-5" />
           </button>
