@@ -265,6 +265,14 @@ const SuperAdminCompanies = () => {
               <SelectItem value="inactive">Inativo</SelectItem>
             </SelectContent>
           </Select>
+          <Select value={filterBusinessType} onValueChange={setFilterBusinessType}>
+            <SelectTrigger className="w-[160px]"><SelectValue placeholder="Categoria" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todas categorias</SelectItem>
+              <SelectItem value="barbershop">Barbearia</SelectItem>
+              <SelectItem value="esthetic">Estética</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
       </div>
 
