@@ -1547,38 +1547,53 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
               addressLines.push([bookingResult.companyCity, bookingResult.companyState].filter(Boolean).join(' - '));
             }
             if (bookingResult.companyPostalCode) addressLines.push(`CEP: ${bookingResult.companyPostalCode}`);
+            const savings = isPromoMode && promoData?.original_price != null && promoData?.promotion_price != null
+              ? Number(promoData.original_price) - Number(promoData.promotion_price)
+              : 0;
             const promoLines = isPromoMode && promoData ? [
-              `🔥 Promoção: *${promoData.title}*`,
+              `🎉 Promoção: *${promoData.title}*`,
+              '',
+              `✂️ Serviço: ${bookingResult.serviceNames.join(', ')}`,
+              '',
               promoData.original_price != null ? `Preço normal: R$ ${Number(promoData.original_price).toFixed(2)}` : '',
               promoData.promotion_price != null ? `Preço promocional: R$ ${Number(promoData.promotion_price).toFixed(2)}` : '',
+              savings > 0 ? `\n🔥 Você economizou R$ ${savings.toFixed(2)}` : '',
+              '',
+              '⚠ Promoção válida apenas para este horário.',
               '',
             ].filter(Boolean) : [];
             const msg = [
-              'Ol\u00e1! \uD83D\uDC4B',
+              'Olá! 👋',
               '',
-              `Seu agendamento foi confirmado na *${bookingResult.companyName}* \uD83D\uDC88`,
+              `Seu agendamento foi confirmado na *${bookingResult.companyName}* 💈`,
               '',
               ...promoLines,
-              `\uD83D\uDCC5 Data: ${format(bookingResult.date, "dd 'de' MMMM, yyyy", { locale: ptBR })}`,
-              `\u23F0 Hor\u00e1rio: ${bookingResult.time}`,
-              `\u2702\uFE0F Servi\u00E7o: ${bookingResult.serviceNames.join(', ')}`,
-              `\uD83D\uDC64 Profissional: ${bookingResult.professionalName}`,
-              `\uD83D\uDCB0 Valor: R$ ${bookingResult.totalPrice.toFixed(2)}`,
+              `📅 Data: ${format(bookingResult.date, "dd 'de' MMMM, yyyy", { locale: ptBR })}`,
+              `⏰ Horário: ${bookingResult.time}`,
+              ...(isPromoMode ? [] : [`✂️ Serviço: ${bookingResult.serviceNames.join(', ')}`]),
+              `👤 Profissional: ${bookingResult.professionalName}`,
+              ...(isPromoMode ? [] : [`💰 Valor: R$ ${bookingResult.totalPrice.toFixed(2)}`]),
               '',
-              `\uD83D\uDCCD Local: *${bookingResult.companyName}*`,
+              `📍 Local: *${bookingResult.companyName}*`,
               ...addressLines,
               '',
-              'Se precisar alterar:',
-              '',
-              ...(isPromoMode ? [] : [
-                `\uD83D\uDD01 Reagendar:`,
+              ...(isPromoMode ? [
+                'Caso precise cancelar:',
+                '',
+                `❌ Cancelar:`,
+                `${baseUrl}/cancel/${bookingResult.appointmentId}`,
+              ] : [
+                'Se precisar alterar:',
+                '',
+                `🔁 Reagendar:`,
                 `${baseUrl}/reschedule/${bookingResult.appointmentId}`,
                 '',
+                `❌ Cancelar:`,
+                `${baseUrl}/cancel/${bookingResult.appointmentId}`,
               ]),
-              `\u274C Cancelar:`,
-              `${baseUrl}/cancel/${bookingResult.appointmentId}`,
               '',
-              'Obrigado! \uD83D\uDE4F',
+              'Obrigado! 🙏',
+            ].join('\n');
             ].join('\n');
             return `https://wa.me/${phone.startsWith('55') ? phone : '55' + phone}?text=${encodeURIComponent(msg)}`;
           };
