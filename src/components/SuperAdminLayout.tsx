@@ -17,6 +17,7 @@ const navItems = [
   { href: '/super-admin/reports', icon: BarChart3, label: 'Relatórios' },
   { href: '/super-admin/support', icon: MessageSquare, label: 'Suporte' },
   { href: '/super-admin/tutorials', icon: Video, label: 'Tutoriais' },
+  { href: '/super-admin/messages', icon: Megaphone, label: 'Mensagens' },
   { href: '/super-admin/settings', icon: Settings, label: 'Configurações' },
 ];
 
