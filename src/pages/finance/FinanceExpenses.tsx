@@ -164,6 +164,7 @@ const FinanceExpenses = () => {
       notes: e.notes || '',
       status: e.status,
       installments: '1',
+      payment_method: e.payment_method || '',
     });
     setOpen(true);
   };
