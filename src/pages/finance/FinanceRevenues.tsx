@@ -158,6 +158,18 @@ const FinanceRevenues = () => {
                 </Select>
               </div>
               <div>
+                <Label>Forma de pagamento</Label>
+                <Select value={form.payment_method || 'none'} onValueChange={v => setForm(f => ({ ...f, payment_method: v === 'none' ? '' : v }))}>
+                  <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Não informado</SelectItem>
+                    <SelectItem value="dinheiro">Dinheiro</SelectItem>
+                    <SelectItem value="pix">Pix</SelectItem>
+                    <SelectItem value="cartao">Cartão</SelectItem>
+                    <SelectItem value="transferencia">Transferência</SelectItem>
+                    <SelectItem value="outro">Outro</SelectItem>
+                  </SelectContent>
+                </Select>
                 <div className="flex items-center justify-between mb-1">
                   <Label>Categoria</Label>
                   <Button type="button" variant="ghost" size="sm" className="h-auto py-0.5 px-1.5 text-xs text-primary" onClick={() => setCatOpen(true)}>
