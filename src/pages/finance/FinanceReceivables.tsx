@@ -29,7 +29,6 @@ const FinanceReceivables = () => {
       .from('company_revenues')
       .select('*, category:company_revenue_categories(name)')
       .eq('company_id', companyId!)
-      .not('due_date', 'is', null)
       .order('due_date', { ascending: true })
       .limit(300);
     if (filter !== 'all') q = q.eq('status', filter);
@@ -49,8 +48,8 @@ const FinanceReceivables = () => {
     fetchItems();
   };
 
-  const getDueBadge = (dueDate: string, status: string) => {
-    if (status !== 'pending') return null;
+  const getDueBadge = (dueDate: string | null, status: string) => {
+    if (status !== 'pending' || !dueDate) return null;
     const d = new Date(dueDate + 'T12:00:00');
     if (isToday(d)) return <Badge variant="outline" className="bg-yellow-50 text-yellow-700 text-[10px]"><AlertTriangle className="h-3 w-3 mr-1" />Vence hoje</Badge>;
     if (isPast(d)) return <Badge variant="destructive" className="text-[10px]"><AlertTriangle className="h-3 w-3 mr-1" />Atrasada</Badge>;
@@ -62,7 +61,7 @@ const FinanceReceivables = () => {
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-xl font-display font-bold">Contas a Receber</h2>
-          <p className="text-sm text-muted-foreground">Receitas com vencimento futuro</p>
+          <p className="text-sm text-muted-foreground">Receitas pendentes e recebidas</p>
         </div>
         <Select value={filter} onValueChange={setFilter}>
           <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
@@ -95,7 +94,7 @@ const FinanceReceivables = () => {
                   <TableRow key={r.id}>
                     <TableCell className="whitespace-nowrap">
                       <div className="flex flex-col gap-1">
-                        {format(new Date(r.due_date + 'T12:00:00'), 'dd/MM/yyyy')}
+                        {r.due_date ? format(new Date(r.due_date + 'T12:00:00'), 'dd/MM/yyyy') : format(new Date(r.revenue_date + 'T12:00:00'), 'dd/MM/yyyy')}
                         {getDueBadge(r.due_date, r.status)}
                       </div>
                     </TableCell>

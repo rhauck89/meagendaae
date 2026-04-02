@@ -2,8 +2,8 @@ import { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { DollarSign, TrendingDown, TrendingUp, Scissors, Users, BarChart3, Receipt, HandCoins, AlertTriangle } from 'lucide-react';
-import { startOfMonth, endOfMonth, subMonths, format, isPast, isToday } from 'date-fns';
+import { DollarSign, TrendingDown, TrendingUp, Scissors, Users, BarChart3, Receipt, HandCoins, AlertTriangle, Clock, CalendarDays } from 'lucide-react';
+import { startOfMonth, endOfMonth, subMonths, format, isPast, isToday, endOfWeek, startOfWeek, addDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, LineChart, Line, Area, AreaChart } from 'recharts';
 import { calculateFinancials } from '@/lib/financial-engine';
@@ -19,6 +19,7 @@ const FinanceDashboard = () => {
   const [payables, setPayables] = useState({ total: 0, overdue: 0, dueToday: 0 });
   const [receivables, setReceivables] = useState({ total: 0, overdue: 0, dueToday: 0 });
   const [cashFlowData, setCashFlowData] = useState<any[]>([]);
+  const [upcomingDues, setUpcomingDues] = useState({ today: 0, thisWeek: 0, thisMonth: 0 });
 
   useEffect(() => {
     if (companyId) {
@@ -26,6 +27,7 @@ const FinanceDashboard = () => {
       fetchChartData();
       fetchPayablesReceivables();
       fetchCashFlow();
+      fetchUpcomingDues();
     }
   }, [companyId]);
 
@@ -113,6 +115,25 @@ const FinanceDashboard = () => {
       data.push({ name: label, receitas: expectedRev, despesas: expectedExp, saldo: expectedRev - expectedExp });
     }
     setCashFlowData(data);
+  };
+
+  const fetchUpcomingDues = async () => {
+    const now = new Date();
+    const todayStr = format(now, 'yyyy-MM-dd');
+    const weekEndStr = format(endOfWeek(now), 'yyyy-MM-dd');
+    const monthEndStr = format(endOfMonth(now), 'yyyy-MM-dd');
+
+    const [payRes, recRes] = await Promise.all([
+      supabase.from('company_expenses').select('due_date').eq('company_id', companyId!).eq('status', 'pending').not('due_date', 'is', null).gte('due_date', todayStr).lte('due_date', monthEndStr),
+      supabase.from('company_revenues').select('due_date').eq('company_id', companyId!).eq('status', 'pending').not('due_date', 'is', null).gte('due_date', todayStr).lte('due_date', monthEndStr),
+    ]);
+
+    const allDues = [...(payRes.data || []), ...(recRes.data || [])];
+    setUpcomingDues({
+      today: allDues.filter(i => i.due_date === todayStr).length,
+      thisWeek: allDues.filter(i => i.due_date! <= weekEndStr).length,
+      thisMonth: allDues.length,
+    });
   };
 
   const fetchChartData = async () => {
@@ -234,7 +255,27 @@ const FinanceDashboard = () => {
         </Card>
       </div>
 
-      {/* Revenue vs Expenses chart */}
+      {/* Próximos Vencimentos */}
+      <Card>
+        <CardHeader><CardTitle className="flex items-center gap-2"><Clock className="h-5 w-5" /> Próximos Vencimentos</CardTitle></CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-3 gap-4 text-center">
+            <div className="space-y-1">
+              <p className="text-2xl font-bold">{upcomingDues.today}</p>
+              <p className="text-xs text-muted-foreground">Hoje</p>
+            </div>
+            <div className="space-y-1">
+              <p className="text-2xl font-bold">{upcomingDues.thisWeek}</p>
+              <p className="text-xs text-muted-foreground">Esta semana</p>
+            </div>
+            <div className="space-y-1">
+              <p className="text-2xl font-bold">{upcomingDues.thisMonth}</p>
+              <p className="text-xs text-muted-foreground">Este mês</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       <Card>
         <CardHeader><CardTitle>Receitas vs Despesas (últimos 6 meses)</CardTitle></CardHeader>
         <CardContent>
