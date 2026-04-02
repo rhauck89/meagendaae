@@ -458,9 +458,27 @@ const Dashboard = () => {
     setCurrentDate(addDays(currentDate, direction * days));
   };
 
-  const updateStatus = async (id: string, status: string) => {
+  const updateStatus = async (id: string, status: string, paymentMethod?: string) => {
     const apt = appointments.find((a) => a.id === id);
     await supabase.from('appointments').update({ status: status as any }).eq('id', id);
+
+    // If completing, create automatic revenue
+    if (status === 'completed' && apt && companyId) {
+      const serviceNames = apt.appointment_services?.map((s: any) => s.service?.name).filter(Boolean).join(', ') || 'Serviço';
+      await supabase.from('company_revenues').insert({
+        company_id: companyId,
+        appointment_id: apt.id,
+        professional_id: apt.professional_id,
+        description: `${apt.client_name || 'Cliente'} — ${serviceNames}`,
+        amount: Number(apt.total_price),
+        revenue_date: format(parseISO(apt.start_time), 'yyyy-MM-dd'),
+        due_date: format(parseISO(apt.start_time), 'yyyy-MM-dd'),
+        status: 'received',
+        is_automatic: true,
+        payment_method: paymentMethod || null,
+        created_by: user?.id,
+      });
+    }
 
     // If cancelling, trigger waitlist check
     if (status === 'cancelled' && apt) {
