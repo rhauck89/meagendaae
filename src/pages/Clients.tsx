@@ -223,7 +223,74 @@ const Clients = () => {
           <h2 className="text-2xl font-display font-bold">Clientes</h2>
           <p className="text-muted-foreground">{clients.length} clientes cadastrados</p>
         </div>
+        <Button className="gap-2" onClick={() => setAddClientOpen(true)}>
+          <UserPlus className="h-4 w-4" /> Cadastrar cliente
+        </Button>
       </div>
+
+      {/* Add Client Dialog */}
+      <Dialog open={addClientOpen} onOpenChange={(v) => { setAddClientOpen(v); if (!v) setAddClientForm({ name: '', whatsapp: '', email: '', birth_date: '', notes: '' }); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Cadastrar novo cliente</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Nome *</Label>
+              <Input value={addClientForm.name} onChange={e => setAddClientForm(f => ({ ...f, name: e.target.value }))} maxLength={100} placeholder="Nome do cliente" />
+            </div>
+            <div className="space-y-2">
+              <Label>WhatsApp *</Label>
+              <Input value={addClientForm.whatsapp} onChange={e => setAddClientForm(f => ({ ...f, whatsapp: e.target.value }))} maxLength={20} placeholder="(31) 99999-9999" />
+            </div>
+            <div className="space-y-2">
+              <Label>Email (opcional)</Label>
+              <Input type="email" value={addClientForm.email} onChange={e => setAddClientForm(f => ({ ...f, email: e.target.value }))} maxLength={255} placeholder="email@exemplo.com" />
+            </div>
+            <div className="space-y-2">
+              <Label>Data de nascimento (opcional)</Label>
+              <Input type="date" value={addClientForm.birth_date} onChange={e => setAddClientForm(f => ({ ...f, birth_date: e.target.value }))} />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAddClientOpen(false)}>Cancelar</Button>
+            <Button onClick={handleAddClient} disabled={addClientSaving}>
+              {addClientSaving ? 'Salvando...' : 'Cadastrar'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Duplicate Client Dialog */}
+      <Dialog open={duplicateDialogOpen} onOpenChange={setDuplicateDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Cliente já cadastrado</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            Já existe um cliente cadastrado com este número de WhatsApp:
+          </p>
+          {duplicateClient && (
+            <div className="p-3 rounded-lg border bg-muted/30">
+              <p className="font-medium">{duplicateClient.name}</p>
+              <p className="text-sm text-muted-foreground">{duplicateClient.whatsapp}</p>
+            </div>
+          )}
+          <p className="text-sm text-muted-foreground">Deseja utilizar esse cliente?</p>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setDuplicateDialogOpen(false); setDuplicateClient(null); }}>Cancelar</Button>
+            <Button onClick={() => {
+              setDuplicateDialogOpen(false);
+              setAddClientOpen(false);
+              setAddClientForm({ name: '', whatsapp: '', email: '', birth_date: '', notes: '' });
+              if (duplicateClient) setSelectedClientId(duplicateClient.id);
+              setDuplicateClient(null);
+            }}>
+              Usar cliente existente
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <div className="relative max-w-sm">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
