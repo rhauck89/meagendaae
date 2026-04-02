@@ -596,7 +596,11 @@ export default function Promotions() {
   };
 
   // --- Wizard step rendering ---
-  const renderStep1 = () => (
+  const renderStep1 = () => {
+    const effectiveIds = getEffectiveServiceIds();
+    const selectedSvcs = services.filter(s => effectiveIds.includes(s.id));
+    
+    return (
     <div className="space-y-4">
       <div>
         <Label>Título *</Label>
@@ -606,8 +610,27 @@ export default function Promotions() {
         <Label>Descrição</Label>
         <Textarea value={description} onChange={e => setDescription(e.target.value)} placeholder="Detalhes da promoção" rows={2} />
       </div>
+      
+      {/* Service selection mode */}
       <div>
-        <Label>Serviço *</Label>
+        <Label>Serviços *</Label>
+        <Select value={serviceSelectionMode} onValueChange={(v: 'single' | 'multiple' | 'all') => {
+          setServiceSelectionMode(v);
+          if (v === 'all') handleSelectAllServices();
+          else if (v === 'single') { setSelectedServiceIds(selectedServiceId ? [selectedServiceId] : []); }
+          else { setSelectedServiceId(''); }
+        }}>
+          <SelectTrigger><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="single">Selecionar um serviço</SelectItem>
+            <SelectItem value="multiple">Selecionar vários serviços</SelectItem>
+            <SelectItem value="all">Todos os serviços</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      {/* Single service selector */}
+      {serviceSelectionMode === 'single' && (
         <Select value={selectedServiceId} onValueChange={handleServiceChange}>
           <SelectTrigger><SelectValue placeholder="Selecionar serviço" /></SelectTrigger>
           <SelectContent>
@@ -618,29 +641,103 @@ export default function Promotions() {
             ))}
           </SelectContent>
         </Select>
-      </div>
-      {selectedServiceId && (
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <Label>Preço Original</Label>
-            <Input value={originalPrice ? `R$ ${Number(originalPrice).toFixed(2)}` : ''} readOnly className="bg-muted" />
-          </div>
-          <div>
-            <Label>Preço Promocional *</Label>
-            <Input type="number" value={promotionPrice} onChange={e => setPromotionPrice(e.target.value)} placeholder="Ex: 25.00" step="0.01" />
-            {promotionPrice && originalPrice && parseFloat(promotionPrice) < parseFloat(originalPrice) && (
-              <p className="text-xs text-emerald-600 mt-1">
-                💰 Desconto de {Math.round(((parseFloat(originalPrice) - parseFloat(promotionPrice)) / parseFloat(originalPrice)) * 100)}%
-              </p>
-            )}
-            {promotionPrice && originalPrice && parseFloat(promotionPrice) >= parseFloat(originalPrice) && (
-              <p className="text-xs text-destructive mt-1">O preço promocional deve ser menor que o original</p>
-            )}
-          </div>
+      )}
+
+      {/* Multiple service selector */}
+      {serviceSelectionMode === 'multiple' && (
+        <div className="space-y-2 border rounded-lg p-3 max-h-48 overflow-y-auto">
+          {services.map(s => (
+            <label key={s.id} className="flex items-center justify-between gap-2 cursor-pointer p-2 rounded hover:bg-muted/50">
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  checked={selectedServiceIds.includes(s.id)}
+                  onCheckedChange={() => toggleServiceSelection(s.id)}
+                />
+                <span className="text-sm">{s.name}</span>
+              </div>
+              <span className="text-sm text-muted-foreground">R$ {Number(s.price).toFixed(2)}</span>
+            </label>
+          ))}
         </div>
       )}
+
+      {/* All services indicator */}
+      {serviceSelectionMode === 'all' && (
+        <div className="rounded-lg bg-primary/5 p-3 text-sm">
+          <p className="font-medium text-primary">✅ Todos os {services.length} serviços selecionados</p>
+        </div>
+      )}
+
+      {/* Discount type */}
+      {effectiveIds.length > 0 && (
+        <>
+          <div>
+            <Label>Tipo de desconto *</Label>
+            <Select value={discountType} onValueChange={(v: 'fixed_price' | 'percentage' | 'fixed_amount') => {
+              setDiscountType(v);
+              setPromotionPrice('');
+              setDiscountValue('');
+            }}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="fixed_price">Preço fixo (R$)</SelectItem>
+                <SelectItem value="percentage">Porcentagem (%)</SelectItem>
+                <SelectItem value="fixed_amount">Valor fixo de desconto (R$)</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Fixed price input */}
+          {discountType === 'fixed_price' && (
+            <div>
+              <Label>Preço Promocional *</Label>
+              <Input type="number" value={promotionPrice} onChange={e => setPromotionPrice(e.target.value)} placeholder="Ex: 25.00" step="0.01" />
+            </div>
+          )}
+
+          {/* Percentage input */}
+          {discountType === 'percentage' && (
+            <div>
+              <Label>Desconto (%) *</Label>
+              <Input type="number" value={discountValue} onChange={e => setDiscountValue(e.target.value)} placeholder="Ex: 20" min="1" max="99" />
+            </div>
+          )}
+
+          {/* Fixed amount input */}
+          {discountType === 'fixed_amount' && (
+            <div>
+              <Label>Desconto (R$) *</Label>
+              <Input type="number" value={discountValue} onChange={e => setDiscountValue(e.target.value)} placeholder="Ex: 10.00" step="0.01" />
+            </div>
+          )}
+
+          {/* Preview of prices */}
+          {selectedSvcs.length > 0 && (discountType !== 'fixed_price' ? parseFloat(discountValue) > 0 : parseFloat(promotionPrice) > 0) && (
+            <div className="rounded-lg border p-3 space-y-2">
+              <p className="text-xs font-medium text-muted-foreground">Prévia dos preços:</p>
+              {selectedSvcs.slice(0, 5).map(svc => {
+                const orig = Number(svc.price);
+                const promo = discountType === 'fixed_price' ? parseFloat(promotionPrice) : calculatePromoPrice(orig);
+                const pctOff = orig > 0 ? Math.round(((orig - promo) / orig) * 100) : 0;
+                return (
+                  <div key={svc.id} className="flex items-center justify-between text-sm">
+                    <span>{svc.name}</span>
+                    <div className="flex items-center gap-2">
+                      <span className="line-through text-muted-foreground">R$ {orig.toFixed(2)}</span>
+                      <span className="font-bold text-primary">R$ {promo.toFixed(2)}</span>
+                      {pctOff > 0 && <Badge variant="outline" className="text-xs">{pctOff}% OFF</Badge>}
+                    </div>
+                  </div>
+                );
+              })}
+              {selectedSvcs.length > 5 && <p className="text-xs text-muted-foreground">...e mais {selectedSvcs.length - 5} serviço(s)</p>}
+            </div>
+          )}
+        </>
+      )}
     </div>
-  );
+    );
+  };
 
   const renderStep2 = () => (
     <div className="space-y-4">
