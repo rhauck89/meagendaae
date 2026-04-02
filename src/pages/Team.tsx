@@ -32,7 +32,7 @@ const Team = () => {
   // Edit modal state
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<any>(null);
-  const [editForm, setEditForm] = useState({ name: '', email: '', collaborator_type: 'commissioned' as string, commission_type: 'percentage' as string, commission_value: 0 });
+  const [editForm, setEditForm] = useState({ name: '', email: '', collaborator_type: 'commissioned' as string, commission_type: 'percentage' as string, commission_value: '' as string | number });
 
   // Disable/Delete confirm state
   const [disableDialogOpen, setDisableDialogOpen] = useState(false);
