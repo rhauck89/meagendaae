@@ -1930,6 +1930,8 @@ export type Database = {
           created_at: string
           created_by: string | null
           description: string | null
+          discount_type: string
+          discount_value: number | null
           end_date: string
           end_time: string | null
           id: string
@@ -1940,6 +1942,7 @@ export type Database = {
           professional_ids: string[] | null
           promotion_price: number | null
           service_id: string | null
+          service_ids: string[] | null
           slug: string | null
           start_date: string
           start_time: string | null
@@ -1955,6 +1958,8 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           description?: string | null
+          discount_type?: string
+          discount_value?: number | null
           end_date: string
           end_time?: string | null
           id?: string
@@ -1965,6 +1970,7 @@ export type Database = {
           professional_ids?: string[] | null
           promotion_price?: number | null
           service_id?: string | null
+          service_ids?: string[] | null
           slug?: string | null
           start_date: string
           start_time?: string | null
@@ -1980,6 +1986,8 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           description?: string | null
+          discount_type?: string
+          discount_value?: number | null
           end_date?: string
           end_time?: string | null
           id?: string
@@ -1990,6 +1998,7 @@ export type Database = {
           professional_ids?: string[] | null
           promotion_price?: number | null
           service_id?: string | null
+          service_ids?: string[] | null
           slug?: string | null
           start_date?: string
           start_time?: string | null
@@ -2994,6 +3003,8 @@ export type Database = {
           company_id: string | null
           created_by: string | null
           description: string | null
+          discount_type: string | null
+          discount_value: number | null
           end_date: string | null
           end_time: string | null
           id: string | null
@@ -3004,6 +3015,7 @@ export type Database = {
           promotion_price: number | null
           service_duration: number | null
           service_id: string | null
+          service_ids: string[] | null
           service_name: string | null
           slug: string | null
           start_date: string | null
