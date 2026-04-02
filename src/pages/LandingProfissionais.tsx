@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { SEOHead } from '@/components/SEOHead';
-import { PlatformLogo } from '@/components/PlatformLogo';
+import { usePlatformSettings } from '@/hooks/usePlatformSettings';
 import {
   Calendar, Users, BarChart3, Globe, Zap, Clock, Star, Shield,
   CheckCircle2, ArrowRight, Play, TrendingUp, UserCheck, Heart,
@@ -12,6 +12,9 @@ import {
 } from 'lucide-react';
 
 const LandingProfissionais = () => {
+  const platform = usePlatformSettings();
+  const headerLogo = platform?.logo_dark || platform?.system_logo || platform?.logo_light || null;
+
   return (
     <div className="min-h-screen bg-white">
       <SEOHead
@@ -23,7 +26,13 @@ const LandingProfissionais = () => {
       {/* ─── NAVBAR ─── */}
       <nav className="sticky top-0 z-50 bg-white/80 backdrop-blur-lg border-b border-gray-100">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex items-center justify-between">
-          <PlatformLogo onDarkBackground={false} />
+          {headerLogo ? (
+            <img src={headerLogo} alt="MeAgendaê" className="h-10 max-w-[160px] object-contain" />
+          ) : (
+            <div className="w-9 h-9 rounded-xl bg-[hsl(var(--primary))] flex items-center justify-center">
+              <Scissors className="h-5 w-5 text-white" />
+            </div>
+          )}
           <div className="hidden md:flex items-center gap-6 text-sm font-medium text-[hsl(var(--muted-foreground))]">
             <a href="#funcionalidades" className="hover:text-[hsl(var(--foreground))] transition-colors">Funcionalidades</a>
             <a href="#planos" className="hover:text-[hsl(var(--foreground))] transition-colors">Planos</a>
@@ -768,16 +777,14 @@ const LandingProfissionais = () => {
       <footer className="border-t border-[hsl(var(--border))] bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
           <div className="grid md:grid-cols-4 gap-8">
-            <div className="space-y-4">
-              <div className="flex items-center gap-2">
+            <div>
+              {headerLogo ? (
+                <img src={headerLogo} alt="MeAgendaê" className="h-10 max-w-[160px] object-contain" />
+              ) : (
                 <div className="w-8 h-8 rounded-lg bg-[hsl(var(--primary))] flex items-center justify-center">
                   <Scissors className="h-4 w-4 text-white" />
                 </div>
-                <span className="font-display font-bold text-lg text-[hsl(var(--foreground))]">MeAgendaê</span>
-              </div>
-              <p className="text-sm text-[hsl(var(--muted-foreground))]">
-                Sistema de gestão e agendamento para profissionais de beleza.
-              </p>
+              )}
             </div>
             <div>
               <h4 className="font-semibold text-sm text-[hsl(var(--foreground))] mb-3">Produto</h4>
