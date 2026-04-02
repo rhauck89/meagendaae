@@ -754,9 +754,21 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
   };
 
   const handleBook = async () => {
+    // Final validation before booking
     if (!company || !selectedDate || !selectedTime || !selectedProfessional) {
       console.error('[Booking] Missing required data:', { company: !!company, selectedDate, selectedTime, selectedProfessional });
-      toast.error('Dados incompletos. Tente novamente.');
+      toast.error('Não foi possível concluir o agendamento. Por favor selecione um horário válido.');
+      if (!selectedTime || !selectedDate) setStep('datetime');
+      return;
+    }
+    if (selectedServices.length === 0) {
+      toast.error('Selecione pelo menos um serviço.');
+      setStep('services');
+      return;
+    }
+    if (!clientForm.full_name.trim() || !clientForm.whatsapp || !isValidWhatsApp(clientForm.whatsapp)) {
+      toast.error('Informe seu nome e número de WhatsApp para continuar.');
+      setStep('client');
       return;
     }
     setLoading(true);
