@@ -637,8 +637,10 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
   useEffect(() => {
     // Don't reset time if it was prefilled from URL and this is the first date set
     if (prefillTimeRef.current && selectedTime === prefillTimeRef.current) {
-      // Keep the prefilled time, but clear the ref so subsequent date changes reset normally
       prefillTimeRef.current = null;
+    } else if (skipTimeResetRef.current) {
+      // Quick slot was used — don't reset time
+      skipTimeResetRef.current = false;
     } else {
       setSelectedTime(null);
     }
