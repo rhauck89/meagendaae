@@ -563,7 +563,8 @@ const Team = () => {
                     <Input
                       type="number"
                       value={form.commission_value}
-                      onChange={(e) => setForm({ ...form, commission_value: parseFloat(e.target.value) || 0 })}
+                      onChange={(e) => setForm({ ...form, commission_value: e.target.value })}
+                      placeholder="Ex: 10"
                     />
                   </div>
                 )}
