@@ -90,17 +90,17 @@ const RescheduleAppointment = () => {
       setTotalDuration(dur);
 
       // Fetch business hours & exceptions
-      const companyId = data.company?.id || data.company_id;
+      const companyId = apt.company?.id || apt.company_id;
       const [bhRes, exRes, phRes] = await Promise.all([
         supabase.from('business_hours').select('*').eq('company_id', companyId),
         supabase.from('business_exceptions').select('*').eq('company_id', companyId),
-        supabase.from('professional_working_hours').select('*').eq('professional_id', data.professional_id).eq('company_id', companyId),
+        supabase.from('professional_working_hours').select('*').eq('professional_id', apt.professional_id).eq('company_id', companyId),
       ]);
       if (bhRes.data) setBusinessHours(bhRes.data as BusinessHours[]);
       if (exRes.data) setExceptions(exRes.data as BusinessException[]);
       if (phRes.data && phRes.data.length > 0) setProfessionalHours(phRes.data as BusinessHours[]);
 
-      if (data.status === 'cancelled' || data.status === 'completed' || data.status === 'no_show') {
+      if (apt.status === 'cancelled' || apt.status === 'completed' || apt.status === 'no_show') {
         // Can't reschedule
       }
     }
