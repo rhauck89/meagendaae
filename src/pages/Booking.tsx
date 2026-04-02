@@ -239,7 +239,6 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
               full_name: c.full_name || '',
               email: c.email || '',
               whatsapp: c.whatsapp || '',
-              cpf: c.cpf || '',
               birth_date: '',
             });
             setOptInWhatsapp(c.opt_in_whatsapp || false);
