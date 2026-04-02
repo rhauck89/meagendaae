@@ -255,7 +255,27 @@ const FinanceDashboard = () => {
         </Card>
       </div>
 
-      {/* Revenue vs Expenses chart */}
+      {/* Próximos Vencimentos */}
+      <Card>
+        <CardHeader><CardTitle className="flex items-center gap-2"><Clock className="h-5 w-5" /> Próximos Vencimentos</CardTitle></CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-3 gap-4 text-center">
+            <div className="space-y-1">
+              <p className="text-2xl font-bold">{upcomingDues.today}</p>
+              <p className="text-xs text-muted-foreground">Hoje</p>
+            </div>
+            <div className="space-y-1">
+              <p className="text-2xl font-bold">{upcomingDues.thisWeek}</p>
+              <p className="text-xs text-muted-foreground">Esta semana</p>
+            </div>
+            <div className="space-y-1">
+              <p className="text-2xl font-bold">{upcomingDues.thisMonth}</p>
+              <p className="text-xs text-muted-foreground">Este mês</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       <Card>
         <CardHeader><CardTitle>Receitas vs Despesas (últimos 6 meses)</CardTitle></CardHeader>
         <CardContent>
