@@ -1203,10 +1203,7 @@ const Dashboard = () => {
         </Card>
       )}
 
-      {/* Próximos atendimentos - desktop only (already shown on mobile above) */}
-      <div className="hidden lg:block">
-        {renderUpcomingAppointments()}
-      </div>
+      {/* 5. Agenda do dia */}
 
       <Card>
         <CardHeader className="pb-3">
