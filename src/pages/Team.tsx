@@ -315,7 +315,69 @@ const Team = () => {
     }
   };
 
-  const copyToClipboard = (text: string, label: string) => {
+  const openAbsenceDialog = (collaborator: any) => {
+    setAbsenceTarget(collaborator);
+    setAbsenceForm({
+      absence_start: (collaborator as any).absence_start || '',
+      absence_end: (collaborator as any).absence_end || '',
+      absence_type: (collaborator as any).absence_type || 'ferias',
+    });
+    setAbsenceDialogOpen(true);
+  };
+
+  const handleSaveAbsence = async () => {
+    if (!absenceTarget) return;
+    if (!absenceForm.absence_start || !absenceForm.absence_end) return toast.error('Defina as datas de início e fim');
+    if (absenceForm.absence_start > absenceForm.absence_end) return toast.error('Data de início deve ser antes da data de fim');
+
+    try {
+      await supabase
+        .from('collaborators')
+        .update({
+          absence_start: absenceForm.absence_start,
+          absence_end: absenceForm.absence_end,
+          absence_type: absenceForm.absence_type,
+        } as any)
+        .eq('id', absenceTarget.id);
+      toast.success('Ausência configurada!');
+      setAbsenceDialogOpen(false);
+      await refreshTeam();
+    } catch (err: any) {
+      toast.error(err.message || 'Erro ao salvar ausência');
+    }
+  };
+
+  const handleRemoveAbsence = async (collaborator: any) => {
+    try {
+      await supabase
+        .from('collaborators')
+        .update({
+          absence_start: null,
+          absence_end: null,
+          absence_type: null,
+        } as any)
+        .eq('id', collaborator.id);
+      toast.success('Ausência removida!');
+      await refreshTeam();
+    } catch (err: any) {
+      toast.error(err.message || 'Erro ao remover ausência');
+    }
+  };
+
+  const isCurrentlyAbsent = (collaborator: any) => {
+    const start = (collaborator as any).absence_start;
+    const end = (collaborator as any).absence_end;
+    if (!start || !end) return false;
+    const today = new Date().toISOString().split('T')[0];
+    return today >= start && today <= end;
+  };
+
+  const absenceTypeLabel = (type: string) => {
+    const labels: Record<string, string> = { ferias: 'Férias', folga: 'Folga', recesso: 'Recesso', ausente: 'Ausente' };
+    return labels[type] || type;
+  };
+
+
     navigator.clipboard.writeText(text);
     toast.success(`${label} copiado!`);
   };
