@@ -715,6 +715,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
   }, [selectedProfessional, professionalHours, businessHours, totalDuration]);
 
   const handleQuickSlot = (date: Date, time: string) => {
+    skipTimeResetRef.current = true;
     setSelectedDate(date);
     setSelectedTime(time);
     setStep('client');
