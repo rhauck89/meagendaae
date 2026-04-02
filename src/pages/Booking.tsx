@@ -170,7 +170,8 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [availableSlots, setAvailableSlots] = useState<string[]>([]);
   const [generatedSlots, setGeneratedSlots] = useState<string[]>([]);
-  const [clientForm, setClientForm] = useState({ full_name: '', email: '', whatsapp: '', cpf: '', birth_date: '' });
+  const [clientForm, setClientForm] = useState({ full_name: '', email: '', whatsapp: '', birth_date: '' });
+  const skipTimeResetRef = useRef(false);
   const [optInWhatsapp, setOptInWhatsapp] = useState(false);
   const [savedClientId, setSavedClientId] = useState<string | null>(null);
   const [clientLoaded, setClientLoaded] = useState(false);
