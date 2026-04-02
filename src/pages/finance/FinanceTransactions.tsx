@@ -74,38 +74,40 @@ const FinanceTransactions = () => {
         <CardContent className="p-0">
           <div className="overflow-x-auto">
             <Table className="min-w-[600px]">
-              <TableRow>
-                <TableHead className="w-10"></TableHead>
-                <TableHead>Data</TableHead>
-                <TableHead>Descrição</TableHead>
-                <TableHead>Categoria</TableHead>
-                <TableHead>Tipo</TableHead>
-                <TableHead className="text-right">Valor</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {transactions.length === 0 ? (
-                <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">Nenhuma movimentação no período</TableCell></TableRow>
-              ) : transactions.map(t => (
-                <TableRow key={t.id}>
-                  <TableCell>
-                    {t.type === 'revenue' ? <ArrowUpCircle className="h-4 w-4 text-success" /> : <ArrowDownCircle className="h-4 w-4 text-destructive" />}
-                  </TableCell>
-                  <TableCell>{format(new Date(t.date + 'T12:00:00'), 'dd/MM/yyyy')}</TableCell>
-                  <TableCell>{t.description}</TableCell>
-                  <TableCell className="text-muted-foreground">{t.category || '—'}</TableCell>
-                  <TableCell>
-                    <Badge variant={t.type === 'revenue' ? 'default' : 'destructive'} className="text-xs">
-                      {t.type === 'revenue' ? (t.is_automatic ? 'Receita auto' : 'Receita') : 'Despesa'}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className={cn('text-right font-semibold', t.type === 'revenue' ? 'text-success' : 'text-destructive')}>
-                    {t.type === 'expense' ? '- ' : ''}R$ {t.amount.toFixed(2)}
-                  </TableCell>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-10"></TableHead>
+                  <TableHead>Data</TableHead>
+                  <TableHead>Descrição</TableHead>
+                  <TableHead>Categoria</TableHead>
+                  <TableHead>Tipo</TableHead>
+                  <TableHead className="text-right">Valor</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          <TableHeader>
+              </TableHeader>
+              <TableBody>
+                {transactions.length === 0 ? (
+                  <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">Nenhuma movimentação no período</TableCell></TableRow>
+                ) : transactions.map(t => (
+                  <TableRow key={t.id}>
+                    <TableCell>
+                      {t.type === 'revenue' ? <ArrowUpCircle className="h-4 w-4 text-success" /> : <ArrowDownCircle className="h-4 w-4 text-destructive" />}
+                    </TableCell>
+                    <TableCell>{format(new Date(t.date + 'T12:00:00'), 'dd/MM/yyyy')}</TableCell>
+                    <TableCell className="break-words">{t.description}</TableCell>
+                    <TableCell className="text-muted-foreground">{t.category || '—'}</TableCell>
+                    <TableCell>
+                      <Badge variant={t.type === 'revenue' ? 'default' : 'destructive'} className="text-xs">
+                        {t.type === 'revenue' ? (t.is_automatic ? 'Receita auto' : 'Receita') : 'Despesa'}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className={cn('text-right font-semibold', t.type === 'revenue' ? 'text-success' : 'text-destructive')}>
+                      {t.type === 'expense' ? '- ' : ''}R$ {t.amount.toFixed(2)}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
         </CardContent>
       </Card>
     </div>
