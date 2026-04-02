@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { CalendarIcon, RotateCcw } from 'lucide-react';
+import { CalendarIcon, RotateCcw, BarChart3 } from 'lucide-react';
 import { startOfMonth, subMonths, startOfDay, endOfDay, startOfMonth as som, endOfMonth, format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend, LineChart, Line } from 'recharts';
@@ -18,6 +18,13 @@ const COLORS = ['hsl(var(--primary))', 'hsl(var(--success))', 'hsl(var(--warning
 interface ProfitRow { name: string; services: number; revenue: number; commission: number; profit: number; avgTicket: number; }
 interface ServiceRow { name: string; revenue: number; count: number; }
 interface ClientRow { name: string; spent: number; visits: number; }
+
+const EmptyChartState = ({ message }: { message?: string }) => (
+  <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
+    <BarChart3 className="h-10 w-10 mb-2 opacity-30" />
+    <p className="text-sm text-center">{message || 'Sem dados suficientes para exibir gráfico neste período.'}</p>
+  </div>
+);
 
 const FinanceReports = () => {
   const { companyId } = useAuth();
@@ -38,7 +45,6 @@ const FinanceReports = () => {
     const start = startOfDay(startDate);
     const end = endOfDay(endDate);
 
-    // Fetch appointments + collaborator data in parallel
     const [aptsRes, collabRes, aptSvcRes, expsRes] = await Promise.all([
       supabase
         .from('appointments')
@@ -67,13 +73,12 @@ const FinanceReports = () => {
     const aptSvcs = aptSvcRes.data || [];
     const exps = expsRes.data || [];
 
-    // Build collaborator lookup
     const collabMap: Record<string, { type: string; commType: string; value: number }> = {};
     collabs.forEach(c => {
       collabMap[c.profile_id] = { type: c.collaborator_type, commType: c.commission_type, value: c.commission_value ?? c.commission_percent ?? 0 };
     });
 
-    // ---- 1. Profitability by professional ----
+    // 1. Profitability by professional
     const proGroup: Record<string, { name: string; revenue: number; count: number; pid: string }> = {};
     apts.forEach(a => {
       const pid = a.professional_id;
@@ -86,32 +91,24 @@ const FinanceReports = () => {
     const profitRows: ProfitRow[] = Object.values(proGroup).map(g => {
       const collab = collabMap[g.pid] || { type: 'commissioned', commType: 'none', value: 0 };
       const fin = calculateFinancials(g.revenue, g.count, collab.type, collab.commType, collab.value);
-      return {
-        name: g.name,
-        services: g.count,
-        revenue: g.revenue,
-        commission: fin.professionalValue,
-        profit: fin.companyValue,
-        avgTicket: g.count > 0 ? g.revenue / g.count : 0,
-      };
+      return { name: g.name, services: g.count, revenue: g.revenue, commission: fin.professionalValue, profit: fin.companyValue, avgTicket: g.count > 0 ? g.revenue / g.count : 0 };
     });
     profitRows.sort((a, b) => b.profit - a.profit);
     setProfitByPro(profitRows);
 
-    // ---- 2. Revenue by service ----
+    // 2. Revenue by service
     const aptIdSet = new Set(apts.map(a => a.id));
     const svcMap: Record<string, ServiceRow> = {};
-    aptSvcs.forEach(as => {
+    aptSvcs.forEach((as: any) => {
       if (!aptIdSet.has(as.appointment_id)) return;
-      const name = (as.service as any)?.name || 'Outros';
+      const name = as.service?.name || 'Outros';
       if (!svcMap[name]) svcMap[name] = { name, revenue: 0, count: 0 };
       svcMap[name].revenue += Number(as.price);
       svcMap[name].count += 1;
     });
-    const svcRows = Object.values(svcMap).sort((a, b) => b.revenue - a.revenue);
-    setRevenueByService(svcRows);
+    setRevenueByService(Object.values(svcMap).sort((a, b) => b.revenue - a.revenue));
 
-    // ---- 3. Top clients ----
+    // 3. Top clients
     const clientMap: Record<string, ClientRow> = {};
     apts.forEach(a => {
       const key = a.client_id || a.client_name || 'Anônimo';
@@ -120,10 +117,9 @@ const FinanceReports = () => {
       clientMap[key].spent += Number(a.total_price);
       clientMap[key].visits += 1;
     });
-    const clientRows = Object.values(clientMap).sort((a, b) => b.spent - a.spent).slice(0, 15);
-    setTopClients(clientRows);
+    setTopClients(Object.values(clientMap).sort((a, b) => b.spent - a.spent).slice(0, 15));
 
-    // ---- 4. Expenses by category ----
+    // 4. Expenses by category
     const catMap: Record<string, { name: string; value: number }> = {};
     exps.forEach(e => {
       const name = (e.category as any)?.name || 'Sem categoria';
@@ -133,7 +129,6 @@ const FinanceReports = () => {
     setExpensesByCat(Object.values(catMap).sort((a, b) => b.value - a.value));
   };
 
-  // ---- 5. Monthly trend (last 6 months, independent of date filter) ----
   const fetchMonthlyTrend = async () => {
     const now = new Date();
     const data: { name: string; revenue: number }[] = [];
@@ -189,51 +184,52 @@ const FinanceReports = () => {
           {profitByPro.length === 0 ? (
             <p className="text-center text-muted-foreground py-8">Sem dados no período</p>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Profissional</TableHead>
-                  <TableHead className="text-center">Serviços</TableHead>
-                  <TableHead className="text-right">Receita</TableHead>
-                  <TableHead className="text-right">Comissão</TableHead>
-                  <TableHead className="text-right">Lucro Empresa</TableHead>
-                  <TableHead className="text-right">Ticket Médio</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {profitByPro.map(p => (
-                  <TableRow key={p.name}>
-                    <TableCell className="font-medium">{p.name}</TableCell>
-                    <TableCell className="text-center">{p.services}</TableCell>
-                    <TableCell className="text-right">R$ {p.revenue.toFixed(2)}</TableCell>
-                    <TableCell className="text-right text-warning">R$ {p.commission.toFixed(2)}</TableCell>
-                    <TableCell className="text-right font-bold">R$ {p.profit.toFixed(2)}</TableCell>
-                    <TableCell className="text-right text-muted-foreground">R$ {p.avgTicket.toFixed(2)}</TableCell>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Profissional</TableHead>
+                    <TableHead className="text-center">Serviços</TableHead>
+                    <TableHead className="text-right">Receita</TableHead>
+                    <TableHead className="text-right">Comissão</TableHead>
+                    <TableHead className="text-right">Lucro Empresa</TableHead>
+                    <TableHead className="text-right">Ticket Médio</TableHead>
                   </TableRow>
-                ))}
-                <TableRow className="border-t-2 font-bold">
-                  <TableCell>Total</TableCell>
-                  <TableCell className="text-center">{profitByPro.reduce((s, p) => s + p.services, 0)}</TableCell>
-                  <TableCell className="text-right">R$ {profitByPro.reduce((s, p) => s + p.revenue, 0).toFixed(2)}</TableCell>
-                  <TableCell className="text-right text-warning">R$ {profitByPro.reduce((s, p) => s + p.commission, 0).toFixed(2)}</TableCell>
-                  <TableCell className="text-right">R$ {profitByPro.reduce((s, p) => s + p.profit, 0).toFixed(2)}</TableCell>
-                  <TableCell />
-                </TableRow>
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {profitByPro.map(p => (
+                    <TableRow key={p.name}>
+                      <TableCell className="font-medium">{p.name}</TableCell>
+                      <TableCell className="text-center">{p.services}</TableCell>
+                      <TableCell className="text-right">R$ {p.revenue.toFixed(2)}</TableCell>
+                      <TableCell className="text-right text-warning">R$ {p.commission.toFixed(2)}</TableCell>
+                      <TableCell className="text-right font-bold">R$ {p.profit.toFixed(2)}</TableCell>
+                      <TableCell className="text-right text-muted-foreground">R$ {p.avgTicket.toFixed(2)}</TableCell>
+                    </TableRow>
+                  ))}
+                  <TableRow className="border-t-2 font-bold">
+                    <TableCell>Total</TableCell>
+                    <TableCell className="text-center">{profitByPro.reduce((s, p) => s + p.services, 0)}</TableCell>
+                    <TableCell className="text-right">R$ {profitByPro.reduce((s, p) => s + p.revenue, 0).toFixed(2)}</TableCell>
+                    <TableCell className="text-right text-warning">R$ {profitByPro.reduce((s, p) => s + p.commission, 0).toFixed(2)}</TableCell>
+                    <TableCell className="text-right">R$ {profitByPro.reduce((s, p) => s + p.profit, 0).toFixed(2)}</TableCell>
+                    <TableCell />
+                  </TableRow>
+                </TableBody>
+              </Table>
+            </div>
           )}
         </CardContent>
       </Card>
 
       {/* Charts row */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Revenue by professional chart */}
         <Card>
           <CardHeader><CardTitle className="text-base">Receita por Profissional</CardTitle></CardHeader>
           <CardContent>
             <div className="h-64">
               {revenueChartData.length === 0 ? (
-                <p className="text-center text-muted-foreground py-12">Sem dados</p>
+                <EmptyChartState />
               ) : (
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={revenueChartData} layout="vertical">
@@ -252,13 +248,12 @@ const FinanceReports = () => {
           </CardContent>
         </Card>
 
-        {/* Revenue by service chart */}
         <Card>
           <CardHeader><CardTitle className="text-base">Receita por Serviço</CardTitle></CardHeader>
           <CardContent>
             <div className="h-64">
               {serviceChartData.length === 0 ? (
-                <p className="text-center text-muted-foreground py-12">Sem dados</p>
+                <EmptyChartState />
               ) : (
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
@@ -274,13 +269,12 @@ const FinanceReports = () => {
           </CardContent>
         </Card>
 
-        {/* Monthly revenue trend */}
         <Card className="lg:col-span-2">
           <CardHeader><CardTitle className="text-base">Tendência de Receita Mensal</CardTitle></CardHeader>
           <CardContent>
             <div className="h-64">
-              {monthlyTrend.length === 0 ? (
-                <p className="text-center text-muted-foreground py-12">Sem dados</p>
+              {monthlyTrend.length === 0 || monthlyTrend.every(d => d.revenue === 0) ? (
+                <EmptyChartState />
               ) : (
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart data={monthlyTrend}>
@@ -304,24 +298,26 @@ const FinanceReports = () => {
           {revenueByService.length === 0 ? (
             <p className="text-center text-muted-foreground py-8">Sem dados no período</p>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Serviço</TableHead>
-                  <TableHead className="text-center">Atendimentos</TableHead>
-                  <TableHead className="text-right">Receita Total</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {revenueByService.map(s => (
-                  <TableRow key={s.name}>
-                    <TableCell className="font-medium">{s.name}</TableCell>
-                    <TableCell className="text-center">{s.count}</TableCell>
-                    <TableCell className="text-right font-semibold">R$ {s.revenue.toFixed(2)}</TableCell>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Serviço</TableHead>
+                    <TableHead className="text-center">Atendimentos</TableHead>
+                    <TableHead className="text-right">Receita Total</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {revenueByService.map(s => (
+                    <TableRow key={s.name}>
+                      <TableCell className="font-medium">{s.name}</TableCell>
+                      <TableCell className="text-center">{s.count}</TableCell>
+                      <TableCell className="text-right font-semibold">R$ {s.revenue.toFixed(2)}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
           )}
         </CardContent>
       </Card>
@@ -333,28 +329,28 @@ const FinanceReports = () => {
           {topClients.length === 0 ? (
             <p className="text-center text-muted-foreground py-8">Sem dados no período</p>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>#</TableHead>
-                  <TableHead>Cliente</TableHead>
-                  <TableHead className="text-center">Visitas</TableHead>
-                  <TableHead className="text-right">Total Gasto</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {topClients.map((c, i) => (
-                  <TableRow key={c.name}>
-                    <TableCell>
-                      <Badge variant={i < 3 ? 'default' : 'outline'} className="text-xs">{i + 1}º</Badge>
-                    </TableCell>
-                    <TableCell className="font-medium">{c.name}</TableCell>
-                    <TableCell className="text-center">{c.visits}</TableCell>
-                    <TableCell className="text-right font-semibold">R$ {c.spent.toFixed(2)}</TableCell>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>#</TableHead>
+                    <TableHead>Cliente</TableHead>
+                    <TableHead className="text-center">Visitas</TableHead>
+                    <TableHead className="text-right">Total Gasto</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {topClients.map((c, i) => (
+                    <TableRow key={c.name}>
+                      <TableCell><Badge variant={i < 3 ? 'default' : 'outline'} className="text-xs">{i + 1}º</Badge></TableCell>
+                      <TableCell className="font-medium">{c.name}</TableCell>
+                      <TableCell className="text-center">{c.visits}</TableCell>
+                      <TableCell className="text-right font-semibold">R$ {c.spent.toFixed(2)}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
           )}
         </CardContent>
       </Card>
@@ -365,7 +361,7 @@ const FinanceReports = () => {
         <CardContent>
           <div className="h-72">
             {expensesByCat.length === 0 ? (
-              <p className="text-center text-muted-foreground py-12">Nenhuma despesa no período</p>
+              <EmptyChartState message="Nenhuma despesa registrada neste período." />
             ) : (
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
