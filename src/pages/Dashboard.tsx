@@ -1356,10 +1356,6 @@ const Dashboard = () => {
               {completeTarget && (
                 <span className="block mt-1">
                   <strong>{completeTarget.client_name || 'Cliente'}</strong> — {format(parseISO(completeTarget.start_time), 'HH:mm')}
-            <DialogDescription>
-              {completeTarget && (
-                <span className="block mt-1">
-                  <strong>{completeTarget.client_name || 'Cliente'}</strong> — {format(parseISO(completeTarget.start_time), 'HH:mm')}
                   <br />
                   <span className="text-xs">R$ {Number(completeTarget.total_price).toFixed(2)}</span>
                 </span>
