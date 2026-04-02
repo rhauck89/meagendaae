@@ -167,7 +167,32 @@ const Dashboard = () => {
     fetchUpcomingAppointments();
   }, [companyId, currentDate, viewMode, filterProfessional]);
 
-  const fetchCollaborators = async () => {
+  const fetchUpcomingAppointments = async () => {
+    const now = new Date().toISOString();
+    let query = supabase
+      .from('appointments')
+      .select(`
+        *,
+        client:clients!appointments_client_id_fkey(name, whatsapp),
+        professional:profiles!appointments_professional_id_fkey(full_name),
+        appointment_services(*, service:services(name))
+      `)
+      .eq('company_id', companyId!)
+      .in('status', ['confirmed', 'pending'])
+      .gte('start_time', now)
+      .order('start_time', { ascending: true })
+      .limit(5);
+
+    if (!isAdmin && profileId) {
+      query = query.eq('professional_id', profileId);
+    } else if (filterProfessional !== 'all') {
+      query = query.eq('professional_id', filterProfessional);
+    }
+
+    const { data } = await query;
+    setUpcomingAppointments(data || []);
+  };
+
     const { data } = await supabase
       .from('collaborators')
       .select('profile_id, profile:profiles(full_name)')
