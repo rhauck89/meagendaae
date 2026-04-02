@@ -128,6 +128,7 @@ const Dashboard = () => {
   const routerNavigate = useRouterNavigate();
   const [waitlistClients, setWaitlistClients] = useState<string[]>([]);
   const [companySlug, setCompanySlug] = useState('');
+  const [upcomingAppointments, setUpcomingAppointments] = useState<any[]>([]);
   const [companyBusinessType, setCompanyBusinessType] = useState('barbershop');
   const [statusTab, setStatusTab] = useState<StatusTab>('confirmed');
 
