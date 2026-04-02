@@ -27,6 +27,7 @@ const ProfilePage = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const bannerInputRef = useRef<HTMLInputElement>(null);
   const [cropImage, setCropImage] = useState<string | null>(null);
+  const [cropMode, setCropMode] = useState<'avatar' | 'cover'>('avatar');
   const [uploadingBanner, setUploadingBanner] = useState(false);
   const [form, setForm] = useState({
     full_name: '',
