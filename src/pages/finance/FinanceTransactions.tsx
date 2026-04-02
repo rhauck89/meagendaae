@@ -105,7 +105,7 @@ const FinanceTransactions = () => {
                 </TableRow>
               ))}
             </TableBody>
-          </Table>
+          <TableHeader>
         </CardContent>
       </Card>
     </div>

@@ -122,6 +122,7 @@ const FinanceCommissions = () => {
               ))}
             </TableBody>
           </Table>
+          </div>
         </CardContent>
       </Card>
     </div>
