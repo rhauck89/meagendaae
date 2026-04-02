@@ -193,6 +193,7 @@ const Dashboard = () => {
     setUpcomingAppointments(data || []);
   };
 
+  const fetchCollaborators = async () => {
     const { data } = await supabase
       .from('collaborators')
       .select('profile_id, profile:profiles(full_name)')
