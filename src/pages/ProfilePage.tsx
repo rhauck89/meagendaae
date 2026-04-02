@@ -13,7 +13,7 @@ import { Star, Save, Camera, Instagram, Link2, Loader2, Copy, Check, ImagePlus }
 import { toast } from 'sonner';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import AvatarCropDialog from '@/components/AvatarCropDialog';
+import ImageCropDialog from '@/components/ImageCropDialog';
 
 const ProfilePage = () => {
   const { user, profile, companyId } = useAuth();
