@@ -93,7 +93,7 @@ const Team = () => {
       role_title: 'Barbeiro',
       collaborator_type: 'commissioned',
       payment_type: 'percentage',
-      commission_value: 10,
+      commission_value: '',
     });
     setCreatedCredentials(null);
   };
