@@ -19,6 +19,7 @@ const FinanceDashboard = () => {
   const [payables, setPayables] = useState({ total: 0, overdue: 0, dueToday: 0 });
   const [receivables, setReceivables] = useState({ total: 0, overdue: 0, dueToday: 0 });
   const [cashFlowData, setCashFlowData] = useState<any[]>([]);
+  const [upcomingDues, setUpcomingDues] = useState({ today: 0, thisWeek: 0, thisMonth: 0 });
 
   useEffect(() => {
     if (companyId) {
