@@ -150,6 +150,26 @@ const FinanceReports = () => {
     setMonthlyTrend(data);
   };
 
+  const paymentMethodLabels: Record<string, string> = { dinheiro: 'Dinheiro', pix: 'Pix', cartao: 'Cartão', transferencia: 'Transferência', outro: 'Outro' };
+
+  const fetchRevenueByPayment = async () => {
+    const start = format(startDate, 'yyyy-MM-dd');
+    const end = format(endDate, 'yyyy-MM-dd');
+    const { data } = await supabase
+      .from('company_revenues')
+      .select('amount, payment_method')
+      .eq('company_id', companyId!)
+      .gte('revenue_date', start)
+      .lte('revenue_date', end);
+    if (!data) return;
+    const map: Record<string, number> = {};
+    data.forEach(r => {
+      const label = paymentMethodLabels[r.payment_method] || 'Não informado';
+      map[label] = (map[label] || 0) + Number(r.amount);
+    });
+    setRevenueByPayment(Object.entries(map).map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value));
+  };
+
   const revenueChartData = profitByPro.map(p => ({ name: p.name, receita: p.revenue, comissão: p.commission, lucro: p.profit }));
   const serviceChartData = revenueByService.slice(0, 8).map(s => ({ name: s.name, value: s.revenue }));
 
