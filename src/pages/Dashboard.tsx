@@ -909,8 +909,8 @@ const Dashboard = () => {
       {/* 1. Próximos atendimentos */}
       {renderUpcomingAppointments()}
 
-      {/* 2. Atendimentos em atraso */}
-      {renderDelayedAppointments()}
+      {/* 2. Finalizar atendimentos */}
+      {renderFinalizarAtendimentos()}
 
       {/* 3. Resumo do Dia */}
       <div>
