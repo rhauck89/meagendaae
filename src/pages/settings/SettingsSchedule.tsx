@@ -6,8 +6,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
-import { Clock, Calendar as CalendarIcon, Plus, Trash2, Timer } from 'lucide-react';
+import { Clock, Calendar as CalendarIcon, Plus, Trash2, Timer, RefreshCw } from 'lucide-react';
 import SettingsBreadcrumb from '@/components/SettingsBreadcrumb';
 
 const dayNames = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
@@ -18,6 +19,8 @@ const SettingsSchedule = () => {
   const [exceptions, setExceptions] = useState<any[]>([]);
   const [newException, setNewException] = useState({ date: '', reason: '', is_closed: true });
   const [bufferMinutes, setBufferMinutes] = useState(0);
+  const [syncDialogOpen, setSyncDialogOpen] = useState(false);
+  const [syncing, setSyncing] = useState(false);
 
   useEffect(() => {
     if (companyId) { fetchHours(); fetchExceptions(); fetchBuffer(); }
@@ -66,6 +69,72 @@ const SettingsSchedule = () => {
     fetchExceptions();
   };
 
+  const handleSyncScheduleToAll = async () => {
+    if (!companyId) return;
+    setSyncing(true);
+    try {
+      // Get company business hours
+      const { data: companyHours, error: hoursError } = await supabase
+        .from('business_hours')
+        .select('day_of_week, open_time, close_time, lunch_start, lunch_end, is_closed')
+        .eq('company_id', companyId)
+        .order('day_of_week');
+
+      if (hoursError || !companyHours || companyHours.length === 0) {
+        toast.error('Horários da empresa não encontrados');
+        return;
+      }
+
+      // Get all active collaborators
+      const { data: activeCollaborators, error: collabError } = await supabase
+        .from('collaborators')
+        .select('profile_id')
+        .eq('company_id', companyId)
+        .eq('active', true);
+
+      if (collabError || !activeCollaborators || activeCollaborators.length === 0) {
+        toast.error('Nenhum profissional ativo encontrado');
+        return;
+      }
+
+      let successCount = 0;
+
+      for (const collab of activeCollaborators) {
+        // Delete existing professional hours
+        await supabase
+          .from('professional_working_hours')
+          .delete()
+          .eq('professional_id', collab.profile_id)
+          .eq('company_id', companyId);
+
+        // Insert company hours as professional hours
+        const profHours = companyHours.map((h) => ({
+          professional_id: collab.profile_id,
+          company_id: companyId,
+          day_of_week: h.day_of_week,
+          open_time: h.open_time,
+          close_time: h.close_time,
+          lunch_start: h.lunch_start,
+          lunch_end: h.lunch_end,
+          is_closed: h.is_closed,
+        }));
+
+        const { error: insertError } = await supabase
+          .from('professional_working_hours')
+          .insert(profHours);
+
+        if (!insertError) successCount++;
+      }
+
+      toast.success(`Horários aplicados para ${successCount} profissional(is)`);
+    } catch (err) {
+      toast.error('Erro ao sincronizar horários');
+    } finally {
+      setSyncing(false);
+      setSyncDialogOpen(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <SettingsBreadcrumb current="Agenda" />
@@ -91,7 +160,15 @@ const SettingsSchedule = () => {
 
       {/* Business Hours */}
       <Card>
-        <CardHeader><CardTitle className="flex items-center gap-2"><Clock className="h-5 w-5" /> Horários de Funcionamento</CardTitle></CardHeader>
+        <CardHeader>
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <CardTitle className="flex items-center gap-2"><Clock className="h-5 w-5" /> Horários de Funcionamento</CardTitle>
+            <Button size="sm" variant="outline" onClick={() => setSyncDialogOpen(true)} className="gap-2">
+              <RefreshCw className="h-4 w-4" />
+              Aplicar para todos profissionais
+            </Button>
+          </div>
+        </CardHeader>
         <CardContent>
           <div className="space-y-4">
             {hours.map((h) => {
@@ -152,6 +229,25 @@ const SettingsSchedule = () => {
           </div>
         </CardContent>
       </Card>
+
+      {/* Sync Confirmation Dialog */}
+      <AlertDialog open={syncDialogOpen} onOpenChange={setSyncDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Aplicar horário da empresa para todos profissionais?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Isso irá substituir os horários individuais configurados para cada profissional ativo.
+              Profissionais desabilitados não serão afetados. Agendamentos já marcados não serão alterados.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={syncing}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleSyncScheduleToAll} disabled={syncing}>
+              {syncing ? 'Aplicando...' : 'Confirmar'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

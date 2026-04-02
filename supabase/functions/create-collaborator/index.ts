@@ -241,6 +241,40 @@ Deno.serve(async (req) => {
       }
     }
 
+    // Copy company business hours to the new professional's working hours
+    try {
+      const { data: existingProfHours } = await supabaseAdmin
+        .from("professional_working_hours")
+        .select("id")
+        .eq("professional_id", profileId)
+        .eq("company_id", companyId)
+        .limit(1);
+
+      if (!existingProfHours || existingProfHours.length === 0) {
+        const { data: companyHours } = await supabaseAdmin
+          .from("business_hours")
+          .select("day_of_week, open_time, close_time, lunch_start, lunch_end, is_closed")
+          .eq("company_id", companyId)
+          .order("day_of_week");
+
+        if (companyHours && companyHours.length > 0) {
+          const profHours = companyHours.map((h: any) => ({
+            professional_id: profileId,
+            company_id: companyId,
+            day_of_week: h.day_of_week,
+            open_time: h.open_time,
+            close_time: h.close_time,
+            lunch_start: h.lunch_start,
+            lunch_end: h.lunch_end,
+            is_closed: h.is_closed,
+          }));
+          await supabaseAdmin.from("professional_working_hours").insert(profHours);
+        }
+      }
+    } catch (scheduleErr) {
+      console.error("Failed to copy company hours to professional", scheduleErr);
+    }
+
     return jsonResponse({
       success: true,
       collaborator: {
