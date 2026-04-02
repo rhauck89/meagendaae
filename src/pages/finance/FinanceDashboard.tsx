@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { DollarSign, TrendingDown, TrendingUp, Scissors, Users, BarChart3, Receipt, HandCoins, AlertTriangle } from 'lucide-react';
+import { DollarSign, TrendingDown, TrendingUp, Scissors, Users, BarChart3, Receipt, HandCoins, AlertTriangle, Clock, CalendarDays } from 'lucide-react';
 import { startOfMonth, endOfMonth, subMonths, format, isPast, isToday, endOfWeek, startOfWeek, addDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, LineChart, Line, Area, AreaChart } from 'recharts';
