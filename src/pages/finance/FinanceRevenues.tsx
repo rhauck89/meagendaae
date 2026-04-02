@@ -16,9 +16,11 @@ import { toast } from 'sonner';
 
 const statusLabels: Record<string, string> = { pending: 'Pendente', received: 'Recebido', cancelled: 'Cancelado' };
 
+const paymentMethodLabels: Record<string, string> = { dinheiro: 'Dinheiro', pix: 'Pix', cartao: 'Cartão', transferencia: 'Transferência', outro: 'Outro' };
+
 const emptyForm = () => ({
   description: '', amount: '', revenue_date: format(new Date(), 'yyyy-MM-dd'),
-  due_date: '', category_id: '', notes: '', status: 'received',
+  due_date: '', category_id: '', notes: '', status: 'received', payment_method: '',
 });
 
 const FinanceRevenues = () => {
@@ -62,6 +64,7 @@ const FinanceRevenues = () => {
         status: form.status,
         category_id: form.category_id && form.category_id !== 'none' ? form.category_id : null,
         notes: form.notes || null,
+        payment_method: form.payment_method || null,
       };
 
       if (editingId) {
@@ -101,6 +104,7 @@ const FinanceRevenues = () => {
       category_id: r.category_id || '',
       notes: r.notes || '',
       status: r.status,
+      payment_method: r.payment_method || '',
     });
     setOpen(true);
   };
@@ -154,6 +158,18 @@ const FinanceRevenues = () => {
                 </Select>
               </div>
               <div>
+                <Label>Forma de pagamento</Label>
+                <Select value={form.payment_method || 'none'} onValueChange={v => setForm(f => ({ ...f, payment_method: v === 'none' ? '' : v }))}>
+                  <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Não informado</SelectItem>
+                    <SelectItem value="dinheiro">Dinheiro</SelectItem>
+                    <SelectItem value="pix">Pix</SelectItem>
+                    <SelectItem value="cartao">Cartão</SelectItem>
+                    <SelectItem value="transferencia">Transferência</SelectItem>
+                    <SelectItem value="outro">Outro</SelectItem>
+                  </SelectContent>
+                </Select>
                 <div className="flex items-center justify-between mb-1">
                   <Label>Categoria</Label>
                   <Button type="button" variant="ghost" size="sm" className="h-auto py-0.5 px-1.5 text-xs text-primary" onClick={() => setCatOpen(true)}>
@@ -195,6 +211,7 @@ const FinanceRevenues = () => {
                   <TableHead>Descrição</TableHead>
                   <TableHead>Categoria</TableHead>
                   <TableHead>Tipo</TableHead>
+                  <TableHead>Pagamento</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead className="text-right">Valor</TableHead>
                   <TableHead className="w-20">Ações</TableHead>
@@ -202,7 +219,7 @@ const FinanceRevenues = () => {
               </TableHeader>
               <TableBody>
                 {revenues.length === 0 ? (
-                  <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-8">Nenhuma receita registrada</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-8">Nenhuma receita registrada</TableCell></TableRow>
                 ) : revenues.map(r => (
                   <TableRow key={r.id}>
                     <TableCell>{format(new Date(r.revenue_date + 'T12:00:00'), 'dd/MM/yyyy')}</TableCell>
@@ -213,6 +230,7 @@ const FinanceRevenues = () => {
                         {r.is_automatic ? 'Automática' : 'Manual'}
                       </Badge>
                     </TableCell>
+                    <TableCell className="text-xs text-muted-foreground">{paymentMethodLabels[r.payment_method] || '—'}</TableCell>
                     <TableCell><Badge variant="outline" className="text-xs">{statusLabels[r.status] || r.status}</Badge></TableCell>
                     <TableCell className="text-right font-semibold text-success">R$ {Number(r.amount).toFixed(2)}</TableCell>
                     <TableCell>

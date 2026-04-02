@@ -94,7 +94,7 @@ interface ReturnStats {
 }
 
 const Dashboard = () => {
-  const { companyId } = useAuth();
+  const { companyId, user } = useAuth();
   const { isAdmin, profileId } = useUserRole();
   const [viewMode, setViewMode] = useState<ViewMode>('day');
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -116,6 +116,7 @@ const Dashboard = () => {
   const [cancelTarget, setCancelTarget] = useState<any>(null);
   const [completeDialogOpen, setCompleteDialogOpen] = useState(false);
   const [completeTarget, setCompleteTarget] = useState<any>(null);
+  const [completePaymentMethod, setCompletePaymentMethod] = useState('pix');
   const [delayLoading, setDelayLoading] = useState(false);
   const [rescheduleTarget, setRescheduleTarget] = useState<any>(null);
   const [rescheduleDialogOpen, setRescheduleDialogOpen] = useState(false);
@@ -457,9 +458,27 @@ const Dashboard = () => {
     setCurrentDate(addDays(currentDate, direction * days));
   };
 
-  const updateStatus = async (id: string, status: string) => {
+  const updateStatus = async (id: string, status: string, paymentMethod?: string) => {
     const apt = appointments.find((a) => a.id === id);
     await supabase.from('appointments').update({ status: status as any }).eq('id', id);
+
+    // If completing, create automatic revenue
+    if (status === 'completed' && apt && companyId) {
+      const serviceNames = apt.appointment_services?.map((s: any) => s.service?.name).filter(Boolean).join(', ') || 'Serviço';
+      await supabase.from('company_revenues').insert({
+        company_id: companyId,
+        appointment_id: apt.id,
+        professional_id: apt.professional_id,
+        description: `${apt.client_name || 'Cliente'} — ${serviceNames}`,
+        amount: Number(apt.total_price),
+        revenue_date: format(parseISO(apt.start_time), 'yyyy-MM-dd'),
+        due_date: format(parseISO(apt.start_time), 'yyyy-MM-dd'),
+        status: 'received',
+        is_automatic: true,
+        payment_method: paymentMethod || null,
+        created_by: user?.id,
+      });
+    }
 
     // If cancelling, trigger waitlist check
     if (status === 'cancelled' && apt) {
@@ -1290,40 +1309,68 @@ const Dashboard = () => {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Complete Confirmation Dialog */}
-      <AlertDialog open={completeDialogOpen} onOpenChange={setCompleteDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>
+      {/* Complete Confirmation Dialog with Payment Method */}
+      <Dialog open={completeDialogOpen} onOpenChange={(open) => { setCompleteDialogOpen(open); if (!open) { setCompleteTarget(null); setCompletePaymentMethod('pix'); } }}>
+        <DialogContent className="w-[92vw] max-w-sm">
+          <DialogHeader>
+            <DialogTitle>
               {completeTarget && new Date() < parseISO(completeTarget.start_time)
                 ? 'Este atendimento ainda não começou'
-                : 'Deseja concluir este atendimento?'}
-            </AlertDialogTitle>
-            <AlertDialogDescription>
-              {completeTarget && new Date() < parseISO(completeTarget.start_time)
-                ? 'Deseja realmente concluir este serviço?'
-                : `${completeTarget?.client_name || 'Cliente'} — ${format(parseISO(completeTarget?.start_time || new Date().toISOString()), 'HH:mm')}`}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => {
-                if (completeTarget) {
-                  updateStatus(completeTarget.id, 'completed');
-                  toast.success('Serviço concluído com sucesso');
-                }
-                setCompleteDialogOpen(false);
-                setCompleteTarget(null);
-              }}
-            >
-              {completeTarget && new Date() < parseISO(completeTarget.start_time)
-                ? 'Concluir mesmo assim'
-                : 'Concluir'}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+                : 'Concluir atendimento'}
+            </DialogTitle>
+            <DialogDescription>
+              {completeTarget && (
+                <span className="block mt-1">
+                  <strong>{completeTarget.client_name || 'Cliente'}</strong> — {format(parseISO(completeTarget.start_time), 'HH:mm')}
+                  <br />
+                  <span className="text-xs">R$ {Number(completeTarget.total_price).toFixed(2)}</span>
+                </span>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <label className="text-sm font-medium">Forma de pagamento</label>
+            <div className="grid grid-cols-3 gap-2">
+              {[
+                { value: 'dinheiro', label: '💵 Dinheiro' },
+                { value: 'pix', label: '📱 Pix' },
+                { value: 'cartao', label: '💳 Cartão' },
+                { value: 'transferencia', label: '🏦 Transf.' },
+                { value: 'outro', label: '📋 Outro' },
+              ].map(pm => (
+                <Button
+                  key={pm.value}
+                  variant={completePaymentMethod === pm.value ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setCompletePaymentMethod(pm.value)}
+                  className="text-xs"
+                >
+                  {pm.label}
+                </Button>
+              ))}
+            </div>
+            <div className="flex gap-2 pt-2">
+              <Button variant="outline" className="flex-1" onClick={() => { setCompleteDialogOpen(false); setCompleteTarget(null); }}>
+                Cancelar
+              </Button>
+              <Button
+                className="flex-1 bg-success hover:bg-success/90 text-white"
+                onClick={() => {
+                  if (completeTarget) {
+                    updateStatus(completeTarget.id, 'completed', completePaymentMethod);
+                    toast.success('Serviço concluído com sucesso');
+                  }
+                  setCompleteDialogOpen(false);
+                  setCompleteTarget(null);
+                  setCompletePaymentMethod('pix');
+                }}
+              >
+                {completeTarget && new Date() < parseISO(completeTarget.start_time) ? 'Concluir mesmo assim' : 'Concluir'}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Reschedule Dialog */}
       <Dialog open={rescheduleDialogOpen} onOpenChange={(open) => { setRescheduleDialogOpen(open); if (!open) { setRescheduleTarget(null); setRescheduleDate(undefined); setRescheduleSlots([]); setRescheduleSelectedSlot(null); } }}>

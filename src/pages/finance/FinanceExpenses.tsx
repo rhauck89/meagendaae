@@ -17,10 +17,12 @@ import { toast } from 'sonner';
 
 const statusLabels: Record<string, string> = { pending: 'Pendente', paid: 'Pago', cancelled: 'Cancelado' };
 
+const paymentMethodLabels: Record<string, string> = { dinheiro: 'Dinheiro', pix: 'Pix', cartao: 'Cartão', transferencia: 'Transferência', outro: 'Outro' };
+
 const emptyForm = () => ({
   description: '', amount: '', expense_date: format(new Date(), 'yyyy-MM-dd'),
   due_date: '', category_id: '', is_recurring: false, recurrence_type: 'monthly',
-  recurrence_count: '1', notes: '', status: 'pending', installments: '1',
+  recurrence_count: '1', notes: '', status: 'pending', installments: '1', payment_method: '',
 });
 
 const FinanceExpenses = () => {
@@ -92,6 +94,7 @@ const FinanceExpenses = () => {
         installment_number: installments > 1 ? i + 1 : null,
         total_installments: installments > 1 ? installments : null,
         installment_group_id: groupId,
+        payment_method: baseForm.payment_method || null,
       });
     }
     return entries;
@@ -113,6 +116,7 @@ const FinanceExpenses = () => {
           is_recurring: form.is_recurring,
           recurrence_type: form.is_recurring ? form.recurrence_type : null,
           notes: form.notes || null,
+          payment_method: form.payment_method || null,
         }).eq('id', editingId);
         if (error) { toast.error('Erro ao atualizar'); return; }
         toast.success('Despesa atualizada');
@@ -162,6 +166,7 @@ const FinanceExpenses = () => {
       notes: e.notes || '',
       status: e.status,
       installments: '1',
+      payment_method: e.payment_method || '',
     });
     setOpen(true);
   };
@@ -264,6 +269,20 @@ const FinanceExpenses = () => {
                   <div><Label>Nº de ocorrências</Label><Input type="number" min="1" max="60" value={form.recurrence_count} onChange={e => setForm(f => ({ ...f, recurrence_count: e.target.value }))} /></div>
                 </div>
               )}
+              <div>
+                <Label>Forma de pagamento</Label>
+                <Select value={form.payment_method || 'none'} onValueChange={v => setForm(f => ({ ...f, payment_method: v === 'none' ? '' : v }))}>
+                  <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Não informado</SelectItem>
+                    <SelectItem value="dinheiro">Dinheiro</SelectItem>
+                    <SelectItem value="pix">Pix</SelectItem>
+                    <SelectItem value="cartao">Cartão</SelectItem>
+                    <SelectItem value="transferencia">Transferência</SelectItem>
+                    <SelectItem value="outro">Outro</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
               <div><Label>Observações</Label><Textarea value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} /></div>
               <div className="space-y-2">
                 <Button onClick={handleSubmit} className="w-full" disabled={submitting}>{submitting ? 'Salvando...' : 'Salvar'}</Button>
@@ -297,6 +316,7 @@ const FinanceExpenses = () => {
                   <TableHead>Data</TableHead>
                   <TableHead>Descrição</TableHead>
                   <TableHead>Categoria</TableHead>
+                  <TableHead>Pagamento</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead className="text-right">Valor</TableHead>
                   <TableHead className="w-20">Ações</TableHead>
@@ -304,7 +324,7 @@ const FinanceExpenses = () => {
               </TableHeader>
               <TableBody>
                 {expenses.length === 0 ? (
-                  <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">Nenhuma despesa registrada</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-8">Nenhuma despesa registrada</TableCell></TableRow>
                 ) : expenses.map(e => (
                   <TableRow key={e.id}>
                     <TableCell>{format(new Date(e.expense_date + 'T12:00:00'), 'dd/MM/yyyy')}</TableCell>
@@ -315,6 +335,7 @@ const FinanceExpenses = () => {
                       </div>
                     </TableCell>
                     <TableCell className="text-muted-foreground">{e.category?.name || '—'}</TableCell>
+                    <TableCell className="text-xs text-muted-foreground">{paymentMethodLabels[e.payment_method] || '—'}</TableCell>
                     <TableCell><Badge variant="outline" className="text-xs">{statusLabels[e.status] || e.status}</Badge></TableCell>
                     <TableCell className="text-right font-semibold text-destructive">R$ {Number(e.amount).toFixed(2)}</TableCell>
                     <TableCell>

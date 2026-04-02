@@ -765,6 +765,7 @@ export type Database = {
           is_recurring: boolean
           notes: string | null
           parent_expense_id: string | null
+          payment_method: string | null
           recurrence_interval: number | null
           recurrence_type: string | null
           status: string
@@ -786,6 +787,7 @@ export type Database = {
           is_recurring?: boolean
           notes?: string | null
           parent_expense_id?: string | null
+          payment_method?: string | null
           recurrence_interval?: number | null
           recurrence_type?: string | null
           status?: string
@@ -807,6 +809,7 @@ export type Database = {
           is_recurring?: boolean
           notes?: string | null
           parent_expense_id?: string | null
+          payment_method?: string | null
           recurrence_interval?: number | null
           recurrence_type?: string | null
           status?: string
@@ -959,6 +962,7 @@ export type Database = {
           id: string
           is_automatic: boolean
           notes: string | null
+          payment_method: string | null
           professional_id: string | null
           revenue_date: string
           service_id: string | null
@@ -977,6 +981,7 @@ export type Database = {
           id?: string
           is_automatic?: boolean
           notes?: string | null
+          payment_method?: string | null
           professional_id?: string | null
           revenue_date?: string
           service_id?: string | null
@@ -995,6 +1000,7 @@ export type Database = {
           id?: string
           is_automatic?: boolean
           notes?: string | null
+          payment_method?: string | null
           professional_id?: string | null
           revenue_date?: string
           service_id?: string | null
