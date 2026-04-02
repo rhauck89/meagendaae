@@ -14,7 +14,7 @@ import ResetPassword from "./pages/ResetPassword";
 import Dashboard from "./pages/Dashboard";
 import Services from "./pages/Services";
 import Team from "./pages/Team";
-import Reports from "./pages/Reports";
+
 import Booking from "./pages/Booking";
 import MyAppointments from "./pages/MyAppointments";
 import ReviewPage from "./pages/ReviewPage";
