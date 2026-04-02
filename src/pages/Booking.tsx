@@ -390,9 +390,10 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
       const pd = (promos as any)?.[0];
       if (pd && pd.company_id === comp.id) {
         setPromoData(pd as PromotionInfo);
-        // Auto-select the promo service
-        if (pd.service_id) {
-          setSelectedServices([pd.service_id]);
+        // Auto-select promo services
+        const promoServiceIds = pd.service_ids || (pd.service_id ? [pd.service_id] : []);
+        if (promoServiceIds.length > 0) {
+          setSelectedServices(promoServiceIds);
         }
         // Auto-select professional if only one
         if (pd.professional_ids?.length === 1) {
