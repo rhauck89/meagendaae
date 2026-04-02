@@ -96,7 +96,8 @@ const StarRating = ({ rating, size = 14 }: { rating: number; size?: number }) =>
 );
 
 export default function MarketplaceCategory() {
-  const { category } = useParams<{ category: string }>();
+  const location = useLocation();
+  const category = location.pathname.replace('/', '');
   const config = category ? CATEGORIES[category] : null;
   const platform = usePlatformSettings();
   const headerLogo = platform?.logo_dark || platform?.system_logo || platform?.logo_light || null;
