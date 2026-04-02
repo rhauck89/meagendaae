@@ -155,8 +155,11 @@ export default function Promotions() {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [selectedServiceId, setSelectedServiceId] = useState('');
+  const [selectedServiceIds, setSelectedServiceIds] = useState<string[]>([]);
+  const [serviceSelectionMode, setServiceSelectionMode] = useState<'single' | 'multiple' | 'all'>('single');
+  const [discountType, setDiscountType] = useState<'fixed_price' | 'percentage' | 'fixed_amount'>('fixed_price');
+  const [discountValue, setDiscountValue] = useState('');
   const [promotionPrice, setPromotionPrice] = useState('');
-  const [originalPrice, setOriginalPrice] = useState('');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [singleDay, setSingleDay] = useState(false);
