@@ -240,7 +240,7 @@ const Team = () => {
         .update({
           collaborator_type: editForm.collaborator_type as any,
           commission_type: commissionType,
-          commission_value: commissionType === 'none' ? 0 : editForm.commission_value,
+          commission_value: commissionType === 'none' ? 0 : (Number(editForm.commission_value) || 0),
         } as any)
         .eq('id', editTarget.id);
 
