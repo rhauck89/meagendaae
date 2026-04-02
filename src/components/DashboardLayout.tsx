@@ -42,6 +42,16 @@ const settingsSubItems = [
   { href: '/dashboard/settings/plan', icon: CreditCard, label: 'Plano' },
 ];
 
+const financeSubItems = [
+  { href: '/dashboard/finance', icon: DollarSign, label: 'Dashboard' },
+  { href: '/dashboard/finance/transactions', icon: ArrowUpDown, label: 'Movimentações' },
+  { href: '/dashboard/finance/revenues', icon: TrendingUp, label: 'Receitas' },
+  { href: '/dashboard/finance/expenses', icon: TrendingDown, label: 'Despesas' },
+  { href: '/dashboard/finance/categories', icon: FolderOpen, label: 'Categorias' },
+  { href: '/dashboard/finance/commissions', icon: Percent, label: 'Comissões' },
+  { href: '/dashboard/finance/reports', icon: FileBarChart, label: 'Relatórios' },
+];
+
 const professionalNavItems = [
   { href: '/dashboard', icon: Calendar, label: 'Minha Agenda' },
   { href: '/dashboard/services', icon: Scissors, label: 'Meus Serviços' },
