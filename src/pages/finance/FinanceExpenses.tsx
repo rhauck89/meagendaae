@@ -22,6 +22,7 @@ const FinanceExpenses = () => {
   const [expenses, setExpenses] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
   const [open, setOpen] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const [catOpen, setCatOpen] = useState(false);
   const [newCatName, setNewCatName] = useState('');
   const [form, setForm] = useState({
