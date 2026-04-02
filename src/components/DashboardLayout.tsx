@@ -49,6 +49,8 @@ const financeSubItems = [
   { href: '/dashboard/finance/expenses', icon: TrendingDown, label: 'Despesas' },
   { href: '/dashboard/finance/categories', icon: FolderOpen, label: 'Categorias' },
   { href: '/dashboard/finance/commissions', icon: Percent, label: 'Comissões' },
+  { href: '/dashboard/finance/payables', icon: Receipt, label: 'Contas a Pagar' },
+  { href: '/dashboard/finance/receivables', icon: HandCoins, label: 'Contas a Receber' },
   { href: '/dashboard/finance/reports', icon: FileBarChart, label: 'Relatórios' },
 ];
 
