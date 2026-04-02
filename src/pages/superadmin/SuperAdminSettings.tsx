@@ -160,11 +160,28 @@ const SuperAdminSettings = () => {
             </div>
           </div>
           <ImageUploadField
-            label="Logo da Plataforma"
+            label="Logo padrão"
             value={platformLogo}
             onChange={setPlatformLogo}
             folder="logo"
           />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <ImageUploadField
+              label="Logo (fundo claro)"
+              value={platformLogoDark}
+              onChange={setPlatformLogoDark}
+              folder="logo"
+            />
+            <ImageUploadField
+              label="Logo (fundo escuro)"
+              value={platformLogoLight}
+              onChange={setPlatformLogoLight}
+              folder="logo"
+            />
+          </div>
+          <p className="text-[10px] text-muted-foreground">
+            Use logos diferentes para garantir visibilidade em fundos claros e escuros. Se apenas uma for cadastrada, será usada em todos os contextos.
+          </p>
           <Button size="sm" onClick={save}>Salvar</Button>
         </CardContent>
       </Card>
