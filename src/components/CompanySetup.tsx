@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -8,9 +8,11 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import {
   Scissors, Sparkles, ChevronRight, ChevronLeft, Clock, Upload, Palette,
-  CheckCircle2, Copy, Link2, Building2, Briefcase, UserPlus, Phone,
+  CheckCircle2, Copy, Link2, Building2, Briefcase, UserPlus, Phone, ChevronsUpDown, Check, MapPin,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -25,10 +27,10 @@ type OnboardingStep = 'company' | 'hours' | 'branding' | 'service' | 'profession
 const STEPS: OnboardingStep[] = ['company', 'hours', 'branding', 'service', 'professional', 'done'];
 
 const stepMeta: Record<OnboardingStep, { icon: any; title: string; desc: string }> = {
-  company: { icon: Building2, title: 'Seu negócio', desc: 'Tipo e nome do seu estabelecimento' },
+  company: { icon: Building2, title: 'Seu negócio', desc: 'Tipo, nome e localização do seu estabelecimento' },
   hours: { icon: Clock, title: 'Horários', desc: 'Defina o funcionamento semanal' },
-  branding: { icon: Palette, title: 'Identidade visual', desc: 'Logo e cores do seu negócio' },
-  service: { icon: Briefcase, title: 'Primeiro serviço', desc: 'Cadastre seu primeiro serviço' },
+  branding: { icon: Palette, title: 'Identidade visual', desc: 'Logo do seu negócio (opcional)' },
+  service: { icon: Briefcase, title: 'Primeiro serviço', desc: 'Cadastre seu primeiro serviço (opcional)' },
   professional: { icon: UserPlus, title: 'Primeiro profissional', desc: 'Adicione um profissional' },
   done: { icon: CheckCircle2, title: 'Tudo pronto!', desc: 'Compartilhe seu link de agendamento' },
 };
@@ -45,9 +47,18 @@ const CompanySetup = ({ onComplete }: CompanySetupProps) => {
   const [businessType, setBusinessType] = useState<'barbershop' | 'esthetic'>('barbershop');
   const [companyName, setCompanyName] = useState('');
   const [companyWhatsApp, setCompanyWhatsApp] = useState('');
-  const [companyTimezone, setCompanyTimezone] = useState('America/Sao_Paulo');
   const [companyId, setCompanyId] = useState<string | null>(null);
   const [companySlug, setCompanySlug] = useState('');
+
+  // Location
+  const [brStates, setBrStates] = useState<{ id: number; name: string; uf: string }[]>([]);
+  const [brCities, setBrCities] = useState<{ id: number; name: string }[]>([]);
+  const [selectedState, setSelectedState] = useState('');
+  const [selectedCity, setSelectedCity] = useState('');
+  const [stateOpen, setStateOpen] = useState(false);
+  const [cityOpen, setCityOpen] = useState(false);
+  const [citySearch, setCitySearch] = useState('');
+  const [loadingCities, setLoadingCities] = useState(false);
 
   // Step 2: Hours
   const [hours, setHours] = useState(
@@ -58,7 +69,7 @@ const CompanySetup = ({ onComplete }: CompanySetupProps) => {
       lunch_start: '12:00',
       lunch_end: '13:00',
       is_closed: i === 0,
-      break_enabled: i !== 0, // break enabled by default for open days
+      break_enabled: i !== 0,
     }))
   );
 
@@ -81,9 +92,39 @@ const CompanySetup = ({ onComplete }: CompanySetupProps) => {
 
   const currentStepIndex = STEPS.indexOf(step);
 
+  // Load states
+  useEffect(() => {
+    supabase.from('brazilian_states' as any).select('id, name, uf').order('name').then(({ data }) => {
+      if (data) setBrStates(data as any);
+    });
+  }, []);
+
+  // Load cities when state changes
+  useEffect(() => {
+    if (!selectedState) { setBrCities([]); return; }
+    const stateRecord = brStates.find(s => s.uf === selectedState);
+    if (!stateRecord) { setBrCities([]); return; }
+    setLoadingCities(true);
+    supabase.from('brazilian_cities' as any).select('id, name').eq('state_id', stateRecord.id).order('name').then(({ data }) => {
+      if (data) setBrCities(data as any);
+      setLoadingCities(false);
+    });
+  }, [selectedState, brStates]);
+
+  // Filter cities for search
+  const filteredCities = useMemo(() => {
+    if (!citySearch) return brCities.slice(0, 50);
+    const search = citySearch.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    return brCities.filter(c =>
+      c.name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').includes(search)
+    ).slice(0, 50);
+  }, [brCities, citySearch]);
+
   const companyNamePlaceholder = businessType === 'barbershop'
     ? 'Ex: Barbearia do João'
     : 'Ex: Salão da Jack';
+
+  const isCompanyStepValid = companyName.trim() && companyWhatsApp.trim() && isValidWhatsApp(companyWhatsApp) && selectedState && selectedCity;
 
   const handleSelfAttendToggle = (checked: boolean) => {
     setIsSelfAttend(checked);
@@ -98,6 +139,14 @@ const CompanySetup = ({ onComplete }: CompanySetupProps) => {
 
   const handleCreateCompany = async () => {
     if (!user || !companyName.trim()) return;
+    if (!companyWhatsApp.trim() || !isValidWhatsApp(companyWhatsApp)) {
+      toast.error('Informe um WhatsApp válido');
+      return;
+    }
+    if (!selectedState || !selectedCity) {
+      toast.error('Selecione o estado e a cidade');
+      return;
+    }
     setLoading(true);
     try {
       const slug = companyName
@@ -107,7 +156,7 @@ const CompanySetup = ({ onComplete }: CompanySetupProps) => {
         .replace(/[^a-z0-9]+/g, '-')
         .replace(/(^-|-$)/g, '');
 
-      const phone = companyWhatsApp.trim() ? formatWhatsApp(companyWhatsApp) : null;
+      const phone = formatWhatsApp(companyWhatsApp);
 
       const { data: company, error } = await supabase
         .from('companies')
@@ -117,7 +166,9 @@ const CompanySetup = ({ onComplete }: CompanySetupProps) => {
           owner_id: user.id,
           business_type: businessType,
           phone,
-          timezone: companyTimezone,
+          timezone: 'America/Sao_Paulo',
+          state: selectedState,
+          city: selectedCity,
         } as any)
         .select()
         .single();
@@ -237,7 +288,6 @@ const CompanySetup = ({ onComplete }: CompanySetupProps) => {
           company_id: companyId,
         }));
         await supabase.from('service_professionals').insert(links as any);
-        console.log('[Onboarding] Auto-linked', allServices.length, 'services to professional', profileId);
       }
     } catch (err) {
       console.warn('[Onboarding] Auto-link services failed (non-blocking):', err);
@@ -270,7 +320,6 @@ const CompanySetup = ({ onComplete }: CompanySetupProps) => {
     setLoading(true);
     try {
       if (isSelfAttend && user) {
-        // Self-attend: use the logged-in user's existing profile directly
         const { data: myProfile } = await supabase
           .from('profiles')
           .select('id')
@@ -279,7 +328,6 @@ const CompanySetup = ({ onComplete }: CompanySetupProps) => {
 
         if (!myProfile) throw new Error('Perfil não encontrado');
 
-        // Update profile with WhatsApp if provided
         if (profWhatsApp.trim()) {
           await supabase
             .from('profiles')
@@ -287,7 +335,6 @@ const CompanySetup = ({ onComplete }: CompanySetupProps) => {
             .eq('user_id', user.id);
         }
 
-        // Create collaborator record directly
         const { data: existingCollab } = await supabase
           .from('collaborators')
           .select('id')
@@ -314,13 +361,10 @@ const CompanySetup = ({ onComplete }: CompanySetupProps) => {
           });
         }
 
-        // Auto-link all company services to this professional
         await autoLinkServices(myProfile.id);
-
         toast.success('Profissional adicionado!');
         setStep('done');
       } else {
-        // External professional: use edge function
         const response = await supabase.functions.invoke('create-collaborator', {
           body: {
             name: profName.trim(),
@@ -337,7 +381,6 @@ const CompanySetup = ({ onComplete }: CompanySetupProps) => {
         if (response.error) throw new Error(response.error.message);
         if (!response.data?.success) throw new Error(response.data?.error || 'Erro');
 
-        // Auto-link all company services to the new professional
         if (response.data?.profile_id) {
           await autoLinkServices(response.data.profile_id);
         }
@@ -346,7 +389,6 @@ const CompanySetup = ({ onComplete }: CompanySetupProps) => {
         setStep('done');
       }
     } catch (err: any) {
-      // Don't block onboarding if collaborator creation fails
       console.error('Professional creation error:', err);
       toast.error('Erro ao criar profissional. Você pode adicioná-lo depois no painel.');
       setStep('done');
@@ -412,7 +454,7 @@ const CompanySetup = ({ onComplete }: CompanySetupProps) => {
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label>Nome do estabelecimento</Label>
+                  <Label>Nome do estabelecimento *</Label>
                   <Input
                     value={companyName}
                     onChange={(e) => setCompanyName(e.target.value)}
@@ -422,7 +464,7 @@ const CompanySetup = ({ onComplete }: CompanySetupProps) => {
                 </div>
                 <div className="space-y-2">
                   <Label className="flex items-center gap-1">
-                    <Phone className="h-4 w-4" /> WhatsApp do estabelecimento
+                    <Phone className="h-4 w-4" /> WhatsApp do estabelecimento *
                   </Label>
                   <Input
                     value={companyWhatsApp}
@@ -430,30 +472,105 @@ const CompanySetup = ({ onComplete }: CompanySetupProps) => {
                     placeholder="(31) 99999-9999"
                     type="tel"
                   />
+                  {companyWhatsApp.trim() && !isValidWhatsApp(companyWhatsApp) && (
+                    <p className="text-xs text-destructive">Informe um WhatsApp válido</p>
+                  )}
                 </div>
+
+                {/* State */}
                 <div className="space-y-2">
                   <Label className="flex items-center gap-1">
-                    <Clock className="h-4 w-4" /> Fuso horário
+                    <MapPin className="h-4 w-4" /> Estado *
                   </Label>
-                  <Select value={companyTimezone} onValueChange={setCompanyTimezone}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="America/Sao_Paulo">Brasília (GMT-3)</SelectItem>
-                      <SelectItem value="America/Manaus">Manaus (GMT-4)</SelectItem>
-                      <SelectItem value="America/Belem">Belém (GMT-3)</SelectItem>
-                      <SelectItem value="America/Fortaleza">Fortaleza (GMT-3)</SelectItem>
-                      <SelectItem value="America/Recife">Recife (GMT-3)</SelectItem>
-                      <SelectItem value="America/Cuiaba">Cuiabá (GMT-4)</SelectItem>
-                      <SelectItem value="America/Campo_Grande">Campo Grande (GMT-4)</SelectItem>
-                      <SelectItem value="America/Rio_Branco">Rio Branco (GMT-5)</SelectItem>
-                      <SelectItem value="America/Noronha">Fernando de Noronha (GMT-2)</SelectItem>
-                      <SelectItem value="America/Porto_Velho">Porto Velho (GMT-4)</SelectItem>
-                      <SelectItem value="America/Boa_Vista">Boa Vista (GMT-4)</SelectItem>
-                      <SelectItem value="America/Bahia">Bahia (GMT-3)</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <Popover open={stateOpen} onOpenChange={setStateOpen}>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" role="combobox" className="w-full justify-between font-normal">
+                        {selectedState
+                          ? brStates.find(s => s.uf === selectedState)?.name || selectedState
+                          : 'Selecione o estado'}
+                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-full p-0" align="start">
+                      <Command>
+                        <CommandInput placeholder="Buscar estado..." />
+                        <CommandList>
+                          <CommandEmpty>Nenhum estado encontrado.</CommandEmpty>
+                          <CommandGroup>
+                            {brStates.map((s) => (
+                              <CommandItem
+                                key={s.id}
+                                value={s.name}
+                                onSelect={() => {
+                                  setSelectedState(s.uf);
+                                  setSelectedCity('');
+                                  setCitySearch('');
+                                  setStateOpen(false);
+                                }}
+                              >
+                                <Check className={cn("mr-2 h-4 w-4", selectedState === s.uf ? "opacity-100" : "opacity-0")} />
+                                {s.name} ({s.uf})
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
                 </div>
-                <Button className="w-full" disabled={loading || !companyName.trim()} onClick={handleCreateCompany}>
+
+                {/* City - searchable */}
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-1">
+                    <MapPin className="h-4 w-4" /> Cidade *
+                  </Label>
+                  <Popover open={cityOpen} onOpenChange={setCityOpen}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        role="combobox"
+                        className="w-full justify-between font-normal"
+                        disabled={!selectedState || loadingCities}
+                      >
+                        {loadingCities
+                          ? 'Carregando cidades...'
+                          : selectedCity || 'Digite para buscar a cidade'}
+                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-full p-0" align="start">
+                      <Command shouldFilter={false}>
+                        <CommandInput
+                          placeholder="Digite o nome da cidade..."
+                          value={citySearch}
+                          onValueChange={setCitySearch}
+                        />
+                        <CommandList>
+                          <CommandEmpty>
+                            {citySearch ? 'Nenhuma cidade encontrada.' : 'Digite para buscar...'}
+                          </CommandEmpty>
+                          <CommandGroup>
+                            {filteredCities.map((c) => (
+                              <CommandItem
+                                key={c.id}
+                                value={c.name}
+                                onSelect={() => {
+                                  setSelectedCity(c.name);
+                                  setCityOpen(false);
+                                }}
+                              >
+                                <Check className={cn("mr-2 h-4 w-4", selectedCity === c.name ? "opacity-100" : "opacity-0")} />
+                                {c.name}
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
+                </div>
+
+                <Button className="w-full" disabled={loading || !isCompanyStepValid} onClick={handleCreateCompany}>
                   {loading ? 'Criando...' : 'Continuar'} <ChevronRight className="h-4 w-4 ml-1" />
                 </Button>
               </>
@@ -545,6 +662,13 @@ const CompanySetup = ({ onComplete }: CompanySetupProps) => {
                   <Button variant="outline" onClick={() => setStep('hours')} className="flex-1">
                     <ChevronLeft className="h-4 w-4 mr-1" /> Voltar
                   </Button>
+                  <Button
+                    variant="ghost"
+                    onClick={() => setStep('service')}
+                    className="text-muted-foreground"
+                  >
+                    Pular
+                  </Button>
                   <Button className="flex-1" disabled={loading} onClick={handleSaveBranding}>
                     {loading ? 'Salvando...' : 'Continuar'} <ChevronRight className="h-4 w-4 ml-1" />
                   </Button>
@@ -587,6 +711,13 @@ const CompanySetup = ({ onComplete }: CompanySetupProps) => {
                 <div className="flex gap-2">
                   <Button variant="outline" onClick={() => setStep('branding')} className="flex-1">
                     <ChevronLeft className="h-4 w-4 mr-1" /> Voltar
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    onClick={() => setStep('professional')}
+                    className="text-muted-foreground"
+                  >
+                    Pular
                   </Button>
                   <Button className="flex-1" disabled={loading || !serviceName.trim()} onClick={handleCreateService}>
                     {loading ? 'Criando...' : 'Continuar'} <ChevronRight className="h-4 w-4 ml-1" />
