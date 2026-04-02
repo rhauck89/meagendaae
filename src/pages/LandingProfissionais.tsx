@@ -612,10 +612,13 @@ const LandingProfissionais = () => {
               <ArrowRightLeft className="h-8 w-8 text-[hsl(var(--accent))]" />
             </div>
             <h2 className="text-3xl md:text-4xl font-display font-bold text-[hsl(var(--foreground))]">
-              Já usa outro sistema? <span className="text-[hsl(var(--accent))]">Nós migramos para você.</span>
+              Já usa outro sistema? <span className="text-[hsl(var(--accent))]">Temos uma condição especial para você.</span>
             </h2>
-            <p className="text-lg text-[hsl(var(--muted-foreground))]">
-              Nossa equipe ajuda na migração dos seus dados para o MeAgendaê. Sem perder clientes ou histórico.
+            <p className="text-lg text-[hsl(var(--muted-foreground))] max-w-2xl mx-auto">
+              Se você já utiliza outro sistema de agendamento, oferecemos condições especiais para facilitar sua mudança para o MeAgendaê.
+            </p>
+            <p className="text-lg text-[hsl(var(--muted-foreground))] max-w-2xl mx-auto">
+              Você começa rapidamente e aproveita todos os recursos da plataforma.
             </p>
           </div>
         </div>
