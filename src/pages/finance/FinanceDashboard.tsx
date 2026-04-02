@@ -27,6 +27,7 @@ const FinanceDashboard = () => {
       fetchChartData();
       fetchPayablesReceivables();
       fetchCashFlow();
+      fetchUpcomingDues();
     }
   }, [companyId]);
 
