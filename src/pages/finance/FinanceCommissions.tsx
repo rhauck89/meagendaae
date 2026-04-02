@@ -93,7 +93,8 @@ const FinanceCommissions = () => {
 
       <Card>
         <CardContent className="p-0">
-          <Table>
+          <div className="overflow-x-auto">
+            <Table className="min-w-[600px]">
             <TableHeader>
               <TableRow>
                 <TableHead>Profissional</TableHead>
