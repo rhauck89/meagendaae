@@ -324,7 +324,7 @@ const FinanceExpenses = () => {
               </TableHeader>
               <TableBody>
                 {expenses.length === 0 ? (
-                  <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">Nenhuma despesa registrada</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-8">Nenhuma despesa registrada</TableCell></TableRow>
                 ) : expenses.map(e => (
                   <TableRow key={e.id}>
                     <TableCell>{format(new Date(e.expense_date + 'T12:00:00'), 'dd/MM/yyyy')}</TableCell>
@@ -335,6 +335,7 @@ const FinanceExpenses = () => {
                       </div>
                     </TableCell>
                     <TableCell className="text-muted-foreground">{e.category?.name || '—'}</TableCell>
+                    <TableCell className="text-xs text-muted-foreground">{paymentMethodLabels[e.payment_method] || '—'}</TableCell>
                     <TableCell><Badge variant="outline" className="text-xs">{statusLabels[e.status] || e.status}</Badge></TableCell>
                     <TableCell className="text-right font-semibold text-destructive">R$ {Number(e.amount).toFixed(2)}</TableCell>
                     <TableCell>
