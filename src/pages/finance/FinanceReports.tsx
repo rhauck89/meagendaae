@@ -53,8 +53,7 @@ const FinanceReports = () => {
         .eq('company_id', companyId!),
       supabase
         .from('appointment_services')
-        .select('appointment_id, price, duration_minutes, service:services(name)')
-        .eq('service:services.company_id' as any, companyId!),
+        .select('appointment_id, price, duration_minutes, service:services(name)') as any,
       supabase
         .from('company_expenses')
         .select('amount, category:company_expense_categories(name)')
