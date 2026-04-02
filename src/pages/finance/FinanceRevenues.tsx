@@ -104,6 +104,7 @@ const FinanceRevenues = () => {
       category_id: r.category_id || '',
       notes: r.notes || '',
       status: r.status,
+      payment_method: r.payment_method || '',
     });
     setOpen(true);
   };
