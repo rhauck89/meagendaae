@@ -74,8 +74,8 @@ const Services = () => {
         const { error } = await supabase.from('services').insert({
           company_id: companyId,
           name: form.name.trim(),
-          duration_minutes: form.duration_minutes,
-          price: form.price,
+          duration_minutes: Number(form.duration_minutes) || 0,
+          price: Number(form.price) || 0,
           recommended_return_days: form.recommended_return_days ? Number(form.recommended_return_days) : null,
         } as any);
 
