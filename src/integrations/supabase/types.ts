@@ -3170,6 +3170,10 @@ export type Database = {
             Returns: string
           }
       expire_old_waitlist_entries: { Args: never; Returns: undefined }
+      get_appointment_public: {
+        Args: { p_appointment_id: string }
+        Returns: Json
+      }
       get_booking_appointments: {
         Args: {
           p_company_id: string
