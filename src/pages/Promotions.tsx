@@ -419,15 +419,33 @@ export default function Promotions() {
 
     const slug = generateSlug(title);
     const finalEndDate = singleDay ? startDate : endDate;
+    const effectiveIds = getEffectiveServiceIds();
+    const primaryServiceId = effectiveIds.length === 1 ? effectiveIds[0] : null;
+    const primarySvc = primaryServiceId ? services.find(s => s.id === primaryServiceId) : null;
+    
+    // Calculate prices for payload
+    let payloadOrigPrice: number | null = null;
+    let payloadPromoPrice: number | null = null;
+    
+    if (discountType === 'fixed_price' && primarySvc) {
+      payloadOrigPrice = Number(primarySvc.price);
+      payloadPromoPrice = parseFloat(promotionPrice) || null;
+    } else if (primarySvc) {
+      payloadOrigPrice = Number(primarySvc.price);
+      payloadPromoPrice = calculatePromoPrice(Number(primarySvc.price));
+    }
 
     const payload: any = {
       company_id: companyId!,
       title,
       slug,
       description: description || null,
-      service_id: selectedServiceId || null,
-      promotion_price: promotionPrice ? parseFloat(promotionPrice) : null,
-      original_price: originalPrice ? parseFloat(originalPrice) : null,
+      service_id: primaryServiceId,
+      service_ids: effectiveIds.length > 1 ? effectiveIds : null,
+      discount_type: discountType,
+      discount_value: discountType !== 'fixed_price' ? (parseFloat(discountValue) || null) : null,
+      promotion_price: payloadPromoPrice,
+      original_price: payloadOrigPrice,
       start_date: startDate,
       end_date: finalEndDate,
       start_time: startTime || null,
