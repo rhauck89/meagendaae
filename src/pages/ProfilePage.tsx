@@ -13,7 +13,7 @@ import { Star, Save, Camera, Instagram, Link2, Loader2, Copy, Check, ImagePlus }
 import { toast } from 'sonner';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import AvatarCropDialog from '@/components/AvatarCropDialog';
+import ImageCropDialog from '@/components/ImageCropDialog';
 
 const ProfilePage = () => {
   const { user, profile, companyId } = useAuth();
@@ -27,6 +27,7 @@ const ProfilePage = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const bannerInputRef = useRef<HTMLInputElement>(null);
   const [cropImage, setCropImage] = useState<string | null>(null);
+  const [cropMode, setCropMode] = useState<'avatar' | 'cover'>('avatar');
   const [uploadingBanner, setUploadingBanner] = useState(false);
   const [form, setForm] = useState({
     full_name: '',
@@ -105,21 +106,22 @@ const ProfilePage = () => {
     }
   };
 
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>, mode: 'avatar' | 'cover' = 'avatar') => {
     const file = e.target.files?.[0];
     if (!file) return;
     if (!file.type.startsWith('image/')) {
       toast.error('Por favor, selecione uma imagem');
       return;
     }
-    if (file.size > 10 * 1024 * 1024) {
-      toast.error('Imagem deve ter no máximo 10MB');
+    const maxMB = mode === 'cover' ? 5 : 10;
+    if (file.size > maxMB * 1024 * 1024) {
+      toast.error(`Imagem deve ter no máximo ${maxMB}MB`);
       return;
     }
+    setCropMode(mode);
     const reader = new FileReader();
     reader.onload = () => setCropImage(reader.result as string);
     reader.readAsDataURL(file);
-    // Reset input so same file can be re-selected
     e.target.value = '';
   };
 
@@ -159,15 +161,13 @@ const ProfilePage = () => {
     }
   };
 
-  const handleBannerUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !user) return;
-    if (!file.type.startsWith('image/')) { toast.error('Selecione uma imagem'); return; }
-    if (file.size > 5 * 1024 * 1024) { toast.error('Banner deve ter no máximo 5MB'); return; }
+  const handleCroppedBannerUpload = async (blob: Blob) => {
+    if (!user) return;
+    setCropImage(null);
     setUploadingBanner(true);
     try {
-      const ext = file.name.split('.').pop();
-      const filePath = `${user.id}/banner.${ext}`;
+      const filePath = `${user.id}/banner.jpg`;
+      const file = new File([blob], 'banner.jpg', { type: 'image/jpeg' });
       const { error: uploadError } = await supabase.storage.from('avatars').upload(filePath, file, { upsert: true });
       if (uploadError) throw uploadError;
       const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(filePath);
@@ -180,7 +180,6 @@ const ProfilePage = () => {
       toast.error(err.message || 'Erro ao enviar banner');
     } finally {
       setUploadingBanner(false);
-      e.target.value = '';
     }
   };
 
@@ -237,7 +236,7 @@ const ProfilePage = () => {
             type="file"
             accept="image/*"
             className="hidden"
-            onChange={handleBannerUpload}
+            onChange={(e) => handleFileSelect(e, 'cover')}
           />
           <Button
             variant="secondary"
@@ -268,9 +267,8 @@ const ProfilePage = () => {
                 ref={fileInputRef}
                 type="file"
                 accept="image/*"
-                capture="environment"
                 className="hidden"
-                onChange={handleFileSelect}
+                onChange={(e) => handleFileSelect(e, 'avatar')}
               />
               <Button
                 variant="outline"
@@ -439,11 +437,12 @@ const ProfilePage = () => {
       </Card>
 
       {cropImage && (
-        <AvatarCropDialog
+        <ImageCropDialog
           open={!!cropImage}
           imageSrc={cropImage}
+          mode={cropMode}
           onClose={() => setCropImage(null)}
-          onConfirm={handleCroppedUpload}
+          onConfirm={cropMode === 'avatar' ? handleCroppedUpload : handleCroppedBannerUpload}
         />
       )}
     </div>
