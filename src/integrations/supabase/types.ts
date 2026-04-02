@@ -2850,7 +2850,9 @@ export type Database = {
           google_review_url: string | null
           id: string | null
           instagram: string | null
+          latitude: number | null
           logo_url: string | null
+          longitude: number | null
           name: string | null
           phone: string | null
           postal_code: string | null
