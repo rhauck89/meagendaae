@@ -72,8 +72,8 @@ const FinanceTransactions = () => {
 
       <Card>
         <CardContent className="p-0">
-          <Table>
-            <TableHeader>
+          <div className="overflow-x-auto">
+            <Table className="min-w-[600px]">
               <TableRow>
                 <TableHead className="w-10"></TableHead>
                 <TableHead>Data</TableHead>
