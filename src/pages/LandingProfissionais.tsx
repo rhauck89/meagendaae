@@ -12,6 +12,9 @@ import {
 } from 'lucide-react';
 
 const LandingProfissionais = () => {
+  const platform = usePlatformSettings();
+  const headerLogo = platform?.logo_dark || platform?.system_logo || platform?.logo_light || null;
+
   return (
     <div className="min-h-screen bg-white">
       <SEOHead
