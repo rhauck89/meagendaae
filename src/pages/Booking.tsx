@@ -1108,12 +1108,19 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
               })().map((svc) => {
                 const sel = selectedServices.includes(svc.id);
                 const promoServiceIds = promoData?.service_ids || (promoData?.service_id ? [promoData.service_id] : []);
-                const isLocked = isPromoMode && promoServiceIds.includes(svc.id);
+                const isPromoService = isPromoMode && promoServiceIds.includes(svc.id);
                 return (
                   <div
                     key={svc.id}
-                    onClick={() => !isLocked && toggleService(svc.id)}
-                    className={`p-4 rounded-2xl transition-all duration-200 ${isLocked ? '' : 'cursor-pointer hover:scale-[1.01]'}`}
+                    onClick={() => {
+                      if (isPromoMode && isPromoService) {
+                        // In promo mode: single-select among promo services
+                        setSelectedServices(sel ? [] : [svc.id]);
+                      } else {
+                        toggleService(svc.id);
+                      }
+                    }}
+                    className="p-4 rounded-2xl transition-all duration-200 cursor-pointer hover:scale-[1.01]"
                     style={{
                       background: sel ? `${T.accent}10` : T.card,
                       border: `1.5px solid ${sel ? T.accent : T.border}`,

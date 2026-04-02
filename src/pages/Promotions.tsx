@@ -1081,7 +1081,7 @@ export default function Promotions() {
                         <Button size="sm" variant="outline" onClick={() => toggleStatus(promo)}>
                           {promo.status === 'active' ? 'Pausar' : 'Ativar'}
                         </Button>
-                        <Button size="sm" onClick={() => fetchFilteredClients(promo)} disabled={status !== 'active'}>
+                        <Button size="sm" onClick={() => fetchFilteredClients(promo)} disabled={status === 'expired'}>
                           <Send className="h-3 w-3 mr-1" />Enviar
                         </Button>
                         <Button size="sm" variant="outline" onClick={() => fetchMetrics(promo)}>
