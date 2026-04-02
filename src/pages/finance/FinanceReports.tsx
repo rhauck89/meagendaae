@@ -36,6 +36,7 @@ const FinanceReports = () => {
   const [topClients, setTopClients] = useState<ClientRow[]>([]);
   const [expensesByCat, setExpensesByCat] = useState<{ name: string; value: number }[]>([]);
   const [monthlyTrend, setMonthlyTrend] = useState<{ name: string; revenue: number }[]>([]);
+  const [revenueByPayment, setRevenueByPayment] = useState<{ name: string; value: number }[]>([]);
 
   useEffect(() => {
     if (companyId) { fetchAll(); fetchMonthlyTrend(); }
