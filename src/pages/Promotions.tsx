@@ -68,6 +68,8 @@ const MESSAGE_TAGS = [
   { tag: '{{cliente_aniversario}}', label: 'Aniversário' },
   { tag: '{{empresa_nome}}', label: 'Empresa' },
   { tag: '{{profissional_nome}}', label: 'Profissional' },
+  { tag: '{{servicos_promocao}}', label: 'Serviços' },
+  { tag: '{{profissionais_promocao}}', label: 'Profissionais' },
   { tag: '{{valor_normal}}', label: 'Valor Normal' },
   { tag: '{{valor_promocional}}', label: 'Valor Promo' },
   { tag: '{{link_promocao}}', label: 'Link' },
@@ -77,7 +79,11 @@ const DEFAULT_TEMPLATE = `Olá {{cliente_nome}}! 👋
 
 Estamos com uma promoção especial na *{{empresa_nome}}*! 🎉
 
-✂️ De R$ {{valor_normal}} por apenas *R$ {{valor_promocional}}*
+✂️ Serviço: {{servicos_promocao}}
+
+💰 De R$ {{valor_normal}} por apenas *R$ {{valor_promocional}}*
+
+👨‍🔧 Válido com: {{profissionais_promocao}}
 
 Garanta seu horário:
 {{link_promocao}}
@@ -517,12 +523,41 @@ export default function Promotions() {
       return companyName;
     })();
 
+    // Build services text
+    const promoServiceIds = promotion.service_ids || (promotion.service_id ? [promotion.service_id] : []);
+    const promoSvcs = services.filter(s => promoServiceIds.includes(s.id));
+    const servicosText = (() => {
+      if (promoServiceIds.length === 0 || promoServiceIds.length >= services.length) {
+        return 'Todos os serviços';
+      }
+      if (promoSvcs.length === 1) {
+        return promoSvcs[0].name;
+      }
+      const names = promoSvcs.map(s => s.name);
+      return names.slice(0, -1).join(', ') + ' e ' + names[names.length - 1];
+    })();
+
+    // Build professionals text
+    const profissionaisText = (() => {
+      if (promotion.professional_filter === 'all' || !promotion.professional_ids?.length) {
+        return 'Todos os profissionais da equipe';
+      }
+      const profNames = promotion.professional_ids.map(pid => {
+        const p = professionals.find((pr: any) => pr.profile_id === pid);
+        return p?.profiles?.full_name || '';
+      }).filter(Boolean);
+      if (profNames.length === 1) return profNames[0];
+      return profNames.slice(0, -1).join(', ') + ' e ' + profNames[profNames.length - 1];
+    })();
+
     let msg = promotion.message_template || DEFAULT_TEMPLATE;
     msg = msg.replace(/\{\{cliente_nome\}\}/g, client.name);
     msg = msg.replace(/\{\{cliente_primeiro_nome\}\}/g, client.name.split(' ')[0]);
     msg = msg.replace(/\{\{cliente_aniversario\}\}/g, client.birth_date ? format(parseISO(client.birth_date), 'dd/MM') : '');
     msg = msg.replace(/\{\{empresa_nome\}\}/g, companyName);
     msg = msg.replace(/\{\{profissional_nome\}\}/g, profName);
+    msg = msg.replace(/\{\{servicos_promocao\}\}/g, servicosText);
+    msg = msg.replace(/\{\{profissionais_promocao\}\}/g, profissionaisText);
     msg = msg.replace(/\{\{valor_normal\}\}/g, promotion.original_price ? `R$ ${Number(promotion.original_price).toFixed(2)}` : '');
     msg = msg.replace(/\{\{valor_promocional\}\}/g, promotion.promotion_price ? `R$ ${Number(promotion.promotion_price).toFixed(2)}` : '');
     msg = msg.replace(/\{\{link_promocao\}\}/g, promoLink);
