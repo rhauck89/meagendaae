@@ -6,6 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { useDomainRouting } from "@/hooks/useDomainRouting";
 import Index from "./pages/Index";
+import LandingProfissionais from "./pages/LandingProfissionais";
 import ProfessionalPublicProfile from "./pages/ProfessionalPublicProfile";
 import BarbershopLanding from "./pages/BarbershopLanding";
 import Auth from "./pages/Auth";
