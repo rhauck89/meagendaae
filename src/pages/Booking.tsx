@@ -392,7 +392,8 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
         setPromoData(pd as PromotionInfo);
         // Auto-select promo services
         const promoServiceIds = pd.service_ids || (pd.service_id ? [pd.service_id] : []);
-        if (promoServiceIds.length > 0) {
+        // If promo has only 1 service, auto-select it; otherwise let user choose
+        if (promoServiceIds.length === 1) {
           setSelectedServices(promoServiceIds);
         }
         // Auto-select professional if only one
@@ -1094,8 +1095,8 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
         {step === 'services' && (
           <div className="space-y-5 animate-fade-in">
             <div>
-              <h2 className="text-2xl font-bold tracking-tight">{isPromoMode ? 'Serviço(s) da promoção' : 'Escolha os serviços'}</h2>
-              <p className="text-sm mt-1" style={{ color: T.textSec }}>{isPromoMode ? 'Serviço(s) incluído(s) na promoção' : 'Selecione um ou mais serviços desejados'}</p>
+              <h2 className="text-2xl font-bold tracking-tight">{isPromoMode ? 'Escolha um serviço da promoção' : 'Escolha os serviços'}</h2>
+              <p className="text-sm mt-1" style={{ color: T.textSec }}>{isPromoMode ? 'Selecione o serviço que deseja agendar com desconto' : 'Selecione um ou mais serviços desejados'}</p>
             </div>
             <div className="space-y-3">
               {(() => {
@@ -1107,12 +1108,19 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
               })().map((svc) => {
                 const sel = selectedServices.includes(svc.id);
                 const promoServiceIds = promoData?.service_ids || (promoData?.service_id ? [promoData.service_id] : []);
-                const isLocked = isPromoMode && promoServiceIds.includes(svc.id);
+                const isPromoService = isPromoMode && promoServiceIds.includes(svc.id);
                 return (
                   <div
                     key={svc.id}
-                    onClick={() => !isLocked && toggleService(svc.id)}
-                    className={`p-4 rounded-2xl transition-all duration-200 ${isLocked ? '' : 'cursor-pointer hover:scale-[1.01]'}`}
+                    onClick={() => {
+                      if (isPromoMode && isPromoService) {
+                        // In promo mode: single-select among promo services
+                        setSelectedServices(sel ? [] : [svc.id]);
+                      } else {
+                        toggleService(svc.id);
+                      }
+                    }}
+                    className="p-4 rounded-2xl transition-all duration-200 cursor-pointer hover:scale-[1.01]"
                     style={{
                       background: sel ? `${T.accent}10` : T.card,
                       border: `1.5px solid ${sel ? T.accent : T.border}`,
