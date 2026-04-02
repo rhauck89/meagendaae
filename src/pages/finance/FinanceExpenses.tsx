@@ -49,44 +49,50 @@ const FinanceExpenses = () => {
   };
 
   const handleSubmit = async () => {
+    if (submitting) return;
     if (!form.description || !form.amount) { toast.error('Preencha descrição e valor'); return; }
-    const installments = parseInt(form.installments) || 1;
-    const baseAmount = parseFloat(form.amount);
-    const installmentAmount = installments > 1 ? baseAmount / installments : baseAmount;
-    const baseDueDate = form.due_date || form.expense_date;
+    setSubmitting(true);
+    try {
+      const installments = parseInt(form.installments) || 1;
+      const baseAmount = parseFloat(form.amount);
+      const installmentAmount = installments > 1 ? baseAmount / installments : baseAmount;
+      const baseDueDate = form.due_date || form.expense_date;
 
-    const entries = [];
-    for (let i = 0; i < installments; i++) {
-      let dueDate = baseDueDate;
-      if (i > 0) {
-        const base = new Date(baseDueDate + 'T12:00:00');
-        const next = addMonths(base, i);
-        dueDate = format(next, 'yyyy-MM-dd');
+      const entries = [];
+      for (let i = 0; i < installments; i++) {
+        let dueDate = baseDueDate;
+        if (i > 0) {
+          const base = new Date(baseDueDate + 'T12:00:00');
+          const next = addMonths(base, i);
+          dueDate = format(next, 'yyyy-MM-dd');
+        }
+        entries.push({
+          company_id: companyId!,
+          description: installments > 1 ? `${form.description} (${i + 1}/${installments})` : form.description,
+          amount: Math.round(installmentAmount * 100) / 100,
+          expense_date: i === 0 ? form.expense_date : dueDate,
+          due_date: dueDate || null,
+          status: i === 0 ? form.status : 'pending',
+          category_id: form.category_id && form.category_id !== 'none' ? form.category_id : null,
+          is_recurring: form.is_recurring,
+          recurrence_type: form.is_recurring ? form.recurrence_type : null,
+          recurrence_interval: form.is_recurring ? parseInt(form.recurrence_interval) : null,
+          notes: form.notes || null,
+          created_by: user?.id,
+          installment_number: installments > 1 ? i + 1 : null,
+          total_installments: installments > 1 ? installments : null,
+        });
       }
-      entries.push({
-        company_id: companyId!,
-        description: installments > 1 ? `${form.description} (${i + 1}/${installments})` : form.description,
-        amount: Math.round(installmentAmount * 100) / 100,
-        expense_date: i === 0 ? form.expense_date : dueDate,
-        due_date: dueDate || null,
-        status: i === 0 ? form.status : 'pending',
-        category_id: form.category_id && form.category_id !== 'none' ? form.category_id : null,
-        is_recurring: form.is_recurring,
-        recurrence_type: form.is_recurring ? form.recurrence_type : null,
-        recurrence_interval: form.is_recurring ? parseInt(form.recurrence_interval) : null,
-        notes: form.notes || null,
-        created_by: user?.id,
-        installment_number: installments > 1 ? i + 1 : null,
-        total_installments: installments > 1 ? installments : null,
-      });
-    }
 
-    const { error } = await supabase.from('company_expenses').insert(entries);
-    if (error) { toast.error('Erro ao salvar'); return; }
-    toast.success(installments > 1 ? `${installments} parcelas criadas` : 'Despesa registrada');
-    setOpen(false);
-    setForm({ description: '', amount: '', expense_date: format(new Date(), 'yyyy-MM-dd'), due_date: '', category_id: '', is_recurring: false, recurrence_type: 'monthly', recurrence_interval: '1', notes: '', status: 'pending', installments: '1' });
-    fetchExpenses();
+      const { error } = await supabase.from('company_expenses').insert(entries);
+      if (error) { toast.error('Erro ao salvar'); return; }
+      toast.success(installments > 1 ? `${installments} parcelas criadas` : 'Despesa registrada');
+      setOpen(false);
+      setForm({ description: '', amount: '', expense_date: format(new Date(), 'yyyy-MM-dd'), due_date: '', category_id: '', is_recurring: false, recurrence_type: 'monthly', recurrence_interval: '1', notes: '', status: 'pending', installments: '1' });
+      fetchExpenses();
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const handleDelete = async (id: string) => {
