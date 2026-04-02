@@ -116,6 +116,7 @@ const FinanceExpenses = () => {
           is_recurring: form.is_recurring,
           recurrence_type: form.is_recurring ? form.recurrence_type : null,
           notes: form.notes || null,
+          payment_method: form.payment_method || null,
         }).eq('id', editingId);
         if (error) { toast.error('Erro ao atualizar'); return; }
         toast.success('Despesa atualizada');
