@@ -70,7 +70,9 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
   const totalNotifications = (unreadTickets || 0) + (platformMessages?.length || 0);
 
   const isSettingsActive = location.pathname.startsWith('/dashboard/settings');
+  const isFinanceActive = location.pathname.startsWith('/dashboard/finance');
   const [settingsOpen, setSettingsOpen] = useState(isSettingsActive);
+  const [financeOpen, setFinanceOpen] = useState(isFinanceActive);
 
   const navItems = isAdmin ? adminNavItems : professionalNavItems;
 
