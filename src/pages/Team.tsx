@@ -42,6 +42,11 @@ const Team = () => {
   const [deleteTarget, setDeleteTarget] = useState<any>(null);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
 
+  // Absence modal state
+  const [absenceDialogOpen, setAbsenceDialogOpen] = useState(false);
+  const [absenceTarget, setAbsenceTarget] = useState<any>(null);
+  const [absenceForm, setAbsenceForm] = useState({ absence_start: '', absence_end: '', absence_type: 'ferias' });
+
   const [form, setForm] = useState({
     name: '',
     email: '',
