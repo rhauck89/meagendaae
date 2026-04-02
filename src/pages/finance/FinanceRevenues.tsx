@@ -64,6 +64,7 @@ const FinanceRevenues = () => {
         status: form.status,
         category_id: form.category_id && form.category_id !== 'none' ? form.category_id : null,
         notes: form.notes || null,
+        payment_method: form.payment_method || null,
       };
 
       if (editingId) {
