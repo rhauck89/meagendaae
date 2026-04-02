@@ -795,18 +795,20 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
         p_promotion_id: promoData?.id ?? null,
       };
 
-      // Final availability check to prevent double booking
+      // Final availability check to prevent double booking (overlap range check)
       const { data: conflictingAppts } = await supabase
         .from('appointments')
         .select('id')
         .eq('professional_id', selectedProfessional)
-        .eq('start_time', startTime.toISOString())
+        .lt('start_time', endTime.toISOString())
+        .gt('end_time', startTime.toISOString())
         .not('status', 'in', '("cancelled","no_show")')
         .limit(1);
 
       if (conflictingAppts && conflictingAppts.length > 0) {
-        toast.error('Este horário acabou de ser reservado. Escolha outro.');
+        toast.error('Esse horário acabou de ser reservado ou não comporta a duração do serviço selecionado. Por favor escolha outro horário disponível.');
         setStep('datetime');
+        if (selectedDate) calculateSlots(selectedDate);
         setLoading(false);
         return;
       }
