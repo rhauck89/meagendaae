@@ -1541,8 +1541,8 @@ const Dashboard = () => {
       </AlertDialog>
 
       {/* Complete Confirmation Dialog with Payment Method */}
-      <Dialog open={completeDialogOpen} onOpenChange={(open) => { setCompleteDialogOpen(open); if (!open) { setCompleteTarget(null); setCompletePaymentMethod('pix'); } }}>
-        <DialogContent className="w-[92vw] max-w-sm">
+      <Dialog open={completeDialogOpen} onOpenChange={(open) => { setCompleteDialogOpen(open); if (!open) { setCompleteTarget(null); setCompletePaymentMethod('pix'); setCompleteCustomAmount(''); setCompleteDiscount(''); setCompleteObservation(''); } }}>
+        <DialogContent className="w-[92vw] max-w-md">
           <DialogHeader>
             <DialogTitle>Pagamento recebido?</DialogTitle>
             <DialogDescription>
@@ -1555,28 +1555,65 @@ const Dashboard = () => {
               )}
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-3">
-            <label className="text-sm font-medium">Forma de pagamento</label>
-            <div className="grid grid-cols-3 gap-2">
-              {[
-                { value: 'dinheiro', label: '💵 Dinheiro' },
-                { value: 'pix', label: '📱 Pix' },
-                { value: 'cartao', label: '💳 Cartão' },
-                { value: 'transferencia', label: '🏦 Transf.' },
-                { value: 'outro', label: '📋 Outro' },
-              ].map(pm => (
-                <Button
-                  key={pm.value}
-                  variant={completePaymentMethod === pm.value ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => setCompletePaymentMethod(pm.value)}
-                  className="text-xs"
-                >
-                  {pm.label}
-                </Button>
-              ))}
+          <div className="space-y-4">
+            <div>
+              <label className="text-sm font-medium">Forma de pagamento</label>
+              <div className="grid grid-cols-3 gap-2 mt-2">
+                {[
+                  { value: 'dinheiro', label: '💵 Dinheiro' },
+                  { value: 'pix', label: '📱 Pix' },
+                  { value: 'cartao_credito', label: '💳 Crédito' },
+                  { value: 'cartao_debito', label: '💳 Débito' },
+                  { value: 'transferencia', label: '🏦 Transf.' },
+                  { value: 'outro', label: '📋 Outro' },
+                ].map(pm => (
+                  <Button
+                    key={pm.value}
+                    variant={completePaymentMethod === pm.value ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setCompletePaymentMethod(pm.value)}
+                    className="text-xs"
+                  >
+                    {pm.label}
+                  </Button>
+                ))}
+              </div>
             </div>
-            <div className="flex gap-2 pt-2">
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-sm font-medium">Valor pago</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  placeholder={completeTarget ? Number(completeTarget.total_price).toFixed(2) : '0.00'}
+                  value={completeCustomAmount}
+                  onChange={(e) => setCompleteCustomAmount(e.target.value)}
+                  className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring mt-1"
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium">Desconto</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  placeholder="0.00"
+                  value={completeDiscount}
+                  onChange={(e) => setCompleteDiscount(e.target.value)}
+                  className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring mt-1"
+                />
+              </div>
+            </div>
+            <div>
+              <label className="text-sm font-medium">Observação</label>
+              <textarea
+                placeholder="Observação opcional..."
+                value={completeObservation}
+                onChange={(e) => setCompleteObservation(e.target.value)}
+                rows={2}
+                className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring mt-1 resize-none"
+              />
+            </div>
+            <div className="flex gap-2 pt-1">
               <Button variant="outline" className="flex-1" onClick={() => { setCompleteDialogOpen(false); setCompleteTarget(null); }}>
                 Cancelar
               </Button>
@@ -1584,12 +1621,28 @@ const Dashboard = () => {
                 className="flex-1 bg-success hover:bg-success/90 text-white"
                 onClick={() => {
                   if (completeTarget) {
+                    const discount = parseFloat(completeDiscount) || 0;
+                    const customAmount = parseFloat(completeCustomAmount) || Number(completeTarget.total_price);
+                    const finalAmount = customAmount - discount;
                     updateStatus(completeTarget.id, 'completed', completePaymentMethod);
+                    if (completeObservation || discount > 0) {
+                      // Update the appointment notes with discount/observation info
+                      supabase.from('appointments').update({ 
+                        notes: [
+                          completeTarget.notes,
+                          discount > 0 ? `Desconto: R$ ${discount.toFixed(2)}` : null,
+                          completeObservation ? `Obs: ${completeObservation}` : null,
+                        ].filter(Boolean).join(' | ')
+                      }).eq('id', completeTarget.id).then(() => {});
+                    }
                     toast.success('Serviço concluído com sucesso');
                   }
                   setCompleteDialogOpen(false);
                   setCompleteTarget(null);
                   setCompletePaymentMethod('pix');
+                  setCompleteCustomAmount('');
+                  setCompleteDiscount('');
+                  setCompleteObservation('');
                 }}
               >
                 Confirmar pagamento
