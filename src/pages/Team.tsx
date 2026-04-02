@@ -48,7 +48,7 @@ const Team = () => {
     role_title: 'Barbeiro',
     collaborator_type: 'commissioned' as 'partner' | 'commissioned' | 'independent',
     payment_type: 'percentage' as 'percentage' | 'fixed' | 'none',
-    commission_value: 10,
+    commission_value: '' as string | number,
   });
 
   const teamQueryKey = ['collaborators', companyId];
