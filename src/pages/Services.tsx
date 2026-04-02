@@ -16,7 +16,7 @@ const Services = () => {
   const queryClient = useQueryClient();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<any | null>(null);
-  const [form, setForm] = useState({ name: '', duration_minutes: 30, price: 0, recommended_return_days: '' as string | number });
+  const [form, setForm] = useState({ name: '', duration_minutes: '' as string | number, price: '' as string | number, recommended_return_days: '' as string | number });
 
   const servicesQueryKey = ['services', companyId];
 
@@ -48,7 +48,7 @@ const Services = () => {
 
   const resetForm = () => {
     setEditing(null);
-    setForm({ name: '', duration_minutes: 30, price: 0, recommended_return_days: '' });
+    setForm({ name: '', duration_minutes: '', price: '', recommended_return_days: '' });
   };
 
   const handleSave = async () => {
@@ -61,8 +61,8 @@ const Services = () => {
           .from('services')
           .update({
             name: form.name.trim(),
-            duration_minutes: form.duration_minutes,
-            price: form.price,
+            duration_minutes: Number(form.duration_minutes) || 0,
+            price: Number(form.price) || 0,
             recommended_return_days: form.recommended_return_days ? Number(form.recommended_return_days) : null,
           } as any)
           .eq('id', editing.id)
@@ -74,8 +74,8 @@ const Services = () => {
         const { error } = await supabase.from('services').insert({
           company_id: companyId,
           name: form.name.trim(),
-          duration_minutes: form.duration_minutes,
-          price: form.price,
+          duration_minutes: Number(form.duration_minutes) || 0,
+          price: Number(form.price) || 0,
           recommended_return_days: form.recommended_return_days ? Number(form.recommended_return_days) : null,
         } as any);
 
@@ -168,10 +168,11 @@ const Services = () => {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Duração (min)</Label>
-                  <Input
+                   <Input
                     type="number"
                     value={form.duration_minutes}
-                    onChange={(e) => setForm({ ...form, duration_minutes: parseInt(e.target.value, 10) || 0 })}
+                    onChange={(e) => setForm({ ...form, duration_minutes: e.target.value })}
+                    placeholder="Ex: 40"
                   />
                 </div>
                 <div className="space-y-2">
@@ -180,7 +181,8 @@ const Services = () => {
                     type="number"
                     step="0.01"
                     value={form.price}
-                    onChange={(e) => setForm({ ...form, price: parseFloat(e.target.value) || 0 })}
+                    onChange={(e) => setForm({ ...form, price: e.target.value })}
+                    placeholder="Ex: 45.00"
                   />
                 </div>
               </div>

@@ -441,6 +441,9 @@ export type Database = {
       }
       collaborators: {
         Row: {
+          absence_end: string | null
+          absence_start: string | null
+          absence_type: string | null
           active: boolean
           collaborator_type: Database["public"]["Enums"]["collaborator_type"]
           commission_percent: number | null
@@ -453,6 +456,9 @@ export type Database = {
           slug: string | null
         }
         Insert: {
+          absence_end?: string | null
+          absence_start?: string | null
+          absence_type?: string | null
           active?: boolean
           collaborator_type: Database["public"]["Enums"]["collaborator_type"]
           commission_percent?: number | null
@@ -465,6 +471,9 @@ export type Database = {
           slug?: string | null
         }
         Update: {
+          absence_end?: string | null
+          absence_start?: string | null
+          absence_type?: string | null
           active?: boolean
           collaborator_type?: Database["public"]["Enums"]["collaborator_type"]
           commission_percent?: number | null

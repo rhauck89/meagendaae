@@ -10,7 +10,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Plus, Users, Percent, DollarSign, Settings, Copy, ExternalLink, Mail, KeyRound, MessageCircle, Pencil, UserX, UserCheck, Trash2 } from 'lucide-react';
+import { Plus, Users, Percent, DollarSign, Settings, Copy, ExternalLink, Mail, KeyRound, MessageCircle, Pencil, UserX, UserCheck, Trash2, CalendarOff } from 'lucide-react';
+import { format } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import ProfessionalPanel from '@/components/ProfessionalPanel';
@@ -32,7 +33,7 @@ const Team = () => {
   // Edit modal state
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<any>(null);
-  const [editForm, setEditForm] = useState({ name: '', email: '', collaborator_type: 'commissioned' as string, commission_type: 'percentage' as string, commission_value: 0 });
+  const [editForm, setEditForm] = useState({ name: '', email: '', collaborator_type: 'commissioned' as string, commission_type: 'percentage' as string, commission_value: '' as string | number });
 
   // Disable/Delete confirm state
   const [disableDialogOpen, setDisableDialogOpen] = useState(false);
@@ -41,6 +42,11 @@ const Team = () => {
   const [deleteTarget, setDeleteTarget] = useState<any>(null);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
 
+  // Absence modal state
+  const [absenceDialogOpen, setAbsenceDialogOpen] = useState(false);
+  const [absenceTarget, setAbsenceTarget] = useState<any>(null);
+  const [absenceForm, setAbsenceForm] = useState({ absence_start: '', absence_end: '', absence_type: 'ferias' });
+
   const [form, setForm] = useState({
     name: '',
     email: '',
@@ -48,7 +54,7 @@ const Team = () => {
     role_title: 'Barbeiro',
     collaborator_type: 'commissioned' as 'partner' | 'commissioned' | 'independent',
     payment_type: 'percentage' as 'percentage' | 'fixed' | 'none',
-    commission_value: 10,
+    commission_value: '' as string | number,
   });
 
   const teamQueryKey = ['collaborators', companyId];
@@ -93,7 +99,7 @@ const Team = () => {
       role_title: 'Barbeiro',
       collaborator_type: 'commissioned',
       payment_type: 'percentage',
-      commission_value: 10,
+      commission_value: '',
     });
     setCreatedCredentials(null);
   };
@@ -132,7 +138,7 @@ const Team = () => {
           company_id: companyId,
           collaborator_type: form.collaborator_type,
           payment_type: form.payment_type,
-          commission_value: form.payment_type === 'none' ? 0 : form.commission_value,
+          commission_value: form.payment_type === 'none' ? 0 : (Number(form.commission_value) || 0),
           role: 'collaborator',
           role_title: form.role_title,
           slug: professionalSlug,
@@ -217,7 +223,7 @@ const Team = () => {
       email: collaborator.profile?.email || '',
       collaborator_type: collaborator.collaborator_type || 'commissioned',
       commission_type: collaborator.commission_type || 'none',
-      commission_value: collaborator.commission_value || 0,
+      commission_value: collaborator.commission_value || '',
     });
     setEditDialogOpen(true);
   };
@@ -240,7 +246,7 @@ const Team = () => {
         .update({
           collaborator_type: editForm.collaborator_type as any,
           commission_type: commissionType,
-          commission_value: commissionType === 'none' ? 0 : editForm.commission_value,
+          commission_value: commissionType === 'none' ? 0 : (Number(editForm.commission_value) || 0),
         } as any)
         .eq('id', editTarget.id);
 
@@ -309,6 +315,68 @@ const Team = () => {
     }
   };
 
+  const openAbsenceDialog = (collaborator: any) => {
+    setAbsenceTarget(collaborator);
+    setAbsenceForm({
+      absence_start: (collaborator as any).absence_start || '',
+      absence_end: (collaborator as any).absence_end || '',
+      absence_type: (collaborator as any).absence_type || 'ferias',
+    });
+    setAbsenceDialogOpen(true);
+  };
+
+  const handleSaveAbsence = async () => {
+    if (!absenceTarget) return;
+    if (!absenceForm.absence_start || !absenceForm.absence_end) return toast.error('Defina as datas de início e fim');
+    if (absenceForm.absence_start > absenceForm.absence_end) return toast.error('Data de início deve ser antes da data de fim');
+
+    try {
+      await supabase
+        .from('collaborators')
+        .update({
+          absence_start: absenceForm.absence_start,
+          absence_end: absenceForm.absence_end,
+          absence_type: absenceForm.absence_type,
+        } as any)
+        .eq('id', absenceTarget.id);
+      toast.success('Ausência configurada!');
+      setAbsenceDialogOpen(false);
+      await refreshTeam();
+    } catch (err: any) {
+      toast.error(err.message || 'Erro ao salvar ausência');
+    }
+  };
+
+  const handleRemoveAbsence = async (collaborator: any) => {
+    try {
+      await supabase
+        .from('collaborators')
+        .update({
+          absence_start: null,
+          absence_end: null,
+          absence_type: null,
+        } as any)
+        .eq('id', collaborator.id);
+      toast.success('Ausência removida!');
+      await refreshTeam();
+    } catch (err: any) {
+      toast.error(err.message || 'Erro ao remover ausência');
+    }
+  };
+
+  const isCurrentlyAbsent = (collaborator: any) => {
+    const start = (collaborator as any).absence_start;
+    const end = (collaborator as any).absence_end;
+    if (!start || !end) return false;
+    const today = new Date().toISOString().split('T')[0];
+    return today >= start && today <= end;
+  };
+
+  const absenceTypeLabel = (type: string) => {
+    const labels: Record<string, string> = { ferias: 'Férias', folga: 'Folga', recesso: 'Recesso', ausente: 'Ausente' };
+    return labels[type] || type;
+  };
+
   const copyToClipboard = (text: string, label: string) => {
     navigator.clipboard.writeText(text);
     toast.success(`${label} copiado!`);
@@ -360,6 +428,11 @@ const Team = () => {
               {collaborator.commission_type === 'none' && paymentLabel(collaborator.commission_type, collaborator.commission_value)}
             </Badge>
             {isDisabled && <Badge variant="destructive">Desabilitado</Badge>}
+            {!isDisabled && isCurrentlyAbsent(collaborator) && (
+              <Badge variant="secondary" className="flex items-center gap-1 bg-amber-100 text-amber-800 border-amber-300">
+                <CalendarOff className="h-3 w-3" /> {absenceTypeLabel((collaborator as any).absence_type)} até {(collaborator as any).absence_end}
+              </Badge>
+            )}
           </div>
 
           {isDisabled ? (
@@ -381,6 +454,19 @@ const Team = () => {
                 <Button variant="outline" size="sm" className="flex-1" onClick={() => { setDisableTarget(collaborator); setDisableDialogOpen(true); }}>
                   <UserX className="mr-1.5 h-3.5 w-3.5" /> Desabilitar
                 </Button>
+              </div>
+
+              {/* Absence management */}
+              <div className="flex items-center gap-2">
+                {isCurrentlyAbsent(collaborator) ? (
+                  <Button variant="outline" size="sm" className="flex-1" onClick={() => handleRemoveAbsence(collaborator)}>
+                    <CalendarOff className="mr-1.5 h-3.5 w-3.5" /> Remover ausência
+                  </Button>
+                ) : (
+                  <Button variant="outline" size="sm" className="flex-1" onClick={() => openAbsenceDialog(collaborator)}>
+                    <CalendarOff className="mr-1.5 h-3.5 w-3.5" /> Definir ausência
+                  </Button>
+                )}
               </div>
 
               {/* Access management */}
@@ -563,7 +649,8 @@ const Team = () => {
                     <Input
                       type="number"
                       value={form.commission_value}
-                      onChange={(e) => setForm({ ...form, commission_value: parseFloat(e.target.value) || 0 })}
+                      onChange={(e) => setForm({ ...form, commission_value: e.target.value })}
+                      placeholder="Ex: 10"
                     />
                   </div>
                 )}
@@ -574,7 +661,8 @@ const Team = () => {
                       type="number"
                       step="0.01"
                       value={form.commission_value}
-                      onChange={(e) => setForm({ ...form, commission_value: parseFloat(e.target.value) || 0 })}
+                      onChange={(e) => setForm({ ...form, commission_value: e.target.value })}
+                      placeholder="Ex: 25.00"
                     />
                   </div>
                 )}
@@ -656,13 +744,13 @@ const Team = () => {
             {editForm.commission_type === 'percentage' && (
               <div className="space-y-2">
                 <Label>Comissão (%)</Label>
-                <Input type="number" value={editForm.commission_value} onChange={(e) => setEditForm({ ...editForm, commission_value: parseFloat(e.target.value) || 0 })} />
+                <Input type="number" value={editForm.commission_value} onChange={(e) => setEditForm({ ...editForm, commission_value: e.target.value })} placeholder="Ex: 10" />
               </div>
             )}
             {editForm.commission_type === 'fixed' && (
               <div className="space-y-2">
                 <Label>Valor por serviço (R$)</Label>
-                <Input type="number" step="0.01" value={editForm.commission_value} onChange={(e) => setEditForm({ ...editForm, commission_value: parseFloat(e.target.value) || 0 })} />
+                <Input type="number" step="0.01" value={editForm.commission_value} onChange={(e) => setEditForm({ ...editForm, commission_value: e.target.value })} placeholder="Ex: 25.00" />
               </div>
             )}
             <div className="flex gap-2">
@@ -779,6 +867,41 @@ const Team = () => {
             </div>
             );
           })()}
+        </DialogContent>
+      </Dialog>
+
+      {/* Absence Dialog */}
+      <Dialog open={absenceDialogOpen} onOpenChange={setAbsenceDialogOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Definir Ausência</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Tipo de ausência</Label>
+              <Select value={absenceForm.absence_type} onValueChange={(v) => setAbsenceForm({ ...absenceForm, absence_type: v })}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ferias">Férias</SelectItem>
+                  <SelectItem value="folga">Folga</SelectItem>
+                  <SelectItem value="recesso">Recesso</SelectItem>
+                  <SelectItem value="ausente">Ausente</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Data de início</Label>
+              <Input type="date" value={absenceForm.absence_start} onChange={(e) => setAbsenceForm({ ...absenceForm, absence_start: e.target.value })} />
+            </div>
+            <div className="space-y-2">
+              <Label>Data de término</Label>
+              <Input type="date" value={absenceForm.absence_end} onChange={(e) => setAbsenceForm({ ...absenceForm, absence_end: e.target.value })} />
+            </div>
+            <div className="flex gap-2">
+              <Button variant="outline" className="flex-1" onClick={() => setAbsenceDialogOpen(false)}>Cancelar</Button>
+              <Button className="flex-1" onClick={handleSaveAbsence}>Salvar</Button>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
 
