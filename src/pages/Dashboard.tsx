@@ -711,10 +711,69 @@ const Dashboard = () => {
     }
   };
 
+  // Get IDs of upcoming appointments shown in the dedicated section (to exclude from agenda)
+  const getUpcomingIds = (): Set<string> => {
+    const now = new Date();
+    const currentApt = appointments.find(
+      a => a.status === 'confirmed' && now >= parseISO(a.start_time) && now <= parseISO(a.end_time)
+    );
+    const ids = new Set<string>();
+    if (currentApt) ids.add(currentApt.id);
+    const remaining = 3 - ids.size;
+    upcomingAppointments.slice(0, remaining).forEach(a => {
+      if (!ids.has(a.id)) ids.add(a.id);
+    });
+    return ids;
+  };
+
+  // Get delayed appointments: started but not completed/cancelled
+  const getDelayedAppointments = () => {
+    const now = new Date();
+    return appointments.filter(apt => {
+      const endTime = parseISO(apt.end_time);
+      return now > endTime && !['completed', 'cancelled', 'no_show', 'rescheduled'].includes(apt.status);
+    });
+  };
+
+  const renderActionButtons = (apt: any) => {
+    const displayStatus = getDisplayStatus(apt);
+    return (
+      <div className="flex gap-1 flex-wrap mt-2">
+        {(displayStatus === 'in_progress' || displayStatus === 'late') && (
+          <Button size="sm" className="bg-success hover:bg-success/90 text-white text-xs" onClick={() => { setCompleteTarget(apt); setCompleteDialogOpen(true); }}>
+            ✓ Concluir
+          </Button>
+        )}
+        {apt.status === 'pending' && displayStatus !== 'late' && (
+          <Button size="sm" className="text-xs" onClick={() => updateStatus(apt.id, 'confirmed')}>Confirmar</Button>
+        )}
+        {(apt.status === 'pending' || apt.status === 'confirmed') && displayStatus !== 'in_progress' && displayStatus !== 'late' && (
+          <Button size="sm" variant="outline" className="text-xs" onClick={() => { setCompleteTarget(apt); setCompleteDialogOpen(true); }}>Concluir</Button>
+        )}
+        {(apt.status === 'pending' || apt.status === 'confirmed') && (
+          <>
+            <Button size="sm" variant="outline" className="text-xs" onClick={() => { setDelayTargetId(apt.id); setDelayDialogOpen(true); }}>
+              <Timer className="h-3 w-3 mr-1" />Atraso
+            </Button>
+            {!apt.promotion_id && (
+              <Button size="sm" variant="outline" className="text-xs" onClick={() => openRescheduleDialog(apt)}>
+                <RefreshCw className="h-3 w-3 mr-1" />Reagendar
+              </Button>
+            )}
+            <Button size="sm" variant="ghost" className="text-destructive text-xs" onClick={() => { setCancelTarget(apt); setCancelDialogOpen(true); }}>Cancelar</Button>
+          </>
+        )}
+        {apt.delay_minutes > 0 && (
+          <Badge variant="outline" className="text-xs border-warning text-warning">
+            <Timer className="h-3 w-3 mr-1" />+{apt.delay_minutes}min
+          </Badge>
+        )}
+      </div>
+    );
+  };
+
   const renderUpcomingAppointments = () => {
     const now = new Date();
-
-    // Also check current view appointments for "in progress"
     const currentApt = appointments.find(
       a => a.status === 'confirmed' && now >= parseISO(a.start_time) && now <= parseISO(a.end_time)
     );
@@ -722,7 +781,6 @@ const Dashboard = () => {
     const items: { apt: any; label: string; icon: string; style: string }[] = [];
     if (currentApt) items.push({ apt: currentApt, label: 'Em atendimento', icon: '🔵', style: 'bg-primary/5 border-l-4 border-l-primary' });
 
-    // Add upcoming from dedicated query (limit to 3 total)
     const remaining = 3 - items.length;
     upcomingAppointments.slice(0, remaining).forEach((a, i) => {
       if (currentApt && a.id === currentApt.id) return;
@@ -750,24 +808,30 @@ const Dashboard = () => {
           ) : (
             <div className="space-y-3">
               {items.map(({ apt, label, icon, style }) => (
-                <div key={apt.id} className={cn('flex items-center gap-4 p-4 rounded-xl border transition-shadow', style)}>
-                  <div className="text-center min-w-[60px]">
-                    <p className="text-lg font-display font-bold">{format(parseISO(apt.start_time), 'HH:mm')}</p>
-                    <p className="text-[10px] text-muted-foreground">{format(parseISO(apt.start_time), 'dd/MM')}</p>
+                <div key={apt.id} className={cn('p-4 rounded-xl border transition-shadow', style)}>
+                  <div className="flex items-center gap-4">
+                    <div className="text-center min-w-[60px]">
+                      <p className="text-lg font-display font-bold">{format(parseISO(apt.start_time), 'HH:mm')}</p>
+                      <p className="text-[10px] text-muted-foreground">{format(parseISO(apt.start_time), 'dd/MM')}</p>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold truncate">{apt.client_name || apt.client?.name || 'Cliente'}</p>
+                      <p className="text-sm text-muted-foreground truncate">
+                        {apt.appointment_services?.map((s: any) => s.service?.name).join(', ')}
+                      </p>
+                      {apt.promotion_id && (
+                        <span className="inline-flex items-center gap-1 text-xs font-medium px-1.5 py-0.5 rounded bg-accent/10 text-accent-foreground mt-0.5">🔥 Promoção</span>
+                      )}
+                      <p className="text-xs text-muted-foreground">com {apt.professional?.full_name}</p>
+                    </div>
+                    <div className="flex flex-col items-end gap-1 shrink-0">
+                      <span className="font-display font-bold">R$ {Number(apt.total_price).toFixed(2)}</span>
+                      <Badge variant="outline" className="text-xs whitespace-nowrap">
+                        {icon} {label}
+                      </Badge>
+                    </div>
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-semibold truncate">{apt.client_name || apt.client?.name || 'Cliente'}</p>
-                    <p className="text-sm text-muted-foreground truncate">
-                      {apt.appointment_services?.map((s: any) => s.service?.name).join(', ')}
-                    </p>
-                    {apt.promotion_id && (
-                      <span className="inline-flex items-center gap-1 text-xs font-medium px-1.5 py-0.5 rounded bg-accent/10 text-accent-foreground mt-0.5">🔥 Promoção</span>
-                    )}
-                    <p className="text-xs text-muted-foreground">com {apt.professional?.full_name}</p>
-                  </div>
-                  <Badge variant="outline" className="text-xs whitespace-nowrap shrink-0">
-                    {icon} {label}
-                  </Badge>
+                  {renderActionButtons(apt)}
                 </div>
               ))}
             </div>
@@ -777,30 +841,72 @@ const Dashboard = () => {
     );
   };
 
+  const renderDelayedAppointments = () => {
+    const delayed = getDelayedAppointments();
+    if (delayed.length === 0) return null;
+
+    return (
+      <Card className="border-warning/50">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-lg font-display flex items-center gap-2 text-warning">
+            <AlertTriangle className="h-5 w-5" /> Atendimentos em atraso
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-3">
+            {delayed.map(apt => (
+              <div key={apt.id} className="p-4 rounded-xl border border-warning/30 bg-warning/5">
+                <div className="flex items-center gap-4">
+                  <div className="text-center min-w-[60px]">
+                    <p className="text-lg font-display font-bold text-warning">{format(parseISO(apt.start_time), 'HH:mm')}</p>
+                    <p className="text-xs text-muted-foreground">{format(parseISO(apt.end_time), 'HH:mm')}</p>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-semibold truncate">{apt.client_name || apt.client?.name || 'Cliente'}</p>
+                    <p className="text-sm text-muted-foreground truncate">
+                      {apt.appointment_services?.map((s: any) => s.service?.name).join(', ')}
+                    </p>
+                    <p className="text-xs text-muted-foreground">com {apt.professional?.full_name}</p>
+                  </div>
+                  <div className="flex flex-col items-end gap-1 shrink-0">
+                    <span className="font-display font-bold">R$ {Number(apt.total_price).toFixed(2)}</span>
+                    <Badge variant="outline" className="text-xs border-warning text-warning">⚠️ Atrasado</Badge>
+                  </div>
+                </div>
+                <div className="flex gap-1 flex-wrap mt-2">
+                  <Button size="sm" className="bg-success hover:bg-success/90 text-white text-xs" onClick={() => { setCompleteTarget(apt); setCompleteDialogOpen(true); }}>
+                    ✓ Concluir
+                  </Button>
+                  {!apt.promotion_id && (
+                    <Button size="sm" variant="outline" className="text-xs" onClick={() => openRescheduleDialog(apt)}>
+                      <RefreshCw className="h-3 w-3 mr-1" />Reagendar
+                    </Button>
+                  )}
+                  <Button size="sm" variant="ghost" className="text-destructive text-xs" onClick={() => { setCancelTarget(apt); setCancelDialogOpen(true); }}>Cancelar</Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+    );
+  };
+
   return (
     <div className="space-y-6">
       <TrialBanner />
       <TutorialProgressWidget />
-      {/* Próximos atendimentos - shown first on mobile only */}
-      <div className="block lg:hidden">
-        {renderUpcomingAppointments()}
-      </div>
 
-      {/* Daily Stats */}
+      {/* 1. Próximos atendimentos */}
+      {renderUpcomingAppointments()}
+
+      {/* 2. Atendimentos em atraso */}
+      {renderDelayedAppointments()}
+
+      {/* 3. Resumo do Dia */}
       <div>
         <h3 className="text-lg font-display font-semibold mb-3">📊 Resumo do Dia</h3>
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-        <Card>
-          <CardContent className="p-4 flex items-center gap-4">
-            <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
-              <CalendarIcon className="h-6 w-6 text-primary" />
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Hoje</p>
-              <p className="text-2xl font-display font-bold">{stats.total}</p>
-            </div>
-          </CardContent>
-        </Card>
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
         <Card>
           <CardContent className="p-4 flex items-center gap-4">
             <div className="w-12 h-12 rounded-xl bg-success/10 flex items-center justify-center">
@@ -896,7 +1002,7 @@ const Dashboard = () => {
         </div>
       </div>
 
-      {/* Monthly Stats */}
+      {/* 4. Resumo do Mês */}
       <div>
         <h3 className="text-lg font-display font-semibold mb-3">📈 Resumo do Mês</h3>
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
@@ -1097,10 +1203,7 @@ const Dashboard = () => {
         </Card>
       )}
 
-      {/* Próximos atendimentos - desktop only (already shown on mobile above) */}
-      <div className="hidden lg:block">
-        {renderUpcomingAppointments()}
-      </div>
+      {/* 5. Agenda do dia */}
 
       <Card>
         <CardHeader className="pb-3">
@@ -1195,14 +1298,20 @@ const Dashboard = () => {
 
           {/* Status Tabs */}
           {(() => {
+            // Exclude appointments shown in "Próximos" and "Em atraso" sections
+            const upcomingIds = getUpcomingIds();
+            const delayedIds = new Set(getDelayedAppointments().map(a => a.id));
+            const excludedIds = new Set([...upcomingIds, ...delayedIds]);
+            const agendaAppointments = appointments.filter(a => !excludedIds.has(a.id));
+
             const counts = {
-              all: appointments.length,
-              confirmed: appointments.filter(statusFilterMap.confirmed).length,
-              completed: appointments.filter(statusFilterMap.completed).length,
-              cancelled: appointments.filter(statusFilterMap.cancelled).length,
-              rescheduled: appointments.filter(statusFilterMap.rescheduled).length,
+              all: agendaAppointments.length,
+              confirmed: agendaAppointments.filter(statusFilterMap.confirmed).length,
+              completed: agendaAppointments.filter(statusFilterMap.completed).length,
+              cancelled: agendaAppointments.filter(statusFilterMap.cancelled).length,
+              rescheduled: agendaAppointments.filter(statusFilterMap.rescheduled).length,
             };
-            const filteredAppts = appointments.filter(statusFilterMap[statusTab]);
+            const filteredAppts = agendaAppointments.filter(statusFilterMap[statusTab]);
 
             return (
               <>
