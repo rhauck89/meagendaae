@@ -121,10 +121,13 @@ interface PromotionInfo {
   title: string;
   description: string | null;
   service_id: string | null;
+  service_ids: string[] | null;
   service_name: string | null;
   service_duration: number | null;
   promotion_price: number | null;
   original_price: number | null;
+  discount_type: string;
+  discount_value: number | null;
   start_date: string;
   end_date: string;
   start_time: string | null;
@@ -387,9 +390,10 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
       const pd = (promos as any)?.[0];
       if (pd && pd.company_id === comp.id) {
         setPromoData(pd as PromotionInfo);
-        // Auto-select the promo service
-        if (pd.service_id) {
-          setSelectedServices([pd.service_id]);
+        // Auto-select promo services
+        const promoServiceIds = pd.service_ids || (pd.service_id ? [pd.service_id] : []);
+        if (promoServiceIds.length > 0) {
+          setSelectedServices(promoServiceIds);
         }
         // Auto-select professional if only one
         if (pd.professional_ids?.length === 1) {
@@ -525,9 +529,30 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
     .filter((s) => selectedServices.includes(s.id))
     .reduce((sum, s) => sum + (Number(s.duration_minutes) || 0), 0);
 
-  const totalPrice = isPromoMode && promoData?.promotion_price != null
-    ? Number(promoData.promotion_price)
-    : services.filter((s) => selectedServices.includes(s.id)).reduce((sum, s) => sum + Number(s.price), 0);
+  const totalPrice = (() => {
+    if (!isPromoMode || !promoData) {
+      return services.filter((s) => selectedServices.includes(s.id)).reduce((sum, s) => sum + Number(s.price), 0);
+    }
+    const promoServiceIds = promoData.service_ids || (promoData.service_id ? [promoData.service_id] : []);
+    // For single-service fixed_price promos, use promotion_price directly
+    if (promoData.discount_type === 'fixed_price' && promoData.promotion_price != null && promoServiceIds.length <= 1) {
+      return Number(promoData.promotion_price);
+    }
+    // For percentage/fixed_amount, calculate per service
+    return services.filter(s => selectedServices.includes(s.id)).reduce((sum, s) => {
+      if (promoServiceIds.includes(s.id)) {
+        const orig = Number(s.price);
+        if (promoData.discount_type === 'percentage' && promoData.discount_value) {
+          return sum + orig * (1 - Number(promoData.discount_value) / 100);
+        } else if (promoData.discount_type === 'fixed_amount' && promoData.discount_value) {
+          return sum + Math.max(0, orig - Number(promoData.discount_value));
+        } else if (promoData.discount_type === 'fixed_price' && promoData.promotion_price != null) {
+          return sum + Number(promoData.promotion_price);
+        }
+      }
+      return sum + Number(s.price);
+    }, 0);
+  })();
 
   const toggleService = (id: string) => {
     setSelectedServices((prev) =>
@@ -1069,16 +1094,20 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
         {step === 'services' && (
           <div className="space-y-5 animate-fade-in">
             <div>
-              <h2 className="text-2xl font-bold tracking-tight">{isPromoMode ? 'Serviço da promoção' : 'Escolha os serviços'}</h2>
-              <p className="text-sm mt-1" style={{ color: T.textSec }}>{isPromoMode ? 'Este serviço está incluído na promoção' : 'Selecione um ou mais serviços desejados'}</p>
+              <h2 className="text-2xl font-bold tracking-tight">{isPromoMode ? 'Serviço(s) da promoção' : 'Escolha os serviços'}</h2>
+              <p className="text-sm mt-1" style={{ color: T.textSec }}>{isPromoMode ? 'Serviço(s) incluído(s) na promoção' : 'Selecione um ou mais serviços desejados'}</p>
             </div>
             <div className="space-y-3">
-              {(isPromoMode && promoData?.service_id
-                ? services.filter(s => s.id === promoData.service_id)
-                : services
-              ).map((svc) => {
+              {(() => {
+                const promoServiceIds = promoData?.service_ids || (promoData?.service_id ? [promoData.service_id] : []);
+                const filteredSvcs = isPromoMode && promoServiceIds.length > 0
+                  ? services.filter(s => promoServiceIds.includes(s.id))
+                  : services;
+                return filteredSvcs;
+              })().map((svc) => {
                 const sel = selectedServices.includes(svc.id);
-                const isLocked = isPromoMode && promoData?.service_id === svc.id;
+                const promoServiceIds = promoData?.service_ids || (promoData?.service_id ? [promoData.service_id] : []);
+                const isLocked = isPromoMode && promoServiceIds.includes(svc.id);
                 return (
                   <div
                     key={svc.id}
@@ -1100,12 +1129,23 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                           <Clock className="h-3.5 w-3.5" /> {svc.duration_minutes} min
                         </span>
                       </div>
-                      {isPromoMode && promoData?.original_price != null && promoData?.promotion_price != null ? (
-                        <div className="text-right shrink-0">
-                          <p className="text-sm line-through" style={{ color: T.textSec }}>R$ {Number(promoData.original_price).toFixed(2)}</p>
-                          <p className="font-bold text-lg" style={{ color: T.accent }}>R$ {Number(promoData.promotion_price).toFixed(2)}</p>
-                        </div>
-                      ) : (
+                      {isPromoMode && promoData && promoServiceIds.includes(svc.id) ? (() => {
+                        const orig = Number(svc.price);
+                        let promo = orig;
+                        if (promoData.discount_type === 'percentage' && promoData.discount_value) {
+                          promo = orig * (1 - Number(promoData.discount_value) / 100);
+                        } else if (promoData.discount_type === 'fixed_amount' && promoData.discount_value) {
+                          promo = Math.max(0, orig - Number(promoData.discount_value));
+                        } else if (promoData.promotion_price != null) {
+                          promo = Number(promoData.promotion_price);
+                        }
+                        return (
+                          <div className="text-right shrink-0">
+                            <p className="text-sm line-through" style={{ color: T.textSec }}>R$ {orig.toFixed(2)}</p>
+                            <p className="font-bold text-lg" style={{ color: T.accent }}>R$ {promo.toFixed(2)}</p>
+                          </div>
+                        );
+                      })() : (
                         <p className="font-bold text-lg shrink-0" style={{ color: T.accent }}>R$ {Number(svc.price).toFixed(2)}</p>
                       )}
                     </div>

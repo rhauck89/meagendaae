@@ -25,8 +25,11 @@ interface Promotion {
   description: string | null;
   slug: string | null;
   service_id: string | null;
+  service_ids: string[] | null;
   promotion_price: number | null;
   original_price: number | null;
+  discount_type: string;
+  discount_value: number | null;
   start_date: string;
   end_date: string;
   start_time: string | null;
@@ -152,8 +155,11 @@ export default function Promotions() {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [selectedServiceId, setSelectedServiceId] = useState('');
+  const [selectedServiceIds, setSelectedServiceIds] = useState<string[]>([]);
+  const [serviceSelectionMode, setServiceSelectionMode] = useState<'single' | 'multiple' | 'all'>('single');
+  const [discountType, setDiscountType] = useState<'fixed_price' | 'percentage' | 'fixed_amount'>('fixed_price');
+  const [discountValue, setDiscountValue] = useState('');
   const [promotionPrice, setPromotionPrice] = useState('');
-  const [originalPrice, setOriginalPrice] = useState('');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [singleDay, setSingleDay] = useState(false);
@@ -244,22 +250,66 @@ export default function Promotions() {
 
   const handleServiceChange = (serviceId: string) => {
     setSelectedServiceId(serviceId);
+    setServiceSelectionMode('single');
+    setSelectedServiceIds([serviceId]);
     const svc = services.find(s => s.id === serviceId);
     if (svc) {
-      setOriginalPrice(String(svc.price));
       setPromotionPrice('');
+      setDiscountValue('');
+    }
+  };
+
+  const toggleServiceSelection = (serviceId: string) => {
+    setSelectedServiceIds(prev => 
+      prev.includes(serviceId) ? prev.filter(id => id !== serviceId) : [...prev, serviceId]
+    );
+  };
+
+  const handleSelectAllServices = () => {
+    setServiceSelectionMode('all');
+    setSelectedServiceIds(services.map(s => s.id));
+    setSelectedServiceId('');
+  };
+
+  const getEffectiveServiceIds = (): string[] => {
+    if (serviceSelectionMode === 'all') return services.map(s => s.id);
+    if (serviceSelectionMode === 'multiple') return selectedServiceIds;
+    return selectedServiceId ? [selectedServiceId] : [];
+  };
+
+  const calculatePromoPrice = (originalPrice: number): number => {
+    if (discountType === 'fixed_price') {
+      return promotionPrice ? parseFloat(promotionPrice) : originalPrice;
+    } else if (discountType === 'percentage') {
+      const pct = parseFloat(discountValue) || 0;
+      return originalPrice * (1 - pct / 100);
+    } else { // fixed_amount
+      const amt = parseFloat(discountValue) || 0;
+      return Math.max(0, originalPrice - amt);
     }
   };
 
   // --- Wizard validation ---
   const validateStep1 = (): string | null => {
     if (!title.trim()) return 'Preencha o título da promoção';
-    if (!selectedServiceId) return 'Selecione um serviço';
-    if (!promotionPrice) return 'Informe o preço promocional';
-    const promo = parseFloat(promotionPrice);
-    const orig = parseFloat(originalPrice);
-    if (promo >= orig) return 'O preço promocional deve ser menor que o preço original';
-    if (promo <= 0) return 'O preço promocional deve ser maior que zero';
+    const effectiveIds = getEffectiveServiceIds();
+    if (effectiveIds.length === 0) return 'Selecione ao menos um serviço';
+    
+    if (discountType === 'fixed_price') {
+      if (!promotionPrice) return 'Informe o preço promocional';
+      const promo = parseFloat(promotionPrice);
+      if (promo <= 0) return 'O preço promocional deve ser maior que zero';
+      // For single service, validate against original
+      if (effectiveIds.length === 1) {
+        const svc = services.find(s => s.id === effectiveIds[0]);
+        if (svc && promo >= Number(svc.price)) return 'O preço promocional deve ser menor que o preço original';
+      }
+    } else {
+      if (!discountValue) return 'Informe o valor do desconto';
+      const val = parseFloat(discountValue);
+      if (val <= 0) return 'O valor do desconto deve ser maior que zero';
+      if (discountType === 'percentage' && val >= 100) return 'O desconto percentual deve ser menor que 100%';
+    }
     return null;
   };
 
@@ -369,15 +419,33 @@ export default function Promotions() {
 
     const slug = generateSlug(title);
     const finalEndDate = singleDay ? startDate : endDate;
+    const effectiveIds = getEffectiveServiceIds();
+    const primaryServiceId = effectiveIds.length === 1 ? effectiveIds[0] : null;
+    const primarySvc = primaryServiceId ? services.find(s => s.id === primaryServiceId) : null;
+    
+    // Calculate prices for payload
+    let payloadOrigPrice: number | null = null;
+    let payloadPromoPrice: number | null = null;
+    
+    if (discountType === 'fixed_price' && primarySvc) {
+      payloadOrigPrice = Number(primarySvc.price);
+      payloadPromoPrice = parseFloat(promotionPrice) || null;
+    } else if (primarySvc) {
+      payloadOrigPrice = Number(primarySvc.price);
+      payloadPromoPrice = calculatePromoPrice(Number(primarySvc.price));
+    }
 
     const payload: any = {
       company_id: companyId!,
       title,
       slug,
       description: description || null,
-      service_id: selectedServiceId || null,
-      promotion_price: promotionPrice ? parseFloat(promotionPrice) : null,
-      original_price: originalPrice ? parseFloat(originalPrice) : null,
+      service_id: primaryServiceId,
+      service_ids: effectiveIds.length > 1 ? effectiveIds : null,
+      discount_type: discountType,
+      discount_value: discountType !== 'fixed_price' ? (parseFloat(discountValue) || null) : null,
+      promotion_price: payloadPromoPrice,
+      original_price: payloadOrigPrice,
       start_date: startDate,
       end_date: finalEndDate,
       start_time: startTime || null,
@@ -417,7 +485,9 @@ export default function Promotions() {
   };
 
   const resetForm = () => {
-    setTitle(''); setDescription(''); setSelectedServiceId(''); setPromotionPrice(''); setOriginalPrice('');
+    setTitle(''); setDescription(''); setSelectedServiceId(''); setSelectedServiceIds([]);
+    setServiceSelectionMode('single'); setDiscountType('fixed_price'); setDiscountValue('');
+    setPromotionPrice('');
     setStartDate(''); setEndDate(''); setSingleDay(false); setStartTime(''); setEndTime(''); setMaxSlots('10');
     setClientFilter('all'); setClientFilterValue('30'); setProfessionalFilter('all');
     setSelectedProfessionalIds([]); setMessageTemplate(DEFAULT_TEMPLATE);
@@ -526,7 +596,11 @@ export default function Promotions() {
   };
 
   // --- Wizard step rendering ---
-  const renderStep1 = () => (
+  const renderStep1 = () => {
+    const effectiveIds = getEffectiveServiceIds();
+    const selectedSvcs = services.filter(s => effectiveIds.includes(s.id));
+    
+    return (
     <div className="space-y-4">
       <div>
         <Label>Título *</Label>
@@ -536,8 +610,27 @@ export default function Promotions() {
         <Label>Descrição</Label>
         <Textarea value={description} onChange={e => setDescription(e.target.value)} placeholder="Detalhes da promoção" rows={2} />
       </div>
+      
+      {/* Service selection mode */}
       <div>
-        <Label>Serviço *</Label>
+        <Label>Serviços *</Label>
+        <Select value={serviceSelectionMode} onValueChange={(v: 'single' | 'multiple' | 'all') => {
+          setServiceSelectionMode(v);
+          if (v === 'all') handleSelectAllServices();
+          else if (v === 'single') { setSelectedServiceIds(selectedServiceId ? [selectedServiceId] : []); }
+          else { setSelectedServiceId(''); }
+        }}>
+          <SelectTrigger><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="single">Selecionar um serviço</SelectItem>
+            <SelectItem value="multiple">Selecionar vários serviços</SelectItem>
+            <SelectItem value="all">Todos os serviços</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      {/* Single service selector */}
+      {serviceSelectionMode === 'single' && (
         <Select value={selectedServiceId} onValueChange={handleServiceChange}>
           <SelectTrigger><SelectValue placeholder="Selecionar serviço" /></SelectTrigger>
           <SelectContent>
@@ -548,29 +641,103 @@ export default function Promotions() {
             ))}
           </SelectContent>
         </Select>
-      </div>
-      {selectedServiceId && (
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <Label>Preço Original</Label>
-            <Input value={originalPrice ? `R$ ${Number(originalPrice).toFixed(2)}` : ''} readOnly className="bg-muted" />
-          </div>
-          <div>
-            <Label>Preço Promocional *</Label>
-            <Input type="number" value={promotionPrice} onChange={e => setPromotionPrice(e.target.value)} placeholder="Ex: 25.00" step="0.01" />
-            {promotionPrice && originalPrice && parseFloat(promotionPrice) < parseFloat(originalPrice) && (
-              <p className="text-xs text-emerald-600 mt-1">
-                💰 Desconto de {Math.round(((parseFloat(originalPrice) - parseFloat(promotionPrice)) / parseFloat(originalPrice)) * 100)}%
-              </p>
-            )}
-            {promotionPrice && originalPrice && parseFloat(promotionPrice) >= parseFloat(originalPrice) && (
-              <p className="text-xs text-destructive mt-1">O preço promocional deve ser menor que o original</p>
-            )}
-          </div>
+      )}
+
+      {/* Multiple service selector */}
+      {serviceSelectionMode === 'multiple' && (
+        <div className="space-y-2 border rounded-lg p-3 max-h-48 overflow-y-auto">
+          {services.map(s => (
+            <label key={s.id} className="flex items-center justify-between gap-2 cursor-pointer p-2 rounded hover:bg-muted/50">
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  checked={selectedServiceIds.includes(s.id)}
+                  onCheckedChange={() => toggleServiceSelection(s.id)}
+                />
+                <span className="text-sm">{s.name}</span>
+              </div>
+              <span className="text-sm text-muted-foreground">R$ {Number(s.price).toFixed(2)}</span>
+            </label>
+          ))}
         </div>
       )}
+
+      {/* All services indicator */}
+      {serviceSelectionMode === 'all' && (
+        <div className="rounded-lg bg-primary/5 p-3 text-sm">
+          <p className="font-medium text-primary">✅ Todos os {services.length} serviços selecionados</p>
+        </div>
+      )}
+
+      {/* Discount type */}
+      {effectiveIds.length > 0 && (
+        <>
+          <div>
+            <Label>Tipo de desconto *</Label>
+            <Select value={discountType} onValueChange={(v: 'fixed_price' | 'percentage' | 'fixed_amount') => {
+              setDiscountType(v);
+              setPromotionPrice('');
+              setDiscountValue('');
+            }}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="fixed_price">Preço fixo (R$)</SelectItem>
+                <SelectItem value="percentage">Porcentagem (%)</SelectItem>
+                <SelectItem value="fixed_amount">Valor fixo de desconto (R$)</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Fixed price input */}
+          {discountType === 'fixed_price' && (
+            <div>
+              <Label>Preço Promocional *</Label>
+              <Input type="number" value={promotionPrice} onChange={e => setPromotionPrice(e.target.value)} placeholder="Ex: 25.00" step="0.01" />
+            </div>
+          )}
+
+          {/* Percentage input */}
+          {discountType === 'percentage' && (
+            <div>
+              <Label>Desconto (%) *</Label>
+              <Input type="number" value={discountValue} onChange={e => setDiscountValue(e.target.value)} placeholder="Ex: 20" min="1" max="99" />
+            </div>
+          )}
+
+          {/* Fixed amount input */}
+          {discountType === 'fixed_amount' && (
+            <div>
+              <Label>Desconto (R$) *</Label>
+              <Input type="number" value={discountValue} onChange={e => setDiscountValue(e.target.value)} placeholder="Ex: 10.00" step="0.01" />
+            </div>
+          )}
+
+          {/* Preview of prices */}
+          {selectedSvcs.length > 0 && (discountType !== 'fixed_price' ? parseFloat(discountValue) > 0 : parseFloat(promotionPrice) > 0) && (
+            <div className="rounded-lg border p-3 space-y-2">
+              <p className="text-xs font-medium text-muted-foreground">Prévia dos preços:</p>
+              {selectedSvcs.slice(0, 5).map(svc => {
+                const orig = Number(svc.price);
+                const promo = discountType === 'fixed_price' ? parseFloat(promotionPrice) : calculatePromoPrice(orig);
+                const pctOff = orig > 0 ? Math.round(((orig - promo) / orig) * 100) : 0;
+                return (
+                  <div key={svc.id} className="flex items-center justify-between text-sm">
+                    <span>{svc.name}</span>
+                    <div className="flex items-center gap-2">
+                      <span className="line-through text-muted-foreground">R$ {orig.toFixed(2)}</span>
+                      <span className="font-bold text-primary">R$ {promo.toFixed(2)}</span>
+                      {pctOff > 0 && <Badge variant="outline" className="text-xs">{pctOff}% OFF</Badge>}
+                    </div>
+                  </div>
+                );
+              })}
+              {selectedSvcs.length > 5 && <p className="text-xs text-muted-foreground">...e mais {selectedSvcs.length - 5} serviço(s)</p>}
+            </div>
+          )}
+        </>
+      )}
     </div>
-  );
+    );
+  };
 
   const renderStep2 = () => (
     <div className="space-y-4">
@@ -795,7 +962,14 @@ export default function Promotions() {
                 const remaining = promo.max_slots > 0 ? promo.max_slots - promo.used_slots : null;
                 const status = promoVisualStatus(promo, now);
                 const svc = services.find(s => s.id === promo.service_id);
+                const promoServiceIds = promo.service_ids || (promo.service_id ? [promo.service_id] : []);
+                const promoSvcs = services.filter(s => promoServiceIds.includes(s.id));
                 const isHighlighted = promo.id === highlightedPromoId;
+                const discountLabel = promo.discount_type === 'percentage' && promo.discount_value
+                  ? `${promo.discount_value}% OFF`
+                  : promo.discount_type === 'fixed_amount' && promo.discount_value
+                  ? `R$ ${Number(promo.discount_value).toFixed(2)} OFF`
+                  : null;
 
                 return (
                   <Card key={promo.id} className={`transition-all duration-500 ${status === 'expired' || status === 'paused' ? 'opacity-70' : ''} ${isHighlighted ? 'ring-2 ring-primary shadow-lg animate-pulse' : ''}`}>
@@ -808,8 +982,13 @@ export default function Promotions() {
                     <CardContent className="space-y-3">
                       {promo.description && <p className="text-sm text-muted-foreground">{promo.description}</p>}
 
+                      {/* Discount badge */}
+                      {discountLabel && (
+                        <Badge className="bg-primary/10 text-primary border-primary/20">{discountLabel}</Badge>
+                      )}
+
                       {/* Service + pricing */}
-                      {svc && (
+                      {promoSvcs.length === 1 && svc && (
                         <div className="flex items-center gap-2 text-sm">
                           <span className="text-muted-foreground">✂️ {svc.name}</span>
                           {promo.original_price && promo.promotion_price && (
@@ -818,6 +997,11 @@ export default function Promotions() {
                               <span className="font-bold text-primary">R$ {Number(promo.promotion_price).toFixed(2)}</span>
                             </>
                           )}
+                        </div>
+                      )}
+                      {promoSvcs.length > 1 && (
+                        <div className="text-sm text-muted-foreground">
+                          ✂️ {promoSvcs.length} serviços: {promoSvcs.slice(0, 3).map(s => s.name).join(', ')}{promoSvcs.length > 3 ? ` +${promoSvcs.length - 3}` : ''}
                         </div>
                       )}
 
