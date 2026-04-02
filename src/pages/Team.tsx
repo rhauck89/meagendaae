@@ -217,7 +217,7 @@ const Team = () => {
       email: collaborator.profile?.email || '',
       collaborator_type: collaborator.collaborator_type || 'commissioned',
       commission_type: collaborator.commission_type || 'none',
-      commission_value: collaborator.commission_value || 0,
+      commission_value: collaborator.commission_value || '',
     });
     setEditDialogOpen(true);
   };
