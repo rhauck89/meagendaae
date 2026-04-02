@@ -77,21 +77,16 @@ const RescheduleAppointment = () => {
   }, [appointmentId]);
 
   const fetchAppointment = async () => {
-    const { data } = await supabase
-      .from('appointments')
-      .select(`
-        *,
-        professional:profiles!appointments_professional_id_fkey(full_name, avatar_url),
-        company:companies(id, name, slug, business_type, buffer_minutes),
-        appointment_services(*, service:services(name, duration_minutes))
-      `)
-      .eq('id', appointmentId!)
-      .single();
+    const { data, error } = await supabase.rpc('get_appointment_public', {
+      p_appointment_id: appointmentId!,
+    });
 
-    if (data) {
-      setAppointment(data);
-      setBufferMinutes(data.company?.buffer_minutes || 0);
-      const dur = (data.appointment_services || []).reduce((s: number, as_: any) => s + (as_.service?.duration_minutes || as_.duration_minutes || 0), 0);
+    if (data && !error) {
+      const apt = data as any;
+      setAppointment(apt);
+      setBufferMinutes(apt.company?.buffer_minutes || 0);
+      const services = apt.appointment_services || [];
+      const dur = services.reduce((s: number, as_: any) => s + (as_.service?.duration_minutes || as_.duration_minutes || 0), 0);
       setTotalDuration(dur);
 
       // Fetch business hours & exceptions
