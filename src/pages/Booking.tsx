@@ -121,10 +121,13 @@ interface PromotionInfo {
   title: string;
   description: string | null;
   service_id: string | null;
+  service_ids: string[] | null;
   service_name: string | null;
   service_duration: number | null;
   promotion_price: number | null;
   original_price: number | null;
+  discount_type: string;
+  discount_value: number | null;
   start_date: string;
   end_date: string;
   start_time: string | null;
