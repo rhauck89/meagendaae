@@ -664,7 +664,7 @@ const Team = () => {
             {editForm.commission_type === 'fixed' && (
               <div className="space-y-2">
                 <Label>Valor por serviço (R$)</Label>
-                <Input type="number" step="0.01" value={editForm.commission_value} onChange={(e) => setEditForm({ ...editForm, commission_value: parseFloat(e.target.value) || 0 })} />
+                <Input type="number" step="0.01" value={editForm.commission_value} onChange={(e) => setEditForm({ ...editForm, commission_value: e.target.value })} placeholder="Ex: 25.00" />
               </div>
             )}
             <div className="flex gap-2">
