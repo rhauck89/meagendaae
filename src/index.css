@@ -120,6 +120,47 @@
   }
 }
 
+/* Sidebar custom scrollbar */
+.sidebar-nav {
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+}
+.sidebar-nav:hover {
+  scrollbar-color: rgba(24, 227, 132, 0.4) transparent;
+}
+.sidebar-nav::-webkit-scrollbar {
+  width: 0px;
+}
+.sidebar-nav:hover::-webkit-scrollbar {
+  width: 6px;
+}
+.sidebar-nav::-webkit-scrollbar-track {
+  background: transparent;
+}
+.sidebar-nav::-webkit-scrollbar-thumb {
+  background: rgba(24, 227, 132, 0.4);
+  border-radius: 10px;
+}
+.sidebar-nav::-webkit-scrollbar-thumb:hover {
+  background: #18e384;
+}
+
+/* Sidebar submenu smooth animation */
+[data-state="open"] > .sidebar-submenu {
+  animation: submenu-open 0.2s ease forwards;
+}
+[data-state="closed"] > .sidebar-submenu {
+  animation: submenu-close 0.15s ease forwards;
+}
+@keyframes submenu-open {
+  from { opacity: 0; max-height: 0; }
+  to { opacity: 1; max-height: 500px; }
+}
+@keyframes submenu-close {
+  from { opacity: 1; max-height: 500px; }
+  to { opacity: 0; max-height: 0; }
+}
+
 /* Booking dark-theme calendar overrides */
 .booking-dark-calendar .rdp {
   --rdp-cell-size: 40px;

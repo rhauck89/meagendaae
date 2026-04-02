@@ -37,22 +37,41 @@ export const PlatformBranding = ({ isDark = false, hide = false }: PlatformBrand
   const url = 'https://www.meagendae.com.br';
   const domain = 'meagendae.com.br';
 
+  const logoUrl = settings.system_logo;
+
   return (
-    <div className="flex flex-col items-center gap-1 py-4">
-      <span className="text-xs" style={{ color: isDark ? '#6B7280' : '#9CA3AF' }}>
-        Agendamento online por {name} •{' '}
-        <a
-          href={url}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="underline transition-colors"
-          style={{ color: 'inherit' }}
-          onMouseEnter={e => (e.currentTarget.style.color = '#18e384')}
-          onMouseLeave={e => (e.currentTarget.style.color = 'inherit')}
-        >
-          {domain}
-        </a>
-      </span>
+    <div className="flex flex-col items-center gap-2 py-6 mt-8">
+      <div className="flex items-center gap-2 justify-center flex-wrap">
+        {logoUrl && (
+          <img src={logoUrl} alt={name} className="h-[18px] w-auto object-contain" />
+        )}
+        <span className="text-xs" style={{ color: isDark ? '#6B7280' : '#9CA3AF' }}>
+          Agendamento online por{' '}
+          <a
+            href={url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="underline transition-colors font-medium"
+            style={{ color: 'inherit' }}
+            onMouseEnter={e => (e.currentTarget.style.color = '#18e384')}
+            onMouseLeave={e => (e.currentTarget.style.color = 'inherit')}
+          >
+            {name}
+          </a>
+          {' '}•{' '}
+          <a
+            href={url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="underline transition-colors"
+            style={{ color: 'inherit' }}
+            onMouseEnter={e => (e.currentTarget.style.color = '#18e384')}
+            onMouseLeave={e => (e.currentTarget.style.color = 'inherit')}
+          >
+            {domain}
+          </a>
+        </span>
+      </div>
       <span className="text-[10px]" style={{ color: isDark ? '#9CA3AF' : '#D1D5DB' }}>
         © {new Date().getFullYear()} Todos os direitos reservados
       </span>
