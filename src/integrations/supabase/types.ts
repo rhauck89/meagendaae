@@ -760,6 +760,7 @@ export type Database = {
           due_date: string | null
           expense_date: string
           id: string
+          installment_group_id: string | null
           installment_number: number | null
           is_recurring: boolean
           notes: string | null
@@ -780,6 +781,7 @@ export type Database = {
           due_date?: string | null
           expense_date?: string
           id?: string
+          installment_group_id?: string | null
           installment_number?: number | null
           is_recurring?: boolean
           notes?: string | null
@@ -800,6 +802,7 @@ export type Database = {
           due_date?: string | null
           expense_date?: string
           id?: string
+          installment_group_id?: string | null
           installment_number?: number | null
           is_recurring?: boolean
           notes?: string | null

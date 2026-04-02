@@ -1,0 +1,1 @@
+ALTER TABLE public.company_expenses ADD COLUMN IF NOT EXISTS installment_group_id uuid DEFAULT NULL;
