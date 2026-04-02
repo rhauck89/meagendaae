@@ -25,8 +25,11 @@ interface Promotion {
   description: string | null;
   slug: string | null;
   service_id: string | null;
+  service_ids: string[] | null;
   promotion_price: number | null;
   original_price: number | null;
+  discount_type: string;
+  discount_value: number | null;
   start_date: string;
   end_date: string;
   start_time: string | null;
