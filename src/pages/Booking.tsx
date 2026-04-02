@@ -764,7 +764,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
       const formattedWhatsapp = clientForm.whatsapp ? formatWhatsApp(clientForm.whatsapp) : null;
       console.log('[Booking] Creating client:', { name: clientForm.full_name, company_id: company.id });
       const { data: clientIdFromRpc, error: clientError } = await supabase.rpc('create_client', {
-        p_name: clientForm.full_name, p_cpf: clientForm.cpf || '', p_whatsapp: formattedWhatsapp || '',
+        p_name: clientForm.full_name, p_cpf: '', p_whatsapp: formattedWhatsapp || '',
         p_email: clientForm.email || '', p_company_id: company.id,
         p_birth_date: clientForm.birth_date || null,
       });
@@ -778,7 +778,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
         localStorage.setItem(`client_id_${company.id}`, clientId);
         localStorage.setItem(`client_data_${company.id}`, JSON.stringify({
           full_name: clientForm.full_name, email: clientForm.email || '', whatsapp: clientForm.whatsapp || '',
-          cpf: clientForm.cpf || '', opt_in_whatsapp: optInWhatsapp,
+          opt_in_whatsapp: optInWhatsapp,
         }));
         setSavedClientId(clientId);
       }
