@@ -117,6 +117,25 @@ const FinanceDashboard = () => {
     setCashFlowData(data);
   };
 
+  const fetchUpcomingDues = async () => {
+    const now = new Date();
+    const todayStr = format(now, 'yyyy-MM-dd');
+    const weekEndStr = format(endOfWeek(now), 'yyyy-MM-dd');
+    const monthEndStr = format(endOfMonth(now), 'yyyy-MM-dd');
+
+    const [payRes, recRes] = await Promise.all([
+      supabase.from('company_expenses').select('due_date').eq('company_id', companyId!).eq('status', 'pending').not('due_date', 'is', null).gte('due_date', todayStr).lte('due_date', monthEndStr),
+      supabase.from('company_revenues').select('due_date').eq('company_id', companyId!).eq('status', 'pending').not('due_date', 'is', null).gte('due_date', todayStr).lte('due_date', monthEndStr),
+    ]);
+
+    const allDues = [...(payRes.data || []), ...(recRes.data || [])];
+    setUpcomingDues({
+      today: allDues.filter(i => i.due_date === todayStr).length,
+      thisWeek: allDues.filter(i => i.due_date! <= weekEndStr).length,
+      thisMonth: allDues.length,
+    });
+  };
+
   const fetchChartData = async () => {
     const data: any[] = [];
     const now = new Date();
