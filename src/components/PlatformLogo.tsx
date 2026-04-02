@@ -7,6 +7,8 @@ interface PlatformLogoProps {
   companyName?: string | null;
   isWhitelabel?: boolean;
   className?: string;
+  /** Whether the logo is displayed on a dark background */
+  onDarkBackground?: boolean;
 }
 
 export const PlatformLogo = ({
@@ -14,6 +16,7 @@ export const PlatformLogo = ({
   companyName,
   isWhitelabel = false,
   className = '',
+  onDarkBackground = true,
 }: PlatformLogoProps) => {
   const platform = usePlatformSettings();
 
@@ -39,13 +42,28 @@ export const PlatformLogo = ({
     );
   }
 
+  // Choose logo based on background context
+  const getLogo = (): string | null => {
+    if (!platform) return null;
+    
+    if (onDarkBackground) {
+      // Dark background → prefer logo_light, fallback to system_logo
+      return platform.logo_light || platform.system_logo || platform.logo_dark || null;
+    } else {
+      // Light background → prefer logo_dark, fallback to system_logo
+      return platform.logo_dark || platform.system_logo || platform.logo_light || null;
+    }
+  };
+
+  const logoUrl = getLogo();
+
   // Default: platform logo
   return (
     <div className={`flex items-center gap-3 ${className}`}>
-      {platform?.system_logo ? (
+      {logoUrl ? (
         <img
-          src={platform.system_logo}
-          alt={platform.system_name}
+          src={logoUrl}
+          alt={platform?.system_name || 'Logo'}
           className="h-10 max-w-[140px] object-contain"
         />
       ) : (

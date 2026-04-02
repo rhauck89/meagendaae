@@ -96,6 +96,8 @@ const ImageUploadField = ({ label, value, onChange, folder, accept = 'image/*' }
 const SuperAdminSettings = () => {
   const [platformName, setPlatformName] = useState('');
   const [platformLogo, setPlatformLogo] = useState('');
+  const [platformLogoLight, setPlatformLogoLight] = useState('');
+  const [platformLogoDark, setPlatformLogoDark] = useState('');
   const [platformUrl, setPlatformUrl] = useState('');
   const [seoTitle, setSeoTitle] = useState('');
   const [seoDescription, setSeoDescription] = useState('');
@@ -109,6 +111,8 @@ const SuperAdminSettings = () => {
       if (data) {
         setPlatformName(data.system_name ?? '');
         setPlatformLogo(data.system_logo ?? '');
+        setPlatformLogoLight((data as any).logo_light ?? '');
+        setPlatformLogoDark((data as any).logo_dark ?? '');
         setPlatformUrl(data.system_url ?? '');
         setSeoTitle(data.site_title ?? '');
         setSeoDescription(data.meta_description ?? '');
@@ -124,6 +128,8 @@ const SuperAdminSettings = () => {
     await supabase.from('platform_settings').update({
       system_name: platformName,
       system_logo: platformLogo || null,
+      logo_light: platformLogoLight || null,
+      logo_dark: platformLogoDark || null,
       system_url: platformUrl || null,
       site_title: seoTitle || null,
       meta_description: seoDescription || null,

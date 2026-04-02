@@ -101,13 +101,16 @@ const Auth = () => {
     <div className="min-h-screen flex flex-col items-center justify-center bg-background p-4">
       <Card className="w-full max-w-md shadow-xl border-0">
         <CardHeader className="text-center space-y-4">
-          {platform?.system_logo ? (
-            <img src={platform.system_logo} alt={platform.system_name} className="mx-auto h-14 max-w-[180px] object-contain" />
-          ) : (
-            <div className="mx-auto w-14 h-14 bg-primary rounded-2xl flex items-center justify-center">
-              <Scissors className="h-7 w-7 text-primary-foreground" />
-            </div>
-          )}
+          {(() => {
+            const logoUrl = platform?.logo_dark || platform?.system_logo || platform?.logo_light;
+            return logoUrl ? (
+              <img src={logoUrl} alt={platform?.system_name || 'Logo'} className="mx-auto h-14 max-w-[180px] object-contain" />
+            ) : (
+              <div className="mx-auto w-14 h-14 bg-primary rounded-2xl flex items-center justify-center">
+                <Scissors className="h-7 w-7 text-primary-foreground" />
+              </div>
+            );
+          })()}
           <div>
             <CardTitle className="text-2xl font-display">
               {isLogin ? 'Entrar' : 'Criar Conta'}
