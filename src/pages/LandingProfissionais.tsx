@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { SEOHead } from '@/components/SEOHead';
+import { PlatformLogo } from '@/components/PlatformLogo';
 import {
   Calendar, Users, BarChart3, Globe, Zap, Clock, Star, Shield,
   CheckCircle2, ArrowRight, Play, TrendingUp, UserCheck, Heart,
@@ -22,12 +23,7 @@ const LandingProfissionais = () => {
       {/* ─── NAVBAR ─── */}
       <nav className="sticky top-0 z-50 bg-white/80 backdrop-blur-lg border-b border-gray-100">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="w-9 h-9 rounded-xl bg-[hsl(var(--primary))] flex items-center justify-center">
-              <Scissors className="h-5 w-5 text-white" />
-            </div>
-            <span className="font-display font-bold text-xl text-[hsl(var(--foreground))]">MeAgendaê</span>
-          </div>
+          <PlatformLogo onDarkBackground={false} />
           <div className="hidden md:flex items-center gap-6 text-sm font-medium text-[hsl(var(--muted-foreground))]">
             <a href="#funcionalidades" className="hover:text-[hsl(var(--foreground))] transition-colors">Funcionalidades</a>
             <a href="#planos" className="hover:text-[hsl(var(--foreground))] transition-colors">Planos</a>
@@ -612,10 +608,13 @@ const LandingProfissionais = () => {
               <ArrowRightLeft className="h-8 w-8 text-[hsl(var(--accent))]" />
             </div>
             <h2 className="text-3xl md:text-4xl font-display font-bold text-[hsl(var(--foreground))]">
-              Já usa outro sistema? <span className="text-[hsl(var(--accent))]">Nós migramos para você.</span>
+              Já usa outro sistema? <span className="text-[hsl(var(--accent))]">Temos uma condição especial para você.</span>
             </h2>
-            <p className="text-lg text-[hsl(var(--muted-foreground))]">
-              Nossa equipe ajuda na migração dos seus dados para o MeAgendaê. Sem perder clientes ou histórico.
+            <p className="text-lg text-[hsl(var(--muted-foreground))] max-w-2xl mx-auto">
+              Se você já utiliza outro sistema de agendamento, oferecemos condições especiais para facilitar sua mudança para o MeAgendaê.
+            </p>
+            <p className="text-lg text-[hsl(var(--muted-foreground))] max-w-2xl mx-auto">
+              Você começa rapidamente e aproveita todos os recursos da plataforma.
             </p>
           </div>
         </div>
@@ -630,6 +629,10 @@ const LandingProfissionais = () => {
           <p className="text-lg text-[hsl(var(--muted-foreground))] mt-3">
             Teste grátis por 7 dias — sem cartão de crédito
           </p>
+          <p className="text-sm font-medium text-[hsl(var(--accent))] mt-4 inline-flex items-center gap-2 bg-[hsl(var(--accent))]/10 px-4 py-2 rounded-full">
+            <CheckCircle2 className="h-4 w-4" />
+            Todos os planos permitem agendamentos ilimitados.
+          </p>
         </div>
         <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
           {/* Basic */}
@@ -640,11 +643,11 @@ const LandingProfissionais = () => {
                 <p className="text-sm text-[hsl(var(--muted-foreground))] mt-1">Para profissionais autônomos</p>
               </div>
               <div>
-                <span className="text-4xl font-display font-bold text-[hsl(var(--foreground))]">R$ 49</span>
+                <span className="text-4xl font-display font-bold text-[hsl(var(--foreground))]">R$ 35</span>
                 <span className="text-[hsl(var(--muted-foreground))]">/mês</span>
               </div>
               <div className="space-y-3">
-                {['Agenda online', 'Página de agendamento', 'Cadastro de serviços', 'Notificações para clientes'].map((f, i) => (
+                {['Agenda online', 'Página de agendamento', 'Cadastro de serviços', 'Notificações para clientes', '1 membro incluído'].map((f, i) => (
                   <div key={i} className="flex items-center gap-2 text-sm">
                     <CheckCircle2 className="h-4 w-4 text-[hsl(var(--accent))] flex-shrink-0" />
                     <span className="text-[hsl(var(--muted-foreground))]">{f}</span>
@@ -670,7 +673,7 @@ const LandingProfissionais = () => {
                 <p className="text-sm text-[hsl(var(--muted-foreground))] mt-1">Para equipes em crescimento</p>
               </div>
               <div>
-                <span className="text-4xl font-display font-bold text-[hsl(var(--foreground))]">R$ 99</span>
+                <span className="text-4xl font-display font-bold text-[hsl(var(--foreground))]">R$ 60</span>
                 <span className="text-[hsl(var(--muted-foreground))]">/mês</span>
               </div>
               <div className="space-y-3">
@@ -680,6 +683,20 @@ const LandingProfissionais = () => {
                     <span className="text-[hsl(var(--muted-foreground))]">{f}</span>
                   </div>
                 ))}
+              </div>
+              <div className="space-y-2 pt-2 border-t border-[hsl(var(--border))]">
+                <div className="flex items-center gap-2 text-sm">
+                  <Zap className="h-4 w-4 text-[hsl(var(--accent))] flex-shrink-0" />
+                  <span className="font-medium text-[hsl(var(--foreground))]">Membros ilimitados</span>
+                </div>
+                <div className="flex items-center gap-2 text-sm">
+                  <Zap className="h-4 w-4 text-[hsl(var(--accent))] flex-shrink-0" />
+                  <span className="font-medium text-[hsl(var(--foreground))]">Agendamentos ilimitados</span>
+                </div>
+                <div className="flex items-center gap-2 text-sm">
+                  <Zap className="h-4 w-4 text-[hsl(var(--accent))] flex-shrink-0" />
+                  <span className="font-medium text-[hsl(var(--foreground))]">Promoções ilimitadas</span>
+                </div>
               </div>
               <Link to="/auth" className="block">
                 <Button className="w-full bg-[hsl(var(--accent))] text-[hsl(var(--accent-foreground))] hover:bg-[hsl(var(--accent))]/90">Começar grátis</Button>
@@ -695,7 +712,7 @@ const LandingProfissionais = () => {
                 <p className="text-sm text-white/60 mt-1">Gestão completa</p>
               </div>
               <div>
-                <span className="text-4xl font-display font-bold text-white">R$ 199</span>
+                <span className="text-4xl font-display font-bold text-white">R$ 80</span>
                 <span className="text-white/60">/mês</span>
               </div>
               <div className="space-y-3">
@@ -705,6 +722,20 @@ const LandingProfissionais = () => {
                     <span className="text-white/80">{f}</span>
                   </div>
                 ))}
+              </div>
+              <div className="space-y-2 pt-2 border-t border-white/10">
+                <div className="flex items-center gap-2 text-sm">
+                  <Zap className="h-4 w-4 text-[hsl(var(--accent))] flex-shrink-0" />
+                  <span className="font-medium text-white">Membros ilimitados</span>
+                </div>
+                <div className="flex items-center gap-2 text-sm">
+                  <Zap className="h-4 w-4 text-[hsl(var(--accent))] flex-shrink-0" />
+                  <span className="font-medium text-white">Agendamentos ilimitados</span>
+                </div>
+                <div className="flex items-center gap-2 text-sm">
+                  <Zap className="h-4 w-4 text-[hsl(var(--accent))] flex-shrink-0" />
+                  <span className="font-medium text-white">Promoções ilimitadas</span>
+                </div>
               </div>
               <Link to="/auth" className="block">
                 <Button variant="secondary" className="w-full">Começar grátis</Button>
