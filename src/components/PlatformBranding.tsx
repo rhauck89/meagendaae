@@ -33,24 +33,26 @@ export const PlatformBranding = ({ isDark = false, hide = false }: PlatformBrand
 
   if (hide || !settings) return null;
 
-  const content = (
-    <div className="flex flex-col items-center gap-1">
-      <span className="text-[10px]" style={{ color: isDark ? '#374151' : '#D1D5DB' }}>
-        Agendamento online por {settings.system_name}
+  const name = settings.system_name || 'Me Agendaê!';
+  const url = settings.system_url || 'https://meagendae.com.br';
+  const domain = 'meagendae.com.br';
+
+  return (
+    <div className="flex flex-col items-center gap-1 py-4">
+      <span className="text-xs" style={{ color: isDark ? '#6B7280' : '#9CA3AF' }}>
+        Agendamento online por {name} •{' '}
+        <a
+          href={url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="underline hover:opacity-70 transition-opacity"
+        >
+          {domain}
+        </a>
       </span>
-      <span className="text-[9px]" style={{ color: isDark ? '#1F2937' : '#E5E7EB' }}>
+      <span className="text-[10px]" style={{ color: isDark ? '#9CA3AF' : '#D1D5DB' }}>
         © {new Date().getFullYear()} Todos os direitos reservados
       </span>
     </div>
   );
-
-  if (settings.system_url) {
-    return (
-      <a href={settings.system_url} target="_blank" rel="noopener noreferrer" className="hover:opacity-70 transition-opacity">
-        {content}
-      </a>
-    );
-  }
-
-  return content;
 };
