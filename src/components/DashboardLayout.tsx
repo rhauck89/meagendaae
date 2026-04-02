@@ -118,7 +118,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
           <button className="ml-auto lg:hidden" onClick={() => setSidebarOpen(false)}><X className="h-5 w-5" /></button>
         </div>
 
-        <nav className="flex-1 px-3 space-y-1 overflow-y-auto">
+        <nav className="flex-1 px-3 space-y-1 overflow-y-auto sidebar-nav">
           {navItems.map(item => renderNavLink(item))}
 
           {isAdmin && (
@@ -131,7 +131,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
                 <span className="flex-1 text-left">Configurações</span>
                 <ChevronDown className={cn('h-4 w-4 transition-transform', settingsOpen && 'rotate-180')} />
               </CollapsibleTrigger>
-              <CollapsibleContent className="pl-4 space-y-0.5 mt-0.5">
+              <CollapsibleContent className="pl-4 space-y-0.5 mt-0.5 sidebar-submenu">
                 {settingsSubItems.map((item) => {
                   const isActive = location.pathname === item.href;
                   return (

@@ -52,7 +52,7 @@ const SuperAdminLayout = ({ children }: { children: React.ReactNode }) => {
           </button>
         </div>
 
-        <nav className="flex-1 px-3 space-y-1 overflow-y-auto">
+        <nav className="flex-1 px-3 space-y-1 overflow-y-auto sidebar-nav">
           {navItems.map((item) => {
             const isActive = location.pathname === item.href || (item.href !== '/super-admin' && location.pathname.startsWith(item.href));
             const badge = item.href === '/super-admin/support' ? ticketCounts.total_pending : 0;
