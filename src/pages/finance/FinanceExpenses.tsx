@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -19,6 +19,8 @@ const FinanceExpenses = () => {
   const [expenses, setExpenses] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
   const [open, setOpen] = useState(false);
+  const [catOpen, setCatOpen] = useState(false);
+  const [newCatName, setNewCatName] = useState('');
   const [form, setForm] = useState({ description: '', amount: '', expense_date: format(new Date(), 'yyyy-MM-dd'), category_id: '', is_recurring: false, recurrence_type: 'monthly', recurrence_interval: '1', notes: '' });
 
   useEffect(() => {
@@ -51,7 +53,7 @@ const FinanceExpenses = () => {
       description: form.description,
       amount: parseFloat(form.amount),
       expense_date: form.expense_date,
-      category_id: form.category_id || null,
+      category_id: form.category_id && form.category_id !== 'none' ? form.category_id : null,
       is_recurring: form.is_recurring,
       recurrence_type: form.is_recurring ? form.recurrence_type : null,
       recurrence_interval: form.is_recurring ? parseInt(form.recurrence_interval) : null,
@@ -71,6 +73,17 @@ const FinanceExpenses = () => {
     fetchExpenses();
   };
 
+  const handleCreateCategory = async () => {
+    if (!newCatName.trim()) return;
+    const { data, error } = await supabase.from('company_expense_categories').insert({ company_id: companyId!, name: newCatName.trim() }).select().single();
+    if (error) { toast.error('Erro ao criar categoria'); return; }
+    toast.success('Categoria criada');
+    setNewCatName('');
+    setCatOpen(false);
+    await fetchCategories();
+    if (data) setForm(f => ({ ...f, category_id: data.id }));
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
@@ -82,18 +95,23 @@ const FinanceExpenses = () => {
           <DialogTrigger asChild>
             <Button><Plus className="h-4 w-4 mr-2" /> Nova Despesa</Button>
           </DialogTrigger>
-          <DialogContent className="max-w-md">
+          <DialogContent className="w-[92vw] max-w-md">
             <DialogHeader><DialogTitle>Nova Despesa</DialogTitle></DialogHeader>
             <div className="space-y-4">
               <div><Label>Descrição</Label><Input value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} /></div>
               <div><Label>Valor (R$)</Label><Input type="number" step="0.01" value={form.amount} onChange={e => setForm(f => ({ ...f, amount: e.target.value }))} /></div>
               <div><Label>Data</Label><Input type="date" value={form.expense_date} onChange={e => setForm(f => ({ ...f, expense_date: e.target.value }))} /></div>
               <div>
-                <Label>Categoria</Label>
-                <Select value={form.category_id} onValueChange={v => setForm(f => ({ ...f, category_id: v }))}>
-                  <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                <div className="flex items-center justify-between mb-1">
+                  <Label>Categoria</Label>
+                  <Button type="button" variant="ghost" size="sm" className="h-auto py-0.5 px-1.5 text-xs text-primary" onClick={() => setCatOpen(true)}>
+                    <Plus className="h-3 w-3 mr-1" /> Nova
+                  </Button>
+                </div>
+                <Select value={form.category_id || 'none'} onValueChange={v => setForm(f => ({ ...f, category_id: v === 'none' ? '' : v }))}>
+                  <SelectTrigger><SelectValue placeholder="Selecione uma categoria" /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Sem categoria</SelectItem>
+                    <SelectItem value="none">Sem categoria</SelectItem>
                     {categories.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
                   </SelectContent>
                 </Select>
@@ -125,37 +143,50 @@ const FinanceExpenses = () => {
         </Dialog>
       </div>
 
+      {/* Inline category creation dialog */}
+      <Dialog open={catOpen} onOpenChange={setCatOpen}>
+        <DialogContent className="w-[92vw] max-w-sm">
+          <DialogHeader><DialogTitle>Nova Categoria de Despesa</DialogTitle></DialogHeader>
+          <div className="space-y-4">
+            <div><Label>Nome</Label><Input value={newCatName} onChange={e => setNewCatName(e.target.value)} placeholder="Ex: Aluguel, Marketing" /></div>
+            <Button onClick={handleCreateCategory} className="w-full">Criar Categoria</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       <Card>
         <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Data</TableHead>
-                <TableHead>Descrição</TableHead>
-                <TableHead>Categoria</TableHead>
-                <TableHead className="text-right">Valor</TableHead>
-                <TableHead className="w-10"></TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {expenses.length === 0 ? (
-                <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-8">Nenhuma despesa registrada</TableCell></TableRow>
-              ) : expenses.map(e => (
-                <TableRow key={e.id}>
-                  <TableCell>{format(new Date(e.expense_date + 'T12:00:00'), 'dd/MM/yyyy')}</TableCell>
-                  <TableCell className="flex items-center gap-2">
-                    {e.is_recurring && <RefreshCw className="h-3.5 w-3.5 text-muted-foreground" />}
-                    {e.description}
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">{e.category?.name || '—'}</TableCell>
-                  <TableCell className="text-right font-semibold text-destructive">R$ {Number(e.amount).toFixed(2)}</TableCell>
-                  <TableCell>
-                    <Button variant="ghost" size="icon" onClick={() => handleDelete(e.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
-                  </TableCell>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Data</TableHead>
+                  <TableHead>Descrição</TableHead>
+                  <TableHead>Categoria</TableHead>
+                  <TableHead className="text-right">Valor</TableHead>
+                  <TableHead className="w-10"></TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {expenses.length === 0 ? (
+                  <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-8">Nenhuma despesa registrada</TableCell></TableRow>
+                ) : expenses.map(e => (
+                  <TableRow key={e.id}>
+                    <TableCell>{format(new Date(e.expense_date + 'T12:00:00'), 'dd/MM/yyyy')}</TableCell>
+                    <TableCell className="flex items-center gap-2">
+                      {e.is_recurring && <RefreshCw className="h-3.5 w-3.5 text-muted-foreground shrink-0" />}
+                      {e.description}
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">{e.category?.name || '—'}</TableCell>
+                    <TableCell className="text-right font-semibold text-destructive">R$ {Number(e.amount).toFixed(2)}</TableCell>
+                    <TableCell>
+                      <Button variant="ghost" size="icon" onClick={() => handleDelete(e.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
         </CardContent>
       </Card>
     </div>
