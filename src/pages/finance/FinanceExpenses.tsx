@@ -94,6 +94,7 @@ const FinanceExpenses = () => {
         installment_number: installments > 1 ? i + 1 : null,
         total_installments: installments > 1 ? installments : null,
         installment_group_id: groupId,
+        payment_method: baseForm.payment_method || null,
       });
     }
     return entries;
