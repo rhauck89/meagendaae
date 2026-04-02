@@ -164,6 +164,7 @@ const Dashboard = () => {
     fetchBirthdays();
     fetchBlockedTimes();
     fetchMonthlyStats();
+    fetchUpcomingAppointments();
   }, [companyId, currentDate, viewMode, filterProfessional]);
 
   const fetchCollaborators = async () => {
