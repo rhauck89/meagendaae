@@ -250,22 +250,66 @@ export default function Promotions() {
 
   const handleServiceChange = (serviceId: string) => {
     setSelectedServiceId(serviceId);
+    setServiceSelectionMode('single');
+    setSelectedServiceIds([serviceId]);
     const svc = services.find(s => s.id === serviceId);
     if (svc) {
-      setOriginalPrice(String(svc.price));
       setPromotionPrice('');
+      setDiscountValue('');
+    }
+  };
+
+  const toggleServiceSelection = (serviceId: string) => {
+    setSelectedServiceIds(prev => 
+      prev.includes(serviceId) ? prev.filter(id => id !== serviceId) : [...prev, serviceId]
+    );
+  };
+
+  const handleSelectAllServices = () => {
+    setServiceSelectionMode('all');
+    setSelectedServiceIds(services.map(s => s.id));
+    setSelectedServiceId('');
+  };
+
+  const getEffectiveServiceIds = (): string[] => {
+    if (serviceSelectionMode === 'all') return services.map(s => s.id);
+    if (serviceSelectionMode === 'multiple') return selectedServiceIds;
+    return selectedServiceId ? [selectedServiceId] : [];
+  };
+
+  const calculatePromoPrice = (originalPrice: number): number => {
+    if (discountType === 'fixed_price') {
+      return promotionPrice ? parseFloat(promotionPrice) : originalPrice;
+    } else if (discountType === 'percentage') {
+      const pct = parseFloat(discountValue) || 0;
+      return originalPrice * (1 - pct / 100);
+    } else { // fixed_amount
+      const amt = parseFloat(discountValue) || 0;
+      return Math.max(0, originalPrice - amt);
     }
   };
 
   // --- Wizard validation ---
   const validateStep1 = (): string | null => {
     if (!title.trim()) return 'Preencha o título da promoção';
-    if (!selectedServiceId) return 'Selecione um serviço';
-    if (!promotionPrice) return 'Informe o preço promocional';
-    const promo = parseFloat(promotionPrice);
-    const orig = parseFloat(originalPrice);
-    if (promo >= orig) return 'O preço promocional deve ser menor que o preço original';
-    if (promo <= 0) return 'O preço promocional deve ser maior que zero';
+    const effectiveIds = getEffectiveServiceIds();
+    if (effectiveIds.length === 0) return 'Selecione ao menos um serviço';
+    
+    if (discountType === 'fixed_price') {
+      if (!promotionPrice) return 'Informe o preço promocional';
+      const promo = parseFloat(promotionPrice);
+      if (promo <= 0) return 'O preço promocional deve ser maior que zero';
+      // For single service, validate against original
+      if (effectiveIds.length === 1) {
+        const svc = services.find(s => s.id === effectiveIds[0]);
+        if (svc && promo >= Number(svc.price)) return 'O preço promocional deve ser menor que o preço original';
+      }
+    } else {
+      if (!discountValue) return 'Informe o valor do desconto';
+      const val = parseFloat(discountValue);
+      if (val <= 0) return 'O valor do desconto deve ser maior que zero';
+      if (discountType === 'percentage' && val >= 100) return 'O desconto percentual deve ser menor que 100%';
+    }
     return null;
   };
 
