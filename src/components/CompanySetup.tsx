@@ -113,9 +113,13 @@ const CompanySetup = ({ onComplete }: CompanySetupProps) => {
 
   // Filter cities for search
   const filteredCities = useMemo(() => {
-    if (!citySearch) return brCities.slice(0, 50);
+    // Deduplicate cities by name
+    const unique = brCities.filter(
+      (city, index, self) => index === self.findIndex(c => c.name === city.name)
+    );
+    if (!citySearch) return unique.slice(0, 50);
     const search = citySearch.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-    return brCities.filter(c =>
+    return unique.filter(c =>
       c.name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').includes(search)
     ).slice(0, 50);
   }, [brCities, citySearch]);
