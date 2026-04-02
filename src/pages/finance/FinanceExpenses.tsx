@@ -1,0 +1,165 @@
+import { useEffect, useState } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Plus, Trash2, RefreshCw } from 'lucide-react';
+import { format } from 'date-fns';
+import { toast } from 'sonner';
+
+const FinanceExpenses = () => {
+  const { companyId, user } = useAuth();
+  const [expenses, setExpenses] = useState<any[]>([]);
+  const [categories, setCategories] = useState<any[]>([]);
+  const [open, setOpen] = useState(false);
+  const [form, setForm] = useState({ description: '', amount: '', expense_date: format(new Date(), 'yyyy-MM-dd'), category_id: '', is_recurring: false, recurrence_type: 'monthly', recurrence_interval: '1', notes: '' });
+
+  useEffect(() => {
+    if (companyId) { fetchExpenses(); fetchCategories(); }
+  }, [companyId]);
+
+  const fetchExpenses = async () => {
+    const { data } = await supabase
+      .from('company_expenses')
+      .select('*, category:company_expense_categories(name)')
+      .eq('company_id', companyId!)
+      .order('expense_date', { ascending: false })
+      .limit(200);
+    if (data) setExpenses(data);
+  };
+
+  const fetchCategories = async () => {
+    const { data } = await supabase
+      .from('company_expense_categories')
+      .select('*')
+      .eq('company_id', companyId!)
+      .order('name');
+    if (data) setCategories(data);
+  };
+
+  const handleSubmit = async () => {
+    if (!form.description || !form.amount) { toast.error('Preencha descrição e valor'); return; }
+    const { error } = await supabase.from('company_expenses').insert({
+      company_id: companyId!,
+      description: form.description,
+      amount: parseFloat(form.amount),
+      expense_date: form.expense_date,
+      category_id: form.category_id || null,
+      is_recurring: form.is_recurring,
+      recurrence_type: form.is_recurring ? form.recurrence_type : null,
+      recurrence_interval: form.is_recurring ? parseInt(form.recurrence_interval) : null,
+      notes: form.notes || null,
+      created_by: user?.id,
+    });
+    if (error) { toast.error('Erro ao salvar'); return; }
+    toast.success('Despesa registrada');
+    setOpen(false);
+    setForm({ description: '', amount: '', expense_date: format(new Date(), 'yyyy-MM-dd'), category_id: '', is_recurring: false, recurrence_type: 'monthly', recurrence_interval: '1', notes: '' });
+    fetchExpenses();
+  };
+
+  const handleDelete = async (id: string) => {
+    await supabase.from('company_expenses').delete().eq('id', id);
+    toast.success('Despesa removida');
+    fetchExpenses();
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div>
+          <h2 className="text-xl font-display font-bold">Despesas</h2>
+          <p className="text-sm text-muted-foreground">Gerencie as despesas da empresa</p>
+        </div>
+        <Dialog open={open} onOpenChange={setOpen}>
+          <DialogTrigger asChild>
+            <Button><Plus className="h-4 w-4 mr-2" /> Nova Despesa</Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-md">
+            <DialogHeader><DialogTitle>Nova Despesa</DialogTitle></DialogHeader>
+            <div className="space-y-4">
+              <div><Label>Descrição</Label><Input value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} /></div>
+              <div><Label>Valor (R$)</Label><Input type="number" step="0.01" value={form.amount} onChange={e => setForm(f => ({ ...f, amount: e.target.value }))} /></div>
+              <div><Label>Data</Label><Input type="date" value={form.expense_date} onChange={e => setForm(f => ({ ...f, expense_date: e.target.value }))} /></div>
+              <div>
+                <Label>Categoria</Label>
+                <Select value={form.category_id} onValueChange={v => setForm(f => ({ ...f, category_id: v }))}>
+                  <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">Sem categoria</SelectItem>
+                    {categories.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex items-center gap-2">
+                <Switch checked={form.is_recurring} onCheckedChange={v => setForm(f => ({ ...f, is_recurring: v }))} />
+                <Label>Recorrente</Label>
+              </div>
+              {form.is_recurring && (
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <Label>Frequência</Label>
+                    <Select value={form.recurrence_type} onValueChange={v => setForm(f => ({ ...f, recurrence_type: v }))}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="weekly">Semanal</SelectItem>
+                        <SelectItem value="monthly">Mensal</SelectItem>
+                        <SelectItem value="yearly">Anual</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div><Label>Repetir a cada</Label><Input type="number" min="1" value={form.recurrence_interval} onChange={e => setForm(f => ({ ...f, recurrence_interval: e.target.value }))} /></div>
+                </div>
+              )}
+              <div><Label>Observações</Label><Textarea value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} /></div>
+              <Button onClick={handleSubmit} className="w-full">Salvar</Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      </div>
+
+      <Card>
+        <CardContent className="p-0">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Data</TableHead>
+                <TableHead>Descrição</TableHead>
+                <TableHead>Categoria</TableHead>
+                <TableHead className="text-right">Valor</TableHead>
+                <TableHead className="w-10"></TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {expenses.length === 0 ? (
+                <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-8">Nenhuma despesa registrada</TableCell></TableRow>
+              ) : expenses.map(e => (
+                <TableRow key={e.id}>
+                  <TableCell>{format(new Date(e.expense_date + 'T12:00:00'), 'dd/MM/yyyy')}</TableCell>
+                  <TableCell className="flex items-center gap-2">
+                    {e.is_recurring && <RefreshCw className="h-3.5 w-3.5 text-muted-foreground" />}
+                    {e.description}
+                  </TableCell>
+                  <TableCell className="text-muted-foreground">{e.category?.name || '—'}</TableCell>
+                  <TableCell className="text-right font-semibold text-destructive">R$ {Number(e.amount).toFixed(2)}</TableCell>
+                  <TableCell>
+                    <Button variant="ghost" size="icon" onClick={() => handleDelete(e.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+    </div>
+  );
+};
+
+export default FinanceExpenses;
