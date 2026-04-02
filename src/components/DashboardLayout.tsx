@@ -135,6 +135,38 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
           {navItems.map(item => renderNavLink(item))}
 
           {isAdmin && (
+            <Collapsible open={financeOpen} onOpenChange={setFinanceOpen}>
+              <CollapsibleTrigger className={cn(
+                'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors w-full',
+                isFinanceActive ? 'bg-sidebar-accent/15 text-sidebar-primary' : 'text-sidebar-foreground/70 hover:bg-sidebar-accent/12 hover:text-sidebar-foreground'
+              )}>
+                <DollarSign className="h-5 w-5" />
+                <span className="flex-1 text-left">Financeiro</span>
+                <ChevronDown className={cn('h-4 w-4 transition-transform', financeOpen && 'rotate-180')} />
+              </CollapsibleTrigger>
+              <CollapsibleContent className="pl-4 space-y-0.5 mt-0.5 sidebar-submenu">
+                {financeSubItems.map((item) => {
+                  const isActive = location.pathname === item.href;
+                  return (
+                    <Link
+                      key={item.href}
+                      to={item.href}
+                      onClick={() => setSidebarOpen(false)}
+                      className={cn(
+                        'flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors',
+                        isActive ? 'bg-sidebar-accent/15 text-sidebar-primary font-medium' : 'text-sidebar-foreground/60 hover:bg-sidebar-accent/12 hover:text-sidebar-foreground'
+                      )}
+                    >
+                      <item.icon className="h-4 w-4" />
+                      {item.label}
+                    </Link>
+                  );
+                })}
+              </CollapsibleContent>
+            </Collapsible>
+          )}
+
+          {isAdmin && (
             <Collapsible open={settingsOpen} onOpenChange={setSettingsOpen}>
               <CollapsibleTrigger className={cn(
                 'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors w-full',
