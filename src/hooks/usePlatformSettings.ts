@@ -6,6 +6,8 @@ export interface PlatformSettings {
   system_url: string | null;
   system_logo: string | null;
   favicon_url: string | null;
+  logo_light: string | null;
+  logo_dark: string | null;
 }
 
 let cachedSettings: PlatformSettings | null = null;
