@@ -68,6 +68,8 @@ const MESSAGE_TAGS = [
   { tag: '{{cliente_aniversario}}', label: 'Aniversário' },
   { tag: '{{empresa_nome}}', label: 'Empresa' },
   { tag: '{{profissional_nome}}', label: 'Profissional' },
+  { tag: '{{servicos_promocao}}', label: 'Serviços' },
+  { tag: '{{profissionais_promocao}}', label: 'Profissionais' },
   { tag: '{{valor_normal}}', label: 'Valor Normal' },
   { tag: '{{valor_promocional}}', label: 'Valor Promo' },
   { tag: '{{link_promocao}}', label: 'Link' },
