@@ -106,21 +106,22 @@ const ProfilePage = () => {
     }
   };
 
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>, mode: 'avatar' | 'cover' = 'avatar') => {
     const file = e.target.files?.[0];
     if (!file) return;
     if (!file.type.startsWith('image/')) {
       toast.error('Por favor, selecione uma imagem');
       return;
     }
-    if (file.size > 10 * 1024 * 1024) {
-      toast.error('Imagem deve ter no máximo 10MB');
+    const maxMB = mode === 'cover' ? 5 : 10;
+    if (file.size > maxMB * 1024 * 1024) {
+      toast.error(`Imagem deve ter no máximo ${maxMB}MB`);
       return;
     }
+    setCropMode(mode);
     const reader = new FileReader();
     reader.onload = () => setCropImage(reader.result as string);
     reader.readAsDataURL(file);
-    // Reset input so same file can be re-selected
     e.target.value = '';
   };
 
