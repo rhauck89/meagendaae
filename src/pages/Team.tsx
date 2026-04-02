@@ -658,7 +658,7 @@ const Team = () => {
             {editForm.commission_type === 'percentage' && (
               <div className="space-y-2">
                 <Label>Comissão (%)</Label>
-                <Input type="number" value={editForm.commission_value} onChange={(e) => setEditForm({ ...editForm, commission_value: parseFloat(e.target.value) || 0 })} />
+                <Input type="number" value={editForm.commission_value} onChange={(e) => setEditForm({ ...editForm, commission_value: e.target.value })} placeholder="Ex: 10" />
               </div>
             )}
             {editForm.commission_type === 'fixed' && (
