@@ -490,21 +490,51 @@ const Dashboard = () => {
     const apt = appointments.find((a) => a.id === id);
     await supabase.from('appointments').update({ status: status as any }).eq('id', id);
 
-    // If completing, create automatic revenue
+    // If completing, create automatic revenue with commission calculation
     if (status === 'completed' && apt && companyId) {
       const serviceNames = apt.appointment_services?.map((s: any) => s.service?.name).filter(Boolean).join(', ') || 'Serviço';
+      const totalPrice = Number(apt.total_price);
+
+      // Fetch collaborator commission settings
+      let commissionAmount = 0;
+      let professionalEarning = 0;
+      let companyProfit = totalPrice;
+
+      const { data: collab } = await supabase
+        .from('collaborators')
+        .select('collaborator_type, commission_type, commission_value')
+        .eq('profile_id', apt.professional_id)
+        .eq('company_id', companyId)
+        .maybeSingle();
+
+      if (collab) {
+        const serviceCount = apt.appointment_services?.length || 1;
+        const { calculateFinancials } = await import('@/lib/financial-engine');
+        const breakdown = calculateFinancials(
+          totalPrice,
+          serviceCount,
+          collab.collaborator_type,
+          collab.commission_type,
+          Number(collab.commission_value)
+        );
+        professionalEarning = breakdown.professionalValue;
+        commissionAmount = breakdown.professionalValue;
+        companyProfit = breakdown.companyValue;
+      }
+
       await supabase.from('company_revenues').insert({
         company_id: companyId,
         appointment_id: apt.id,
         professional_id: apt.professional_id,
         description: `${apt.client_name || 'Cliente'} — ${serviceNames}`,
-        amount: Number(apt.total_price),
+        amount: totalPrice,
         revenue_date: format(parseISO(apt.start_time), 'yyyy-MM-dd'),
         due_date: format(parseISO(apt.start_time), 'yyyy-MM-dd'),
         status: 'received',
         is_automatic: true,
         payment_method: paymentMethod || null,
         created_by: user?.id,
+        notes: commissionAmount > 0 ? `Comissão: R$ ${commissionAmount.toFixed(2)} | Lucro: R$ ${companyProfit.toFixed(2)}` : null,
       });
     }
 
@@ -759,7 +789,7 @@ const Dashboard = () => {
       {/* Daily Stats */}
       <div>
         <h3 className="text-lg font-display font-semibold mb-3">📊 Resumo do Dia</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
         <Card>
           <CardContent className="p-4 flex items-center gap-4">
             <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
@@ -768,6 +798,28 @@ const Dashboard = () => {
             <div>
               <p className="text-sm text-muted-foreground">Hoje</p>
               <p className="text-2xl font-display font-bold">{stats.total}</p>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4 flex items-center gap-4">
+            <div className="w-12 h-12 rounded-xl bg-success/10 flex items-center justify-center">
+              <DollarSign className="h-6 w-6 text-success" />
+            </div>
+            <div>
+              <p className="text-sm text-muted-foreground">Receita estimada</p>
+              <p className="text-2xl font-display font-bold">R$ {stats.revenue.toFixed(2)}</p>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4 flex items-center gap-4">
+            <div className="w-12 h-12 rounded-xl bg-accent/10 flex items-center justify-center">
+              <TrendingUp className="h-6 w-6 text-accent" />
+            </div>
+            <div>
+              <p className="text-sm text-muted-foreground">Receita realizada</p>
+              <p className="text-2xl font-display font-bold">R$ {stats.revenueCompleted.toFixed(2)}</p>
             </div>
           </CardContent>
         </Card>
@@ -847,7 +899,29 @@ const Dashboard = () => {
       {/* Monthly Stats */}
       <div>
         <h3 className="text-lg font-display font-semibold mb-3">📈 Resumo do Mês</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+          <Card>
+            <CardContent className="p-4 flex items-center gap-4">
+              <div className="w-12 h-12 rounded-xl bg-success/10 flex items-center justify-center">
+                <DollarSign className="h-6 w-6 text-success" />
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Receita do mês</p>
+                <p className="text-2xl font-display font-bold">R$ {monthlyStats.revenue.toFixed(2)}</p>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4 flex items-center gap-4">
+              <div className="w-12 h-12 rounded-xl bg-accent/10 flex items-center justify-center">
+                <TrendingUp className="h-6 w-6 text-accent" />
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Receita realizada</p>
+                <p className="text-2xl font-display font-bold">R$ {monthlyStats.revenueCompleted.toFixed(2)}</p>
+              </div>
+            </CardContent>
+          </Card>
           <Card>
             <CardContent className="p-4 flex items-center gap-4">
               <div className="w-12 h-12 rounded-xl bg-accent/10 flex items-center justify-center">
