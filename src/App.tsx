@@ -64,7 +64,6 @@ import FinanceExpenses from "./pages/finance/FinanceExpenses";
 import FinanceCategories from "./pages/finance/FinanceCategories";
 import FinanceCommissions from "./pages/finance/FinanceCommissions";
 import FinanceReports from "./pages/finance/FinanceReports";
-import SettingsPlan from "./pages/settings/SettingsPlan";
 
 const queryClient = new QueryClient();
 
