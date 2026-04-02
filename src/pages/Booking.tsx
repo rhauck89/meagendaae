@@ -529,9 +529,30 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
     .filter((s) => selectedServices.includes(s.id))
     .reduce((sum, s) => sum + (Number(s.duration_minutes) || 0), 0);
 
-  const totalPrice = isPromoMode && promoData?.promotion_price != null
-    ? Number(promoData.promotion_price)
-    : services.filter((s) => selectedServices.includes(s.id)).reduce((sum, s) => sum + Number(s.price), 0);
+  const totalPrice = (() => {
+    if (!isPromoMode || !promoData) {
+      return services.filter((s) => selectedServices.includes(s.id)).reduce((sum, s) => sum + Number(s.price), 0);
+    }
+    const promoServiceIds = promoData.service_ids || (promoData.service_id ? [promoData.service_id] : []);
+    // For single-service fixed_price promos, use promotion_price directly
+    if (promoData.discount_type === 'fixed_price' && promoData.promotion_price != null && promoServiceIds.length <= 1) {
+      return Number(promoData.promotion_price);
+    }
+    // For percentage/fixed_amount, calculate per service
+    return services.filter(s => selectedServices.includes(s.id)).reduce((sum, s) => {
+      if (promoServiceIds.includes(s.id)) {
+        const orig = Number(s.price);
+        if (promoData.discount_type === 'percentage' && promoData.discount_value) {
+          return sum + orig * (1 - Number(promoData.discount_value) / 100);
+        } else if (promoData.discount_type === 'fixed_amount' && promoData.discount_value) {
+          return sum + Math.max(0, orig - Number(promoData.discount_value));
+        } else if (promoData.discount_type === 'fixed_price' && promoData.promotion_price != null) {
+          return sum + Number(promoData.promotion_price);
+        }
+      }
+      return sum + Number(s.price);
+    }, 0);
+  })();
 
   const toggleService = (id: string) => {
     setSelectedServices((prev) =>
