@@ -78,12 +78,13 @@ const EventPublic = () => {
   const loadEvent = async () => {
     setLoading(true);
     // Find event by slug
-    const { data: eventData } = await supabase
+    const { data: eventsArr } = await supabase
       .from('events')
       .select('*')
       .eq('slug', eventSlug!)
       .eq('status', 'published')
-      .maybeSingle();
+      .limit(1);
+    const eventData = eventsArr?.[0] || null;
 
     if (!eventData) { setNotFound(true); setLoading(false); return; }
     setEvent(eventData as Event);

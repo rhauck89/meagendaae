@@ -299,7 +299,19 @@ const Events = () => {
     }
     setSaving(true);
     try {
-      const slug = generateSlug(formName);
+      let slug = generateSlug(formName);
+      
+      // Ensure slug is unique for this company
+      const { data: existing } = await supabase
+        .from('events')
+        .select('id')
+        .eq('company_id', companyId!)
+        .eq('slug', slug)
+        .neq('id', editingEvent?.id || '00000000-0000-0000-0000-000000000000');
+      if (existing && existing.length > 0) {
+        slug = `${slug}-${Date.now().toString(36)}`;
+      }
+      
       const payload = {
         company_id: companyId!,
         name: formName.trim(),
