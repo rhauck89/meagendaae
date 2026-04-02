@@ -79,7 +79,11 @@ const DEFAULT_TEMPLATE = `Olá {{cliente_nome}}! 👋
 
 Estamos com uma promoção especial na *{{empresa_nome}}*! 🎉
 
-✂️ De R$ {{valor_normal}} por apenas *R$ {{valor_promocional}}*
+✂️ Serviço: {{servicos_promocao}}
+
+💰 De R$ {{valor_normal}} por apenas *R$ {{valor_promocional}}*
+
+👨‍🔧 Válido com: {{profissionais_promocao}}
 
 Garanta seu horário:
 {{link_promocao}}
