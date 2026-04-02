@@ -181,7 +181,8 @@ const Services = () => {
                     type="number"
                     step="0.01"
                     value={form.price}
-                    onChange={(e) => setForm({ ...form, price: parseFloat(e.target.value) || 0 })}
+                    onChange={(e) => setForm({ ...form, price: e.target.value })}
+                    placeholder="Ex: 45.00"
                   />
                 </div>
               </div>
