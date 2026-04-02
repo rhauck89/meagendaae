@@ -870,6 +870,41 @@ const Team = () => {
         </DialogContent>
       </Dialog>
 
+      {/* Absence Dialog */}
+      <Dialog open={absenceDialogOpen} onOpenChange={setAbsenceDialogOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Definir Ausência</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Tipo de ausência</Label>
+              <Select value={absenceForm.absence_type} onValueChange={(v) => setAbsenceForm({ ...absenceForm, absence_type: v })}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ferias">Férias</SelectItem>
+                  <SelectItem value="folga">Folga</SelectItem>
+                  <SelectItem value="recesso">Recesso</SelectItem>
+                  <SelectItem value="ausente">Ausente</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Data de início</Label>
+              <Input type="date" value={absenceForm.absence_start} onChange={(e) => setAbsenceForm({ ...absenceForm, absence_start: e.target.value })} />
+            </div>
+            <div className="space-y-2">
+              <Label>Data de término</Label>
+              <Input type="date" value={absenceForm.absence_end} onChange={(e) => setAbsenceForm({ ...absenceForm, absence_end: e.target.value })} />
+            </div>
+            <div className="flex gap-2">
+              <Button variant="outline" className="flex-1" onClick={() => setAbsenceDialogOpen(false)}>Cancelar</Button>
+              <Button className="flex-1" onClick={handleSaveAbsence}>Salvar</Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {selectedCollaborator && (
         <ProfessionalPanel
           collaborator={selectedCollaborator}
