@@ -1403,7 +1403,7 @@ const Dashboard = () => {
                   setCompletePaymentMethod('pix');
                 }}
               >
-                {completeTarget && new Date() < parseISO(completeTarget.start_time) ? 'Concluir mesmo assim' : 'Concluir'}
+                Confirmar pagamento
               </Button>
             </div>
           </div>
