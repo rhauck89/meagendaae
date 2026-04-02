@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Calendar } from '@/components/ui/calendar';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Scissors, Sparkles, Clock, DollarSign, ChevronRight, ChevronLeft, CheckCircle2, Bell, Zap, CalendarPlus, MessageCircle, RotateCcw, Home, User, Phone, Mail, CreditCard, Cake, MapPin, Star, X } from 'lucide-react';
+import { Scissors, Sparkles, Clock, DollarSign, ChevronRight, ChevronLeft, CheckCircle2, Bell, Zap, CalendarPlus, MessageCircle, RotateCcw, Home, User, Phone, Mail, Cake, MapPin, Star, X } from 'lucide-react';
 import { format, addMinutes, addDays, isToday, isTomorrow, startOfDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
@@ -170,7 +170,8 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [availableSlots, setAvailableSlots] = useState<string[]>([]);
   const [generatedSlots, setGeneratedSlots] = useState<string[]>([]);
-  const [clientForm, setClientForm] = useState({ full_name: '', email: '', whatsapp: '', cpf: '', birth_date: '' });
+  const [clientForm, setClientForm] = useState({ full_name: '', email: '', whatsapp: '', birth_date: '' });
+  const skipTimeResetRef = useRef(false);
   const [optInWhatsapp, setOptInWhatsapp] = useState(false);
   const [savedClientId, setSavedClientId] = useState<string | null>(null);
   const [clientLoaded, setClientLoaded] = useState(false);
@@ -229,22 +230,24 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
       if (!company) return;
       const storedClientId = localStorage.getItem(`client_id_${company.id}`);
       const storedClientData = localStorage.getItem(`client_data_${company.id}`);
+      // Also check global client data as fallback
+      const globalClientData = localStorage.getItem('meagendae_client_data');
+      const dataSource = storedClientData || globalClientData;
       if (storedClientId) {
         setSavedClientId(storedClientId);
-        if (storedClientData) {
-          try {
-            const c = JSON.parse(storedClientData);
-            setClientForm({
-              full_name: c.full_name || '',
-              email: c.email || '',
-              whatsapp: c.whatsapp || '',
-              cpf: c.cpf || '',
-              birth_date: '',
-            });
-            setOptInWhatsapp(c.opt_in_whatsapp || false);
-          } catch (e) {
-            console.warn('[Booking] Failed to parse stored client data');
-          }
+      }
+      if (dataSource) {
+        try {
+          const c = JSON.parse(dataSource);
+          setClientForm({
+            full_name: c.full_name || '',
+            email: c.email || '',
+            whatsapp: c.whatsapp || '',
+            birth_date: '',
+          });
+          setOptInWhatsapp(c.opt_in_whatsapp || false);
+        } catch (e) {
+          console.warn('[Booking] Failed to parse stored client data');
         }
       }
       setClientLoaded(true);
@@ -637,8 +640,10 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
   useEffect(() => {
     // Don't reset time if it was prefilled from URL and this is the first date set
     if (prefillTimeRef.current && selectedTime === prefillTimeRef.current) {
-      // Keep the prefilled time, but clear the ref so subsequent date changes reset normally
       prefillTimeRef.current = null;
+    } else if (skipTimeResetRef.current) {
+      // Quick slot was used — don't reset time
+      skipTimeResetRef.current = false;
     } else {
       setSelectedTime(null);
     }
@@ -713,6 +718,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
   }, [selectedProfessional, professionalHours, businessHours, totalDuration]);
 
   const handleQuickSlot = (date: Date, time: string) => {
+    skipTimeResetRef.current = true;
     setSelectedDate(date);
     setSelectedTime(time);
     setStep('client');
@@ -751,9 +757,21 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
   };
 
   const handleBook = async () => {
+    // Final validation before booking
     if (!company || !selectedDate || !selectedTime || !selectedProfessional) {
       console.error('[Booking] Missing required data:', { company: !!company, selectedDate, selectedTime, selectedProfessional });
-      toast.error('Dados incompletos. Tente novamente.');
+      toast.error('Não foi possível concluir o agendamento. Por favor selecione um horário válido.');
+      if (!selectedTime || !selectedDate) setStep('datetime');
+      return;
+    }
+    if (selectedServices.length === 0) {
+      toast.error('Selecione pelo menos um serviço.');
+      setStep('services');
+      return;
+    }
+    if (!clientForm.full_name.trim() || !clientForm.whatsapp || !isValidWhatsApp(clientForm.whatsapp)) {
+      toast.error('Informe seu nome e número de WhatsApp para continuar.');
+      setStep('client');
       return;
     }
     setLoading(true);
@@ -761,7 +779,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
       const formattedWhatsapp = clientForm.whatsapp ? formatWhatsApp(clientForm.whatsapp) : null;
       console.log('[Booking] Creating client:', { name: clientForm.full_name, company_id: company.id });
       const { data: clientIdFromRpc, error: clientError } = await supabase.rpc('create_client', {
-        p_name: clientForm.full_name, p_cpf: clientForm.cpf || '', p_whatsapp: formattedWhatsapp || '',
+        p_name: clientForm.full_name, p_cpf: '', p_whatsapp: formattedWhatsapp || '',
         p_email: clientForm.email || '', p_company_id: company.id,
         p_birth_date: clientForm.birth_date || null,
       });
@@ -772,11 +790,13 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
       const clientId = clientIdFromRpc;
       console.log('[Booking] Client ID:', clientId);
       if (clientId) {
-        localStorage.setItem(`client_id_${company.id}`, clientId);
-        localStorage.setItem(`client_data_${company.id}`, JSON.stringify({
+        const clientDataJson = JSON.stringify({
           full_name: clientForm.full_name, email: clientForm.email || '', whatsapp: clientForm.whatsapp || '',
-          cpf: clientForm.cpf || '', opt_in_whatsapp: optInWhatsapp,
-        }));
+          opt_in_whatsapp: optInWhatsapp,
+        });
+        localStorage.setItem(`client_id_${company.id}`, clientId);
+        localStorage.setItem(`client_data_${company.id}`, clientDataJson);
+        localStorage.setItem('meagendae_client_data', clientDataJson);
         setSavedClientId(clientId);
       }
 
@@ -1420,22 +1440,6 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                 )}
               </div>
               <div className="space-y-1.5">
-                <Label className="text-sm font-medium flex items-center gap-1.5" style={{ color: T.textSec }}><CreditCard className="h-3.5 w-3.5" /> CPF</Label>
-                <Input
-                  value={clientForm.cpf}
-                  onChange={(e) => {
-                    const digits = e.target.value.replace(/\D/g, '').slice(0, 11);
-                    let masked = digits;
-                    if (digits.length > 9) masked = `${digits.slice(0,3)}.${digits.slice(3,6)}.${digits.slice(6,9)}-${digits.slice(9)}`;
-                    else if (digits.length > 6) masked = `${digits.slice(0,3)}.${digits.slice(3,6)}.${digits.slice(6)}`;
-                    else if (digits.length > 3) masked = `${digits.slice(0,3)}.${digits.slice(3)}`;
-                    setClientForm({ ...clientForm, cpf: masked });
-                  }}
-                  placeholder="000.000.000-00" maxLength={14}
-                  className="rounded-xl h-12 text-base" style={{ background: T.card, border: `1px solid ${T.border}`, color: T.text }}
-                />
-              </div>
-              <div className="space-y-1.5">
                 <Label className="text-sm font-medium flex items-center gap-1.5" style={{ color: T.textSec }}><Mail className="h-3.5 w-3.5" /> Email (opcional)</Label>
                 <Input type="email" value={clientForm.email} onChange={(e) => setClientForm({ ...clientForm, email: e.target.value })} placeholder="seuemail@exemplo.com" className="rounded-xl h-12 text-base" style={{ background: T.card, border: `1px solid ${T.border}`, color: T.text }} />
               </div>
@@ -1450,11 +1454,24 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                 Aceito receber lembretes e comunicações via WhatsApp. Posso cancelar a qualquer momento.
               </label>
             </div>
+            {!clientForm.whatsapp && (
+              <p className="text-sm mt-1" style={{ color: '#F87171' }}>Informe seu número de WhatsApp para continuar.</p>
+            )}
             <Button
-              onClick={() => setStep('confirm')}
+              onClick={() => {
+                if (!clientForm.whatsapp || !isValidWhatsApp(clientForm.whatsapp)) {
+                  toast.error('Informe seu número de WhatsApp para continuar.');
+                  return;
+                }
+                if (!clientForm.full_name.trim()) {
+                  toast.error('Informe seu nome para continuar.');
+                  return;
+                }
+                setStep('confirm');
+              }}
               className="w-full rounded-xl py-6 font-semibold text-base shadow-lg transition-all hover:scale-[1.01]"
               style={{ background: T.accent, color: '#000' }}
-              disabled={!clientForm.full_name || !clientForm.whatsapp || !isValidWhatsApp(clientForm.whatsapp)}
+              disabled={!clientForm.full_name.trim() || !clientForm.whatsapp || !isValidWhatsApp(clientForm.whatsapp)}
             >
               Revisar Agendamento <ChevronRight className="h-4 w-4 ml-1" />
             </Button>
