@@ -23,12 +23,7 @@ const LandingProfissionais = () => {
       {/* ─── NAVBAR ─── */}
       <nav className="sticky top-0 z-50 bg-white/80 backdrop-blur-lg border-b border-gray-100">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="w-9 h-9 rounded-xl bg-[hsl(var(--primary))] flex items-center justify-center">
-              <Scissors className="h-5 w-5 text-white" />
-            </div>
-            <span className="font-display font-bold text-xl text-[hsl(var(--foreground))]">MeAgendaê</span>
-          </div>
+          <PlatformLogo onDarkBackground={false} />
           <div className="hidden md:flex items-center gap-6 text-sm font-medium text-[hsl(var(--muted-foreground))]">
             <a href="#funcionalidades" className="hover:text-[hsl(var(--foreground))] transition-colors">Funcionalidades</a>
             <a href="#planos" className="hover:text-[hsl(var(--foreground))] transition-colors">Planos</a>
