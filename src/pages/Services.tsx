@@ -16,7 +16,7 @@ const Services = () => {
   const queryClient = useQueryClient();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<any | null>(null);
-  const [form, setForm] = useState({ name: '', duration_minutes: 30, price: 0, recommended_return_days: '' as string | number });
+  const [form, setForm] = useState({ name: '', duration_minutes: '' as string | number, price: '' as string | number, recommended_return_days: '' as string | number });
 
   const servicesQueryKey = ['services', companyId];
 
