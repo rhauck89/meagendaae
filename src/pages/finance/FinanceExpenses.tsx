@@ -181,7 +181,7 @@ const FinanceExpenses = () => {
                 </div>
               )}
               <div><Label>Observações</Label><Textarea value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} /></div>
-              <Button onClick={handleSubmit} className="w-full">Salvar</Button>
+              <Button onClick={handleSubmit} className="w-full" disabled={submitting}>{submitting ? 'Salvando...' : 'Salvar'}</Button>
             </div>
           </DialogContent>
         </Dialog>
