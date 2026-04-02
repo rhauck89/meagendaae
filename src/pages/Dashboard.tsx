@@ -1351,11 +1351,11 @@ const Dashboard = () => {
       <Dialog open={completeDialogOpen} onOpenChange={(open) => { setCompleteDialogOpen(open); if (!open) { setCompleteTarget(null); setCompletePaymentMethod('pix'); } }}>
         <DialogContent className="w-[92vw] max-w-sm">
           <DialogHeader>
-            <DialogTitle>
-              {completeTarget && new Date() < parseISO(completeTarget.start_time)
-                ? 'Este atendimento ainda não começou'
-                : 'Concluir atendimento'}
-            </DialogTitle>
+            <DialogTitle>Pagamento recebido?</DialogTitle>
+            <DialogDescription>
+              {completeTarget && (
+                <span className="block mt-1">
+                  <strong>{completeTarget.client_name || 'Cliente'}</strong> — {format(parseISO(completeTarget.start_time), 'HH:mm')}
             <DialogDescription>
               {completeTarget && (
                 <span className="block mt-1">
