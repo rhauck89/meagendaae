@@ -684,10 +684,12 @@ const Dashboard = () => {
       const totalDuration = rescheduleTarget.appointment_services?.reduce(
         (sum: number, s: any) => sum + (s.duration_minutes || 0), 0
       ) || 30;
-      const dateStr = format(rescheduleDate, 'yyyy-MM-dd');
-      const newStart = `${dateStr}T${rescheduleSelectedSlot}:00`;
-      const newEndDate = addMinutes(new Date(`${dateStr}T${rescheduleSelectedSlot}:00`), totalDuration);
-      const newEnd = `${dateStr}T${format(newEndDate, 'HH:mm')}:00`;
+      const [rh, rm] = rescheduleSelectedSlot.split(':').map(Number);
+      const startDt = new Date(rescheduleDate);
+      startDt.setHours(rh, rm, 0, 0);
+      const endDt = addMinutes(startDt, totalDuration);
+      const newStart = startDt.toISOString();
+      const newEnd = endDt.toISOString();
 
       const { error } = await supabase.rpc('reschedule_appointment', {
         p_appointment_id: rescheduleTarget.id,

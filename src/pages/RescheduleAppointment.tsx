@@ -148,8 +148,9 @@ const RescheduleAppointment = () => {
   const handleReschedule = async () => {
     if (!selectedDate || !selectedTime || !appointment) return;
     setSubmitting(true);
-    const dateStr = format(selectedDate, 'yyyy-MM-dd');
-    const newStart = new Date(`${dateStr}T${selectedTime}:00-03:00`);
+    const [rh, rm] = selectedTime.split(':').map(Number);
+    const newStart = new Date(selectedDate);
+    newStart.setHours(rh, rm, 0, 0);
     const newEnd = addMinutes(newStart, totalDuration);
 
     try {

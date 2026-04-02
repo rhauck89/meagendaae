@@ -182,10 +182,12 @@ export function ManualAppointmentDialog({
 
     setLoading(true);
     try {
-      const dateStr = format(selectedDate, 'yyyy-MM-dd');
-      const startTime = `${dateStr}T${selectedSlot}:00`;
-      const endDate = addMinutes(new Date(startTime), totalDuration);
-      const endTime = `${dateStr}T${format(endDate, 'HH:mm')}:00`;
+      const [h, m] = selectedSlot.split(':').map(Number);
+      const startDate = new Date(selectedDate);
+      startDate.setHours(h, m, 0, 0);
+      const endDate = addMinutes(startDate, totalDuration);
+      const startTime = startDate.toISOString();
+      const endTime = endDate.toISOString();
 
       // Last-second availability check
       const { data: conflicts } = await supabase
