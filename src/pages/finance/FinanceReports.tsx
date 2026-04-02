@@ -39,7 +39,7 @@ const FinanceReports = () => {
   const [revenueByPayment, setRevenueByPayment] = useState<{ name: string; value: number }[]>([]);
 
   useEffect(() => {
-    if (companyId) { fetchAll(); fetchMonthlyTrend(); }
+    if (companyId) { fetchAll(); fetchMonthlyTrend(); fetchRevenueByPayment(); }
   }, [companyId, startDate, endDate]);
 
   const fetchAll = async () => {
