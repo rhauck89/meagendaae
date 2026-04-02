@@ -128,6 +128,7 @@ const Dashboard = () => {
   const routerNavigate = useRouterNavigate();
   const [waitlistClients, setWaitlistClients] = useState<string[]>([]);
   const [companySlug, setCompanySlug] = useState('');
+  const [upcomingAppointments, setUpcomingAppointments] = useState<any[]>([]);
   const [companyBusinessType, setCompanyBusinessType] = useState('barbershop');
   const [statusTab, setStatusTab] = useState<StatusTab>('confirmed');
 
@@ -163,7 +164,34 @@ const Dashboard = () => {
     fetchBirthdays();
     fetchBlockedTimes();
     fetchMonthlyStats();
+    fetchUpcomingAppointments();
   }, [companyId, currentDate, viewMode, filterProfessional]);
+
+  const fetchUpcomingAppointments = async () => {
+    const now = new Date().toISOString();
+    let query = supabase
+      .from('appointments')
+      .select(`
+        *,
+        client:clients!appointments_client_id_fkey(name, whatsapp),
+        professional:profiles!appointments_professional_id_fkey(full_name),
+        appointment_services(*, service:services(name))
+      `)
+      .eq('company_id', companyId!)
+      .in('status', ['confirmed', 'pending'])
+      .gte('start_time', now)
+      .order('start_time', { ascending: true })
+      .limit(5);
+
+    if (!isAdmin && profileId) {
+      query = query.eq('professional_id', profileId);
+    } else if (filterProfessional !== 'all') {
+      query = query.eq('professional_id', filterProfessional);
+    }
+
+    const { data } = await query;
+    setUpcomingAppointments(data || []);
+  };
 
   const fetchCollaborators = async () => {
     const { data } = await supabase
@@ -499,6 +527,7 @@ const Dashboard = () => {
 
     fetchAppointments();
     fetchWaitlistCount();
+    fetchUpcomingAppointments();
   };
 
   const registerDelay = async (minutes: number) => {
@@ -654,23 +683,26 @@ const Dashboard = () => {
 
   const renderUpcomingAppointments = () => {
     const now = new Date();
-    const todayAppts = appointments
-      .filter(a => a.status === 'confirmed' || a.status === 'completed')
-      .sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime());
 
-    const currentApt = todayAppts.find(
+    // Also check current view appointments for "in progress"
+    const currentApt = appointments.find(
       a => a.status === 'confirmed' && now >= parseISO(a.start_time) && now <= parseISO(a.end_time)
     );
-    const futureAppts = todayAppts.filter(a => parseISO(a.start_time) > now && a.status === 'confirmed');
-    const nextApt = futureAppts[0] || null;
-    const followingAppts = futureAppts.slice(1, 3);
 
-    const upcomingItems: { apt: any; label: string; icon: string; style: string }[] = [];
-    if (currentApt) upcomingItems.push({ apt: currentApt, label: 'Em atendimento', icon: '🔵', style: 'bg-blue-50 border-l-4 border-l-blue-500' });
-    if (nextApt) upcomingItems.push({ apt: nextApt, label: 'Próximo', icon: '⏭', style: 'bg-primary/5 border-l-4 border-l-primary' });
-    followingAppts.forEach(a => upcomingItems.push({ apt: a, label: 'Depois', icon: '🕒', style: 'bg-muted/50 border-l-4 border-l-muted-foreground' }));
+    const items: { apt: any; label: string; icon: string; style: string }[] = [];
+    if (currentApt) items.push({ apt: currentApt, label: 'Em atendimento', icon: '🔵', style: 'bg-primary/5 border-l-4 border-l-primary' });
 
-    if (upcomingItems.length === 0) return null;
+    // Add upcoming from dedicated query (limit to 3 total)
+    const remaining = 3 - items.length;
+    upcomingAppointments.slice(0, remaining).forEach((a, i) => {
+      if (currentApt && a.id === currentApt.id) return;
+      items.push({
+        apt: a,
+        label: i === 0 && !currentApt ? 'Próximo' : 'Depois',
+        icon: i === 0 && !currentApt ? '⏭' : '🕒',
+        style: i === 0 && !currentApt ? 'bg-primary/5 border-l-4 border-l-primary' : 'bg-muted/50 border-l-4 border-l-muted-foreground',
+      });
+    });
 
     return (
       <Card>
@@ -680,29 +712,36 @@ const Dashboard = () => {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="space-y-3">
-            {upcomingItems.map(({ apt, label, icon, style }) => (
-              <div key={apt.id} className={cn('flex items-center gap-4 p-4 rounded-xl border transition-shadow', style)}>
-                <div className="text-center min-w-[60px]">
-                  <p className="text-lg font-display font-bold">{format(parseISO(apt.start_time), 'HH:mm')}</p>
-                  <p className="text-xs text-muted-foreground">{format(parseISO(apt.end_time), 'HH:mm')}</p>
+          {items.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
+              <CalendarIcon className="h-10 w-10 mb-3 opacity-30" />
+              <p className="text-sm text-center">Não há atendimentos agendados para os próximos dias.</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {items.map(({ apt, label, icon, style }) => (
+                <div key={apt.id} className={cn('flex items-center gap-4 p-4 rounded-xl border transition-shadow', style)}>
+                  <div className="text-center min-w-[60px]">
+                    <p className="text-lg font-display font-bold">{format(parseISO(apt.start_time), 'HH:mm')}</p>
+                    <p className="text-[10px] text-muted-foreground">{format(parseISO(apt.start_time), 'dd/MM')}</p>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-semibold truncate">{apt.client_name || apt.client?.name || 'Cliente'}</p>
+                    <p className="text-sm text-muted-foreground truncate">
+                      {apt.appointment_services?.map((s: any) => s.service?.name).join(', ')}
+                    </p>
+                    {apt.promotion_id && (
+                      <span className="inline-flex items-center gap-1 text-xs font-medium px-1.5 py-0.5 rounded bg-accent/10 text-accent-foreground mt-0.5">🔥 Promoção</span>
+                    )}
+                    <p className="text-xs text-muted-foreground">com {apt.professional?.full_name}</p>
+                  </div>
+                  <Badge variant="outline" className="text-xs whitespace-nowrap shrink-0">
+                    {icon} {label}
+                  </Badge>
                 </div>
-                <div className="flex-1">
-                  <p className="font-semibold">{apt.client_name || apt.client?.name || 'Cliente'}</p>
-                  <p className="text-sm text-muted-foreground">
-                    {apt.appointment_services?.map((s: any) => s.service?.name).join(', ')}
-                  </p>
-                  {apt.promotion_id && (
-                    <span className="inline-flex items-center gap-1 text-xs font-medium px-1.5 py-0.5 rounded bg-orange-500/10 text-orange-500 mt-0.5">🔥 Promoção</span>
-                  )}
-                  <p className="text-xs text-muted-foreground">com {apt.professional?.full_name}</p>
-                </div>
-                <Badge variant="outline" className="text-xs whitespace-nowrap">
-                  {icon} {label}
-                </Badge>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
     );
@@ -1313,11 +1352,7 @@ const Dashboard = () => {
       <Dialog open={completeDialogOpen} onOpenChange={(open) => { setCompleteDialogOpen(open); if (!open) { setCompleteTarget(null); setCompletePaymentMethod('pix'); } }}>
         <DialogContent className="w-[92vw] max-w-sm">
           <DialogHeader>
-            <DialogTitle>
-              {completeTarget && new Date() < parseISO(completeTarget.start_time)
-                ? 'Este atendimento ainda não começou'
-                : 'Concluir atendimento'}
-            </DialogTitle>
+            <DialogTitle>Pagamento recebido?</DialogTitle>
             <DialogDescription>
               {completeTarget && (
                 <span className="block mt-1">
@@ -1365,7 +1400,7 @@ const Dashboard = () => {
                   setCompletePaymentMethod('pix');
                 }}
               >
-                {completeTarget && new Date() < parseISO(completeTarget.start_time) ? 'Concluir mesmo assim' : 'Concluir'}
+                Confirmar pagamento
               </Button>
             </div>
           </div>
