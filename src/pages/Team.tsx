@@ -428,6 +428,11 @@ const Team = () => {
               {collaborator.commission_type === 'none' && paymentLabel(collaborator.commission_type, collaborator.commission_value)}
             </Badge>
             {isDisabled && <Badge variant="destructive">Desabilitado</Badge>}
+            {!isDisabled && isCurrentlyAbsent(collaborator) && (
+              <Badge variant="secondary" className="flex items-center gap-1 bg-amber-100 text-amber-800 border-amber-300">
+                <CalendarOff className="h-3 w-3" /> {absenceTypeLabel((collaborator as any).absence_type)} até {(collaborator as any).absence_end}
+              </Badge>
+            )}
           </div>
 
           {isDisabled ? (
