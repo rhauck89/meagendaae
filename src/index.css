@@ -112,6 +112,12 @@
   .table-container {
     @apply w-full overflow-x-auto -mx-3 px-3 sm:mx-0 sm:px-0;
   }
+  .table-container table {
+    min-width: 600px;
+  }
+  .break-word {
+    word-break: break-word;
+  }
   .responsive-grid {
     @apply grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4;
   }
