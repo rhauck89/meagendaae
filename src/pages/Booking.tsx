@@ -1423,22 +1423,6 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                 )}
               </div>
               <div className="space-y-1.5">
-                <Label className="text-sm font-medium flex items-center gap-1.5" style={{ color: T.textSec }}><CreditCard className="h-3.5 w-3.5" /> CPF</Label>
-                <Input
-                  value={clientForm.cpf}
-                  onChange={(e) => {
-                    const digits = e.target.value.replace(/\D/g, '').slice(0, 11);
-                    let masked = digits;
-                    if (digits.length > 9) masked = `${digits.slice(0,3)}.${digits.slice(3,6)}.${digits.slice(6,9)}-${digits.slice(9)}`;
-                    else if (digits.length > 6) masked = `${digits.slice(0,3)}.${digits.slice(3,6)}.${digits.slice(6)}`;
-                    else if (digits.length > 3) masked = `${digits.slice(0,3)}.${digits.slice(3)}`;
-                    setClientForm({ ...clientForm, cpf: masked });
-                  }}
-                  placeholder="000.000.000-00" maxLength={14}
-                  className="rounded-xl h-12 text-base" style={{ background: T.card, border: `1px solid ${T.border}`, color: T.text }}
-                />
-              </div>
-              <div className="space-y-1.5">
                 <Label className="text-sm font-medium flex items-center gap-1.5" style={{ color: T.textSec }}><Mail className="h-3.5 w-3.5" /> Email (opcional)</Label>
                 <Input type="email" value={clientForm.email} onChange={(e) => setClientForm({ ...clientForm, email: e.target.value })} placeholder="seuemail@exemplo.com" className="rounded-xl h-12 text-base" style={{ background: T.card, border: `1px solid ${T.border}`, color: T.text }} />
               </div>
