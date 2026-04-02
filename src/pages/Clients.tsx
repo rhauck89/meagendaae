@@ -40,9 +40,69 @@ interface AppointmentRow {
 const Clients = () => {
   const { companyId } = useAuth();
   const { isAdmin, profileId } = useUserRole();
+  const queryClient = useQueryClient();
   const [search, setSearch] = useState('');
   const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
   const [showAllBirthdays, setShowAllBirthdays] = useState(false);
+
+  // Manual client registration state
+  const [addClientOpen, setAddClientOpen] = useState(false);
+  const [addClientSaving, setAddClientSaving] = useState(false);
+  const [addClientForm, setAddClientForm] = useState({ name: '', whatsapp: '', email: '', birth_date: '', notes: '' });
+  const [duplicateClient, setDuplicateClient] = useState<any>(null);
+  const [duplicateDialogOpen, setDuplicateDialogOpen] = useState(false);
+
+  const handleAddClient = async () => {
+    const name = addClientForm.name.trim();
+    const whatsapp = addClientForm.whatsapp.trim();
+    if (!name || !whatsapp) {
+      toast.error('Nome e WhatsApp são obrigatórios');
+      return;
+    }
+    if (name.length > 100) { toast.error('Nome deve ter no máximo 100 caracteres'); return; }
+    if (whatsapp.length > 20) { toast.error('WhatsApp inválido'); return; }
+
+    setAddClientSaving(true);
+    try {
+      // Check for existing client with same WhatsApp
+      const normalizedWa = whatsapp.replace(/\D/g, '');
+      const { data: existing } = await supabase
+        .from('clients')
+        .select('id, name, whatsapp')
+        .eq('company_id', companyId!)
+        .or(`whatsapp.eq.${normalizedWa},whatsapp.eq.55${normalizedWa},whatsapp.ilike.%${normalizedWa}%`)
+        .limit(1);
+
+      if (existing && existing.length > 0) {
+        setDuplicateClient(existing[0]);
+        setDuplicateDialogOpen(true);
+        setAddClientSaving(false);
+        return;
+      }
+
+      await insertClient();
+    } catch (err) {
+      toast.error('Erro ao cadastrar cliente');
+    } finally {
+      setAddClientSaving(false);
+    }
+  };
+
+  const insertClient = async () => {
+    const { formatWhatsApp } = await import('@/lib/whatsapp');
+    const { error } = await supabase.from('clients').insert({
+      company_id: companyId!,
+      name: addClientForm.name.trim(),
+      whatsapp: formatWhatsApp(addClientForm.whatsapp.trim()),
+      email: addClientForm.email.trim() || null,
+      birth_date: addClientForm.birth_date || null,
+    });
+    if (error) throw error;
+    queryClient.invalidateQueries({ queryKey: ['clients', companyId] });
+    toast.success('Cliente cadastrado com sucesso!');
+    setAddClientOpen(false);
+    setAddClientForm({ name: '', whatsapp: '', email: '', birth_date: '', notes: '' });
+  };
 
   // Fetch all clients
   const { data: clients = [], isLoading } = useQuery({
