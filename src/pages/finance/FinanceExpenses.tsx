@@ -11,11 +11,17 @@ import { Switch } from '@/components/ui/switch';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Trash2, RefreshCw } from 'lucide-react';
-import { format, addMonths, addWeeks, addYears } from 'date-fns';
+import { Plus, Trash2, RefreshCw, Pencil } from 'lucide-react';
+import { format, addMonths } from 'date-fns';
 import { toast } from 'sonner';
 
 const statusLabels: Record<string, string> = { pending: 'Pendente', paid: 'Pago', cancelled: 'Cancelado' };
+
+const emptyForm = () => ({
+  description: '', amount: '', expense_date: format(new Date(), 'yyyy-MM-dd'),
+  due_date: '', category_id: '', is_recurring: false, recurrence_type: 'monthly',
+  recurrence_interval: '1', notes: '', status: 'pending', installments: '1',
+});
 
 const FinanceExpenses = () => {
   const { companyId, user } = useAuth();
@@ -25,11 +31,8 @@ const FinanceExpenses = () => {
   const [submitting, setSubmitting] = useState(false);
   const [catOpen, setCatOpen] = useState(false);
   const [newCatName, setNewCatName] = useState('');
-  const [form, setForm] = useState({
-    description: '', amount: '', expense_date: format(new Date(), 'yyyy-MM-dd'),
-    due_date: '', category_id: '', is_recurring: false, recurrence_type: 'monthly',
-    recurrence_interval: '1', notes: '', status: 'pending', installments: '1',
-  });
+  const [form, setForm] = useState(emptyForm());
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   useEffect(() => { if (companyId) { fetchExpenses(); fetchCategories(); } }, [companyId]);
 
@@ -48,56 +51,110 @@ const FinanceExpenses = () => {
     if (data) setCategories(data);
   };
 
+  const createInstallments = (baseForm: typeof form): any[] => {
+    const installments = Math.max(1, parseInt(baseForm.installments) || 1);
+    const baseAmount = parseFloat(baseForm.amount);
+    const installmentAmount = installments > 1 ? baseAmount / installments : baseAmount;
+    const baseDueDate = baseForm.due_date || baseForm.expense_date;
+    const groupId = installments > 1 ? crypto.randomUUID() : null;
+
+    const entries = [];
+    for (let i = 0; i < installments; i++) {
+      let dueDate = baseDueDate;
+      if (i > 0) {
+        const base = new Date(baseDueDate + 'T12:00:00');
+        dueDate = format(addMonths(base, i), 'yyyy-MM-dd');
+      }
+      entries.push({
+        company_id: companyId!,
+        description: installments > 1 ? `${baseForm.description} (${i + 1}/${installments})` : baseForm.description,
+        amount: Math.round(installmentAmount * 100) / 100,
+        expense_date: i === 0 ? baseForm.expense_date : dueDate,
+        due_date: dueDate || null,
+        status: i === 0 ? baseForm.status : 'pending',
+        category_id: baseForm.category_id && baseForm.category_id !== 'none' ? baseForm.category_id : null,
+        is_recurring: baseForm.is_recurring,
+        recurrence_type: baseForm.is_recurring ? baseForm.recurrence_type : null,
+        recurrence_interval: baseForm.is_recurring ? parseInt(baseForm.recurrence_interval) : null,
+        notes: baseForm.notes || null,
+        created_by: user?.id,
+        installment_number: installments > 1 ? i + 1 : null,
+        total_installments: installments > 1 ? installments : null,
+        installment_group_id: groupId,
+      });
+    }
+    return entries;
+  };
+
   const handleSubmit = async () => {
     if (submitting) return;
     if (!form.description || !form.amount) { toast.error('Preencha descrição e valor'); return; }
     setSubmitting(true);
     try {
-      const installments = parseInt(form.installments) || 1;
-      const baseAmount = parseFloat(form.amount);
-      const installmentAmount = installments > 1 ? baseAmount / installments : baseAmount;
-      const baseDueDate = form.due_date || form.expense_date;
-
-      const entries = [];
-      for (let i = 0; i < installments; i++) {
-        let dueDate = baseDueDate;
-        if (i > 0) {
-          const base = new Date(baseDueDate + 'T12:00:00');
-          const next = addMonths(base, i);
-          dueDate = format(next, 'yyyy-MM-dd');
-        }
-        entries.push({
-          company_id: companyId!,
-          description: installments > 1 ? `${form.description} (${i + 1}/${installments})` : form.description,
-          amount: Math.round(installmentAmount * 100) / 100,
-          expense_date: i === 0 ? form.expense_date : dueDate,
-          due_date: dueDate || null,
-          status: i === 0 ? form.status : 'pending',
+      if (editingId) {
+        // Update single expense
+        const { error } = await supabase.from('company_expenses').update({
+          description: form.description,
+          amount: parseFloat(form.amount),
+          expense_date: form.expense_date,
+          due_date: form.due_date || null,
+          status: form.status,
           category_id: form.category_id && form.category_id !== 'none' ? form.category_id : null,
           is_recurring: form.is_recurring,
           recurrence_type: form.is_recurring ? form.recurrence_type : null,
           recurrence_interval: form.is_recurring ? parseInt(form.recurrence_interval) : null,
           notes: form.notes || null,
-          created_by: user?.id,
-          installment_number: installments > 1 ? i + 1 : null,
-          total_installments: installments > 1 ? installments : null,
-        });
+        }).eq('id', editingId);
+        if (error) { toast.error('Erro ao atualizar'); return; }
+        toast.success('Despesa atualizada');
+      } else {
+        // Create new (with installments)
+        const entries = createInstallments(form);
+        const { error } = await supabase.from('company_expenses').insert(entries);
+        if (error) { toast.error('Erro ao salvar'); return; }
+        const count = entries.length;
+        toast.success(count > 1 ? `${count} parcelas criadas` : 'Despesa registrada');
       }
-
-      const { error } = await supabase.from('company_expenses').insert(entries);
-      if (error) { toast.error('Erro ao salvar'); return; }
-      toast.success(installments > 1 ? `${installments} parcelas criadas` : 'Despesa registrada');
-      setOpen(false);
-      setForm({ description: '', amount: '', expense_date: format(new Date(), 'yyyy-MM-dd'), due_date: '', category_id: '', is_recurring: false, recurrence_type: 'monthly', recurrence_interval: '1', notes: '', status: 'pending', installments: '1' });
+      closeDialog();
       fetchExpenses();
     } finally {
       setSubmitting(false);
     }
   };
 
+  const closeDialog = () => {
+    setOpen(false);
+    setEditingId(null);
+    setForm(emptyForm());
+  };
+
+  const openEdit = (e: any) => {
+    setEditingId(e.id);
+    setForm({
+      description: e.description,
+      amount: String(e.amount),
+      expense_date: e.expense_date,
+      due_date: e.due_date || '',
+      category_id: e.category_id || '',
+      is_recurring: e.is_recurring,
+      recurrence_type: e.recurrence_type || 'monthly',
+      recurrence_interval: String(e.recurrence_interval || 1),
+      notes: e.notes || '',
+      status: e.status,
+      installments: '1',
+    });
+    setOpen(true);
+  };
+
   const handleDelete = async (id: string) => {
     await supabase.from('company_expenses').delete().eq('id', id);
     toast.success('Despesa removida');
+    fetchExpenses();
+  };
+
+  const handleDeleteGroup = async (groupId: string) => {
+    await supabase.from('company_expenses').delete().eq('installment_group_id', groupId);
+    toast.success('Grupo de parcelas removido');
     fetchExpenses();
   };
 
@@ -119,12 +176,12 @@ const FinanceExpenses = () => {
           <h2 className="text-xl font-display font-bold">Despesas</h2>
           <p className="text-sm text-muted-foreground">Gerencie as despesas da empresa</p>
         </div>
-        <Dialog open={open} onOpenChange={setOpen}>
+        <Dialog open={open} onOpenChange={v => { if (!v) closeDialog(); else setOpen(true); }}>
           <DialogTrigger asChild>
             <Button><Plus className="h-4 w-4 mr-2" /> Nova Despesa</Button>
           </DialogTrigger>
           <DialogContent className="w-[92vw] max-w-md">
-            <DialogHeader><DialogTitle>Nova Despesa</DialogTitle></DialogHeader>
+            <DialogHeader><DialogTitle>{editingId ? 'Editar Despesa' : 'Nova Despesa'}</DialogTitle></DialogHeader>
             <div className="space-y-4">
               <div><Label>Descrição</Label><Input value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} /></div>
               <div><Label>Valor (R$)</Label><Input type="number" step="0.01" value={form.amount} onChange={e => setForm(f => ({ ...f, amount: e.target.value }))} /></div>
@@ -140,10 +197,13 @@ const FinanceExpenses = () => {
                     <SelectContent>
                       <SelectItem value="pending">Pendente</SelectItem>
                       <SelectItem value="paid">Pago</SelectItem>
+                      <SelectItem value="cancelled">Cancelado</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
-                <div><Label>Parcelas</Label><Input type="number" min="1" max="60" value={form.installments} onChange={e => setForm(f => ({ ...f, installments: e.target.value }))} /></div>
+                {!editingId && (
+                  <div><Label>Parcelas</Label><Input type="number" min="1" max="60" value={form.installments} onChange={e => setForm(f => ({ ...f, installments: e.target.value }))} /></div>
+                )}
               </div>
               <div>
                 <div className="flex items-center justify-between mb-1">
@@ -160,11 +220,13 @@ const FinanceExpenses = () => {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="flex items-center gap-2">
-                <Switch checked={form.is_recurring} onCheckedChange={v => setForm(f => ({ ...f, is_recurring: v }))} />
-                <Label>Recorrente</Label>
-              </div>
-              {form.is_recurring && (
+              {!editingId && (
+                <div className="flex items-center gap-2">
+                  <Switch checked={form.is_recurring} onCheckedChange={v => setForm(f => ({ ...f, is_recurring: v }))} />
+                  <Label>Recorrente</Label>
+                </div>
+              )}
+              {!editingId && form.is_recurring && (
                 <div className="grid grid-cols-2 gap-2">
                   <div>
                     <Label>Frequência</Label>
@@ -208,7 +270,7 @@ const FinanceExpenses = () => {
                   <TableHead>Categoria</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead className="text-right">Valor</TableHead>
-                  <TableHead className="w-10"></TableHead>
+                  <TableHead className="w-20">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -217,15 +279,30 @@ const FinanceExpenses = () => {
                 ) : expenses.map(e => (
                   <TableRow key={e.id}>
                     <TableCell>{format(new Date(e.expense_date + 'T12:00:00'), 'dd/MM/yyyy')}</TableCell>
-                    <TableCell className="flex items-center gap-2">
-                      {e.is_recurring && <RefreshCw className="h-3.5 w-3.5 text-muted-foreground shrink-0" />}
-                      {e.description}
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        {e.is_recurring && <RefreshCw className="h-3.5 w-3.5 text-muted-foreground shrink-0" />}
+                        <span>{e.description}</span>
+                      </div>
                     </TableCell>
                     <TableCell className="text-muted-foreground">{e.category?.name || '—'}</TableCell>
                     <TableCell><Badge variant="outline" className="text-xs">{statusLabels[e.status] || e.status}</Badge></TableCell>
                     <TableCell className="text-right font-semibold text-destructive">R$ {Number(e.amount).toFixed(2)}</TableCell>
                     <TableCell>
-                      <Button variant="ghost" size="icon" onClick={() => handleDelete(e.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                      <div className="flex gap-1">
+                        <Button variant="ghost" size="icon" onClick={() => openEdit(e)} title="Editar"><Pencil className="h-4 w-4" /></Button>
+                        <Button variant="ghost" size="icon" onClick={() => {
+                          if (e.installment_group_id && e.total_installments && e.total_installments > 1) {
+                            if (confirm('Deseja excluir todas as parcelas deste grupo?')) {
+                              handleDeleteGroup(e.installment_group_id);
+                            } else {
+                              handleDelete(e.id);
+                            }
+                          } else {
+                            handleDelete(e.id);
+                          }
+                        }}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}

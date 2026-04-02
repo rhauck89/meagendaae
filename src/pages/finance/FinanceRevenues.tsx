@@ -10,23 +10,27 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Trash2 } from 'lucide-react';
+import { Plus, Trash2, Pencil } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 
 const statusLabels: Record<string, string> = { pending: 'Pendente', received: 'Recebido', cancelled: 'Cancelado' };
+
+const emptyForm = () => ({
+  description: '', amount: '', revenue_date: format(new Date(), 'yyyy-MM-dd'),
+  due_date: '', category_id: '', notes: '', status: 'received',
+});
 
 const FinanceRevenues = () => {
   const { companyId, user } = useAuth();
   const [revenues, setRevenues] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
   const [open, setOpen] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const [catOpen, setCatOpen] = useState(false);
   const [newCatName, setNewCatName] = useState('');
-  const [form, setForm] = useState({
-    description: '', amount: '', revenue_date: format(new Date(), 'yyyy-MM-dd'),
-    due_date: '', category_id: '', notes: '', status: 'received',
-  });
+  const [form, setForm] = useState(emptyForm());
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   useEffect(() => { if (companyId) { fetchRevenues(); fetchCategories(); } }, [companyId]);
 
@@ -46,24 +50,59 @@ const FinanceRevenues = () => {
   };
 
   const handleSubmit = async () => {
+    if (submitting) return;
     if (!form.description || !form.amount) { toast.error('Preencha descrição e valor'); return; }
-    const { error } = await supabase.from('company_revenues').insert({
-      company_id: companyId!,
-      description: form.description,
-      amount: parseFloat(form.amount),
-      revenue_date: form.revenue_date,
-      due_date: form.due_date || null,
-      status: form.status,
-      category_id: form.category_id && form.category_id !== 'none' ? form.category_id : null,
-      is_automatic: false,
-      notes: form.notes || null,
-      created_by: user?.id,
-    });
-    if (error) { toast.error('Erro ao salvar'); return; }
-    toast.success('Receita registrada');
+    setSubmitting(true);
+    try {
+      const payload = {
+        description: form.description,
+        amount: parseFloat(form.amount),
+        revenue_date: form.revenue_date,
+        due_date: form.due_date || null,
+        status: form.status,
+        category_id: form.category_id && form.category_id !== 'none' ? form.category_id : null,
+        notes: form.notes || null,
+      };
+
+      if (editingId) {
+        const { error } = await supabase.from('company_revenues').update(payload).eq('id', editingId);
+        if (error) { toast.error('Erro ao atualizar'); return; }
+        toast.success('Receita atualizada');
+      } else {
+        const { error } = await supabase.from('company_revenues').insert({
+          ...payload,
+          company_id: companyId!,
+          is_automatic: false,
+          created_by: user?.id,
+        });
+        if (error) { toast.error('Erro ao salvar'); return; }
+        toast.success('Receita registrada');
+      }
+      closeDialog();
+      fetchRevenues();
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const closeDialog = () => {
     setOpen(false);
-    setForm({ description: '', amount: '', revenue_date: format(new Date(), 'yyyy-MM-dd'), due_date: '', category_id: '', notes: '', status: 'received' });
-    fetchRevenues();
+    setEditingId(null);
+    setForm(emptyForm());
+  };
+
+  const openEdit = (r: any) => {
+    setEditingId(r.id);
+    setForm({
+      description: r.description,
+      amount: String(r.amount),
+      revenue_date: r.revenue_date,
+      due_date: r.due_date || '',
+      category_id: r.category_id || '',
+      notes: r.notes || '',
+      status: r.status,
+    });
+    setOpen(true);
   };
 
   const handleDelete = async (id: string) => {
@@ -90,12 +129,12 @@ const FinanceRevenues = () => {
           <h2 className="text-xl font-display font-bold">Receitas</h2>
           <p className="text-sm text-muted-foreground">Receitas automáticas e manuais</p>
         </div>
-        <Dialog open={open} onOpenChange={setOpen}>
+        <Dialog open={open} onOpenChange={v => { if (!v) closeDialog(); else setOpen(true); }}>
           <DialogTrigger asChild>
             <Button><Plus className="h-4 w-4 mr-2" /> Nova Receita</Button>
           </DialogTrigger>
           <DialogContent className="w-[92vw] max-w-md">
-            <DialogHeader><DialogTitle>Nova Receita Manual</DialogTitle></DialogHeader>
+            <DialogHeader><DialogTitle>{editingId ? 'Editar Receita' : 'Nova Receita Manual'}</DialogTitle></DialogHeader>
             <div className="space-y-4">
               <div><Label>Descrição</Label><Input value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} /></div>
               <div><Label>Valor (R$)</Label><Input type="number" step="0.01" value={form.amount} onChange={e => setForm(f => ({ ...f, amount: e.target.value }))} /></div>
@@ -110,6 +149,7 @@ const FinanceRevenues = () => {
                   <SelectContent>
                     <SelectItem value="pending">Pendente</SelectItem>
                     <SelectItem value="received">Recebido</SelectItem>
+                    <SelectItem value="cancelled">Cancelado</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -129,7 +169,7 @@ const FinanceRevenues = () => {
                 </Select>
               </div>
               <div><Label>Observações</Label><Textarea value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} /></div>
-              <Button onClick={handleSubmit} className="w-full">Salvar</Button>
+              <Button onClick={handleSubmit} className="w-full" disabled={submitting}>{submitting ? 'Salvando...' : 'Salvar'}</Button>
             </div>
           </DialogContent>
         </Dialog>
@@ -157,7 +197,7 @@ const FinanceRevenues = () => {
                   <TableHead>Tipo</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead className="text-right">Valor</TableHead>
-                  <TableHead className="w-10"></TableHead>
+                  <TableHead className="w-20">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -176,9 +216,14 @@ const FinanceRevenues = () => {
                     <TableCell><Badge variant="outline" className="text-xs">{statusLabels[r.status] || r.status}</Badge></TableCell>
                     <TableCell className="text-right font-semibold text-success">R$ {Number(r.amount).toFixed(2)}</TableCell>
                     <TableCell>
-                      {!r.is_automatic && (
-                        <Button variant="ghost" size="icon" onClick={() => handleDelete(r.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
-                      )}
+                      <div className="flex gap-1">
+                        {!r.is_automatic && (
+                          <Button variant="ghost" size="icon" onClick={() => openEdit(r)} title="Editar"><Pencil className="h-4 w-4" /></Button>
+                        )}
+                        {!r.is_automatic && (
+                          <Button variant="ghost" size="icon" onClick={() => handleDelete(r.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                        )}
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}
