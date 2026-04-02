@@ -102,8 +102,16 @@ const TenantRoutes = ({ slug, businessType }: { slug: string; businessType: stri
 
 const PlatformRoutes = () => (
   <Routes>
-    <Route path="/" element={<Index />} />
+    <Route path="/" element={<MarketplaceHome />} />
     <Route path="/profissionais" element={<LandingProfissionais />} />
+    <Route path="/barbeiros" element={<MarketplaceCategory />} />
+    <Route path="/esteticistas" element={<MarketplaceCategory />} />
+    <Route path="/salao-de-beleza" element={<MarketplaceCategory />} />
+    <Route path="/clinica-estetica" element={<MarketplaceCategory />} />
+    <Route path="/barbeiro/:slug" element={<BarbershopLanding routeBusinessType="barbershop" />} />
+    <Route path="/esteticista/:slug" element={<BarbershopLanding routeBusinessType="esthetic" />} />
+    <Route path="/salao/:slug" element={<BarbershopLanding routeBusinessType="esthetic" />} />
+    <Route path="/clinica/:slug" element={<BarbershopLanding routeBusinessType="esthetic" />} />
     <Route path="/auth" element={<Auth />} />
     <Route path="/forgot-password" element={<ForgotPassword />} />
     <Route path="/reset-password" element={<ResetPassword />} />
