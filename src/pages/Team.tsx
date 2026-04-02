@@ -7,8 +7,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Plus, Users, Percent, DollarSign, Settings, Copy, ExternalLink, Mail, KeyRound, MessageCircle } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Plus, Users, Percent, DollarSign, Settings, Copy, ExternalLink, Mail, KeyRound, MessageCircle, Pencil, UserX, UserCheck, Trash2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import ProfessionalPanel from '@/components/ProfessionalPanel';
@@ -25,6 +27,20 @@ const Team = () => {
   const [inviteCredentials, setInviteCredentials] = useState<{ email: string; password: string } | null>(null);
   const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
   const [loadingAction, setLoadingAction] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState('active');
+
+  // Edit modal state
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [editTarget, setEditTarget] = useState<any>(null);
+  const [editForm, setEditForm] = useState({ name: '', email: '', collaborator_type: 'commissioned' as string, commission_type: 'percentage' as string, commission_value: 0 });
+
+  // Disable/Delete confirm state
+  const [disableDialogOpen, setDisableDialogOpen] = useState(false);
+  const [disableTarget, setDisableTarget] = useState<any>(null);
+  const [cannotDeleteDialogOpen, setCannotDeleteDialogOpen] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<any>(null);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+
   const [form, setForm] = useState({
     name: '',
     email: '',
@@ -65,6 +81,9 @@ const Team = () => {
       return data ?? [];
     },
   });
+
+  const activeCollaborators = collaborators.filter((c) => c.active !== false);
+  const disabledCollaborators = collaborators.filter((c) => c.active === false);
 
   const resetForm = () => {
     setForm({
@@ -191,6 +210,105 @@ const Team = () => {
     }
   };
 
+  const openEditDialog = (collaborator: any) => {
+    setEditTarget(collaborator);
+    setEditForm({
+      name: collaborator.profile?.full_name || '',
+      email: collaborator.profile?.email || '',
+      collaborator_type: collaborator.collaborator_type || 'commissioned',
+      commission_type: collaborator.commission_type || 'none',
+      commission_value: collaborator.commission_value || 0,
+    });
+    setEditDialogOpen(true);
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editTarget) return;
+    if (!editForm.name.trim()) return toast.error('Nome é obrigatório');
+
+    try {
+      // Update profile
+      await supabase
+        .from('profiles')
+        .update({ full_name: editForm.name.trim(), email: editForm.email.trim() })
+        .eq('id', editTarget.profile_id);
+
+      // Update collaborator
+      const commissionType = editForm.commission_type as 'percentage' | 'fixed' | 'none';
+      await supabase
+        .from('collaborators')
+        .update({
+          collaborator_type: editForm.collaborator_type as any,
+          commission_type: commissionType,
+          commission_value: commissionType === 'none' ? 0 : editForm.commission_value,
+        } as any)
+        .eq('id', editTarget.id);
+
+      toast.success('Profissional atualizado!');
+      setEditDialogOpen(false);
+      await refreshTeam();
+    } catch (err: any) {
+      toast.error(err.message || 'Erro ao atualizar');
+    }
+  };
+
+  const handleDisable = async (collaborator: any) => {
+    try {
+      await supabase
+        .from('collaborators')
+        .update({ active: false } as any)
+        .eq('id', collaborator.id);
+      toast.success('Profissional desabilitado');
+      setDisableDialogOpen(false);
+      await refreshTeam();
+    } catch (err: any) {
+      toast.error(err.message || 'Erro ao desabilitar');
+    }
+  };
+
+  const handleEnable = async (collaborator: any) => {
+    try {
+      await supabase
+        .from('collaborators')
+        .update({ active: true } as any)
+        .eq('id', collaborator.id);
+      toast.success('Profissional reabilitado!');
+      await refreshTeam();
+    } catch (err: any) {
+      toast.error(err.message || 'Erro ao reabilitar');
+    }
+  };
+
+  const handleDeleteAttempt = async (collaborator: any) => {
+    // Check if professional has appointments
+    const { count } = await supabase
+      .from('appointments')
+      .select('id', { count: 'exact', head: true })
+      .eq('professional_id', collaborator.profile_id);
+
+    if (count && count > 0) {
+      setDeleteTarget(collaborator);
+      setCannotDeleteDialogOpen(true);
+    } else {
+      setDeleteTarget(collaborator);
+      setDeleteConfirmOpen(true);
+    }
+  };
+
+  const handleDeleteConfirmed = async () => {
+    if (!deleteTarget) return;
+    try {
+      // Delete collaborator record
+      await supabase.from('collaborators').delete().eq('id', deleteTarget.id);
+      toast.success('Profissional excluído');
+      setDeleteConfirmOpen(false);
+      setDeleteTarget(null);
+      await refreshTeam();
+    } catch (err: any) {
+      toast.error(err.message || 'Erro ao excluir');
+    }
+  };
+
   const copyToClipboard = (text: string, label: string) => {
     navigator.clipboard.writeText(text);
     toast.success(`${label} copiado!`);
@@ -207,6 +325,116 @@ const Team = () => {
     const businessPrefix = company.business_type === 'esthetic' ? 'estetica' : 'barbearia';
     const slug = collaborator.slug || generateSlug(collaborator.profile?.full_name || '');
     return `${window.location.origin}/perfil/${businessPrefix}/${company.slug}/${slug}`;
+  };
+
+  const renderCollaboratorCard = (collaborator: any, isDisabled: boolean) => {
+    const profileLink = getCollaboratorProfileLink(collaborator);
+    return (
+      <Card key={collaborator.id} className={isDisabled ? 'opacity-60' : ''}>
+        <CardContent className="p-5 space-y-3">
+          <div className="flex items-center gap-4">
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 font-bold text-primary shrink-0">
+              {collaborator.profile?.full_name?.charAt(0)?.toUpperCase() || '?'}
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="font-semibold">{collaborator.profile?.full_name}</p>
+              <p className="text-sm text-muted-foreground">{collaborator.profile?.email}</p>
+            </div>
+            {!isDisabled && (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => { setSelectedCollaborator(collaborator); setPanelOpen(true); }}
+              >
+                <Settings className="h-4 w-4" />
+              </Button>
+            )}
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <Badge variant="outline">
+              {collaborator.collaborator_type === 'partner' ? 'Sócio' : collaborator.collaborator_type === 'independent' ? 'Independente' : 'Comissionado'}
+            </Badge>
+            <Badge variant="secondary" className="flex items-center gap-1">
+              {collaborator.commission_type === 'percentage' && <><Percent className="h-3 w-3" /> {paymentLabel(collaborator.commission_type, collaborator.commission_value)}</>}
+              {collaborator.commission_type === 'fixed' && <><DollarSign className="h-3 w-3" /> {paymentLabel(collaborator.commission_type, collaborator.commission_value)}</>}
+              {collaborator.commission_type === 'none' && paymentLabel(collaborator.commission_type, collaborator.commission_value)}
+            </Badge>
+            {isDisabled && <Badge variant="destructive">Desabilitado</Badge>}
+          </div>
+
+          {isDisabled ? (
+            <div className="flex items-center gap-2">
+              <Button variant="outline" size="sm" className="flex-1" onClick={() => handleEnable(collaborator)}>
+                <UserCheck className="mr-1.5 h-3.5 w-3.5" /> Reabilitar
+              </Button>
+              <Button variant="destructive" size="sm" className="flex-1" onClick={() => handleDeleteAttempt(collaborator)}>
+                <Trash2 className="mr-1.5 h-3.5 w-3.5" /> Excluir
+              </Button>
+            </div>
+          ) : (
+            <>
+              {/* Edit & Disable */}
+              <div className="flex items-center gap-2">
+                <Button variant="outline" size="sm" className="flex-1" onClick={() => openEditDialog(collaborator)}>
+                  <Pencil className="mr-1.5 h-3.5 w-3.5" /> Editar
+                </Button>
+                <Button variant="outline" size="sm" className="flex-1" onClick={() => { setDisableTarget(collaborator); setDisableDialogOpen(true); }}>
+                  <UserX className="mr-1.5 h-3.5 w-3.5" /> Desabilitar
+                </Button>
+              </div>
+
+              {/* Access management */}
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="flex-1"
+                  disabled={loadingAction === `invite-${collaborator.id}`}
+                  onClick={() => handleSendInvite(collaborator)}
+                >
+                  <Mail className="mr-1.5 h-3.5 w-3.5" />
+                  {loadingAction === `invite-${collaborator.id}` ? 'Gerando...' : 'Enviar convite'}
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="flex-1"
+                  disabled={loadingAction === `reset-${collaborator.id}`}
+                  onClick={() => handleResetPassword(collaborator)}
+                >
+                  <KeyRound className="mr-1.5 h-3.5 w-3.5" />
+                  {loadingAction === `reset-${collaborator.id}` ? 'Enviando...' : 'Resetar senha'}
+                </Button>
+              </div>
+
+              {profileLink && (
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="flex-[7]"
+                    onClick={() => window.open(profileLink, '_blank')}
+                  >
+                    <ExternalLink className="mr-1.5 h-3.5 w-3.5" /> Ver página pública
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="flex-[3]"
+                    onClick={() => {
+                      navigator.clipboard.writeText(profileLink);
+                      toast.success('Link do profissional copiado');
+                    }}
+                  >
+                    <Copy className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+              )}
+            </>
+          )}
+        </CardContent>
+      </Card>
+    );
   };
 
   return (
@@ -357,97 +585,147 @@ const Team = () => {
         </Dialog>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-        {collaborators.map((collaborator) => {
-          const profileLink = getCollaboratorProfileLink(collaborator);
-          return (
-            <Card key={collaborator.id}>
-              <CardContent className="p-5 space-y-3">
-                <div className="flex items-center gap-4">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 font-bold text-primary shrink-0">
-                    {collaborator.profile?.full_name?.charAt(0)?.toUpperCase() || '?'}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-semibold">{collaborator.profile?.full_name}</p>
-                    <p className="text-sm text-muted-foreground">{collaborator.profile?.email}</p>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => { setSelectedCollaborator(collaborator); setPanelOpen(true); }}
-                  >
-                    <Settings className="h-4 w-4" />
-                  </Button>
-                </div>
-                <div className="flex flex-wrap items-center gap-2">
-                  <Badge variant="outline">
-                    {collaborator.collaborator_type === 'partner' ? 'Sócio' : collaborator.collaborator_type === 'independent' ? 'Independente' : 'Comissionado'}
-                  </Badge>
-                  <Badge variant="secondary" className="flex items-center gap-1">
-                    {collaborator.commission_type === 'percentage' && <><Percent className="h-3 w-3" /> {paymentLabel(collaborator.commission_type, collaborator.commission_value)}</>}
-                    {collaborator.commission_type === 'fixed' && <><DollarSign className="h-3 w-3" /> {paymentLabel(collaborator.commission_type, collaborator.commission_value)}</>}
-                    {collaborator.commission_type === 'none' && paymentLabel(collaborator.commission_type, collaborator.commission_value)}
-                  </Badge>
-                </div>
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <TabsList>
+          <TabsTrigger value="active">Ativos ({activeCollaborators.length})</TabsTrigger>
+          <TabsTrigger value="disabled">Desabilitados ({disabledCollaborators.length})</TabsTrigger>
+        </TabsList>
 
-                {/* Access management buttons */}
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="flex-1"
-                    disabled={loadingAction === `invite-${collaborator.id}`}
-                    onClick={() => handleSendInvite(collaborator)}
-                  >
-                    <Mail className="mr-1.5 h-3.5 w-3.5" />
-                    {loadingAction === `invite-${collaborator.id}` ? 'Gerando...' : 'Enviar convite'}
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="flex-1"
-                    disabled={loadingAction === `reset-${collaborator.id}`}
-                    onClick={() => handleResetPassword(collaborator)}
-                  >
-                    <KeyRound className="mr-1.5 h-3.5 w-3.5" />
-                    {loadingAction === `reset-${collaborator.id}` ? 'Enviando...' : 'Resetar senha'}
-                  </Button>
-                </div>
-
-                {profileLink && (
-                  <div className="flex items-center gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="flex-[7]"
-                      onClick={() => window.open(profileLink, '_blank')}
-                    >
-                      <ExternalLink className="mr-1.5 h-3.5 w-3.5" /> Ver página pública
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="flex-[3]"
-                      onClick={() => {
-                        navigator.clipboard.writeText(profileLink);
-                        toast.success('Link do profissional copiado');
-                      }}
-                    >
-                      <Copy className="h-3.5 w-3.5" />
-                    </Button>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          );
-        })}
-        {collaborators.length === 0 && (
-          <div className="col-span-full py-12 text-center text-muted-foreground">
-            <Users className="mx-auto mb-3 h-12 w-12 opacity-40" />
-            <p>Nenhum profissional cadastrado</p>
+        <TabsContent value="active">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            {activeCollaborators.map((c) => renderCollaboratorCard(c, false))}
+            {activeCollaborators.length === 0 && (
+              <div className="col-span-full py-12 text-center text-muted-foreground">
+                <Users className="mx-auto mb-3 h-12 w-12 opacity-40" />
+                <p>Nenhum profissional ativo</p>
+              </div>
+            )}
           </div>
-        )}
-      </div>
+        </TabsContent>
+
+        <TabsContent value="disabled">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            {disabledCollaborators.map((c) => renderCollaboratorCard(c, true))}
+            {disabledCollaborators.length === 0 && (
+              <div className="col-span-full py-12 text-center text-muted-foreground">
+                <Users className="mx-auto mb-3 h-12 w-12 opacity-40" />
+                <p>Nenhum profissional desabilitado</p>
+              </div>
+            )}
+          </div>
+        </TabsContent>
+      </Tabs>
+
+      {/* Edit Professional Dialog */}
+      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Editar Profissional</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Nome</Label>
+              <Input value={editForm.name} onChange={(e) => setEditForm({ ...editForm, name: e.target.value })} />
+            </div>
+            <div className="space-y-2">
+              <Label>Email</Label>
+              <Input type="email" value={editForm.email} onChange={(e) => setEditForm({ ...editForm, email: e.target.value })} />
+            </div>
+            <div className="space-y-2">
+              <Label>Tipo</Label>
+              <Select value={editForm.collaborator_type} onValueChange={(v) => setEditForm({ ...editForm, collaborator_type: v })}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="partner">Sócio</SelectItem>
+                  <SelectItem value="commissioned">Comissionado</SelectItem>
+                  <SelectItem value="independent">Independente</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Forma de comissão</Label>
+              <Select value={editForm.commission_type} onValueChange={(v) => setEditForm({ ...editForm, commission_type: v })}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="percentage">Percentual</SelectItem>
+                  <SelectItem value="fixed">Valor fixo</SelectItem>
+                  <SelectItem value="none">Sem comissão</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            {editForm.commission_type === 'percentage' && (
+              <div className="space-y-2">
+                <Label>Comissão (%)</Label>
+                <Input type="number" value={editForm.commission_value} onChange={(e) => setEditForm({ ...editForm, commission_value: parseFloat(e.target.value) || 0 })} />
+              </div>
+            )}
+            {editForm.commission_type === 'fixed' && (
+              <div className="space-y-2">
+                <Label>Valor por serviço (R$)</Label>
+                <Input type="number" step="0.01" value={editForm.commission_value} onChange={(e) => setEditForm({ ...editForm, commission_value: parseFloat(e.target.value) || 0 })} />
+              </div>
+            )}
+            <div className="flex gap-2">
+              <Button variant="outline" className="flex-1" onClick={() => setEditDialogOpen(false)}>Cancelar</Button>
+              <Button className="flex-1" onClick={handleSaveEdit}>Salvar</Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Disable Confirmation */}
+      <AlertDialog open={disableDialogOpen} onOpenChange={setDisableDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Desabilitar profissional?</AlertDialogTitle>
+            <AlertDialogDescription>
+              O profissional não aparecerá na agenda, não poderá receber novos agendamentos e ficará oculto na página pública. O histórico será mantido.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={() => disableTarget && handleDisable(disableTarget)}>
+              Desabilitar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Cannot Delete Dialog */}
+      <AlertDialog open={cannotDeleteDialogOpen} onOpenChange={setCannotDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Não é possível excluir</AlertDialogTitle>
+            <AlertDialogDescription>
+              Este profissional não pode ser excluído porque já possui registros no sistema. Para manter a integridade dos relatórios e histórico financeiro, utilize a opção "Desabilitar profissional".
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={() => { setCannotDeleteDialogOpen(false); if (deleteTarget) handleDisable(deleteTarget); }}>
+              Desabilitar profissional
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Delete Confirmation */}
+      <AlertDialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir profissional?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta ação não pode ser desfeita. O profissional será removido permanentemente do sistema.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteConfirmed} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Invite credentials dialog */}
       <Dialog open={inviteDialogOpen} onOpenChange={setInviteDialogOpen}>
