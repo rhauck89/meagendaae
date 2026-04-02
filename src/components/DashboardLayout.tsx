@@ -7,7 +7,7 @@ import { useCompanyBrandInfo } from '@/hooks/useCompanyBrandInfo';
 import {
   Calendar, Scissors, Users, Settings, LogOut, Menu, X, User, UserCheck,
   PartyPopper, Megaphone, MessageSquare, ChevronDown, Building2, Clock, Zap, Palette, Globe, CreditCard, Bell, HelpCircle, Info, AlertTriangle,
-  DollarSign, ArrowUpDown, TrendingUp, TrendingDown, FolderOpen, Percent, FileBarChart,
+  DollarSign, ArrowUpDown, TrendingUp, TrendingDown, FolderOpen, Percent, FileBarChart, Receipt, HandCoins,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useState } from 'react';
@@ -49,6 +49,8 @@ const financeSubItems = [
   { href: '/dashboard/finance/expenses', icon: TrendingDown, label: 'Despesas' },
   { href: '/dashboard/finance/categories', icon: FolderOpen, label: 'Categorias' },
   { href: '/dashboard/finance/commissions', icon: Percent, label: 'Comissões' },
+  { href: '/dashboard/finance/payables', icon: Receipt, label: 'Contas a Pagar' },
+  { href: '/dashboard/finance/receivables', icon: HandCoins, label: 'Contas a Receber' },
   { href: '/dashboard/finance/reports', icon: FileBarChart, label: 'Relatórios' },
 ];
 

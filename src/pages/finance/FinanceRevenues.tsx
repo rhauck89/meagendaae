@@ -14,6 +14,8 @@ import { Plus, Trash2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 
+const statusLabels: Record<string, string> = { pending: 'Pendente', received: 'Recebido', cancelled: 'Cancelado' };
+
 const FinanceRevenues = () => {
   const { companyId, user } = useAuth();
   const [revenues, setRevenues] = useState<any[]>([]);
@@ -21,11 +23,12 @@ const FinanceRevenues = () => {
   const [open, setOpen] = useState(false);
   const [catOpen, setCatOpen] = useState(false);
   const [newCatName, setNewCatName] = useState('');
-  const [form, setForm] = useState({ description: '', amount: '', revenue_date: format(new Date(), 'yyyy-MM-dd'), category_id: '', notes: '' });
+  const [form, setForm] = useState({
+    description: '', amount: '', revenue_date: format(new Date(), 'yyyy-MM-dd'),
+    due_date: '', category_id: '', notes: '', status: 'received',
+  });
 
-  useEffect(() => {
-    if (companyId) { fetchRevenues(); fetchCategories(); }
-  }, [companyId]);
+  useEffect(() => { if (companyId) { fetchRevenues(); fetchCategories(); } }, [companyId]);
 
   const fetchRevenues = async () => {
     const { data } = await supabase
@@ -38,11 +41,7 @@ const FinanceRevenues = () => {
   };
 
   const fetchCategories = async () => {
-    const { data } = await supabase
-      .from('company_revenue_categories')
-      .select('*')
-      .eq('company_id', companyId!)
-      .order('name');
+    const { data } = await supabase.from('company_revenue_categories').select('*').eq('company_id', companyId!).order('name');
     if (data) setCategories(data);
   };
 
@@ -53,6 +52,8 @@ const FinanceRevenues = () => {
       description: form.description,
       amount: parseFloat(form.amount),
       revenue_date: form.revenue_date,
+      due_date: form.due_date || null,
+      status: form.status,
       category_id: form.category_id && form.category_id !== 'none' ? form.category_id : null,
       is_automatic: false,
       notes: form.notes || null,
@@ -61,7 +62,7 @@ const FinanceRevenues = () => {
     if (error) { toast.error('Erro ao salvar'); return; }
     toast.success('Receita registrada');
     setOpen(false);
-    setForm({ description: '', amount: '', revenue_date: format(new Date(), 'yyyy-MM-dd'), category_id: '', notes: '' });
+    setForm({ description: '', amount: '', revenue_date: format(new Date(), 'yyyy-MM-dd'), due_date: '', category_id: '', notes: '', status: 'received' });
     fetchRevenues();
   };
 
@@ -98,7 +99,20 @@ const FinanceRevenues = () => {
             <div className="space-y-4">
               <div><Label>Descrição</Label><Input value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} /></div>
               <div><Label>Valor (R$)</Label><Input type="number" step="0.01" value={form.amount} onChange={e => setForm(f => ({ ...f, amount: e.target.value }))} /></div>
-              <div><Label>Data</Label><Input type="date" value={form.revenue_date} onChange={e => setForm(f => ({ ...f, revenue_date: e.target.value }))} /></div>
+              <div className="grid grid-cols-2 gap-2">
+                <div><Label>Data</Label><Input type="date" value={form.revenue_date} onChange={e => setForm(f => ({ ...f, revenue_date: e.target.value }))} /></div>
+                <div><Label>Vencimento</Label><Input type="date" value={form.due_date} onChange={e => setForm(f => ({ ...f, due_date: e.target.value }))} /></div>
+              </div>
+              <div>
+                <Label>Status</Label>
+                <Select value={form.status} onValueChange={v => setForm(f => ({ ...f, status: v }))}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="pending">Pendente</SelectItem>
+                    <SelectItem value="received">Recebido</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
               <div>
                 <div className="flex items-center justify-between mb-1">
                   <Label>Categoria</Label>
@@ -121,7 +135,6 @@ const FinanceRevenues = () => {
         </Dialog>
       </div>
 
-      {/* Inline category creation dialog */}
       <Dialog open={catOpen} onOpenChange={setCatOpen}>
         <DialogContent className="w-[92vw] max-w-sm">
           <DialogHeader><DialogTitle>Nova Categoria de Receita</DialogTitle></DialogHeader>
@@ -142,13 +155,14 @@ const FinanceRevenues = () => {
                   <TableHead>Descrição</TableHead>
                   <TableHead>Categoria</TableHead>
                   <TableHead>Tipo</TableHead>
+                  <TableHead>Status</TableHead>
                   <TableHead className="text-right">Valor</TableHead>
                   <TableHead className="w-10"></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {revenues.length === 0 ? (
-                  <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">Nenhuma receita registrada</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-8">Nenhuma receita registrada</TableCell></TableRow>
                 ) : revenues.map(r => (
                   <TableRow key={r.id}>
                     <TableCell>{format(new Date(r.revenue_date + 'T12:00:00'), 'dd/MM/yyyy')}</TableCell>
@@ -159,6 +173,7 @@ const FinanceRevenues = () => {
                         {r.is_automatic ? 'Automática' : 'Manual'}
                       </Badge>
                     </TableCell>
+                    <TableCell><Badge variant="outline" className="text-xs">{statusLabels[r.status] || r.status}</Badge></TableCell>
                     <TableCell className="text-right font-semibold text-success">R$ {Number(r.amount).toFixed(2)}</TableCell>
                     <TableCell>
                       {!r.is_automatic && (
