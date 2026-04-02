@@ -527,6 +527,7 @@ const Dashboard = () => {
 
     fetchAppointments();
     fetchWaitlistCount();
+    fetchUpcomingAppointments();
   };
 
   const registerDelay = async (minutes: number) => {
