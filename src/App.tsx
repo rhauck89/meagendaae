@@ -14,7 +14,7 @@ import ResetPassword from "./pages/ResetPassword";
 import Dashboard from "./pages/Dashboard";
 import Services from "./pages/Services";
 import Team from "./pages/Team";
-import Reports from "./pages/Reports";
+
 import Booking from "./pages/Booking";
 import MyAppointments from "./pages/MyAppointments";
 import ReviewPage from "./pages/ReviewPage";
@@ -133,7 +133,7 @@ const PlatformRoutes = () => (
     <Route path="/dashboard" element={<DashboardRoute><Dashboard /></DashboardRoute>} />
     <Route path="/dashboard/services" element={<DashboardRoute><Services /></DashboardRoute>} />
     <Route path="/dashboard/team" element={<DashboardRoute><Team /></DashboardRoute>} />
-    <Route path="/dashboard/reports" element={<DashboardRoute><Reports /></DashboardRoute>} />
+    
     <Route path="/dashboard/waitlist" element={<DashboardRoute><Waitlist /></DashboardRoute>} />
     <Route path="/dashboard/clients" element={<DashboardRoute><Clients /></DashboardRoute>} />
     <Route path="/dashboard/profile" element={<DashboardRoute><ProfilePage /></DashboardRoute>} />
