@@ -490,21 +490,51 @@ const Dashboard = () => {
     const apt = appointments.find((a) => a.id === id);
     await supabase.from('appointments').update({ status: status as any }).eq('id', id);
 
-    // If completing, create automatic revenue
+    // If completing, create automatic revenue with commission calculation
     if (status === 'completed' && apt && companyId) {
       const serviceNames = apt.appointment_services?.map((s: any) => s.service?.name).filter(Boolean).join(', ') || 'Serviço';
+      const totalPrice = Number(apt.total_price);
+
+      // Fetch collaborator commission settings
+      let commissionAmount = 0;
+      let professionalEarning = 0;
+      let companyProfit = totalPrice;
+
+      const { data: collab } = await supabase
+        .from('collaborators')
+        .select('collaborator_type, commission_type, commission_value')
+        .eq('profile_id', apt.professional_id)
+        .eq('company_id', companyId)
+        .maybeSingle();
+
+      if (collab) {
+        const serviceCount = apt.appointment_services?.length || 1;
+        const { calculateFinancials } = await import('@/lib/financial-engine');
+        const breakdown = calculateFinancials(
+          totalPrice,
+          serviceCount,
+          collab.collaborator_type,
+          collab.commission_type,
+          Number(collab.commission_value)
+        );
+        professionalEarning = breakdown.professionalValue;
+        commissionAmount = breakdown.professionalValue;
+        companyProfit = breakdown.companyValue;
+      }
+
       await supabase.from('company_revenues').insert({
         company_id: companyId,
         appointment_id: apt.id,
         professional_id: apt.professional_id,
         description: `${apt.client_name || 'Cliente'} — ${serviceNames}`,
-        amount: Number(apt.total_price),
+        amount: totalPrice,
         revenue_date: format(parseISO(apt.start_time), 'yyyy-MM-dd'),
         due_date: format(parseISO(apt.start_time), 'yyyy-MM-dd'),
         status: 'received',
         is_automatic: true,
         payment_method: paymentMethod || null,
         created_by: user?.id,
+        notes: commissionAmount > 0 ? `Comissão: R$ ${commissionAmount.toFixed(2)} | Lucro: R$ ${companyProfit.toFixed(2)}` : null,
       });
     }
 
