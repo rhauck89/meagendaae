@@ -101,6 +101,7 @@ const TenantRoutes = ({ slug, businessType }: { slug: string; businessType: stri
 const PlatformRoutes = () => (
   <Routes>
     <Route path="/" element={<Index />} />
+    <Route path="/profissionais" element={<LandingProfissionais />} />
     <Route path="/auth" element={<Auth />} />
     <Route path="/forgot-password" element={<ForgotPassword />} />
     <Route path="/reset-password" element={<ResetPassword />} />
