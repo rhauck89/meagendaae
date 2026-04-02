@@ -392,7 +392,8 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
         setPromoData(pd as PromotionInfo);
         // Auto-select promo services
         const promoServiceIds = pd.service_ids || (pd.service_id ? [pd.service_id] : []);
-        if (promoServiceIds.length > 0) {
+        // If promo has only 1 service, auto-select it; otherwise let user choose
+        if (promoServiceIds.length === 1) {
           setSelectedServices(promoServiceIds);
         }
         // Auto-select professional if only one
