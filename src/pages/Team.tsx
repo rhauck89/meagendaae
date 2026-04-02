@@ -456,6 +456,19 @@ const Team = () => {
                 </Button>
               </div>
 
+              {/* Absence management */}
+              <div className="flex items-center gap-2">
+                {isCurrentlyAbsent(collaborator) ? (
+                  <Button variant="outline" size="sm" className="flex-1" onClick={() => handleRemoveAbsence(collaborator)}>
+                    <CalendarOff className="mr-1.5 h-3.5 w-3.5" /> Remover ausência
+                  </Button>
+                ) : (
+                  <Button variant="outline" size="sm" className="flex-1" onClick={() => openAbsenceDialog(collaborator)}>
+                    <CalendarOff className="mr-1.5 h-3.5 w-3.5" /> Definir ausência
+                  </Button>
+                )}
+              </div>
+
               {/* Access management */}
               <div className="flex items-center gap-2">
                 <Button
