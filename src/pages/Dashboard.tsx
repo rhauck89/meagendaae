@@ -94,7 +94,7 @@ interface ReturnStats {
 }
 
 const Dashboard = () => {
-  const { companyId } = useAuth();
+  const { companyId, user } = useAuth();
   const { isAdmin, profileId } = useUserRole();
   const [viewMode, setViewMode] = useState<ViewMode>('day');
   const [currentDate, setCurrentDate] = useState(new Date());
