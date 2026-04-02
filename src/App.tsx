@@ -160,6 +160,8 @@ const PlatformRoutes = () => (
     <Route path="/dashboard/finance/categories" element={<DashboardRoute><FinanceCategories /></DashboardRoute>} />
     <Route path="/dashboard/finance/commissions" element={<DashboardRoute><FinanceCommissions /></DashboardRoute>} />
     <Route path="/dashboard/finance/reports" element={<DashboardRoute><FinanceReports /></DashboardRoute>} />
+    <Route path="/dashboard/finance/payables" element={<DashboardRoute><FinancePayables /></DashboardRoute>} />
+    <Route path="/dashboard/finance/receivables" element={<DashboardRoute><FinanceReceivables /></DashboardRoute>} />
     <Route path="/settings/plans" element={<ProtectedRoute><PlansPage /></ProtectedRoute>} />
     <Route path="/event/:eventSlug" element={<EventPublic />} />
     <Route path="*" element={<NotFound />} />
