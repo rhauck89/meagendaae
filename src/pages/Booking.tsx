@@ -1129,12 +1129,23 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                           <Clock className="h-3.5 w-3.5" /> {svc.duration_minutes} min
                         </span>
                       </div>
-                      {isPromoMode && promoData?.original_price != null && promoData?.promotion_price != null ? (
-                        <div className="text-right shrink-0">
-                          <p className="text-sm line-through" style={{ color: T.textSec }}>R$ {Number(promoData.original_price).toFixed(2)}</p>
-                          <p className="font-bold text-lg" style={{ color: T.accent }}>R$ {Number(promoData.promotion_price).toFixed(2)}</p>
-                        </div>
-                      ) : (
+                      {isPromoMode && promoData && promoServiceIds.includes(svc.id) ? (() => {
+                        const orig = Number(svc.price);
+                        let promo = orig;
+                        if (promoData.discount_type === 'percentage' && promoData.discount_value) {
+                          promo = orig * (1 - Number(promoData.discount_value) / 100);
+                        } else if (promoData.discount_type === 'fixed_amount' && promoData.discount_value) {
+                          promo = Math.max(0, orig - Number(promoData.discount_value));
+                        } else if (promoData.promotion_price != null) {
+                          promo = Number(promoData.promotion_price);
+                        }
+                        return (
+                          <div className="text-right shrink-0">
+                            <p className="text-sm line-through" style={{ color: T.textSec }}>R$ {orig.toFixed(2)}</p>
+                            <p className="font-bold text-lg" style={{ color: T.accent }}>R$ {promo.toFixed(2)}</p>
+                          </div>
+                        );
+                      })() : (
                         <p className="font-bold text-lg shrink-0" style={{ color: T.accent }}>R$ {Number(svc.price).toFixed(2)}</p>
                       )}
                     </div>
