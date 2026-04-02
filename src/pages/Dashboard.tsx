@@ -1309,40 +1309,68 @@ const Dashboard = () => {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Complete Confirmation Dialog */}
-      <AlertDialog open={completeDialogOpen} onOpenChange={setCompleteDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>
+      {/* Complete Confirmation Dialog with Payment Method */}
+      <Dialog open={completeDialogOpen} onOpenChange={(open) => { setCompleteDialogOpen(open); if (!open) { setCompleteTarget(null); setCompletePaymentMethod('pix'); } }}>
+        <DialogContent className="w-[92vw] max-w-sm">
+          <DialogHeader>
+            <DialogTitle>
               {completeTarget && new Date() < parseISO(completeTarget.start_time)
                 ? 'Este atendimento ainda não começou'
-                : 'Deseja concluir este atendimento?'}
-            </AlertDialogTitle>
-            <AlertDialogDescription>
-              {completeTarget && new Date() < parseISO(completeTarget.start_time)
-                ? 'Deseja realmente concluir este serviço?'
-                : `${completeTarget?.client_name || 'Cliente'} — ${format(parseISO(completeTarget?.start_time || new Date().toISOString()), 'HH:mm')}`}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => {
-                if (completeTarget) {
-                  updateStatus(completeTarget.id, 'completed');
-                  toast.success('Serviço concluído com sucesso');
-                }
-                setCompleteDialogOpen(false);
-                setCompleteTarget(null);
-              }}
-            >
-              {completeTarget && new Date() < parseISO(completeTarget.start_time)
-                ? 'Concluir mesmo assim'
-                : 'Concluir'}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+                : 'Concluir atendimento'}
+            </DialogTitle>
+            <DialogDescription>
+              {completeTarget && (
+                <span className="block mt-1">
+                  <strong>{completeTarget.client_name || 'Cliente'}</strong> — {format(parseISO(completeTarget.start_time), 'HH:mm')}
+                  <br />
+                  <span className="text-xs">R$ {Number(completeTarget.total_price).toFixed(2)}</span>
+                </span>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <label className="text-sm font-medium">Forma de pagamento</label>
+            <div className="grid grid-cols-3 gap-2">
+              {[
+                { value: 'dinheiro', label: '💵 Dinheiro' },
+                { value: 'pix', label: '📱 Pix' },
+                { value: 'cartao', label: '💳 Cartão' },
+                { value: 'transferencia', label: '🏦 Transf.' },
+                { value: 'outro', label: '📋 Outro' },
+              ].map(pm => (
+                <Button
+                  key={pm.value}
+                  variant={completePaymentMethod === pm.value ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setCompletePaymentMethod(pm.value)}
+                  className="text-xs"
+                >
+                  {pm.label}
+                </Button>
+              ))}
+            </div>
+            <div className="flex gap-2 pt-2">
+              <Button variant="outline" className="flex-1" onClick={() => { setCompleteDialogOpen(false); setCompleteTarget(null); }}>
+                Cancelar
+              </Button>
+              <Button
+                className="flex-1 bg-success hover:bg-success/90 text-white"
+                onClick={() => {
+                  if (completeTarget) {
+                    updateStatus(completeTarget.id, 'completed', completePaymentMethod);
+                    toast.success('Serviço concluído com sucesso');
+                  }
+                  setCompleteDialogOpen(false);
+                  setCompleteTarget(null);
+                  setCompletePaymentMethod('pix');
+                }}
+              >
+                {completeTarget && new Date() < parseISO(completeTarget.start_time) ? 'Concluir mesmo assim' : 'Concluir'}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Reschedule Dialog */}
       <Dialog open={rescheduleDialogOpen} onOpenChange={(open) => { setRescheduleDialogOpen(open); if (!open) { setRescheduleTarget(null); setRescheduleDate(undefined); setRescheduleSlots([]); setRescheduleSelectedSlot(null); } }}>
