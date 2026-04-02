@@ -150,6 +150,14 @@ const PlatformRoutes = () => (
     <Route path="/dashboard/settings/branding" element={<DashboardRoute><SettingsBranding /></DashboardRoute>} />
     <Route path="/dashboard/settings/domain" element={<DashboardRoute><SettingsDomain /></DashboardRoute>} />
     <Route path="/dashboard/settings/plan" element={<DashboardRoute><SettingsPlan /></DashboardRoute>} />
+    {/* Finance sub-routes */}
+    <Route path="/dashboard/finance" element={<DashboardRoute><FinanceDashboard /></DashboardRoute>} />
+    <Route path="/dashboard/finance/transactions" element={<DashboardRoute><FinanceTransactions /></DashboardRoute>} />
+    <Route path="/dashboard/finance/revenues" element={<DashboardRoute><FinanceRevenues /></DashboardRoute>} />
+    <Route path="/dashboard/finance/expenses" element={<DashboardRoute><FinanceExpenses /></DashboardRoute>} />
+    <Route path="/dashboard/finance/categories" element={<DashboardRoute><FinanceCategories /></DashboardRoute>} />
+    <Route path="/dashboard/finance/commissions" element={<DashboardRoute><FinanceCommissions /></DashboardRoute>} />
+    <Route path="/dashboard/finance/reports" element={<DashboardRoute><FinanceReports /></DashboardRoute>} />
     <Route path="/settings/plans" element={<ProtectedRoute><PlansPage /></ProtectedRoute>} />
     <Route path="/event/:eventSlug" element={<EventPublic />} />
     <Route path="*" element={<NotFound />} />
