@@ -908,6 +908,27 @@ const Dashboard = () => {
       <TrialBanner />
       <TutorialProgressWidget />
 
+      {/* Manual appointment button */}
+      <div className="flex justify-end">
+        <Button className="gap-2" onClick={() => setManualAppointmentOpen(true)}>
+          <CalendarIcon className="h-4 w-4" /> Agendar manualmente
+        </Button>
+      </div>
+
+      <ManualAppointmentDialog
+        open={manualAppointmentOpen}
+        onOpenChange={setManualAppointmentOpen}
+        companyId={companyId!}
+        userId={user?.id}
+        isAdmin={isAdmin}
+        profileId={profileId}
+        onCreated={() => {
+          fetchAppointments();
+          fetchUpcomingAppointments();
+          fetchMonthlyStats();
+        }}
+      />
+
       {/* 1. Próximos atendimentos */}
       {renderUpcomingAppointments()}
 
