@@ -896,26 +896,17 @@ const Dashboard = () => {
     <div className="space-y-6">
       <TrialBanner />
       <TutorialProgressWidget />
-      {/* Próximos atendimentos - shown first on mobile only */}
-      <div className="block lg:hidden">
-        {renderUpcomingAppointments()}
-      </div>
 
-      {/* Daily Stats */}
+      {/* 1. Próximos atendimentos */}
+      {renderUpcomingAppointments()}
+
+      {/* 2. Atendimentos em atraso */}
+      {renderDelayedAppointments()}
+
+      {/* 3. Resumo do Dia */}
       <div>
         <h3 className="text-lg font-display font-semibold mb-3">📊 Resumo do Dia</h3>
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-        <Card>
-          <CardContent className="p-4 flex items-center gap-4">
-            <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
-              <CalendarIcon className="h-6 w-6 text-primary" />
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Hoje</p>
-              <p className="text-2xl font-display font-bold">{stats.total}</p>
-            </div>
-          </CardContent>
-        </Card>
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
         <Card>
           <CardContent className="p-4 flex items-center gap-4">
             <div className="w-12 h-12 rounded-xl bg-success/10 flex items-center justify-center">
@@ -1011,7 +1002,7 @@ const Dashboard = () => {
         </div>
       </div>
 
-      {/* Monthly Stats */}
+      {/* 4. Resumo do Mês */}
       <div>
         <h3 className="text-lg font-display font-semibold mb-3">📈 Resumo do Mês</h3>
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
