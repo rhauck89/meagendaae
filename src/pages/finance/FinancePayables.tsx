@@ -3,11 +3,13 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { CheckCircle, Trash2, AlertTriangle } from 'lucide-react';
-import { format, isPast, isToday } from 'date-fns';
+import { format, isPast, isToday, endOfWeek, endOfMonth, startOfWeek } from 'date-fns';
 import { toast } from 'sonner';
 
 const statusColors: Record<string, string> = {
@@ -17,12 +19,17 @@ const statusColors: Record<string, string> = {
 };
 const statusLabels: Record<string, string> = { pending: 'Pendente', paid: 'Pago', cancelled: 'Cancelado' };
 
+type DateFilter = 'all' | 'today' | 'week' | 'month' | 'overdue' | 'custom';
+
 const FinancePayables = () => {
   const { companyId } = useAuth();
   const [items, setItems] = useState<any[]>([]);
-  const [filter, setFilter] = useState('pending');
+  const [statusFilter, setStatusFilter] = useState('pending');
+  const [dateFilter, setDateFilter] = useState<DateFilter>('all');
+  const [customStart, setCustomStart] = useState('');
+  const [customEnd, setCustomEnd] = useState('');
 
-  useEffect(() => { if (companyId) fetchItems(); }, [companyId, filter]);
+  useEffect(() => { if (companyId) fetchItems(); }, [companyId, statusFilter, dateFilter, customStart, customEnd]);
 
   const fetchItems = async () => {
     let q = supabase
@@ -32,7 +39,23 @@ const FinancePayables = () => {
       .not('due_date', 'is', null)
       .order('due_date', { ascending: true })
       .limit(300);
-    if (filter !== 'all') q = q.eq('status', filter);
+
+    if (statusFilter !== 'all') q = q.eq('status', statusFilter);
+
+    const today = format(new Date(), 'yyyy-MM-dd');
+
+    if (dateFilter === 'today') {
+      q = q.eq('due_date', today);
+    } else if (dateFilter === 'week') {
+      q = q.gte('due_date', today).lte('due_date', format(endOfWeek(new Date()), 'yyyy-MM-dd'));
+    } else if (dateFilter === 'month') {
+      q = q.gte('due_date', today).lte('due_date', format(endOfMonth(new Date()), 'yyyy-MM-dd'));
+    } else if (dateFilter === 'overdue') {
+      q = q.lt('due_date', today).eq('status', 'pending');
+    } else if (dateFilter === 'custom' && customStart && customEnd) {
+      q = q.gte('due_date', customStart).lte('due_date', customEnd);
+    }
+
     const { data } = await q;
     if (data) setItems(data);
   };
@@ -64,8 +87,19 @@ const FinancePayables = () => {
           <h2 className="text-xl font-display font-bold">Contas a Pagar</h2>
           <p className="text-sm text-muted-foreground">Despesas com vencimento futuro</p>
         </div>
-        <Select value={filter} onValueChange={setFilter}>
-          <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
+      </div>
+
+      {/* Filter bar */}
+      <div className="flex flex-wrap gap-2 items-end">
+        <div className="flex flex-wrap gap-1">
+          {(['all', 'today', 'week', 'month', 'overdue', 'custom'] as DateFilter[]).map(f => (
+            <Button key={f} size="sm" variant={dateFilter === f ? 'default' : 'outline'} onClick={() => setDateFilter(f)}>
+              {{ all: 'Todos', today: 'Hoje', week: 'Esta semana', month: 'Este mês', overdue: 'Atrasadas', custom: 'Período' }[f]}
+            </Button>
+          ))}
+        </div>
+        <Select value={statusFilter} onValueChange={setStatusFilter}>
+          <SelectTrigger className="w-36"><SelectValue /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Todos</SelectItem>
             <SelectItem value="pending">Pendentes</SelectItem>
@@ -74,6 +108,14 @@ const FinancePayables = () => {
           </SelectContent>
         </Select>
       </div>
+
+      {dateFilter === 'custom' && (
+        <div className="flex flex-wrap gap-2 items-end">
+          <div><Label>Data inicial</Label><Input type="date" value={customStart} onChange={e => setCustomStart(e.target.value)} /></div>
+          <div><Label>Data final</Label><Input type="date" value={customEnd} onChange={e => setCustomEnd(e.target.value)} /></div>
+        </div>
+      )}
+
       <Card>
         <CardContent className="p-0">
           <div className="overflow-x-auto">
