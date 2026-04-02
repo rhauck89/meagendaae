@@ -77,35 +77,30 @@ const RescheduleAppointment = () => {
   }, [appointmentId]);
 
   const fetchAppointment = async () => {
-    const { data } = await supabase
-      .from('appointments')
-      .select(`
-        *,
-        professional:profiles!appointments_professional_id_fkey(full_name, avatar_url),
-        company:companies(id, name, slug, business_type, buffer_minutes),
-        appointment_services(*, service:services(name, duration_minutes))
-      `)
-      .eq('id', appointmentId!)
-      .single();
+    const { data, error } = await supabase.rpc('get_appointment_public', {
+      p_appointment_id: appointmentId!,
+    });
 
-    if (data) {
-      setAppointment(data);
-      setBufferMinutes(data.company?.buffer_minutes || 0);
-      const dur = (data.appointment_services || []).reduce((s: number, as_: any) => s + (as_.service?.duration_minutes || as_.duration_minutes || 0), 0);
+    if (data && !error) {
+      const apt = data as any;
+      setAppointment(apt);
+      setBufferMinutes(apt.company?.buffer_minutes || 0);
+      const services = apt.appointment_services || [];
+      const dur = services.reduce((s: number, as_: any) => s + (as_.service?.duration_minutes || as_.duration_minutes || 0), 0);
       setTotalDuration(dur);
 
       // Fetch business hours & exceptions
-      const companyId = data.company?.id || data.company_id;
+      const companyId = apt.company?.id || apt.company_id;
       const [bhRes, exRes, phRes] = await Promise.all([
         supabase.from('business_hours').select('*').eq('company_id', companyId),
         supabase.from('business_exceptions').select('*').eq('company_id', companyId),
-        supabase.from('professional_working_hours').select('*').eq('professional_id', data.professional_id).eq('company_id', companyId),
+        supabase.from('professional_working_hours').select('*').eq('professional_id', apt.professional_id).eq('company_id', companyId),
       ]);
       if (bhRes.data) setBusinessHours(bhRes.data as BusinessHours[]);
       if (exRes.data) setExceptions(exRes.data as BusinessException[]);
       if (phRes.data && phRes.data.length > 0) setProfessionalHours(phRes.data as BusinessHours[]);
 
-      if (data.status === 'cancelled' || data.status === 'completed' || data.status === 'no_show') {
+      if (apt.status === 'cancelled' || apt.status === 'completed' || apt.status === 'no_show') {
         // Can't reschedule
       }
     }

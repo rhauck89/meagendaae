@@ -33,21 +33,15 @@ const CancelAppointment = () => {
   }, [appointmentId]);
 
   const fetchAppointment = async () => {
-    const { data } = await supabase
-      .from('appointments')
-      .select(`
-        *,
-        professional:profiles!appointments_professional_id_fkey(full_name),
-        company:companies(name, phone, slug, business_type),
-        appointment_services(*, service:services(name))
-      `)
-      .eq('id', appointmentId!)
-      .single();
+    const { data, error } = await supabase.rpc('get_appointment_public', {
+      p_appointment_id: appointmentId!,
+    });
 
-    if (data) {
+    if (data && !error) {
       setAppointment(data);
-      setCompanyPhone(data.company?.phone || null);
-      if (data.status === 'cancelled' || data.status === 'completed' || data.status === 'no_show') {
+      setCompanyPhone((data as any).company?.phone || null);
+      const status = (data as any).status;
+      if (status === 'cancelled' || status === 'completed' || status === 'no_show') {
         setResult('already');
       }
     }
