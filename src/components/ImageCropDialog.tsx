@@ -82,7 +82,7 @@ const ImageCropDialog = ({ open, imageSrc, mode, onClose, onConfirm }: ImageCrop
             zoom={zoom}
             aspect={cfg.aspect}
             cropShape={cfg.shape}
-            showGrid={mode === 'cover'}
+            showGrid
             onCropChange={setCrop}
             onZoomChange={setZoom}
             onCropComplete={onCropComplete}
