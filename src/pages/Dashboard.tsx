@@ -1298,14 +1298,20 @@ const Dashboard = () => {
 
           {/* Status Tabs */}
           {(() => {
+            // Exclude appointments shown in "Próximos" and "Em atraso" sections
+            const upcomingIds = getUpcomingIds();
+            const delayedIds = new Set(getDelayedAppointments().map(a => a.id));
+            const excludedIds = new Set([...upcomingIds, ...delayedIds]);
+            const agendaAppointments = appointments.filter(a => !excludedIds.has(a.id));
+
             const counts = {
-              all: appointments.length,
-              confirmed: appointments.filter(statusFilterMap.confirmed).length,
-              completed: appointments.filter(statusFilterMap.completed).length,
-              cancelled: appointments.filter(statusFilterMap.cancelled).length,
-              rescheduled: appointments.filter(statusFilterMap.rescheduled).length,
+              all: agendaAppointments.length,
+              confirmed: agendaAppointments.filter(statusFilterMap.confirmed).length,
+              completed: agendaAppointments.filter(statusFilterMap.completed).length,
+              cancelled: agendaAppointments.filter(statusFilterMap.cancelled).length,
+              rescheduled: agendaAppointments.filter(statusFilterMap.rescheduled).length,
             };
-            const filteredAppts = appointments.filter(statusFilterMap[statusTab]);
+            const filteredAppts = agendaAppointments.filter(statusFilterMap[statusTab]);
 
             return (
               <>
