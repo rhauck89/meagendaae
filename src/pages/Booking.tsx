@@ -91,7 +91,7 @@ const filterOverlappingSlots = (
 ) => {
   return slots.filter((slot) => {
     const slotStart = timeStringToMinutes(slot);
-    const slotEnd = slotStart + serviceDuration;
+    const slotEnd = slotStart + serviceDuration + bufferMinutes;
 
     return !appointments.some((appointment) => {
       const appointmentStart = getAppointmentMinutesInTimezone(appointment.start_time, timezone);
