@@ -790,11 +790,13 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
       const clientId = clientIdFromRpc;
       console.log('[Booking] Client ID:', clientId);
       if (clientId) {
-        localStorage.setItem(`client_id_${company.id}`, clientId);
-        localStorage.setItem(`client_data_${company.id}`, JSON.stringify({
+        const clientDataJson = JSON.stringify({
           full_name: clientForm.full_name, email: clientForm.email || '', whatsapp: clientForm.whatsapp || '',
           opt_in_whatsapp: optInWhatsapp,
-        }));
+        });
+        localStorage.setItem(`client_id_${company.id}`, clientId);
+        localStorage.setItem(`client_data_${company.id}`, clientDataJson);
+        localStorage.setItem('meagendae_client_data', clientDataJson);
         setSavedClientId(clientId);
       }
 
