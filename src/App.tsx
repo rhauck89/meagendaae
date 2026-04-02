@@ -133,7 +133,7 @@ const PlatformRoutes = () => (
     <Route path="/dashboard" element={<DashboardRoute><Dashboard /></DashboardRoute>} />
     <Route path="/dashboard/services" element={<DashboardRoute><Services /></DashboardRoute>} />
     <Route path="/dashboard/team" element={<DashboardRoute><Team /></DashboardRoute>} />
-    <Route path="/dashboard/reports" element={<DashboardRoute><Reports /></DashboardRoute>} />
+    
     <Route path="/dashboard/waitlist" element={<DashboardRoute><Waitlist /></DashboardRoute>} />
     <Route path="/dashboard/clients" element={<DashboardRoute><Clients /></DashboardRoute>} />
     <Route path="/dashboard/profile" element={<DashboardRoute><ProfilePage /></DashboardRoute>} />
