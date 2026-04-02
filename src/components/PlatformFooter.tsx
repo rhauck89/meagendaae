@@ -11,7 +11,7 @@ export const PlatformFooter = ({ isWhitelabel = false, className = '' }: Platfor
   if (isWhitelabel) return null;
 
   const name = platform?.system_name || 'Me Agendaê!';
-  const url = platform?.system_url || 'https://meagendae.com.br';
+  const url = 'https://www.meagendae.com.br';
   const domain = 'meagendae.com.br';
 
   return (
