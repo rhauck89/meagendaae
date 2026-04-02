@@ -1567,6 +1567,8 @@ export type Database = {
           default_keywords: string | null
           favicon_url: string | null
           id: string
+          logo_dark: string | null
+          logo_light: string | null
           meta_description: string | null
           og_image: string | null
           site_title: string | null
@@ -1580,6 +1582,8 @@ export type Database = {
           default_keywords?: string | null
           favicon_url?: string | null
           id?: string
+          logo_dark?: string | null
+          logo_light?: string | null
           meta_description?: string | null
           og_image?: string | null
           site_title?: string | null
@@ -1593,6 +1597,8 @@ export type Database = {
           default_keywords?: string | null
           favicon_url?: string | null
           id?: string
+          logo_dark?: string | null
+          logo_light?: string | null
           meta_description?: string | null
           og_image?: string | null
           site_title?: string | null
