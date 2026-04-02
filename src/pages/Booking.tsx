@@ -1094,16 +1094,20 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
         {step === 'services' && (
           <div className="space-y-5 animate-fade-in">
             <div>
-              <h2 className="text-2xl font-bold tracking-tight">{isPromoMode ? 'Serviço da promoção' : 'Escolha os serviços'}</h2>
-              <p className="text-sm mt-1" style={{ color: T.textSec }}>{isPromoMode ? 'Este serviço está incluído na promoção' : 'Selecione um ou mais serviços desejados'}</p>
+              <h2 className="text-2xl font-bold tracking-tight">{isPromoMode ? 'Serviço(s) da promoção' : 'Escolha os serviços'}</h2>
+              <p className="text-sm mt-1" style={{ color: T.textSec }}>{isPromoMode ? 'Serviço(s) incluído(s) na promoção' : 'Selecione um ou mais serviços desejados'}</p>
             </div>
             <div className="space-y-3">
-              {(isPromoMode && promoData?.service_id
-                ? services.filter(s => s.id === promoData.service_id)
-                : services
-              ).map((svc) => {
+              {(() => {
+                const promoServiceIds = promoData?.service_ids || (promoData?.service_id ? [promoData.service_id] : []);
+                const filteredSvcs = isPromoMode && promoServiceIds.length > 0
+                  ? services.filter(s => promoServiceIds.includes(s.id))
+                  : services;
+                return filteredSvcs;
+              })().map((svc) => {
                 const sel = selectedServices.includes(svc.id);
-                const isLocked = isPromoMode && promoData?.service_id === svc.id;
+                const promoServiceIds = promoData?.service_ids || (promoData?.service_id ? [promoData.service_id] : []);
+                const isLocked = isPromoMode && promoServiceIds.includes(svc.id);
                 return (
                   <div
                     key={svc.id}
