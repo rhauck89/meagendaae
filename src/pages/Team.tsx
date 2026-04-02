@@ -132,7 +132,7 @@ const Team = () => {
           company_id: companyId,
           collaborator_type: form.collaborator_type,
           payment_type: form.payment_type,
-          commission_value: form.payment_type === 'none' ? 0 : form.commission_value,
+          commission_value: form.payment_type === 'none' ? 0 : (Number(form.commission_value) || 0),
           role: 'collaborator',
           role_title: form.role_title,
           slug: professionalSlug,
