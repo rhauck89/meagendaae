@@ -161,15 +161,13 @@ const ProfilePage = () => {
     }
   };
 
-  const handleBannerUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !user) return;
-    if (!file.type.startsWith('image/')) { toast.error('Selecione uma imagem'); return; }
-    if (file.size > 5 * 1024 * 1024) { toast.error('Banner deve ter no máximo 5MB'); return; }
+  const handleCroppedBannerUpload = async (blob: Blob) => {
+    if (!user) return;
+    setCropImage(null);
     setUploadingBanner(true);
     try {
-      const ext = file.name.split('.').pop();
-      const filePath = `${user.id}/banner.${ext}`;
+      const filePath = `${user.id}/banner.jpg`;
+      const file = new File([blob], 'banner.jpg', { type: 'image/jpeg' });
       const { error: uploadError } = await supabase.storage.from('avatars').upload(filePath, file, { upsert: true });
       if (uploadError) throw uploadError;
       const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(filePath);
@@ -182,7 +180,6 @@ const ProfilePage = () => {
       toast.error(err.message || 'Erro ao enviar banner');
     } finally {
       setUploadingBanner(false);
-      e.target.value = '';
     }
   };
 
