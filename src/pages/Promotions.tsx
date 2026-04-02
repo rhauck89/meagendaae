@@ -962,7 +962,14 @@ export default function Promotions() {
                 const remaining = promo.max_slots > 0 ? promo.max_slots - promo.used_slots : null;
                 const status = promoVisualStatus(promo, now);
                 const svc = services.find(s => s.id === promo.service_id);
+                const promoServiceIds = promo.service_ids || (promo.service_id ? [promo.service_id] : []);
+                const promoSvcs = services.filter(s => promoServiceIds.includes(s.id));
                 const isHighlighted = promo.id === highlightedPromoId;
+                const discountLabel = promo.discount_type === 'percentage' && promo.discount_value
+                  ? `${promo.discount_value}% OFF`
+                  : promo.discount_type === 'fixed_amount' && promo.discount_value
+                  ? `R$ ${Number(promo.discount_value).toFixed(2)} OFF`
+                  : null;
 
                 return (
                   <Card key={promo.id} className={`transition-all duration-500 ${status === 'expired' || status === 'paused' ? 'opacity-70' : ''} ${isHighlighted ? 'ring-2 ring-primary shadow-lg animate-pulse' : ''}`}>
@@ -975,8 +982,13 @@ export default function Promotions() {
                     <CardContent className="space-y-3">
                       {promo.description && <p className="text-sm text-muted-foreground">{promo.description}</p>}
 
+                      {/* Discount badge */}
+                      {discountLabel && (
+                        <Badge className="bg-primary/10 text-primary border-primary/20">{discountLabel}</Badge>
+                      )}
+
                       {/* Service + pricing */}
-                      {svc && (
+                      {promoSvcs.length === 1 && svc && (
                         <div className="flex items-center gap-2 text-sm">
                           <span className="text-muted-foreground">✂️ {svc.name}</span>
                           {promo.original_price && promo.promotion_price && (
@@ -985,6 +997,11 @@ export default function Promotions() {
                               <span className="font-bold text-primary">R$ {Number(promo.promotion_price).toFixed(2)}</span>
                             </>
                           )}
+                        </div>
+                      )}
+                      {promoSvcs.length > 1 && (
+                        <div className="text-sm text-muted-foreground">
+                          ✂️ {promoSvcs.length} serviços: {promoSvcs.slice(0, 3).map(s => s.name).join(', ')}{promoSvcs.length > 3 ? ` +${promoSvcs.length - 3}` : ''}
                         </div>
                       )}
 
