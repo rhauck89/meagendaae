@@ -757,12 +757,17 @@ export type Database = {
           created_at: string
           created_by: string | null
           description: string
+          due_date: string | null
           expense_date: string
           id: string
+          installment_number: number | null
           is_recurring: boolean
           notes: string | null
+          parent_expense_id: string | null
           recurrence_interval: number | null
           recurrence_type: string | null
+          status: string
+          total_installments: number | null
           updated_at: string
         }
         Insert: {
@@ -772,12 +777,17 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           description: string
+          due_date?: string | null
           expense_date?: string
           id?: string
+          installment_number?: number | null
           is_recurring?: boolean
           notes?: string | null
+          parent_expense_id?: string | null
           recurrence_interval?: number | null
           recurrence_type?: string | null
+          status?: string
+          total_installments?: number | null
           updated_at?: string
         }
         Update: {
@@ -787,12 +797,17 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           description?: string
+          due_date?: string | null
           expense_date?: string
           id?: string
+          installment_number?: number | null
           is_recurring?: boolean
           notes?: string | null
+          parent_expense_id?: string | null
           recurrence_interval?: number | null
           recurrence_type?: string | null
+          status?: string
+          total_installments?: number | null
           updated_at?: string
         }
         Relationships: [
@@ -822,6 +837,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "public_company_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_expenses_parent_expense_id_fkey"
+            columns: ["parent_expense_id"]
+            isOneToOne: false
+            referencedRelation: "company_expenses"
             referencedColumns: ["id"]
           },
         ]
@@ -930,12 +952,14 @@ export type Database = {
           created_at: string
           created_by: string | null
           description: string
+          due_date: string | null
           id: string
           is_automatic: boolean
           notes: string | null
           professional_id: string | null
           revenue_date: string
           service_id: string | null
+          status: string
           updated_at: string
         }
         Insert: {
@@ -946,12 +970,14 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           description: string
+          due_date?: string | null
           id?: string
           is_automatic?: boolean
           notes?: string | null
           professional_id?: string | null
           revenue_date?: string
           service_id?: string | null
+          status?: string
           updated_at?: string
         }
         Update: {
@@ -962,12 +988,14 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           description?: string
+          due_date?: string | null
           id?: string
           is_automatic?: boolean
           notes?: string | null
           professional_id?: string | null
           revenue_date?: string
           service_id?: string | null
+          status?: string
           updated_at?: string
         }
         Relationships: [
