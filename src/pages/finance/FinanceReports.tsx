@@ -377,6 +377,48 @@ const FinanceReports = () => {
           </div>
         </CardContent>
       </Card>
+
+      {/* Revenue by Payment Method */}
+      <Card>
+        <CardHeader><CardTitle className="text-base">Receita por Forma de Pagamento</CardTitle></CardHeader>
+        <CardContent>
+          <div className="h-[300px]">
+            {revenueByPayment.length === 0 ? (
+              <EmptyChartState />
+            ) : (
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie data={revenueByPayment} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={100} label={({ name, value }) => `${name}: R$ ${value.toFixed(2)}`}>
+                    {revenueByPayment.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
+                  </Pie>
+                  <Tooltip formatter={(v: number) => `R$ ${v.toFixed(2)}`} />
+                  <Legend />
+                </PieChart>
+              </ResponsiveContainer>
+            )}
+          </div>
+          {revenueByPayment.length > 0 && (
+            <div className="overflow-x-auto mt-4">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Forma de Pagamento</TableHead>
+                    <TableHead className="text-right">Total</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {revenueByPayment.map(p => (
+                    <TableRow key={p.name}>
+                      <TableCell>{p.name}</TableCell>
+                      <TableCell className="text-right font-semibold">R$ {p.value.toFixed(2)}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 };
