@@ -16,9 +16,11 @@ import { toast } from 'sonner';
 
 const statusLabels: Record<string, string> = { pending: 'Pendente', received: 'Recebido', cancelled: 'Cancelado' };
 
+const paymentMethodLabels: Record<string, string> = { dinheiro: 'Dinheiro', pix: 'Pix', cartao: 'Cartão', transferencia: 'Transferência', outro: 'Outro' };
+
 const emptyForm = () => ({
   description: '', amount: '', revenue_date: format(new Date(), 'yyyy-MM-dd'),
-  due_date: '', category_id: '', notes: '', status: 'received',
+  due_date: '', category_id: '', notes: '', status: 'received', payment_method: '',
 });
 
 const FinanceRevenues = () => {
