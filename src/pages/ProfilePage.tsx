@@ -438,11 +438,12 @@ const ProfilePage = () => {
       </Card>
 
       {cropImage && (
-        <AvatarCropDialog
+        <ImageCropDialog
           open={!!cropImage}
           imageSrc={cropImage}
+          mode={cropMode}
           onClose={() => setCropImage(null)}
-          onConfirm={handleCroppedUpload}
+          onConfirm={cropMode === 'avatar' ? handleCroppedUpload : handleCroppedBannerUpload}
         />
       )}
     </div>
