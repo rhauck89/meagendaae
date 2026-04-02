@@ -21,6 +21,7 @@ import { toast } from 'sonner';
 import { formatWhatsApp } from '@/lib/whatsapp';
 import { useNavigate as useRouterNavigate } from 'react-router-dom';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { ManualAppointmentDialog } from '@/components/ManualAppointmentDialog';
 
 type ViewMode = 'day' | 'week' | 'month';
 type StatusTab = 'all' | 'confirmed' | 'completed' | 'cancelled' | 'rescheduled';
@@ -134,6 +135,7 @@ const Dashboard = () => {
   const [upcomingAppointments, setUpcomingAppointments] = useState<any[]>([]);
   const [companyBusinessType, setCompanyBusinessType] = useState('barbershop');
   const [statusTab, setStatusTab] = useState<StatusTab>('confirmed');
+  const [manualAppointmentOpen, setManualAppointmentOpen] = useState(false);
 
   // Cleanup orphan Radix portal elements when reschedule modal closes
   useEffect(() => {
@@ -905,6 +907,27 @@ const Dashboard = () => {
     <div className="space-y-6">
       <TrialBanner />
       <TutorialProgressWidget />
+
+      {/* Manual appointment button */}
+      <div className="flex justify-end">
+        <Button className="gap-2" onClick={() => setManualAppointmentOpen(true)}>
+          <CalendarIcon className="h-4 w-4" /> Agendar manualmente
+        </Button>
+      </div>
+
+      <ManualAppointmentDialog
+        open={manualAppointmentOpen}
+        onOpenChange={setManualAppointmentOpen}
+        companyId={companyId!}
+        userId={user?.id}
+        isAdmin={isAdmin}
+        profileId={profileId}
+        onCreated={() => {
+          fetchAppointments();
+          fetchUpcomingAppointments();
+          fetchMonthlyStats();
+        }}
+      />
 
       {/* 1. Próximos atendimentos */}
       {renderUpcomingAppointments()}
