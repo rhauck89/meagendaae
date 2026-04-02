@@ -1449,11 +1449,24 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                 Aceito receber lembretes e comunicações via WhatsApp. Posso cancelar a qualquer momento.
               </label>
             </div>
+            {!clientForm.whatsapp && (
+              <p className="text-sm mt-1" style={{ color: '#F87171' }}>Informe seu número de WhatsApp para continuar.</p>
+            )}
             <Button
-              onClick={() => setStep('confirm')}
+              onClick={() => {
+                if (!clientForm.whatsapp || !isValidWhatsApp(clientForm.whatsapp)) {
+                  toast.error('Informe seu número de WhatsApp para continuar.');
+                  return;
+                }
+                if (!clientForm.full_name.trim()) {
+                  toast.error('Informe seu nome para continuar.');
+                  return;
+                }
+                setStep('confirm');
+              }}
               className="w-full rounded-xl py-6 font-semibold text-base shadow-lg transition-all hover:scale-[1.01]"
               style={{ background: T.accent, color: '#000' }}
-              disabled={!clientForm.full_name || !clientForm.whatsapp || !isValidWhatsApp(clientForm.whatsapp)}
+              disabled={!clientForm.full_name.trim() || !clientForm.whatsapp || !isValidWhatsApp(clientForm.whatsapp)}
             >
               Revisar Agendamento <ChevronRight className="h-4 w-4 ml-1" />
             </Button>
