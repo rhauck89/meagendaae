@@ -5,7 +5,7 @@ import { useUserTicketCounts } from '@/hooks/useSupportTicketCounts';
 import { usePlatformMessages } from '@/hooks/usePlatformMessages';
 import { useCompanyBrandInfo } from '@/hooks/useCompanyBrandInfo';
 import {
-  Calendar, Scissors, Users, BarChart3, Settings, LogOut, Menu, X, User, UserCheck,
+  Calendar, Scissors, Users, Settings, LogOut, Menu, X, User, UserCheck,
   PartyPopper, Megaphone, MessageSquare, ChevronDown, Building2, Clock, Zap, Palette, Globe, CreditCard, Bell, HelpCircle, Info, AlertTriangle,
   DollarSign, ArrowUpDown, TrendingUp, TrendingDown, FolderOpen, Percent, FileBarChart,
 } from 'lucide-react';
