@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -9,6 +9,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { toast } from 'sonner';
 import { Building2, Camera, Phone, MapPin, Globe, Instagram, Facebook } from 'lucide-react';
 import SettingsBreadcrumb from '@/components/SettingsBreadcrumb';
+import ImageCropDialog from '@/components/ImageCropDialog';
+import type { CropMode } from '@/components/ImageCropDialog';
 
 const SettingsCompany = () => {
   const { companyId } = useAuth();
@@ -31,6 +33,11 @@ const SettingsCompany = () => {
   const [brStates, setBrStates] = useState<{ id: number; name: string; uf: string }[]>([]);
   const [brCities, setBrCities] = useState<{ id: number; name: string }[]>([]);
   const [loadingCities, setLoadingCities] = useState(false);
+
+  const [cropImage, setCropImage] = useState<string | null>(null);
+  const [cropMode, setCropMode] = useState<CropMode>('avatar');
+  const logoInputRef = useRef<HTMLInputElement>(null);
+  const coverInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (companyId) fetchData();
@@ -73,36 +80,59 @@ const SettingsCompany = () => {
     }
   };
 
-  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>, mode: CropMode) => {
     const file = e.target.files?.[0];
-    if (!file || !companyId) return;
-    setLogoUploading(true);
-    const ext = file.name.split('.').pop();
-    const filePath = `${companyId}/logo.${ext}`;
-    const { error: uploadError } = await supabase.storage.from('logos').upload(filePath, file, { upsert: true });
-    if (uploadError) { toast.error('Erro ao enviar logo'); setLogoUploading(false); return; }
-    const { data: { publicUrl } } = supabase.storage.from('logos').getPublicUrl(filePath);
-    const logoUrl = `${publicUrl}?t=${Date.now()}`;
-    await supabase.from('companies').update({ logo_url: logoUrl } as any).eq('id', companyId);
-    setCompanyLogoUrl(logoUrl);
-    setLogoUploading(false);
-    toast.success('Logo atualizado!');
+    if (!file) return;
+    if (!file.type.startsWith('image/')) { toast.error('Selecione uma imagem'); return; }
+    const maxMB = mode === 'cover' ? 10 : 5;
+    if (file.size > maxMB * 1024 * 1024) { toast.error(`Imagem deve ter no máximo ${maxMB}MB`); return; }
+    setCropMode(mode);
+    const reader = new FileReader();
+    reader.onload = () => setCropImage(reader.result as string);
+    reader.readAsDataURL(file);
+    e.target.value = '';
   };
 
-  const handleCoverUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !companyId) return;
+  const handleCroppedLogo = async (blob: Blob) => {
+    if (!companyId) return;
+    setCropImage(null);
+    setLogoUploading(true);
+    try {
+      const filePath = `${companyId}/logo.jpg`;
+      const file = new File([blob], 'logo.jpg', { type: 'image/jpeg' });
+      const { error: uploadError } = await supabase.storage.from('logos').upload(filePath, file, { upsert: true });
+      if (uploadError) throw uploadError;
+      const { data: { publicUrl } } = supabase.storage.from('logos').getPublicUrl(filePath);
+      const logoUrl = `${publicUrl}?t=${Date.now()}`;
+      await supabase.from('companies').update({ logo_url: logoUrl } as any).eq('id', companyId);
+      setCompanyLogoUrl(logoUrl);
+      toast.success('Logo atualizado!');
+    } catch (err: any) {
+      toast.error(err.message || 'Erro ao enviar logo');
+    } finally {
+      setLogoUploading(false);
+    }
+  };
+
+  const handleCroppedCover = async (blob: Blob) => {
+    if (!companyId) return;
+    setCropImage(null);
     setCoverUploading(true);
-    const ext = file.name.split('.').pop();
-    const filePath = `${companyId}/cover.${ext}`;
-    const { error: uploadError } = await supabase.storage.from('logos').upload(filePath, file, { upsert: true });
-    if (uploadError) { toast.error('Erro ao enviar capa'); setCoverUploading(false); return; }
-    const { data: { publicUrl } } = supabase.storage.from('logos').getPublicUrl(filePath);
-    const coverUrl = `${publicUrl}?t=${Date.now()}`;
-    await supabase.from('companies').update({ cover_url: coverUrl } as any).eq('id', companyId);
-    setCompanyCoverUrl(coverUrl);
-    setCoverUploading(false);
-    toast.success('Capa atualizada!');
+    try {
+      const filePath = `${companyId}/cover.jpg`;
+      const file = new File([blob], 'cover.jpg', { type: 'image/jpeg' });
+      const { error: uploadError } = await supabase.storage.from('logos').upload(filePath, file, { upsert: true });
+      if (uploadError) throw uploadError;
+      const { data: { publicUrl } } = supabase.storage.from('logos').getPublicUrl(filePath);
+      const coverUrl = `${publicUrl}?t=${Date.now()}`;
+      await supabase.from('companies').update({ cover_url: coverUrl } as any).eq('id', companyId);
+      setCompanyCoverUrl(coverUrl);
+      toast.success('Capa atualizada!');
+    } catch (err: any) {
+      toast.error(err.message || 'Erro ao enviar capa');
+    } finally {
+      setCoverUploading(false);
+    }
   };
 
   const save = async () => {
@@ -135,9 +165,12 @@ const SettingsCompany = () => {
               ) : (
                 <div className="w-20 h-20 rounded-xl bg-muted flex items-center justify-center border"><Building2 className="w-8 h-8 text-muted-foreground" /></div>
               )}
-              <label className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full bg-primary text-primary-foreground flex items-center justify-center cursor-pointer shadow-md hover:opacity-90">
+              <input ref={logoInputRef} type="file" accept="image/*" className="hidden" onChange={(e) => handleImageSelect(e, 'avatar')} />
+              <label
+                className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full bg-primary text-primary-foreground flex items-center justify-center cursor-pointer shadow-md hover:opacity-90"
+                onClick={() => logoInputRef.current?.click()}
+              >
                 <Camera className="w-3.5 h-3.5" />
-                <input type="file" accept="image/*" className="hidden" onChange={handleLogoUpload} disabled={logoUploading} />
               </label>
             </div>
             <div className="flex-1 space-y-1">
@@ -148,19 +181,27 @@ const SettingsCompany = () => {
           <div className="space-y-2">
             <p className="text-sm font-medium">Foto de capa</p>
             <p className="text-xs text-muted-foreground">Recomendado: 1200x400px</p>
+            <input ref={coverInputRef} type="file" accept="image/*" className="hidden" onChange={(e) => handleImageSelect(e, 'cover')} />
             {companyCoverUrl ? (
               <div className="relative">
                 <img src={companyCoverUrl} alt="Capa" className="w-full h-32 rounded-xl object-cover border" />
-                <label className="absolute bottom-2 right-2 px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-xs font-medium cursor-pointer shadow-md hover:opacity-90">
-                  <Camera className="w-3.5 h-3.5 inline mr-1" /> Alterar
-                  <input type="file" accept="image/*" className="hidden" onChange={handleCoverUpload} disabled={coverUploading} />
-                </label>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  className="absolute bottom-2 right-2 gap-1.5 opacity-80 hover:opacity-100"
+                  onClick={() => coverInputRef.current?.click()}
+                  disabled={coverUploading}
+                >
+                  <Camera className="w-3.5 h-3.5" /> {coverUploading ? 'Enviando...' : 'Alterar'}
+                </Button>
               </div>
             ) : (
-              <label className="flex items-center justify-center w-full h-32 rounded-xl border-2 border-dashed border-muted-foreground/30 cursor-pointer hover:border-primary/50 transition-colors">
+              <div
+                className="flex items-center justify-center w-full h-32 rounded-xl border-2 border-dashed border-muted-foreground/30 cursor-pointer hover:border-primary/50 transition-colors"
+                onClick={() => coverInputRef.current?.click()}
+              >
                 <div className="text-center"><Camera className="w-6 h-6 mx-auto text-muted-foreground mb-1" /><span className="text-xs text-muted-foreground">Clique para enviar a capa</span></div>
-                <input type="file" accept="image/*" className="hidden" onChange={handleCoverUpload} disabled={coverUploading} />
-              </label>
+              </div>
             )}
           </div>
         </CardContent>
@@ -220,6 +261,16 @@ const SettingsCompany = () => {
       </Card>
 
       <Button onClick={save}>Salvar dados da empresa</Button>
+
+      {cropImage && (
+        <ImageCropDialog
+          open={!!cropImage}
+          imageSrc={cropImage}
+          mode={cropMode}
+          onClose={() => setCropImage(null)}
+          onConfirm={cropMode === 'avatar' ? handleCroppedLogo : handleCroppedCover}
+        />
+      )}
     </div>
   );
 };
