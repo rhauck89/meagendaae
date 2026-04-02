@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { SEOHead } from '@/components/SEOHead';
+import { PlatformLogo } from '@/components/PlatformLogo';
 import {
   Calendar, Users, BarChart3, Globe, Zap, Clock, Star, Shield,
   CheckCircle2, ArrowRight, Play, TrendingUp, UserCheck, Heart,
