@@ -219,7 +219,7 @@ const FinanceRevenues = () => {
               </TableHeader>
               <TableBody>
                 {revenues.length === 0 ? (
-                  <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-8">Nenhuma receita registrada</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-8">Nenhuma receita registrada</TableCell></TableRow>
                 ) : revenues.map(r => (
                   <TableRow key={r.id}>
                     <TableCell>{format(new Date(r.revenue_date + 'T12:00:00'), 'dd/MM/yyyy')}</TableCell>
