@@ -34,7 +34,7 @@ export const PlatformBranding = ({ isDark = false, hide = false }: PlatformBrand
   if (hide || !settings) return null;
 
   const name = settings.system_name || 'Me Agendaê!';
-  const url = settings.system_url || 'https://meagendae.com.br';
+  const url = 'https://www.meagendae.com.br';
   const domain = 'meagendae.com.br';
 
   return (
@@ -45,7 +45,10 @@ export const PlatformBranding = ({ isDark = false, hide = false }: PlatformBrand
           href={url}
           target="_blank"
           rel="noopener noreferrer"
-          className="underline hover:opacity-70 transition-opacity"
+          className="underline transition-colors"
+          style={{ color: 'inherit' }}
+          onMouseEnter={e => (e.currentTarget.style.color = '#18e384')}
+          onMouseLeave={e => (e.currentTarget.style.color = 'inherit')}
         >
           {domain}
         </a>
