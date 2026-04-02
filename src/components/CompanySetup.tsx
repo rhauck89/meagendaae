@@ -113,9 +113,13 @@ const CompanySetup = ({ onComplete }: CompanySetupProps) => {
 
   // Filter cities for search
   const filteredCities = useMemo(() => {
-    if (!citySearch) return brCities.slice(0, 50);
+    // Deduplicate cities by name
+    const unique = brCities.filter(
+      (city, index, self) => index === self.findIndex(c => c.name === city.name)
+    );
+    if (!citySearch) return unique.slice(0, 50);
     const search = citySearch.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-    return brCities.filter(c =>
+    return unique.filter(c =>
       c.name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').includes(search)
     ).slice(0, 50);
   }, [brCities, citySearch]);
@@ -618,12 +622,42 @@ const CompanySetup = ({ onComplete }: CompanySetupProps) => {
                     </div>
                   ))}
                 </div>
-                <div className="flex gap-2">
-                  <Button variant="outline" onClick={() => setStep('company')} className="flex-1">
-                    <ChevronLeft className="h-4 w-4 mr-1" /> Voltar
-                  </Button>
-                  <Button className="flex-1" disabled={loading} onClick={handleSaveHours}>
-                    {loading ? 'Salvando...' : 'Continuar'} <ChevronRight className="h-4 w-4 ml-1" />
+                <div className="flex flex-col gap-2">
+                  <div className="flex gap-2">
+                    <Button variant="outline" onClick={() => setStep('company')} className="flex-1">
+                      <ChevronLeft className="h-4 w-4 mr-1" /> Voltar
+                    </Button>
+                    <Button className="flex-1" disabled={loading} onClick={handleSaveHours}>
+                      {loading ? 'Salvando...' : 'Continuar'} <ChevronRight className="h-4 w-4 ml-1" />
+                    </Button>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    className="text-muted-foreground text-sm"
+                    onClick={async () => {
+                      if (!companyId) return;
+                      setLoading(true);
+                      try {
+                        const defaultRows = hours.map((h) => ({
+                          company_id: companyId,
+                          day_of_week: h.day_of_week,
+                          open_time: h.open_time,
+                          close_time: h.close_time,
+                          lunch_start: h.break_enabled ? h.lunch_start : null,
+                          lunch_end: h.break_enabled ? h.lunch_end : null,
+                          is_closed: h.is_closed,
+                        }));
+                        await supabase.from('business_hours').insert(defaultRows);
+                      } catch (err) {
+                        console.warn('[Onboarding] Skip hours - default save failed:', err);
+                      } finally {
+                        setLoading(false);
+                      }
+                      setStep('branding');
+                    }}
+                    disabled={loading}
+                  >
+                    Pular etapa — configurar depois
                   </Button>
                 </div>
               </>
