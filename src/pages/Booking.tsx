@@ -230,21 +230,24 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
       if (!company) return;
       const storedClientId = localStorage.getItem(`client_id_${company.id}`);
       const storedClientData = localStorage.getItem(`client_data_${company.id}`);
+      // Also check global client data as fallback
+      const globalClientData = localStorage.getItem('meagendae_client_data');
+      const dataSource = storedClientData || globalClientData;
       if (storedClientId) {
         setSavedClientId(storedClientId);
-        if (storedClientData) {
-          try {
-            const c = JSON.parse(storedClientData);
-            setClientForm({
-              full_name: c.full_name || '',
-              email: c.email || '',
-              whatsapp: c.whatsapp || '',
-              birth_date: '',
-            });
-            setOptInWhatsapp(c.opt_in_whatsapp || false);
-          } catch (e) {
-            console.warn('[Booking] Failed to parse stored client data');
-          }
+      }
+      if (dataSource) {
+        try {
+          const c = JSON.parse(dataSource);
+          setClientForm({
+            full_name: c.full_name || '',
+            email: c.email || '',
+            whatsapp: c.whatsapp || '',
+            birth_date: '',
+          });
+          setOptInWhatsapp(c.opt_in_whatsapp || false);
+        } catch (e) {
+          console.warn('[Booking] Failed to parse stored client data');
         }
       }
       setClientLoaded(true);
