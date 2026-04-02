@@ -168,10 +168,11 @@ const Services = () => {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Duração (min)</Label>
-                  <Input
+                   <Input
                     type="number"
                     value={form.duration_minutes}
-                    onChange={(e) => setForm({ ...form, duration_minutes: parseInt(e.target.value, 10) || 0 })}
+                    onChange={(e) => setForm({ ...form, duration_minutes: e.target.value })}
+                    placeholder="Ex: 40"
                   />
                 </div>
                 <div className="space-y-2">
