@@ -485,7 +485,9 @@ export default function Promotions() {
   };
 
   const resetForm = () => {
-    setTitle(''); setDescription(''); setSelectedServiceId(''); setPromotionPrice(''); setOriginalPrice('');
+    setTitle(''); setDescription(''); setSelectedServiceId(''); setSelectedServiceIds([]);
+    setServiceSelectionMode('single'); setDiscountType('fixed_price'); setDiscountValue('');
+    setPromotionPrice('');
     setStartDate(''); setEndDate(''); setSingleDay(false); setStartTime(''); setEndTime(''); setMaxSlots('10');
     setClientFilter('all'); setClientFilterValue('30'); setProfessionalFilter('all');
     setSelectedProfessionalIds([]); setMessageTemplate(DEFAULT_TEMPLATE);
