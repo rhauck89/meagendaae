@@ -7,7 +7,11 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { SEOHead } from '@/components/SEOHead';
 import { usePlatformSettings } from '@/hooks/usePlatformSettings';
-import { Star, MapPin, Search, Scissors, ArrowRight, ChevronRight, Sparkles, Users } from 'lucide-react';
+import { useGeolocation, calculateDistance, formatDistance } from '@/hooks/useGeolocation';
+import {
+  Star, MapPin, Search, Scissors, ArrowRight, ChevronRight, Sparkles,
+  Navigation, Loader2
+} from 'lucide-react';
 
 interface CategoryConfig {
   slug: string;
@@ -74,6 +78,9 @@ interface CompanyCard {
   average_rating: number | null;
   review_count: number | null;
   business_type: string;
+  latitude: number | null;
+  longitude: number | null;
+  distance?: number;
 }
 
 const StarRating = ({ rating, size = 14 }: { rating: number; size?: number }) => (
@@ -95,12 +102,16 @@ const StarRating = ({ rating, size = 14 }: { rating: number; size?: number }) =>
   </div>
 );
 
+type SortOption = 'nearest' | 'rating' | 'popular' | 'recent';
+type RadiusOption = '5' | '10' | '20' | 'all';
+
 export default function MarketplaceCategory() {
   const location = useLocation();
   const category = location.pathname.replace('/', '');
   const config = category ? CATEGORIES[category] : null;
   const platform = usePlatformSettings();
   const headerLogo = platform?.logo_dark || platform?.system_logo || platform?.logo_light || null;
+  const geo = useGeolocation();
 
   const [companies, setCompanies] = useState<CompanyCard[]>([]);
   const [filtered, setFiltered] = useState<CompanyCard[]>([]);
@@ -109,26 +120,32 @@ export default function MarketplaceCategory() {
   const [ratingFilter, setRatingFilter] = useState('all');
   const [states, setStates] = useState<string[]>([]);
   const [stateFilter, setStateFilter] = useState('all');
+  const [sortBy, setSortBy] = useState<SortOption>(geo.latitude ? 'nearest' : 'rating');
+  const [radius, setRadius] = useState<RadiusOption>('10');
 
   useEffect(() => {
     if (!config) return;
     loadCompanies();
   }, [category]);
 
+  useEffect(() => {
+    if (geo.latitude && sortBy !== 'nearest') {
+      setSortBy('nearest');
+    }
+  }, [geo.latitude]);
+
   const loadCompanies = async () => {
     if (!config) return;
     setLoading(true);
 
-    let query = supabase
+    const { data } = await supabase
       .from('public_company' as any)
-      .select('id, name, slug, logo_url, cover_url, city, state, average_rating, review_count, business_type')
+      .select('id, name, slug, logo_url, cover_url, city, state, average_rating, review_count, business_type, latitude, longitude')
       .eq('business_type', config.businessType)
       .order('average_rating', { ascending: false, nullsFirst: false });
 
-    const { data } = await query;
     const items = (data as any[] || []) as CompanyCard[];
     setCompanies(items);
-    setFiltered(items);
 
     const uniqueStates = [...new Set(items.map(c => c.state).filter(Boolean))] as string[];
     setStates(uniqueStates.sort());
@@ -137,19 +154,57 @@ export default function MarketplaceCategory() {
 
   useEffect(() => {
     let result = [...companies];
+
+    // Add distance if geo available
+    if (geo.latitude && geo.longitude) {
+      result = result.map(c => ({
+        ...c,
+        distance: c.latitude && c.longitude
+          ? calculateDistance(geo.latitude!, geo.longitude!, c.latitude, c.longitude)
+          : undefined,
+      }));
+    }
+
+    // City/name filter
     if (searchCity.trim()) {
       const term = searchCity.toLowerCase();
       result = result.filter(c => c.city?.toLowerCase().includes(term) || c.name.toLowerCase().includes(term));
     }
+
+    // State filter
     if (stateFilter !== 'all') {
       result = result.filter(c => c.state === stateFilter);
     }
+
+    // Rating filter
     if (ratingFilter !== 'all') {
       const min = parseFloat(ratingFilter);
       result = result.filter(c => (c.average_rating || 0) >= min);
     }
+
+    // Radius filter (only if geo available)
+    if (geo.latitude && radius !== 'all') {
+      const maxKm = parseFloat(radius);
+      result = result.filter(c => c.distance !== undefined && c.distance <= maxKm);
+    }
+
+    // Sort
+    switch (sortBy) {
+      case 'nearest':
+        result.sort((a, b) => (a.distance ?? 9999) - (b.distance ?? 9999));
+        break;
+      case 'rating':
+        result.sort((a, b) => (b.average_rating || 0) - (a.average_rating || 0));
+        break;
+      case 'popular':
+        result.sort((a, b) => (b.review_count || 0) - (a.review_count || 0));
+        break;
+      case 'recent':
+        break;
+    }
+
     setFiltered(result);
-  }, [searchCity, ratingFilter, stateFilter, companies]);
+  }, [searchCity, ratingFilter, stateFilter, companies, geo.latitude, geo.longitude, sortBy, radius]);
 
   if (!config) {
     return (
@@ -205,16 +260,40 @@ export default function MarketplaceCategory() {
           <h1 className="text-3xl md:text-4xl lg:text-5xl font-display font-bold text-[hsl(var(--foreground))] mb-4">
             {config.heroTitle}
           </h1>
-          <p className="text-lg text-[hsl(var(--muted-foreground))] max-w-2xl mx-auto mb-8">
+          <p className="text-lg text-[hsl(var(--muted-foreground))] max-w-2xl mx-auto mb-6">
             {config.heroSubtitle}
           </p>
+
+          {/* Geo prompt */}
+          {!geo.latitude && geo.permission !== 'denied' && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={geo.requestLocation}
+              disabled={geo.loading}
+              className="gap-2"
+            >
+              {geo.loading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Navigation className="h-4 w-4" />
+              )}
+              Usar minha localização para ver profissionais próximos
+            </Button>
+          )}
+          {geo.latitude && (
+            <p className="text-sm text-[hsl(var(--accent))] font-medium inline-flex items-center gap-1">
+              <Navigation className="h-3.5 w-3.5" />
+              Localização ativa — mostrando profissionais próximos
+            </p>
+          )}
         </div>
       </section>
 
       {/* Filters */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-6 relative z-10">
         <div className="bg-white rounded-2xl shadow-lg border border-[hsl(var(--border))] p-4 md:p-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[hsl(var(--muted-foreground))]" />
               <Input
@@ -246,7 +325,46 @@ export default function MarketplaceCategory() {
                 <SelectItem value="5">5 estrelas</SelectItem>
               </SelectContent>
             </Select>
+            <Select value={sortBy} onValueChange={(v) => setSortBy(v as SortOption)}>
+              <SelectTrigger>
+                <SelectValue placeholder="Ordenar por" />
+              </SelectTrigger>
+              <SelectContent>
+                {geo.latitude && <SelectItem value="nearest">Mais próximos</SelectItem>}
+                <SelectItem value="rating">Melhor avaliação</SelectItem>
+                <SelectItem value="popular">Mais populares</SelectItem>
+                <SelectItem value="recent">Mais recentes</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
+
+          {/* Radius filter - only when geo is active */}
+          {geo.latitude && (
+            <div className="flex items-center gap-3 mt-4 pt-4 border-t border-[hsl(var(--border))]">
+              <span className="text-sm text-[hsl(var(--muted-foreground))] whitespace-nowrap">Raio de busca:</span>
+              <div className="flex gap-2 flex-wrap">
+                {([
+                  { value: '5', label: '5 km' },
+                  { value: '10', label: '10 km' },
+                  { value: '20', label: '20 km' },
+                  { value: 'all', label: 'Cidade inteira' },
+                ] as { value: RadiusOption; label: string }[]).map(opt => (
+                  <Button
+                    key={opt.value}
+                    variant={radius === opt.value ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setRadius(opt.value)}
+                    className={radius === opt.value
+                      ? 'bg-[hsl(var(--primary))] text-[hsl(var(--primary-foreground))]'
+                      : ''
+                    }
+                  >
+                    {opt.label}
+                  </Button>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </section>
 
@@ -268,7 +386,18 @@ export default function MarketplaceCategory() {
           <div className="text-center py-16">
             <Search className="h-12 w-12 text-[hsl(var(--muted-foreground))]/40 mx-auto mb-4" />
             <h3 className="text-lg font-semibold text-[hsl(var(--foreground))] mb-2">Nenhum profissional encontrado</h3>
-            <p className="text-[hsl(var(--muted-foreground))]">Tente alterar os filtros de busca.</p>
+            <p className="text-[hsl(var(--muted-foreground))] mb-4">Tente alterar os filtros de busca.</p>
+            {geo.latitude && radius !== 'all' && (
+              <Button variant="outline" size="sm" onClick={() => setRadius('all')}>
+                Expandir para cidade inteira
+              </Button>
+            )}
+            {!geo.latitude && geo.permission !== 'denied' && (
+              <Button variant="outline" size="sm" onClick={geo.requestLocation} className="gap-2">
+                <Navigation className="h-4 w-4" />
+                Usar minha localização
+              </Button>
+            )}
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -284,12 +413,18 @@ export default function MarketplaceCategory() {
                         <Scissors className="h-10 w-10 text-[hsl(var(--primary))]/20" />
                       </div>
                     )}
-                    {/* Logo overlay */}
                     {company.logo_url && (
                       <div className="absolute bottom-0 left-4 translate-y-1/2">
                         <div className="w-16 h-16 rounded-xl border-4 border-white bg-white shadow-md overflow-hidden">
                           <img src={company.logo_url} alt={company.name} className="w-full h-full object-contain" />
                         </div>
+                      </div>
+                    )}
+                    {/* Distance badge */}
+                    {company.distance !== undefined && (
+                      <div className="absolute top-3 right-3 bg-white/90 backdrop-blur-sm text-xs font-medium text-[hsl(var(--foreground))] px-2.5 py-1 rounded-full shadow-sm flex items-center gap-1">
+                        <MapPin className="h-3 w-3 text-[hsl(var(--accent))]" />
+                        {formatDistance(company.distance)}
                       </div>
                     )}
                   </div>

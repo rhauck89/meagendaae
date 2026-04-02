@@ -1,11 +1,14 @@
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { SEOHead } from '@/components/SEOHead';
 import { usePlatformSettings } from '@/hooks/usePlatformSettings';
+import { useGeolocation, calculateDistance, formatDistance } from '@/hooks/useGeolocation';
 import {
   Scissors, ArrowRight, Star, MapPin, Search, Sparkles,
-  Calendar, Users, ChevronRight, Heart, Shield
+  Calendar, Users, ChevronRight, Heart, Shield, Navigation, Loader2
 } from 'lucide-react';
 
 const categories = [
@@ -50,9 +53,79 @@ const benefits = [
   { icon: MapPin, title: 'Perto de você', desc: 'Profissionais na sua cidade' },
 ];
 
+interface NearbyCompany {
+  id: string;
+  name: string;
+  slug: string;
+  logo_url: string | null;
+  city: string | null;
+  state: string | null;
+  average_rating: number | null;
+  review_count: number | null;
+  business_type: string;
+  latitude: number | null;
+  longitude: number | null;
+  distance?: number;
+}
+
+const StarRating = ({ rating, size = 14 }: { rating: number; size?: number }) => (
+  <div className="flex items-center gap-0.5">
+    {[1, 2, 3, 4, 5].map((s) => {
+      const fill = rating >= s ? 1 : rating >= s - 0.5 ? 0.5 : 0;
+      return (
+        <svg key={s} width={size} height={size} viewBox="0 0 24 24" fill="none">
+          <defs>
+            <linearGradient id={`home-star-${s}-${size}`}>
+              <stop offset={`${fill * 100}%`} stopColor="#FDBA2D" />
+              <stop offset={`${fill * 100}%`} stopColor="#D1D5DB" />
+            </linearGradient>
+          </defs>
+          <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" fill={`url(#home-star-${s}-${size})`} />
+        </svg>
+      );
+    })}
+  </div>
+);
+
 export default function MarketplaceHome() {
   const platform = usePlatformSettings();
   const headerLogo = platform?.logo_dark || platform?.system_logo || platform?.logo_light || null;
+  const geo = useGeolocation();
+  const [nearbyCompanies, setNearbyCompanies] = useState<NearbyCompany[]>([]);
+  const [loadingNearby, setLoadingNearby] = useState(false);
+
+  useEffect(() => {
+    if (geo.latitude && geo.longitude) {
+      loadNearby(geo.latitude, geo.longitude);
+    }
+  }, [geo.latitude, geo.longitude]);
+
+  const loadNearby = async (lat: number, lng: number) => {
+    setLoadingNearby(true);
+    const { data } = await supabase
+      .from('public_company' as any)
+      .select('id, name, slug, logo_url, city, state, average_rating, review_count, business_type, latitude, longitude')
+      .not('latitude', 'is', null)
+      .not('longitude', 'is', null);
+
+    if (data) {
+      const withDistance = (data as any[])
+        .map((c: any) => ({
+          ...c,
+          distance: calculateDistance(lat, lng, c.latitude, c.longitude),
+        }))
+        .filter((c: any) => c.distance <= 20)
+        .sort((a: any, b: any) => a.distance - b.distance)
+        .slice(0, 6);
+      setNearbyCompanies(withDistance);
+    }
+    setLoadingNearby(false);
+  };
+
+  const getProfileRoute = (company: NearbyCompany) => {
+    const bt = company.business_type === 'barbershop' ? 'barbearia' : 'estetica';
+    return `/${bt}/${company.slug}`;
+  };
 
   return (
     <div className="min-h-screen bg-white">
@@ -117,8 +190,94 @@ export default function MarketplaceHome() {
               </Button>
             </Link>
           </div>
+
+          {/* Geolocation prompt */}
+          {geo.permission === 'prompt' && !geo.latitude && (
+            <div className="mt-8">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={geo.requestLocation}
+                disabled={geo.loading}
+                className="gap-2"
+              >
+                {geo.loading ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Navigation className="h-4 w-4" />
+                )}
+                Usar minha localização
+              </Button>
+            </div>
+          )}
         </div>
       </section>
+
+      {/* Nearby professionals */}
+      {(geo.latitude && nearbyCompanies.length > 0) && (
+        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+          <div className="text-center mb-12">
+            <div className="inline-flex items-center gap-2 bg-[hsl(var(--accent))]/10 text-[hsl(var(--accent))] px-4 py-1.5 rounded-full text-sm font-medium mb-4">
+              <Navigation className="h-4 w-4" />
+              Baseado na sua localização
+            </div>
+            <h2 className="text-2xl md:text-3xl font-display font-bold text-[hsl(var(--foreground))] mb-3">
+              Profissionais próximos de você
+            </h2>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {nearbyCompanies.map(company => (
+              <Link key={company.id} to={getProfileRoute(company)}>
+                <Card className="overflow-hidden hover:shadow-xl transition-all duration-300 hover:-translate-y-1 border-[hsl(var(--border))] group cursor-pointer h-full">
+                  <CardContent className="p-5">
+                    <div className="flex items-start gap-4">
+                      <div className="w-14 h-14 rounded-xl bg-[hsl(var(--muted))]/50 flex-shrink-0 overflow-hidden flex items-center justify-center">
+                        {company.logo_url ? (
+                          <img src={company.logo_url} alt={company.name} className="w-full h-full object-contain" />
+                        ) : (
+                          <Scissors className="h-6 w-6 text-[hsl(var(--primary))]/40" />
+                        )}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <h3 className="font-semibold text-[hsl(var(--foreground))] group-hover:text-[hsl(var(--primary))] transition-colors line-clamp-1">
+                          {company.name}
+                        </h3>
+                        {(company.city || company.state) && (
+                          <div className="flex items-center gap-1 mt-0.5 text-sm text-[hsl(var(--muted-foreground))]">
+                            <MapPin className="h-3 w-3 flex-shrink-0" />
+                            <span className="line-clamp-1">{[company.city, company.state].filter(Boolean).join(', ')}</span>
+                          </div>
+                        )}
+                        <div className="flex items-center gap-3 mt-2">
+                          {company.average_rating && company.average_rating > 0 ? (
+                            <div className="flex items-center gap-1">
+                              <StarRating rating={company.average_rating} size={12} />
+                              <span className="text-xs font-medium">{company.average_rating.toFixed(1)}</span>
+                            </div>
+                          ) : null}
+                          {company.distance !== undefined && (
+                            <span className="text-xs text-[hsl(var(--accent))] font-medium">
+                              {formatDistance(company.distance)}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      <ChevronRight className="h-5 w-5 text-[hsl(var(--muted-foreground))] flex-shrink-0 mt-1" />
+                    </div>
+                  </CardContent>
+                </Card>
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {loadingNearby && (
+        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 text-center">
+          <Loader2 className="h-8 w-8 animate-spin text-[hsl(var(--primary))] mx-auto mb-4" />
+          <p className="text-[hsl(var(--muted-foreground))]">Buscando profissionais próximos...</p>
+        </section>
+      )}
 
       {/* Categories */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
