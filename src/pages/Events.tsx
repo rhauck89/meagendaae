@@ -1135,7 +1135,6 @@ const Events = () => {
         ref={cameraInputRef}
         type="file"
         accept="image/*"
-        capture="environment"
         className="hidden"
         onChange={handleCameraCapture}
       />
