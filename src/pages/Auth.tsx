@@ -6,10 +6,11 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
-import { Scissors } from 'lucide-react';
+import { Scissors, Calendar, DollarSign, Bell, Tag, CheckCircle2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { usePlatformSettings } from '@/hooks/usePlatformSettings';
 import { PlatformFooter } from '@/components/PlatformFooter';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 const friendlyError = (msg: string): string => {
   if (msg.includes('Invalid login')) return 'Email ou senha incorretos.';
@@ -20,9 +21,17 @@ const friendlyError = (msg: string): string => {
   return 'Erro ao processar. Tente novamente.';
 };
 
+const benefits = [
+  { icon: Calendar, text: 'Agenda inteligente' },
+  { icon: DollarSign, text: 'Controle financeiro automático' },
+  { icon: Bell, text: 'Lembretes para clientes' },
+  { icon: Tag, text: 'Promoções para horários vazios' },
+];
+
 const Auth = () => {
   const navigate = useNavigate();
   const platform = usePlatformSettings();
+  const isMobile = useIsMobile();
   const [isLogin, setIsLogin] = useState(true);
   const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState('');
@@ -44,7 +53,6 @@ const Auth = () => {
 
   const validate = (): boolean => {
     const newErrors: Record<string, string> = {};
-
     if (!isLogin && !fullName.trim()) {
       newErrors.fullName = 'Nome é obrigatório.';
     }
@@ -54,7 +62,6 @@ const Auth = () => {
     if (password.length < 6) {
       newErrors.password = 'A senha deve ter no mínimo 6 caracteres.';
     }
-
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -63,21 +70,16 @@ const Auth = () => {
     e.preventDefault();
     if (!validate()) return;
     setLoading(true);
-
     try {
       if (isLogin) {
         const { data, error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
         if (error) throw error;
-        
-        // Check user roles to determine redirect
         const { data: rolesData } = await supabase
           .from('user_roles')
           .select('role')
           .eq('user_id', data.user.id);
-        
         const roles = rolesData?.map(r => r.role) || [];
         const isSuperAdmin = roles.includes('super_admin');
-        
         toast.success('Login realizado com sucesso!');
         navigate(isSuperAdmin ? '/super-admin' : '/dashboard');
       } else {
@@ -97,95 +99,148 @@ const Auth = () => {
     }
   };
 
-  return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-background p-4">
-      <Card className="w-full max-w-md shadow-xl border-0">
-        <CardHeader className="text-center space-y-4">
-          {(() => {
-            const logoUrl = platform?.logo_dark || platform?.system_logo || platform?.logo_light;
-            return logoUrl ? (
-              <img src={logoUrl} alt={platform?.system_name || 'Logo'} className="mx-auto h-14 max-w-[180px] object-contain" />
-            ) : (
-              <div className="mx-auto w-14 h-14 bg-primary rounded-2xl flex items-center justify-center">
-                <Scissors className="h-7 w-7 text-primary-foreground" />
-              </div>
-            );
-          })()}
-          <div>
-            <CardTitle className="text-2xl font-display">
-              {isLogin ? 'Entrar' : 'Criar Conta'}
-            </CardTitle>
-            <CardDescription>
-              {isLogin
-                ? 'Acesse seu painel de agendamentos'
-                : 'Crie sua conta para começar a agendar'}
-            </CardDescription>
+  const logoUrl = platform?.logo_light || platform?.system_logo || platform?.logo_dark;
+  const logoUrlDark = platform?.logo_dark || platform?.system_logo || platform?.logo_light;
+
+  const formContent = (
+    <Card className="w-full max-w-[420px] shadow-xl border-0 rounded-2xl">
+      <CardHeader className="text-center space-y-4">
+        {isMobile && (
+          logoUrlDark ? (
+            <img src={logoUrlDark} alt={platform?.system_name || 'Logo'} className="mx-auto h-12 max-w-[160px] object-contain" />
+          ) : (
+            <div className="mx-auto w-12 h-12 bg-primary rounded-2xl flex items-center justify-center">
+              <Scissors className="h-6 w-6 text-primary-foreground" />
+            </div>
+          )
+        )}
+        <div>
+          <CardTitle className="text-2xl font-display">
+            {isLogin ? 'Entrar' : 'Criar Conta'}
+          </CardTitle>
+          <CardDescription>
+            {isLogin ? 'Acesse seu painel de agendamentos' : 'Crie sua conta para começar a agendar'}
+          </CardDescription>
+        </div>
+      </CardHeader>
+      <CardContent>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {!isLogin && (
+            <div className="space-y-2">
+              <Label htmlFor="fullName">Nome completo</Label>
+              <Input
+                ref={firstInputRef}
+                id="fullName"
+                value={fullName}
+                onChange={(e) => { setFullName(e.target.value); setErrors((p) => ({ ...p, fullName: '' })); }}
+                placeholder="Seu nome"
+                autoComplete="name"
+              />
+              {errors.fullName && <p className="text-sm text-destructive">{errors.fullName}</p>}
+            </div>
+          )}
+          <div className="space-y-2">
+            <Label htmlFor="email">Email</Label>
+            <Input
+              ref={emailInputRef}
+              id="email"
+              type="email"
+              value={email}
+              onChange={(e) => { setEmail(e.target.value); setErrors((p) => ({ ...p, email: '' })); }}
+              placeholder="seu@email.com"
+              autoComplete="email"
+            />
+            {errors.email && <p className="text-sm text-destructive">{errors.email}</p>}
           </div>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {!isLogin && (
-              <div className="space-y-2">
-                <Label htmlFor="fullName">Nome completo</Label>
-                <Input
-                  ref={firstInputRef}
-                  id="fullName"
-                  value={fullName}
-                  onChange={(e) => { setFullName(e.target.value); setErrors((p) => ({ ...p, fullName: '' })); }}
-                  placeholder="Seu nome"
-                  autoComplete="name"
-                />
-                {errors.fullName && <p className="text-sm text-destructive">{errors.fullName}</p>}
+          <div className="space-y-2">
+            <Label htmlFor="password">Senha</Label>
+            <Input
+              id="password"
+              type="password"
+              value={password}
+              onChange={(e) => { setPassword(e.target.value); setErrors((p) => ({ ...p, password: '' })); }}
+              placeholder="Mínimo 6 caracteres"
+              autoComplete={isLogin ? 'current-password' : 'new-password'}
+            />
+            {errors.password && <p className="text-sm text-destructive">{errors.password}</p>}
+            {isLogin && (
+              <div className="text-right">
+                <Link to="/forgot-password" className="text-xs text-muted-foreground hover:text-primary hover:underline">
+                  Esqueceu sua senha?
+                </Link>
               </div>
             )}
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                ref={emailInputRef}
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => { setEmail(e.target.value); setErrors((p) => ({ ...p, email: '' })); }}
-                placeholder="seu@email.com"
-                autoComplete="email"
-              />
-              {errors.email && <p className="text-sm text-destructive">{errors.email}</p>}
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="password">Senha</Label>
-              <Input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e) => { setPassword(e.target.value); setErrors((p) => ({ ...p, password: '' })); }}
-                placeholder="Mínimo 6 caracteres"
-                autoComplete={isLogin ? 'current-password' : 'new-password'}
-              />
-              {errors.password && <p className="text-sm text-destructive">{errors.password}</p>}
-              {isLogin && (
-                <div className="text-right">
-                  <Link to="/forgot-password" className="text-xs text-muted-foreground hover:text-primary hover:underline">
-                    Esqueceu sua senha?
-                  </Link>
-                </div>
-              )}
-            </div>
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? 'Processando...' : isLogin ? 'Entrar' : 'Criar Conta'}
-            </Button>
-          </form>
-          <div className="mt-4 text-center">
-            <button
-              type="button"
-              onClick={() => { setIsLogin(!isLogin); setErrors({}); }}
-              className="text-sm text-primary hover:underline"
-            >
-              {isLogin ? 'Não tem conta? Cadastre-se' : 'Já tem conta? Faça login'}
-            </button>
           </div>
-        </CardContent>
-      </Card>
-      <PlatformFooter className="mt-6" />
+          <Button type="submit" className="w-full" disabled={loading}>
+            {loading ? 'Processando...' : isLogin ? 'Entrar' : 'Criar Conta'}
+          </Button>
+        </form>
+        <div className="mt-4 text-center">
+          <button
+            type="button"
+            onClick={() => { setIsLogin(!isLogin); setErrors({}); }}
+            className="text-sm text-primary hover:underline"
+          >
+            {isLogin ? 'Não tem conta? Cadastre-se' : 'Já tem conta? Faça login'}
+          </button>
+        </div>
+      </CardContent>
+    </Card>
+  );
+
+  if (isMobile) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-background p-4">
+        {formContent}
+        <PlatformFooter className="mt-6" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen flex">
+      {/* Left branding column */}
+      <div className="hidden lg:flex w-1/2 bg-primary flex-col items-center justify-center p-12 relative overflow-hidden">
+        {/* Subtle decorative circles */}
+        <div className="absolute top-[-80px] left-[-80px] w-64 h-64 rounded-full bg-white/5" />
+        <div className="absolute bottom-[-60px] right-[-60px] w-48 h-48 rounded-full bg-white/5" />
+
+        <div className="relative z-10 max-w-md text-center space-y-8">
+          {logoUrl ? (
+            <img src={logoUrl} alt={platform?.system_name || 'Logo'} className="mx-auto h-14 max-w-[200px] object-contain" />
+          ) : (
+            <div className="mx-auto w-16 h-16 bg-white/10 rounded-2xl flex items-center justify-center">
+              <Scissors className="h-8 w-8 text-primary-foreground" />
+            </div>
+          )}
+
+          <div className="space-y-3">
+            <h1 className="text-3xl font-bold text-primary-foreground leading-tight">
+              Gerencie sua barbearia com inteligência
+            </h1>
+            <p className="text-primary-foreground/70 text-lg">
+              Agenda, clientes, financeiro e promoções em um só lugar.
+            </p>
+          </div>
+
+          <div className="space-y-4 text-left">
+            {benefits.map((b, i) => (
+              <div key={i} className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-white/10 flex items-center justify-center shrink-0">
+                  <b.icon className="h-5 w-5 text-accent" />
+                </div>
+                <span className="text-primary-foreground/90 text-base">{b.text}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Right form column */}
+      <div className="flex-1 flex flex-col items-center justify-center bg-background p-8">
+        {formContent}
+        <PlatformFooter className="mt-8" />
+      </div>
     </div>
   );
 };
