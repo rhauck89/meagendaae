@@ -56,6 +56,16 @@ import SettingsBranding from "./pages/settings/SettingsBranding";
 import SettingsDomain from "./pages/settings/SettingsDomain";
 import SettingsPlan from "./pages/settings/SettingsPlan";
 
+// Finance sub-pages
+import FinanceDashboard from "./pages/finance/FinanceDashboard";
+import FinanceTransactions from "./pages/finance/FinanceTransactions";
+import FinanceRevenues from "./pages/finance/FinanceRevenues";
+import FinanceExpenses from "./pages/finance/FinanceExpenses";
+import FinanceCategories from "./pages/finance/FinanceCategories";
+import FinanceCommissions from "./pages/finance/FinanceCommissions";
+import FinanceReports from "./pages/finance/FinanceReports";
+import SettingsPlan from "./pages/settings/SettingsPlan";
+
 const queryClient = new QueryClient();
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {

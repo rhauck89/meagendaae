@@ -113,6 +113,10 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
       const sub = settingsSubItems.find(i => location.pathname === i.href);
       return sub ? `Configurações / ${sub.label}` : 'Configurações';
     }
+    if (isFinanceActive) {
+      const sub = financeSubItems.find(i => location.pathname === i.href);
+      return sub ? `Financeiro / ${sub.label}` : 'Financeiro';
+    }
     return navItems.find(i => location.pathname === i.href || (i.href !== '/dashboard' && location.pathname.startsWith(i.href)))?.label
       || (location.pathname === '/dashboard/profile' ? 'Meu Perfil' : location.pathname === '/dashboard/support' ? 'Suporte' : 'Dashboard');
   })();
