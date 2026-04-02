@@ -236,7 +236,7 @@ const ProfilePage = () => {
             type="file"
             accept="image/*"
             className="hidden"
-            onChange={handleBannerUpload}
+            onChange={(e) => handleFileSelect(e, 'cover')}
           />
           <Button
             variant="secondary"
