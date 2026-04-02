@@ -6,6 +6,8 @@ export interface PlatformSettings {
   system_url: string | null;
   system_logo: string | null;
   favicon_url: string | null;
+  logo_light: string | null;
+  logo_dark: string | null;
 }
 
 let cachedSettings: PlatformSettings | null = null;
@@ -14,7 +16,7 @@ let fetchPromise: Promise<PlatformSettings | null> | null = null;
 const fetchSettings = async (): Promise<PlatformSettings | null> => {
   const { data } = await supabase
     .from('platform_settings')
-    .select('system_name, system_url, system_logo, favicon_url')
+    .select('system_name, system_url, system_logo, favicon_url, logo_light, logo_dark')
     .limit(1)
     .single();
   if (data) {
@@ -23,6 +25,8 @@ const fetchSettings = async (): Promise<PlatformSettings | null> => {
       system_url: data.system_url,
       system_logo: data.system_logo,
       favicon_url: data.favicon_url,
+      logo_light: (data as any).logo_light ?? null,
+      logo_dark: (data as any).logo_dark ?? null,
     };
     cachedSettings = s;
     return s;
