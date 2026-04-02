@@ -17,10 +17,12 @@ import { toast } from 'sonner';
 
 const statusLabels: Record<string, string> = { pending: 'Pendente', paid: 'Pago', cancelled: 'Cancelado' };
 
+const paymentMethodLabels: Record<string, string> = { dinheiro: 'Dinheiro', pix: 'Pix', cartao: 'Cartão', transferencia: 'Transferência', outro: 'Outro' };
+
 const emptyForm = () => ({
   description: '', amount: '', expense_date: format(new Date(), 'yyyy-MM-dd'),
   due_date: '', category_id: '', is_recurring: false, recurrence_type: 'monthly',
-  recurrence_count: '1', notes: '', status: 'pending', installments: '1',
+  recurrence_count: '1', notes: '', status: 'pending', installments: '1', payment_method: '',
 });
 
 const FinanceExpenses = () => {

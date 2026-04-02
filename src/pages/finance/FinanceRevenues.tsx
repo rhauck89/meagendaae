@@ -230,6 +230,7 @@ const FinanceRevenues = () => {
                         {r.is_automatic ? 'Automática' : 'Manual'}
                       </Badge>
                     </TableCell>
+                    <TableCell className="text-xs text-muted-foreground">{paymentMethodLabels[r.payment_method] || '—'}</TableCell>
                     <TableCell><Badge variant="outline" className="text-xs">{statusLabels[r.status] || r.status}</Badge></TableCell>
                     <TableCell className="text-right font-semibold text-success">R$ {Number(r.amount).toFixed(2)}</TableCell>
                     <TableCell>
