@@ -3,15 +3,18 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePlatformSettings } from '@/hooks/usePlatformSettings';
 
-const SPLASH_MIN_MS = 1500;
+const SPLASH_MIN_MS = 1000;
 
 const AppRedirect = () => {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
   const settings = usePlatformSettings();
   const [splashDone, setSplashDone] = useState(false);
+  const [animateIn, setAnimateIn] = useState(false);
 
   useEffect(() => {
+    // Trigger entrance animation after mount
+    requestAnimationFrame(() => setAnimateIn(true));
     const timer = setTimeout(() => setSplashDone(true), SPLASH_MIN_MS);
     return () => clearTimeout(timer);
   }, []);
@@ -23,23 +26,56 @@ const AppRedirect = () => {
 
   const bgColor = settings?.splash_background_color || '#0f2a5c';
   const logoUrl = settings?.splash_logo || settings?.system_logo;
+  const appName = settings?.system_name || 'MeAgendaAê';
 
   return (
     <div
-      className="min-h-screen flex flex-col items-center justify-center"
+      className="fixed inset-0 flex flex-col items-center justify-center z-[9999]"
       style={{ backgroundColor: bgColor }}
     >
-      {logoUrl ? (
-        <img src={logoUrl} alt="Logo" className="h-20 w-auto mb-6 animate-pulse" />
-      ) : (
-        <div className="text-3xl font-bold text-white mb-6 animate-pulse">
-          {settings?.system_name || 'MeAgendaAê'}
-        </div>
-      )}
-      <div className="flex gap-1">
-        <div className="w-2 h-2 rounded-full bg-white/60 animate-bounce" style={{ animationDelay: '0ms' }} />
-        <div className="w-2 h-2 rounded-full bg-white/60 animate-bounce" style={{ animationDelay: '150ms' }} />
-        <div className="w-2 h-2 rounded-full bg-white/60 animate-bounce" style={{ animationDelay: '300ms' }} />
+      <div
+        className="flex flex-col items-center justify-center transition-all duration-700 ease-out"
+        style={{
+          opacity: animateIn ? 1 : 0,
+          transform: animateIn ? 'scale(1)' : 'scale(0.95)',
+        }}
+      >
+        {logoUrl ? (
+          <img
+            src={logoUrl}
+            alt={appName}
+            className="h-24 w-auto mb-6 drop-shadow-lg"
+          />
+        ) : (
+          <div className="h-24 w-24 rounded-2xl bg-white/10 flex items-center justify-center mb-6">
+            <span className="text-4xl font-bold text-white">
+              {appName.charAt(0)}
+            </span>
+          </div>
+        )}
+
+        <h1 className="text-2xl font-bold text-white mb-1 tracking-tight">
+          {appName}
+        </h1>
+        <p className="text-sm text-white/60 font-medium">
+          Agendamentos inteligentes
+        </p>
+      </div>
+
+      {/* Loading dots */}
+      <div className="absolute bottom-16 flex gap-1.5">
+        <div
+          className="w-2 h-2 rounded-full bg-white/50 animate-bounce"
+          style={{ animationDelay: '0ms' }}
+        />
+        <div
+          className="w-2 h-2 rounded-full bg-white/50 animate-bounce"
+          style={{ animationDelay: '150ms' }}
+        />
+        <div
+          className="w-2 h-2 rounded-full bg-white/50 animate-bounce"
+          style={{ animationDelay: '300ms' }}
+        />
       </div>
     </div>
   );
