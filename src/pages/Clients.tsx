@@ -642,7 +642,7 @@ const ClientProfile = ({ client, companyId, profileMap, onBack }: ClientProfileP
       client.email = editForm.email.trim() || null;
       client.birth_date = editForm.birth_date || null;
 
-      queryClient.invalidateQueries({ queryKey: ['clients', companyId] });
+      refresh('clients');
       toast.success('Cliente atualizado com sucesso');
       setEditOpen(false);
     } catch (err) {
