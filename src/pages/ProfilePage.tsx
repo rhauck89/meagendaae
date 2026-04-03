@@ -16,7 +16,7 @@ import { ptBR } from 'date-fns/locale';
 import ImageCropDialog from '@/components/ImageCropDialog';
 
 const ProfilePage = () => {
-  const { user, profile, companyId } = useAuth();
+  const { user, profile, companyId, refreshProfile } = useAuth();
   const { profileId } = useUserRole();
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
