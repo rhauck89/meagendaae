@@ -634,6 +634,23 @@ const ClientProfile = ({ client, companyId, profileMap, onBack }: ClientProfileP
     }
   };
 
+  const handleToggleBlock = async () => {
+    const newBlocked = !client.is_blocked;
+    try {
+      const { error } = await supabase
+        .from('clients')
+        .update({ is_blocked: newBlocked } as any)
+        .eq('id', client.id)
+        .eq('company_id', companyId);
+      if (error) throw error;
+      client.is_blocked = newBlocked;
+      queryClient.invalidateQueries({ queryKey: ['clients', companyId] });
+      toast.success(newBlocked ? 'Cliente bloqueado' : 'Cliente desbloqueado');
+    } catch {
+      toast.error('Erro ao atualizar status do cliente');
+    }
+  };
+
   return (
     <div className="space-y-6">
       <Button variant="ghost" onClick={onBack} className="gap-2">
@@ -642,14 +659,31 @@ const ClientProfile = ({ client, companyId, profileMap, onBack }: ClientProfileP
 
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div className="min-w-0">
-          <h2 className="text-xl sm:text-2xl font-display font-bold truncate">{client.name}</h2>
+          <div className="flex items-center gap-2">
+            <h2 className="text-xl sm:text-2xl font-display font-bold truncate">{client.name}</h2>
+            {client.is_blocked && (
+              <Badge variant="destructive" className="text-xs gap-1">
+                <Ban className="h-3 w-3" /> Bloqueado
+              </Badge>
+            )}
+          </div>
           <p className="text-muted-foreground text-sm break-words">
             {client.whatsapp ? displayWhatsApp(client.whatsapp) : 'Sem WhatsApp'}
             {client.email && ` • ${client.email}`}
             {client.birth_date && ` • 🎂 ${format(parseISO(client.birth_date), 'dd/MM/yyyy', { locale: ptBR })}`}
           </p>
         </div>
-        <div className="flex gap-2 shrink-0">
+        <div className="flex gap-2 shrink-0 flex-wrap">
+          <Button
+            variant={client.is_blocked ? 'outline' : 'destructive'}
+            size="sm"
+            className="gap-2"
+            onClick={handleToggleBlock}
+          >
+            {client.is_blocked ? <ShieldCheck className="h-4 w-4" /> : <Ban className="h-4 w-4" />}
+            <span className="hidden sm:inline">{client.is_blocked ? 'Desbloquear cliente' : 'Bloquear cliente'}</span>
+            <span className="sm:hidden">{client.is_blocked ? 'Desbloquear' : 'Bloquear'}</span>
+          </Button>
           <Button
             variant="outline"
             size="sm"
