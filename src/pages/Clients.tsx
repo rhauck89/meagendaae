@@ -89,7 +89,6 @@ const Clients = () => {
   };
 
   const insertClient = async () => {
-    const { formatWhatsApp } = await import('@/lib/whatsapp');
     const { error } = await supabase.from('clients').insert({
       company_id: companyId!,
       name: addClientForm.name.trim(),
