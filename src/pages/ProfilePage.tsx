@@ -16,7 +16,7 @@ import { ptBR } from 'date-fns/locale';
 import ImageCropDialog from '@/components/ImageCropDialog';
 
 const ProfilePage = () => {
-  const { user, profile, companyId } = useAuth();
+  const { user, profile, companyId, refreshProfile } = useAuth();
   const { profileId } = useUserRole();
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -221,6 +221,9 @@ const ProfilePage = () => {
         banner_url: (updatedProfile as any).banner_url || '',
         social_instagram: persistedSocial.instagram || '',
       });
+
+      // Refresh AuthContext so the rest of the app reflects changes
+      await refreshProfile();
 
       toast.success('Perfil atualizado com sucesso');
     } catch (err: any) {

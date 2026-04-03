@@ -10,6 +10,7 @@ interface AuthContextType {
   companyId: string | null;
   roles: string[];
   signOut: () => Promise<void>;
+  refreshProfile: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -20,6 +21,7 @@ const AuthContext = createContext<AuthContextType>({
   companyId: null,
   roles: [],
   signOut: async () => {},
+  refreshProfile: async () => {},
 });
 
 export const useAuth = () => useContext(AuthContext);
@@ -90,8 +92,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     await supabase.auth.signOut();
   };
 
+  const refreshProfile = async () => {
+    if (user) {
+      await fetchUserData(user.id);
+    }
+  };
+
   return (
-    <AuthContext.Provider value={{ user, session, loading, profile, companyId, roles, signOut }}>
+    <AuthContext.Provider value={{ user, session, loading, profile, companyId, roles, signOut, refreshProfile }}>
       {children}
     </AuthContext.Provider>
   );
