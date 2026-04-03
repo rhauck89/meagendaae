@@ -116,7 +116,8 @@ const FinancePayables = () => {
         </div>
       )}
 
-      <Card>
+      {/* Desktop table */}
+      <Card className="hidden md:block">
         <CardContent className="p-0">
           <div className="overflow-x-auto">
             <Table className="min-w-[600px]">
@@ -160,6 +161,35 @@ const FinancePayables = () => {
           </div>
         </CardContent>
       </Card>
+
+      {/* Mobile cards */}
+      <div className="md:hidden space-y-3">
+        {items.length === 0 ? (
+          <Card><CardContent className="p-6 text-center text-muted-foreground">Nenhuma conta a pagar encontrada</CardContent></Card>
+        ) : items.map(e => (
+          <Card key={e.id}>
+            <CardContent className="p-4">
+              <div className="flex items-start justify-between gap-2 mb-2">
+                <span className="font-medium text-sm break-words flex-1 min-w-0">{e.description}</span>
+                <span className="font-semibold text-sm text-destructive shrink-0">R$ {Number(e.amount).toFixed(2)}</span>
+              </div>
+              <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground mb-2">
+                <span>{format(new Date(e.due_date + 'T12:00:00'), 'dd/MM/yyyy')}</span>
+                {getDueBadge(e.due_date, e.status)}
+                <span>•</span>
+                <span>{e.category?.name || '—'}</span>
+                <Badge variant="outline" className={cn('text-[10px]', statusColors[e.status] || '')}>{statusLabels[e.status] || e.status}</Badge>
+              </div>
+              <div className="flex justify-end gap-1">
+                {e.status === 'pending' && (
+                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => markPaid(e.id)}><CheckCircle className="h-4 w-4 text-green-600" /></Button>
+                )}
+                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleDelete(e.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
     </div>
   );
 };

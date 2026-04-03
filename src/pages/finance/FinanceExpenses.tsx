@@ -307,7 +307,8 @@ const FinanceExpenses = () => {
         </DialogContent>
       </Dialog>
 
-      <Card>
+      {/* Desktop table */}
+      <Card className="hidden md:block">
         <CardContent className="p-0">
           <div className="overflow-x-auto">
             <Table className="min-w-[600px]">
@@ -361,6 +362,45 @@ const FinanceExpenses = () => {
           </div>
         </CardContent>
       </Card>
+
+      {/* Mobile cards */}
+      <div className="md:hidden space-y-3">
+        {expenses.length === 0 ? (
+          <Card><CardContent className="p-6 text-center text-muted-foreground">Nenhuma despesa registrada</CardContent></Card>
+        ) : expenses.map(e => (
+          <Card key={e.id}>
+            <CardContent className="p-4">
+              <div className="flex items-start justify-between gap-2 mb-2">
+                <div className="flex items-center gap-2 flex-1 min-w-0">
+                  {e.is_recurring && <RefreshCw className="h-3.5 w-3.5 text-muted-foreground shrink-0" />}
+                  <span className="font-medium text-sm break-words">{e.description}</span>
+                </div>
+                <span className="font-semibold text-sm text-destructive shrink-0">R$ {Number(e.amount).toFixed(2)}</span>
+              </div>
+              <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground mb-2">
+                <span>{format(new Date(e.expense_date + 'T12:00:00'), 'dd/MM/yyyy')}</span>
+                <span>•</span>
+                <span>{e.category?.name || '—'}</span>
+                <Badge variant="outline" className="text-[10px]">{statusLabels[e.status] || e.status}</Badge>
+              </div>
+              <div className="flex justify-end gap-1">
+                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(e)}><Pencil className="h-4 w-4" /></Button>
+                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => {
+                  if (e.installment_group_id && e.total_installments && e.total_installments > 1) {
+                    if (confirm('Deseja excluir todas as parcelas deste grupo?')) {
+                      handleDeleteGroup(e.installment_group_id);
+                    } else {
+                      handleDelete(e.id);
+                    }
+                  } else {
+                    handleDelete(e.id);
+                  }
+                }}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
     </div>
   );
 };

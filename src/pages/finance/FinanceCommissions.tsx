@@ -91,40 +91,78 @@ const FinanceCommissions = () => {
         </CardContent>
       </Card>
 
-      <Card>
+      {/* Desktop table */}
+      <Card className="hidden md:block">
         <CardContent className="p-0">
           <div className="overflow-x-auto">
             <Table className="min-w-[600px]">
-            <TableHeader>
-              <TableRow>
-                <TableHead>Profissional</TableHead>
-                <TableHead className="text-center">Tipo</TableHead>
-                <TableHead className="text-center">Serviços</TableHead>
-                <TableHead className="text-right">Faturado</TableHead>
-                <TableHead className="text-center">Comissão</TableHead>
-                <TableHead className="text-right">Valor Prof.</TableHead>
-                <TableHead className="text-right">Valor Empresa</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {rows.length === 0 ? (
-                <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-8">Sem dados no período</TableCell></TableRow>
-              ) : rows.map(r => (
-                <TableRow key={r.id}>
-                  <TableCell className="font-medium">{r.name}</TableCell>
-                  <TableCell className="text-center"><Badge variant="outline" className="text-xs">{collaboratorTypeLabel(r.type)}</Badge></TableCell>
-                  <TableCell className="text-center">{r.count}</TableCell>
-                  <TableCell className="text-right font-semibold">R$ {r.revenue.toFixed(2)}</TableCell>
-                  <TableCell className="text-center"><Badge variant="outline" className="text-xs">{commissionLabel(r.commType, r.value)}</Badge></TableCell>
-                  <TableCell className="text-right font-semibold text-warning">R$ {r.professionalValue.toFixed(2)}</TableCell>
-                  <TableCell className="text-right font-display font-bold">R$ {r.companyValue.toFixed(2)}</TableCell>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Profissional</TableHead>
+                  <TableHead className="text-center">Tipo</TableHead>
+                  <TableHead className="text-center">Serviços</TableHead>
+                  <TableHead className="text-right">Faturado</TableHead>
+                  <TableHead className="text-center">Comissão</TableHead>
+                  <TableHead className="text-right">Valor Prof.</TableHead>
+                  <TableHead className="text-right">Valor Empresa</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {rows.length === 0 ? (
+                  <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-8">Sem dados no período</TableCell></TableRow>
+                ) : rows.map(r => (
+                  <TableRow key={r.id}>
+                    <TableCell className="font-medium">{r.name}</TableCell>
+                    <TableCell className="text-center"><Badge variant="outline" className="text-xs">{collaboratorTypeLabel(r.type)}</Badge></TableCell>
+                    <TableCell className="text-center">{r.count}</TableCell>
+                    <TableCell className="text-right font-semibold">R$ {r.revenue.toFixed(2)}</TableCell>
+                    <TableCell className="text-center"><Badge variant="outline" className="text-xs">{commissionLabel(r.commType, r.value)}</Badge></TableCell>
+                    <TableCell className="text-right font-semibold text-warning">R$ {r.professionalValue.toFixed(2)}</TableCell>
+                    <TableCell className="text-right font-display font-bold">R$ {r.companyValue.toFixed(2)}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
           </div>
         </CardContent>
       </Card>
+
+      {/* Mobile cards */}
+      <div className="md:hidden space-y-3">
+        {rows.length === 0 ? (
+          <Card><CardContent className="p-6 text-center text-muted-foreground">Sem dados no período</CardContent></Card>
+        ) : rows.map(r => (
+          <Card key={r.id}>
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between mb-3">
+                <span className="font-medium">{r.name}</span>
+                <Badge variant="outline" className="text-xs">{collaboratorTypeLabel(r.type)}</Badge>
+              </div>
+              <div className="grid grid-cols-2 gap-2 text-sm">
+                <div>
+                  <span className="text-xs text-muted-foreground">Faturado</span>
+                  <p className="font-semibold">R$ {r.revenue.toFixed(2)}</p>
+                </div>
+                <div>
+                  <span className="text-xs text-muted-foreground">Serviços</span>
+                  <p className="font-semibold">{r.count}</p>
+                </div>
+                <div>
+                  <span className="text-xs text-muted-foreground">Valor Prof.</span>
+                  <p className="font-semibold text-warning">R$ {r.professionalValue.toFixed(2)}</p>
+                </div>
+                <div>
+                  <span className="text-xs text-muted-foreground">Valor Empresa</span>
+                  <p className="font-display font-bold">R$ {r.companyValue.toFixed(2)}</p>
+                </div>
+              </div>
+              <div className="mt-2">
+                <Badge variant="outline" className="text-xs">{commissionLabel(r.commType, r.value)}</Badge>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
     </div>
   );
 };
