@@ -21,4 +21,37 @@ if (isPreviewHost || isInIframe) {
   });
 }
 
+// Dynamically load manifest from edge function and update meta tags
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+if (supabaseUrl && !isPreviewHost && !isInIframe) {
+  fetch(`${supabaseUrl}/functions/v1/pwa-manifest`)
+    .then((r) => r.json())
+    .then((manifest) => {
+      // Update existing manifest link or create one
+      let link = document.querySelector<HTMLLinkElement>('link[rel="manifest"]');
+      if (!link) {
+        link = document.createElement("link");
+        link.rel = "manifest";
+        document.head.appendChild(link);
+      }
+      const blob = new Blob([JSON.stringify(manifest)], { type: "application/manifest+json" });
+      link.href = URL.createObjectURL(blob);
+
+      // Update theme-color
+      const themeMeta = document.querySelector<HTMLMetaElement>('meta[name="theme-color"]');
+      if (themeMeta && manifest.theme_color) {
+        themeMeta.content = manifest.theme_color;
+      }
+
+      // Update apple-touch-icon
+      const appleIcon = document.querySelector<HTMLLinkElement>('link[rel="apple-touch-icon"]');
+      if (appleIcon && manifest.icons?.[0]?.src) {
+        appleIcon.href = manifest.icons[0].src;
+      }
+    })
+    .catch(() => {
+      // Fallback: keep static manifest
+    });
+}
+
 createRoot(document.getElementById("root")!).render(<App />);
