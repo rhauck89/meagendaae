@@ -5,6 +5,18 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+const VAPID_LOG_PREFIX_LENGTH = 10;
+
+function getRequiredEnv(name: string): string {
+  const value = Deno.env.get(name);
+
+  if (!value) {
+    throw new Error(`${name} is not configured`);
+  }
+
+  return value;
+}
+
 // Web Push helpers using Web Crypto API (no npm dependency needed)
 function base64UrlToUint8Array(base64Url: string): Uint8Array {
   const padding = "=".repeat((4 - (base64Url.length % 4)) % 4);
@@ -197,17 +209,21 @@ Deno.serve(async (req) => {
       });
     }
 
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const vapidPrivateKey = Deno.env.get("VAPID_PRIVATE_KEY")!;
-    const vapidPublicKey = Deno.env.get("VAPID_PUBLIC_KEY")!;
+    const supabaseUrl = getRequiredEnv("SUPABASE_URL");
+    const serviceKey = getRequiredEnv("SUPABASE_SERVICE_ROLE_KEY");
+    const supabaseAnonKey = getRequiredEnv("SUPABASE_ANON_KEY");
+    const vapidPrivateKey = getRequiredEnv("VAPID_PRIVATE_KEY");
+    const vapidPublicKey = getRequiredEnv("VAPID_PUBLIC_KEY");
+    let requesterUserId: string | null = null;
+
+    console.log(`[send-push] Using VAPID public key: ${vapidPublicKey.substring(0, VAPID_LOG_PREFIX_LENGTH)}...`);
 
     // Verify caller is service role or authenticated user
     const token = authHeader.replace("Bearer ", "");
     const isServiceRole = token === serviceKey;
 
     if (!isServiceRole) {
-      const supabase = createClient(supabaseUrl, Deno.env.get("SUPABASE_ANON_KEY")!, {
+      const supabase = createClient(supabaseUrl, supabaseAnonKey, {
         global: { headers: { Authorization: authHeader } },
       });
       const { data: { user }, error: userError } = await supabase.auth.getUser();
@@ -217,6 +233,8 @@ Deno.serve(async (req) => {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
+
+      requesterUserId = user.id;
     }
 
     const body = await req.json();
@@ -225,6 +243,13 @@ Deno.serve(async (req) => {
     if (!user_id || !title) {
       return new Response(JSON.stringify({ error: "user_id and title are required" }), {
         status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (!isServiceRole && requesterUserId !== user_id) {
+      return new Response(JSON.stringify({ error: "Forbidden" }), {
+        status: 403,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -248,7 +273,6 @@ Deno.serve(async (req) => {
       url: url || "/dashboard",
     });
 
-    console.log(`[send-push] VAPID_PUBLIC_KEY (first 20 chars): ${vapidPublicKey.substring(0, 20)}...`);
     console.log(`[send-push] Found ${subscriptions.length} subscription(s) for user ${user_id}`);
 
     let sent = 0;
