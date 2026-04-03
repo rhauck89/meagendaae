@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUserRole } from '@/hooks/useUserRole';
+import { useOnDataRefresh } from '@/hooks/useRefreshData';
 import { supabase } from '@/integrations/supabase/client';
 import TrialBanner from '@/components/TrialBanner';
 import TutorialProgressWidget from '@/components/TutorialProgressWidget';
