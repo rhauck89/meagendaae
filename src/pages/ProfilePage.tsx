@@ -191,7 +191,7 @@ const ProfilePage = () => {
         instagram: form.social_instagram || null,
       };
 
-      const { error } = await supabase
+      const { data: updatedProfile, error } = await supabase
         .from('profiles')
         .update({
           full_name: form.full_name,
@@ -200,9 +200,28 @@ const ProfilePage = () => {
           bio: form.bio as any,
           social_links: socialLinks as any,
         })
-        .eq('user_id', user.id);
+        .eq('user_id', user.id)
+        .select()
+        .single();
 
       if (error) throw error;
+
+      if (!updatedProfile) {
+        throw new Error('Falha ao atualizar perfil: nenhuma linha foi alterada.');
+      }
+
+      // Refresh form with persisted data
+      const persistedSocial = (updatedProfile as any).social_links || {};
+      setForm({
+        full_name: updatedProfile.full_name || '',
+        email: updatedProfile.email || '',
+        whatsapp: updatedProfile.whatsapp || '',
+        bio: (updatedProfile as any).bio || '',
+        avatar_url: updatedProfile.avatar_url || '',
+        banner_url: (updatedProfile as any).banner_url || '',
+        social_instagram: persistedSocial.instagram || '',
+      });
+
       toast.success('Perfil atualizado com sucesso');
     } catch (err: any) {
       toast.error(err.message || 'Erro ao atualizar perfil');
