@@ -44,7 +44,7 @@ const Services = () => {
   }, [companyId, refetch]);
 
   const refreshServices = async () => {
-    await queryClient.invalidateQueries({ queryKey: servicesQueryKey });
+    refresh('services');
     await refetch();
   };
 

@@ -107,7 +107,7 @@ const Team = () => {
   };
 
   const refreshTeam = async () => {
-    await queryClient.invalidateQueries({ queryKey: teamQueryKey });
+    refresh('team');
     await refetch();
   };
 
