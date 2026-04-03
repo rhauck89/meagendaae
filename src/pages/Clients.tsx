@@ -651,8 +651,14 @@ const ClientProfile = ({ client, companyId, profileMap, onBack }: ClientProfileP
               <Label>WhatsApp</Label>
               <Input
                 value={editForm.whatsapp}
-                onChange={e => setEditForm(f => ({ ...f, whatsapp: e.target.value }))}
-                maxLength={20}
+                onChange={e => {
+                  const digits = e.target.value.replace(/\D/g, '').slice(0, 11);
+                  let masked = digits;
+                  if (digits.length > 7) masked = `(${digits.slice(0,2)}) ${digits.slice(2,7)}-${digits.slice(7)}`;
+                  else if (digits.length > 2) masked = `(${digits.slice(0,2)}) ${digits.slice(2)}`;
+                  setEditForm(f => ({ ...f, whatsapp: masked }));
+                }}
+                maxLength={15}
                 placeholder="5511999999999"
               />
             </div>
