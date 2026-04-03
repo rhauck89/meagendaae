@@ -144,6 +144,10 @@ const SuperAdminSettings = () => {
       og_image: seoOgImage || null,
       favicon_url: seoFavicon || null,
       default_keywords: seoKeywords || null,
+      pwa_icon_192: pwaIcon192 || null,
+      pwa_icon_512: pwaIcon512 || null,
+      splash_logo: splashLogo || null,
+      splash_background_color: splashBgColor || '#0f2a5c',
     } as any).neq('id', '00000000-0000-0000-0000-000000000000');
     toast.success('Configurações salvas');
   };
