@@ -174,7 +174,7 @@ const FinanceReports = () => {
   const serviceChartData = revenueByService.slice(0, 8).map(s => ({ name: s.name, value: s.revenue }));
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 w-full max-w-full">
       <div>
         <h2 className="text-xl font-display font-bold">Relatórios Financeiros</h2>
         <p className="text-sm text-muted-foreground">Análise detalhada de lucratividade, receitas e despesas</p>
