@@ -1,5 +1,6 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useOnDataRefresh } from '@/hooks/useRefreshData';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -158,6 +159,12 @@ const Events = () => {
       loadCompanyBranding();
     }
   }, [companyId]);
+
+  // Listen for external refresh events
+  const handleEventsRefresh = useCallback(() => {
+    if (companyId) loadEvents();
+  }, [companyId]);
+  useOnDataRefresh('events', handleEventsRefresh);
 
   const loadCompanyBranding = async () => {
     const [settingsRes, companyRes] = await Promise.all([

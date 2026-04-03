@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
+import { useRefreshData } from '@/hooks/useRefreshData';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -14,6 +15,7 @@ import { toast } from 'sonner';
 const Services = () => {
   const { companyId } = useAuth();
   const queryClient = useQueryClient();
+  const { refresh } = useRefreshData();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<any | null>(null);
   const [form, setForm] = useState({ name: '', duration_minutes: '' as string | number, price: '' as string | number, recommended_return_days: '' as string | number });
@@ -42,7 +44,7 @@ const Services = () => {
   }, [companyId, refetch]);
 
   const refreshServices = async () => {
-    await queryClient.invalidateQueries({ queryKey: servicesQueryKey });
+    refresh('services');
     await refetch();
   };
 

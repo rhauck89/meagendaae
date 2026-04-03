@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUserRole } from '@/hooks/useUserRole';
+import { useOnDataRefresh } from '@/hooks/useRefreshData';
 import { supabase } from '@/integrations/supabase/client';
 import TrialBanner from '@/components/TrialBanner';
 import TutorialProgressWidget from '@/components/TutorialProgressWidget';
@@ -171,6 +172,16 @@ const Dashboard = () => {
     fetchMonthlyStats();
     fetchUpcomingAppointments();
   }, [companyId, currentDate, viewMode, filterProfessional]);
+
+  // Listen for external refresh events (e.g. from other pages)
+  const handleAgendaRefresh = useCallback(() => {
+    if (companyId) {
+      fetchAppointments();
+      fetchMonthlyStats();
+      fetchUpcomingAppointments();
+    }
+  }, [companyId, currentDate, viewMode, filterProfessional]);
+  useOnDataRefresh('agenda', handleAgendaRefresh);
 
   const fetchUpcomingAppointments = async () => {
     const now = new Date().toISOString();

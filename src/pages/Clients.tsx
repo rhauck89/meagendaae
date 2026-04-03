@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUserRole } from '@/hooks/useUserRole';
+import { useRefreshData } from '@/hooks/useRefreshData';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
@@ -42,6 +43,7 @@ const Clients = () => {
   const { companyId } = useAuth();
   const { isAdmin, profileId } = useUserRole();
   const queryClient = useQueryClient();
+  const { refresh } = useRefreshData();
   const [search, setSearch] = useState('');
   const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
   const [showAllBirthdays, setShowAllBirthdays] = useState(false);
@@ -98,7 +100,7 @@ const Clients = () => {
       birth_date: addClientForm.birth_date || null,
     });
     if (error) throw error;
-    queryClient.invalidateQueries({ queryKey: ['clients', companyId] });
+    refresh('clients');
     toast.success('Cliente cadastrado com sucesso!');
     setAddClientOpen(false);
     setAddClientForm({ name: '', whatsapp: '', email: '', birth_date: '', notes: '' });
@@ -508,7 +510,7 @@ interface ClientProfileProps {
 }
 
 const ClientProfile = ({ client, companyId, profileMap, onBack }: ClientProfileProps) => {
-  const queryClient = useQueryClient();
+  const { refresh } = useRefreshData();
   const [editOpen, setEditOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [editForm, setEditForm] = useState({
@@ -640,7 +642,7 @@ const ClientProfile = ({ client, companyId, profileMap, onBack }: ClientProfileP
       client.email = editForm.email.trim() || null;
       client.birth_date = editForm.birth_date || null;
 
-      queryClient.invalidateQueries({ queryKey: ['clients', companyId] });
+      refresh('clients');
       toast.success('Cliente atualizado com sucesso');
       setEditOpen(false);
     } catch (err) {
@@ -660,7 +662,7 @@ const ClientProfile = ({ client, companyId, profileMap, onBack }: ClientProfileP
         .eq('company_id', companyId);
       if (error) throw error;
       client.is_blocked = newBlocked;
-      queryClient.invalidateQueries({ queryKey: ['clients', companyId] });
+      refresh('clients');
       toast.success(newBlocked ? 'Cliente bloqueado' : 'Cliente desbloqueado');
     } catch {
       toast.error('Erro ao atualizar status do cliente');

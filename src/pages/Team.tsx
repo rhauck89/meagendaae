@@ -1,6 +1,7 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useRefreshData } from '@/hooks/useRefreshData';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -21,6 +22,7 @@ const ROLE_TITLES = ['Barbeiro', 'Cabeleireira', 'Esteticista', 'Manicure', 'Rec
 const Team = () => {
   const { companyId } = useAuth();
   const queryClient = useQueryClient();
+  const { refresh } = useRefreshData();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [panelOpen, setPanelOpen] = useState(false);
   const [selectedCollaborator, setSelectedCollaborator] = useState<any>(null);
@@ -105,7 +107,7 @@ const Team = () => {
   };
 
   const refreshTeam = async () => {
-    await queryClient.invalidateQueries({ queryKey: teamQueryKey });
+    refresh('team');
     await refetch();
   };
 

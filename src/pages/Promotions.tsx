@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { useOnDataRefresh } from '@/hooks/useRefreshData';
 import { useUserRole } from '@/hooks/useUserRole';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -197,6 +198,12 @@ export default function Promotions() {
   useEffect(() => {
     if (companyId) fetchAll();
   }, [companyId]);
+
+  // Listen for external refresh events
+  const handlePromotionsRefresh = useCallback(() => {
+    if (companyId) fetchPromotions();
+  }, [companyId]);
+  useOnDataRefresh('promotions', handlePromotionsRefresh);
 
   // Clear highlight after a few seconds
   useEffect(() => {

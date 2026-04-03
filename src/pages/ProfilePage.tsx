@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUserRole } from '@/hooks/useUserRole';
+import { useRefreshData } from '@/hooks/useRefreshData';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -18,6 +19,7 @@ import ImageCropDialog from '@/components/ImageCropDialog';
 const ProfilePage = () => {
   const { user, profile, companyId, refreshProfile } = useAuth();
   const { profileId } = useUserRole();
+  const { refresh } = useRefreshData();
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [reviews, setReviews] = useState<any[]>([]);
@@ -222,8 +224,9 @@ const ProfilePage = () => {
         social_instagram: persistedSocial.instagram || '',
       });
 
-      // Refresh AuthContext so the rest of the app reflects changes
+      // Refresh AuthContext and query caches
       await refreshProfile();
+      refresh('profile');
 
       toast.success('Perfil atualizado com sucesso');
     } catch (err: any) {
