@@ -343,10 +343,40 @@ const RescheduleAppointment = () => {
               <CheckCircle2 className="h-10 w-10" style={{ color: T.greenText }} />
             </div>
             <h1 className="text-xl font-bold">Reagendamento Confirmado!</h1>
-            <p style={{ color: T.textSec }}>
-              Seu novo horário é{' '}
-              <strong>{selectedDate && format(selectedDate, "dd/MM/yyyy")} às {selectedTime}</strong>
-            </p>
+            <p style={{ color: T.textSec }}>Seu agendamento foi reagendado com sucesso.</p>
+
+            <div className="rounded-2xl p-4 text-left space-y-2" style={{ background: T.card, border: `1px solid ${T.border}` }}>
+              <p className="text-sm" style={{ color: T.textSec }}>De:</p>
+              <p className="text-sm">
+                {format(parseISO(appointment.start_time), "dd 'de' MMMM", { locale: ptBR })} às{' '}
+                {format(parseISO(appointment.start_time), 'HH:mm')}
+              </p>
+              <p className="text-sm mt-2" style={{ color: T.textSec }}>Para:</p>
+              <p className="font-bold">
+                {selectedDate && format(selectedDate, "dd 'de' MMMM", { locale: ptBR })} às {selectedTime}
+              </p>
+            </div>
+
+            <Button
+              onClick={() => {
+                const profWhatsapp = appointment.professional?.whatsapp;
+                const companyWhatsapp = appointment.company?.whatsapp;
+                const rawPhone = (profWhatsapp || companyWhatsapp || '').replace(/\D/g, '');
+                const phone = rawPhone.startsWith('55') ? rawPhone : '55' + rawPhone;
+                const clientName = appointment.client_name || appointment.client?.name || 'Cliente';
+                const services = appointment.appointment_services?.map((s: any) => s.service?.name).join(', ') || '';
+                const oldDate = format(parseISO(appointment.start_time), "dd/MM/yyyy");
+                const oldTime = format(parseISO(appointment.start_time), 'HH:mm');
+                const newDate = selectedDate ? format(selectedDate, "dd/MM/yyyy") : '';
+                const msg = `Olá! 👋\n\nUm cliente reagendou um horário.\n\nCliente: ${clientName}\n\nServiço: ${services}\n\nReagendado de:\n${oldDate} às ${oldTime}\n\nPara:\n*${newDate} às ${selectedTime}*`;
+                window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, '_blank');
+              }}
+              className="w-full rounded-xl py-5 font-semibold"
+              style={{ background: '#25D366', color: '#fff' }}
+            >
+              📲 Avisar o profissional
+            </Button>
+
             <Button
               onClick={() => window.location.href = '/'}
               variant="ghost"
