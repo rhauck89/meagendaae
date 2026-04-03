@@ -43,6 +43,7 @@ const Clients = () => {
   const { companyId } = useAuth();
   const { isAdmin, profileId } = useUserRole();
   const queryClient = useQueryClient();
+  const { refresh } = useRefreshData();
   const [search, setSearch] = useState('');
   const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
   const [showAllBirthdays, setShowAllBirthdays] = useState(false);
