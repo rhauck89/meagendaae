@@ -302,7 +302,7 @@ const RescheduleAppointment = () => {
               </div>
             ) : (
               <>
-                <div className="grid grid-cols-3 gap-2">
+                <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
                   {availableSlots.map((slot) => (
                     <button
                       key={slot}

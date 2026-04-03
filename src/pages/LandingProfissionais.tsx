@@ -98,7 +98,7 @@ const LandingProfissionais = () => {
                   </div>
                   <div className="p-6 space-y-4">
                     {/* Mock stats */}
-                    <div className="grid grid-cols-3 gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                       {[
                         { label: 'Receita', value: 'R$ 8.450', color: 'hsl(var(--accent))' },
                         { label: 'Clientes', value: '142', color: 'hsl(var(--primary))' },
@@ -149,7 +149,7 @@ const LandingProfissionais = () => {
       {/* ─── TRUST BAR ─── */}
       <section className="border-y border-[hsl(var(--border))] bg-[hsl(var(--secondary))]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="grid grid-cols-3 gap-8 text-center">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-8 text-center">
             {[
               { value: '500+', label: 'profissionais usando' },
               { value: '15.000+', label: 'agendamentos realizados' },

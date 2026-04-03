@@ -320,7 +320,7 @@ const Waitlist = () => {
 
       {/* Status Tabs */}
       <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as StatusTab)}>
-        <TabsList className="grid w-full grid-cols-5">
+        <TabsList className="grid w-full grid-cols-3 sm:grid-cols-5">
           <TabsTrigger value="active">Ativos ({counts.active || 0})</TabsTrigger>
           <TabsTrigger value="notified">Notificados ({counts.notified || 0})</TabsTrigger>
           <TabsTrigger value="converted">Convertidos ({counts.converted || 0})</TabsTrigger>
@@ -477,7 +477,7 @@ const Waitlist = () => {
                   ) : slots.length === 0 ? (
                     <p className="text-sm text-muted-foreground mt-4">Nenhum horário disponível nesta data</p>
                   ) : (
-                    <div className="grid grid-cols-3 gap-2 max-h-[280px] overflow-y-auto">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-[280px] overflow-y-auto">
                       {slots.map(slot => {
                         const inRange = !bookingTarget?.time_from || !bookingTarget?.time_to ||
                           (slot >= bookingTarget.time_from.substring(0, 5) && slot <= bookingTarget.time_to.substring(0, 5));

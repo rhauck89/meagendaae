@@ -160,7 +160,7 @@ const ProfessionalPanel = ({ collaborator, open, onOpenChange, onUpdated }: Prof
         </DialogHeader>
 
         <Tabs defaultValue="link" className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3">
             <TabsTrigger value="link">Link & Slug</TabsTrigger>
             <TabsTrigger value="services">Serviços</TabsTrigger>
             <TabsTrigger value="hours">Horários</TabsTrigger>

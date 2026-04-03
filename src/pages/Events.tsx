@@ -978,7 +978,7 @@ const Events = () => {
               </div>
             ) : (
               <div className="space-y-3 p-4 border rounded-lg bg-muted/30">
-                <div className="grid grid-cols-3 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <div>
                     <Label>Data</Label>
                     <Input type="date" value={manualDate} onChange={e => setManualDate(e.target.value)} />
