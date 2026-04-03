@@ -178,12 +178,11 @@ const EventPublic = () => {
     }
     setBooking(true);
     try {
-      const { data, error } = await supabase.rpc('book_event_slot', {
+      const { data, error } = await supabase.rpc('book_event_slot' as any, {
         p_slot_id: selectedSlot.id,
         p_client_name: clientName.trim(),
-        p_client_whatsapp: clientWhatsapp.trim(),
+        p_client_whatsapp: formatWhatsApp(clientWhatsapp.trim()),
         p_client_email: clientEmail.trim(),
-        p_client_cpf: '' as any,
         p_service_ids: selectedServices,
         p_notes: `Evento: ${event?.name}`,
       });
