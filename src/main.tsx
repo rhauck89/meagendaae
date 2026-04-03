@@ -48,6 +48,12 @@ if (supabaseUrl && !isPreviewHost && !isInIframe) {
       if (appleIcon && manifest.icons?.[0]?.src) {
         appleIcon.href = manifest.icons[0].src;
       }
+
+      // Update apple-mobile-web-app-title
+      const appTitle = document.querySelector<HTMLMetaElement>('meta[name="apple-mobile-web-app-title"]');
+      if (appTitle && manifest.name) {
+        appTitle.content = manifest.name;
+      }
     })
     .catch(() => {
       // Fallback: keep static manifest
