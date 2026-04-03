@@ -845,7 +845,18 @@ const Events = () => {
               {formCoverPreview ? (
                 <div className="relative rounded-lg overflow-hidden border bg-muted">
                   <img src={formCoverPreview} alt="Capa" className="w-full h-36 object-cover" />
-                  <div className="absolute top-2 right-2 flex gap-1.5">
+                  {/* Safe area overlay */}
+                  <div className="absolute inset-0 flex pointer-events-none">
+                    <div className="w-[16.67%] bg-black/30 border-r border-dashed border-white/40" />
+                    <div className="flex-1 relative">
+                      <div className="absolute inset-0 border-2 border-dashed border-white/50 rounded-sm m-1" />
+                      <span className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-[10px] text-white/70 bg-black/40 px-2 py-0.5 rounded whitespace-nowrap">
+                        Área segura
+                      </span>
+                    </div>
+                    <div className="w-[16.67%] bg-black/30 border-l border-dashed border-white/40" />
+                  </div>
+                  <div className="absolute top-2 right-2 flex gap-1.5 z-10">
                     <Button
                       size="sm"
                       variant="secondary"
@@ -870,19 +881,28 @@ const Events = () => {
                   type="button"
                   onClick={() => coverInputRef.current?.click()}
                   disabled={uploadingCover}
-                  className="w-full h-36 border-2 border-dashed rounded-lg flex flex-col items-center justify-center gap-2 text-muted-foreground hover:border-primary hover:text-primary transition-colors cursor-pointer disabled:opacity-50"
+                  className="w-full h-36 border-2 border-dashed rounded-lg flex flex-col items-center justify-center gap-2 text-muted-foreground hover:border-primary hover:text-primary transition-colors cursor-pointer disabled:opacity-50 relative overflow-hidden"
                 >
+                  {/* Safe area guide overlay on empty state */}
+                  <div className="absolute inset-0 flex pointer-events-none">
+                    <div className="w-[16.67%] bg-muted-foreground/5 border-r border-dashed border-muted-foreground/20" />
+                    <div className="flex-1" />
+                    <div className="w-[16.67%] bg-muted-foreground/5 border-l border-dashed border-muted-foreground/20" />
+                  </div>
                   {uploadingCover ? (
-                    <p className="text-sm">Enviando...</p>
+                    <p className="text-sm relative z-10">Enviando...</p>
                   ) : (
-                    <>
+                    <div className="relative z-10 flex flex-col items-center gap-2">
                       <ImageIcon className="h-8 w-8" />
                       <p className="text-sm font-medium">Clique para enviar imagem</p>
                       <p className="text-xs">JPG ou PNG, máx 5MB</p>
-                    </>
+                    </div>
                   )}
                 </button>
               )}
+              <p className="text-[10px] text-muted-foreground mt-1.5">
+                Elementos importantes devem ficar na área central
+              </p>
             </div>
 
             <div>
