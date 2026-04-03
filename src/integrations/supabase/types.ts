@@ -137,6 +137,13 @@ export type Database = {
             foreignKeyName: "appointments_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "companies_billing"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "appointments_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "public_company"
             referencedColumns: ["id"]
           },
@@ -311,6 +318,13 @@ export type Database = {
             foreignKeyName: "business_exceptions_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "companies_billing"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "business_exceptions_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "public_company"
             referencedColumns: ["id"]
           },
@@ -360,6 +374,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "business_hours_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies_billing"
             referencedColumns: ["id"]
           },
           {
@@ -421,6 +442,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "clients_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies_billing"
             referencedColumns: ["id"]
           },
           {
@@ -491,6 +519,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "collaborators_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies_billing"
             referencedColumns: ["id"]
           },
           {
@@ -697,6 +732,13 @@ export type Database = {
             foreignKeyName: "company_domains_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "companies_billing"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_domains_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "public_company"
             referencedColumns: ["id"]
           },
@@ -740,6 +782,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_expense_categories_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies_billing"
             referencedColumns: ["id"]
           },
           {
@@ -844,6 +893,13 @@ export type Database = {
             foreignKeyName: "company_expenses_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "companies_billing"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_expenses_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "public_company"
             referencedColumns: ["id"]
           },
@@ -900,6 +956,13 @@ export type Database = {
             foreignKeyName: "company_gallery_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "companies_billing"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_gallery_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "public_company"
             referencedColumns: ["id"]
           },
@@ -940,6 +1003,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_revenue_categories_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies_billing"
             referencedColumns: ["id"]
           },
           {
@@ -1042,6 +1112,13 @@ export type Database = {
             foreignKeyName: "company_revenues_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "companies_billing"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_revenues_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "public_company"
             referencedColumns: ["id"]
           },
@@ -1128,6 +1205,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: true
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_settings_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: true
+            referencedRelation: "companies_billing"
             referencedColumns: ["id"]
           },
           {
@@ -1296,6 +1380,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "events_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies_billing"
             referencedColumns: ["id"]
           },
           {
@@ -1664,6 +1755,13 @@ export type Database = {
             foreignKeyName: "professional_working_hours_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "companies_billing"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "professional_working_hours_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "public_company"
             referencedColumns: ["id"]
           },
@@ -1766,6 +1864,13 @@ export type Database = {
             foreignKeyName: "profiles_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "companies_billing"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "profiles_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "public_company"
             referencedColumns: ["id"]
           },
@@ -1823,6 +1928,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "promotion_bookings_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies_billing"
             referencedColumns: ["id"]
           },
           {
@@ -1890,6 +2002,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "promotion_clicks_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies_billing"
             referencedColumns: ["id"]
           },
           {
@@ -2019,6 +2138,13 @@ export type Database = {
             foreignKeyName: "promotions_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "companies_billing"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "promotions_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "public_company"
             referencedColumns: ["id"]
           },
@@ -2105,6 +2231,13 @@ export type Database = {
             foreignKeyName: "reviews_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "companies_billing"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reviews_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "public_company"
             referencedColumns: ["id"]
           },
@@ -2159,6 +2292,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "service_professionals_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies_billing"
             referencedColumns: ["id"]
           },
           {
@@ -2245,6 +2385,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "services_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies_billing"
             referencedColumns: ["id"]
           },
           {
@@ -2392,6 +2539,13 @@ export type Database = {
             foreignKeyName: "support_tickets_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "companies_billing"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "support_tickets_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "public_company"
             referencedColumns: ["id"]
           },
@@ -2489,6 +2643,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_roles_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies_billing"
             referencedColumns: ["id"]
           },
           {
@@ -2599,6 +2760,13 @@ export type Database = {
             foreignKeyName: "waiting_list_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "companies_billing"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "waiting_list_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "public_company"
             referencedColumns: ["id"]
           },
@@ -2703,6 +2871,13 @@ export type Database = {
             foreignKeyName: "waitlist_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "companies_billing"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "waitlist_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "public_company"
             referencedColumns: ["id"]
           },
@@ -2753,6 +2928,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "webhook_configs_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies_billing"
             referencedColumns: ["id"]
           },
           {
@@ -2811,6 +2993,13 @@ export type Database = {
             foreignKeyName: "webhook_events_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "companies_billing"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "webhook_events_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "public_company"
             referencedColumns: ["id"]
           },
@@ -2825,6 +3014,24 @@ export type Database = {
       }
     }
     Views: {
+      companies_billing: {
+        Row: {
+          id: string | null
+          stripe_customer_id: string | null
+          stripe_subscription_id: string | null
+        }
+        Insert: {
+          id?: string | null
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+        }
+        Update: {
+          id?: string | null
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+        }
+        Relationships: []
+      }
       public_blocked_times: {
         Row: {
           block_date: string | null
@@ -2922,6 +3129,13 @@ export type Database = {
             foreignKeyName: "company_settings_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: true
+            referencedRelation: "companies_billing"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_settings_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: true
             referencedRelation: "public_company"
             referencedColumns: ["id"]
           },
@@ -2986,6 +3200,13 @@ export type Database = {
             foreignKeyName: "collaborators_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "companies_billing"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "collaborators_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "public_company"
             referencedColumns: ["id"]
           },
@@ -3030,6 +3251,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "promotions_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies_billing"
             referencedColumns: ["id"]
           },
           {
@@ -3090,6 +3318,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "services_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies_billing"
             referencedColumns: ["id"]
           },
           {
