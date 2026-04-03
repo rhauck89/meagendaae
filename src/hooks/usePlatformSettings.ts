@@ -20,7 +20,7 @@ let fetchPromise: Promise<PlatformSettings | null> | null = null;
 const fetchSettings = async (): Promise<PlatformSettings | null> => {
   const { data } = await supabase
     .from('platform_settings')
-    .select('system_name, system_url, system_logo, favicon_url, logo_light, logo_dark')
+    .select('system_name, system_url, system_logo, favicon_url, logo_light, logo_dark, pwa_icon_192, pwa_icon_512, splash_logo, splash_background_color')
     .limit(1)
     .single();
   if (data) {
