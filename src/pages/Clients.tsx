@@ -510,7 +510,7 @@ interface ClientProfileProps {
 }
 
 const ClientProfile = ({ client, companyId, profileMap, onBack }: ClientProfileProps) => {
-  const queryClient = useQueryClient();
+  const { refresh } = useRefreshData();
   const [editOpen, setEditOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [editForm, setEditForm] = useState({
