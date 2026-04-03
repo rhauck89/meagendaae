@@ -99,6 +99,7 @@
     @apply bg-background text-foreground font-sans;
     font-family: 'Inter', sans-serif;
     overflow-x: hidden;
+    max-width: 100vw;
   }
   h1, h2, h3, h4, h5, h6 {
     font-family: 'Space Grotesk', sans-serif;
@@ -124,6 +125,12 @@
   .responsive-select-trigger {
     @apply w-full sm:w-[150px];
   }
+}
+
+#root {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
 }
 
 /* Sidebar custom scrollbar */
