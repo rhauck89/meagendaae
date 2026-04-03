@@ -23,8 +23,10 @@ Deno.serve(async (req) => {
 
   const name = data?.system_name || "MeAgendaAê";
   const bgColor = data?.splash_background_color || "#0f2a5c";
-  const icon192 = data?.pwa_icon_192 || "/icons/icon-192.png";
-  const icon512 = data?.pwa_icon_512 || "/icons/icon-512.png";
+  
+  // Use stored URLs from platform_settings, fallback to default storage paths
+  const icon192 = data?.pwa_icon_192 || `${supabaseUrl}/storage/v1/object/public/platform-assets/icone-192x192.png`;
+  const icon512 = data?.pwa_icon_512 || `${supabaseUrl}/storage/v1/object/public/platform-assets/icone-512x512.png`;
 
   const manifest = {
     name,
