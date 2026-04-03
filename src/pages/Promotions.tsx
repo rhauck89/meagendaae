@@ -199,6 +199,12 @@ export default function Promotions() {
     if (companyId) fetchAll();
   }, [companyId]);
 
+  // Listen for external refresh events
+  const handlePromotionsRefresh = useCallback(() => {
+    if (companyId) fetchPromotions();
+  }, [companyId]);
+  useOnDataRefresh('promotions', handlePromotionsRefresh);
+
   // Clear highlight after a few seconds
   useEffect(() => {
     if (highlightedPromoId) {
