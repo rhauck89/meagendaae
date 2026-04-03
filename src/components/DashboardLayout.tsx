@@ -297,6 +297,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
             </div>
           )}
           {children}
+          </div>
         </div>
       </main>
       <OnboardingPopup />

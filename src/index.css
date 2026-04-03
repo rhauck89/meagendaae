@@ -133,8 +133,16 @@
 
 #root {
   width: 100%;
-  max-width: 100%;
+  max-width: 100vw;
   overflow-x: hidden;
+}
+
+@media (max-width: 768px) {
+  .container-dashboard,
+  .page-container {
+    padding-left: 12px;
+    padding-right: 12px;
+  }
 }
 
 /* Sidebar custom scrollbar */
