@@ -337,26 +337,41 @@ const FinanceReports = () => {
           {revenueByService.length === 0 ? (
             <p className="text-center text-muted-foreground py-8">Sem dados no período</p>
           ) : (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Serviço</TableHead>
-                    <TableHead className="text-center">Atendimentos</TableHead>
-                    <TableHead className="text-right">Receita Total</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {revenueByService.map(s => (
-                    <TableRow key={s.name}>
-                      <TableCell className="font-medium">{s.name}</TableCell>
-                      <TableCell className="text-center">{s.count}</TableCell>
-                      <TableCell className="text-right font-semibold">R$ {s.revenue.toFixed(2)}</TableCell>
+            <>
+              <div className="overflow-x-auto hidden md:block">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Serviço</TableHead>
+                      <TableHead className="text-center">Atendimentos</TableHead>
+                      <TableHead className="text-right">Receita Total</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
+                  </TableHeader>
+                  <TableBody>
+                    {revenueByService.map(s => (
+                      <TableRow key={s.name}>
+                        <TableCell className="font-medium">{s.name}</TableCell>
+                        <TableCell className="text-center">{s.count}</TableCell>
+                        <TableCell className="text-right font-semibold">R$ {s.revenue.toFixed(2)}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+              <div className="md:hidden space-y-3">
+                {revenueByService.map(s => (
+                  <Card key={s.name}>
+                    <CardContent className="p-4">
+                      <div className="flex justify-between items-center">
+                        <span className="font-medium">{s.name}</span>
+                        <span className="font-semibold">R$ {s.revenue.toFixed(2)}</span>
+                      </div>
+                      <p className="text-xs text-muted-foreground">{s.count} atendimentos</p>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </>
           )}
         </CardContent>
       </Card>
