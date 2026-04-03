@@ -1583,7 +1583,7 @@ const Dashboard = () => {
           <div className="space-y-4">
             <div>
               <label className="text-sm font-medium">Forma de pagamento</label>
-              <div className="grid grid-cols-3 gap-2 mt-2">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mt-2">
                 {[
                   { value: 'dinheiro', label: '💵 Dinheiro' },
                   { value: 'pix', label: '📱 Pix' },
