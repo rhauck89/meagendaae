@@ -14,6 +14,7 @@ import SettingsBreadcrumb from '@/components/SettingsBreadcrumb';
 
 const SettingsGeneral = () => {
   const { companyId } = useAuth();
+  const { refresh } = useRefreshData();
   const [companyName, setCompanyName] = useState('');
   const [companyDescription, setCompanyDescription] = useState('');
   const [companyBusinessType, setCompanyBusinessType] = useState('barbershop');
