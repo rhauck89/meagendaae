@@ -248,14 +248,20 @@ Deno.serve(async (req) => {
       url: url || "/dashboard",
     });
 
+    console.log(`[send-push] VAPID_PUBLIC_KEY (first 20 chars): ${vapidPublicKey.substring(0, 20)}...`);
+    console.log(`[send-push] Found ${subscriptions.length} subscription(s) for user ${user_id}`);
+
     let sent = 0;
     let failed = 0;
+    const results: Array<{ id: string; endpoint: string; status: number | string; error?: string }> = [];
 
     for (const sub of subscriptions) {
       try {
         const endpoint = sub.endpoint;
         const audience = new URL(endpoint).origin;
         const subject = "mailto:contato@meagendaae.com";
+
+        console.log(`[send-push] Sending to sub ${sub.id}, endpoint: ${endpoint.substring(0, 80)}...`);
 
         const jwt = await createJWT(vapidPrivateKey, vapidPublicKey, audience, subject);
         const { ciphertext } = await encryptPayload(payload, sub.p256dh, sub.auth);
@@ -271,23 +277,30 @@ Deno.serve(async (req) => {
           body: ciphertext,
         });
 
+        const responseText = await response.text();
+        console.log(`[send-push] Response for ${sub.id}: status=${response.status}, body=${responseText}`);
+
         if (response.status === 201 || response.status === 200) {
           sent++;
+          results.push({ id: sub.id, endpoint: endpoint.substring(0, 80), status: response.status });
         } else if (response.status === 410 || response.status === 404) {
-          // Subscription expired, remove it
           await adminClient.from("push_subscriptions").delete().eq("id", sub.id);
           failed++;
+          results.push({ id: sub.id, endpoint: endpoint.substring(0, 80), status: response.status, error: "Subscription expired, removed" });
         } else {
-          console.error(`Push failed for ${sub.id}: ${response.status} ${await response.text()}`);
           failed++;
+          results.push({ id: sub.id, endpoint: endpoint.substring(0, 80), status: response.status, error: responseText });
         }
       } catch (err) {
-        console.error(`Push error for ${sub.id}:`, err);
+        console.error(`[send-push] Exception for ${sub.id}:`, err);
         failed++;
+        results.push({ id: sub.id, endpoint: "unknown", status: "error", error: String(err) });
       }
     }
 
-    return new Response(JSON.stringify({ sent, failed }), {
+    console.log(`[send-push] Done: sent=${sent}, failed=${failed}`);
+
+    return new Response(JSON.stringify({ sent, failed, results }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (err) {

@@ -945,10 +945,15 @@ const Dashboard = () => {
                   },
                 });
 
-                console.log('Push response:', { data, error });
+                console.log('Push response:', JSON.stringify(data, null, 2), 'Error:', error);
 
                 if (error) {
                   toast.error('Erro ao enviar: ' + error.message);
+                } else if (data?.results) {
+                  data.results.forEach((r: any) => {
+                    console.log(`[Push Result] id=${r.id} status=${r.status} endpoint=${r.endpoint} error=${r.error || 'none'}`);
+                  });
+                  toast.success(`Push: sent=${data.sent}, failed=${data.failed}. Veja console para detalhes.`);
                 } else {
                   toast.success(`Push enviado! Sent: ${data?.sent}, Failed: ${data?.failed}`);
                 }
