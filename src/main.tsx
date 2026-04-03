@@ -24,18 +24,19 @@ if (isPreviewHost || isInIframe) {
 // Dynamically load manifest from edge function and update meta tags
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 if (supabaseUrl && !isPreviewHost && !isInIframe) {
+  // Remove static manifest link to avoid conflicts with dynamic one
+  const existingManifest = document.querySelector<HTMLLinkElement>('link[rel="manifest"]');
+  if (existingManifest) existingManifest.remove();
+
   fetch(`${supabaseUrl}/functions/v1/pwa-manifest`)
     .then((r) => r.json())
     .then((manifest) => {
-      // Update existing manifest link or create one
-      let link = document.querySelector<HTMLLinkElement>('link[rel="manifest"]');
-      if (!link) {
-        link = document.createElement("link");
-        link.rel = "manifest";
-        document.head.appendChild(link);
-      }
+      // Create dynamic manifest link
+      const link = document.createElement("link");
+      link.rel = "manifest";
       const blob = new Blob([JSON.stringify(manifest)], { type: "application/manifest+json" });
       link.href = URL.createObjectURL(blob);
+      document.head.appendChild(link);
 
       // Update theme-color
       const themeMeta = document.querySelector<HTMLMetaElement>('meta[name="theme-color"]');
