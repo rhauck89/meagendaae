@@ -222,6 +222,9 @@ const ProfilePage = () => {
         social_instagram: persistedSocial.instagram || '',
       });
 
+      // Refresh AuthContext so the rest of the app reflects changes
+      await refreshProfile();
+
       toast.success('Perfil atualizado com sucesso');
     } catch (err: any) {
       toast.error(err.message || 'Erro ao atualizar perfil');
