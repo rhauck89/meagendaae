@@ -910,6 +910,60 @@ const Dashboard = () => {
       <TrialBanner />
       <TutorialProgressWidget />
 
+      {/* Temporary test push notification button */}
+      <Card className="border-dashed border-warning/50 bg-warning/5">
+        <CardContent className="p-4 flex items-center justify-between">
+          <div>
+            <p className="font-medium text-sm">🔔 Teste de Push Notification</p>
+            <p className="text-xs text-muted-foreground">Clique para enviar uma notificação de teste para este dispositivo</p>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-2"
+            onClick={async () => {
+              try {
+                toast.info('Enviando notificação de teste...');
+                
+                // First ensure we have a subscription
+                const registration = await navigator.serviceWorker?.ready;
+                const subscription = await registration?.pushManager?.getSubscription();
+                
+                if (!subscription) {
+                  toast.error('Nenhuma inscrição push encontrada. Aceite as notificações primeiro.');
+                  return;
+                }
+
+                console.log('Push subscription found:', subscription.endpoint);
+
+                const { data, error } = await supabase.functions.invoke('send-push', {
+                  body: {
+                    user_id: user?.id,
+                    title: 'Notificação de Teste',
+                    body: 'Push notifications estão funcionando corretamente! 🎉',
+                    url: '/dashboard',
+                  },
+                });
+
+                console.log('Push response:', { data, error });
+
+                if (error) {
+                  toast.error('Erro ao enviar: ' + error.message);
+                } else {
+                  toast.success(`Push enviado! Sent: ${data?.sent}, Failed: ${data?.failed}`);
+                }
+              } catch (err: any) {
+                console.error('Test push error:', err);
+                toast.error('Erro: ' + err.message);
+              }
+            }}
+          >
+            <Send className="h-4 w-4" />
+            Enviar Teste
+          </Button>
+        </CardContent>
+      </Card>
+
       {/* Manual appointment button */}
       <div className="flex justify-end">
         <Button className="gap-2" onClick={() => setManualAppointmentOpen(true)}>
