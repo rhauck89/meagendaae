@@ -241,32 +241,56 @@ const SuperAdminSettings = () => {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Smartphone className="h-5 w-5" /> PWA / App Instalável
+            <Smartphone className="h-5 w-5" /> Configurações do Aplicativo (PWA)
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <CardContent className="space-y-6">
+          {/* Icon 192 */}
+          <div className="space-y-2">
             <ImageUploadField
-              label="Ícone do App (192x192)"
+              label="Ícone do aplicativo (Android / Desktop)"
               value={pwaIcon192}
               onChange={setPwaIcon192}
               folder="pwa"
               accept="image/png"
             />
+            <p className="text-[10px] text-muted-foreground leading-relaxed">
+              Ícone do aplicativo (192×192px) · Formato: PNG · Fundo sólido recomendado.<br />
+              Será usado como ícone do app instalado no celular.
+            </p>
+          </div>
+
+          {/* Icon 512 */}
+          <div className="space-y-2">
             <ImageUploadField
-              label="Ícone do App (512x512)"
+              label="Ícone alta resolução (512x512)"
               value={pwaIcon512}
               onChange={setPwaIcon512}
               folder="pwa"
               accept="image/png"
             />
+            <p className="text-[10px] text-muted-foreground leading-relaxed">
+              Ícone alta resolução (512×512px) · Formato: PNG.<br />
+              Usado para instalação do aplicativo em Android e Desktop.
+            </p>
           </div>
-          <ImageUploadField
-            label="Logo da Splash Screen"
-            value={splashLogo}
-            onChange={setSplashLogo}
-            folder="pwa"
-          />
+
+          {/* Splash Logo */}
+          <div className="space-y-2">
+            <ImageUploadField
+              label="Logo da Splash Screen"
+              value={splashLogo}
+              onChange={setSplashLogo}
+              folder="pwa"
+              accept="image/png"
+            />
+            <p className="text-[10px] text-muted-foreground leading-relaxed">
+              Logo da tela de abertura do aplicativo · Formato: PNG · Tamanho recomendado: 512×512.<br />
+              Preferencialmente fundo transparente. Essa imagem aparece no centro da tela ao abrir o aplicativo.
+            </p>
+          </div>
+
+          {/* Splash Background Color */}
           <div className="space-y-1">
             <Label className="text-xs">Cor de fundo da Splash Screen</Label>
             <div className="flex items-center gap-2">
@@ -283,10 +307,44 @@ const SuperAdminSettings = () => {
                 placeholder="#0f2a5c"
               />
             </div>
+            <p className="text-[10px] text-muted-foreground">
+              Cor de fundo da tela de abertura do aplicativo. Use a cor principal da marca.
+            </p>
           </div>
-          <p className="text-[10px] text-muted-foreground">
-            Essas imagens serão usadas quando o usuário instalar o app no celular. O ícone aparece na tela inicial e a splash screen ao abrir o app.
-          </p>
+
+          {/* Preview */}
+          <div className="space-y-2">
+            <Label className="text-xs font-medium">Preview</Label>
+            <div className="flex flex-col sm:flex-row gap-4">
+              {/* App Icon Preview */}
+              <div className="flex flex-col items-center gap-2">
+                <p className="text-[10px] text-muted-foreground">Ícone do App</p>
+                <div className="w-16 h-16 rounded-2xl border border-border bg-muted/30 flex items-center justify-center overflow-hidden shadow-sm">
+                  {pwaIcon192 ? (
+                    <img src={pwaIcon192} alt="App Icon" className="w-full h-full object-cover" />
+                  ) : (
+                    <Smartphone className="h-6 w-6 text-muted-foreground/50" />
+                  )}
+                </div>
+              </div>
+
+              {/* Splash Screen Preview */}
+              <div className="flex flex-col items-center gap-2">
+                <p className="text-[10px] text-muted-foreground">Splash Screen</p>
+                <div
+                  className="w-[120px] h-[200px] rounded-xl border border-border flex items-center justify-center overflow-hidden shadow-sm"
+                  style={{ backgroundColor: splashBgColor }}
+                >
+                  {splashLogo ? (
+                    <img src={splashLogo} alt="Splash Logo" className="max-h-12 max-w-[80px] object-contain" />
+                  ) : (
+                    <span className="text-white/60 text-[10px] text-center px-2">Logo aparecerá aqui</span>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+
           <Button size="sm" onClick={save}>Salvar PWA</Button>
         </CardContent>
       </Card>
