@@ -23,19 +23,19 @@ export const PlatformLogo = ({
   // Whitelabel: show company branding
   if (isWhitelabel && (companyLogo || companyName)) {
     return (
-      <div className={`flex items-center gap-3 ${className}`}>
+      <div className={`flex flex-col items-start gap-1 ${className}`}>
         {companyLogo ? (
           <img
             src={companyLogo}
             alt={companyName || 'Logo'}
-            className="h-10 max-w-[140px] object-contain"
+            className="h-8 max-w-[200px] object-contain"
           />
         ) : (
-          <div className="w-10 h-10 bg-sidebar-primary rounded-xl flex items-center justify-center">
-            <Scissors className="h-5 w-5 text-sidebar-primary-foreground" />
+          <div className="w-8 h-8 bg-sidebar-primary rounded-xl flex items-center justify-center">
+            <Scissors className="h-4 w-4 text-sidebar-primary-foreground" />
           </div>
         )}
-        <span className="font-display font-bold text-lg truncate">
+        <span className="text-xs font-medium opacity-80 truncate max-w-full">
           {companyName || 'Dashboard'}
         </span>
       </div>
@@ -59,19 +59,19 @@ export const PlatformLogo = ({
 
   // Default: platform logo
   return (
-    <div className={`flex items-center gap-3 ${className}`}>
+    <div className={`flex flex-col items-start gap-1 ${className}`}>
       {logoUrl ? (
         <img
           src={logoUrl}
           alt={platform?.system_name || 'Logo'}
-          className="h-10 max-w-[140px] object-contain"
+          className="h-8 max-w-[200px] object-contain"
         />
       ) : (
-        <div className="w-10 h-10 bg-sidebar-primary rounded-xl flex items-center justify-center">
-          <Scissors className="h-5 w-5 text-sidebar-primary-foreground" />
+        <div className="w-8 h-8 bg-sidebar-primary rounded-xl flex items-center justify-center">
+          <Scissors className="h-4 w-4 text-sidebar-primary-foreground" />
         </div>
       )}
-      <span className="font-display font-bold text-lg truncate">
+      <span className="text-xs font-medium opacity-80 truncate max-w-full">
         {platform?.system_name || 'AgendaPro'}
       </span>
     </div>
