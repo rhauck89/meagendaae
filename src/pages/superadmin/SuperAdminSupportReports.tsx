@@ -117,7 +117,7 @@ const SuperAdminSupportReports = () => {
     <div className="space-y-6">
       <h2 className="text-xl font-display font-semibold">📊 Relatórios de Suporte</h2>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 w-full max-w-full">
         {/* By Category */}
         <Card>
           <CardHeader>

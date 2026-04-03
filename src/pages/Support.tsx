@@ -190,7 +190,8 @@ const Support = () => {
         </Button>
       </div>
 
-      <Card>
+      {/* Desktop table */}
+      <Card className="hidden md:block">
         <CardContent className="p-0">
           <div className="overflow-x-auto">
             <Table>
@@ -200,7 +201,7 @@ const Support = () => {
                   <TableHead>Categoria</TableHead>
                   <TableHead>Prioridade</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead className="hidden md:table-cell">Data</TableHead>
+                  <TableHead>Data</TableHead>
                   <TableHead className="w-[80px]">Ação</TableHead>
                 </TableRow>
               </TableHeader>
@@ -215,7 +216,7 @@ const Support = () => {
                       <TableCell><Badge variant="outline" className="text-xs">{categoryMap[t.category] || t.category}</Badge></TableCell>
                       <TableCell className="text-xs">{priorityMap[t.priority] || t.priority}</TableCell>
                       <TableCell><Badge variant={s.variant} className="text-xs">{s.label}</Badge></TableCell>
-                      <TableCell className="hidden md:table-cell text-xs text-muted-foreground">{format(new Date(t.created_at), 'dd/MM/yyyy HH:mm')}</TableCell>
+                      <TableCell className="text-xs text-muted-foreground">{format(new Date(t.created_at), 'dd/MM/yyyy HH:mm')}</TableCell>
                       <TableCell>
                         <Button variant="ghost" size="sm" onClick={() => openTicket(t)}>
                           <MessageSquare className="h-4 w-4" />
@@ -229,6 +230,30 @@ const Support = () => {
           </div>
         </CardContent>
       </Card>
+
+      {/* Mobile cards */}
+      <div className="md:hidden space-y-3">
+        {tickets.length === 0 ? (
+          <Card><CardContent className="py-8 text-center text-muted-foreground">Nenhum ticket</CardContent></Card>
+        ) : tickets.map(t => {
+          const s = statusMap[t.status] || statusMap.open;
+          return (
+            <Card key={t.id} className="cursor-pointer" onClick={() => openTicket(t)}>
+              <CardContent className="p-4 space-y-2">
+                <div className="flex items-start justify-between gap-2">
+                  <p className="font-medium text-sm break-words">{t.title}</p>
+                  <Badge variant={s.variant} className="text-xs shrink-0">{s.label}</Badge>
+                </div>
+                <div className="flex flex-wrap gap-2 text-xs">
+                  <Badge variant="outline">{categoryMap[t.category] || t.category}</Badge>
+                  <span className="text-muted-foreground">{priorityMap[t.priority] || t.priority}</span>
+                  <span className="text-muted-foreground">{format(new Date(t.created_at), 'dd/MM/yyyy')}</span>
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })}
+      </div>
 
       {/* Create Dialog */}
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>

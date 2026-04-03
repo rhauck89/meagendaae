@@ -174,7 +174,7 @@ const FinanceReports = () => {
   const serviceChartData = revenueByService.slice(0, 8).map(s => ({ name: s.name, value: s.revenue }));
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 w-full max-w-full">
       <div>
         <h2 className="text-xl font-display font-bold">Relatórios Financeiros</h2>
         <p className="text-sm text-muted-foreground">Análise detalhada de lucratividade, receitas e despesas</p>
@@ -183,14 +183,14 @@ const FinanceReports = () => {
       {/* Date filter */}
       <Card>
         <CardContent className="p-4">
-          <div className="flex flex-wrap items-center gap-3">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3">
             <Popover>
-              <PopoverTrigger asChild><Button variant="outline" size="sm" className="w-full sm:w-[150px] justify-start"><CalendarIcon className="mr-2 h-4 w-4" />{format(startDate, 'dd/MM/yyyy')}</Button></PopoverTrigger>
+              <PopoverTrigger asChild><Button variant="outline" size="sm" className="w-[140px] sm:w-[150px] justify-start"><CalendarIcon className="mr-2 h-4 w-4" />{format(startDate, 'dd/MM/yyyy')}</Button></PopoverTrigger>
               <PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={startDate} onSelect={d => d && setStartDate(d)} className="p-3 pointer-events-auto" /></PopoverContent>
             </Popover>
             <span className="text-muted-foreground">—</span>
             <Popover>
-              <PopoverTrigger asChild><Button variant="outline" size="sm" className="w-full sm:w-[150px] justify-start"><CalendarIcon className="mr-2 h-4 w-4" />{format(endDate, 'dd/MM/yyyy')}</Button></PopoverTrigger>
+              <PopoverTrigger asChild><Button variant="outline" size="sm" className="w-[140px] sm:w-[150px] justify-start"><CalendarIcon className="mr-2 h-4 w-4" />{format(endDate, 'dd/MM/yyyy')}</Button></PopoverTrigger>
               <PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={endDate} onSelect={d => d && setEndDate(d)} disabled={d => d < startDate} className="p-3 pointer-events-auto" /></PopoverContent>
             </Popover>
             <Button variant="ghost" size="sm" onClick={() => { setStartDate(startOfMonth(new Date())); setEndDate(new Date()); }}><RotateCcw className="h-3 w-3 mr-1" /> Resetar</Button>
@@ -202,43 +202,61 @@ const FinanceReports = () => {
       <Card>
         <CardHeader><CardTitle className="text-base">Lucratividade por Profissional</CardTitle></CardHeader>
         <CardContent>
-          {profitByPro.length === 0 ? (
+           {profitByPro.length === 0 ? (
             <p className="text-center text-muted-foreground py-8">Sem dados no período</p>
           ) : (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Profissional</TableHead>
-                    <TableHead className="text-center">Serviços</TableHead>
-                    <TableHead className="text-right">Receita</TableHead>
-                    <TableHead className="text-right">Comissão</TableHead>
-                    <TableHead className="text-right">Lucro Empresa</TableHead>
-                    <TableHead className="text-right">Ticket Médio</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {profitByPro.map(p => (
-                    <TableRow key={p.name}>
-                      <TableCell className="font-medium">{p.name}</TableCell>
-                      <TableCell className="text-center">{p.services}</TableCell>
-                      <TableCell className="text-right">R$ {p.revenue.toFixed(2)}</TableCell>
-                      <TableCell className="text-right text-warning">R$ {p.commission.toFixed(2)}</TableCell>
-                      <TableCell className="text-right font-bold">R$ {p.profit.toFixed(2)}</TableCell>
-                      <TableCell className="text-right text-muted-foreground">R$ {p.avgTicket.toFixed(2)}</TableCell>
+            <>
+              <div className="overflow-x-auto hidden md:block">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Profissional</TableHead>
+                      <TableHead className="text-center">Serviços</TableHead>
+                      <TableHead className="text-right">Receita</TableHead>
+                      <TableHead className="text-right">Comissão</TableHead>
+                      <TableHead className="text-right">Lucro Empresa</TableHead>
+                      <TableHead className="text-right">Ticket Médio</TableHead>
                     </TableRow>
-                  ))}
-                  <TableRow className="border-t-2 font-bold">
-                    <TableCell>Total</TableCell>
-                    <TableCell className="text-center">{profitByPro.reduce((s, p) => s + p.services, 0)}</TableCell>
-                    <TableCell className="text-right">R$ {profitByPro.reduce((s, p) => s + p.revenue, 0).toFixed(2)}</TableCell>
-                    <TableCell className="text-right text-warning">R$ {profitByPro.reduce((s, p) => s + p.commission, 0).toFixed(2)}</TableCell>
-                    <TableCell className="text-right">R$ {profitByPro.reduce((s, p) => s + p.profit, 0).toFixed(2)}</TableCell>
-                    <TableCell />
-                  </TableRow>
-                </TableBody>
-              </Table>
-            </div>
+                  </TableHeader>
+                  <TableBody>
+                    {profitByPro.map(p => (
+                      <TableRow key={p.name}>
+                        <TableCell className="font-medium">{p.name}</TableCell>
+                        <TableCell className="text-center">{p.services}</TableCell>
+                        <TableCell className="text-right">R$ {p.revenue.toFixed(2)}</TableCell>
+                        <TableCell className="text-right text-warning">R$ {p.commission.toFixed(2)}</TableCell>
+                        <TableCell className="text-right font-bold">R$ {p.profit.toFixed(2)}</TableCell>
+                        <TableCell className="text-right text-muted-foreground">R$ {p.avgTicket.toFixed(2)}</TableCell>
+                      </TableRow>
+                    ))}
+                    <TableRow className="border-t-2 font-bold">
+                      <TableCell>Total</TableCell>
+                      <TableCell className="text-center">{profitByPro.reduce((s, p) => s + p.services, 0)}</TableCell>
+                      <TableCell className="text-right">R$ {profitByPro.reduce((s, p) => s + p.revenue, 0).toFixed(2)}</TableCell>
+                      <TableCell className="text-right text-warning">R$ {profitByPro.reduce((s, p) => s + p.commission, 0).toFixed(2)}</TableCell>
+                      <TableCell className="text-right">R$ {profitByPro.reduce((s, p) => s + p.profit, 0).toFixed(2)}</TableCell>
+                      <TableCell />
+                    </TableRow>
+                  </TableBody>
+                </Table>
+              </div>
+              <div className="md:hidden space-y-3">
+                {profitByPro.map(p => (
+                  <Card key={p.name}>
+                    <CardContent className="p-4 space-y-1">
+                      <p className="font-semibold">{p.name}</p>
+                      <div className="grid grid-cols-2 gap-1 text-sm">
+                        <span className="text-muted-foreground">Serviços:</span><span className="text-right">{p.services}</span>
+                        <span className="text-muted-foreground">Receita:</span><span className="text-right">R$ {p.revenue.toFixed(2)}</span>
+                        <span className="text-muted-foreground">Comissão:</span><span className="text-right text-warning">R$ {p.commission.toFixed(2)}</span>
+                        <span className="text-muted-foreground">Lucro:</span><span className="text-right font-bold">R$ {p.profit.toFixed(2)}</span>
+                        <span className="text-muted-foreground">Ticket Médio:</span><span className="text-right">R$ {p.avgTicket.toFixed(2)}</span>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </>
           )}
         </CardContent>
       </Card>
@@ -319,26 +337,41 @@ const FinanceReports = () => {
           {revenueByService.length === 0 ? (
             <p className="text-center text-muted-foreground py-8">Sem dados no período</p>
           ) : (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Serviço</TableHead>
-                    <TableHead className="text-center">Atendimentos</TableHead>
-                    <TableHead className="text-right">Receita Total</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {revenueByService.map(s => (
-                    <TableRow key={s.name}>
-                      <TableCell className="font-medium">{s.name}</TableCell>
-                      <TableCell className="text-center">{s.count}</TableCell>
-                      <TableCell className="text-right font-semibold">R$ {s.revenue.toFixed(2)}</TableCell>
+            <>
+              <div className="overflow-x-auto hidden md:block">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Serviço</TableHead>
+                      <TableHead className="text-center">Atendimentos</TableHead>
+                      <TableHead className="text-right">Receita Total</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
+                  </TableHeader>
+                  <TableBody>
+                    {revenueByService.map(s => (
+                      <TableRow key={s.name}>
+                        <TableCell className="font-medium">{s.name}</TableCell>
+                        <TableCell className="text-center">{s.count}</TableCell>
+                        <TableCell className="text-right font-semibold">R$ {s.revenue.toFixed(2)}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+              <div className="md:hidden space-y-3">
+                {revenueByService.map(s => (
+                  <Card key={s.name}>
+                    <CardContent className="p-4">
+                      <div className="flex justify-between items-center">
+                        <span className="font-medium">{s.name}</span>
+                        <span className="font-semibold">R$ {s.revenue.toFixed(2)}</span>
+                      </div>
+                      <p className="text-xs text-muted-foreground">{s.count} atendimentos</p>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </>
           )}
         </CardContent>
       </Card>
@@ -350,28 +383,46 @@ const FinanceReports = () => {
           {topClients.length === 0 ? (
             <p className="text-center text-muted-foreground py-8">Sem dados no período</p>
           ) : (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>#</TableHead>
-                    <TableHead>Cliente</TableHead>
-                    <TableHead className="text-center">Visitas</TableHead>
-                    <TableHead className="text-right">Total Gasto</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {topClients.map((c, i) => (
-                    <TableRow key={c.name}>
-                      <TableCell><Badge variant={i < 3 ? 'default' : 'outline'} className="text-xs">{i + 1}º</Badge></TableCell>
-                      <TableCell className="font-medium">{c.name}</TableCell>
-                      <TableCell className="text-center">{c.visits}</TableCell>
-                      <TableCell className="text-right font-semibold">R$ {c.spent.toFixed(2)}</TableCell>
+            <>
+              <div className="overflow-x-auto hidden md:block">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>#</TableHead>
+                      <TableHead>Cliente</TableHead>
+                      <TableHead className="text-center">Visitas</TableHead>
+                      <TableHead className="text-right">Total Gasto</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
+                  </TableHeader>
+                  <TableBody>
+                    {topClients.map((c, i) => (
+                      <TableRow key={c.name}>
+                        <TableCell><Badge variant={i < 3 ? 'default' : 'outline'} className="text-xs">{i + 1}º</Badge></TableCell>
+                        <TableCell className="font-medium">{c.name}</TableCell>
+                        <TableCell className="text-center">{c.visits}</TableCell>
+                        <TableCell className="text-right font-semibold">R$ {c.spent.toFixed(2)}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+              <div className="md:hidden space-y-3">
+                {topClients.map((c, i) => (
+                  <Card key={c.name}>
+                    <CardContent className="p-4">
+                      <div className="flex justify-between items-center">
+                        <div className="flex items-center gap-2">
+                          <Badge variant={i < 3 ? 'default' : 'outline'} className="text-xs">{i + 1}º</Badge>
+                          <span className="font-medium">{c.name}</span>
+                        </div>
+                        <span className="font-semibold">R$ {c.spent.toFixed(2)}</span>
+                      </div>
+                      <p className="text-xs text-muted-foreground">{c.visits} visitas</p>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </>
           )}
         </CardContent>
       </Card>

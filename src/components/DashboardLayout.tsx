@@ -230,7 +230,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
       </aside>
 
       <main className="flex-1 flex flex-col min-h-screen lg:ml-64">
-        <header className="h-16 border-b flex items-center px-4 lg:px-8 bg-card">
+        <header className="h-16 border-b flex items-center px-4 lg:px-8 bg-card sticky top-0 z-30">
           <button className="lg:hidden mr-4" onClick={() => setSidebarOpen(true)}><Menu className="h-6 w-6" /></button>
           <h1 className="text-lg font-display font-semibold flex-1">{currentLabel}</h1>
           <Popover>
