@@ -483,7 +483,13 @@ const EventPublic = () => {
             </div>
             <div>
               <Label>WhatsApp *</Label>
-              <Input value={clientWhatsapp} onChange={e => setClientWhatsapp(e.target.value)} placeholder="(11) 99999-9999" />
+              <Input value={clientWhatsapp} onChange={e => {
+                const digits = e.target.value.replace(/\D/g, '').slice(0, 11);
+                let masked = digits;
+                if (digits.length > 7) masked = `(${digits.slice(0,2)}) ${digits.slice(2,7)}-${digits.slice(7)}`;
+                else if (digits.length > 2) masked = `(${digits.slice(0,2)}) ${digits.slice(2)}`;
+                setClientWhatsapp(masked);
+              }} placeholder="(11) 99999-9999" maxLength={15} />
             </div>
             <div>
               <Label>Email (opcional)</Label>
