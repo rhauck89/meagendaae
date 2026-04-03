@@ -1,21 +1,25 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePlatformSettings } from '@/hooks/usePlatformSettings';
+
+const SPLASH_MIN_MS = 1500;
 
 const AppRedirect = () => {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
   const settings = usePlatformSettings();
+  const [splashDone, setSplashDone] = useState(false);
 
   useEffect(() => {
-    if (loading) return;
-    if (user) {
-      navigate('/dashboard', { replace: true });
-    } else {
-      navigate('/auth', { replace: true });
-    }
-  }, [user, loading, navigate]);
+    const timer = setTimeout(() => setSplashDone(true), SPLASH_MIN_MS);
+    return () => clearTimeout(timer);
+  }, []);
+
+  useEffect(() => {
+    if (loading || !splashDone) return;
+    navigate(user ? '/dashboard' : '/auth', { replace: true });
+  }, [user, loading, splashDone, navigate]);
 
   const bgColor = settings?.splash_background_color || '#0f2a5c';
   const logoUrl = settings?.splash_logo || settings?.system_logo;
