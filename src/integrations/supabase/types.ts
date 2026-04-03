@@ -3112,12 +3112,12 @@ export type Database = {
     Functions: {
       book_event_slot: {
         Args: {
-          p_client_cpf: string
-          p_client_email: string
+          p_client_cpf?: string
+          p_client_email?: string
           p_client_name: string
           p_client_whatsapp: string
           p_notes?: string
-          p_service_ids: string[]
+          p_service_ids?: string[]
           p_slot_id: string
         }
         Returns: string
