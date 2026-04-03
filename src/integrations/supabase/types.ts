@@ -3112,12 +3112,12 @@ export type Database = {
     Functions: {
       book_event_slot: {
         Args: {
-          p_client_cpf: string
-          p_client_email: string
+          p_client_cpf?: string
+          p_client_email?: string
           p_client_name: string
           p_client_whatsapp: string
           p_notes?: string
-          p_service_ids: string[]
+          p_service_ids?: string[]
           p_slot_id: string
         }
         Returns: string
@@ -3144,28 +3144,16 @@ export type Database = {
         Args: { p_appointment_id: string; p_services: Json }
         Returns: undefined
       }
-      create_client:
-        | {
-            Args: {
-              p_company_id: string
-              p_cpf: string
-              p_email: string
-              p_name: string
-              p_whatsapp: string
-            }
-            Returns: string
-          }
-        | {
-            Args: {
-              p_birth_date?: string
-              p_company_id: string
-              p_cpf: string
-              p_email: string
-              p_name: string
-              p_whatsapp: string
-            }
-            Returns: string
-          }
+      create_client: {
+        Args: {
+          p_birth_date?: string
+          p_company_id: string
+          p_email?: string
+          p_name: string
+          p_whatsapp: string
+        }
+        Returns: string
+      }
       expire_old_waitlist_entries: { Args: never; Returns: undefined }
       get_appointment_public: {
         Args: { p_appointment_id: string }

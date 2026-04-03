@@ -241,8 +241,7 @@ const Waitlist = () => {
         p_name: bookingTarget.client_name,
         p_whatsapp: bookingTarget.client_whatsapp || '',
         p_email: '',
-        p_cpf: '',
-      });
+      } as any);
       if (clientErr) throw clientErr;
 
       const { data: appointmentId, error: aptErr } = await supabase.rpc('create_appointment', {

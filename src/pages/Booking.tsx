@@ -805,10 +805,10 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
       const formattedWhatsapp = clientForm.whatsapp ? formatWhatsApp(clientForm.whatsapp) : null;
       console.log('[Booking] Creating client:', { name: clientForm.full_name, company_id: company.id });
       const { data: clientIdFromRpc, error: clientError } = await supabase.rpc('create_client', {
-        p_name: clientForm.full_name, p_cpf: '', p_whatsapp: formattedWhatsapp || '',
+        p_name: clientForm.full_name, p_whatsapp: formattedWhatsapp || '',
         p_email: clientForm.email || '', p_company_id: company.id,
         p_birth_date: clientForm.birth_date || null,
-      });
+      } as any);
       if (clientError) {
         console.error('[Booking] Client creation error:', clientError);
         throw clientError;

@@ -182,7 +182,7 @@ const EventPublic = () => {
         p_client_name: clientName.trim(),
         p_client_whatsapp: clientWhatsapp.trim(),
         p_client_email: clientEmail.trim(),
-        p_client_cpf: '',
+        p_client_cpf: '' as any,
         p_service_ids: selectedServices,
         p_notes: `Evento: ${event?.name}`,
       });
