@@ -662,7 +662,7 @@ const ClientProfile = ({ client, companyId, profileMap, onBack }: ClientProfileP
         .eq('company_id', companyId);
       if (error) throw error;
       client.is_blocked = newBlocked;
-      queryClient.invalidateQueries({ queryKey: ['clients', companyId] });
+      refresh('clients');
       toast.success(newBlocked ? 'Cliente bloqueado' : 'Cliente desbloqueado');
     } catch {
       toast.error('Erro ao atualizar status do cliente');
