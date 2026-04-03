@@ -1158,7 +1158,7 @@ export default function Promotions() {
           <DialogHeader>
             <DialogTitle>Métricas — {selectedPromotion?.title}</DialogTitle>
           </DialogHeader>
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <Card>
               <CardContent className="pt-6 text-center">
                 <MousePointerClick className="h-8 w-8 mx-auto text-primary mb-2" />

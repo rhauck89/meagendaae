@@ -388,7 +388,7 @@ export function ManualAppointmentDialog({
           ) : availableSlots.length === 0 ? (
             <p className="text-sm text-muted-foreground">Nenhum horário disponível</p>
           ) : (
-            <div className="grid grid-cols-3 gap-2 max-h-[280px] overflow-y-auto">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-[280px] overflow-y-auto">
               {availableSlots.map(slot => (
                 <Button
                   key={slot}

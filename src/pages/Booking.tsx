@@ -1724,7 +1724,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                     ))}
                   </div>
                 </div>
-                <div className="grid grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <div>
                     <p className="text-xs mb-1" style={{ color: T.textSec }}>📅 Data</p>
                     <p className="font-semibold text-sm">{format(bookingResult.date, "dd 'de' MMMM, yyyy", { locale: ptBR })}</p>

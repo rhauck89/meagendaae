@@ -1723,7 +1723,7 @@ const Dashboard = () => {
               ) : rescheduleSlots.length === 0 ? (
                 <p className="text-sm text-muted-foreground">Nenhum horário disponível nesta data</p>
               ) : (
-                <div className="grid grid-cols-3 gap-2 max-h-[280px] overflow-y-auto">
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-[280px] overflow-y-auto">
                   {rescheduleSlots.map((slot) => (
                     <Button
                       key={slot}

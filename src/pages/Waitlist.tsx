@@ -320,7 +320,7 @@ const Waitlist = () => {
 
       {/* Status Tabs */}
       <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as StatusTab)}>
-        <TabsList className="grid w-full grid-cols-5">
+        <TabsList className="grid w-full grid-cols-3 sm:grid-cols-5">
           <TabsTrigger value="active">Ativos ({counts.active || 0})</TabsTrigger>
           <TabsTrigger value="notified">Notificados ({counts.notified || 0})</TabsTrigger>
           <TabsTrigger value="converted">Convertidos ({counts.converted || 0})</TabsTrigger>
