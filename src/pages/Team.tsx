@@ -22,6 +22,7 @@ const ROLE_TITLES = ['Barbeiro', 'Cabeleireira', 'Esteticista', 'Manicure', 'Rec
 const Team = () => {
   const { companyId } = useAuth();
   const queryClient = useQueryClient();
+  const { refresh } = useRefreshData();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [panelOpen, setPanelOpen] = useState(false);
   const [selectedCollaborator, setSelectedCollaborator] = useState<any>(null);
