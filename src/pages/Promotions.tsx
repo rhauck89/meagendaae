@@ -992,7 +992,7 @@ export default function Promotions() {
               </CardContent>
             </Card>
           ) : (
-            <div className="grid gap-4 md:grid-cols-2">
+            <div className="grid gap-4 grid-cols-1 md:grid-cols-2">
               {filteredPromotions.map(promo => {
                 const remaining = promo.max_slots > 0 ? promo.max_slots - promo.used_slots : null;
                 const status = promoVisualStatus(promo, now);

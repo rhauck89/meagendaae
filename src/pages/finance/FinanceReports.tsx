@@ -383,28 +383,46 @@ const FinanceReports = () => {
           {topClients.length === 0 ? (
             <p className="text-center text-muted-foreground py-8">Sem dados no período</p>
           ) : (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>#</TableHead>
-                    <TableHead>Cliente</TableHead>
-                    <TableHead className="text-center">Visitas</TableHead>
-                    <TableHead className="text-right">Total Gasto</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {topClients.map((c, i) => (
-                    <TableRow key={c.name}>
-                      <TableCell><Badge variant={i < 3 ? 'default' : 'outline'} className="text-xs">{i + 1}º</Badge></TableCell>
-                      <TableCell className="font-medium">{c.name}</TableCell>
-                      <TableCell className="text-center">{c.visits}</TableCell>
-                      <TableCell className="text-right font-semibold">R$ {c.spent.toFixed(2)}</TableCell>
+            <>
+              <div className="overflow-x-auto hidden md:block">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>#</TableHead>
+                      <TableHead>Cliente</TableHead>
+                      <TableHead className="text-center">Visitas</TableHead>
+                      <TableHead className="text-right">Total Gasto</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
+                  </TableHeader>
+                  <TableBody>
+                    {topClients.map((c, i) => (
+                      <TableRow key={c.name}>
+                        <TableCell><Badge variant={i < 3 ? 'default' : 'outline'} className="text-xs">{i + 1}º</Badge></TableCell>
+                        <TableCell className="font-medium">{c.name}</TableCell>
+                        <TableCell className="text-center">{c.visits}</TableCell>
+                        <TableCell className="text-right font-semibold">R$ {c.spent.toFixed(2)}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+              <div className="md:hidden space-y-3">
+                {topClients.map((c, i) => (
+                  <Card key={c.name}>
+                    <CardContent className="p-4">
+                      <div className="flex justify-between items-center">
+                        <div className="flex items-center gap-2">
+                          <Badge variant={i < 3 ? 'default' : 'outline'} className="text-xs">{i + 1}º</Badge>
+                          <span className="font-medium">{c.name}</span>
+                        </div>
+                        <span className="font-semibold">R$ {c.spent.toFixed(2)}</span>
+                      </div>
+                      <p className="text-xs text-muted-foreground">{c.visits} visitas</p>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </>
           )}
         </CardContent>
       </Card>

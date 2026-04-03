@@ -725,7 +725,7 @@ const Events = () => {
           <Button variant="outline" className="mt-4" onClick={() => openCreateDialog()}>Criar primeiro evento</Button>
         </CardContent></Card>
       ) : (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
           {filteredEvents.map(event => (
             <Card key={event.id} className="overflow-hidden">
               {event.cover_image && (
