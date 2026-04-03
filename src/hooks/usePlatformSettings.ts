@@ -8,6 +8,10 @@ export interface PlatformSettings {
   favicon_url: string | null;
   logo_light: string | null;
   logo_dark: string | null;
+  pwa_icon_192: string | null;
+  pwa_icon_512: string | null;
+  splash_logo: string | null;
+  splash_background_color: string | null;
 }
 
 let cachedSettings: PlatformSettings | null = null;
