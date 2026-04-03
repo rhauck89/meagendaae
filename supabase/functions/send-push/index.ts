@@ -204,19 +204,19 @@ Deno.serve(async (req) => {
 
     // Verify caller is service role or authenticated user
     const token = authHeader.replace("Bearer ", "");
-    const supabase = createClient(supabaseUrl, Deno.env.get("SUPABASE_ANON_KEY")!, {
-      global: { headers: { Authorization: authHeader } },
-    });
-
-    const { data: claims, error: claimsError } = await supabase.auth.getClaims(token);
-    
-    // Allow service role key OR authenticated user
     const isServiceRole = token === serviceKey;
-    if (!isServiceRole && (claimsError || !claims?.claims)) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+
+    if (!isServiceRole) {
+      const supabase = createClient(supabaseUrl, Deno.env.get("SUPABASE_ANON_KEY")!, {
+        global: { headers: { Authorization: authHeader } },
       });
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      if (userError || !user) {
+        return new Response(JSON.stringify({ error: "Unauthorized" }), {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
     }
 
     const body = await req.json();
