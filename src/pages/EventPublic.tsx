@@ -12,6 +12,7 @@ import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { formatWhatsApp } from '@/lib/whatsapp';
 import { SEOHead } from '@/components/SEOHead';
 
 type Event = {
