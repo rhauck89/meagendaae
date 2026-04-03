@@ -3110,18 +3110,30 @@ export type Database = {
       }
     }
     Functions: {
-      book_event_slot: {
-        Args: {
-          p_client_cpf?: string
-          p_client_email?: string
-          p_client_name: string
-          p_client_whatsapp: string
-          p_notes?: string
-          p_service_ids?: string[]
-          p_slot_id: string
-        }
-        Returns: string
-      }
+      book_event_slot:
+        | {
+            Args: {
+              p_client_cpf?: string
+              p_client_email?: string
+              p_client_name: string
+              p_client_whatsapp: string
+              p_notes?: string
+              p_service_ids?: string[]
+              p_slot_id: string
+            }
+            Returns: string
+          }
+        | {
+            Args: {
+              p_client_email?: string
+              p_client_name: string
+              p_client_whatsapp: string
+              p_notes?: string
+              p_service_ids?: string[]
+              p_slot_id: string
+            }
+            Returns: string
+          }
       cancel_appointment_public: {
         Args: { p_appointment_id: string }
         Returns: Json
@@ -3242,10 +3254,6 @@ export type Database = {
             }
             Returns: string
           }
-      lookup_client_by_cpf: {
-        Args: { _company_id: string; _cpf: string }
-        Returns: string
-      }
       lookup_client_by_whatsapp: {
         Args: { _company_id: string; _whatsapp: string }
         Returns: string

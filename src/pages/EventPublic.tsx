@@ -12,6 +12,7 @@ import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { formatWhatsApp } from '@/lib/whatsapp';
 import { SEOHead } from '@/components/SEOHead';
 
 type Event = {
@@ -177,12 +178,11 @@ const EventPublic = () => {
     }
     setBooking(true);
     try {
-      const { data, error } = await supabase.rpc('book_event_slot', {
+      const { data, error } = await supabase.rpc('book_event_slot' as any, {
         p_slot_id: selectedSlot.id,
         p_client_name: clientName.trim(),
-        p_client_whatsapp: clientWhatsapp.trim(),
+        p_client_whatsapp: formatWhatsApp(clientWhatsapp.trim()),
         p_client_email: clientEmail.trim(),
-        p_client_cpf: '' as any,
         p_service_ids: selectedServices,
         p_notes: `Evento: ${event?.name}`,
       });
@@ -214,7 +214,7 @@ const EventPublic = () => {
       const { error } = await supabase.rpc('join_public_waitlist', {
         p_company_id: event.company_id,
         p_client_name: clientName.trim(),
-        p_client_whatsapp: clientWhatsapp.trim(),
+        p_client_whatsapp: formatWhatsApp(clientWhatsapp.trim()),
         p_email: clientEmail.trim(),
         p_service_ids: selectedServices.length > 0 ? selectedServices : [services[0]?.id].filter(Boolean),
         p_desired_date: waitlistSlot.slot_date,
@@ -439,7 +439,13 @@ const EventPublic = () => {
               </div>
               <div>
                 <Label>WhatsApp *</Label>
-                <Input value={clientWhatsapp} onChange={e => setClientWhatsapp(e.target.value)} placeholder="(11) 99999-9999" />
+                <Input value={clientWhatsapp} onChange={e => {
+                  const digits = e.target.value.replace(/\D/g, '').slice(0, 11);
+                  let masked = digits;
+                  if (digits.length > 7) masked = `(${digits.slice(0,2)}) ${digits.slice(2,7)}-${digits.slice(7)}`;
+                  else if (digits.length > 2) masked = `(${digits.slice(0,2)}) ${digits.slice(2)}`;
+                  setClientWhatsapp(masked);
+                }} placeholder="(11) 99999-9999" maxLength={15} />
               </div>
               <div>
                 <Label>Email (opcional)</Label>
@@ -477,7 +483,13 @@ const EventPublic = () => {
             </div>
             <div>
               <Label>WhatsApp *</Label>
-              <Input value={clientWhatsapp} onChange={e => setClientWhatsapp(e.target.value)} placeholder="(11) 99999-9999" />
+              <Input value={clientWhatsapp} onChange={e => {
+                const digits = e.target.value.replace(/\D/g, '').slice(0, 11);
+                let masked = digits;
+                if (digits.length > 7) masked = `(${digits.slice(0,2)}) ${digits.slice(2,7)}-${digits.slice(7)}`;
+                else if (digits.length > 2) masked = `(${digits.slice(0,2)}) ${digits.slice(2)}`;
+                setClientWhatsapp(masked);
+              }} placeholder="(11) 99999-9999" maxLength={15} />
             </div>
             <div>
               <Label>Email (opcional)</Label>
