@@ -1046,7 +1046,7 @@ const Dashboard = () => {
                 <DollarSign className="h-6 w-6 text-success" />
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">Receita do mês</p>
+                <p className="text-sm text-muted-foreground">Receita estimada do mês</p>
                 <p className="text-2xl font-display font-bold">R$ {monthlyStats.revenue.toFixed(2)}</p>
               </div>
             </CardContent>
