@@ -224,8 +224,9 @@ const ProfilePage = () => {
         social_instagram: persistedSocial.instagram || '',
       });
 
-      // Refresh AuthContext so the rest of the app reflects changes
+      // Refresh AuthContext and query caches
       await refreshProfile();
+      refresh('profile');
 
       toast.success('Perfil atualizado com sucesso');
     } catch (err: any) {

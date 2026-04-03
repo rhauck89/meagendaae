@@ -15,6 +15,7 @@ import { toast } from 'sonner';
 const Services = () => {
   const { companyId } = useAuth();
   const queryClient = useQueryClient();
+  const { refresh } = useRefreshData();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<any | null>(null);
   const [form, setForm] = useState({ name: '', duration_minutes: '' as string | number, price: '' as string | number, recommended_return_days: '' as string | number });
