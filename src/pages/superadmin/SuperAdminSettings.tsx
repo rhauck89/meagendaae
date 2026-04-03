@@ -237,6 +237,59 @@ const SuperAdminSettings = () => {
           <Button size="sm" onClick={save}>Salvar SEO</Button>
         </CardContent>
       </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Smartphone className="h-5 w-5" /> PWA / App Instalável
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <ImageUploadField
+              label="Ícone do App (192x192)"
+              value={pwaIcon192}
+              onChange={setPwaIcon192}
+              folder="pwa"
+              accept="image/png"
+            />
+            <ImageUploadField
+              label="Ícone do App (512x512)"
+              value={pwaIcon512}
+              onChange={setPwaIcon512}
+              folder="pwa"
+              accept="image/png"
+            />
+          </div>
+          <ImageUploadField
+            label="Logo da Splash Screen"
+            value={splashLogo}
+            onChange={setSplashLogo}
+            folder="pwa"
+          />
+          <div className="space-y-1">
+            <Label className="text-xs">Cor de fundo da Splash Screen</Label>
+            <div className="flex items-center gap-2">
+              <input
+                type="color"
+                value={splashBgColor}
+                onChange={(e) => setSplashBgColor(e.target.value)}
+                className="h-9 w-12 rounded border border-border cursor-pointer"
+              />
+              <Input
+                value={splashBgColor}
+                onChange={(e) => setSplashBgColor(e.target.value)}
+                className="max-w-[140px]"
+                placeholder="#0f2a5c"
+              />
+            </div>
+          </div>
+          <p className="text-[10px] text-muted-foreground">
+            Essas imagens serão usadas quando o usuário instalar o app no celular. O ícone aparece na tela inicial e a splash screen ao abrir o app.
+          </p>
+          <Button size="sm" onClick={save}>Salvar PWA</Button>
+        </CardContent>
+      </Card>
     </div>
   );
 };
