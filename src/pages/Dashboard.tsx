@@ -173,6 +173,16 @@ const Dashboard = () => {
     fetchUpcomingAppointments();
   }, [companyId, currentDate, viewMode, filterProfessional]);
 
+  // Listen for external refresh events (e.g. from other pages)
+  const handleAgendaRefresh = useCallback(() => {
+    if (companyId) {
+      fetchAppointments();
+      fetchMonthlyStats();
+      fetchUpcomingAppointments();
+    }
+  }, [companyId, currentDate, viewMode, filterProfessional]);
+  useOnDataRefresh('agenda', handleAgendaRefresh);
+
   const fetchUpcomingAppointments = async () => {
     const now = new Date().toISOString();
     let query = supabase
