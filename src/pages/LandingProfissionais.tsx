@@ -98,7 +98,7 @@ const LandingProfissionais = () => {
                   </div>
                   <div className="p-6 space-y-4">
                     {/* Mock stats */}
-                    <div className="grid grid-cols-3 gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                       {[
                         { label: 'Receita', value: 'R$ 8.450', color: 'hsl(var(--accent))' },
                         { label: 'Clientes', value: '142', color: 'hsl(var(--primary))' },
