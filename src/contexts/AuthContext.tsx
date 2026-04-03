@@ -10,6 +10,7 @@ interface AuthContextType {
   companyId: string | null;
   roles: string[];
   signOut: () => Promise<void>;
+  refreshProfile: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType>({
