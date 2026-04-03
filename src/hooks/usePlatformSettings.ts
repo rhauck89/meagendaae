@@ -8,6 +8,10 @@ export interface PlatformSettings {
   favicon_url: string | null;
   logo_light: string | null;
   logo_dark: string | null;
+  pwa_icon_192: string | null;
+  pwa_icon_512: string | null;
+  splash_logo: string | null;
+  splash_background_color: string | null;
 }
 
 let cachedSettings: PlatformSettings | null = null;
@@ -16,7 +20,7 @@ let fetchPromise: Promise<PlatformSettings | null> | null = null;
 const fetchSettings = async (): Promise<PlatformSettings | null> => {
   const { data } = await supabase
     .from('platform_settings')
-    .select('system_name, system_url, system_logo, favicon_url, logo_light, logo_dark')
+    .select('system_name, system_url, system_logo, favicon_url, logo_light, logo_dark, pwa_icon_192, pwa_icon_512, splash_logo, splash_background_color')
     .limit(1)
     .single();
   if (data) {
@@ -27,6 +31,10 @@ const fetchSettings = async (): Promise<PlatformSettings | null> => {
       favicon_url: data.favicon_url,
       logo_light: (data as any).logo_light ?? null,
       logo_dark: (data as any).logo_dark ?? null,
+      pwa_icon_192: (data as any).pwa_icon_192 ?? null,
+      pwa_icon_512: (data as any).pwa_icon_512 ?? null,
+      splash_logo: (data as any).splash_logo ?? null,
+      splash_background_color: (data as any).splash_background_color ?? null,
     };
     cachedSettings = s;
     return s;

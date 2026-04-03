@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Globe, Search, Upload, X, Loader2 } from 'lucide-react';
+import { Globe, Search, Upload, X, Loader2, Smartphone } from 'lucide-react';
 import { toast } from 'sonner';
 
 const BUCKET = 'platform-assets';
@@ -104,6 +104,10 @@ const SuperAdminSettings = () => {
   const [seoOgImage, setSeoOgImage] = useState('');
   const [seoFavicon, setSeoFavicon] = useState('');
   const [seoKeywords, setSeoKeywords] = useState('');
+  const [pwaIcon192, setPwaIcon192] = useState('');
+  const [pwaIcon512, setPwaIcon512] = useState('');
+  const [splashLogo, setSplashLogo] = useState('');
+  const [splashBgColor, setSplashBgColor] = useState('#0f2a5c');
 
   useEffect(() => {
     const fetchSettings = async () => {
@@ -119,6 +123,10 @@ const SuperAdminSettings = () => {
         setSeoOgImage(data.og_image ?? '');
         setSeoFavicon(data.favicon_url ?? '');
         setSeoKeywords(data.default_keywords ?? '');
+        setPwaIcon192((data as any).pwa_icon_192 ?? '');
+        setPwaIcon512((data as any).pwa_icon_512 ?? '');
+        setSplashLogo((data as any).splash_logo ?? '');
+        setSplashBgColor((data as any).splash_background_color ?? '#0f2a5c');
       }
     };
     fetchSettings();
@@ -136,6 +144,10 @@ const SuperAdminSettings = () => {
       og_image: seoOgImage || null,
       favicon_url: seoFavicon || null,
       default_keywords: seoKeywords || null,
+      pwa_icon_192: pwaIcon192 || null,
+      pwa_icon_512: pwaIcon512 || null,
+      splash_logo: splashLogo || null,
+      splash_background_color: splashBgColor || '#0f2a5c',
     } as any).neq('id', '00000000-0000-0000-0000-000000000000');
     toast.success('Configurações salvas');
   };
@@ -223,6 +235,59 @@ const SuperAdminSettings = () => {
             />
           </div>
           <Button size="sm" onClick={save}>Salvar SEO</Button>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Smartphone className="h-5 w-5" /> PWA / App Instalável
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <ImageUploadField
+              label="Ícone do App (192x192)"
+              value={pwaIcon192}
+              onChange={setPwaIcon192}
+              folder="pwa"
+              accept="image/png"
+            />
+            <ImageUploadField
+              label="Ícone do App (512x512)"
+              value={pwaIcon512}
+              onChange={setPwaIcon512}
+              folder="pwa"
+              accept="image/png"
+            />
+          </div>
+          <ImageUploadField
+            label="Logo da Splash Screen"
+            value={splashLogo}
+            onChange={setSplashLogo}
+            folder="pwa"
+          />
+          <div className="space-y-1">
+            <Label className="text-xs">Cor de fundo da Splash Screen</Label>
+            <div className="flex items-center gap-2">
+              <input
+                type="color"
+                value={splashBgColor}
+                onChange={(e) => setSplashBgColor(e.target.value)}
+                className="h-9 w-12 rounded border border-border cursor-pointer"
+              />
+              <Input
+                value={splashBgColor}
+                onChange={(e) => setSplashBgColor(e.target.value)}
+                className="max-w-[140px]"
+                placeholder="#0f2a5c"
+              />
+            </div>
+          </div>
+          <p className="text-[10px] text-muted-foreground">
+            Essas imagens serão usadas quando o usuário instalar o app no celular. O ícone aparece na tela inicial e a splash screen ao abrir o app.
+          </p>
+          <Button size="sm" onClick={save}>Salvar PWA</Button>
         </CardContent>
       </Card>
     </div>

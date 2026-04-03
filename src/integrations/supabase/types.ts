@@ -1671,7 +1671,11 @@ export type Database = {
           logo_light: string | null
           meta_description: string | null
           og_image: string | null
+          pwa_icon_192: string | null
+          pwa_icon_512: string | null
           site_title: string | null
+          splash_background_color: string | null
+          splash_logo: string | null
           system_logo: string | null
           system_name: string
           system_url: string | null
@@ -1686,7 +1690,11 @@ export type Database = {
           logo_light?: string | null
           meta_description?: string | null
           og_image?: string | null
+          pwa_icon_192?: string | null
+          pwa_icon_512?: string | null
           site_title?: string | null
+          splash_background_color?: string | null
+          splash_logo?: string | null
           system_logo?: string | null
           system_name?: string
           system_url?: string | null
@@ -1701,7 +1709,11 @@ export type Database = {
           logo_light?: string | null
           meta_description?: string | null
           og_image?: string | null
+          pwa_icon_192?: string | null
+          pwa_icon_512?: string | null
           site_title?: string | null
+          splash_background_color?: string | null
+          splash_logo?: string | null
           system_logo?: string | null
           system_name?: string
           system_url?: string | null

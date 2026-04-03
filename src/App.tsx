@@ -49,6 +49,7 @@ import Support from "./pages/Support";
 import HelpCenter from "./pages/HelpCenter";
 import PlansPage from "./pages/PlansPage";
 import NotFound from "./pages/NotFound";
+import AppRedirect from "./pages/AppRedirect";
 
 // Settings sub-pages
 import SettingsGeneral from "./pages/settings/SettingsGeneral";
@@ -103,6 +104,7 @@ const TenantRoutes = ({ slug, businessType }: { slug: string; businessType: stri
 
 const PlatformRoutes = () => (
   <Routes>
+    <Route path="/app" element={<AppRedirect />} />
     <Route path="/" element={<MarketplaceHome />} />
     <Route path="/profissionais" element={<LandingProfissionais />} />
     <Route path="/barbeiros" element={<MarketplaceCategory />} />
