@@ -35,11 +35,16 @@ const SettingsGeneral = () => {
   };
 
   const save = async () => {
-    await supabase.from('companies').update({
+    const { error } = await supabase.from('companies').update({
       name: companyName,
       description: companyDescription,
       business_type: companyBusinessType,
     } as any).eq('id', companyId!);
+    if (error) {
+      toast.error('Erro ao salvar configurações');
+      return;
+    }
+    refresh('settings');
     toast.success('Configurações gerais salvas');
   };
 
