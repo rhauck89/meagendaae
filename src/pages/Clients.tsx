@@ -11,7 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Search, MessageCircle, Users, ArrowLeft, Calendar, DollarSign, Star, Scissors, Cake, Pencil, UserPlus } from 'lucide-react';
+import { Search, MessageCircle, Users, ArrowLeft, Calendar, DollarSign, Star, Scissors, Cake, Pencil, UserPlus, Ban, ShieldCheck } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { displayWhatsApp, formatWhatsApp } from '@/lib/whatsapp';
@@ -25,6 +25,7 @@ interface ClientRow {
   birth_date: string | null;
   next_recommended_visit: string | null;
   created_at: string;
+  is_blocked: boolean;
 }
 
 interface AppointmentRow {
@@ -394,7 +395,16 @@ const Clients = () => {
                           className="cursor-pointer"
                           onClick={() => setSelectedClientId(client.id)}
                         >
-                          <TableCell className="font-medium">{client.name}</TableCell>
+                          <TableCell className="font-medium">
+                            <div className="flex items-center gap-2">
+                              {client.name}
+                              {(client as any).is_blocked && (
+                                <Badge variant="destructive" className="text-[10px] px-1.5 py-0">
+                                  <Ban className="h-3 w-3 mr-0.5" /> Bloqueado
+                                </Badge>
+                              )}
+                            </div>
+                          </TableCell>
                           <TableCell>
                             {client.whatsapp ? displayWhatsApp(client.whatsapp) : '-'}
                           </TableCell>
@@ -446,7 +456,14 @@ const Clients = () => {
                 >
                   <CardContent className="p-4 space-y-2">
                     <div className="flex items-center justify-between">
-                      <p className="font-medium text-sm">{client.name}</p>
+                      <p className="font-medium text-sm flex items-center gap-2">
+                        {client.name}
+                        {(client as any).is_blocked && (
+                          <Badge variant="destructive" className="text-[10px] px-1.5 py-0">
+                            <Ban className="h-3 w-3 mr-0.5" /> Bloqueado
+                          </Badge>
+                        )}
+                      </p>
                       <div className="flex items-center gap-1">
                         <Badge variant="secondary" className="text-xs">{stats.totalVisits} visitas</Badge>
                         {client.whatsapp && (
@@ -633,6 +650,23 @@ const ClientProfile = ({ client, companyId, profileMap, onBack }: ClientProfileP
     }
   };
 
+  const handleToggleBlock = async () => {
+    const newBlocked = !client.is_blocked;
+    try {
+      const { error } = await supabase
+        .from('clients')
+        .update({ is_blocked: newBlocked } as any)
+        .eq('id', client.id)
+        .eq('company_id', companyId);
+      if (error) throw error;
+      client.is_blocked = newBlocked;
+      queryClient.invalidateQueries({ queryKey: ['clients', companyId] });
+      toast.success(newBlocked ? 'Cliente bloqueado' : 'Cliente desbloqueado');
+    } catch {
+      toast.error('Erro ao atualizar status do cliente');
+    }
+  };
+
   return (
     <div className="space-y-6">
       <Button variant="ghost" onClick={onBack} className="gap-2">
@@ -641,14 +675,31 @@ const ClientProfile = ({ client, companyId, profileMap, onBack }: ClientProfileP
 
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div className="min-w-0">
-          <h2 className="text-xl sm:text-2xl font-display font-bold truncate">{client.name}</h2>
+          <div className="flex items-center gap-2">
+            <h2 className="text-xl sm:text-2xl font-display font-bold truncate">{client.name}</h2>
+            {client.is_blocked && (
+              <Badge variant="destructive" className="text-xs gap-1">
+                <Ban className="h-3 w-3" /> Bloqueado
+              </Badge>
+            )}
+          </div>
           <p className="text-muted-foreground text-sm break-words">
             {client.whatsapp ? displayWhatsApp(client.whatsapp) : 'Sem WhatsApp'}
             {client.email && ` • ${client.email}`}
             {client.birth_date && ` • 🎂 ${format(parseISO(client.birth_date), 'dd/MM/yyyy', { locale: ptBR })}`}
           </p>
         </div>
-        <div className="flex gap-2 shrink-0">
+        <div className="flex gap-2 shrink-0 flex-wrap">
+          <Button
+            variant={client.is_blocked ? 'outline' : 'destructive'}
+            size="sm"
+            className="gap-2"
+            onClick={handleToggleBlock}
+          >
+            {client.is_blocked ? <ShieldCheck className="h-4 w-4" /> : <Ban className="h-4 w-4" />}
+            <span className="hidden sm:inline">{client.is_blocked ? 'Desbloquear cliente' : 'Bloquear cliente'}</span>
+            <span className="sm:hidden">{client.is_blocked ? 'Desbloquear' : 'Bloquear'}</span>
+          </Button>
           <Button
             variant="outline"
             size="sm"

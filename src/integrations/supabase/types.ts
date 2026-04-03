@@ -407,6 +407,7 @@ export type Database = {
           created_at: string
           email: string | null
           id: string
+          is_blocked: boolean
           name: string
           next_recommended_visit: string | null
           opt_in_whatsapp: boolean
@@ -419,6 +420,7 @@ export type Database = {
           created_at?: string
           email?: string | null
           id?: string
+          is_blocked?: boolean
           name: string
           next_recommended_visit?: string | null
           opt_in_whatsapp?: boolean
@@ -431,6 +433,7 @@ export type Database = {
           created_at?: string
           email?: string | null
           id?: string
+          is_blocked?: boolean
           name?: string
           next_recommended_visit?: string | null
           opt_in_whatsapp?: boolean
@@ -3422,7 +3425,7 @@ export type Database = {
           p_professional_id: string
           p_promotion_id?: string
           p_start_time: string
-          p_total_price: number
+          p_total_price?: number
         }
         Returns: string
       }

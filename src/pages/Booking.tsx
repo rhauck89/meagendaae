@@ -815,6 +815,21 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
       }
       const clientId = clientIdFromRpc;
       console.log('[Booking] Client ID:', clientId);
+
+      // Check if client is blocked
+      if (clientId) {
+        const { data: clientRecord } = await supabase
+          .from('clients')
+          .select('is_blocked')
+          .eq('id', clientId)
+          .single();
+        if (clientRecord && (clientRecord as any).is_blocked) {
+          toast.error('Este cliente está bloqueado para realizar agendamentos. Entre em contato com o estabelecimento.');
+          setLoading(false);
+          return;
+        }
+      }
+
       if (clientId) {
         const clientDataJson = JSON.stringify({
           full_name: clientForm.full_name, email: clientForm.email || '', whatsapp: clientForm.whatsapp || '',
