@@ -395,7 +395,16 @@ const Clients = () => {
                           className="cursor-pointer"
                           onClick={() => setSelectedClientId(client.id)}
                         >
-                          <TableCell className="font-medium">{client.name}</TableCell>
+                          <TableCell className="font-medium">
+                            <div className="flex items-center gap-2">
+                              {client.name}
+                              {(client as any).is_blocked && (
+                                <Badge variant="destructive" className="text-[10px] px-1.5 py-0">
+                                  <Ban className="h-3 w-3 mr-0.5" /> Bloqueado
+                                </Badge>
+                              )}
+                            </div>
+                          </TableCell>
                           <TableCell>
                             {client.whatsapp ? displayWhatsApp(client.whatsapp) : '-'}
                           </TableCell>
