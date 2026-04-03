@@ -100,7 +100,7 @@ const SuperAdminLayout = ({ children }: { children: React.ReactNode }) => {
       </aside>
 
       <main className="flex-1 flex flex-col min-h-screen lg:ml-64">
-        <header className="h-16 border-b flex items-center px-4 lg:px-8 bg-card sticky top-0 z-30">
+        <header className="h-16 border-b flex items-center px-4 lg:px-8 bg-card sticky top-0 z-50 shadow-[0_2px_8px_rgba(0,0,0,0.08)]">
           <button className="lg:hidden mr-4" onClick={() => setSidebarOpen(true)}>
             <Menu className="h-6 w-6" />
           </button>
