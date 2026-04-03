@@ -104,6 +104,10 @@ const SuperAdminSettings = () => {
   const [seoOgImage, setSeoOgImage] = useState('');
   const [seoFavicon, setSeoFavicon] = useState('');
   const [seoKeywords, setSeoKeywords] = useState('');
+  const [pwaIcon192, setPwaIcon192] = useState('');
+  const [pwaIcon512, setPwaIcon512] = useState('');
+  const [splashLogo, setSplashLogo] = useState('');
+  const [splashBgColor, setSplashBgColor] = useState('#0f2a5c');
 
   useEffect(() => {
     const fetchSettings = async () => {
