@@ -639,18 +639,19 @@ const ClientProfile = ({ client, companyId, profileMap, onBack }: ClientProfileP
         <ArrowLeft className="h-4 w-4" /> Voltar
       </Button>
 
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-display font-bold">{client.name}</h2>
-          <p className="text-muted-foreground">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="min-w-0">
+          <h2 className="text-xl sm:text-2xl font-display font-bold truncate">{client.name}</h2>
+          <p className="text-muted-foreground text-sm break-words">
             {client.whatsapp ? displayWhatsApp(client.whatsapp) : 'Sem WhatsApp'}
             {client.email && ` • ${client.email}`}
             {client.birth_date && ` • 🎂 ${format(parseISO(client.birth_date), 'dd/MM/yyyy', { locale: ptBR })}`}
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 shrink-0">
           <Button
             variant="outline"
+            size="sm"
             className="gap-2"
             onClick={() => {
               setEditForm({
@@ -663,14 +664,15 @@ const ClientProfile = ({ client, companyId, profileMap, onBack }: ClientProfileP
               setEditOpen(true);
             }}
           >
-            <Pencil className="h-4 w-4" /> Editar cliente
+            <Pencil className="h-4 w-4" /> <span className="hidden sm:inline">Editar cliente</span><span className="sm:hidden">Editar</span>
           </Button>
           {client.whatsapp && (
             <Button
+              size="sm"
               className="bg-green-600 hover:bg-green-700 gap-2"
               onClick={() => window.open(`https://wa.me/${client.whatsapp}`, '_blank')}
             >
-              <MessageCircle className="h-4 w-4" /> WhatsApp
+              <MessageCircle className="h-4 w-4" /> <span className="hidden sm:inline">WhatsApp</span>
             </Button>
           )}
         </div>
