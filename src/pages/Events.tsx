@@ -708,7 +708,7 @@ const Events = () => {
       </div>
 
       <Tabs value={statusFilter} onValueChange={(v) => setStatusFilter(v as StatusFilter)}>
-        <TabsList>
+        <TabsList className="flex flex-wrap h-auto gap-1">
           <TabsTrigger value="all">Todos ({statusCounts.all})</TabsTrigger>
           <TabsTrigger value="draft">Rascunho ({statusCounts.draft})</TabsTrigger>
           <TabsTrigger value="published">Publicados ({statusCounts.published})</TabsTrigger>
