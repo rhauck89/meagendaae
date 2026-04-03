@@ -160,6 +160,12 @@ const Events = () => {
     }
   }, [companyId]);
 
+  // Listen for external refresh events
+  const handleEventsRefresh = useCallback(() => {
+    if (companyId) loadEvents();
+  }, [companyId]);
+  useOnDataRefresh('events', handleEventsRefresh);
+
   const loadCompanyBranding = async () => {
     const [settingsRes, companyRes] = await Promise.all([
       supabase.from('company_settings').select('*').eq('company_id', companyId!).maybeSingle(),
