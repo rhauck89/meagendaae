@@ -19,6 +19,7 @@ import ImageCropDialog from '@/components/ImageCropDialog';
 const ProfilePage = () => {
   const { user, profile, companyId, refreshProfile } = useAuth();
   const { profileId } = useUserRole();
+  const { refresh } = useRefreshData();
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [reviews, setReviews] = useState<any[]>([]);
