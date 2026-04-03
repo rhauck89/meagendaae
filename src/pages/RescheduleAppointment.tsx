@@ -168,6 +168,27 @@ const RescheduleAppointment = () => {
       const res = data as any;
       if (res.success) {
         setStep('success');
+
+        // Send push notification to professional
+        try {
+          const apt = appointment as any;
+          const { data: profProfile } = await supabase
+            .from('profiles')
+            .select('user_id')
+            .eq('id', apt.professional_id)
+            .single();
+          if (profProfile?.user_id) {
+            const newTimeStr = selectedTime || format(newStart, 'HH:mm');
+            supabase.functions.invoke('send-push', {
+              body: {
+                user_id: profProfile.user_id,
+                title: 'Agendamento reagendado',
+                body: `${apt.client_name} reagendou para ${newTimeStr}`,
+                url: '/dashboard',
+              },
+            }).catch(() => {});
+          }
+        } catch { /* non-critical */ }
       } else {
         toast.error('Não foi possível reagendar');
       }
