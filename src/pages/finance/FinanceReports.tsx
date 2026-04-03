@@ -202,43 +202,61 @@ const FinanceReports = () => {
       <Card>
         <CardHeader><CardTitle className="text-base">Lucratividade por Profissional</CardTitle></CardHeader>
         <CardContent>
-          {profitByPro.length === 0 ? (
+           {profitByPro.length === 0 ? (
             <p className="text-center text-muted-foreground py-8">Sem dados no período</p>
           ) : (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Profissional</TableHead>
-                    <TableHead className="text-center">Serviços</TableHead>
-                    <TableHead className="text-right">Receita</TableHead>
-                    <TableHead className="text-right">Comissão</TableHead>
-                    <TableHead className="text-right">Lucro Empresa</TableHead>
-                    <TableHead className="text-right">Ticket Médio</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {profitByPro.map(p => (
-                    <TableRow key={p.name}>
-                      <TableCell className="font-medium">{p.name}</TableCell>
-                      <TableCell className="text-center">{p.services}</TableCell>
-                      <TableCell className="text-right">R$ {p.revenue.toFixed(2)}</TableCell>
-                      <TableCell className="text-right text-warning">R$ {p.commission.toFixed(2)}</TableCell>
-                      <TableCell className="text-right font-bold">R$ {p.profit.toFixed(2)}</TableCell>
-                      <TableCell className="text-right text-muted-foreground">R$ {p.avgTicket.toFixed(2)}</TableCell>
+            <>
+              <div className="overflow-x-auto hidden md:block">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Profissional</TableHead>
+                      <TableHead className="text-center">Serviços</TableHead>
+                      <TableHead className="text-right">Receita</TableHead>
+                      <TableHead className="text-right">Comissão</TableHead>
+                      <TableHead className="text-right">Lucro Empresa</TableHead>
+                      <TableHead className="text-right">Ticket Médio</TableHead>
                     </TableRow>
-                  ))}
-                  <TableRow className="border-t-2 font-bold">
-                    <TableCell>Total</TableCell>
-                    <TableCell className="text-center">{profitByPro.reduce((s, p) => s + p.services, 0)}</TableCell>
-                    <TableCell className="text-right">R$ {profitByPro.reduce((s, p) => s + p.revenue, 0).toFixed(2)}</TableCell>
-                    <TableCell className="text-right text-warning">R$ {profitByPro.reduce((s, p) => s + p.commission, 0).toFixed(2)}</TableCell>
-                    <TableCell className="text-right">R$ {profitByPro.reduce((s, p) => s + p.profit, 0).toFixed(2)}</TableCell>
-                    <TableCell />
-                  </TableRow>
-                </TableBody>
-              </Table>
-            </div>
+                  </TableHeader>
+                  <TableBody>
+                    {profitByPro.map(p => (
+                      <TableRow key={p.name}>
+                        <TableCell className="font-medium">{p.name}</TableCell>
+                        <TableCell className="text-center">{p.services}</TableCell>
+                        <TableCell className="text-right">R$ {p.revenue.toFixed(2)}</TableCell>
+                        <TableCell className="text-right text-warning">R$ {p.commission.toFixed(2)}</TableCell>
+                        <TableCell className="text-right font-bold">R$ {p.profit.toFixed(2)}</TableCell>
+                        <TableCell className="text-right text-muted-foreground">R$ {p.avgTicket.toFixed(2)}</TableCell>
+                      </TableRow>
+                    ))}
+                    <TableRow className="border-t-2 font-bold">
+                      <TableCell>Total</TableCell>
+                      <TableCell className="text-center">{profitByPro.reduce((s, p) => s + p.services, 0)}</TableCell>
+                      <TableCell className="text-right">R$ {profitByPro.reduce((s, p) => s + p.revenue, 0).toFixed(2)}</TableCell>
+                      <TableCell className="text-right text-warning">R$ {profitByPro.reduce((s, p) => s + p.commission, 0).toFixed(2)}</TableCell>
+                      <TableCell className="text-right">R$ {profitByPro.reduce((s, p) => s + p.profit, 0).toFixed(2)}</TableCell>
+                      <TableCell />
+                    </TableRow>
+                  </TableBody>
+                </Table>
+              </div>
+              <div className="md:hidden space-y-3">
+                {profitByPro.map(p => (
+                  <Card key={p.name}>
+                    <CardContent className="p-4 space-y-1">
+                      <p className="font-semibold">{p.name}</p>
+                      <div className="grid grid-cols-2 gap-1 text-sm">
+                        <span className="text-muted-foreground">Serviços:</span><span className="text-right">{p.services}</span>
+                        <span className="text-muted-foreground">Receita:</span><span className="text-right">R$ {p.revenue.toFixed(2)}</span>
+                        <span className="text-muted-foreground">Comissão:</span><span className="text-right text-warning">R$ {p.commission.toFixed(2)}</span>
+                        <span className="text-muted-foreground">Lucro:</span><span className="text-right font-bold">R$ {p.profit.toFixed(2)}</span>
+                        <span className="text-muted-foreground">Ticket Médio:</span><span className="text-right">R$ {p.avgTicket.toFixed(2)}</span>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </>
           )}
         </CardContent>
       </Card>
