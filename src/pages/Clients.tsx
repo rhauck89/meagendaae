@@ -456,7 +456,14 @@ const Clients = () => {
                 >
                   <CardContent className="p-4 space-y-2">
                     <div className="flex items-center justify-between">
-                      <p className="font-medium text-sm">{client.name}</p>
+                      <p className="font-medium text-sm flex items-center gap-2">
+                        {client.name}
+                        {(client as any).is_blocked && (
+                          <Badge variant="destructive" className="text-[10px] px-1.5 py-0">
+                            <Ban className="h-3 w-3 mr-0.5" /> Bloqueado
+                          </Badge>
+                        )}
+                      </p>
                       <div className="flex items-center gap-1">
                         <Badge variant="secondary" className="text-xs">{stats.totalVisits} visitas</Badge>
                         {client.whatsapp && (
