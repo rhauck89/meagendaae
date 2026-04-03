@@ -201,7 +201,8 @@ const FinanceRevenues = () => {
         </DialogContent>
       </Dialog>
 
-      <Card>
+      {/* Desktop table */}
+      <Card className="hidden md:block">
         <CardContent className="p-0">
           <div className="overflow-x-auto">
             <Table className="min-w-[600px]">
@@ -250,6 +251,37 @@ const FinanceRevenues = () => {
           </div>
         </CardContent>
       </Card>
+
+      {/* Mobile cards */}
+      <div className="md:hidden space-y-3">
+        {revenues.length === 0 ? (
+          <Card><CardContent className="p-6 text-center text-muted-foreground">Nenhuma receita registrada</CardContent></Card>
+        ) : revenues.map(r => (
+          <Card key={r.id}>
+            <CardContent className="p-4">
+              <div className="flex items-start justify-between gap-2 mb-2">
+                <span className="font-medium text-sm break-words flex-1 min-w-0">{r.description}</span>
+                <span className="font-semibold text-sm text-success shrink-0">R$ {Number(r.amount).toFixed(2)}</span>
+              </div>
+              <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground mb-2">
+                <span>{format(new Date(r.revenue_date + 'T12:00:00'), 'dd/MM/yyyy')}</span>
+                <span>•</span>
+                <span>{r.category?.name || '—'}</span>
+                <Badge variant={r.is_automatic ? 'default' : 'outline'} className="text-[10px]">
+                  {r.is_automatic ? 'Auto' : 'Manual'}
+                </Badge>
+                <Badge variant="outline" className="text-[10px]">{statusLabels[r.status] || r.status}</Badge>
+              </div>
+              {!r.is_automatic && (
+                <div className="flex justify-end gap-1">
+                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(r)}><Pencil className="h-4 w-4" /></Button>
+                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleDelete(r.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        ))}
+      </div>
     </div>
   );
 };

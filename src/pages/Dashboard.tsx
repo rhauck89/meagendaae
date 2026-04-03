@@ -1246,7 +1246,7 @@ const Dashboard = () => {
               <Button variant="outline" size="icon" onClick={() => navigate(-1)}>
                 <ChevronLeft className="h-4 w-4" />
               </Button>
-              <h2 className="text-lg font-display font-semibold min-w-[200px] text-center">
+              <h2 className="text-lg font-display font-semibold sm:min-w-[200px] text-center">
                 {viewMode === 'day' && format(currentDate, "EEEE, dd 'de' MMMM", { locale: ptBR })}
                 {viewMode === 'week' &&
                   `${format(startOfWeek(currentDate, { locale: ptBR }), 'dd/MM')} - ${format(endOfWeek(currentDate, { locale: ptBR }), 'dd/MM')}`}

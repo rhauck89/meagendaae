@@ -70,7 +70,8 @@ const FinanceTransactions = () => {
         </CardContent>
       </Card>
 
-      <Card>
+      {/* Desktop table */}
+      <Card className="hidden md:block">
         <CardContent className="p-0">
           <div className="overflow-x-auto">
             <Table className="min-w-[600px]">
@@ -110,6 +111,35 @@ const FinanceTransactions = () => {
           </div>
         </CardContent>
       </Card>
+
+      {/* Mobile cards */}
+      <div className="md:hidden space-y-3">
+        {transactions.length === 0 ? (
+          <Card><CardContent className="p-6 text-center text-muted-foreground">Nenhuma movimentação no período</CardContent></Card>
+        ) : transactions.map(t => (
+          <Card key={t.id}>
+            <CardContent className="p-4">
+              <div className="flex items-start justify-between gap-2 mb-2">
+                <div className="flex items-center gap-2">
+                  {t.type === 'revenue' ? <ArrowUpCircle className="h-4 w-4 text-success shrink-0" /> : <ArrowDownCircle className="h-4 w-4 text-destructive shrink-0" />}
+                  <span className="font-medium text-sm break-words">{t.description}</span>
+                </div>
+                <span className={cn('font-semibold text-sm shrink-0', t.type === 'revenue' ? 'text-success' : 'text-destructive')}>
+                  {t.type === 'expense' ? '- ' : ''}R$ {t.amount.toFixed(2)}
+                </span>
+              </div>
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <span>{format(new Date(t.date + 'T12:00:00'), 'dd/MM/yyyy')}</span>
+                <span>•</span>
+                <span>{t.category || '—'}</span>
+                <Badge variant={t.type === 'revenue' ? 'default' : 'destructive'} className="text-[10px] ml-auto">
+                  {t.type === 'revenue' ? (t.is_automatic ? 'Receita auto' : 'Receita') : 'Despesa'}
+                </Badge>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
     </div>
   );
 };

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent } from '@/components/ui/card';
@@ -160,7 +161,8 @@ const FinanceReceivables = () => {
         </div>
       )}
 
-      <Card>
+      {/* Desktop table */}
+      <Card className="hidden md:block">
         <CardContent className="p-0">
           <div className="overflow-x-auto">
             <Table className="min-w-[600px]">
@@ -208,6 +210,37 @@ const FinanceReceivables = () => {
           </div>
         </CardContent>
       </Card>
+
+      {/* Mobile cards */}
+      <div className="md:hidden space-y-3">
+        {items.length === 0 ? (
+          <Card><CardContent className="p-6 text-center text-muted-foreground">Nenhuma conta a receber encontrada</CardContent></Card>
+        ) : items.map(r => (
+          <Card key={r.id}>
+            <CardContent className="p-4">
+              <div className="flex items-start justify-between gap-2 mb-2">
+                <span className="font-medium text-sm break-words flex-1 min-w-0">{r.description}</span>
+                <span className="font-semibold text-sm text-success shrink-0">R$ {Number(r.amount).toFixed(2)}</span>
+              </div>
+              <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground mb-2">
+                <span>{r.due_date ? format(new Date(r.due_date + 'T12:00:00'), 'dd/MM/yyyy') : format(new Date(r.revenue_date + 'T12:00:00'), 'dd/MM/yyyy')}</span>
+                {getDueBadge(r.due_date, r.status)}
+                <span>•</span>
+                <span>{r.category?.name || '—'}</span>
+                <Badge variant="outline" className={cn('text-[10px]', statusColors[r.status] || '')}>{statusLabels[r.status] || r.status}</Badge>
+              </div>
+              <div className="flex justify-end gap-1">
+                {r.status === 'pending' && (
+                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openConfirmModal(r)}><CheckCircle className="h-4 w-4 text-green-600" /></Button>
+                )}
+                {!r.is_automatic && (
+                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleDelete(r.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
 
       {/* Payment Confirmation Modal */}
       <Dialog open={!!confirmItem} onOpenChange={open => { if (!open) setConfirmItem(null); }}>
