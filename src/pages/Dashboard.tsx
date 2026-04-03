@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Clock, DollarSign, Users, UserCheck, UserMinus, AlertTriangle, Bell, Mail, Cake, Ban, Trash2, Timer, RefreshCw, AlertCircle, TrendingUp, BarChart3, XCircle, Percent, Receipt } from 'lucide-react';
+import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Clock, DollarSign, Users, UserCheck, UserMinus, AlertTriangle, Bell, Mail, Cake, Ban, Trash2, Timer, RefreshCw, AlertCircle, TrendingUp, BarChart3, XCircle, Percent, Receipt, Send } from 'lucide-react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { BlockTimeDialog } from '@/components/BlockTimeDialog';
 import { Calendar as DatePickerCalendar } from '@/components/ui/calendar';
@@ -909,6 +909,60 @@ const Dashboard = () => {
     <div className="space-y-6">
       <TrialBanner />
       <TutorialProgressWidget />
+
+      {/* Temporary test push notification button */}
+      <Card className="border-dashed border-warning/50 bg-warning/5">
+        <CardContent className="p-4 flex items-center justify-between">
+          <div>
+            <p className="font-medium text-sm">🔔 Teste de Push Notification</p>
+            <p className="text-xs text-muted-foreground">Clique para enviar uma notificação de teste para este dispositivo</p>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-2"
+            onClick={async () => {
+              try {
+                toast.info('Enviando notificação de teste...');
+                
+                // First ensure we have a subscription
+                const registration = await navigator.serviceWorker?.ready;
+                const subscription = await registration?.pushManager?.getSubscription();
+                
+                if (!subscription) {
+                  toast.error('Nenhuma inscrição push encontrada. Aceite as notificações primeiro.');
+                  return;
+                }
+
+                console.log('Push subscription found:', subscription.endpoint);
+
+                const { data, error } = await supabase.functions.invoke('send-push', {
+                  body: {
+                    user_id: user?.id,
+                    title: 'Notificação de Teste',
+                    body: 'Push notifications estão funcionando corretamente! 🎉',
+                    url: '/dashboard',
+                  },
+                });
+
+                console.log('Push response:', { data, error });
+
+                if (error) {
+                  toast.error('Erro ao enviar: ' + error.message);
+                } else {
+                  toast.success(`Push enviado! Sent: ${data?.sent}, Failed: ${data?.failed}`);
+                }
+              } catch (err: any) {
+                console.error('Test push error:', err);
+                toast.error('Erro: ' + err.message);
+              }
+            }}
+          >
+            <Send className="h-4 w-4" />
+            Enviar Teste
+          </Button>
+        </CardContent>
+      </Card>
 
       {/* Manual appointment button */}
       <div className="flex justify-end">
