@@ -123,6 +123,10 @@ const SuperAdminSettings = () => {
         setSeoOgImage(data.og_image ?? '');
         setSeoFavicon(data.favicon_url ?? '');
         setSeoKeywords(data.default_keywords ?? '');
+        setPwaIcon192((data as any).pwa_icon_192 ?? '');
+        setPwaIcon512((data as any).pwa_icon_512 ?? '');
+        setSplashLogo((data as any).splash_logo ?? '');
+        setSplashBgColor((data as any).splash_background_color ?? '#0f2a5c');
       }
     };
     fetchSettings();
