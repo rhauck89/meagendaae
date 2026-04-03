@@ -276,7 +276,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
             </PopoverContent>
           </Popover>
         </header>
-        <div className="flex-1 p-3 sm:p-4 lg:p-8 overflow-auto overflow-x-hidden w-full max-w-full">
+        <div className="flex-1 p-3 sm:p-4 lg:p-8 overflow-auto overflow-x-hidden w-full">
           <div className="w-full max-w-[1400px] mx-auto">
             {platformMessages && platformMessages.length > 0 && (
               <div className="mb-4 space-y-2">
@@ -301,12 +301,12 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
             {children}
           </div>
         </div>
+        <footer className="border-t">
+          <PlatformFooter isWhitelabel={brandInfo.isWhitelabel} />
+        </footer>
       </main>
       <OnboardingPopup />
       <PushNotificationPrompt />
-      <footer className="lg:ml-64">
-        <PlatformFooter isWhitelabel={brandInfo.isWhitelabel} />
-      </footer>
     </div>
   );
 };
