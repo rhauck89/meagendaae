@@ -155,20 +155,47 @@ const CancelAppointment = () => {
             <div className="w-20 h-20 rounded-full mx-auto flex items-center justify-center" style={{ background: T.green }}>
               <CheckCircle2 className="h-10 w-10" style={{ color: T.greenText }} />
             </div>
-            <h1 className="text-xl font-bold">Agendamento Cancelado</h1>
+            <h1 className="text-xl font-bold">Cancelamento Confirmado</h1>
             <p style={{ color: T.textSec }}>Seu agendamento foi cancelado com sucesso.</p>
-            {appointment.company?.slug && (
-              <Button
-                onClick={() => {
-                  const prefix = appointment.company.business_type === 'esthetic' ? 'estetica' : 'barbearia';
-                  navigate(`/${prefix}/${appointment.company.slug}`);
-                }}
-                className="w-full rounded-xl py-5 font-semibold"
-                style={{ background: T.accent, color: '#000' }}
-              >
-                Agendar novo horário
-              </Button>
-            )}
+
+            <div className="rounded-2xl p-4 text-left space-y-2" style={{ background: T.card, border: `1px solid ${T.border}` }}>
+              <p className="text-sm" style={{ color: T.textSec }}>Agendamento cancelado:</p>
+              <p className="font-semibold text-sm">
+                {format(parseISO(appointment.start_time), "dd 'de' MMMM, yyyy", { locale: ptBR })} às{' '}
+                {format(parseISO(appointment.start_time), 'HH:mm')}
+              </p>
+              <p className="text-sm" style={{ color: T.textSec }}>
+                Serviço: {appointment.appointment_services?.map((s: any) => s.service?.name).join(', ')}
+              </p>
+            </div>
+
+            <Button
+              onClick={() => {
+                const profWhatsapp = appointment.professional?.whatsapp;
+                const companyWhatsapp = appointment.company?.whatsapp;
+                const rawPhone = (profWhatsapp || companyWhatsapp || '').replace(/\D/g, '');
+                const phone = rawPhone.startsWith('55') ? rawPhone : '55' + rawPhone;
+                const clientName = appointment.client_name || appointment.client?.name || 'Cliente';
+                const services = appointment.appointment_services?.map((s: any) => s.service?.name).join(', ') || '';
+                const dateStr = format(parseISO(appointment.start_time), "dd/MM/yyyy");
+                const timeStr = format(parseISO(appointment.start_time), 'HH:mm');
+                const msg = `Olá!\n\nUm cliente cancelou um horário.\n\nCliente: ${clientName}\n\nServiço: ${services}\n\nData:\n${dateStr} às ${timeStr}`;
+                window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, '_blank');
+              }}
+              className="w-full rounded-xl py-5 font-semibold"
+              style={{ background: '#25D366', color: '#fff' }}
+            >
+              📲 Avisar o profissional
+            </Button>
+
+            <Button
+              onClick={() => window.location.href = '/'}
+              variant="ghost"
+              className="w-full rounded-xl py-5"
+              style={{ color: T.textSec }}
+            >
+              Voltar ao início
+            </Button>
           </div>
         )}
 
