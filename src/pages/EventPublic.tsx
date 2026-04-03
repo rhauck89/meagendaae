@@ -214,7 +214,7 @@ const EventPublic = () => {
       const { error } = await supabase.rpc('join_public_waitlist', {
         p_company_id: event.company_id,
         p_client_name: clientName.trim(),
-        p_client_whatsapp: clientWhatsapp.trim(),
+        p_client_whatsapp: formatWhatsApp(clientWhatsapp.trim()),
         p_email: clientEmail.trim(),
         p_service_ids: selectedServices.length > 0 ? selectedServices : [services[0]?.id].filter(Boolean),
         p_desired_date: waitlistSlot.slot_date,

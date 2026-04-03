@@ -560,7 +560,7 @@ const ClientProfile = ({ client, companyId, profileMap, onBack }: ClientProfileP
     try {
       const updateData: Record<string, unknown> = {
         name: editForm.name.trim(),
-        whatsapp: editForm.whatsapp.trim() || null,
+        whatsapp: editForm.whatsapp.trim() ? formatWhatsApp(editForm.whatsapp.trim()) : null,
         email: editForm.email.trim() || null,
         birth_date: editForm.birth_date || null,
       };
