@@ -25,6 +25,7 @@ interface ClientRow {
   birth_date: string | null;
   next_recommended_visit: string | null;
   created_at: string;
+  is_blocked: boolean;
 }
 
 interface AppointmentRow {
