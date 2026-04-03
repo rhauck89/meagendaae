@@ -100,7 +100,7 @@ const Clients = () => {
       birth_date: addClientForm.birth_date || null,
     });
     if (error) throw error;
-    queryClient.invalidateQueries({ queryKey: ['clients', companyId] });
+    refresh('clients');
     toast.success('Cliente cadastrado com sucesso!');
     setAddClientOpen(false);
     setAddClientForm({ name: '', whatsapp: '', email: '', birth_date: '', notes: '' });
