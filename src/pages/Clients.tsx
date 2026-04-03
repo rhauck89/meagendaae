@@ -14,7 +14,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Search, MessageCircle, Users, ArrowLeft, Calendar, DollarSign, Star, Scissors, Cake, Pencil, UserPlus } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { displayWhatsApp } from '@/lib/whatsapp';
+import { displayWhatsApp, formatWhatsApp } from '@/lib/whatsapp';
 import { toast } from 'sonner';
 
 interface ClientRow {
