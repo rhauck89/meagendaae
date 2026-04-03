@@ -361,76 +361,121 @@ const Clients = () => {
 
       {isLoading ? (
         <p className="text-muted-foreground">Carregando...</p>
-      ) : (
+      ) : filtered.length === 0 ? (
         <Card>
-          <CardContent className="p-0">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Nome</TableHead>
-                  <TableHead>WhatsApp</TableHead>
-                  <TableHead>Última visita</TableHead>
-                  <TableHead className="text-center">Visitas</TableHead>
-                  <TableHead>Profissional favorito</TableHead>
-                  <TableHead className="text-right">Total gasto</TableHead>
-                  <TableHead />
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filtered.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
-                      Nenhum cliente encontrado
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  filtered.map(client => {
-                    const stats = clientStats(client.id);
-                    return (
-                      <TableRow
-                        key={client.id}
-                        className="cursor-pointer"
-                        onClick={() => setSelectedClientId(client.id)}
-                      >
-                        <TableCell className="font-medium">{client.name}</TableCell>
-                        <TableCell>
-                          {client.whatsapp ? displayWhatsApp(client.whatsapp) : '-'}
-                        </TableCell>
-                        <TableCell>
-                          {stats.lastVisit
-                            ? format(parseISO(stats.lastVisit), "dd/MM/yyyy", { locale: ptBR })
-                            : '-'}
-                        </TableCell>
-                        <TableCell className="text-center">
-                          <Badge variant="secondary">{stats.totalVisits}</Badge>
-                        </TableCell>
-                        <TableCell>{stats.favProfName}</TableCell>
-                        <TableCell className="text-right">
-                          R$ {stats.totalSpent.toFixed(2)}
-                        </TableCell>
-                        <TableCell>
-                          {client.whatsapp && (
-                            <Button
-                              size="icon"
-                              variant="ghost"
-                              className="text-green-600"
-                              onClick={e => {
-                                e.stopPropagation();
-                                window.open(`https://wa.me/${client.whatsapp}`, '_blank');
-                              }}
-                            >
-                              <MessageCircle className="h-4 w-4" />
-                            </Button>
-                          )}
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })
-                )}
-              </TableBody>
-            </Table>
+          <CardContent className="text-center text-muted-foreground py-8">
+            Nenhum cliente encontrado
           </CardContent>
         </Card>
+      ) : (
+        <>
+          {/* Desktop table */}
+          <div className="hidden md:block">
+            <Card>
+              <CardContent className="p-0">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Nome</TableHead>
+                      <TableHead>WhatsApp</TableHead>
+                      <TableHead>Última visita</TableHead>
+                      <TableHead className="text-center">Visitas</TableHead>
+                      <TableHead>Profissional favorito</TableHead>
+                      <TableHead className="text-right">Total gasto</TableHead>
+                      <TableHead />
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filtered.map(client => {
+                      const stats = clientStats(client.id);
+                      return (
+                        <TableRow
+                          key={client.id}
+                          className="cursor-pointer"
+                          onClick={() => setSelectedClientId(client.id)}
+                        >
+                          <TableCell className="font-medium">{client.name}</TableCell>
+                          <TableCell>
+                            {client.whatsapp ? displayWhatsApp(client.whatsapp) : '-'}
+                          </TableCell>
+                          <TableCell>
+                            {stats.lastVisit
+                              ? format(parseISO(stats.lastVisit), "dd/MM/yyyy", { locale: ptBR })
+                              : '-'}
+                          </TableCell>
+                          <TableCell className="text-center">
+                            <Badge variant="secondary">{stats.totalVisits}</Badge>
+                          </TableCell>
+                          <TableCell>{stats.favProfName}</TableCell>
+                          <TableCell className="text-right">
+                            R$ {stats.totalSpent.toFixed(2)}
+                          </TableCell>
+                          <TableCell>
+                            {client.whatsapp && (
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                className="text-green-600"
+                                onClick={e => {
+                                  e.stopPropagation();
+                                  window.open(`https://wa.me/${client.whatsapp}`, '_blank');
+                                }}
+                              >
+                                <MessageCircle className="h-4 w-4" />
+                              </Button>
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Mobile cards */}
+          <div className="md:hidden space-y-3">
+            {filtered.map(client => {
+              const stats = clientStats(client.id);
+              return (
+                <Card
+                  key={client.id}
+                  className="cursor-pointer active:bg-muted/50 transition-colors"
+                  onClick={() => setSelectedClientId(client.id)}
+                >
+                  <CardContent className="p-4 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <p className="font-medium text-sm">{client.name}</p>
+                      <div className="flex items-center gap-1">
+                        <Badge variant="secondary" className="text-xs">{stats.totalVisits} visitas</Badge>
+                        {client.whatsapp && (
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-7 w-7 text-green-600"
+                            onClick={e => {
+                              e.stopPropagation();
+                              window.open(`https://wa.me/${client.whatsapp}`, '_blank');
+                            }}
+                          >
+                            <MessageCircle className="h-3.5 w-3.5" />
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-muted-foreground">
+                      <span>WhatsApp: {client.whatsapp ? displayWhatsApp(client.whatsapp) : '-'}</span>
+                      <span>Última visita: {stats.lastVisit ? format(parseISO(stats.lastVisit), "dd/MM/yy", { locale: ptBR }) : '-'}</span>
+                      <span>Favorito: {stats.favProfName}</span>
+                      <span className="font-medium text-foreground">R$ {stats.totalSpent.toFixed(2)}</span>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        </>
       )}
     </div>
   );
