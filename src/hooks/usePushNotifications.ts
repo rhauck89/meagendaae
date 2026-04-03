@@ -23,6 +23,38 @@ export function usePushNotifications() {
   const [isSupported, setIsSupported] = useState(false);
   const [isSubscribed, setIsSubscribed] = useState(false);
 
+  const persistSubscription = useCallback(async (subscription: PushSubscription): Promise<boolean> => {
+    if (!user) return false;
+
+    const subJson = subscription.toJSON();
+    const endpoint = subJson.endpoint;
+    const p256dh = subJson.keys?.p256dh;
+    const auth = subJson.keys?.auth;
+
+    if (!endpoint || !p256dh || !auth) {
+      return false;
+    }
+
+    const { error } = await supabase
+      .from('push_subscriptions')
+      .upsert(
+        {
+          user_id: user.id,
+          endpoint,
+          p256dh,
+          auth,
+        },
+        { onConflict: 'user_id,endpoint' }
+      );
+
+    if (error) {
+      console.error('Error saving push subscription:', error);
+      return false;
+    }
+
+    return true;
+  }, [user]);
+
   useEffect(() => {
     const supported = 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
     setIsSupported(supported);
@@ -38,11 +70,16 @@ export function usePushNotifications() {
     try {
       const registration = await navigator.serviceWorker.ready;
       const subscription = await registration.pushManager.getSubscription();
+
+      if (subscription) {
+        await persistSubscription(subscription);
+      }
+
       setIsSubscribed(!!subscription);
     } catch {
       setIsSubscribed(false);
     }
-  }, [user]);
+  }, [persistSubscription, user]);
 
   const subscribe = useCallback(async (): Promise<boolean> => {
     if (!user || !isSupported) return false;
@@ -65,26 +102,9 @@ export function usePushNotifications() {
         });
       }
 
-      const subJson = subscription.toJSON();
-      const endpoint = subJson.endpoint!;
-      const p256dh = subJson.keys!.p256dh!;
-      const auth = subJson.keys!.auth!;
+      const saved = await persistSubscription(subscription);
 
-      // Save to database
-      const { error } = await supabase
-        .from('push_subscriptions')
-        .upsert(
-          {
-            user_id: user.id,
-            endpoint,
-            p256dh,
-            auth,
-          },
-          { onConflict: 'user_id,endpoint' }
-        );
-
-      if (error) {
-        console.error('Error saving push subscription:', error);
+      if (!saved) {
         return false;
       }
 
@@ -94,7 +114,7 @@ export function usePushNotifications() {
       console.error('Error subscribing to push:', err);
       return false;
     }
-  }, [user, isSupported]);
+  }, [user, isSupported, persistSubscription]);
 
   const unsubscribe = useCallback(async (): Promise<boolean> => {
     if (!user) return false;
