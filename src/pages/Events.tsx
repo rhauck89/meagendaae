@@ -548,7 +548,11 @@ const Events = () => {
     }
   };
 
-  const getPublicUrl = (event: Event) => `${window.location.origin}/evento/${event.id}`;
+  const getPublicUrl = (event: Event) => {
+    const routeType = (companyData as any)?.business_type === 'esthetic' ? 'estetica' : 'barbearia';
+    const slug = (companyData as any)?.slug;
+    return slug ? `${window.location.origin}/${routeType}/${slug}/evento/${event.slug}` : `${window.location.origin}/evento/${event.slug}`;
+  };
 
   const openStorySourceDialog = (event: Event) => {
     setStoryEvent(event);
