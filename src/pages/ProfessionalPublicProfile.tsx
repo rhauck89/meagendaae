@@ -215,7 +215,7 @@ export default function ProfessionalPublicProfile() {
         ogTitle={seoTitle}
         ogDescription={seoDescription}
         ogImage={professional.avatar_url || company.logo_url}
-        canonical={`${window.location.origin}/barbearia/${slug}/${professionalSlug}`}
+        canonical={profileUrl}
       />
       {/* Banner - professional banner first, fallback to company cover */}
       {(professional?.banner_url || company?.cover_url) && (
