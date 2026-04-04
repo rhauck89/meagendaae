@@ -761,6 +761,40 @@ const Team = () => {
                 <Input type="number" step="0.01" value={editForm.commission_value} onChange={(e) => setEditForm({ ...editForm, commission_value: e.target.value })} placeholder="Ex: 25.00" />
               </div>
             )}
+
+            {/* Scheduling Configuration */}
+            <div className="border-t pt-4 space-y-3">
+              <Label className="font-semibold text-sm">Configuração de Agenda</Label>
+              <div className="space-y-2">
+                <Label className="text-xs text-muted-foreground">Modo de agendamento</Label>
+                <Select value={editForm.booking_mode} onValueChange={(v) => setEditForm({ ...editForm, booking_mode: v })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="fixed_grid">Grade fixa</SelectItem>
+                    <SelectItem value="intelligent">Inteligente</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              {editForm.booking_mode === 'fixed_grid' && (
+                <div className="space-y-2">
+                  <Label className="text-xs text-muted-foreground">Intervalo da grade (minutos)</Label>
+                  <Select value={String(editForm.grid_interval)} onValueChange={(v) => setEditForm({ ...editForm, grid_interval: Number(v) })}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="15">15 minutos</SelectItem>
+                      <SelectItem value="30">30 minutos</SelectItem>
+                      <SelectItem value="45">45 minutos</SelectItem>
+                      <SelectItem value="60">60 minutos</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+              <div className="space-y-2">
+                <Label className="text-xs text-muted-foreground">Intervalo entre atendimentos (minutos)</Label>
+                <Input type="number" min={0} max={60} value={editForm.break_time} onChange={(e) => setEditForm({ ...editForm, break_time: Number(e.target.value) || 0 })} placeholder="Ex: 5" />
+              </div>
+            </div>
+
             <div className="flex gap-2">
               <Button variant="outline" className="flex-1" onClick={() => setEditDialogOpen(false)}>Cancelar</Button>
               <Button className="flex-1" onClick={handleSaveEdit}>Salvar</Button>
