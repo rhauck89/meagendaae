@@ -15,7 +15,7 @@ import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { formatWhatsApp, displayWhatsApp, isValidWhatsApp } from '@/lib/whatsapp';
-import { calculateAvailableSlots, type BusinessHours, type BusinessException, type ExistingAppointment, type BlockedTime } from '@/lib/availability-engine';
+import { calculateAvailableSlots, type BusinessHours, type BusinessException, type ExistingAppointment, type BlockedTime, type BookingMode } from '@/lib/availability-engine';
 import { PlatformBranding } from '@/components/PlatformBranding';
 import { getCompanyBranding, buildThemeFromBranding } from '@/hooks/useCompanyBranding';
 
@@ -152,6 +152,8 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
   const [exceptions, setExceptions] = useState<BusinessException[]>([]);
   const [businessType, setBusinessType] = useState<BusinessType>('barbershop');
   const [bufferMinutes, setBufferMinutes] = useState(0);
+  const [bookingMode, setBookingMode] = useState<BookingMode>('fixed_grid');
+  const [fixedSlotInterval, setFixedSlotInterval] = useState(15);
   const [professionalHours, setProfessionalHours] = useState<BusinessHours[]>([]);
   const [companySettings, setCompanySettings] = useState<any>(null);
   const [professionalRatings, setProfessionalRatings] = useState<Record<string, { avg: number; count: number }>>({});
@@ -288,14 +290,18 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
       supabase.from('public_services' as any).select('*').eq('company_id', comp.id).order('name'),
       supabase.from('business_hours').select('*').eq('company_id', comp.id),
       supabase.from('business_exceptions').select('*').eq('company_id', comp.id),
-      supabase.from('public_company' as any).select('buffer_minutes').eq('id', comp.id).single(),
+      supabase.from('public_company' as any).select('buffer_minutes, booking_mode, fixed_slot_interval').eq('id', comp.id).single(),
       supabase.from('public_company_settings' as any).select('*').eq('company_id', comp.id).single(),
     ]);
 
     if (servicesRes.data) setServices(servicesRes.data);
     if (hoursRes.data) setBusinessHours(hoursRes.data as BusinessHours[]);
     if (exceptionsRes.data) setExceptions(exceptionsRes.data as BusinessException[]);
-    if (companyRes.data) setBufferMinutes((companyRes.data as any).buffer_minutes || 0);
+    if (companyRes.data) {
+      setBufferMinutes((companyRes.data as any).buffer_minutes || 0);
+      setBookingMode(((companyRes.data as any).booking_mode as BookingMode) || 'fixed_grid');
+      setFixedSlotInterval((companyRes.data as any).fixed_slot_interval || 15);
+    }
     if (settingsRes.data) {
       setCompanySettings(settingsRes.data);
       if ((settingsRes.data as any).booking_buffer_minutes > 0) {
@@ -633,8 +639,9 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
         businessHours,
         exceptions,
         existingAppointments,
-        slotInterval: 15,
+        slotInterval: fixedSlotInterval,
         bufferMinutes,
+        bookingMode,
         professionalHours: professionalHours.length > 0 ? professionalHours : undefined,
         blockedTimes: allBlockedTimes,
         professionalId: selectedProfessional,
@@ -716,7 +723,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
         .eq('block_date', dateStr);
       let slots = calculateAvailableSlots({
         date: day, totalDuration, businessHours, exceptions, existingAppointments,
-        slotInterval: 15, bufferMinutes,
+        slotInterval: fixedSlotInterval, bufferMinutes, bookingMode,
         professionalHours: professionalHours.length > 0 ? professionalHours : undefined,
         blockedTimes: ((blockedData || []) as unknown as BlockedTime[]),
         professionalId: selectedProfessional,

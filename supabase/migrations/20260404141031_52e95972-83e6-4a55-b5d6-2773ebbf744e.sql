@@ -1,0 +1,2 @@
+ALTER TABLE public.companies ADD COLUMN IF NOT EXISTS booking_mode text NOT NULL DEFAULT 'fixed_grid';
+ALTER TABLE public.companies ADD COLUMN IF NOT EXISTS fixed_slot_interval integer NOT NULL DEFAULT 15;
