@@ -162,6 +162,7 @@ const PlatformRoutes = () => (
     <Route path="/dashboard/events" element={<DashboardRoute><Events /></DashboardRoute>} />
     <Route path="/dashboard/promotions" element={<DashboardRoute><Promotions /></DashboardRoute>} />
     <Route path="/dashboard/support" element={<DashboardRoute><Support /></DashboardRoute>} />
+    <Route path="/dashboard/solicitacoes" element={<DashboardRoute><AppointmentRequests /></DashboardRoute>} />
     <Route path="/dashboard/help" element={<DashboardRoute><HelpCenter /></DashboardRoute>} />
     {/* Settings sub-routes */}
     <Route path="/dashboard/settings" element={<Navigate to="/dashboard/settings/general" replace />} />
