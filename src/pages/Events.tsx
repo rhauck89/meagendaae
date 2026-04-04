@@ -195,7 +195,7 @@ const Events = () => {
   const coverInputRef = useRef<HTMLInputElement>(null);
 
   const [slotMode, setSlotMode] = useState<'manual' | 'auto'>('auto');
-  const [slotProfessional, setSlotProfessional] = useState('');
+  const [slotProfessionals, setSlotProfessionals] = useState<string[]>([]);
   const [slotStartTime, setSlotStartTime] = useState('09:00');
   const [slotEndTime, setSlotEndTime] = useState('18:00');
   const [slotServiceDuration, setSlotServiceDuration] = useState(30);
