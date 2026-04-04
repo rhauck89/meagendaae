@@ -101,7 +101,7 @@ const AppointmentRequests = () => {
       const endTime = new Date(startTime.getTime() + durationMinutes * 60 * 1000);
 
       // 3. Create appointment
-      const { error: apptError } = await supabase
+      const { data: apptData, error: apptError } = await supabase
         .from('appointments')
         .insert({
           company_id: companyId!,
@@ -113,9 +113,21 @@ const AppointmentRequests = () => {
           total_price: servicePrice,
           status: 'confirmed' as any,
           notes: request.message || null,
-        });
+        })
+        .select('id')
+        .single();
 
       if (apptError) throw apptError;
+
+      // 3b. Link service to appointment via appointment_services
+      if (request.service_id && apptData?.id) {
+        await supabase.from('appointment_services').insert({
+          appointment_id: apptData.id,
+          service_id: request.service_id,
+          price: servicePrice,
+          duration_minutes: durationMinutes,
+        });
+      }
 
       // 4. Update request status
       await supabase
