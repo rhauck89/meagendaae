@@ -481,19 +481,20 @@ const Events = () => {
   };
 
   const handleAddManualSlot = async () => {
-    if (!selectedEvent || !slotProfessional || !manualDate || !manualStart || !manualEnd) {
+    if (!selectedEvent || slotProfessionals.length === 0 || !manualDate || !manualStart || !manualEnd) {
       toast.error('Preencha todos os campos'); return;
     }
-    const { error } = await supabase.from('event_slots').insert({
+    const slots = slotProfessionals.map(profId => ({
       event_id: selectedEvent.id,
-      professional_id: slotProfessional,
+      professional_id: profId,
       slot_date: manualDate,
       start_time: manualStart,
       end_time: manualEnd,
       max_bookings: slotMaxBookings,
-    });
+    }));
+    const { error } = await supabase.from('event_slots').insert(slots);
     if (error) { toast.error('Erro ao adicionar slot'); return; }
-    toast.success('Slot adicionado!');
+    toast.success(`Slot adicionado para ${slotProfessionals.length} profissional(is)!`);
     await loadEventSlots(selectedEvent.id);
   };
 
