@@ -571,6 +571,7 @@ export type Database = {
           birthday_discount_type: string
           birthday_discount_value: number
           birthday_enabled: boolean
+          booking_mode: string
           buffer_minutes: number
           business_type: Database["public"]["Enums"]["business_type"]
           city: string | null
@@ -579,6 +580,7 @@ export type Database = {
           description: string | null
           district: string | null
           facebook: string | null
+          fixed_slot_interval: number
           google_maps_url: string | null
           google_review_url: string | null
           id: string
@@ -615,6 +617,7 @@ export type Database = {
           birthday_discount_type?: string
           birthday_discount_value?: number
           birthday_enabled?: boolean
+          booking_mode?: string
           buffer_minutes?: number
           business_type?: Database["public"]["Enums"]["business_type"]
           city?: string | null
@@ -623,6 +626,7 @@ export type Database = {
           description?: string | null
           district?: string | null
           facebook?: string | null
+          fixed_slot_interval?: number
           google_maps_url?: string | null
           google_review_url?: string | null
           id?: string
@@ -659,6 +663,7 @@ export type Database = {
           birthday_discount_type?: string
           birthday_discount_value?: number
           birthday_enabled?: boolean
+          booking_mode?: string
           buffer_minutes?: number
           business_type?: Database["public"]["Enums"]["business_type"]
           city?: string | null
@@ -667,6 +672,7 @@ export type Database = {
           description?: string | null
           district?: string | null
           facebook?: string | null
+          fixed_slot_interval?: number
           google_maps_url?: string | null
           google_review_url?: string | null
           id?: string
