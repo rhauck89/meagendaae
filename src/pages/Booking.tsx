@@ -194,6 +194,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
   const [waitlistForm, setWaitlistForm] = useState({ name: '', whatsapp: '', email: '' });
   const [nextSlots, setNextSlots] = useState<{ date: Date; slots: string[] }[]>([]);
   const [nextSlotsLoading, setNextSlotsLoading] = useState(false);
+  const [quickSlotSelected, setQuickSlotSelected] = useState(false);
   const slotRequestRef = useRef(0);
   const [bookingResult, setBookingResult] = useState<{
     appointmentId: string;
