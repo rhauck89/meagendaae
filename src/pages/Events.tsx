@@ -386,7 +386,7 @@ const Events = () => {
   };
 
   const handleSaveEvent = async () => {
-    if (!formName || !formStartDate || !formEndDate) {
+    if (!formName || !formStartDate || (!formSingleDay && !formEndDate)) {
       toast.error('Preencha todos os campos obrigatórios');
       return;
     }
