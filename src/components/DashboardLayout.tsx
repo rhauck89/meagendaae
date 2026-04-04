@@ -2,6 +2,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUserRole } from '@/hooks/useUserRole';
 import { useUserTicketCounts } from '@/hooks/useSupportTicketCounts';
+import { usePendingRequestCounts } from '@/hooks/usePendingRequestCounts';
 import { usePlatformMessages } from '@/hooks/usePlatformMessages';
 import { useCompanyBrandInfo } from '@/hooks/useCompanyBrandInfo';
 import {
@@ -75,6 +76,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
     try { return localStorage.getItem(SIDEBAR_COLLAPSED_KEY) === 'true'; } catch { return false; }
   });
   const unreadTickets = useUserTicketCounts();
+  const pendingRequests = usePendingRequestCounts();
   const { data: platformMessages, dismiss: dismissMessage } = usePlatformMessages();
   const totalNotifications = (unreadTickets || 0) + (platformMessages?.length || 0);
 
@@ -307,7 +309,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
 
             {/* Navigation */}
             <nav className="flex-1 px-3 space-y-1 overflow-y-auto sidebar-nav">
-              {navItems.map(item => renderNavLink(item))}
+              {navItems.map(item => renderNavLink(item, item.href === '/dashboard/solicitacoes' ? pendingRequests : undefined))}
 
               {isAdmin && renderCollapsibleGroup('Financeiro', DollarSign, isFinanceActive, financeOpen, setFinanceOpen, financeSubItems)}
               {isAdmin && renderCollapsibleGroup('Configurações', Settings, isSettingsActive, settingsOpen, setSettingsOpen, settingsSubItems)}
