@@ -1398,11 +1398,14 @@ const Dashboard = () => {
                               <p className="text-xs text-muted-foreground">
                                 com {apt.professional?.full_name}
                               </p>
-                              {apt.rescheduled_from_id && apt.rescheduled_from?.start_time && (
-                                <p className="text-xs text-muted-foreground italic mt-0.5">
-                                  ↪ Reagendado de {format(parseISO(apt.rescheduled_from.start_time), 'HH:mm')}
-                                </p>
-                              )}
+                              {apt.rescheduled_from_id && (() => {
+                                const fromData = Array.isArray(apt.rescheduled_from) ? apt.rescheduled_from[0] : apt.rescheduled_from;
+                                return fromData?.start_time ? (
+                                  <p className="text-xs text-muted-foreground italic mt-0.5 flex items-center gap-1">
+                                    ↪ Reagendado de {format(parseISO(fromData.start_time), 'HH:mm')}
+                                  </p>
+                                ) : null;
+                              })()}
                             </div>
                           </div>
                           <div className="flex items-center gap-2 flex-wrap">
