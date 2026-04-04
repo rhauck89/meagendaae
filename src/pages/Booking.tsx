@@ -152,6 +152,8 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
   const [exceptions, setExceptions] = useState<BusinessException[]>([]);
   const [businessType, setBusinessType] = useState<BusinessType>('barbershop');
   const [bufferMinutes, setBufferMinutes] = useState(0);
+  const [bookingMode, setBookingMode] = useState<BookingMode>('fixed_grid');
+  const [fixedSlotInterval, setFixedSlotInterval] = useState(15);
   const [professionalHours, setProfessionalHours] = useState<BusinessHours[]>([]);
   const [companySettings, setCompanySettings] = useState<any>(null);
   const [professionalRatings, setProfessionalRatings] = useState<Record<string, { avg: number; count: number }>>({});
