@@ -424,7 +424,10 @@ const Events = () => {
   };
 
   const handleGenerateSlots = async () => {
-    if (!selectedEvent || !slotProfessional) return;
+    if (!selectedEvent || slotProfessionals.length === 0) {
+      toast.error('Selecione ao menos um profissional');
+      return;
+    }
     setSaving(true);
     try {
       const days = eachDayOfInterval({
@@ -435,40 +438,40 @@ const Events = () => {
       const totalSlotMinutes = slotServiceDuration + slotBreakMinutes;
 
       const slots: any[] = [];
-      for (const day of days) {
-        const dateStr = format(day, 'yyyy-MM-dd');
-        let current = slotStartTime;
-        while (current < slotEndTime) {
-          const [h, m] = current.split(':').map(Number);
-          const startMin = h * 60 + m;
-          // End time is based on service duration only (break is between appointments)
-          const serviceEndMin = startMin + slotServiceDuration;
-          const serviceEndH = Math.floor(serviceEndMin / 60).toString().padStart(2, '0');
-          const serviceEndM = (serviceEndMin % 60).toString().padStart(2, '0');
-          const slotEnd = `${serviceEndH}:${serviceEndM}`;
+      for (const profId of slotProfessionals) {
+        for (const day of days) {
+          const dateStr = format(day, 'yyyy-MM-dd');
+          let current = slotStartTime;
+          while (current < slotEndTime) {
+            const [h, m] = current.split(':').map(Number);
+            const startMin = h * 60 + m;
+            const serviceEndMin = startMin + slotServiceDuration;
+            const serviceEndH = Math.floor(serviceEndMin / 60).toString().padStart(2, '0');
+            const serviceEndM = (serviceEndMin % 60).toString().padStart(2, '0');
+            const slotEnd = `${serviceEndH}:${serviceEndM}`;
 
-          if (slotEnd > slotEndTime) break;
+            if (slotEnd > slotEndTime) break;
 
-          slots.push({
-            event_id: selectedEvent.id,
-            professional_id: slotProfessional,
-            slot_date: dateStr,
-            start_time: current,
-            end_time: slotEnd,
-            max_bookings: slotMaxBookings,
-          });
+            slots.push({
+              event_id: selectedEvent.id,
+              professional_id: profId,
+              slot_date: dateStr,
+              start_time: current,
+              end_time: slotEnd,
+              max_bookings: slotMaxBookings,
+            });
 
-          // Next slot starts after service duration + break
-          const nextMin = startMin + totalSlotMinutes;
-          const nextH = Math.floor(nextMin / 60).toString().padStart(2, '0');
-          const nextM = (nextMin % 60).toString().padStart(2, '0');
-          current = `${nextH}:${nextM}`;
+            const nextMin = startMin + totalSlotMinutes;
+            const nextH = Math.floor(nextMin / 60).toString().padStart(2, '0');
+            const nextM = (nextMin % 60).toString().padStart(2, '0');
+            current = `${nextH}:${nextM}`;
+          }
         }
       }
 
       const { error } = await supabase.from('event_slots').insert(slots);
       if (error) throw error;
-      toast.success(`${slots.length} slots criados!`);
+      toast.success(`${slots.length} slots criados para ${slotProfessionals.length} profissional(is)!`);
       await loadEventSlots(selectedEvent.id);
     } catch (err: any) {
       toast.error(err.message || 'Erro ao gerar slots');
