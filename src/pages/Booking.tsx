@@ -17,6 +17,7 @@ import { cn } from '@/lib/utils';
 import { formatWhatsApp, displayWhatsApp, isValidWhatsApp } from '@/lib/whatsapp';
 import { calculateAvailableSlots, type BusinessHours, type BusinessException, type ExistingAppointment, type BlockedTime, type BookingMode } from '@/lib/availability-engine';
 import { PlatformBranding } from '@/components/PlatformBranding';
+import { CustomRequestForm } from '@/components/CustomRequestForm';
 import { getCompanyBranding, buildThemeFromBranding } from '@/hooks/useCompanyBranding';
 
 const StarRating = ({ rating, size = 14 }: { rating: number; size?: number }) => {
