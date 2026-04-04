@@ -258,7 +258,16 @@ const Events = () => {
 
   const loadEventSlots = async (eventId: string) => {
     const { data } = await supabase.from('event_slots').select('*').eq('event_id', eventId).order('slot_date').order('start_time');
-    setEventSlots((data as any[]) || []);
+    const slots = (data as any[]) || [];
+    setEventSlots(slots);
+    // Populate schedule fields from existing slots
+    if (slots.length > 0) {
+      const times = slots.map(s => s.start_time.slice(0, 5));
+      const earliest = times.reduce((a: string, b: string) => a < b ? a : b);
+      const latest = times.reduce((a: string, b: string) => a > b ? a : b);
+      setSlotStartTime(earliest);
+      setSlotEndTime(latest);
+    }
   };
 
   const loadEventPrices = async (eventId: string) => {
@@ -267,11 +276,31 @@ const Events = () => {
     const overrides: Record<string, string> = {};
     (data || []).forEach((p: any) => { overrides[p.service_id] = String(p.override_price); });
     setPriceOverrides(overrides);
-    // Determine pricing mode from existing data
     if (!data || data.length === 0) {
       setPricingMode('default');
     } else {
       setPricingMode('custom');
+    }
+  };
+
+  const loadEventServices = async (eventId: string) => {
+    const { data } = await supabase.from('event_services').select('*').eq('event_id', eventId);
+    const svcList = (data as any[]) || [];
+    setEventServices(svcList);
+    if (svcList.length > 0) {
+      setSelectedServiceIds(svcList.map((s: any) => s.service_id));
+      // Also populate price overrides from event_services
+      const overrides: Record<string, string> = {};
+      svcList.forEach((s: any) => {
+        if (s.event_price != null) overrides[s.service_id] = String(s.event_price);
+      });
+      if (Object.keys(overrides).length > 0) {
+        setPriceOverrides(overrides);
+        setPricingMode('custom');
+      }
+    } else {
+      // Default: select all services
+      setSelectedServiceIds(services.map(s => s.id));
     }
   };
 
