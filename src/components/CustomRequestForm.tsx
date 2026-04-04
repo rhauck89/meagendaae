@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,7 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { Clock, Send, CheckCircle2 } from 'lucide-react';
+import { Clock, Send, CheckCircle2, MessageCircle } from 'lucide-react';
 import { formatWhatsApp } from '@/lib/whatsapp';
 
 function applyWhatsAppMask(value: string): string {
@@ -34,6 +34,27 @@ interface CustomRequestFormProps {
   };
 }
 
+function buildWhatsAppUrl(professionalWhatsApp: string, data: {
+  clientName: string;
+  serviceName: string;
+  requestedDate: string;
+  requestedTime: string;
+  message: string | null;
+}): string {
+  const dateParts = data.requestedDate.split('-');
+  const formattedDate = dateParts.length === 3
+    ? `${dateParts[2]}/${dateParts[1]}/${dateParts[0]}`
+    : data.requestedDate;
+
+  let text = `Olá! Acabei de solicitar um horário personalizado pelo Me Agenda Aê.\n\nNome: ${data.clientName}\nServiço: ${data.serviceName}\nData desejada: ${formattedDate}\nHorário desejado: ${data.requestedTime}`;
+
+  if (data.message) {
+    text += `\n\nMensagem:\n${data.message}`;
+  }
+
+  return `https://wa.me/${professionalWhatsApp}?text=${encodeURIComponent(text)}`;
+}
+
 export function CustomRequestForm({ open, onOpenChange, companyId, services, professionals, themeColors }: CustomRequestFormProps) {
   const T = themeColors || { accent: 'hsl(var(--primary))', card: 'hsl(var(--card))', border: 'hsl(var(--border))', text: 'hsl(var(--foreground))', textSec: 'hsl(var(--muted-foreground))', bg: 'hsl(var(--background))' };
 
@@ -48,11 +69,28 @@ export function CustomRequestForm({ open, onOpenChange, companyId, services, pro
   });
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [whatsAppUrl, setWhatsAppUrl] = useState<string | null>(null);
 
   const handleWhatsAppChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const masked = applyWhatsAppMask(e.target.value);
     setForm(prev => ({ ...prev, client_whatsapp: masked }));
   }, []);
+
+  // Auto-open WhatsApp after submission
+  useEffect(() => {
+    if (submitted && whatsAppUrl) {
+      const timer = setTimeout(() => {
+        window.open(whatsAppUrl, '_blank');
+      }, 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [submitted, whatsAppUrl]);
+
+  const openWhatsApp = () => {
+    if (whatsAppUrl) {
+      window.open(whatsAppUrl, '_blank');
+    }
+  };
 
   const handleSubmit = async () => {
     if (!form.client_name.trim()) return toast.error('Informe seu nome');
@@ -78,6 +116,35 @@ export function CustomRequestForm({ open, onOpenChange, companyId, services, pro
       });
 
       if (error) throw error;
+
+      // Build WhatsApp URL if professional is selected
+      const selectedProfId = form.professional_id;
+      const serviceName = services.find(s => s.id === form.service_id)?.name || '';
+
+      if (selectedProfId) {
+        try {
+          const { data: profData } = await supabase
+            .from('profiles')
+            .select('whatsapp')
+            .eq('id', selectedProfId)
+            .maybeSingle();
+
+          if (profData?.whatsapp) {
+            const normalizedPhone = formatWhatsApp(profData.whatsapp);
+            const url = buildWhatsAppUrl(normalizedPhone, {
+              clientName: form.client_name.trim(),
+              serviceName,
+              requestedDate: form.requested_date,
+              requestedTime: form.requested_time,
+              message: form.message.trim() || null,
+            });
+            setWhatsAppUrl(url);
+          }
+        } catch {
+          // Silently fail - WhatsApp is optional
+        }
+      }
+
       setSubmitted(true);
       toast.success('Solicitação enviada com sucesso! O profissional irá avaliar sua disponibilidade.');
     } catch (err) {
@@ -92,6 +159,7 @@ export function CustomRequestForm({ open, onOpenChange, companyId, services, pro
     onOpenChange(false);
     if (submitted) {
       setSubmitted(false);
+      setWhatsAppUrl(null);
       setForm({ client_name: '', client_whatsapp: '', service_id: '', professional_id: '', requested_date: '', requested_time: '', message: '' });
     }
   };
@@ -109,7 +177,17 @@ export function CustomRequestForm({ open, onOpenChange, companyId, services, pro
               Sua solicitação de horário personalizado foi enviada com sucesso.
               O profissional irá analisar e responder pelo WhatsApp.
             </p>
-            <Button onClick={handleClose} className="w-full mt-4">Fechar</Button>
+            {whatsAppUrl && (
+              <Button
+                onClick={openWhatsApp}
+                variant="outline"
+                className="w-full gap-2"
+              >
+                <MessageCircle className="h-4 w-4" />
+                Avisar pelo WhatsApp novamente
+              </Button>
+            )}
+            <Button onClick={handleClose} className="w-full">Fechar</Button>
           </div>
         </DialogContent>
       </Dialog>
