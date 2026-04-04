@@ -98,7 +98,7 @@ const TenantRoutes = ({ slug, businessType }: { slug: string; businessType: stri
       <Route path="/event/:eventSlug" element={<EventPublic />} />
       <Route path="/promo/:promoSlug" element={<PromotionPublic />} />
       <Route path="/:professionalSlug/agendar" element={<Booking routeBusinessType={routeType} customSlug={slug} />} />
-      <Route path="/:professionalSlug" element={<Booking routeBusinessType={routeType} customSlug={slug} />} />
+      <Route path="/:professionalSlug" element={<ProfessionalPublicProfile />} />
       <Route path="*" element={<NotFound />} />
     </Routes>
   );
@@ -129,10 +129,10 @@ const PlatformRoutes = () => (
     <Route path="/estetica/:slug/promo/:promoSlug" element={<PromotionPublic />} />
     <Route path="/barbearia/:slug/agendar" element={<Booking routeBusinessType="barbershop" />} />
     <Route path="/barbearia/:slug/:professionalSlug/agendar" element={<Booking routeBusinessType="barbershop" />} />
-    <Route path="/barbearia/:slug/:professionalSlug" element={<Booking routeBusinessType="barbershop" />} />
+    <Route path="/barbearia/:slug/:professionalSlug" element={<ProfessionalPublicProfile />} />
     <Route path="/estetica/:slug/agendar" element={<Booking routeBusinessType="esthetic" />} />
     <Route path="/estetica/:slug/:professionalSlug/agendar" element={<Booking routeBusinessType="esthetic" />} />
-    <Route path="/estetica/:slug/:professionalSlug" element={<Booking routeBusinessType="esthetic" />} />
+    <Route path="/estetica/:slug/:professionalSlug" element={<ProfessionalPublicProfile />} />
     <Route path="/perfil/barbearia/:slug/:professionalSlug" element={<ProfessionalPublicProfile />} />
     <Route path="/perfil/estetica/:slug/:professionalSlug" element={<ProfessionalPublicProfile />} />
     <Route path="/booking/:slug" element={<Booking />} />
