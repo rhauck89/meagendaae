@@ -193,6 +193,13 @@ export default function Promotions() {
   const [metrics, setMetrics] = useState<PromoMetrics>({ clicks: 0, bookings: 0, clientsReached: 0 });
   const [lowOccupancy, setLowOccupancy] = useState(false);
 
+  // Feature discovery intro
+  useEffect(() => {
+    if (!discoveryLoading && !hasSeen('promotions')) {
+      setShowIntro(true);
+    }
+  }, [discoveryLoading, hasSeen]);
+
   // Update clock every 60s for countdown
   useEffect(() => {
     const interval = setInterval(() => setNow(new Date()), 60000);
