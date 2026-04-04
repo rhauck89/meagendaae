@@ -1010,16 +1010,47 @@ const Events = () => {
             <DialogDescription>Configure os horários disponíveis para o evento</DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
-            <div>
-              <Label>Profissional</Label>
-              <Select value={slotProfessional} onValueChange={setSlotProfessional}>
-                <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-                <SelectContent>
-                  {professionals.map(p => (
-                    <SelectItem key={p.profile_id} value={p.profile_id}>{p.profiles?.full_name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+            <div className="space-y-2">
+              <Label>Profissionais do evento</Label>
+              <div className="flex items-center gap-2 pb-1">
+                <Checkbox
+                  checked={slotProfessionals.length === professionals.length && professionals.length > 0}
+                  onCheckedChange={(checked) => {
+                    if (checked) {
+                      setSlotProfessionals(professionals.map(p => p.profile_id));
+                    } else {
+                      setSlotProfessionals([]);
+                    }
+                  }}
+                />
+                <span className="text-sm font-medium">Selecionar todos</span>
+                {slotProfessionals.length > 0 && (
+                  <button
+                    type="button"
+                    className="text-xs text-muted-foreground hover:text-foreground ml-auto"
+                    onClick={() => setSlotProfessionals([])}
+                  >
+                    Limpar seleção
+                  </button>
+                )}
+              </div>
+              <div className="space-y-1.5 pl-1 max-h-40 overflow-y-auto border rounded-md p-2">
+                {professionals.map(p => (
+                  <div key={p.profile_id} className="flex items-center gap-2">
+                    <Checkbox
+                      checked={slotProfessionals.includes(p.profile_id)}
+                      onCheckedChange={(checked) => {
+                        if (checked) {
+                          setSlotProfessionals(prev => [...prev, p.profile_id]);
+                        } else {
+                          setSlotProfessionals(prev => prev.filter(id => id !== p.profile_id));
+                        }
+                      }}
+                    />
+                    <span className="text-sm">{p.profiles?.full_name}</span>
+                  </div>
+                ))}
+              </div>
             </div>
 
             <div>
