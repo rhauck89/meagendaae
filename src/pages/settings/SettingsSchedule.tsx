@@ -32,11 +32,12 @@ const SettingsSchedule = () => {
   }, [companyId]);
 
   const fetchCompanySettings = async () => {
-    const { data } = await supabase.from('companies').select('buffer_minutes, booking_mode, fixed_slot_interval').eq('id', companyId!).single();
+    const { data } = await supabase.from('companies').select('buffer_minutes, booking_mode, fixed_slot_interval, allow_custom_requests').eq('id', companyId!).single();
     if (data) {
       setBufferMinutes((data as any).buffer_minutes ?? 0);
       setBookingMode((data as any).booking_mode ?? 'fixed_grid');
       setFixedSlotInterval((data as any).fixed_slot_interval ?? 15);
+      setAllowCustomRequests((data as any).allow_custom_requests ?? false);
     }
   };
 
