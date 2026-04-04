@@ -73,6 +73,7 @@ export function CustomRequestForm({ open, onOpenChange, companyId, services, pro
         requested_date: form.requested_date,
         requested_time: form.requested_time,
         message: form.message.trim() || null,
+        created_at: new Date().toISOString(),
         status: 'pending',
       });
 
