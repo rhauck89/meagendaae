@@ -14,13 +14,13 @@ const featureConfig: Record<FeatureKey, { icon: any; title: string; description:
   agenda_aberta: {
     icon: PartyPopper,
     title: 'Agenda Aberta',
-    description: 'Crie eventos especiais com vagas limitadas, como Natal ou Black Friday. Seus clientes podem agendar diretamente pelo link do evento.',
+    description: 'Crie agendas especiais para datas ou eventos de alta demanda. Ideal para ocasiões como formaturas, casamentos, Natal ou Ano Novo. Você pode abrir horários exclusivos com vagas limitadas para que os clientes agendem diretamente pelo link do evento.',
     actionLabel: 'Criar evento',
   },
   promotions: {
     icon: Megaphone,
     title: 'Promoções',
-    description: 'Crie promoções e ofertas especiais para atrair novos clientes e fidelizar os que já conhecem seu trabalho.',
+    description: 'Crie promoções e ofertas especiais para atrair novos clientes e movimentar horários mais vazios da sua agenda. Você pode oferecer descontos em dias ou horários específicos para aumentar a demanda quando o movimento estiver menor.',
     actionLabel: 'Criar promoção',
   },
   finance: {
