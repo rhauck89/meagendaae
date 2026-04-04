@@ -147,6 +147,8 @@ function formatCountdown(ms: number): string {
 export default function Promotions() {
   const { companyId, profile } = useAuth();
   const { isAdmin } = useUserRole();
+  const { hasSeen, markSeen, loading: discoveryLoading } = useFeatureDiscovery();
+  const [showIntro, setShowIntro] = useState(false);
   const [promotions, setPromotions] = useState<Promotion[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
