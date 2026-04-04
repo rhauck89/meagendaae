@@ -87,13 +87,6 @@ const statusFilterMap: Record<StatusTab, (apt: any) => boolean> = {
   rescheduled: (apt) => apt.status === 'rescheduled',
 };
 
-interface ReturnStats {
-  onTime: number;
-  approaching: number;
-  overdue: number;
-  approachingClients: any[];
-  overdueClients: any[];
-}
 
 const Dashboard = () => {
   const { companyId, user } = useAuth();
