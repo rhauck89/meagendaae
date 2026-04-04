@@ -252,6 +252,9 @@ const Team = () => {
           collaborator_type: editForm.collaborator_type as any,
           commission_type: commissionType,
           commission_value: commissionType === 'none' ? 0 : (Number(editForm.commission_value) || 0),
+          booking_mode: editForm.booking_mode,
+          grid_interval: editForm.grid_interval,
+          break_time: editForm.break_time,
         } as any)
         .eq('id', editTarget.id);
 
