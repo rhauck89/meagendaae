@@ -415,11 +415,12 @@ const Events = () => {
       };
 
       if (editingEvent) {
-        const { error } = await supabase.from('events').update(payload).eq('id', editingEvent.id);
+        const { error } = await supabase.from('events').update(basePayload).eq('id', editingEvent.id);
         if (error) throw error;
         toast.success('Evento atualizado!');
         return editingEvent.id;
       } else {
+        const payload = { ...basePayload, status: 'draft' as const };
         const { data: newEvent, error } = await supabase.from('events').insert(payload).select('id').single();
         if (error) throw error;
         const newId = newEvent.id;
