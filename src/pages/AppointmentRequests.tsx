@@ -154,7 +154,7 @@ const AppointmentRequests = () => {
         .eq('id', selectedRequest.id);
 
       const message = `Olá ${selectedRequest.client_name}! Não temos disponibilidade no horário solicitado, mas gostaríamos de sugerir: *${format(new Date(suggestedDate + 'T12:00:00'), "dd/MM/yyyy", { locale: ptBR })} às ${suggestedTime}*. Pode ser?`;
-      const whatsappUrl = `https://wa.me/${selectedRequest.client_whatsapp.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`;
+      const whatsappUrl = `https://wa.me/${formatWhatsApp(selectedRequest.client_whatsapp)}?text=${encodeURIComponent(message)}`;
       window.open(whatsappUrl, '_blank');
 
       toast.success('Sugestão enviada');
