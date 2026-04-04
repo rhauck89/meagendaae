@@ -182,7 +182,7 @@ const AppointmentRequests = () => {
         .eq('id', selectedRequest.id);
 
       const message = `Olá ${selectedRequest.client_name}! Infelizmente não conseguimos atender sua solicitação de horário.${rejectionReason ? ` Motivo: ${rejectionReason}` : ''} Por favor, tente agendar em outro horário pelo nosso link.`;
-      const whatsappUrl = `https://wa.me/${selectedRequest.client_whatsapp.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`;
+      const whatsappUrl = `https://wa.me/${formatWhatsApp(selectedRequest.client_whatsapp)}?text=${encodeURIComponent(message)}`;
       window.open(whatsappUrl, '_blank');
 
       toast.success('Solicitação recusada');
