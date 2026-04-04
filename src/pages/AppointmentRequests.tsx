@@ -127,7 +127,7 @@ const AppointmentRequests = () => {
 
       // 5. Open WhatsApp to notify client
       const message = `Olá ${request.client_name}! Seu horário solicitado para ${format(new Date(request.requested_date + 'T12:00:00'), "dd/MM/yyyy", { locale: ptBR })} às ${request.requested_time.slice(0, 5)} foi *aceito*. Estamos aguardando você!`;
-      const whatsappUrl = `https://wa.me/${request.client_whatsapp.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`;
+      const whatsappUrl = `https://wa.me/${formatWhatsApp(request.client_whatsapp)}?text=${encodeURIComponent(message)}`;
       window.open(whatsappUrl, '_blank');
 
       fetchRequests();
