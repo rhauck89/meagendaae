@@ -78,7 +78,7 @@ const getDisplayStatus = (apt: any): string => {
 };
 
 const statusFilterMap: Record<StatusTab, (apt: any) => boolean> = {
-  all: () => true,
+  all: (apt) => apt.status !== 'rescheduled',
   confirmed: (apt) => {
     const ds = getDisplayStatus(apt);
     return ds === 'confirmed' || ds === 'in_progress' || ds === 'late' || apt.status === 'pending';
@@ -1342,7 +1342,7 @@ const Dashboard = () => {
             const agendaAppointments = appointments.filter(a => !excludedIds.has(a.id));
 
             const counts = {
-              all: agendaAppointments.length,
+              all: agendaAppointments.filter(a => a.status !== 'rescheduled').length,
               confirmed: agendaAppointments.filter(statusFilterMap.confirmed).length,
               completed: agendaAppointments.filter(statusFilterMap.completed).length,
               cancelled: agendaAppointments.filter(statusFilterMap.cancelled).length,
@@ -1398,6 +1398,11 @@ const Dashboard = () => {
                               <p className="text-xs text-muted-foreground">
                                 com {apt.professional?.full_name}
                               </p>
+                              {apt.rescheduled_from_id && apt.rescheduled_from?.start_time && (
+                                <p className="text-xs text-muted-foreground italic mt-0.5">
+                                  ↪ Reagendado de {format(parseISO(apt.rescheduled_from.start_time), 'HH:mm')}
+                                </p>
+                              )}
                             </div>
                           </div>
                           <div className="flex items-center gap-2 flex-wrap">
