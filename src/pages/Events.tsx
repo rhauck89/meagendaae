@@ -837,7 +837,7 @@ const Events = () => {
             <Card key={event.id} className="overflow-hidden">
               {event.cover_image && (
                 <div className="h-32 bg-muted overflow-hidden">
-                  <img src={event.cover_image} alt={event.name} className="w-full h-full object-cover" />
+                  <img src={event.cover_image} alt={event.name} className="w-full h-full object-cover" style={{ objectPosition: `${(event as any).image_position_x ?? 50}% ${(event as any).image_position_y ?? 50}%`, transform: `scale(${(event as any).image_zoom ?? 1})`, transformOrigin: `${(event as any).image_position_x ?? 50}% ${(event as any).image_position_y ?? 50}%` }} />
                 </div>
               )}
               <CardHeader className="pb-2">
