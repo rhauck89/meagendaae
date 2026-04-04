@@ -1,5 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { useFeatureDiscovery } from '@/hooks/useFeatureDiscovery';
+import { FeatureIntroModal } from '@/components/FeatureIntroModal';
 import { useAuth } from '@/contexts/AuthContext';
 import { useOnDataRefresh } from '@/hooks/useRefreshData';
 import { useUserRole } from '@/hooks/useUserRole';
