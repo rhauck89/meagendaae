@@ -293,7 +293,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
       supabase.from('public_services' as any).select('*').eq('company_id', comp.id).order('name'),
       supabase.from('business_hours').select('*').eq('company_id', comp.id),
       supabase.from('business_exceptions').select('*').eq('company_id', comp.id),
-      supabase.from('public_company' as any).select('buffer_minutes, booking_mode, fixed_slot_interval').eq('id', comp.id).single(),
+      supabase.from('public_company' as any).select('buffer_minutes, booking_mode, fixed_slot_interval, allow_custom_requests').eq('id', comp.id).single(),
       supabase.from('public_company_settings' as any).select('*').eq('company_id', comp.id).single(),
     ]);
 
