@@ -297,7 +297,11 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
     if (servicesRes.data) setServices(servicesRes.data);
     if (hoursRes.data) setBusinessHours(hoursRes.data as BusinessHours[]);
     if (exceptionsRes.data) setExceptions(exceptionsRes.data as BusinessException[]);
-    if (companyRes.data) setBufferMinutes((companyRes.data as any).buffer_minutes || 0);
+    if (companyRes.data) {
+      setBufferMinutes((companyRes.data as any).buffer_minutes || 0);
+      setBookingMode(((companyRes.data as any).booking_mode as BookingMode) || 'fixed_grid');
+      setFixedSlotInterval((companyRes.data as any).fixed_slot_interval || 15);
+    }
     if (settingsRes.data) {
       setCompanySettings(settingsRes.data);
       if ((settingsRes.data as any).booking_buffer_minutes > 0) {
