@@ -122,6 +122,8 @@ const PlatformRoutes = () => (
     <Route path="/select-company" element={<ProtectedRoute><CompanySelector /></ProtectedRoute>} />
     <Route path="/barbearia/:slug" element={<BarbershopLanding routeBusinessType="barbershop" />} />
     <Route path="/estetica/:slug" element={<BarbershopLanding routeBusinessType="esthetic" />} />
+    <Route path="/barbearia/:slug/evento/:eventSlug" element={<EventPublic />} />
+    <Route path="/estetica/:slug/evento/:eventSlug" element={<EventPublic />} />
     <Route path="/barbearia/:slug/promo/:promoSlug" element={<PromotionPublic />} />
     <Route path="/estetica/:slug/promo/:promoSlug" element={<PromotionPublic />} />
     <Route path="/barbearia/:slug/agendar" element={<Booking routeBusinessType="barbershop" />} />
