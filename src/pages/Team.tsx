@@ -770,12 +770,28 @@ const Team = () => {
                 <Select value={editForm.booking_mode} onValueChange={(v) => setEditForm({ ...editForm, booking_mode: v })}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="fixed_grid">Grade fixa</SelectItem>
-                    <SelectItem value="intelligent">Inteligente</SelectItem>
+                    <SelectItem value="intelligent">
+                      <div className="flex flex-col items-start">
+                        <span>Inteligente</span>
+                        <span className="text-xs text-muted-foreground">Horários calculados dinamicamente conforme duração do serviço</span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="fixed_grid">
+                      <div className="flex flex-col items-start">
+                        <span>Grade fixa</span>
+                        <span className="text-xs text-muted-foreground">Horários fixos baseados em intervalos</span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="hybrid">
+                      <div className="flex flex-col items-start">
+                        <span>Híbrida (recomendado)</span>
+                        <span className="text-xs text-muted-foreground">Usa horários fixos mas bloqueia automaticamente horários que não comportam o serviço</span>
+                      </div>
+                    </SelectItem>
                   </SelectContent>
                 </Select>
               </div>
-              {editForm.booking_mode === 'fixed_grid' && (
+              {(editForm.booking_mode === 'fixed_grid' || editForm.booking_mode === 'hybrid') && (
                 <div className="space-y-2">
                   <Label className="text-xs text-muted-foreground">Intervalo da grade (minutos)</Label>
                   <Select value={String(editForm.grid_interval)} onValueChange={(v) => setEditForm({ ...editForm, grid_interval: Number(v) })}>
