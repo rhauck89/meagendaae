@@ -117,32 +117,30 @@ export function CustomRequestForm({ open, onOpenChange, companyId, services, pro
 
       if (error) throw error;
 
-      // Build WhatsApp URL if professional is selected
-      const selectedProfId = form.professional_id;
+      // Build WhatsApp URL using company whatsapp (accessible to anon users)
       const serviceName = services.find(s => s.id === form.service_id)?.name || '';
 
-      if (selectedProfId) {
-        try {
-          const { data: profData } = await supabase
-            .from('profiles')
-            .select('whatsapp')
-            .eq('id', selectedProfId)
-            .maybeSingle();
+      try {
+        const { data: companyData } = await supabase
+          .from('public_company' as any)
+          .select('whatsapp')
+          .eq('id', companyId)
+          .maybeSingle();
 
-          if (profData?.whatsapp) {
-            const normalizedPhone = formatWhatsApp(profData.whatsapp);
-            const url = buildWhatsAppUrl(normalizedPhone, {
-              clientName: form.client_name.trim(),
-              serviceName,
-              requestedDate: form.requested_date,
-              requestedTime: form.requested_time,
-              message: form.message.trim() || null,
-            });
-            setWhatsAppUrl(url);
-          }
-        } catch {
-          // Silently fail - WhatsApp is optional
+        const whatsappNumber = (companyData as any)?.whatsapp;
+        if (whatsappNumber) {
+          const normalizedPhone = formatWhatsApp(whatsappNumber);
+          const url = buildWhatsAppUrl(normalizedPhone, {
+            clientName: form.client_name.trim(),
+            serviceName,
+            requestedDate: form.requested_date,
+            requestedTime: form.requested_time,
+            message: form.message.trim() || null,
+          });
+          setWhatsAppUrl(url);
         }
+      } catch {
+        // Silently fail - WhatsApp is optional
       }
 
       setSubmitted(true);

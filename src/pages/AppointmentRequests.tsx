@@ -81,20 +81,58 @@ const AppointmentRequests = () => {
   const handleAccept = async (request: any) => {
     setProcessing(true);
     try {
+      // 1. Get service duration to calculate end_time
+      let durationMinutes = 30; // default
+      let servicePrice = 0;
+      if (request.service_id) {
+        const { data: svcData } = await supabase
+          .from('services')
+          .select('duration_minutes, price')
+          .eq('id', request.service_id)
+          .maybeSingle();
+        if (svcData) {
+          durationMinutes = svcData.duration_minutes || 30;
+          servicePrice = svcData.price || 0;
+        }
+      }
+
+      // 2. Build start_time and end_time timestamps
+      const startTime = new Date(`${request.requested_date}T${request.requested_time}`);
+      const endTime = new Date(startTime.getTime() + durationMinutes * 60 * 1000);
+
+      // 3. Create appointment
+      const { error: apptError } = await supabase
+        .from('appointments')
+        .insert({
+          company_id: companyId!,
+          professional_id: request.professional_id || Object.keys(professionals)[0],
+          client_name: request.client_name,
+          client_whatsapp: request.client_whatsapp,
+          start_time: startTime.toISOString(),
+          end_time: endTime.toISOString(),
+          total_price: servicePrice,
+          status: 'confirmed' as any,
+          notes: request.message || null,
+        });
+
+      if (apptError) throw apptError;
+
+      // 4. Update request status
       await supabase
         .from('appointment_requests' as any)
         .update({ status: 'accepted', updated_at: new Date().toISOString() })
         .eq('id', request.id);
 
-      toast.success('Solicitação aceita! Crie o agendamento manualmente.');
+      toast.success('Solicitação aceita e agendamento criado!');
 
-      // Open WhatsApp to notify client
+      // 5. Open WhatsApp to notify client
       const message = `Olá ${request.client_name}! Seu horário solicitado para ${format(new Date(request.requested_date + 'T12:00:00'), "dd/MM/yyyy", { locale: ptBR })} às ${request.requested_time.slice(0, 5)} foi *aceito*. Estamos aguardando você!`;
       const whatsappUrl = `https://wa.me/${request.client_whatsapp.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`;
       window.open(whatsappUrl, '_blank');
 
       fetchRequests();
-    } catch {
+    } catch (err) {
+      console.error('Error accepting request:', err);
       toast.error('Erro ao aceitar solicitação');
     } finally {
       setProcessing(false);
