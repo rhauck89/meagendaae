@@ -340,6 +340,11 @@ const FinanceDashboard = () => {
           </div>
         </CardContent>
       </Card>
+      <FeatureIntroModal
+        featureKey="finance"
+        open={showIntro}
+        onClose={() => { setShowIntro(false); markSeen('finance'); }}
+      />
     </div>
   );
 };
