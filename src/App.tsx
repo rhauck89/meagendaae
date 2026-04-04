@@ -93,7 +93,7 @@ const TenantRoutes = ({ slug, businessType }: { slug: string; businessType: stri
     <Routes>
       <Route path="/" element={<BarbershopLanding routeBusinessType={routeType} customSlug={slug} />} />
       <Route path="/agendar" element={<Booking routeBusinessType={routeType} customSlug={slug} />} />
-      <Route path="/evento/:eventSlug" element={<EventPublic />} />
+      <Route path="/evento/:eventId" element={<EventPublic />} />
       <Route path="/event/:eventSlug" element={<EventPublic />} />
       <Route path="/promo/:promoSlug" element={<PromotionPublic />} />
       <Route path="/:professionalSlug/agendar" element={<Booking routeBusinessType={routeType} customSlug={slug} />} />
@@ -180,6 +180,7 @@ const PlatformRoutes = () => (
     <Route path="/dashboard/finance/payables" element={<DashboardRoute><FinancePayables /></DashboardRoute>} />
     <Route path="/dashboard/finance/receivables" element={<DashboardRoute><FinanceReceivables /></DashboardRoute>} />
     <Route path="/settings/plans" element={<ProtectedRoute><PlansPage /></ProtectedRoute>} />
+    <Route path="/evento/:eventId" element={<EventPublic />} />
     <Route path="/event/:eventSlug" element={<EventPublic />} />
     <Route path="*" element={<NotFound />} />
   </Routes>

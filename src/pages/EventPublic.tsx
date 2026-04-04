@@ -48,7 +48,7 @@ type Service = {
 };
 
 const EventPublic = () => {
-  const { eventSlug } = useParams();
+  const { eventId, eventSlug } = useParams();
   const [event, setEvent] = useState<Event | null>(null);
   const [company, setCompany] = useState<any>(null);
   const [slots, setSlots] = useState<Slot[]>([]);
@@ -73,19 +73,32 @@ const EventPublic = () => {
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
 
   useEffect(() => {
-    if (eventSlug) loadEvent();
-  }, [eventSlug]);
+    if (eventId || eventSlug) loadEvent();
+  }, [eventId, eventSlug]);
 
   const loadEvent = async () => {
     setLoading(true);
-    // Find event by slug
-    const { data: eventsArr } = await supabase
-      .from('events')
-      .select('*')
-      .eq('slug', eventSlug!)
-      .eq('status', 'published')
-      .limit(1);
-    const eventData = eventsArr?.[0] || null;
+    let eventData: any = null;
+
+    if (eventId) {
+      // Primary: find event by unique ID (tenant-safe)
+      const { data } = await supabase
+        .from('events')
+        .select('*')
+        .eq('id', eventId)
+        .eq('status', 'published')
+        .maybeSingle();
+      eventData = data;
+    } else if (eventSlug) {
+      // Legacy fallback: find by slug (may collide across tenants)
+      const { data: eventsArr } = await supabase
+        .from('events')
+        .select('*')
+        .eq('slug', eventSlug)
+        .eq('status', 'published')
+        .limit(1);
+      eventData = eventsArr?.[0] || null;
+    }
 
     if (!eventData) { setNotFound(true); setLoading(false); return; }
     setEvent(eventData as Event);
@@ -111,6 +124,7 @@ const EventPublic = () => {
     const { data: profsData } = await supabase
       .from('public_professionals')
       .select('id, name, avatar_url')
+      .eq('company_id', eventData.company_id)
       .in('id', profIds);
 
     const profMap = new Map((profsData || []).map((p: any) => [p.id, p]));

@@ -479,7 +479,7 @@ export default function BarbershopLanding({ routeBusinessType, customSlug }: Bar
                 return (
                   <button
                     key={evt.id}
-                    onClick={() => navigate(`/event/${evt.slug}`)}
+                    onClick={() => navigate(`/evento/${evt.id}`)}
                     className="w-full rounded-xl overflow-hidden text-left transition-transform hover:scale-[1.02]"
                     style={{ background: T.card, border: `1px solid ${T.border}` }}
                   >

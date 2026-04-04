@@ -548,7 +548,7 @@ const Events = () => {
     }
   };
 
-  const getPublicUrl = (event: Event) => `${window.location.origin}/event/${event.slug}`;
+  const getPublicUrl = (event: Event) => `${window.location.origin}/evento/${event.id}`;
 
   const openStorySourceDialog = (event: Event) => {
     setStoryEvent(event);
