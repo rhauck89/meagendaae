@@ -1010,37 +1010,37 @@ const Dashboard = () => {
       {/* 3. Resumo do Dia */}
       <div>
         <h3 className="text-lg font-display font-semibold mb-3">📊 Resumo do Dia</h3>
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
         <Card>
-          <CardContent className="p-4 flex items-center gap-4">
-            <div className="w-12 h-12 rounded-xl bg-success/10 flex items-center justify-center">
-              <DollarSign className="h-6 w-6 text-success" />
+          <CardContent className="p-4 flex items-center gap-2">
+            <div className="w-10 h-10 rounded-xl bg-success/10 flex items-center justify-center shrink-0">
+              <DollarSign className="h-5 w-5 text-success" />
             </div>
-            <div>
+            <div className="min-w-0">
               <p className="text-sm text-muted-foreground">Receita estimada</p>
-              <p className="text-2xl font-display font-bold">R$ {stats.revenue.toFixed(2)}</p>
+              <p className="text-2xl font-semibold whitespace-nowrap">R$ {stats.revenue.toFixed(2)}</p>
             </div>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="p-4 flex items-center gap-4">
-            <div className="w-12 h-12 rounded-xl bg-accent/10 flex items-center justify-center">
-              <TrendingUp className="h-6 w-6 text-accent" />
+          <CardContent className="p-4 flex items-center gap-2">
+            <div className="w-10 h-10 rounded-xl bg-accent/10 flex items-center justify-center shrink-0">
+              <TrendingUp className="h-5 w-5 text-accent" />
             </div>
-            <div>
+            <div className="min-w-0">
               <p className="text-sm text-muted-foreground">Receita realizada</p>
-              <p className="text-2xl font-display font-bold">R$ {stats.revenueCompleted.toFixed(2)}</p>
+              <p className="text-2xl font-semibold whitespace-nowrap">R$ {stats.revenueCompleted.toFixed(2)}</p>
             </div>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="p-4 flex items-center gap-4">
-            <div className="w-12 h-12 rounded-xl bg-accent/10 flex items-center justify-center">
-              <Users className="h-6 w-6 text-accent" />
+          <CardContent className="p-4 flex items-center gap-2">
+            <div className="w-10 h-10 rounded-xl bg-accent/10 flex items-center justify-center shrink-0">
+              <Users className="h-5 w-5 text-accent" />
             </div>
-            <div>
+            <div className="min-w-0">
               <p className="text-sm text-muted-foreground">Clientes hoje</p>
-              <p className="text-2xl font-display font-bold">{stats.clients}</p>
+              <p className="text-2xl font-semibold">{stats.clients}</p>
             </div>
           </CardContent>
         </Card>
@@ -1053,13 +1053,13 @@ const Dashboard = () => {
               )}
               onClick={() => routerNavigate('/dashboard/waitlist')}
             >
-              <CardContent className="p-4 flex items-center gap-4">
-                <div className={cn("w-12 h-12 rounded-xl flex items-center justify-center", hasOpenSlot ? "bg-warning/20" : "bg-warning/10")}>
-                  <Bell className="h-6 w-6 text-warning" />
+              <CardContent className="p-4 flex items-center gap-2">
+                <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center shrink-0", hasOpenSlot ? "bg-warning/20" : "bg-warning/10")}>
+                  <Bell className="h-5 w-5 text-warning" />
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm text-muted-foreground">Aguardando vaga</p>
-                  <p className="text-2xl font-display font-bold">{waitlistCount}</p>
+                  <p className="text-2xl font-semibold">{waitlistCount}</p>
                   {hasOpenSlot && (
                     <p className="text-xs font-semibold text-warning">⚡ Vaga disponível</p>
                   )}
@@ -1093,13 +1093,13 @@ const Dashboard = () => {
           </TooltipContent>
         </Tooltip>
         <Card>
-          <CardContent className="p-4 flex items-center gap-4">
-            <div className="w-12 h-12 rounded-xl bg-secondary/10 flex items-center justify-center">
-              <Mail className="h-6 w-6 text-secondary" />
+          <CardContent className="p-4 flex items-center gap-2">
+            <div className="w-10 h-10 rounded-xl bg-secondary/10 flex items-center justify-center shrink-0">
+              <Mail className="h-5 w-5 text-secondary" />
             </div>
-            <div>
+            <div className="min-w-0">
               <p className="text-sm text-muted-foreground">Lembretes enviados</p>
-              <p className="text-2xl font-display font-bold">{reminderCount}</p>
+              <p className="text-2xl font-semibold">{reminderCount}</p>
             </div>
           </CardContent>
         </Card>
