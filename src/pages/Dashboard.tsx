@@ -911,6 +911,7 @@ const Dashboard = () => {
   return (
     <div className="space-y-6">
       <TrialBanner />
+      <OnboardingChecklist />
       <TutorialProgressWidget />
 
       {/* Temporary test push notification button */}
