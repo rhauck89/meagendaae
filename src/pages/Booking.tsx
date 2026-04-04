@@ -1501,6 +1501,30 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                 Continuar <ChevronRight className="h-4 w-4 ml-1" />
               </Button>
             )}
+
+            {/* Custom Request Button */}
+            {allowCustomRequests && !isPromoMode && (
+              <button
+                onClick={() => setShowCustomRequestForm(true)}
+                className="w-full text-center py-3 rounded-xl text-sm font-medium transition-all hover:opacity-80"
+                style={{ color: T.accent, border: `1px dashed ${T.accent}40` }}
+              >
+                <Clock className="h-4 w-4 inline mr-1.5" style={{ verticalAlign: '-2px' }} />
+                Solicitar horário personalizado
+              </button>
+            )}
+
+            {/* Custom Request Form */}
+            {company && (
+              <CustomRequestForm
+                open={showCustomRequestForm}
+                onOpenChange={setShowCustomRequestForm}
+                companyId={company.id}
+                services={services.map(s => ({ id: s.id, name: s.name }))}
+                professionals={professionals.map(p => ({ id: p.id, full_name: p.full_name }))}
+                themeColors={T}
+              />
+            )}
           </div>
         )}
 
