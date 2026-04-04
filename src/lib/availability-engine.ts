@@ -225,6 +225,47 @@ function calculateIntelligentSlots(
 }
 
 /**
+ * HYBRID MODE: Uses fixed grid intervals but validates each slot
+ * can actually fit the service duration without overlapping blocked intervals.
+ * Combines predictable grid times with intelligent gap prevention.
+ */
+function calculateHybridSlots(
+  date: Date,
+  openTime: Date,
+  closeTime: Date,
+  totalDuration: number,
+  bufferMinutes: number,
+  slotInterval: number,
+  blocked: Array<{ start: Date; end: Date }>,
+  earliestSlotTime: Date | null
+): string[] {
+  const effectiveDuration = totalDuration + bufferMinutes;
+  const slots: string[] = [];
+  let current = new Date(openTime);
+
+  while (current.getTime() + effectiveDuration * 60000 <= closeTime.getTime()) {
+    if (earliestSlotTime && current < earliestSlotTime) {
+      current = addMinutes(current, slotInterval);
+      continue;
+    }
+
+    const slotEnd = addMinutes(current, effectiveDuration);
+
+    const hasConflict = blocked.some(
+      (b) => current < b.end && slotEnd > b.start
+    );
+
+    if (!hasConflict) {
+      slots.push(format(current, 'HH:mm'));
+    }
+
+    current = addMinutes(current, slotInterval);
+  }
+
+  return slots;
+}
+
+/**
  * Smart availability engine that calculates available time slots.
  * Supports two modes:
  * - fixed_grid: Regular intervals (default, backward compatible)
