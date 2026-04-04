@@ -913,6 +913,7 @@ const Dashboard = () => {
     <div className="space-y-6">
       <TrialBanner />
       <OnboardingChecklist />
+      <MarketplaceActivation />
       <TutorialProgressWidget />
 
       {/* Temporary test push notification button */}
