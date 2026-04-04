@@ -78,14 +78,27 @@ const EventPublic = () => {
 
   const loadEvent = async () => {
     setLoading(true);
-    // Find event by slug
-    const { data: eventsArr } = await supabase
-      .from('events')
-      .select('*')
-      .eq('slug', eventSlug!)
-      .eq('status', 'published')
-      .limit(1);
-    const eventData = eventsArr?.[0] || null;
+    let eventData: any = null;
+
+    if (eventId) {
+      // Primary: find event by unique ID (tenant-safe)
+      const { data } = await supabase
+        .from('events')
+        .select('*')
+        .eq('id', eventId)
+        .eq('status', 'published')
+        .maybeSingle();
+      eventData = data;
+    } else if (eventSlug) {
+      // Legacy fallback: find by slug (may collide across tenants)
+      const { data: eventsArr } = await supabase
+        .from('events')
+        .select('*')
+        .eq('slug', eventSlug)
+        .eq('status', 'published')
+        .limit(1);
+      eventData = eventsArr?.[0] || null;
+    }
 
     if (!eventData) { setNotFound(true); setLoading(false); return; }
     setEvent(eventData as Event);
