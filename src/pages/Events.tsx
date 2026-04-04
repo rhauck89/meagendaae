@@ -641,19 +641,36 @@ const Events = () => {
     if (!wizardEventId) return;
     setSaving(true);
     try {
+      // Save selected services
+      await supabase.from('event_services').delete().eq('event_id', wizardEventId);
+      const serviceInserts = selectedServiceIds.map(serviceId => {
+        const overridePrice = priceOverrides[serviceId];
+        const svc = services.find(s => s.id === serviceId);
+        return {
+          event_id: wizardEventId,
+          service_id: serviceId,
+          event_price: overridePrice ? Number(overridePrice) : (svc ? Number(svc.price) : null),
+        };
+      });
+      if (serviceInserts.length > 0) {
+        const { error: svcError } = await supabase.from('event_services').insert(serviceInserts);
+        if (svcError) throw svcError;
+      }
+
+      // Save price overrides (legacy table)
       await supabase.from('event_service_prices').delete().eq('event_id', wizardEventId);
-      const inserts = Object.entries(priceOverrides)
-        .filter(([, price]) => price && Number(price) > 0)
+      const priceInserts = Object.entries(priceOverrides)
+        .filter(([serviceId, price]) => price && Number(price) > 0 && selectedServiceIds.includes(serviceId))
         .map(([serviceId, price]) => ({
           event_id: wizardEventId,
           service_id: serviceId,
           override_price: Number(price),
         }));
-      if (inserts.length > 0) {
-        const { error } = await supabase.from('event_service_prices').insert(inserts);
+      if (priceInserts.length > 0) {
+        const { error } = await supabase.from('event_service_prices').insert(priceInserts);
         if (error) throw error;
       }
-      toast.success('Preços salvos!');
+      toast.success('Preços e serviços salvos!');
     } catch (err: any) {
       toast.error(err.message || 'Erro ao salvar preços');
     } finally {
