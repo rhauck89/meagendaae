@@ -93,7 +93,7 @@ const TenantRoutes = ({ slug, businessType }: { slug: string; businessType: stri
     <Routes>
       <Route path="/" element={<BarbershopLanding routeBusinessType={routeType} customSlug={slug} />} />
       <Route path="/agendar" element={<Booking routeBusinessType={routeType} customSlug={slug} />} />
-      <Route path="/evento/:eventId" element={<EventPublic />} />
+      <Route path="/evento/:eventSlug" element={<EventPublic />} />
       <Route path="/event/:eventSlug" element={<EventPublic />} />
       <Route path="/promo/:promoSlug" element={<PromotionPublic />} />
       <Route path="/:professionalSlug/agendar" element={<Booking routeBusinessType={routeType} customSlug={slug} />} />
