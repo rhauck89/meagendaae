@@ -164,6 +164,8 @@ function wrapText(ctx: CanvasRenderingContext2D, text: string, x: number, y: num
 
 const Events = () => {
   const { companyId } = useAuth();
+  const { hasSeen, markSeen, loading: discoveryLoading } = useFeatureDiscovery();
+  const [showIntro, setShowIntro] = useState(false);
   const [events, setEvents] = useState<Event[]>([]);
   const [services, setServices] = useState<any[]>([]);
   const [professionals, setProfessionals] = useState<any[]>([]);
