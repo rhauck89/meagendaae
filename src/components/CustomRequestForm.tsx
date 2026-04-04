@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Clock, Send, CheckCircle2 } from 'lucide-react';
-import { formatWhatsApp, isValidWhatsApp, displayWhatsApp } from '@/lib/whatsapp';
+import { formatWhatsApp } from '@/lib/whatsapp';
 
 function applyWhatsAppMask(value: string): string {
   const digits = value.replace(/\D/g, '').slice(0, 11);
