@@ -33,9 +33,9 @@ const Team = () => {
   const [activeTab, setActiveTab] = useState('active');
 
   // Edit modal state
-  const [editDialogOpen, setEditDialogOpen] = useState(false);
+   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<any>(null);
-  const [editForm, setEditForm] = useState({ name: '', email: '', collaborator_type: 'commissioned' as string, commission_type: 'percentage' as string, commission_value: '' as string | number });
+  const [editForm, setEditForm] = useState({ name: '', email: '', collaborator_type: 'commissioned' as string, commission_type: 'percentage' as string, commission_value: '' as string | number, booking_mode: 'fixed_grid' as string, grid_interval: 15 as number, break_time: 0 as number });
 
   // Disable/Delete confirm state
   const [disableDialogOpen, setDisableDialogOpen] = useState(false);

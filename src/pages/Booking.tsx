@@ -525,14 +525,28 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
   };
 
   const fetchProfessionalHours = async (profileId: string) => {
-    const { data } = await supabase
-      .from('professional_working_hours' as any)
-      .select('*')
-      .eq('professional_id', profileId);
-    if (data && (data as any[]).length > 0) {
-      setProfessionalHours(data as unknown as BusinessHours[]);
+    const [hoursRes, configRes] = await Promise.all([
+      supabase
+        .from('professional_working_hours' as any)
+        .select('*')
+        .eq('professional_id', profileId),
+      supabase
+        .from('public_professionals' as any)
+        .select('booking_mode, grid_interval, break_time')
+        .eq('id', profileId)
+        .single(),
+    ]);
+    if (hoursRes.data && (hoursRes.data as any[]).length > 0) {
+      setProfessionalHours(hoursRes.data as unknown as BusinessHours[]);
     } else {
       setProfessionalHours([]);
+    }
+    // Apply per-professional booking config
+    if (configRes.data) {
+      const cfg = configRes.data as any;
+      if (cfg.booking_mode) setBookingMode(cfg.booking_mode as BookingMode);
+      if (cfg.grid_interval) setFixedSlotInterval(cfg.grid_interval);
+      if (cfg.break_time != null) setBufferMinutes(cfg.break_time);
     }
   };
 
