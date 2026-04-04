@@ -240,7 +240,7 @@ const Events = () => {
   const loadCompanyBranding = async () => {
     const [settingsRes, companyRes] = await Promise.all([
       supabase.from('company_settings').select('*').eq('company_id', companyId!).maybeSingle(),
-      supabase.from('companies').select('name, logo_url, cover_url').eq('id', companyId!).maybeSingle(),
+      supabase.from('companies').select('name, slug, logo_url, cover_url, business_type').eq('id', companyId!).maybeSingle(),
     ]);
     if (settingsRes.data) setCompanySettings(settingsRes.data);
     if (companyRes.data) setCompanyData(companyRes.data);
