@@ -71,6 +71,11 @@ const SettingsSchedule = () => {
     toast.success('Modo de agendamento salvo');
   };
 
+  const saveCustomRequests = async () => {
+    await supabase.from('companies').update({ allow_custom_requests: allowCustomRequests } as any).eq('id', companyId!);
+    toast.success(allowCustomRequests ? 'Solicitações personalizadas ativadas' : 'Solicitações personalizadas desativadas');
+  };
+
   const addException = async () => {
     if (!newException.date) return toast.error('Selecione uma data');
     await supabase.from('business_exceptions').insert({ company_id: companyId!, exception_date: newException.date, reason: newException.reason, is_closed: newException.is_closed });
