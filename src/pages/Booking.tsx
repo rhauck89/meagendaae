@@ -723,7 +723,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
         .eq('block_date', dateStr);
       let slots = calculateAvailableSlots({
         date: day, totalDuration, businessHours, exceptions, existingAppointments,
-        slotInterval: 15, bufferMinutes,
+        slotInterval: fixedSlotInterval, bufferMinutes, bookingMode,
         professionalHours: professionalHours.length > 0 ? professionalHours : undefined,
         blockedTimes: ((blockedData || []) as unknown as BlockedTime[]),
         professionalId: selectedProfessional,
