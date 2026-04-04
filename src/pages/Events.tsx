@@ -1,5 +1,7 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useFeatureDiscovery } from '@/hooks/useFeatureDiscovery';
+import { FeatureIntroModal } from '@/components/FeatureIntroModal';
 import { useOnDataRefresh } from '@/hooks/useRefreshData';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
