@@ -1102,69 +1102,111 @@ const Dashboard = () => {
         <h3 className="text-lg font-display font-semibold mb-3">📈 Resumo do Mês</h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
           <Card>
-            <CardContent className="p-4 flex items-center gap-2">
-              <div className="w-10 h-10 rounded-xl bg-success/10 flex items-center justify-center shrink-0">
-                <DollarSign className="h-5 w-5 text-success" />
-              </div>
-              <div className="min-w-0">
+            <CardContent className="p-4 space-y-1">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-success/10 flex items-center justify-center shrink-0">
+                  <DollarSign className="h-4 w-4 text-success" />
+                </div>
                 <p className="text-sm text-muted-foreground">Receita estimada</p>
-                <p className="text-2xl font-semibold whitespace-nowrap">R$ {monthlyStats.revenue.toFixed(2)}</p>
               </div>
+              <p className="text-2xl font-semibold whitespace-nowrap">R$ {monthlyStats.revenue.toFixed(2)}</p>
+              {dailyTrends.length > 0 && (
+                <div className="h-6 w-full opacity-70">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={dailyTrends}><Line type="monotone" dataKey="revenue" stroke="hsl(var(--success))" strokeWidth={1.5} dot={false} /></LineChart>
+                  </ResponsiveContainer>
+                </div>
+              )}
             </CardContent>
           </Card>
           <Card>
-            <CardContent className="p-4 flex items-center gap-2">
-              <div className="w-10 h-10 rounded-xl bg-accent/10 flex items-center justify-center shrink-0">
-                <TrendingUp className="h-5 w-5 text-accent" />
-              </div>
-              <div className="min-w-0">
+            <CardContent className="p-4 space-y-1">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-accent/10 flex items-center justify-center shrink-0">
+                  <TrendingUp className="h-4 w-4 text-accent" />
+                </div>
                 <p className="text-sm text-muted-foreground">Receita realizada</p>
-                <p className="text-2xl font-semibold whitespace-nowrap">R$ {monthlyStats.revenueCompleted.toFixed(2)}</p>
               </div>
+              <p className="text-2xl font-semibold whitespace-nowrap">R$ {monthlyStats.revenueCompleted.toFixed(2)}</p>
+              {dailyTrends.length > 0 && (
+                <div className="h-6 w-full opacity-70">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={dailyTrends}><Line type="monotone" dataKey="revenue" stroke="hsl(var(--accent))" strokeWidth={1.5} dot={false} /></LineChart>
+                  </ResponsiveContainer>
+                </div>
+              )}
             </CardContent>
           </Card>
           <Card>
-            <CardContent className="p-4 flex items-center gap-2">
-              <div className="w-10 h-10 rounded-xl bg-accent/10 flex items-center justify-center shrink-0">
-                <Users className="h-5 w-5 text-accent" />
-              </div>
-              <div className="min-w-0">
+            <CardContent className="p-4 space-y-1">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-accent/10 flex items-center justify-center shrink-0">
+                  <Users className="h-4 w-4 text-accent" />
+                </div>
                 <p className="text-sm text-muted-foreground">Clientes atendidos</p>
-                <p className="text-2xl font-semibold">{monthlyStats.clients}</p>
               </div>
+              <p className="text-2xl font-semibold">{monthlyStats.clients}</p>
+              {dailyTrends.length > 0 && (
+                <div className="h-6 w-full opacity-70">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={dailyTrends}><Line type="monotone" dataKey="clients" stroke="hsl(var(--accent))" strokeWidth={1.5} dot={false} /></LineChart>
+                  </ResponsiveContainer>
+                </div>
+              )}
             </CardContent>
           </Card>
           <Card>
-            <CardContent className="p-4 flex items-center gap-2">
-              <div className="w-10 h-10 rounded-xl bg-destructive/10 flex items-center justify-center shrink-0">
-                <XCircle className="h-5 w-5 text-destructive" />
-              </div>
-              <div className="min-w-0">
+            <CardContent className="p-4 space-y-1">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-destructive/10 flex items-center justify-center shrink-0">
+                  <XCircle className="h-4 w-4 text-destructive" />
+                </div>
                 <p className="text-sm text-muted-foreground">Cancelamentos</p>
-                <p className="text-2xl font-semibold">{monthlyStats.cancellations}</p>
               </div>
+              <p className="text-2xl font-semibold">{monthlyStats.cancellations}</p>
+              {dailyTrends.length > 0 && (
+                <div className="h-6 w-full opacity-70">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={dailyTrends}><Line type="monotone" dataKey="cancellations" stroke="hsl(var(--destructive))" strokeWidth={1.5} dot={false} /></LineChart>
+                  </ResponsiveContainer>
+                </div>
+              )}
             </CardContent>
           </Card>
           <Card>
-            <CardContent className="p-4 flex items-center gap-2">
-              <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
-                <BarChart3 className="h-5 w-5 text-primary" />
-              </div>
-              <div className="min-w-0">
+            <CardContent className="p-4 space-y-1">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                  <BarChart3 className="h-4 w-4 text-primary" />
+                </div>
                 <p className="text-sm text-muted-foreground">Taxa de ocupação</p>
-                <p className="text-2xl font-semibold">{monthlyStats.occupancyRate}%</p>
               </div>
+              <p className="text-2xl font-semibold">{monthlyStats.occupancyRate}%</p>
+              {dailyTrends.length > 0 && (
+                <div className="h-6 w-full opacity-70">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={dailyTrends}><Line type="monotone" dataKey="occupancy" stroke="hsl(var(--primary))" strokeWidth={1.5} dot={false} /></LineChart>
+                  </ResponsiveContainer>
+                </div>
+              )}
             </CardContent>
           </Card>
           <Card>
-            <CardContent className="p-4 flex items-center gap-2">
-              <div className="w-10 h-10 rounded-xl bg-warning/10 flex items-center justify-center shrink-0">
-                <Receipt className="h-5 w-5 text-warning" />
-              </div>
-              <div className="min-w-0">
+            <CardContent className="p-4 space-y-1">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-warning/10 flex items-center justify-center shrink-0">
+                  <Receipt className="h-4 w-4 text-warning" />
+                </div>
                 <p className="text-sm text-muted-foreground">Ticket médio</p>
-                <p className="text-2xl font-semibold whitespace-nowrap">R$ {monthlyStats.avgTicket.toFixed(2)}</p>
               </div>
+              <p className="text-2xl font-semibold whitespace-nowrap">R$ {monthlyStats.avgTicket.toFixed(2)}</p>
+              {dailyTrends.length > 0 && (
+                <div className="h-6 w-full opacity-70">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={dailyTrends}><Line type="monotone" dataKey="revenue" stroke="hsl(var(--warning))" strokeWidth={1.5} dot={false} /></LineChart>
+                  </ResponsiveContainer>
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>
