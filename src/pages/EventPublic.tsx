@@ -288,7 +288,7 @@ const EventPublic = () => {
 
       {/* Hero Banner */}
       <div className="relative h-56 md:h-72 bg-gradient-to-br from-primary/80 to-primary overflow-hidden">
-        {event?.cover_image && <img src={event.cover_image} alt={event.name} className="absolute inset-0 w-full h-full object-cover opacity-60" />}
+        {event?.cover_image && <img src={event.cover_image} alt={event.name} className="absolute inset-0 w-full h-full object-cover opacity-60" style={{ objectPosition: `${(event as any).image_position_x ?? 50}% ${(event as any).image_position_y ?? 50}%`, transform: `scale(${(event as any).image_zoom ?? 1})`, transformOrigin: `${(event as any).image_position_x ?? 50}% ${(event as any).image_position_y ?? 50}%` }} />}
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
         <div className="relative z-10 h-full flex flex-col justify-end p-6 md:p-10 max-w-4xl mx-auto">
           <Badge className="w-fit mb-2 bg-white/20 text-white border-white/30">Agenda Aberta</Badge>
