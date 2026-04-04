@@ -563,6 +563,8 @@ export type Database = {
       }
       companies: {
         Row: {
+          activated_at: string | null
+          activation_score: number
           address: string | null
           address_number: string | null
           billing_cycle: string
@@ -584,6 +586,7 @@ export type Database = {
           latitude: number | null
           logo_url: string | null
           longitude: number | null
+          marketplace_active: boolean
           name: string
           owner_id: string | null
           phone: string | null
@@ -604,6 +607,8 @@ export type Database = {
           whatsapp: string | null
         }
         Insert: {
+          activated_at?: string | null
+          activation_score?: number
           address?: string | null
           address_number?: string | null
           billing_cycle?: string
@@ -625,6 +630,7 @@ export type Database = {
           latitude?: number | null
           logo_url?: string | null
           longitude?: number | null
+          marketplace_active?: boolean
           name: string
           owner_id?: string | null
           phone?: string | null
@@ -645,6 +651,8 @@ export type Database = {
           whatsapp?: string | null
         }
         Update: {
+          activated_at?: string | null
+          activation_score?: number
           address?: string | null
           address_number?: string | null
           billing_cycle?: string
@@ -666,6 +674,7 @@ export type Database = {
           latitude?: number | null
           logo_url?: string | null
           longitude?: number | null
+          marketplace_active?: boolean
           name?: string
           owner_id?: string | null
           phone?: string | null

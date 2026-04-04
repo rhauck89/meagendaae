@@ -6,6 +6,7 @@ import { supabase } from '@/integrations/supabase/client';
 import TrialBanner from '@/components/TrialBanner';
 import TutorialProgressWidget from '@/components/TutorialProgressWidget';
 import OnboardingChecklist from '@/components/OnboardingChecklist';
+import MarketplaceActivation from '@/components/MarketplaceActivation';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -912,6 +913,7 @@ const Dashboard = () => {
     <div className="space-y-6">
       <TrialBanner />
       <OnboardingChecklist />
+      <MarketplaceActivation />
       <TutorialProgressWidget />
 
       {/* Temporary test push notification button */}
