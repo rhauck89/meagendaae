@@ -190,14 +190,21 @@ const Events = () => {
   const [formDescription, setFormDescription] = useState('');
   const [formStartDate, setFormStartDate] = useState('');
   const [formEndDate, setFormEndDate] = useState('');
+  const [formSingleDay, setFormSingleDay] = useState(false);
   const [formCoverImage, setFormCoverImage] = useState('');
   const [formCoverPreview, setFormCoverPreview] = useState('');
   const [uploadingCover, setUploadingCover] = useState(false);
   const [formStatus, setFormStatus] = useState<'draft' | 'published'>('draft');
   const [formMaxBookingsPerClient, setFormMaxBookingsPerClient] = useState(0);
+  const [formImagePositionX, setFormImagePositionX] = useState(50);
+  const [formImagePositionY, setFormImagePositionY] = useState(50);
+  const [formImageZoom, setFormImageZoom] = useState(1);
   const [saving, setSaving] = useState(false);
   const [eventSlotStats, setEventSlotStats] = useState<Record<string, { total: number; booked: number }>>({});
   const coverInputRef = useRef<HTMLInputElement>(null);
+  const imageContainerRef = useRef<HTMLDivElement>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const dragStart = useRef<{ x: number; y: number; posX: number; posY: number } | null>(null);
 
   const [slotMode, setSlotMode] = useState<'manual' | 'auto'>('auto');
   const [slotProfessionals, setSlotProfessionals] = useState<string[]>([]);
