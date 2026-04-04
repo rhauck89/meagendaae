@@ -49,9 +49,15 @@ export function CustomRequestForm({ open, onOpenChange, companyId, services, pro
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
 
+  const handleWhatsAppChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const masked = applyWhatsAppMask(e.target.value);
+    setForm(prev => ({ ...prev, client_whatsapp: masked }));
+  }, []);
+
   const handleSubmit = async () => {
     if (!form.client_name.trim()) return toast.error('Informe seu nome');
-    if (!form.client_whatsapp || !isValidWhatsApp(form.client_whatsapp)) return toast.error('Informe um WhatsApp válido');
+    const rawDigits = form.client_whatsapp.replace(/\D/g, '');
+    if (rawDigits.length !== 11) return toast.error('Digite um WhatsApp válido');
     if (!form.service_id) return toast.error('Selecione um serviço');
     if (!form.requested_date) return toast.error('Selecione uma data');
     if (!form.requested_time) return toast.error('Informe o horário desejado');
@@ -72,6 +78,7 @@ export function CustomRequestForm({ open, onOpenChange, companyId, services, pro
 
       if (error) throw error;
       setSubmitted(true);
+      toast.success('Solicitação enviada com sucesso! O profissional irá avaliar sua disponibilidade.');
     } catch (err) {
       console.error('Error submitting custom request:', err);
       toast.error('Erro ao enviar solicitação. Tente novamente.');
