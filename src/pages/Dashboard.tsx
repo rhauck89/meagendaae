@@ -345,45 +345,42 @@ const Dashboard = () => {
     });
   };
 
-  const fetchReturnStats = async () => {
+  const fetchDailyTrends = async () => {
     if (!companyId) return;
-    const { data: clients } = await supabase
-      .from('profiles')
-      .select('id, full_name, whatsapp, average_return_days, last_visit_date, expected_return_date')
+    const days = 14;
+    const startDate = format(addDays(new Date(), -days + 1), 'yyyy-MM-dd');
+    const { data } = await supabase
+      .from('appointments')
+      .select('start_time, status, total_price')
       .eq('company_id', companyId)
-      .not('expected_return_date', 'is', null);
+      .gte('start_time', `${startDate}T00:00:00`)
+      .order('start_time', { ascending: true });
 
-    if (!clients) return;
+    if (!data) return;
 
-    const today = new Date();
-    let onTime = 0;
-    let approaching = 0;
-    let overdue = 0;
-    const approachingClients: any[] = [];
-    const overdueClients: any[] = [];
-
-    for (const c of clients) {
-      const expected = new Date(c.expected_return_date);
-      const daysUntil = differenceInDays(expected, today);
-
-      if (daysUntil < 0) {
-        overdue++;
-        overdueClients.push({ ...c, daysOverdue: Math.abs(daysUntil) });
-      } else if (daysUntil <= 5) {
-        approaching++;
-        approachingClients.push({ ...c, daysUntil });
-      } else {
-        onTime++;
+    const map: Record<string, { revenue: number; clients: number; cancellations: number; total: number }> = {};
+    for (let i = 0; i < days; i++) {
+      const d = format(addDays(new Date(), -days + 1 + i), 'yyyy-MM-dd');
+      map[d] = { revenue: 0, clients: 0, cancellations: 0, total: 0 };
+    }
+    for (const a of data) {
+      const d = format(parseISO(a.start_time), 'yyyy-MM-dd');
+      if (!map[d]) continue;
+      map[d].total++;
+      if (a.status === 'completed') {
+        map[d].revenue += Number(a.total_price) || 0;
+        map[d].clients++;
+      } else if (a.status === 'cancelled' || a.status === 'no_show') {
+        map[d].cancellations++;
       }
     }
-
-    setReturnStats({
-      onTime,
-      approaching,
-      overdue,
-      approachingClients: approachingClients.sort((a, b) => a.daysUntil - b.daysUntil),
-      overdueClients: overdueClients.sort((a, b) => b.daysOverdue - a.daysOverdue),
-    });
+    setDailyTrends(Object.entries(map).map(([date, v]) => ({
+      date,
+      revenue: v.revenue,
+      clients: v.clients,
+      cancellations: v.cancellations,
+      occupancy: v.total > 0 ? Math.round((v.clients / v.total) * 100) : 0,
+    })));
   };
 
   const fetchWaitlistCount = async () => {
