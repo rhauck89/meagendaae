@@ -25,6 +25,13 @@ const FinanceDashboard = () => {
   const [cashFlowData, setCashFlowData] = useState<any[]>([]);
   const [upcomingDues, setUpcomingDues] = useState({ today: 0, thisWeek: 0, thisMonth: 0 });
 
+  // Feature discovery intro
+  useEffect(() => {
+    if (!discoveryLoading && !hasSeen('finance')) {
+      setShowIntro(true);
+    }
+  }, [discoveryLoading, hasSeen]);
+
   useEffect(() => {
     if (companyId) {
       fetchCurrentMonth();
