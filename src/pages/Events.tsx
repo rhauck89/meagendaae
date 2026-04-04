@@ -400,7 +400,7 @@ const Events = () => {
         slug = `${slug}-${Date.now().toString(36)}`;
       }
       const effectiveEndDate = formSingleDay ? formStartDate : formEndDate;
-      const payload = {
+      const basePayload = {
         company_id: companyId!,
         name: formName.trim(),
         slug,
@@ -408,7 +408,6 @@ const Events = () => {
         cover_image: formCoverImage.trim() || null,
         start_date: formStartDate,
         end_date: effectiveEndDate,
-        status: 'draft' as const,
         max_bookings_per_client: formMaxBookingsPerClient,
         image_position_x: formImagePositionX,
         image_position_y: formImagePositionY,
