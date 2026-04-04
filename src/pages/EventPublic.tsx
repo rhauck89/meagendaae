@@ -48,7 +48,8 @@ type Service = {
 };
 
 const EventPublic = () => {
-  const { eventId, eventSlug } = useParams();
+  const { eventId, eventSlug, slug: companySlugParam, companySlug: companySlugGeneric } = useParams();
+  const companySlug = companySlugParam || companySlugGeneric;
   const [event, setEvent] = useState<Event | null>(null);
   const [company, setCompany] = useState<any>(null);
   const [slots, setSlots] = useState<Slot[]>([]);
@@ -74,14 +75,32 @@ const EventPublic = () => {
 
   useEffect(() => {
     if (eventId || eventSlug) loadEvent();
-  }, [eventId, eventSlug]);
+  }, [eventId, eventSlug, companySlug]);
 
   const loadEvent = async () => {
     setLoading(true);
     let eventData: any = null;
 
-    if (eventId) {
-      // Primary: find event by unique ID (tenant-safe)
+    if (companySlug && eventSlug) {
+      // Best approach: resolve company by slug first, then find event scoped to that company
+      const { data: companyRecord } = await supabase
+        .from('public_company' as any)
+        .select('id')
+        .eq('slug', companySlug)
+        .maybeSingle();
+
+      if (companyRecord) {
+        const { data } = await supabase
+          .from('events')
+          .select('*')
+          .eq('company_id', (companyRecord as any).id)
+          .eq('slug', eventSlug)
+          .eq('status', 'published')
+          .maybeSingle();
+        eventData = data;
+      }
+    } else if (eventId) {
+      // Find event by unique ID (tenant-safe)
       const { data } = await supabase
         .from('events')
         .select('*')
@@ -90,7 +109,7 @@ const EventPublic = () => {
         .maybeSingle();
       eventData = data;
     } else if (eventSlug) {
-      // Legacy fallback: find by slug (may collide across tenants)
+      // Legacy fallback: find by slug alone (may collide across tenants)
       const { data: eventsArr } = await supabase
         .from('events')
         .select('*')
