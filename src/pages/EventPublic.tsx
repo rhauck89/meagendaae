@@ -405,13 +405,13 @@ const EventPublic = () => {
                       <p className="text-xs text-muted-foreground">{svc.duration_minutes} min</p>
                     </div>
                     <div className="text-right">
-                      {svc.override_price != null ? (
+                      {svc.override_price != null && svc.override_price < svc.price ? (
                         <div>
                           <span className="text-sm line-through text-muted-foreground mr-2">R$ {Number(svc.price).toFixed(2)}</span>
                           <span className="font-bold text-primary">R$ {Number(svc.override_price).toFixed(2)}</span>
                         </div>
                       ) : (
-                        <span className="font-semibold">R$ {Number(svc.price).toFixed(2)}</span>
+                        <span className="font-semibold">R$ {Number(svc.override_price ?? svc.price).toFixed(2)}</span>
                       )}
                     </div>
                   </CardContent>
