@@ -1040,6 +1040,12 @@ const Events = () => {
             {slotBreakMinutes > 0 ? ` + ${slotBreakMinutes} min de intervalo` : ''}
             {' '}= próximo horário a cada {slotServiceDuration + slotBreakMinutes} min
           </p>
+          {eventSlots.length > 0 && (
+            <div className="flex items-center gap-2 p-2 rounded-md bg-orange-500/10 text-orange-600 dark:text-orange-400 text-xs">
+              <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+              <span>Horários já configurados para este evento. Gerar novos slots pode substituir os horários existentes.</span>
+            </div>
+          )}
           <Button onClick={handleGenerateSlots} disabled={saving} className="w-full">
             {saving ? 'Gerando...' : 'Gerar Slots'}
           </Button>
