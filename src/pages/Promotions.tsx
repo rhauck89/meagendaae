@@ -1208,6 +1208,12 @@ export default function Promotions() {
           )}
         </DialogContent>
       </Dialog>
+      <FeatureIntroModal
+        featureKey="promotions"
+        open={showIntro}
+        onClose={() => { setShowIntro(false); markSeen('promotions'); }}
+        onAction={() => setDialogOpen(true)}
+      />
     </div>
   );
 }
