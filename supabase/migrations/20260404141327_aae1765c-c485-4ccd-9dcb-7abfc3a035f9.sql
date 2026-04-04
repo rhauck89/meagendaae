@@ -1,0 +1,39 @@
+DROP VIEW IF EXISTS public.public_company;
+
+CREATE VIEW public.public_company AS
+SELECT c.id,
+    c.name,
+    c.slug,
+    c.logo_url,
+    c.cover_url,
+    c.description,
+    c.business_type,
+    c.buffer_minutes,
+    c.booking_mode,
+    c.fixed_slot_interval,
+    c.phone,
+    c.address,
+    c.address_number,
+    c.district,
+    c.city,
+    c.state,
+    c.postal_code,
+    c.latitude,
+    c.longitude,
+    c.website,
+    c.facebook,
+    c.instagram,
+    c.google_maps_url,
+    c.google_review_url,
+    CASE
+        WHEN (c.whatsapp IS NOT NULL) THEN (left(c.whatsapp, 8) || '****'::text)
+        ELSE NULL::text
+    END AS whatsapp,
+    COALESCE(r.avg_rating, (0)::numeric) AS average_rating,
+    COALESCE(r.review_count, 0) AS review_count
+FROM companies c
+LEFT JOIN (
+    SELECT company_id, AVG(rating)::numeric AS avg_rating, COUNT(*)::int AS review_count
+    FROM reviews
+    GROUP BY company_id
+) r ON r.company_id = c.id;

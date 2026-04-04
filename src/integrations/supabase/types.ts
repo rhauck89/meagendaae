@@ -3197,6 +3197,7 @@ export type Database = {
           address: string | null
           address_number: string | null
           average_rating: number | null
+          booking_mode: string | null
           buffer_minutes: number | null
           business_type: Database["public"]["Enums"]["business_type"] | null
           city: string | null
@@ -3204,6 +3205,7 @@ export type Database = {
           description: string | null
           district: string | null
           facebook: string | null
+          fixed_slot_interval: number | null
           google_maps_url: string | null
           google_review_url: string | null
           id: string | null
