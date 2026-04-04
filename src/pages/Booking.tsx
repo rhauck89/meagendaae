@@ -715,7 +715,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
     if (professionals.length === 1 && selectedProfessional !== professionals[0].id) {
       setSelectedProfessional(professionals[0].id);
       fetchProfessionalHours(professionals[0].id);
-      if (step === 'professional') setStep('datetime');
+      if (step === 'professional') setStep(prefillFromProfile.current && selectedDate && selectedTime ? 'client' : 'datetime');
     }
   }, [professionals, selectedProfessional, step]);
 
