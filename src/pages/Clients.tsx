@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUserRole } from '@/hooks/useUserRole';
 import { useRefreshData } from '@/hooks/useRefreshData';
@@ -12,8 +12,9 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Search, MessageCircle, Users, ArrowLeft, Calendar, DollarSign, Star, Scissors, Cake, Pencil, UserPlus, Ban, ShieldCheck } from 'lucide-react';
-import { format, parseISO } from 'date-fns';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Search, MessageCircle, Users, ArrowLeft, Calendar, DollarSign, Star, Scissors, Cake, Pencil, UserPlus, Ban, ShieldCheck, ArrowUpDown, ArrowUp, ArrowDown, UserCheck, XCircle, Trophy } from 'lucide-react';
+import { format, parseISO, startOfMonth } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { displayWhatsApp, formatWhatsApp } from '@/lib/whatsapp';
 import { toast } from 'sonner';
@@ -39,6 +40,9 @@ interface AppointmentRow {
   services: { name: string; price: number }[];
 }
 
+type SortColumn = 'name' | 'lastVisit' | 'totalVisits' | 'totalSpent';
+type SortDirection = 'asc' | 'desc';
+
 const Clients = () => {
   const { companyId } = useAuth();
   const { isAdmin, profileId } = useUserRole();
@@ -47,6 +51,9 @@ const Clients = () => {
   const [search, setSearch] = useState('');
   const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
   const [showAllBirthdays, setShowAllBirthdays] = useState(false);
+  const [sortColumn, setSortColumn] = useState<SortColumn>('name');
+  const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
+  const [profFilter, setProfFilter] = useState<string>('all');
 
   // Manual client registration state
   const [addClientOpen, setAddClientOpen] = useState(false);
@@ -67,7 +74,6 @@ const Clients = () => {
 
     setAddClientSaving(true);
     try {
-      // Check for existing client with same WhatsApp
       const normalizedWa = whatsapp.replace(/\D/g, '');
       const { data: existing } = await supabase
         .from('clients')
@@ -122,7 +128,7 @@ const Clients = () => {
     enabled: !!companyId,
   });
 
-  // Fetch all completed appointments for stats
+  // Fetch all appointments for stats
   const { data: appointments = [] } = useQuery({
     queryKey: ['client-appointments-stats', companyId],
     queryFn: async () => {
@@ -131,7 +137,7 @@ const Clients = () => {
         .from('appointments')
         .select('id, client_id, professional_id, start_time, total_price, status')
         .eq('company_id', companyId)
-        .in('status', ['completed', 'confirmed', 'pending']);
+        .in('status', ['completed', 'confirmed', 'pending', 'cancelled']);
       if (error) throw error;
       return data;
     },
@@ -156,31 +162,113 @@ const Clients = () => {
   const profileMap = Object.fromEntries(profiles.map(p => [p.id, p.full_name]));
 
   // Calculate stats per client
-  const clientStats = (clientId: string) => {
-    const clientAppts = appointments.filter(a => a.client_id === clientId && a.status === 'completed');
-    const totalVisits = clientAppts.length;
-    const totalSpent = clientAppts.reduce((sum, a) => sum + Number(a.total_price), 0);
-    const lastVisit = clientAppts.length > 0
-      ? clientAppts.sort((a, b) => b.start_time.localeCompare(a.start_time))[0]?.start_time
-      : null;
+  const clientStatsMap = useMemo(() => {
+    const map: Record<string, { totalVisits: number; totalSpent: number; lastVisit: string | null; favProfName: string; favProfId: string | null; cancelledCount: number }> = {};
+    
+    clients.forEach(client => {
+      const clientAppts = appointments.filter(a => a.client_id === client.id);
+      const completedAppts = clientAppts.filter(a => a.status === 'completed');
+      const totalVisits = completedAppts.length;
+      const totalSpent = completedAppts.reduce((sum, a) => sum + Number(a.total_price), 0);
+      const lastVisit = completedAppts.length > 0
+        ? completedAppts.sort((a, b) => b.start_time.localeCompare(a.start_time))[0]?.start_time
+        : null;
 
-    // Favorite professional
-    const profCount: Record<string, number> = {};
-    clientAppts.forEach(a => {
-      profCount[a.professional_id] = (profCount[a.professional_id] || 0) + 1;
+      const profCount: Record<string, number> = {};
+      completedAppts.forEach(a => {
+        profCount[a.professional_id] = (profCount[a.professional_id] || 0) + 1;
+      });
+      const favProfId = Object.entries(profCount).sort((a, b) => b[1] - a[1])[0]?.[0] || null;
+      const favProfName = favProfId ? profileMap[favProfId] || 'Desconhecido' : '-';
+      
+      const cancelledCount = clientAppts.filter(a => a.status === 'cancelled').length;
+
+      map[client.id] = { totalVisits, totalSpent, lastVisit, favProfName, favProfId, cancelledCount };
     });
-    const favProfId = Object.entries(profCount).sort((a, b) => b[1] - a[1])[0]?.[0];
-    const favProfName = favProfId ? profileMap[favProfId] || 'Desconhecido' : '-';
+    
+    return map;
+  }, [clients, appointments, profileMap]);
 
-    return { totalVisits, totalSpent, lastVisit, favProfName };
+  // Analytics metrics
+  const metrics = useMemo(() => {
+    const monthStart = startOfMonth(new Date()).toISOString();
+    const newClients = clients.filter(c => c.created_at >= monthStart).length;
+    const recurringClients = clients.filter(c => (clientStatsMap[c.id]?.totalVisits || 0) > 1).length;
+    const totalCancellations = appointments.filter(a => a.status === 'cancelled').length;
+    
+    const topClients = [...clients]
+      .map(c => ({ name: c.name, spent: clientStatsMap[c.id]?.totalSpent || 0 }))
+      .sort((a, b) => b.spent - a.spent)
+      .slice(0, 3);
+
+    return { newClients, recurringClients, totalCancellations, topClients };
+  }, [clients, appointments, clientStatsMap]);
+
+  // Unique professionals for filter
+  const uniqueProfessionals = useMemo(() => {
+    const profIds = new Set<string>();
+    appointments.forEach(a => { if (a.professional_id) profIds.add(a.professional_id); });
+    return Array.from(profIds).map(id => ({ id, name: profileMap[id] || 'Desconhecido' })).sort((a, b) => a.name.localeCompare(b.name));
+  }, [appointments, profileMap]);
+
+  // Filter and sort
+  const filtered = useMemo(() => {
+    let result = clients.filter(c =>
+      c.name.toLowerCase().includes(search.toLowerCase()) ||
+      (c.whatsapp && c.whatsapp.includes(search))
+    );
+
+    // Professional filter
+    if (profFilter !== 'all') {
+      const clientIdsWithProf = new Set(
+        appointments.filter(a => a.professional_id === profFilter && a.status === 'completed').map(a => a.client_id)
+      );
+      result = result.filter(c => clientIdsWithProf.has(c.id));
+    }
+
+    // Sort
+    result.sort((a, b) => {
+      const statsA = clientStatsMap[a.id] || { totalVisits: 0, totalSpent: 0, lastVisit: null, favProfName: '-' };
+      const statsB = clientStatsMap[b.id] || { totalVisits: 0, totalSpent: 0, lastVisit: null, favProfName: '-' };
+      
+      let cmp = 0;
+      switch (sortColumn) {
+        case 'name':
+          cmp = a.name.localeCompare(b.name);
+          break;
+        case 'lastVisit':
+          cmp = (statsA.lastVisit || '').localeCompare(statsB.lastVisit || '');
+          break;
+        case 'totalVisits':
+          cmp = statsA.totalVisits - statsB.totalVisits;
+          break;
+        case 'totalSpent':
+          cmp = statsA.totalSpent - statsB.totalSpent;
+          break;
+      }
+      return sortDirection === 'asc' ? cmp : -cmp;
+    });
+
+    return result;
+  }, [clients, search, sortColumn, sortDirection, profFilter, clientStatsMap, appointments]);
+
+  const toggleSort = (col: SortColumn) => {
+    if (sortColumn === col) {
+      setSortDirection(d => d === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortColumn(col);
+      setSortDirection(col === 'name' ? 'asc' : 'desc');
+    }
   };
 
-  const filtered = clients.filter(c =>
-    c.name.toLowerCase().includes(search.toLowerCase()) ||
-    (c.whatsapp && c.whatsapp.includes(search))
-  );
+  const SortIcon = ({ col }: { col: SortColumn }) => {
+    if (sortColumn !== col) return <ArrowUpDown className="h-3 w-3 ml-1 opacity-40" />;
+    return sortDirection === 'asc'
+      ? <ArrowUp className="h-3 w-3 ml-1 text-primary" />
+      : <ArrowDown className="h-3 w-3 ml-1 text-primary" />;
+  };
 
-   // Birthday calculations
+  // Birthday calculations
   const clientsWithBirthdays = clients
     .filter(c => c.birth_date)
     .map(c => {
@@ -310,6 +398,54 @@ const Clients = () => {
         />
       </div>
 
+      {/* Analytics Cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <Card>
+          <CardContent className="pt-5 pb-4">
+            <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1">
+              <UserPlus className="h-3.5 w-3.5" /> Novos clientes
+            </div>
+            <p className="text-2xl font-bold">{metrics.newClients}</p>
+            <p className="text-xs text-muted-foreground mt-0.5">este mês</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-5 pb-4">
+            <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1">
+              <UserCheck className="h-3.5 w-3.5" /> Clientes recorrentes
+            </div>
+            <p className="text-2xl font-bold">{metrics.recurringClients}</p>
+            <p className="text-xs text-muted-foreground mt-0.5">mais de 1 agendamento</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-5 pb-4">
+            <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1">
+              <XCircle className="h-3.5 w-3.5" /> Cancelamentos
+            </div>
+            <p className="text-2xl font-bold">{metrics.totalCancellations}</p>
+            <p className="text-xs text-muted-foreground mt-0.5">total geral</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-5 pb-4">
+            <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1">
+              <Trophy className="h-3.5 w-3.5" /> Top clientes
+            </div>
+            <div className="space-y-0.5 mt-1">
+              {metrics.topClients.length > 0 ? metrics.topClients.map((tc, i) => (
+                <p key={i} className="text-xs truncate">
+                  <span className="font-medium">{tc.name}</span>
+                  <span className="text-muted-foreground ml-1">R$ {tc.spent.toFixed(0)}</span>
+                </p>
+              )) : (
+                <p className="text-xs text-muted-foreground">Sem dados</p>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
       {/* Upcoming Birthdays */}
       {clientsWithBirthdays.length > 0 && (
         <Card>
@@ -379,18 +515,58 @@ const Clients = () => {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Nome</TableHead>
+                      <TableHead>
+                        <button
+                          className="flex items-center gap-0.5 hover:text-foreground transition-colors font-medium"
+                          onClick={() => toggleSort('name')}
+                        >
+                          Nome <SortIcon col="name" />
+                        </button>
+                      </TableHead>
                       <TableHead>WhatsApp</TableHead>
-                      <TableHead>Última visita</TableHead>
-                      <TableHead className="text-center">Visitas</TableHead>
-                      <TableHead>Profissional favorito</TableHead>
-                      <TableHead className="text-right">Total gasto</TableHead>
+                      <TableHead>
+                        <button
+                          className="flex items-center gap-0.5 hover:text-foreground transition-colors font-medium"
+                          onClick={() => toggleSort('lastVisit')}
+                        >
+                          Última visita <SortIcon col="lastVisit" />
+                        </button>
+                      </TableHead>
+                      <TableHead className="text-center">
+                        <button
+                          className="flex items-center gap-0.5 hover:text-foreground transition-colors font-medium mx-auto"
+                          onClick={() => toggleSort('totalVisits')}
+                        >
+                          Agendamentos <SortIcon col="totalVisits" />
+                        </button>
+                      </TableHead>
+                      <TableHead>
+                        <Select value={profFilter} onValueChange={setProfFilter}>
+                          <SelectTrigger className="h-auto border-0 p-0 shadow-none font-medium text-muted-foreground hover:text-foreground text-xs gap-1 w-auto">
+                            <SelectValue placeholder="Profissional favorito" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all">Todos profissionais</SelectItem>
+                            {uniqueProfessionals.map(p => (
+                              <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </TableHead>
+                      <TableHead className="text-right">
+                        <button
+                          className="flex items-center gap-0.5 hover:text-foreground transition-colors font-medium ml-auto"
+                          onClick={() => toggleSort('totalSpent')}
+                        >
+                          Total gasto <SortIcon col="totalSpent" />
+                        </button>
+                      </TableHead>
                       <TableHead />
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {filtered.map(client => {
-                      const stats = clientStats(client.id);
+                      const stats = clientStatsMap[client.id] || { totalVisits: 0, totalSpent: 0, lastVisit: null, favProfName: '-' };
                       return (
                         <TableRow
                           key={client.id}
@@ -400,7 +576,7 @@ const Clients = () => {
                           <TableCell className="font-medium">
                             <div className="flex items-center gap-2">
                               {client.name}
-                              {(client as any).is_blocked && (
+                              {client.is_blocked && (
                                 <Badge variant="destructive" className="text-[10px] px-1.5 py-0">
                                   <Ban className="h-3 w-3 mr-0.5" /> Bloqueado
                                 </Badge>
@@ -449,7 +625,7 @@ const Clients = () => {
           {/* Mobile cards */}
           <div className="md:hidden space-y-3">
             {filtered.map(client => {
-              const stats = clientStats(client.id);
+              const stats = clientStatsMap[client.id] || { totalVisits: 0, totalSpent: 0, lastVisit: null, favProfName: '-' };
               return (
                 <Card
                   key={client.id}
@@ -460,7 +636,7 @@ const Clients = () => {
                     <div className="flex items-center justify-between">
                       <p className="font-medium text-sm flex items-center gap-2">
                         {client.name}
-                        {(client as any).is_blocked && (
+                        {client.is_blocked && (
                           <Badge variant="destructive" className="text-[10px] px-1.5 py-0">
                             <Ban className="h-3 w-3 mr-0.5" /> Bloqueado
                           </Badge>
@@ -636,7 +812,6 @@ const ClientProfile = ({ client, companyId, profileMap, onBack }: ClientProfileP
 
       if (error) throw error;
 
-      // Update local client object
       client.name = editForm.name.trim();
       client.whatsapp = editForm.whatsapp.trim() || null;
       client.email = editForm.email.trim() || null;
