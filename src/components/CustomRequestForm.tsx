@@ -142,9 +142,10 @@ export function CustomRequestForm({ open, onOpenChange, companyId, services, pro
             <Label className="text-sm font-medium">WhatsApp *</Label>
             <Input
               value={form.client_whatsapp}
-              onChange={(e) => setForm({ ...form, client_whatsapp: e.target.value })}
-              placeholder="(11) 99999-9999"
+              onChange={handleWhatsAppChange}
+              placeholder="(00) 00000-0000"
               maxLength={15}
+              inputMode="numeric"
             />
           </div>
 
