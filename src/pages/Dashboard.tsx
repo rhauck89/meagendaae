@@ -23,6 +23,7 @@ import { formatWhatsApp } from '@/lib/whatsapp';
 import { useNavigate as useRouterNavigate } from 'react-router-dom';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { ManualAppointmentDialog } from '@/components/ManualAppointmentDialog';
+import { ResponsiveContainer, LineChart, Line } from 'recharts';
 
 type ViewMode = 'day' | 'week' | 'month';
 type StatusTab = 'all' | 'confirmed' | 'completed' | 'cancelled' | 'rescheduled';
@@ -87,13 +88,6 @@ const statusFilterMap: Record<StatusTab, (apt: any) => boolean> = {
   rescheduled: (apt) => apt.status === 'rescheduled',
 };
 
-interface ReturnStats {
-  onTime: number;
-  approaching: number;
-  overdue: number;
-  approachingClients: any[];
-  overdueClients: any[];
-}
 
 const Dashboard = () => {
   const { companyId, user } = useAuth();
@@ -103,7 +97,7 @@ const Dashboard = () => {
   const [appointments, setAppointments] = useState<any[]>([]);
   const [stats, setStats] = useState({ total: 0, revenue: 0, revenueCompleted: 0, clients: 0 });
   const [monthlyStats, setMonthlyStats] = useState({ revenue: 0, revenueCompleted: 0, clients: 0, cancellations: 0, occupancyRate: 0, avgTicket: 0 });
-  const [returnStats, setReturnStats] = useState<ReturnStats>({ onTime: 0, approaching: 0, overdue: 0, approachingClients: [], overdueClients: [] });
+  const [dailyTrends, setDailyTrends] = useState<{ date: string; revenue: number; clients: number; cancellations: number; occupancy: number }[]>([]);
   const [waitlistCount, setWaitlistCount] = useState(0);
   const [waitlistServiceBreakdown, setWaitlistServiceBreakdown] = useState<Record<string, number>>({});
   const [hasOpenSlot, setHasOpenSlot] = useState(false);
@@ -164,7 +158,7 @@ const Dashboard = () => {
   useEffect(() => {
     if (!companyId) return;
     fetchAppointments();
-    fetchReturnStats();
+    fetchDailyTrends();
     fetchWaitlistCount();
     fetchReminderCount();
     fetchBirthdays();
@@ -352,45 +346,42 @@ const Dashboard = () => {
     });
   };
 
-  const fetchReturnStats = async () => {
+  const fetchDailyTrends = async () => {
     if (!companyId) return;
-    const { data: clients } = await supabase
-      .from('profiles')
-      .select('id, full_name, whatsapp, average_return_days, last_visit_date, expected_return_date')
+    const days = 14;
+    const startDate = format(addDays(new Date(), -days + 1), 'yyyy-MM-dd');
+    const { data } = await supabase
+      .from('appointments')
+      .select('start_time, status, total_price')
       .eq('company_id', companyId)
-      .not('expected_return_date', 'is', null);
+      .gte('start_time', `${startDate}T00:00:00`)
+      .order('start_time', { ascending: true });
 
-    if (!clients) return;
+    if (!data) return;
 
-    const today = new Date();
-    let onTime = 0;
-    let approaching = 0;
-    let overdue = 0;
-    const approachingClients: any[] = [];
-    const overdueClients: any[] = [];
-
-    for (const c of clients) {
-      const expected = new Date(c.expected_return_date);
-      const daysUntil = differenceInDays(expected, today);
-
-      if (daysUntil < 0) {
-        overdue++;
-        overdueClients.push({ ...c, daysOverdue: Math.abs(daysUntil) });
-      } else if (daysUntil <= 5) {
-        approaching++;
-        approachingClients.push({ ...c, daysUntil });
-      } else {
-        onTime++;
+    const map: Record<string, { revenue: number; clients: number; cancellations: number; total: number }> = {};
+    for (let i = 0; i < days; i++) {
+      const d = format(addDays(new Date(), -days + 1 + i), 'yyyy-MM-dd');
+      map[d] = { revenue: 0, clients: 0, cancellations: 0, total: 0 };
+    }
+    for (const a of data) {
+      const d = format(parseISO(a.start_time), 'yyyy-MM-dd');
+      if (!map[d]) continue;
+      map[d].total++;
+      if (a.status === 'completed') {
+        map[d].revenue += Number(a.total_price) || 0;
+        map[d].clients++;
+      } else if (a.status === 'cancelled' || a.status === 'no_show') {
+        map[d].cancellations++;
       }
     }
-
-    setReturnStats({
-      onTime,
-      approaching,
-      overdue,
-      approachingClients: approachingClients.sort((a, b) => a.daysUntil - b.daysUntil),
-      overdueClients: overdueClients.sort((a, b) => b.daysOverdue - a.daysOverdue),
-    });
+    setDailyTrends(Object.entries(map).map(([date, v]) => ({
+      date,
+      revenue: v.revenue,
+      clients: v.clients,
+      cancellations: v.cancellations,
+      occupancy: v.total > 0 ? Math.round((v.clients / v.total) * 100) : 0,
+    })));
   };
 
   const fetchWaitlistCount = async () => {
@@ -1111,174 +1102,116 @@ const Dashboard = () => {
         <h3 className="text-lg font-display font-semibold mb-3">📈 Resumo do Mês</h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
           <Card>
-            <CardContent className="p-4 flex items-center gap-2">
-              <div className="w-10 h-10 rounded-xl bg-success/10 flex items-center justify-center shrink-0">
-                <DollarSign className="h-5 w-5 text-success" />
-              </div>
-              <div className="min-w-0">
+            <CardContent className="p-4 space-y-1">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-success/10 flex items-center justify-center shrink-0">
+                  <DollarSign className="h-4 w-4 text-success" />
+                </div>
                 <p className="text-sm text-muted-foreground">Receita estimada</p>
-                <p className="text-2xl font-semibold whitespace-nowrap">R$ {monthlyStats.revenue.toFixed(2)}</p>
               </div>
+              <p className="text-2xl font-semibold whitespace-nowrap">R$ {monthlyStats.revenue.toFixed(2)}</p>
+              {dailyTrends.length > 0 && (
+                <div className="h-6 w-full opacity-70">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={dailyTrends}><Line type="monotone" dataKey="revenue" stroke="hsl(var(--success))" strokeWidth={1.5} dot={false} /></LineChart>
+                  </ResponsiveContainer>
+                </div>
+              )}
             </CardContent>
           </Card>
           <Card>
-            <CardContent className="p-4 flex items-center gap-2">
-              <div className="w-10 h-10 rounded-xl bg-accent/10 flex items-center justify-center shrink-0">
-                <TrendingUp className="h-5 w-5 text-accent" />
-              </div>
-              <div className="min-w-0">
+            <CardContent className="p-4 space-y-1">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-accent/10 flex items-center justify-center shrink-0">
+                  <TrendingUp className="h-4 w-4 text-accent" />
+                </div>
                 <p className="text-sm text-muted-foreground">Receita realizada</p>
-                <p className="text-2xl font-semibold whitespace-nowrap">R$ {monthlyStats.revenueCompleted.toFixed(2)}</p>
               </div>
+              <p className="text-2xl font-semibold whitespace-nowrap">R$ {monthlyStats.revenueCompleted.toFixed(2)}</p>
+              {dailyTrends.length > 0 && (
+                <div className="h-6 w-full opacity-70">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={dailyTrends}><Line type="monotone" dataKey="revenue" stroke="hsl(var(--accent))" strokeWidth={1.5} dot={false} /></LineChart>
+                  </ResponsiveContainer>
+                </div>
+              )}
             </CardContent>
           </Card>
           <Card>
-            <CardContent className="p-4 flex items-center gap-2">
-              <div className="w-10 h-10 rounded-xl bg-accent/10 flex items-center justify-center shrink-0">
-                <Users className="h-5 w-5 text-accent" />
-              </div>
-              <div className="min-w-0">
+            <CardContent className="p-4 space-y-1">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-accent/10 flex items-center justify-center shrink-0">
+                  <Users className="h-4 w-4 text-accent" />
+                </div>
                 <p className="text-sm text-muted-foreground">Clientes atendidos</p>
-                <p className="text-2xl font-semibold">{monthlyStats.clients}</p>
               </div>
+              <p className="text-2xl font-semibold">{monthlyStats.clients}</p>
+              {dailyTrends.length > 0 && (
+                <div className="h-6 w-full opacity-70">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={dailyTrends}><Line type="monotone" dataKey="clients" stroke="hsl(var(--accent))" strokeWidth={1.5} dot={false} /></LineChart>
+                  </ResponsiveContainer>
+                </div>
+              )}
             </CardContent>
           </Card>
           <Card>
-            <CardContent className="p-4 flex items-center gap-2">
-              <div className="w-10 h-10 rounded-xl bg-destructive/10 flex items-center justify-center shrink-0">
-                <XCircle className="h-5 w-5 text-destructive" />
-              </div>
-              <div className="min-w-0">
+            <CardContent className="p-4 space-y-1">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-destructive/10 flex items-center justify-center shrink-0">
+                  <XCircle className="h-4 w-4 text-destructive" />
+                </div>
                 <p className="text-sm text-muted-foreground">Cancelamentos</p>
-                <p className="text-2xl font-semibold">{monthlyStats.cancellations}</p>
               </div>
+              <p className="text-2xl font-semibold">{monthlyStats.cancellations}</p>
+              {dailyTrends.length > 0 && (
+                <div className="h-6 w-full opacity-70">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={dailyTrends}><Line type="monotone" dataKey="cancellations" stroke="hsl(var(--destructive))" strokeWidth={1.5} dot={false} /></LineChart>
+                  </ResponsiveContainer>
+                </div>
+              )}
             </CardContent>
           </Card>
           <Card>
-            <CardContent className="p-4 flex items-center gap-2">
-              <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
-                <BarChart3 className="h-5 w-5 text-primary" />
-              </div>
-              <div className="min-w-0">
+            <CardContent className="p-4 space-y-1">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                  <BarChart3 className="h-4 w-4 text-primary" />
+                </div>
                 <p className="text-sm text-muted-foreground">Taxa de ocupação</p>
-                <p className="text-2xl font-semibold">{monthlyStats.occupancyRate}%</p>
               </div>
+              <p className="text-2xl font-semibold">{monthlyStats.occupancyRate}%</p>
+              {dailyTrends.length > 0 && (
+                <div className="h-6 w-full opacity-70">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={dailyTrends}><Line type="monotone" dataKey="occupancy" stroke="hsl(var(--primary))" strokeWidth={1.5} dot={false} /></LineChart>
+                  </ResponsiveContainer>
+                </div>
+              )}
             </CardContent>
           </Card>
           <Card>
-            <CardContent className="p-4 flex items-center gap-2">
-              <div className="w-10 h-10 rounded-xl bg-warning/10 flex items-center justify-center shrink-0">
-                <Receipt className="h-5 w-5 text-warning" />
-              </div>
-              <div className="min-w-0">
+            <CardContent className="p-4 space-y-1">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-warning/10 flex items-center justify-center shrink-0">
+                  <Receipt className="h-4 w-4 text-warning" />
+                </div>
                 <p className="text-sm text-muted-foreground">Ticket médio</p>
-                <p className="text-2xl font-semibold whitespace-nowrap">R$ {monthlyStats.avgTicket.toFixed(2)}</p>
               </div>
+              <p className="text-2xl font-semibold whitespace-nowrap">R$ {monthlyStats.avgTicket.toFixed(2)}</p>
+              {dailyTrends.length > 0 && (
+                <div className="h-6 w-full opacity-70">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={dailyTrends}><Line type="monotone" dataKey="revenue" stroke="hsl(var(--warning))" strokeWidth={1.5} dot={false} /></LineChart>
+                  </ResponsiveContainer>
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>
       </div>
 
-      {isAdmin && (
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-lg font-display">Frequência de Retorno</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
-            <div className="flex items-center gap-2 p-3 rounded-xl bg-success/5 border border-success/20">
-              <UserCheck className="h-5 w-5 text-success shrink-0" />
-              <div>
-                <p className="text-2xl font-semibold">{returnStats.onTime}</p>
-                <p className="text-sm text-muted-foreground">Em dia</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-2 p-3 rounded-xl bg-warning/5 border border-warning/20">
-              <Clock className="h-5 w-5 text-warning shrink-0" />
-              <div>
-                <p className="text-2xl font-semibold">{returnStats.approaching}</p>
-                <p className="text-sm text-muted-foreground">Próx. do retorno</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-2 p-3 rounded-xl bg-destructive/5 border border-destructive/20">
-              <AlertTriangle className="h-5 w-5 text-destructive shrink-0" />
-              <div>
-                <p className="text-2xl font-semibold">{returnStats.overdue}</p>
-                <p className="text-sm text-muted-foreground">Atrasados</p>
-              </div>
-            </div>
-          </div>
-
-          {/* Overdue clients list */}
-          {returnStats.overdueClients.length > 0 && (
-            <div className="space-y-2">
-              <p className="text-sm font-semibold text-destructive">Clientes atrasados</p>
-              {returnStats.overdueClients.slice(0, 5).map((c) => (
-                <div key={c.id} className="flex items-center justify-between p-2 rounded-lg bg-destructive/5 text-sm gap-2">
-                  <div className="min-w-0 flex-1">
-                    <span className="font-medium">{c.full_name}</span>
-                  </div>
-                  <Badge variant="destructive" className="text-xs shrink-0">
-                    {c.daysOverdue}d atraso
-                  </Badge>
-                  {c.whatsapp && companySlug && (
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      className="h-7 px-2 text-xs shrink-0"
-                      onClick={() => {
-                        const prefix = companyBusinessType === 'esthetic' ? 'estetica' : 'barbearia';
-                        const bookingUrl = `${window.location.origin}/${prefix}/${companySlug}`;
-                        const msg = encodeURIComponent(
-                          `Olá ${c.full_name}! 👋\n\nJá faz ${c.daysOverdue} dias desde sua última visita.\n\nQue tal agendar seu próximo horário?\n\n📅 Agende aqui: ${bookingUrl}\n\nEsperamos você!`
-                        );
-                        window.open(`https://wa.me/${formatWhatsApp(c.whatsapp)}?text=${msg}`, '_blank');
-                      }}
-                    >
-                      📲
-                    </Button>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
-
-          {/* Approaching clients list */}
-          {returnStats.approachingClients.length > 0 && (
-            <div className="space-y-2 mt-3">
-              <p className="text-sm font-semibold text-warning">Próximos do retorno</p>
-              {returnStats.approachingClients.slice(0, 5).map((c) => (
-                <div key={c.id} className="flex items-center justify-between p-2 rounded-lg bg-warning/5 text-sm gap-2">
-                  <div className="min-w-0 flex-1">
-                    <span className="font-medium">{c.full_name}</span>
-                  </div>
-                  <Badge variant="outline" className="text-xs border-warning text-warning shrink-0">
-                    {c.daysUntil === 0 ? 'Hoje' : `em ${c.daysUntil}d`}
-                  </Badge>
-                  {c.whatsapp && companySlug && (
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      className="h-7 px-2 text-xs shrink-0"
-                      onClick={() => {
-                        const prefix = companyBusinessType === 'esthetic' ? 'estetica' : 'barbearia';
-                        const bookingUrl = `${window.location.origin}/${prefix}/${companySlug}`;
-                        const msg = encodeURIComponent(
-                          `Olá ${c.full_name}! 👋\n\nEstá chegando a hora do seu próximo atendimento.\n\n📅 Agende aqui: ${bookingUrl}\n\nEsperamos você!`
-                        );
-                        window.open(`https://wa.me/${formatWhatsApp(c.whatsapp)}?text=${msg}`, '_blank');
-                      }}
-                    >
-                      📲
-                    </Button>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
-      )}
 
       {/* Birthday Indicator - Admin only */}
       {isAdmin && birthdayClients.length > 0 && (
