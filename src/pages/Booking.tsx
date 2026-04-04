@@ -1276,7 +1276,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                 return (
                   <div
                     key={p.id}
-                    onClick={() => { setSelectedProfessional(p.id); fetchProfessionalHours(p.id); fetchRecentBookings(p.id); setStep('datetime'); }}
+                    onClick={() => { setSelectedProfessional(p.id); fetchProfessionalHours(p.id); fetchRecentBookings(p.id); setStep(prefillFromProfile.current && selectedDate && selectedTime ? 'client' : 'datetime'); }}
                     className="p-5 rounded-2xl cursor-pointer transition-all duration-200 hover:scale-[1.02] text-center"
                     style={{
                       background: sel ? `${T.accent}10` : T.card,
