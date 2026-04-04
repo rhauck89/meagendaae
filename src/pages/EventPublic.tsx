@@ -73,8 +73,8 @@ const EventPublic = () => {
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
 
   useEffect(() => {
-    if (eventSlug) loadEvent();
-  }, [eventSlug]);
+    if (eventId || eventSlug) loadEvent();
+  }, [eventId, eventSlug]);
 
   const loadEvent = async () => {
     setLoading(true);
