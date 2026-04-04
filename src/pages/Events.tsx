@@ -1274,6 +1274,12 @@ const Events = () => {
         className="hidden"
         onChange={handleCameraCapture}
       />
+      <FeatureIntroModal
+        featureKey="agenda_aberta"
+        open={showIntro}
+        onClose={() => { setShowIntro(false); markSeen('agenda_aberta'); }}
+        onAction={() => setShowCreateDialog(true)}
+      />
     </div>
   );
 };
