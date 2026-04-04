@@ -240,7 +240,7 @@ const Events = () => {
   const loadCompanyBranding = async () => {
     const [settingsRes, companyRes] = await Promise.all([
       supabase.from('company_settings').select('*').eq('company_id', companyId!).maybeSingle(),
-      supabase.from('companies').select('name, logo_url, cover_url').eq('id', companyId!).maybeSingle(),
+      supabase.from('companies').select('name, slug, logo_url, cover_url, business_type').eq('id', companyId!).maybeSingle(),
     ]);
     if (settingsRes.data) setCompanySettings(settingsRes.data);
     if (companyRes.data) setCompanyData(companyRes.data);
@@ -548,7 +548,11 @@ const Events = () => {
     }
   };
 
-  const getPublicUrl = (event: Event) => `${window.location.origin}/evento/${event.id}`;
+  const getPublicUrl = (event: Event) => {
+    const routeType = (companyData as any)?.business_type === 'esthetic' ? 'estetica' : 'barbearia';
+    const slug = (companyData as any)?.slug;
+    return slug ? `${window.location.origin}/${routeType}/${slug}/evento/${event.slug}` : `${window.location.origin}/evento/${event.slug}`;
+  };
 
   const openStorySourceDialog = (event: Event) => {
     setStoryEvent(event);

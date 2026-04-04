@@ -190,6 +190,7 @@ export default function Promotions() {
   const [clientsLoading, setClientsLoading] = useState(false);
   const [companyName, setCompanyName] = useState('');
   const [companySlug, setCompanySlug] = useState('');
+  const [companyBusinessType, setCompanyBusinessType] = useState('');
   const [metrics, setMetrics] = useState<PromoMetrics>({ clicks: 0, bookings: 0, clientsReached: 0 });
   const [lowOccupancy, setLowOccupancy] = useState(false);
 
@@ -231,8 +232,8 @@ export default function Promotions() {
   };
 
   const fetchCompanyInfo = async () => {
-    const { data } = await supabase.from('companies').select('name, slug').eq('id', companyId!).single();
-    if (data) { setCompanyName(data.name); setCompanySlug(data.slug); }
+    const { data } = await supabase.from('companies').select('name, slug, business_type').eq('id', companyId!).single();
+    if (data) { setCompanyName(data.name); setCompanySlug(data.slug); setCompanyBusinessType((data as any).business_type || 'barbershop'); }
   };
 
   const fetchPromotions = async () => {
@@ -525,7 +526,8 @@ export default function Promotions() {
   };
 
   const getPromoLink = (promo: Promotion) => {
-    return `${window.location.origin}/barbearia/${companySlug}/promo/${promo.slug || promo.id}`;
+    const routeType = companyBusinessType === 'esthetic' ? 'estetica' : 'barbearia';
+    return `${window.location.origin}/${routeType}/${companySlug}/promo/${promo.slug || promo.id}`;
   };
 
   const buildWhatsAppLink = (client: ClientRow, promotion: Promotion) => {

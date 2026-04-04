@@ -48,19 +48,40 @@ export default function PromotionPublic() {
 
   useEffect(() => {
     if (promoSlug) load();
-  }, [promoSlug]);
+  }, [promoSlug, companySlug]);
 
   const load = async () => {
     setLoading(true);
 
-    // Find promotion via public view
-    const { data: promos } = await supabase
-      .from('public_promotions' as any)
-      .select('*')
-      .eq('slug', promoSlug!)
-      .limit(1);
+    let promoData: any = null;
 
-    const promoData = (promos as any)?.[0];
+    if (companySlug) {
+      // Tenant-safe: resolve company first, then find promo scoped to company
+      const { data: companyRecord } = await supabase
+        .from('public_company' as any)
+        .select('id')
+        .eq('slug', companySlug)
+        .maybeSingle();
+
+      if (companyRecord) {
+        const { data: promos } = await supabase
+          .from('public_promotions' as any)
+          .select('*')
+          .eq('company_id', (companyRecord as any).id)
+          .eq('slug', promoSlug!)
+          .limit(1);
+        promoData = (promos as any)?.[0];
+      }
+    } else {
+      // Legacy fallback: find by slug alone
+      const { data: promos } = await supabase
+        .from('public_promotions' as any)
+        .select('*')
+        .eq('slug', promoSlug!)
+        .limit(1);
+      promoData = (promos as any)?.[0];
+    }
+
     if (!promoData) { setLoading(false); return; }
     setPromo(promoData);
 
