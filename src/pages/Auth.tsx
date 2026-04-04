@@ -81,7 +81,22 @@ const Auth = () => {
         const roles = rolesData?.map(r => r.role) || [];
         const isSuperAdmin = roles.includes('super_admin');
         toast.success('Login realizado com sucesso!');
-        navigate(isSuperAdmin ? '/super-admin' : '/dashboard');
+        
+        if (isSuperAdmin) {
+          navigate('/super-admin');
+        } else {
+          // Check if user belongs to multiple companies
+          const { data: companies } = await supabase.rpc('get_user_companies');
+          if (companies && companies.length > 1) {
+            navigate('/select-company');
+          } else if (companies && companies.length === 1) {
+            // Auto-switch to the single company
+            await supabase.rpc('switch_active_company', { _company_id: companies[0].company_id });
+            navigate('/dashboard');
+          } else {
+            navigate('/dashboard');
+          }
+        }
       } else {
         const { error: authError } = await supabase.auth.signUp({
           email: email.trim(),
