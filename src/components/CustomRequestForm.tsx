@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -8,7 +8,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Clock, Send, CheckCircle2 } from 'lucide-react';
-import { formatWhatsApp, isValidWhatsApp } from '@/lib/whatsapp';
+import { formatWhatsApp, isValidWhatsApp, displayWhatsApp } from '@/lib/whatsapp';
+
+function applyWhatsAppMask(value: string): string {
+  const digits = value.replace(/\D/g, '').slice(0, 11);
+  if (digits.length === 0) return '';
+  if (digits.length <= 2) return `(${digits}`;
+  if (digits.length <= 7) return `(${digits.slice(0, 2)}) ${digits.slice(2)}`;
+  return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
+}
 
 interface CustomRequestFormProps {
   open: boolean;
@@ -41,9 +49,15 @@ export function CustomRequestForm({ open, onOpenChange, companyId, services, pro
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
 
+  const handleWhatsAppChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const masked = applyWhatsAppMask(e.target.value);
+    setForm(prev => ({ ...prev, client_whatsapp: masked }));
+  }, []);
+
   const handleSubmit = async () => {
     if (!form.client_name.trim()) return toast.error('Informe seu nome');
-    if (!form.client_whatsapp || !isValidWhatsApp(form.client_whatsapp)) return toast.error('Informe um WhatsApp válido');
+    const rawDigits = form.client_whatsapp.replace(/\D/g, '');
+    if (rawDigits.length !== 11) return toast.error('Digite um WhatsApp válido');
     if (!form.service_id) return toast.error('Selecione um serviço');
     if (!form.requested_date) return toast.error('Selecione uma data');
     if (!form.requested_time) return toast.error('Informe o horário desejado');
@@ -64,6 +78,7 @@ export function CustomRequestForm({ open, onOpenChange, companyId, services, pro
 
       if (error) throw error;
       setSubmitted(true);
+      toast.success('Solicitação enviada com sucesso! O profissional irá avaliar sua disponibilidade.');
     } catch (err) {
       console.error('Error submitting custom request:', err);
       toast.error('Erro ao enviar solicitação. Tente novamente.');
@@ -127,9 +142,10 @@ export function CustomRequestForm({ open, onOpenChange, companyId, services, pro
             <Label className="text-sm font-medium">WhatsApp *</Label>
             <Input
               value={form.client_whatsapp}
-              onChange={(e) => setForm({ ...form, client_whatsapp: e.target.value })}
-              placeholder="(11) 99999-9999"
+              onChange={handleWhatsAppChange}
+              placeholder="(00) 00000-0000"
               maxLength={15}
+              inputMode="numeric"
             />
           </div>
 
