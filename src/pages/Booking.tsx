@@ -1231,8 +1231,24 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                 </div>
                 <Button
                   onClick={async () => {
-                    if (skipProfessionalStep) { setStep('datetime'); }
-                    else { const profs = await fetchProfessionals(); setStep(profs.length === 1 ? 'datetime' : 'professional'); }
+                    if (skipProfessionalStep) {
+                      if (prefillFromProfile.current && selectedDate && selectedTime) {
+                        setStep('client');
+                      } else {
+                        setStep('datetime');
+                      }
+                    } else {
+                      const profs = await fetchProfessionals();
+                      if (profs.length === 1) {
+                        if (prefillFromProfile.current && selectedDate && selectedTime) {
+                          setStep('client');
+                        } else {
+                          setStep('datetime');
+                        }
+                      } else {
+                        setStep('professional');
+                      }
+                    }
                   }}
                   className="rounded-xl px-6 font-semibold shadow-lg transition-all hover:scale-105"
                   style={{ background: T.accent, color: '#000' }}
