@@ -445,7 +445,10 @@ const Events = () => {
       await loadEventSlots(eventId);
       setWizardStep(1);
     } else if (wizardStep === 1) {
-      if (wizardEventId) await loadEventPrices(wizardEventId);
+      if (wizardEventId) {
+        await loadEventPrices(wizardEventId);
+        await loadEventServices(wizardEventId);
+      }
       setWizardStep(2);
     }
   };
