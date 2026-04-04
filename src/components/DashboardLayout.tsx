@@ -2,6 +2,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUserRole } from '@/hooks/useUserRole';
 import { useUserTicketCounts } from '@/hooks/useSupportTicketCounts';
+import { usePendingRequestCounts } from '@/hooks/usePendingRequestCounts';
 import { usePlatformMessages } from '@/hooks/usePlatformMessages';
 import { useCompanyBrandInfo } from '@/hooks/useCompanyBrandInfo';
 import {
