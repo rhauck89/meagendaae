@@ -1,6 +1,6 @@
 import { addMinutes, format, parseISO } from 'date-fns';
 
-export type BookingMode = 'intelligent' | 'fixed_grid';
+export type BookingMode = 'intelligent' | 'fixed_grid' | 'hybrid';
 
 export interface BusinessHours {
   day_of_week: number;
