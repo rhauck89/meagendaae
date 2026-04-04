@@ -526,7 +526,8 @@ export default function Promotions() {
   };
 
   const getPromoLink = (promo: Promotion) => {
-    return `${window.location.origin}/barbearia/${companySlug}/promo/${promo.slug || promo.id}`;
+    const routeType = companyBusinessType === 'esthetic' ? 'estetica' : 'barbearia';
+    return `${window.location.origin}/${routeType}/${companySlug}/promo/${promo.slug || promo.id}`;
   };
 
   const buildWhatsAppLink = (client: ClientRow, promotion: Promotion) => {
