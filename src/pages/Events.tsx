@@ -349,9 +349,10 @@ const Events = () => {
       setFormImagePositionX((event as any).image_position_x ?? 50);
       setFormImagePositionY((event as any).image_position_y ?? 50);
       setFormImageZoom((event as any).image_zoom ?? 1);
-      // Load slots and prices for existing event
+      // Load slots, prices, and services for existing event
       loadEventSlots(event.id);
       loadEventPrices(event.id);
+      loadEventServices(event.id);
     } else {
       setEditingEvent(null);
       setWizardEventId(null);
@@ -370,8 +371,12 @@ const Events = () => {
       setEventPrices([]);
       setPriceOverrides({});
       setPricingMode('default');
+      setSelectedServiceIds(services.map(s => s.id));
+      setEventServices([]);
     }
     if (professionals.length > 0) setSlotProfessionals([professionals[0].profile_id]);
+    setSlotStartTime('09:00');
+    setSlotEndTime('18:00');
     setWizardStep(0);
     setShowWizard(true);
   };
