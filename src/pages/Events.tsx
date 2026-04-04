@@ -11,7 +11,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Calendar, Plus, Pencil, Trash2, Clock, DollarSign, Copy, ExternalLink, Upload, X, ImageIcon, Users, Instagram, Download, Link, Camera } from 'lucide-react';
+import { Calendar, Plus, Pencil, Trash2, Clock, DollarSign, Copy, ExternalLink, Upload, X, ImageIcon, Users, Instagram, Download, Link, Camera, Zap } from 'lucide-react';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { getCompanyBranding } from '@/hooks/useCompanyBranding';
 import { format, parseISO, eachDayOfInterval } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -64,6 +65,64 @@ const statusLabels: Record<string, string> = {
   published: 'Publicado',
   cancelled: 'Cancelado',
   completed: 'Concluído',
+};
+
+const BulkPriceAdjuster = ({ services, onApply }: { services: { id: string; price: number; name: string }[]; onApply: (overrides: Record<string, string>) => void }) => {
+  const [mode, setMode] = useState<'percentage' | 'fixed_add' | 'fixed_price'>('percentage');
+  const [value, setValue] = useState('');
+
+  const handleApply = () => {
+    const v = Number(value);
+    if (isNaN(v) || v < 0) { toast.error('Informe um valor válido'); return; }
+    const overrides: Record<string, string> = {};
+    services.forEach(svc => {
+      let newPrice = 0;
+      if (mode === 'percentage') newPrice = svc.price * (1 + v / 100);
+      else if (mode === 'fixed_add') newPrice = svc.price + v;
+      else newPrice = v;
+      overrides[svc.id] = newPrice.toFixed(2);
+    });
+    onApply(overrides);
+    toast.success('Preços ajustados!');
+  };
+
+  return (
+    <Card className="border-dashed">
+      <CardContent className="p-4 space-y-3">
+        <div className="flex items-center gap-2">
+          <Zap className="h-4 w-4 text-primary" />
+          <span className="font-medium text-sm">Ajuste rápido de preços</span>
+        </div>
+        <p className="text-xs text-muted-foreground">Aplique um ajuste automático em todos os serviços do evento</p>
+        <RadioGroup value={mode} onValueChange={(v: any) => setMode(v)} className="gap-1.5">
+          <div className="flex items-center gap-2">
+            <RadioGroupItem value="percentage" id="bp-pct" />
+            <Label htmlFor="bp-pct" className="text-xs font-normal cursor-pointer">Acréscimo percentual</Label>
+          </div>
+          <div className="flex items-center gap-2">
+            <RadioGroupItem value="fixed_add" id="bp-fix" />
+            <Label htmlFor="bp-fix" className="text-xs font-normal cursor-pointer">Acréscimo valor fixo</Label>
+          </div>
+          <div className="flex items-center gap-2">
+            <RadioGroupItem value="fixed_price" id="bp-fp" />
+            <Label htmlFor="bp-fp" className="text-xs font-normal cursor-pointer">Definir preço fixo</Label>
+          </div>
+        </RadioGroup>
+        <div className="flex gap-2">
+          <Input
+            type="number"
+            min={0}
+            step={0.01}
+            placeholder={mode === 'percentage' ? 'Ex: 20' : 'Ex: 10.00'}
+            value={value}
+            onChange={e => setValue(e.target.value)}
+            className="flex-1"
+          />
+          <Button size="sm" onClick={handleApply} disabled={!value}>Aplicar em todos</Button>
+        </div>
+      </CardContent>
+    </Card>
+  );
 };
 
 const generateSlug = (name: string) =>
@@ -1059,7 +1118,10 @@ const Events = () => {
             <DialogTitle>Preços do Evento - {selectedEvent?.name}</DialogTitle>
             <DialogDescription>Defina preços especiais para serviços durante o evento. Deixe em branco para manter o preço normal.</DialogDescription>
           </DialogHeader>
-          <div className="space-y-3">
+          <div className="space-y-4">
+            {/* Bulk Price Adjustment */}
+            <BulkPriceAdjuster services={services} onApply={(overrides) => setPriceOverrides(prev => ({ ...prev, ...overrides }))} />
+
             {services.map(svc => (
               <div key={svc.id} className="flex items-center justify-between p-3 border rounded-lg">
                 <div>
