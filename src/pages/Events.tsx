@@ -178,12 +178,14 @@ const Events = () => {
   const [showSlotConflict, setShowSlotConflict] = useState(false);
   const [pendingSlots, setPendingSlots] = useState<any[]>([]);
 
-  // Prices
+  // Prices & service selection
   const [eventPrices, setEventPrices] = useState<EventServicePrice[]>([]);
   const [priceOverrides, setPriceOverrides] = useState<Record<string, string>>({});
   const [pricingMode, setPricingMode] = useState<PricingMode>('default');
   const [adjustmentType, setAdjustmentType] = useState<'percentage' | 'fixed_add'>('percentage');
   const [adjustmentValue, setAdjustmentValue] = useState('');
+  const [selectedServiceIds, setSelectedServiceIds] = useState<string[]>([]);
+  const [eventServices, setEventServices] = useState<any[]>([]);
 
   // Feature discovery intro
   useEffect(() => {
@@ -256,7 +258,16 @@ const Events = () => {
 
   const loadEventSlots = async (eventId: string) => {
     const { data } = await supabase.from('event_slots').select('*').eq('event_id', eventId).order('slot_date').order('start_time');
-    setEventSlots((data as any[]) || []);
+    const slots = (data as any[]) || [];
+    setEventSlots(slots);
+    // Populate schedule fields from existing slots
+    if (slots.length > 0) {
+      const times = slots.map(s => s.start_time.slice(0, 5));
+      const earliest = times.reduce((a: string, b: string) => a < b ? a : b);
+      const latest = times.reduce((a: string, b: string) => a > b ? a : b);
+      setSlotStartTime(earliest);
+      setSlotEndTime(latest);
+    }
   };
 
   const loadEventPrices = async (eventId: string) => {
@@ -265,11 +276,31 @@ const Events = () => {
     const overrides: Record<string, string> = {};
     (data || []).forEach((p: any) => { overrides[p.service_id] = String(p.override_price); });
     setPriceOverrides(overrides);
-    // Determine pricing mode from existing data
     if (!data || data.length === 0) {
       setPricingMode('default');
     } else {
       setPricingMode('custom');
+    }
+  };
+
+  const loadEventServices = async (eventId: string) => {
+    const { data } = await supabase.from('event_services').select('*').eq('event_id', eventId);
+    const svcList = (data as any[]) || [];
+    setEventServices(svcList);
+    if (svcList.length > 0) {
+      setSelectedServiceIds(svcList.map((s: any) => s.service_id));
+      // Also populate price overrides from event_services
+      const overrides: Record<string, string> = {};
+      svcList.forEach((s: any) => {
+        if (s.event_price != null) overrides[s.service_id] = String(s.event_price);
+      });
+      if (Object.keys(overrides).length > 0) {
+        setPriceOverrides(overrides);
+        setPricingMode('custom');
+      }
+    } else {
+      // Default: select all services
+      setSelectedServiceIds(services.map(s => s.id));
     }
   };
 
@@ -318,9 +349,10 @@ const Events = () => {
       setFormImagePositionX((event as any).image_position_x ?? 50);
       setFormImagePositionY((event as any).image_position_y ?? 50);
       setFormImageZoom((event as any).image_zoom ?? 1);
-      // Load slots and prices for existing event
+      // Load slots, prices, and services for existing event
       loadEventSlots(event.id);
       loadEventPrices(event.id);
+      loadEventServices(event.id);
     } else {
       setEditingEvent(null);
       setWizardEventId(null);
@@ -339,8 +371,12 @@ const Events = () => {
       setEventPrices([]);
       setPriceOverrides({});
       setPricingMode('default');
+      setSelectedServiceIds(services.map(s => s.id));
+      setEventServices([]);
     }
     if (professionals.length > 0) setSlotProfessionals([professionals[0].profile_id]);
+    setSlotStartTime('09:00');
+    setSlotEndTime('18:00');
     setWizardStep(0);
     setShowWizard(true);
   };
@@ -364,7 +400,7 @@ const Events = () => {
         slug = `${slug}-${Date.now().toString(36)}`;
       }
       const effectiveEndDate = formSingleDay ? formStartDate : formEndDate;
-      const payload = {
+      const basePayload = {
         company_id: companyId!,
         name: formName.trim(),
         slug,
@@ -372,7 +408,6 @@ const Events = () => {
         cover_image: formCoverImage.trim() || null,
         start_date: formStartDate,
         end_date: effectiveEndDate,
-        status: 'draft' as const,
         max_bookings_per_client: formMaxBookingsPerClient,
         image_position_x: formImagePositionX,
         image_position_y: formImagePositionY,
@@ -380,11 +415,12 @@ const Events = () => {
       };
 
       if (editingEvent) {
-        const { error } = await supabase.from('events').update(payload).eq('id', editingEvent.id);
+        const { error } = await supabase.from('events').update(basePayload).eq('id', editingEvent.id);
         if (error) throw error;
         toast.success('Evento atualizado!');
         return editingEvent.id;
       } else {
+        const payload = { ...basePayload, status: 'draft' as const };
         const { data: newEvent, error } = await supabase.from('events').insert(payload).select('id').single();
         if (error) throw error;
         const newId = newEvent.id;
@@ -409,7 +445,10 @@ const Events = () => {
       await loadEventSlots(eventId);
       setWizardStep(1);
     } else if (wizardStep === 1) {
-      if (wizardEventId) await loadEventPrices(wizardEventId);
+      if (wizardEventId) {
+        await loadEventPrices(wizardEventId);
+        await loadEventServices(wizardEventId);
+      }
       setWizardStep(2);
     }
   };
@@ -579,14 +618,14 @@ const Events = () => {
 
   // Pricing
   const handleApplyPricingMode = () => {
+    const filteredServices = services.filter(s => selectedServiceIds.includes(s.id));
     if (pricingMode === 'default') {
-      // Clear all overrides - use service default prices
       setPriceOverrides({});
     } else if (pricingMode === 'adjustment') {
       const v = Number(adjustmentValue);
       if (isNaN(v) || v <= 0) { toast.error('Informe um valor válido'); return; }
       const overrides: Record<string, string> = {};
-      services.forEach(svc => {
+      filteredServices.forEach(svc => {
         let newPrice = 0;
         if (adjustmentType === 'percentage') newPrice = svc.price * (1 + v / 100);
         else newPrice = svc.price + v;
@@ -595,26 +634,42 @@ const Events = () => {
       setPriceOverrides(overrides);
       toast.success('Preços ajustados!');
     }
-    // 'custom' mode: user edits individually, no auto-action
   };
 
   const handleSavePricesInternal = async () => {
     if (!wizardEventId) return;
     setSaving(true);
     try {
+      // Save selected services
+      await supabase.from('event_services').delete().eq('event_id', wizardEventId);
+      const serviceInserts = selectedServiceIds.map(serviceId => {
+        const overridePrice = priceOverrides[serviceId];
+        const svc = services.find(s => s.id === serviceId);
+        return {
+          event_id: wizardEventId,
+          service_id: serviceId,
+          event_price: overridePrice ? Number(overridePrice) : (svc ? Number(svc.price) : null),
+        };
+      });
+      if (serviceInserts.length > 0) {
+        const { error: svcError } = await supabase.from('event_services').insert(serviceInserts);
+        if (svcError) throw svcError;
+      }
+
+      // Save price overrides (legacy table)
       await supabase.from('event_service_prices').delete().eq('event_id', wizardEventId);
-      const inserts = Object.entries(priceOverrides)
-        .filter(([, price]) => price && Number(price) > 0)
+      const priceInserts = Object.entries(priceOverrides)
+        .filter(([serviceId, price]) => price && Number(price) > 0 && selectedServiceIds.includes(serviceId))
         .map(([serviceId, price]) => ({
           event_id: wizardEventId,
           service_id: serviceId,
           override_price: Number(price),
         }));
-      if (inserts.length > 0) {
-        const { error } = await supabase.from('event_service_prices').insert(inserts);
+      if (priceInserts.length > 0) {
+        const { error } = await supabase.from('event_service_prices').insert(priceInserts);
         if (error) throw error;
       }
-      toast.success('Preços salvos!');
+      toast.success('Preços e serviços salvos!');
     } catch (err: any) {
       toast.error(err.message || 'Erro ao salvar preços');
     } finally {
@@ -985,6 +1040,12 @@ const Events = () => {
             {slotBreakMinutes > 0 ? ` + ${slotBreakMinutes} min de intervalo` : ''}
             {' '}= próximo horário a cada {slotServiceDuration + slotBreakMinutes} min
           </p>
+          {eventSlots.length > 0 && (
+            <div className="flex items-center gap-2 p-2 rounded-md bg-orange-500/10 text-orange-600 dark:text-orange-400 text-xs">
+              <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+              <span>Horários já configurados para este evento. Gerar novos slots pode substituir os horários existentes.</span>
+            </div>
+          )}
           <Button onClick={handleGenerateSlots} disabled={saving} className="w-full">
             {saving ? 'Gerando...' : 'Gerar Slots'}
           </Button>
@@ -1024,8 +1085,47 @@ const Events = () => {
     </div>
   );
 
+  const selectedServices = services.filter(s => selectedServiceIds.includes(s.id));
+
   const renderStep3Prices = () => (
     <div className="space-y-4">
+      {/* Service selection */}
+      <Card className="border-dashed">
+        <CardContent className="p-4 space-y-3">
+          <div className="flex items-center gap-2">
+            <Users className="h-4 w-4 text-primary" />
+            <span className="font-medium text-sm">Serviços do evento</span>
+          </div>
+          <div className="flex items-center gap-2 pb-1">
+            <Checkbox
+              checked={selectedServiceIds.length === services.length && services.length > 0}
+              onCheckedChange={(checked) => {
+                setSelectedServiceIds(checked ? services.map(s => s.id) : []);
+              }}
+            />
+            <span className="text-sm font-medium">Selecionar todos</span>
+            {selectedServiceIds.length > 0 && (
+              <button type="button" className="text-xs text-muted-foreground hover:text-foreground ml-auto" onClick={() => setSelectedServiceIds([])}>Limpar seleção</button>
+            )}
+          </div>
+          <div className="space-y-1.5 max-h-40 overflow-y-auto border rounded-md p-2">
+            {services.map(svc => (
+              <div key={svc.id} className="flex items-center gap-2">
+                <Checkbox
+                  checked={selectedServiceIds.includes(svc.id)}
+                  onCheckedChange={(checked) => {
+                    setSelectedServiceIds(prev => checked ? [...prev, svc.id] : prev.filter(id => id !== svc.id));
+                  }}
+                />
+                <span className="text-sm">{svc.name}</span>
+                <span className="text-xs text-muted-foreground ml-auto">R$ {Number(svc.price).toFixed(2)}</span>
+              </div>
+            ))}
+          </div>
+          <p className="text-xs text-muted-foreground">{selectedServiceIds.length} de {services.length} serviços selecionados</p>
+        </CardContent>
+      </Card>
+
       {/* Pricing mode selector */}
       <Card className="border-dashed">
         <CardContent className="p-4 space-y-3">
@@ -1074,7 +1174,7 @@ const Events = () => {
       </Card>
 
       {/* Individual service prices */}
-      {(pricingMode === 'custom' || pricingMode === 'adjustment') && services.map(svc => (
+      {(pricingMode === 'custom' || pricingMode === 'adjustment') && selectedServices.map(svc => (
         <div key={svc.id} className="flex items-center justify-between p-3 border rounded-lg">
           <div>
             <p className="font-medium text-sm">{svc.name}</p>
@@ -1093,10 +1193,17 @@ const Events = () => {
         </div>
       ))}
 
-      {pricingMode === 'default' && (
+      {pricingMode === 'default' && selectedServices.length > 0 && (
         <div className="text-center py-6 text-muted-foreground">
           <DollarSign className="h-8 w-8 mx-auto mb-2 opacity-50" />
           <p className="text-sm">Os preços padrão dos serviços serão usados para este evento.</p>
+        </div>
+      )}
+
+      {selectedServiceIds.length === 0 && (
+        <div className="text-center py-6 text-muted-foreground">
+          <AlertTriangle className="h-8 w-8 mx-auto mb-2 opacity-50" />
+          <p className="text-sm">Selecione ao menos um serviço para o evento.</p>
         </div>
       )}
     </div>
