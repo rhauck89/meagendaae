@@ -146,6 +146,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
   const prefillDateRef = useRef(searchParams.get('date'));
   const prefillTimeRef = useRef(searchParams.get('time'));
   const promoIdRef = useRef(searchParams.get('promo'));
+  const prefillFromProfile = useRef(!!(searchParams.get('date') && searchParams.get('time')));
   const [company, setCompany] = useState<any>(null);
   const [services, setServices] = useState<any[]>([]);
   const [professionals, setProfessionals] = useState<any[]>([]);
