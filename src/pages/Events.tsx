@@ -359,20 +359,28 @@ const Events = () => {
       setFormDescription(event.description || '');
       setFormStartDate(event.start_date);
       setFormEndDate(event.end_date);
+      setFormSingleDay(event.start_date === event.end_date);
       setFormCoverImage(event.cover_image || '');
       setFormCoverPreview(event.cover_image || '');
       setFormStatus(event.status as 'draft' | 'published');
       setFormMaxBookingsPerClient(event.max_bookings_per_client || 0);
+      setFormImagePositionX((event as any).image_position_x ?? 50);
+      setFormImagePositionY((event as any).image_position_y ?? 50);
+      setFormImageZoom((event as any).image_zoom ?? 1);
     } else {
       setEditingEvent(null);
       setFormName('');
       setFormDescription('');
       setFormStartDate('');
       setFormEndDate('');
+      setFormSingleDay(false);
       setFormCoverImage('');
       setFormCoverPreview('');
       setFormStatus('draft');
       setFormMaxBookingsPerClient(0);
+      setFormImagePositionX(50);
+      setFormImagePositionY(50);
+      setFormImageZoom(1);
     }
     setShowCreateDialog(true);
   };
