@@ -1425,9 +1425,12 @@ const Dashboard = () => {
                                   </div>
                                 </TooltipTrigger>
                                 <TooltipContent>
-                                  {apt.rescheduled_from?.start_time
-                                    ? `Reagendado de ${format(parseISO(apt.rescheduled_from.start_time), "dd/MM/yyyy 'às' HH:mm")}`
-                                    : 'Reagendado de horário anterior'}
+                                  {(() => {
+                                    const fromData = Array.isArray(apt.rescheduled_from) ? apt.rescheduled_from[0] : apt.rescheduled_from;
+                                    return fromData?.start_time
+                                      ? `Reagendado de ${format(parseISO(fromData.start_time), "dd/MM/yyyy 'às' HH:mm")}`
+                                      : 'Reagendado de horário anterior';
+                                  })()}
                                 </TooltipContent>
                               </Tooltip>
                             )}
