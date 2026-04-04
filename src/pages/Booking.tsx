@@ -774,7 +774,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
     skipTimeResetRef.current = true;
     setSelectedDate(date);
     setSelectedTime(time);
-    setStep('client');
+    setQuickSlotSelected(true);
   };
 
   const handleJoinWaitlist = async () => {
