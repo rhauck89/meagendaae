@@ -1342,7 +1342,7 @@ const Dashboard = () => {
             const agendaAppointments = appointments.filter(a => !excludedIds.has(a.id));
 
             const counts = {
-              all: agendaAppointments.length,
+              all: agendaAppointments.filter(a => a.status !== 'rescheduled').length,
               confirmed: agendaAppointments.filter(statusFilterMap.confirmed).length,
               completed: agendaAppointments.filter(statusFilterMap.completed).length,
               cancelled: agendaAppointments.filter(statusFilterMap.cancelled).length,
