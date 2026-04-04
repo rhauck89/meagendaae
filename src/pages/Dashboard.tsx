@@ -5,6 +5,7 @@ import { useOnDataRefresh } from '@/hooks/useRefreshData';
 import { supabase } from '@/integrations/supabase/client';
 import TrialBanner from '@/components/TrialBanner';
 import TutorialProgressWidget from '@/components/TutorialProgressWidget';
+import OnboardingChecklist from '@/components/OnboardingChecklist';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
