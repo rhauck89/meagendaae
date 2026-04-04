@@ -307,6 +307,8 @@ export function calculateAvailableSlots(params: AvailabilityParams): string[] {
 
   if (bookingMode === 'intelligent') {
     slots = calculateIntelligentSlots(date, openTime, closeTime, totalDuration, bufferMinutes, blocked, earliestSlotTime);
+  } else if (bookingMode === 'hybrid') {
+    slots = calculateHybridSlots(date, openTime, closeTime, totalDuration, bufferMinutes, slotInterval, blocked, earliestSlotTime);
   } else {
     slots = calculateFixedGridSlots(date, openTime, closeTime, totalDuration, bufferMinutes, slotInterval, blocked, earliestSlotTime);
   }
