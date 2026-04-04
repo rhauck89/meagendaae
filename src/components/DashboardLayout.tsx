@@ -233,21 +233,34 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
         >
           {/* Use inline style for desktop width to avoid Tailwind dynamic class issues */}
           <div className={cn('flex flex-col h-full', collapsed ? 'lg:w-[72px]' : 'lg:w-64')} style={{ transition: 'width 0.25s ease-in-out' }}>
-            {/* Header */}
+          {/* Header */}
             <div className={cn('p-4 flex items-center', collapsed ? 'lg:justify-center lg:px-2' : 'gap-3 px-6')}>
-              {!collapsed && (
+              {/* Mobile: always show full logo */}
+              <div className="lg:hidden">
                 <PlatformLogo
                   companyLogo={brandInfo.logo_url}
                   companyName={brandInfo.name}
                   isWhitelabel={brandInfo.isWhitelabel}
                 />
-              )}
-              {collapsed && (
-                <div className="hidden lg:flex items-center justify-center w-10 h-10">
+              </div>
+              {/* Desktop expanded: full logo */}
+              {!collapsed && (
+                <div className="hidden lg:block">
                   <PlatformLogo
                     companyLogo={brandInfo.logo_url}
                     companyName={brandInfo.name}
                     isWhitelabel={brandInfo.isWhitelabel}
+                  />
+                </div>
+              )}
+              {/* Desktop collapsed: compact icon only */}
+              {collapsed && (
+                <div className="hidden lg:flex items-center justify-center">
+                  <PlatformLogo
+                    companyLogo={brandInfo.logo_url}
+                    companyName={brandInfo.name}
+                    isWhitelabel={brandInfo.isWhitelabel}
+                    compact
                   />
                 </div>
               )}
