@@ -1060,7 +1060,10 @@ const Events = () => {
             <DialogTitle>Preços do Evento - {selectedEvent?.name}</DialogTitle>
             <DialogDescription>Defina preços especiais para serviços durante o evento. Deixe em branco para manter o preço normal.</DialogDescription>
           </DialogHeader>
-          <div className="space-y-3">
+          <div className="space-y-4">
+            {/* Bulk Price Adjustment */}
+            <BulkPriceAdjuster services={services} onApply={(overrides) => setPriceOverrides(prev => ({ ...prev, ...overrides }))} />
+
             {services.map(svc => (
               <div key={svc.id} className="flex items-center justify-between p-3 border rounded-lg">
                 <div>
