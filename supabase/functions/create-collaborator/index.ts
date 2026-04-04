@@ -95,7 +95,6 @@ Deno.serve(async (req) => {
       .maybeSingle();
 
     if (profileError || !callerProfile?.company_id) {
-      // During onboarding the profile may not have company_id yet — return success with warning
       return jsonResponse({
         success: true,
         warning: "Collaborator creation skipped: no company found for user yet",
@@ -109,10 +108,6 @@ Deno.serve(async (req) => {
         warning: "Collaborator creation skipped: company mismatch",
       });
     }
-
-    // NOTE: We no longer require "professional" role here.
-    // During onboarding the owner may not have any role yet — they are the company owner.
-    // We verify ownership via company_id match above.
 
     // Check if user with this email already exists
     const { data: existingUsers } = await supabaseAdmin.auth.admin.listUsers();
@@ -139,16 +134,17 @@ Deno.serve(async (req) => {
       userId = newUser.user.id;
     }
 
-    // Upsert profile
+    // Check if user already has a profile
     const { data: existingProfile } = await supabaseAdmin
       .from("profiles")
-      .select("id")
+      .select("id, company_id")
       .eq("user_id", userId)
       .maybeSingle();
 
     let profileId: string;
 
     if (!existingProfile) {
+      // No profile exists — create one linked to this company
       const { data: insertedProfile, error: insertProfileError } = await supabaseAdmin
         .from("profiles")
         .insert({
@@ -169,28 +165,21 @@ Deno.serve(async (req) => {
       }
       profileId = insertedProfile.id;
     } else {
-      const updateData: Record<string, any> = {
-        full_name: name,
-        email,
-        company_id: companyId,
-      };
+      // MULTI-TENANT FIX: Do NOT overwrite company_id for existing users!
+      // Only update non-critical fields if needed (whatsapp enrichment)
+      const updateData: Record<string, any> = {};
       if (whatsapp) updateData.whatsapp = whatsapp;
-
-      const { error: updateProfileError } = await supabaseAdmin
-        .from("profiles")
-        .update(updateData)
-        .eq("id", existingProfile.id);
-
-      if (updateProfileError) {
-        return jsonResponse({
-          success: true,
-          warning: `Profile update failed: ${updateProfileError.message}`,
-        });
+      
+      if (Object.keys(updateData).length > 0) {
+        await supabaseAdmin
+          .from("profiles")
+          .update(updateData)
+          .eq("id", existingProfile.id);
       }
       profileId = existingProfile.id;
     }
 
-    // Insert role (ignore if already exists)
+    // Insert role for this company (ignore if already exists)
     const { data: existingRoleCheck } = await supabaseAdmin
       .from("user_roles")
       .select("id")
@@ -287,7 +276,6 @@ Deno.serve(async (req) => {
     });
   } catch (error) {
     console.error("create-collaborator error", error);
-    // Never block onboarding
     return jsonResponse({
       success: true,
       warning: "Internal error during collaborator creation",
