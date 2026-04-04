@@ -13,6 +13,8 @@ import { Badge } from '@/components/ui/badge';
 
 const FinanceDashboard = () => {
   const { companyId } = useAuth();
+  const { hasSeen, markSeen, loading: discoveryLoading } = useFeatureDiscovery();
+  const [showIntro, setShowIntro] = useState(false);
   const [revenue, setRevenue] = useState(0);
   const [expenses, setExpenses] = useState(0);
   const [serviceCount, setServiceCount] = useState(0);
