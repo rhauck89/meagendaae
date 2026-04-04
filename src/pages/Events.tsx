@@ -11,6 +11,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Calendar, Plus, Pencil, Trash2, Clock, DollarSign, Copy, ExternalLink, Upload, X, ImageIcon, Users, Instagram, Download, Link, Camera, Zap } from 'lucide-react';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { getCompanyBranding } from '@/hooks/useCompanyBranding';
@@ -195,7 +196,7 @@ const Events = () => {
   const coverInputRef = useRef<HTMLInputElement>(null);
 
   const [slotMode, setSlotMode] = useState<'manual' | 'auto'>('auto');
-  const [slotProfessional, setSlotProfessional] = useState('');
+  const [slotProfessionals, setSlotProfessionals] = useState<string[]>([]);
   const [slotStartTime, setSlotStartTime] = useState('09:00');
   const [slotEndTime, setSlotEndTime] = useState('18:00');
   const [slotServiceDuration, setSlotServiceDuration] = useState(30);
@@ -419,12 +420,15 @@ const Events = () => {
   const openSlotsDialog = async (event: Event) => {
     setSelectedEvent(event);
     await loadEventSlots(event.id);
-    if (professionals.length > 0) setSlotProfessional(professionals[0].profile_id);
+    if (professionals.length > 0) setSlotProfessionals([professionals[0].profile_id]);
     setShowSlotsDialog(true);
   };
 
   const handleGenerateSlots = async () => {
-    if (!selectedEvent || !slotProfessional) return;
+    if (!selectedEvent || slotProfessionals.length === 0) {
+      toast.error('Selecione ao menos um profissional');
+      return;
+    }
     setSaving(true);
     try {
       const days = eachDayOfInterval({
@@ -435,40 +439,40 @@ const Events = () => {
       const totalSlotMinutes = slotServiceDuration + slotBreakMinutes;
 
       const slots: any[] = [];
-      for (const day of days) {
-        const dateStr = format(day, 'yyyy-MM-dd');
-        let current = slotStartTime;
-        while (current < slotEndTime) {
-          const [h, m] = current.split(':').map(Number);
-          const startMin = h * 60 + m;
-          // End time is based on service duration only (break is between appointments)
-          const serviceEndMin = startMin + slotServiceDuration;
-          const serviceEndH = Math.floor(serviceEndMin / 60).toString().padStart(2, '0');
-          const serviceEndM = (serviceEndMin % 60).toString().padStart(2, '0');
-          const slotEnd = `${serviceEndH}:${serviceEndM}`;
+      for (const profId of slotProfessionals) {
+        for (const day of days) {
+          const dateStr = format(day, 'yyyy-MM-dd');
+          let current = slotStartTime;
+          while (current < slotEndTime) {
+            const [h, m] = current.split(':').map(Number);
+            const startMin = h * 60 + m;
+            const serviceEndMin = startMin + slotServiceDuration;
+            const serviceEndH = Math.floor(serviceEndMin / 60).toString().padStart(2, '0');
+            const serviceEndM = (serviceEndMin % 60).toString().padStart(2, '0');
+            const slotEnd = `${serviceEndH}:${serviceEndM}`;
 
-          if (slotEnd > slotEndTime) break;
+            if (slotEnd > slotEndTime) break;
 
-          slots.push({
-            event_id: selectedEvent.id,
-            professional_id: slotProfessional,
-            slot_date: dateStr,
-            start_time: current,
-            end_time: slotEnd,
-            max_bookings: slotMaxBookings,
-          });
+            slots.push({
+              event_id: selectedEvent.id,
+              professional_id: profId,
+              slot_date: dateStr,
+              start_time: current,
+              end_time: slotEnd,
+              max_bookings: slotMaxBookings,
+            });
 
-          // Next slot starts after service duration + break
-          const nextMin = startMin + totalSlotMinutes;
-          const nextH = Math.floor(nextMin / 60).toString().padStart(2, '0');
-          const nextM = (nextMin % 60).toString().padStart(2, '0');
-          current = `${nextH}:${nextM}`;
+            const nextMin = startMin + totalSlotMinutes;
+            const nextH = Math.floor(nextMin / 60).toString().padStart(2, '0');
+            const nextM = (nextMin % 60).toString().padStart(2, '0');
+            current = `${nextH}:${nextM}`;
+          }
         }
       }
 
       const { error } = await supabase.from('event_slots').insert(slots);
       if (error) throw error;
-      toast.success(`${slots.length} slots criados!`);
+      toast.success(`${slots.length} slots criados para ${slotProfessionals.length} profissional(is)!`);
       await loadEventSlots(selectedEvent.id);
     } catch (err: any) {
       toast.error(err.message || 'Erro ao gerar slots');
@@ -478,19 +482,20 @@ const Events = () => {
   };
 
   const handleAddManualSlot = async () => {
-    if (!selectedEvent || !slotProfessional || !manualDate || !manualStart || !manualEnd) {
+    if (!selectedEvent || slotProfessionals.length === 0 || !manualDate || !manualStart || !manualEnd) {
       toast.error('Preencha todos os campos'); return;
     }
-    const { error } = await supabase.from('event_slots').insert({
+    const slots = slotProfessionals.map(profId => ({
       event_id: selectedEvent.id,
-      professional_id: slotProfessional,
+      professional_id: profId,
       slot_date: manualDate,
       start_time: manualStart,
       end_time: manualEnd,
       max_bookings: slotMaxBookings,
-    });
+    }));
+    const { error } = await supabase.from('event_slots').insert(slots);
     if (error) { toast.error('Erro ao adicionar slot'); return; }
-    toast.success('Slot adicionado!');
+    toast.success(`Slot adicionado para ${slotProfessionals.length} profissional(is)!`);
     await loadEventSlots(selectedEvent.id);
   };
 
@@ -1006,16 +1011,47 @@ const Events = () => {
             <DialogDescription>Configure os horários disponíveis para o evento</DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
-            <div>
-              <Label>Profissional</Label>
-              <Select value={slotProfessional} onValueChange={setSlotProfessional}>
-                <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-                <SelectContent>
-                  {professionals.map(p => (
-                    <SelectItem key={p.profile_id} value={p.profile_id}>{p.profiles?.full_name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+            <div className="space-y-2">
+              <Label>Profissionais do evento</Label>
+              <div className="flex items-center gap-2 pb-1">
+                <Checkbox
+                  checked={slotProfessionals.length === professionals.length && professionals.length > 0}
+                  onCheckedChange={(checked) => {
+                    if (checked) {
+                      setSlotProfessionals(professionals.map(p => p.profile_id));
+                    } else {
+                      setSlotProfessionals([]);
+                    }
+                  }}
+                />
+                <span className="text-sm font-medium">Selecionar todos</span>
+                {slotProfessionals.length > 0 && (
+                  <button
+                    type="button"
+                    className="text-xs text-muted-foreground hover:text-foreground ml-auto"
+                    onClick={() => setSlotProfessionals([])}
+                  >
+                    Limpar seleção
+                  </button>
+                )}
+              </div>
+              <div className="space-y-1.5 pl-1 max-h-40 overflow-y-auto border rounded-md p-2">
+                {professionals.map(p => (
+                  <div key={p.profile_id} className="flex items-center gap-2">
+                    <Checkbox
+                      checked={slotProfessionals.includes(p.profile_id)}
+                      onCheckedChange={(checked) => {
+                        if (checked) {
+                          setSlotProfessionals(prev => [...prev, p.profile_id]);
+                        } else {
+                          setSlotProfessionals(prev => prev.filter(id => id !== p.profile_id));
+                        }
+                      }}
+                    />
+                    <span className="text-sm">{p.profiles?.full_name}</span>
+                  </div>
+                ))}
+              </div>
             </div>
 
             <div>
