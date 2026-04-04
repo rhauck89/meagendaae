@@ -178,12 +178,14 @@ const Events = () => {
   const [showSlotConflict, setShowSlotConflict] = useState(false);
   const [pendingSlots, setPendingSlots] = useState<any[]>([]);
 
-  // Prices
+  // Prices & service selection
   const [eventPrices, setEventPrices] = useState<EventServicePrice[]>([]);
   const [priceOverrides, setPriceOverrides] = useState<Record<string, string>>({});
   const [pricingMode, setPricingMode] = useState<PricingMode>('default');
   const [adjustmentType, setAdjustmentType] = useState<'percentage' | 'fixed_add'>('percentage');
   const [adjustmentValue, setAdjustmentValue] = useState('');
+  const [selectedServiceIds, setSelectedServiceIds] = useState<string[]>([]);
+  const [eventServices, setEventServices] = useState<any[]>([]);
 
   // Feature discovery intro
   useEffect(() => {
