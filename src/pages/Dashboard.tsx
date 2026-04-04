@@ -1398,6 +1398,11 @@ const Dashboard = () => {
                               <p className="text-xs text-muted-foreground">
                                 com {apt.professional?.full_name}
                               </p>
+                              {apt.rescheduled_from_id && apt.rescheduled_from?.start_time && (
+                                <p className="text-xs text-muted-foreground italic mt-0.5">
+                                  ↪ Reagendado de {format(parseISO(apt.rescheduled_from.start_time), 'HH:mm')}
+                                </p>
+                              )}
                             </div>
                           </div>
                           <div className="flex items-center gap-2 flex-wrap">
