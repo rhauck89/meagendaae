@@ -1351,6 +1351,9 @@ export type Database = {
           description: string | null
           end_date: string
           id: string
+          image_position_x: number
+          image_position_y: number
+          image_zoom: number
           max_bookings_per_client: number
           name: string
           slug: string
@@ -1365,6 +1368,9 @@ export type Database = {
           description?: string | null
           end_date: string
           id?: string
+          image_position_x?: number
+          image_position_y?: number
+          image_zoom?: number
           max_bookings_per_client?: number
           name: string
           slug: string
@@ -1379,6 +1385,9 @@ export type Database = {
           description?: string | null
           end_date?: string
           id?: string
+          image_position_x?: number
+          image_position_y?: number
+          image_zoom?: number
           max_bookings_per_client?: number
           name?: string
           slug?: string
