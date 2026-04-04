@@ -283,7 +283,7 @@ export function calculateAvailableSlots(params: AvailabilityParams): string[] {
     professionalHours,
     blockedTimes = [],
     professionalId,
-    bookingMode = 'fixed_grid',
+    bookingMode = 'hybrid',
   } = params;
 
   if (totalDuration <= 0) {
