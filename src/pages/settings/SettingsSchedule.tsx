@@ -222,6 +222,21 @@ const SettingsSchedule = () => {
         </CardContent>
       </Card>
 
+      {/* Custom Requests */}
+      <Card>
+        <CardHeader><CardTitle className="flex items-center gap-2"><Inbox className="h-5 w-5" /> Solicitações de Horário Personalizado</CardTitle></CardHeader>
+        <CardContent className="space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="space-y-0.5">
+              <Label className="text-sm font-medium">Permitir solicitações fora do horário</Label>
+              <p className="text-xs text-muted-foreground">Clientes podem solicitar horários personalizados na página de agendamento</p>
+            </div>
+            <Switch checked={allowCustomRequests} onCheckedChange={setAllowCustomRequests} />
+          </div>
+          <Button size="sm" onClick={saveCustomRequests}>Salvar</Button>
+        </CardContent>
+      </Card>
+
       {/* Buffer */}
       <Card>
         <CardHeader><CardTitle className="flex items-center gap-2"><Timer className="h-5 w-5" /> Intervalo entre Agendamentos</CardTitle></CardHeader>
