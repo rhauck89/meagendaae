@@ -3488,6 +3488,16 @@ export type Database = {
         Args: { p_professional_id: string }
         Returns: number
       }
+      get_user_companies: {
+        Args: never
+        Returns: {
+          company_id: string
+          company_logo: string
+          company_name: string
+          company_slug: string
+          role: Database["public"]["Enums"]["app_role"]
+        }[]
+      }
       get_user_company_id: { Args: { _user_id: string }; Returns: string }
       has_company_role: {
         Args: {
@@ -3569,6 +3579,10 @@ export type Database = {
             }
             Returns: string
           }
+      switch_active_company: {
+        Args: { _company_id: string }
+        Returns: undefined
+      }
     }
     Enums: {
       app_role: "super_admin" | "professional" | "collaborator" | "client"
