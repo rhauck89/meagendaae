@@ -1185,25 +1185,25 @@ const Dashboard = () => {
           <CardTitle className="text-lg font-display">Frequência de Retorno</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-            <div className="flex items-center gap-3 p-3 rounded-xl bg-success/5 border border-success/20">
-              <UserCheck className="h-8 w-8 text-success" />
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
+            <div className="flex items-center gap-2 p-3 rounded-xl bg-success/5 border border-success/20">
+              <UserCheck className="h-5 w-5 text-success shrink-0" />
               <div>
-                <p className="text-2xl font-display font-bold">{returnStats.onTime}</p>
+                <p className="text-2xl font-semibold">{returnStats.onTime}</p>
                 <p className="text-sm text-muted-foreground">Em dia</p>
               </div>
             </div>
-            <div className="flex items-center gap-3 p-3 rounded-xl bg-warning/5 border border-warning/20">
-              <Clock className="h-8 w-8 text-warning" />
+            <div className="flex items-center gap-2 p-3 rounded-xl bg-warning/5 border border-warning/20">
+              <Clock className="h-5 w-5 text-warning shrink-0" />
               <div>
-                <p className="text-2xl font-display font-bold">{returnStats.approaching}</p>
+                <p className="text-2xl font-semibold">{returnStats.approaching}</p>
                 <p className="text-sm text-muted-foreground">Próx. do retorno</p>
               </div>
             </div>
-            <div className="flex items-center gap-3 p-3 rounded-xl bg-destructive/5 border border-destructive/20">
-              <AlertTriangle className="h-8 w-8 text-destructive" />
+            <div className="flex items-center gap-2 p-3 rounded-xl bg-destructive/5 border border-destructive/20">
+              <AlertTriangle className="h-5 w-5 text-destructive shrink-0" />
               <div>
-                <p className="text-2xl font-display font-bold">{returnStats.overdue}</p>
+                <p className="text-2xl font-semibold">{returnStats.overdue}</p>
                 <p className="text-sm text-muted-foreground">Atrasados</p>
               </div>
             </div>
