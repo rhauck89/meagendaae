@@ -3310,6 +3310,7 @@ export type Database = {
         Row: {
           address: string | null
           address_number: string | null
+          allow_custom_requests: boolean | null
           average_rating: number | null
           booking_mode: string | null
           buffer_minutes: number | null
