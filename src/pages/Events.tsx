@@ -618,14 +618,14 @@ const Events = () => {
 
   // Pricing
   const handleApplyPricingMode = () => {
+    const filteredServices = services.filter(s => selectedServiceIds.includes(s.id));
     if (pricingMode === 'default') {
-      // Clear all overrides - use service default prices
       setPriceOverrides({});
     } else if (pricingMode === 'adjustment') {
       const v = Number(adjustmentValue);
       if (isNaN(v) || v <= 0) { toast.error('Informe um valor válido'); return; }
       const overrides: Record<string, string> = {};
-      services.forEach(svc => {
+      filteredServices.forEach(svc => {
         let newPrice = 0;
         if (adjustmentType === 'percentage') newPrice = svc.price * (1 + v / 100);
         else newPrice = svc.price + v;
@@ -634,7 +634,6 @@ const Events = () => {
       setPriceOverrides(overrides);
       toast.success('Preços ajustados!');
     }
-    // 'custom' mode: user edits individually, no auto-action
   };
 
   const handleSavePricesInternal = async () => {
