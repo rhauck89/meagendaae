@@ -9,6 +9,8 @@ interface PlatformLogoProps {
   className?: string;
   /** Whether the logo is displayed on a dark background */
   onDarkBackground?: boolean;
+  /** Compact mode: show only icon, hide name */
+  compact?: boolean;
 }
 
 export const PlatformLogo = ({
@@ -17,11 +19,27 @@ export const PlatformLogo = ({
   isWhitelabel = false,
   className = '',
   onDarkBackground = true,
+  compact = false,
 }: PlatformLogoProps) => {
   const platform = usePlatformSettings();
 
+  const iconFallback = (
+    <div className="w-10 h-10 bg-sidebar-primary rounded-xl flex items-center justify-center shrink-0">
+      <Scissors className="h-5 w-5 text-sidebar-primary-foreground" />
+    </div>
+  );
+
   // Whitelabel: show company branding
   if (isWhitelabel && (companyLogo || companyName)) {
+    if (compact) {
+      return (
+        <div className={`flex items-center justify-center ${className}`}>
+          {companyLogo ? (
+            <img src={companyLogo} alt={companyName || 'Logo'} className="h-10 w-10 object-contain rounded-xl" />
+          ) : iconFallback}
+        </div>
+      );
+    }
     return (
       <div className={`flex flex-col items-start gap-1 ${className}`}>
         {companyLogo ? (
@@ -47,15 +65,23 @@ export const PlatformLogo = ({
     if (!platform) return null;
     
     if (onDarkBackground) {
-      // Dark background → prefer logo_light, fallback to system_logo
       return platform.logo_light || platform.system_logo || platform.logo_dark || null;
     } else {
-      // Light background → prefer logo_dark, fallback to system_logo
       return platform.logo_dark || platform.system_logo || platform.logo_light || null;
     }
   };
 
   const logoUrl = getLogo();
+
+  if (compact) {
+    return (
+      <div className={`flex items-center justify-center ${className}`}>
+        {logoUrl ? (
+          <img src={logoUrl} alt={platform?.system_name || 'Logo'} className="h-10 w-10 object-contain rounded-xl" />
+        ) : iconFallback}
+      </div>
+    );
+  }
 
   // Default: platform logo
   return (

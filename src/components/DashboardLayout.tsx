@@ -150,21 +150,45 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
   ) => {
     if (collapsed) {
       return (
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Link
-              to={subItems[0].href}
-              onClick={() => setSidebarOpen(false)}
-              className={cn(
-                'flex items-center justify-center py-2.5 rounded-lg text-sm font-medium transition-colors',
-                isActive ? 'bg-sidebar-accent/15 text-sidebar-primary' : 'text-sidebar-foreground/70 hover:bg-sidebar-accent/12 hover:text-sidebar-foreground'
-              )}
-            >
-              <Icon className="h-5 w-5 shrink-0" />
-            </Link>
-          </TooltipTrigger>
-          <TooltipContent side="right" className="font-medium">{label}</TooltipContent>
-        </Tooltip>
+        <Popover>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <PopoverTrigger asChild>
+                <button
+                  className={cn(
+                    'flex items-center justify-center py-2.5 rounded-lg text-sm font-medium transition-colors w-full',
+                    isActive ? 'bg-sidebar-accent/15 text-sidebar-primary' : 'text-sidebar-foreground/70 hover:bg-sidebar-accent/12 hover:text-sidebar-foreground'
+                  )}
+                >
+                  <Icon className="h-5 w-5 shrink-0" />
+                </button>
+              </PopoverTrigger>
+            </TooltipTrigger>
+            <TooltipContent side="right" className="font-medium">{label}</TooltipContent>
+          </Tooltip>
+          <PopoverContent side="right" align="start" sideOffset={8} className="w-52 p-2 rounded-xl shadow-lg border bg-popover">
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider px-2 pb-1.5 mb-1 border-b">{label}</p>
+            <div className="space-y-0.5">
+              {subItems.map((item) => {
+                const active = location.pathname === item.href;
+                return (
+                  <Link
+                    key={item.href}
+                    to={item.href}
+                    onClick={() => setSidebarOpen(false)}
+                    className={cn(
+                      'flex items-center gap-2.5 px-2 py-2 rounded-lg text-sm transition-colors',
+                      active ? 'bg-accent/15 text-accent-foreground font-medium' : 'text-foreground/70 hover:bg-muted hover:text-foreground'
+                    )}
+                  >
+                    <item.icon className="h-4 w-4 shrink-0" />
+                    {item.label}
+                  </Link>
+                );
+              })}
+            </div>
+          </PopoverContent>
+        </Popover>
       );
     }
 
@@ -233,21 +257,34 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
         >
           {/* Use inline style for desktop width to avoid Tailwind dynamic class issues */}
           <div className={cn('flex flex-col h-full', collapsed ? 'lg:w-[72px]' : 'lg:w-64')} style={{ transition: 'width 0.25s ease-in-out' }}>
-            {/* Header */}
+          {/* Header */}
             <div className={cn('p-4 flex items-center', collapsed ? 'lg:justify-center lg:px-2' : 'gap-3 px-6')}>
-              {!collapsed && (
+              {/* Mobile: always show full logo */}
+              <div className="lg:hidden">
                 <PlatformLogo
                   companyLogo={brandInfo.logo_url}
                   companyName={brandInfo.name}
                   isWhitelabel={brandInfo.isWhitelabel}
                 />
-              )}
-              {collapsed && (
-                <div className="hidden lg:flex items-center justify-center w-10 h-10">
+              </div>
+              {/* Desktop expanded: full logo */}
+              {!collapsed && (
+                <div className="hidden lg:block">
                   <PlatformLogo
                     companyLogo={brandInfo.logo_url}
                     companyName={brandInfo.name}
                     isWhitelabel={brandInfo.isWhitelabel}
+                  />
+                </div>
+              )}
+              {/* Desktop collapsed: compact icon only */}
+              {collapsed && (
+                <div className="hidden lg:flex items-center justify-center">
+                  <PlatformLogo
+                    companyLogo={brandInfo.logo_url}
+                    companyName={brandInfo.name}
+                    isWhitelabel={brandInfo.isWhitelabel}
+                    compact
                   />
                 </div>
               )}
