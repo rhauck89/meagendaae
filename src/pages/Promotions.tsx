@@ -190,6 +190,7 @@ export default function Promotions() {
   const [clientsLoading, setClientsLoading] = useState(false);
   const [companyName, setCompanyName] = useState('');
   const [companySlug, setCompanySlug] = useState('');
+  const [companyBusinessType, setCompanyBusinessType] = useState('');
   const [metrics, setMetrics] = useState<PromoMetrics>({ clicks: 0, bookings: 0, clientsReached: 0 });
   const [lowOccupancy, setLowOccupancy] = useState(false);
 
