@@ -155,19 +155,22 @@ export default function ProfessionalPublicProfile() {
     setSlotsLoading(false);
   };
 
+  const profileUrl = slug && professionalSlug
+    ? `${window.location.origin}/perfil/${businessType === 'esthetic' ? 'estetica' : 'barbearia'}/${slug}/${professionalSlug}`
+    : window.location.href;
+
   const handleShare = async () => {
-    const url = window.location.href;
     if (navigator.share) {
-      try { await navigator.share({ title: `${professional?.name} - ${company?.name}`, url }); } catch {}
+      try { await navigator.share({ title: `${professional?.name} - ${company?.name}`, url: profileUrl }); } catch {}
     } else {
-      await navigator.clipboard.writeText(url);
+      await navigator.clipboard.writeText(profileUrl);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     }
   };
 
   const bookingUrl = company && professionalSlug
-    ? `/${businessType === 'esthetic' ? 'estetica' : 'barbearia'}/${slug}/${professionalSlug}`
+    ? `/${businessType === 'esthetic' ? 'estetica' : 'barbearia'}/${slug}/${professionalSlug}/agendar`
     : '#';
 
   const isDark = businessType === 'barbershop';
@@ -212,7 +215,7 @@ export default function ProfessionalPublicProfile() {
         ogTitle={seoTitle}
         ogDescription={seoDescription}
         ogImage={professional.avatar_url || company.logo_url}
-        canonical={`${window.location.origin}/barbearia/${slug}/${professionalSlug}`}
+        canonical={profileUrl}
       />
       {/* Banner - professional banner first, fallback to company cover */}
       {(professional?.banner_url || company?.cover_url) && (
