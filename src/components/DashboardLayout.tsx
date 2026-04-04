@@ -76,6 +76,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
     try { return localStorage.getItem(SIDEBAR_COLLAPSED_KEY) === 'true'; } catch { return false; }
   });
   const unreadTickets = useUserTicketCounts();
+  const pendingRequests = usePendingRequestCounts();
   const { data: platformMessages, dismiss: dismissMessage } = usePlatformMessages();
   const totalNotifications = (unreadTickets || 0) + (platformMessages?.length || 0);
 
