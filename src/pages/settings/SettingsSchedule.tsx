@@ -10,7 +10,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
-import { Clock, Calendar as CalendarIcon, Plus, Trash2, Timer, RefreshCw, Zap, Grid3X3 } from 'lucide-react';
+import { Clock, Calendar as CalendarIcon, Plus, Trash2, Timer, RefreshCw, Zap, Grid3X3, Inbox } from 'lucide-react';
 import SettingsBreadcrumb from '@/components/SettingsBreadcrumb';
 
 const dayNames = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
@@ -23,6 +23,7 @@ const SettingsSchedule = () => {
   const [bufferMinutes, setBufferMinutes] = useState(0);
   const [bookingMode, setBookingMode] = useState<string>('fixed_grid');
   const [fixedSlotInterval, setFixedSlotInterval] = useState<number>(15);
+  const [allowCustomRequests, setAllowCustomRequests] = useState(false);
   const [syncDialogOpen, setSyncDialogOpen] = useState(false);
   const [syncing, setSyncing] = useState(false);
 
@@ -31,11 +32,12 @@ const SettingsSchedule = () => {
   }, [companyId]);
 
   const fetchCompanySettings = async () => {
-    const { data } = await supabase.from('companies').select('buffer_minutes, booking_mode, fixed_slot_interval').eq('id', companyId!).single();
+    const { data } = await supabase.from('companies').select('buffer_minutes, booking_mode, fixed_slot_interval, allow_custom_requests').eq('id', companyId!).single();
     if (data) {
       setBufferMinutes((data as any).buffer_minutes ?? 0);
       setBookingMode((data as any).booking_mode ?? 'fixed_grid');
       setFixedSlotInterval((data as any).fixed_slot_interval ?? 15);
+      setAllowCustomRequests((data as any).allow_custom_requests ?? false);
     }
   };
 
@@ -67,6 +69,11 @@ const SettingsSchedule = () => {
   const saveBookingMode = async () => {
     await supabase.from('companies').update({ booking_mode: bookingMode, fixed_slot_interval: fixedSlotInterval } as any).eq('id', companyId!);
     toast.success('Modo de agendamento salvo');
+  };
+
+  const saveCustomRequests = async () => {
+    await supabase.from('companies').update({ allow_custom_requests: allowCustomRequests } as any).eq('id', companyId!);
+    toast.success(allowCustomRequests ? 'Solicitações personalizadas ativadas' : 'Solicitações personalizadas desativadas');
   };
 
   const addException = async () => {
@@ -212,6 +219,21 @@ const SettingsSchedule = () => {
           )}
 
           <Button size="sm" onClick={saveBookingMode}>Salvar modo</Button>
+        </CardContent>
+      </Card>
+
+      {/* Custom Requests */}
+      <Card>
+        <CardHeader><CardTitle className="flex items-center gap-2"><Inbox className="h-5 w-5" /> Solicitações de Horário Personalizado</CardTitle></CardHeader>
+        <CardContent className="space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="space-y-0.5">
+              <Label className="text-sm font-medium">Permitir solicitações fora do horário</Label>
+              <p className="text-xs text-muted-foreground">Clientes podem solicitar horários personalizados na página de agendamento</p>
+            </div>
+            <Switch checked={allowCustomRequests} onCheckedChange={setAllowCustomRequests} />
+          </div>
+          <Button size="sm" onClick={saveCustomRequests}>Salvar</Button>
         </CardContent>
       </Card>
 

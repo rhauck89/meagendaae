@@ -14,6 +14,117 @@ export type Database = {
   }
   public: {
     Tables: {
+      appointment_requests: {
+        Row: {
+          client_name: string
+          client_whatsapp: string
+          company_id: string
+          created_at: string
+          id: string
+          message: string | null
+          professional_id: string | null
+          rejection_reason: string | null
+          requested_date: string
+          requested_time: string
+          service_id: string | null
+          status: string
+          suggested_date: string | null
+          suggested_time: string | null
+          updated_at: string
+        }
+        Insert: {
+          client_name: string
+          client_whatsapp: string
+          company_id: string
+          created_at?: string
+          id?: string
+          message?: string | null
+          professional_id?: string | null
+          rejection_reason?: string | null
+          requested_date: string
+          requested_time: string
+          service_id?: string | null
+          status?: string
+          suggested_date?: string | null
+          suggested_time?: string | null
+          updated_at?: string
+        }
+        Update: {
+          client_name?: string
+          client_whatsapp?: string
+          company_id?: string
+          created_at?: string
+          id?: string
+          message?: string | null
+          professional_id?: string | null
+          rejection_reason?: string | null
+          requested_date?: string
+          requested_time?: string
+          service_id?: string | null
+          status?: string
+          suggested_date?: string | null
+          suggested_time?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "appointment_requests_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "appointment_requests_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies_billing"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "appointment_requests_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "public_company"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "appointment_requests_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "public_company_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "appointment_requests_professional_id_fkey"
+            columns: ["professional_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "appointment_requests_professional_id_fkey"
+            columns: ["professional_id"]
+            isOneToOne: false
+            referencedRelation: "public_professionals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "appointment_requests_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "public_services"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "appointment_requests_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "services"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       appointment_services: {
         Row: {
           appointment_id: string
@@ -567,6 +678,7 @@ export type Database = {
           activation_score: number
           address: string | null
           address_number: string | null
+          allow_custom_requests: boolean
           billing_cycle: string
           birthday_discount_type: string
           birthday_discount_value: number
@@ -613,6 +725,7 @@ export type Database = {
           activation_score?: number
           address?: string | null
           address_number?: string | null
+          allow_custom_requests?: boolean
           billing_cycle?: string
           birthday_discount_type?: string
           birthday_discount_value?: number
@@ -659,6 +772,7 @@ export type Database = {
           activation_score?: number
           address?: string | null
           address_number?: string | null
+          allow_custom_requests?: boolean
           billing_cycle?: string
           birthday_discount_type?: string
           birthday_discount_value?: number
@@ -3196,6 +3310,7 @@ export type Database = {
         Row: {
           address: string | null
           address_number: string | null
+          allow_custom_requests: boolean | null
           average_rating: number | null
           booking_mode: string | null
           buffer_minutes: number | null

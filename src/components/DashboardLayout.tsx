@@ -8,7 +8,7 @@ import {
   Calendar, Scissors, Users, Settings, LogOut, Menu, X, User, UserCheck,
   PartyPopper, Megaphone, MessageSquare, ChevronDown, Building2, Clock, Zap, Palette, Globe, CreditCard, Bell, HelpCircle, Info, AlertTriangle,
   DollarSign, ArrowUpDown, TrendingUp, TrendingDown, FolderOpen, Percent, FileBarChart, Receipt, HandCoins,
-  ChevronsLeft, ChevronsRight,
+  ChevronsLeft, ChevronsRight, Inbox,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useState, useEffect, useCallback } from 'react';
@@ -33,6 +33,7 @@ const adminNavItems = [
   { href: '/dashboard/clients', icon: UserCheck, label: 'Clientes' },
   { href: '/dashboard/events', icon: PartyPopper, label: 'Agenda Aberta' },
   { href: '/dashboard/promotions', icon: Megaphone, label: 'Promoções' },
+  { href: '/dashboard/solicitacoes', icon: Inbox, label: 'Solicitações' },
 ];
 
 const settingsSubItems = [

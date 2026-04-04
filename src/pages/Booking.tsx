@@ -17,6 +17,7 @@ import { cn } from '@/lib/utils';
 import { formatWhatsApp, displayWhatsApp, isValidWhatsApp } from '@/lib/whatsapp';
 import { calculateAvailableSlots, type BusinessHours, type BusinessException, type ExistingAppointment, type BlockedTime, type BookingMode } from '@/lib/availability-engine';
 import { PlatformBranding } from '@/components/PlatformBranding';
+import { CustomRequestForm } from '@/components/CustomRequestForm';
 import { getCompanyBranding, buildThemeFromBranding } from '@/hooks/useCompanyBranding';
 
 const StarRating = ({ rating, size = 14 }: { rating: number; size?: number }) => {
@@ -164,6 +165,8 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
   const [reviewComment, setReviewComment] = useState('');
   const [submittingReview, setSubmittingReview] = useState(false);
   const [isWhitelabel, setIsWhitelabel] = useState(false);
+  const [showCustomRequestForm, setShowCustomRequestForm] = useState(false);
+  const [allowCustomRequests, setAllowCustomRequests] = useState(false);
   // Promotion state
   const [promoData, setPromoData] = useState<PromotionInfo | null>(null);
   const isPromoMode = !!promoData;
@@ -290,7 +293,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
       supabase.from('public_services' as any).select('*').eq('company_id', comp.id).order('name'),
       supabase.from('business_hours').select('*').eq('company_id', comp.id),
       supabase.from('business_exceptions').select('*').eq('company_id', comp.id),
-      supabase.from('public_company' as any).select('buffer_minutes, booking_mode, fixed_slot_interval').eq('id', comp.id).single(),
+      supabase.from('public_company' as any).select('buffer_minutes, booking_mode, fixed_slot_interval, allow_custom_requests').eq('id', comp.id).single(),
       supabase.from('public_company_settings' as any).select('*').eq('company_id', comp.id).single(),
     ]);
 
@@ -301,6 +304,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
       setBufferMinutes((companyRes.data as any).buffer_minutes || 0);
       setBookingMode(((companyRes.data as any).booking_mode as BookingMode) || 'fixed_grid');
       setFixedSlotInterval((companyRes.data as any).fixed_slot_interval || 15);
+      setAllowCustomRequests((companyRes.data as any).allow_custom_requests || false);
     }
     if (settingsRes.data) {
       setCompanySettings(settingsRes.data);
@@ -1496,6 +1500,30 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
               >
                 Continuar <ChevronRight className="h-4 w-4 ml-1" />
               </Button>
+            )}
+
+            {/* Custom Request Button */}
+            {allowCustomRequests && !isPromoMode && (
+              <button
+                onClick={() => setShowCustomRequestForm(true)}
+                className="w-full text-center py-3 rounded-xl text-sm font-medium transition-all hover:opacity-80"
+                style={{ color: T.accent, border: `1px dashed ${T.accent}40` }}
+              >
+                <Clock className="h-4 w-4 inline mr-1.5" style={{ verticalAlign: '-2px' }} />
+                Solicitar horário personalizado
+              </button>
+            )}
+
+            {/* Custom Request Form */}
+            {company && (
+              <CustomRequestForm
+                open={showCustomRequestForm}
+                onOpenChange={setShowCustomRequestForm}
+                companyId={company.id}
+                services={services.map(s => ({ id: s.id, name: s.name }))}
+                professionals={professionals.map(p => ({ id: p.id, full_name: p.full_name }))}
+                themeColors={T}
+              />
             )}
           </div>
         )}
