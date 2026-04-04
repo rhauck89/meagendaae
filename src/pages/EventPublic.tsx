@@ -124,6 +124,7 @@ const EventPublic = () => {
     const { data: profsData } = await supabase
       .from('public_professionals')
       .select('id, name, avatar_url')
+      .eq('company_id', eventData.company_id)
       .in('id', profIds);
 
     const profMap = new Map((profsData || []).map((p: any) => [p.id, p]));

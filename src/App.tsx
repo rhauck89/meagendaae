@@ -180,6 +180,7 @@ const PlatformRoutes = () => (
     <Route path="/dashboard/finance/payables" element={<DashboardRoute><FinancePayables /></DashboardRoute>} />
     <Route path="/dashboard/finance/receivables" element={<DashboardRoute><FinanceReceivables /></DashboardRoute>} />
     <Route path="/settings/plans" element={<ProtectedRoute><PlansPage /></ProtectedRoute>} />
+    <Route path="/evento/:eventId" element={<EventPublic />} />
     <Route path="/event/:eventSlug" element={<EventPublic />} />
     <Route path="*" element={<NotFound />} />
   </Routes>
