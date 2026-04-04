@@ -587,12 +587,15 @@ export type Database = {
           absence_start: string | null
           absence_type: string | null
           active: boolean
+          booking_mode: string
+          break_time: number
           collaborator_type: Database["public"]["Enums"]["collaborator_type"]
           commission_percent: number | null
           commission_type: Database["public"]["Enums"]["commission_type"]
           commission_value: number
           company_id: string
           created_at: string
+          grid_interval: number
           id: string
           profile_id: string
           slug: string | null
@@ -602,12 +605,15 @@ export type Database = {
           absence_start?: string | null
           absence_type?: string | null
           active?: boolean
+          booking_mode?: string
+          break_time?: number
           collaborator_type: Database["public"]["Enums"]["collaborator_type"]
           commission_percent?: number | null
           commission_type?: Database["public"]["Enums"]["commission_type"]
           commission_value?: number
           company_id: string
           created_at?: string
+          grid_interval?: number
           id?: string
           profile_id: string
           slug?: string | null
@@ -617,12 +623,15 @@ export type Database = {
           absence_start?: string | null
           absence_type?: string | null
           active?: boolean
+          booking_mode?: string
+          break_time?: number
           collaborator_type?: Database["public"]["Enums"]["collaborator_type"]
           commission_percent?: number | null
           commission_type?: Database["public"]["Enums"]["commission_type"]
           commission_value?: number
           company_id?: string
           created_at?: string
+          grid_interval?: number
           id?: string
           profile_id?: string
           slug?: string | null
@@ -3433,7 +3442,10 @@ export type Database = {
           active: boolean | null
           avatar_url: string | null
           banner_url: string | null
+          booking_mode: string | null
+          break_time: number | null
           company_id: string | null
+          grid_interval: number | null
           id: string | null
           name: string | null
           slug: string | null
