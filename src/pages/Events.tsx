@@ -1085,8 +1085,47 @@ const Events = () => {
     </div>
   );
 
+  const selectedServices = services.filter(s => selectedServiceIds.includes(s.id));
+
   const renderStep3Prices = () => (
     <div className="space-y-4">
+      {/* Service selection */}
+      <Card className="border-dashed">
+        <CardContent className="p-4 space-y-3">
+          <div className="flex items-center gap-2">
+            <Users className="h-4 w-4 text-primary" />
+            <span className="font-medium text-sm">Serviços do evento</span>
+          </div>
+          <div className="flex items-center gap-2 pb-1">
+            <Checkbox
+              checked={selectedServiceIds.length === services.length && services.length > 0}
+              onCheckedChange={(checked) => {
+                setSelectedServiceIds(checked ? services.map(s => s.id) : []);
+              }}
+            />
+            <span className="text-sm font-medium">Selecionar todos</span>
+            {selectedServiceIds.length > 0 && (
+              <button type="button" className="text-xs text-muted-foreground hover:text-foreground ml-auto" onClick={() => setSelectedServiceIds([])}>Limpar seleção</button>
+            )}
+          </div>
+          <div className="space-y-1.5 max-h-40 overflow-y-auto border rounded-md p-2">
+            {services.map(svc => (
+              <div key={svc.id} className="flex items-center gap-2">
+                <Checkbox
+                  checked={selectedServiceIds.includes(svc.id)}
+                  onCheckedChange={(checked) => {
+                    setSelectedServiceIds(prev => checked ? [...prev, svc.id] : prev.filter(id => id !== svc.id));
+                  }}
+                />
+                <span className="text-sm">{svc.name}</span>
+                <span className="text-xs text-muted-foreground ml-auto">R$ {Number(svc.price).toFixed(2)}</span>
+              </div>
+            ))}
+          </div>
+          <p className="text-xs text-muted-foreground">{selectedServiceIds.length} de {services.length} serviços selecionados</p>
+        </CardContent>
+      </Card>
+
       {/* Pricing mode selector */}
       <Card className="border-dashed">
         <CardContent className="p-4 space-y-3">
@@ -1135,7 +1174,7 @@ const Events = () => {
       </Card>
 
       {/* Individual service prices */}
-      {(pricingMode === 'custom' || pricingMode === 'adjustment') && services.map(svc => (
+      {(pricingMode === 'custom' || pricingMode === 'adjustment') && selectedServices.map(svc => (
         <div key={svc.id} className="flex items-center justify-between p-3 border rounded-lg">
           <div>
             <p className="font-medium text-sm">{svc.name}</p>
@@ -1154,10 +1193,17 @@ const Events = () => {
         </div>
       ))}
 
-      {pricingMode === 'default' && (
+      {pricingMode === 'default' && selectedServices.length > 0 && (
         <div className="text-center py-6 text-muted-foreground">
           <DollarSign className="h-8 w-8 mx-auto mb-2 opacity-50" />
           <p className="text-sm">Os preços padrão dos serviços serão usados para este evento.</p>
+        </div>
+      )}
+
+      {selectedServiceIds.length === 0 && (
+        <div className="text-center py-6 text-muted-foreground">
+          <AlertTriangle className="h-8 w-8 mx-auto mb-2 opacity-50" />
+          <p className="text-sm">Selecione ao menos um serviço para o evento.</p>
         </div>
       )}
     </div>
