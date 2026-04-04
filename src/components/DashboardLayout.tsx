@@ -8,7 +8,7 @@ import {
   Calendar, Scissors, Users, Settings, LogOut, Menu, X, User, UserCheck,
   PartyPopper, Megaphone, MessageSquare, ChevronDown, Building2, Clock, Zap, Palette, Globe, CreditCard, Bell, HelpCircle, Info, AlertTriangle,
   DollarSign, ArrowUpDown, TrendingUp, TrendingDown, FolderOpen, Percent, FileBarChart, Receipt, HandCoins,
-  ChevronsLeft, ChevronsRight,
+  ChevronsLeft, ChevronsRight, Inbox,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useState, useEffect, useCallback } from 'react';
