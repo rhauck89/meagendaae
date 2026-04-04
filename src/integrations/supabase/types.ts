@@ -1498,6 +1498,27 @@ export type Database = {
           },
         ]
       }
+      feature_discovery: {
+        Row: {
+          feature_key: string
+          id: string
+          seen_at: string
+          user_id: string
+        }
+        Insert: {
+          feature_key: string
+          id?: string
+          seen_at?: string
+          user_id: string
+        }
+        Update: {
+          feature_key?: string
+          id?: string
+          seen_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       manual_revenues: {
         Row: {
           amount: number

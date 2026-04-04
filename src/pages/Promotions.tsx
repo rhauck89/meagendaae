@@ -1,5 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { useFeatureDiscovery } from '@/hooks/useFeatureDiscovery';
+import { FeatureIntroModal } from '@/components/FeatureIntroModal';
 import { useAuth } from '@/contexts/AuthContext';
 import { useOnDataRefresh } from '@/hooks/useRefreshData';
 import { useUserRole } from '@/hooks/useUserRole';
@@ -145,6 +147,8 @@ function formatCountdown(ms: number): string {
 export default function Promotions() {
   const { companyId, profile } = useAuth();
   const { isAdmin } = useUserRole();
+  const { hasSeen, markSeen, loading: discoveryLoading } = useFeatureDiscovery();
+  const [showIntro, setShowIntro] = useState(false);
   const [promotions, setPromotions] = useState<Promotion[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -188,6 +192,13 @@ export default function Promotions() {
   const [companySlug, setCompanySlug] = useState('');
   const [metrics, setMetrics] = useState<PromoMetrics>({ clicks: 0, bookings: 0, clientsReached: 0 });
   const [lowOccupancy, setLowOccupancy] = useState(false);
+
+  // Feature discovery intro
+  useEffect(() => {
+    if (!discoveryLoading && !hasSeen('promotions')) {
+      setShowIntro(true);
+    }
+  }, [discoveryLoading, hasSeen]);
 
   // Update clock every 60s for countdown
   useEffect(() => {
@@ -1197,6 +1208,12 @@ export default function Promotions() {
           )}
         </DialogContent>
       </Dialog>
+      <FeatureIntroModal
+        featureKey="promotions"
+        open={showIntro}
+        onClose={() => { setShowIntro(false); markSeen('promotions'); }}
+        onAction={() => setDialogOpen(true)}
+      />
     </div>
   );
 }

@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useFeatureDiscovery } from '@/hooks/useFeatureDiscovery';
+import { FeatureIntroModal } from '@/components/FeatureIntroModal';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { DollarSign, TrendingDown, TrendingUp, Scissors, Users, BarChart3, Receipt, HandCoins, AlertTriangle, Clock, CalendarDays } from 'lucide-react';
@@ -11,6 +13,8 @@ import { Badge } from '@/components/ui/badge';
 
 const FinanceDashboard = () => {
   const { companyId } = useAuth();
+  const { hasSeen, markSeen, loading: discoveryLoading } = useFeatureDiscovery();
+  const [showIntro, setShowIntro] = useState(false);
   const [revenue, setRevenue] = useState(0);
   const [expenses, setExpenses] = useState(0);
   const [serviceCount, setServiceCount] = useState(0);
@@ -20,6 +24,13 @@ const FinanceDashboard = () => {
   const [receivables, setReceivables] = useState({ total: 0, overdue: 0, dueToday: 0 });
   const [cashFlowData, setCashFlowData] = useState<any[]>([]);
   const [upcomingDues, setUpcomingDues] = useState({ today: 0, thisWeek: 0, thisMonth: 0 });
+
+  // Feature discovery intro
+  useEffect(() => {
+    if (!discoveryLoading && !hasSeen('finance')) {
+      setShowIntro(true);
+    }
+  }, [discoveryLoading, hasSeen]);
 
   useEffect(() => {
     if (companyId) {
@@ -329,6 +340,11 @@ const FinanceDashboard = () => {
           </div>
         </CardContent>
       </Card>
+      <FeatureIntroModal
+        featureKey="finance"
+        open={showIntro}
+        onClose={() => { setShowIntro(false); markSeen('finance'); }}
+      />
     </div>
   );
 };

@@ -1,5 +1,7 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useFeatureDiscovery } from '@/hooks/useFeatureDiscovery';
+import { FeatureIntroModal } from '@/components/FeatureIntroModal';
 import { useOnDataRefresh } from '@/hooks/useRefreshData';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -162,6 +164,8 @@ function wrapText(ctx: CanvasRenderingContext2D, text: string, x: number, y: num
 
 const Events = () => {
   const { companyId } = useAuth();
+  const { hasSeen, markSeen, loading: discoveryLoading } = useFeatureDiscovery();
+  const [showIntro, setShowIntro] = useState(false);
   const [events, setEvents] = useState<Event[]>([]);
   const [services, setServices] = useState<any[]>([]);
   const [professionals, setProfessionals] = useState<any[]>([]);
@@ -210,6 +214,13 @@ const Events = () => {
 
   const [eventPrices, setEventPrices] = useState<EventServicePrice[]>([]);
   const [priceOverrides, setPriceOverrides] = useState<Record<string, string>>({});
+
+  // Feature discovery intro
+  useEffect(() => {
+    if (!discoveryLoading && !hasSeen('agenda_aberta')) {
+      setShowIntro(true);
+    }
+  }, [discoveryLoading, hasSeen]);
 
   useEffect(() => {
     if (companyId) {
@@ -1262,6 +1273,12 @@ const Events = () => {
         accept="image/*"
         className="hidden"
         onChange={handleCameraCapture}
+      />
+      <FeatureIntroModal
+        featureKey="agenda_aberta"
+        open={showIntro}
+        onClose={() => { setShowIntro(false); markSeen('agenda_aberta'); }}
+        onAction={() => setShowCreateDialog(true)}
       />
     </div>
   );
