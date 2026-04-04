@@ -927,16 +927,35 @@ const Events = () => {
               <Label>Descrição</Label>
               <Textarea value={formDescription} onChange={e => setFormDescription(e.target.value)} placeholder="Descreva o evento..." rows={3} />
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            {/* Single-day toggle */}
+            <div className="flex items-center justify-between">
               <div>
-                <Label>Data início *</Label>
-                <Input type="date" value={formStartDate} onChange={e => setFormStartDate(e.target.value)} />
+                <Label>Evento de um dia</Label>
+                <p className="text-xs text-muted-foreground">Ative se o evento acontece em apenas um dia</p>
               </div>
-              <div>
-                <Label>Data fim *</Label>
-                <Input type="date" value={formEndDate} onChange={e => setFormEndDate(e.target.value)} />
-              </div>
+              <Switch checked={formSingleDay} onCheckedChange={(checked) => {
+                setFormSingleDay(checked);
+                if (checked && formStartDate) setFormEndDate(formStartDate);
+              }} />
             </div>
+
+            {formSingleDay ? (
+              <div>
+                <Label>Data do evento *</Label>
+                <Input type="date" value={formStartDate} onChange={e => { setFormStartDate(e.target.value); setFormEndDate(e.target.value); }} />
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label>Data início *</Label>
+                  <Input type="date" value={formStartDate} onChange={e => setFormStartDate(e.target.value)} />
+                </div>
+                <div>
+                  <Label>Data fim *</Label>
+                  <Input type="date" value={formEndDate} onChange={e => setFormEndDate(e.target.value)} />
+                </div>
+              </div>
+            )}
 
             {/* Cover Image Upload */}
             <div>
@@ -950,37 +969,105 @@ const Events = () => {
                 onChange={handleCoverUpload}
               />
               {formCoverPreview ? (
-                <div className="relative rounded-lg overflow-hidden border bg-muted">
-                  <img src={formCoverPreview} alt="Capa" className="w-full h-36 object-cover" />
-                  {/* Safe area overlay */}
-                  <div className="absolute inset-0 flex pointer-events-none">
-                    <div className="w-[16.67%] bg-black/30 border-r border-dashed border-white/40" />
-                    <div className="flex-1 relative">
-                      <div className="absolute inset-0 border-2 border-dashed border-white/50 rounded-sm m-1" />
-                      <span className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-[10px] text-white/70 bg-black/40 px-2 py-0.5 rounded whitespace-nowrap">
-                        Área segura
-                      </span>
+                <div className="space-y-3">
+                  <div
+                    ref={imageContainerRef}
+                    className="relative rounded-lg overflow-hidden border bg-muted h-40 cursor-move select-none"
+                    onMouseDown={(e) => {
+                      e.preventDefault();
+                      setIsDragging(true);
+                      dragStart.current = { x: e.clientX, y: e.clientY, posX: formImagePositionX, posY: formImagePositionY };
+                    }}
+                    onMouseMove={(e) => {
+                      if (!isDragging || !dragStart.current) return;
+                      const dx = (e.clientX - dragStart.current.x) / 2;
+                      const dy = (e.clientY - dragStart.current.y) / 2;
+                      setFormImagePositionX(Math.max(0, Math.min(100, dragStart.current.posX - dx)));
+                      setFormImagePositionY(Math.max(0, Math.min(100, dragStart.current.posY - dy)));
+                    }}
+                    onMouseUp={() => { setIsDragging(false); dragStart.current = null; }}
+                    onMouseLeave={() => { setIsDragging(false); dragStart.current = null; }}
+                    onTouchStart={(e) => {
+                      const touch = e.touches[0];
+                      setIsDragging(true);
+                      dragStart.current = { x: touch.clientX, y: touch.clientY, posX: formImagePositionX, posY: formImagePositionY };
+                    }}
+                    onTouchMove={(e) => {
+                      if (!isDragging || !dragStart.current) return;
+                      const touch = e.touches[0];
+                      const dx = (touch.clientX - dragStart.current.x) / 2;
+                      const dy = (touch.clientY - dragStart.current.y) / 2;
+                      setFormImagePositionX(Math.max(0, Math.min(100, dragStart.current.posX - dx)));
+                      setFormImagePositionY(Math.max(0, Math.min(100, dragStart.current.posY - dy)));
+                    }}
+                    onTouchEnd={() => { setIsDragging(false); dragStart.current = null; }}
+                  >
+                    <img
+                      src={formCoverPreview}
+                      alt="Capa"
+                      className="w-full h-full pointer-events-none"
+                      style={{
+                        objectFit: 'cover',
+                        objectPosition: `${formImagePositionX}% ${formImagePositionY}%`,
+                        transform: `scale(${formImageZoom})`,
+                        transformOrigin: `${formImagePositionX}% ${formImagePositionY}%`,
+                      }}
+                      draggable={false}
+                    />
+                    {/* Safe area overlay with grid */}
+                    <div className="absolute inset-0 flex pointer-events-none">
+                      <div className="w-[16.67%] bg-black/30 border-r border-dashed border-white/40" />
+                      <div className="flex-1 relative">
+                        {/* Grid lines */}
+                        <div className="absolute inset-0 grid grid-cols-3 grid-rows-2">
+                          {Array.from({ length: 6 }).map((_, i) => (
+                            <div key={i} className="border border-white/10" />
+                          ))}
+                        </div>
+                        <div className="absolute inset-0 border-2 border-dashed border-white/50 rounded-sm m-1" />
+                        <span className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-[10px] text-white/70 bg-black/40 px-2 py-0.5 rounded whitespace-nowrap">
+                          Área segura
+                        </span>
+                      </div>
+                      <div className="w-[16.67%] bg-black/30 border-l border-dashed border-white/40" />
                     </div>
-                    <div className="w-[16.67%] bg-black/30 border-l border-dashed border-white/40" />
+                    {/* Drag indicator */}
+                    <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex items-center gap-1 text-[10px] text-white/60 bg-black/40 px-2 py-0.5 rounded pointer-events-none">
+                      <Move className="h-3 w-3" /> Arraste para reposicionar
+                    </div>
+                    <div className="absolute top-2 right-2 flex gap-1.5 z-10">
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        className="h-8 gap-1.5 bg-background/80 backdrop-blur-sm"
+                        onClick={(e) => { e.stopPropagation(); coverInputRef.current?.click(); }}
+                        disabled={uploadingCover}
+                      >
+                        <Upload className="h-3.5 w-3.5" /> Trocar
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        className="h-8 gap-1.5"
+                        onClick={(e) => { e.stopPropagation(); handleRemoveCover(); }}
+                      >
+                        <X className="h-3.5 w-3.5" /> Remover
+                      </Button>
+                    </div>
                   </div>
-                  <div className="absolute top-2 right-2 flex gap-1.5 z-10">
-                    <Button
-                      size="sm"
-                      variant="secondary"
-                      className="h-8 gap-1.5 bg-background/80 backdrop-blur-sm"
-                      onClick={() => coverInputRef.current?.click()}
-                      disabled={uploadingCover}
-                    >
-                      <Upload className="h-3.5 w-3.5" /> Trocar
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="destructive"
-                      className="h-8 gap-1.5"
-                      onClick={handleRemoveCover}
-                    >
-                      <X className="h-3.5 w-3.5" /> Remover
-                    </Button>
+
+                  {/* Zoom control */}
+                  <div className="flex items-center gap-3">
+                    <ZoomOut className="h-4 w-4 text-muted-foreground shrink-0" />
+                    <Slider
+                      value={[formImageZoom]}
+                      min={1}
+                      max={2.5}
+                      step={0.05}
+                      onValueChange={([v]) => setFormImageZoom(v)}
+                      className="flex-1"
+                    />
+                    <ZoomIn className="h-4 w-4 text-muted-foreground shrink-0" />
                   </div>
                 </div>
               ) : (
@@ -988,12 +1075,18 @@ const Events = () => {
                   type="button"
                   onClick={() => coverInputRef.current?.click()}
                   disabled={uploadingCover}
-                  className="w-full h-36 border-2 border-dashed rounded-lg flex flex-col items-center justify-center gap-2 text-muted-foreground hover:border-primary hover:text-primary transition-colors cursor-pointer disabled:opacity-50 relative overflow-hidden"
+                  className="w-full h-40 border-2 border-dashed rounded-lg flex flex-col items-center justify-center gap-2 text-muted-foreground hover:border-primary hover:text-primary transition-colors cursor-pointer disabled:opacity-50 relative overflow-hidden"
                 >
-                  {/* Safe area guide overlay on empty state */}
+                  {/* Safe area guide overlay with grid */}
                   <div className="absolute inset-0 flex pointer-events-none">
                     <div className="w-[16.67%] bg-muted-foreground/5 border-r border-dashed border-muted-foreground/20" />
-                    <div className="flex-1" />
+                    <div className="flex-1 relative">
+                      <div className="absolute inset-0 grid grid-cols-3 grid-rows-2">
+                        {Array.from({ length: 6 }).map((_, i) => (
+                          <div key={i} className="border border-muted-foreground/5" />
+                        ))}
+                      </div>
+                    </div>
                     <div className="w-[16.67%] bg-muted-foreground/5 border-l border-dashed border-muted-foreground/20" />
                   </div>
                   {uploadingCover ? (
@@ -1008,7 +1101,7 @@ const Events = () => {
                 </button>
               )}
               <p className="text-[10px] text-muted-foreground mt-1.5">
-                Elementos importantes devem ficar na área central
+                Elementos importantes devem ficar na área central. As laterais podem ser cortadas em alguns dispositivos.
               </p>
             </div>
 
