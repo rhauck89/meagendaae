@@ -4,30 +4,35 @@ import { useAuth } from '@/contexts/AuthContext';
 
 export const usePendingRequestCounts = () => {
   const [count, setCount] = useState(0);
-  const { profile } = useAuth();
+  const { profile, companyId } = useAuth();
 
   useEffect(() => {
-    if (!profile?.id) return;
+    if (!profile?.id || !companyId) return;
 
     const fetchCount = async () => {
-      const { count: total } = await supabase
+      // Count requests where professional_id matches OR is null (unassigned) for this company
+      const { count: assignedCount } = await supabase
         .from('appointment_requests')
         .select('*', { count: 'exact', head: true })
         .eq('status', 'pending')
-        .eq('professional_id', profile.id);
+        .eq('company_id', companyId);
 
-      setCount(total || 0);
+      setCount(assignedCount || 0);
     };
 
     fetchCount();
 
     const channel = supabase
-      .channel('pending-requests-count')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'appointment_requests' }, () => fetchCount())
+      .channel(`pending-requests-${profile.id}`)
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'appointment_requests',
+      }, () => fetchCount())
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
-  }, [profile?.id]);
+  }, [profile?.id, companyId]);
 
   return count;
 };

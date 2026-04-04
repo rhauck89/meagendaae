@@ -12,7 +12,7 @@ import { toast } from 'sonner';
 import { Clock, Check, X, MessageCircle, ArrowRight, Inbox } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { displayWhatsApp } from '@/lib/whatsapp';
+import { displayWhatsApp, formatWhatsApp } from '@/lib/whatsapp';
 
 const statusLabels: Record<string, { label: string; color: string }> = {
   pending: { label: 'Pendente', color: 'bg-yellow-100 text-yellow-800' },
@@ -127,7 +127,7 @@ const AppointmentRequests = () => {
 
       // 5. Open WhatsApp to notify client
       const message = `Olá ${request.client_name}! Seu horário solicitado para ${format(new Date(request.requested_date + 'T12:00:00'), "dd/MM/yyyy", { locale: ptBR })} às ${request.requested_time.slice(0, 5)} foi *aceito*. Estamos aguardando você!`;
-      const whatsappUrl = `https://wa.me/${request.client_whatsapp.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`;
+      const whatsappUrl = `https://wa.me/${formatWhatsApp(request.client_whatsapp)}?text=${encodeURIComponent(message)}`;
       window.open(whatsappUrl, '_blank');
 
       fetchRequests();
@@ -154,7 +154,7 @@ const AppointmentRequests = () => {
         .eq('id', selectedRequest.id);
 
       const message = `Olá ${selectedRequest.client_name}! Não temos disponibilidade no horário solicitado, mas gostaríamos de sugerir: *${format(new Date(suggestedDate + 'T12:00:00'), "dd/MM/yyyy", { locale: ptBR })} às ${suggestedTime}*. Pode ser?`;
-      const whatsappUrl = `https://wa.me/${selectedRequest.client_whatsapp.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`;
+      const whatsappUrl = `https://wa.me/${formatWhatsApp(selectedRequest.client_whatsapp)}?text=${encodeURIComponent(message)}`;
       window.open(whatsappUrl, '_blank');
 
       toast.success('Sugestão enviada');
@@ -182,7 +182,7 @@ const AppointmentRequests = () => {
         .eq('id', selectedRequest.id);
 
       const message = `Olá ${selectedRequest.client_name}! Infelizmente não conseguimos atender sua solicitação de horário.${rejectionReason ? ` Motivo: ${rejectionReason}` : ''} Por favor, tente agendar em outro horário pelo nosso link.`;
-      const whatsappUrl = `https://wa.me/${selectedRequest.client_whatsapp.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`;
+      const whatsappUrl = `https://wa.me/${formatWhatsApp(selectedRequest.client_whatsapp)}?text=${encodeURIComponent(message)}`;
       window.open(whatsappUrl, '_blank');
 
       toast.success('Solicitação recusada');
