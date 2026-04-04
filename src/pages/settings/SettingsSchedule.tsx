@@ -23,6 +23,7 @@ const SettingsSchedule = () => {
   const [bufferMinutes, setBufferMinutes] = useState(0);
   const [bookingMode, setBookingMode] = useState<string>('fixed_grid');
   const [fixedSlotInterval, setFixedSlotInterval] = useState<number>(15);
+  const [allowCustomRequests, setAllowCustomRequests] = useState(false);
   const [syncDialogOpen, setSyncDialogOpen] = useState(false);
   const [syncing, setSyncing] = useState(false);
 
