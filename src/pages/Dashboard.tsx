@@ -157,7 +157,7 @@ const Dashboard = () => {
   useEffect(() => {
     if (!companyId) return;
     fetchAppointments();
-    fetchReturnStats();
+    fetchDailyTrends();
     fetchWaitlistCount();
     fetchReminderCount();
     fetchBirthdays();
