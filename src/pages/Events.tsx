@@ -215,6 +215,13 @@ const Events = () => {
   const [eventPrices, setEventPrices] = useState<EventServicePrice[]>([]);
   const [priceOverrides, setPriceOverrides] = useState<Record<string, string>>({});
 
+  // Feature discovery intro
+  useEffect(() => {
+    if (!discoveryLoading && !hasSeen('agenda_aberta')) {
+      setShowIntro(true);
+    }
+  }, [discoveryLoading, hasSeen]);
+
   useEffect(() => {
     if (companyId) {
       loadEvents();
