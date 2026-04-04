@@ -146,6 +146,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
   const prefillDateRef = useRef(searchParams.get('date'));
   const prefillTimeRef = useRef(searchParams.get('time'));
   const promoIdRef = useRef(searchParams.get('promo'));
+  const prefillFromProfile = useRef(!!(searchParams.get('date') && searchParams.get('time')));
   const [company, setCompany] = useState<any>(null);
   const [services, setServices] = useState<any[]>([]);
   const [professionals, setProfessionals] = useState<any[]>([]);
@@ -714,7 +715,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
     if (professionals.length === 1 && selectedProfessional !== professionals[0].id) {
       setSelectedProfessional(professionals[0].id);
       fetchProfessionalHours(professionals[0].id);
-      if (step === 'professional') setStep('datetime');
+      if (step === 'professional') setStep(prefillFromProfile.current && selectedDate && selectedTime ? 'client' : 'datetime');
     }
   }, [professionals, selectedProfessional, step]);
 
@@ -1230,8 +1231,24 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                 </div>
                 <Button
                   onClick={async () => {
-                    if (skipProfessionalStep) { setStep('datetime'); }
-                    else { const profs = await fetchProfessionals(); setStep(profs.length === 1 ? 'datetime' : 'professional'); }
+                    if (skipProfessionalStep) {
+                      if (prefillFromProfile.current && selectedDate && selectedTime) {
+                        setStep('client');
+                      } else {
+                        setStep('datetime');
+                      }
+                    } else {
+                      const profs = await fetchProfessionals();
+                      if (profs.length === 1) {
+                        if (prefillFromProfile.current && selectedDate && selectedTime) {
+                          setStep('client');
+                        } else {
+                          setStep('datetime');
+                        }
+                      } else {
+                        setStep('professional');
+                      }
+                    }
                   }}
                   className="rounded-xl px-6 font-semibold shadow-lg transition-all hover:scale-105"
                   style={{ background: T.accent, color: '#000' }}
@@ -1259,7 +1276,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                 return (
                   <div
                     key={p.id}
-                    onClick={() => { setSelectedProfessional(p.id); fetchProfessionalHours(p.id); fetchRecentBookings(p.id); setStep('datetime'); }}
+                    onClick={() => { setSelectedProfessional(p.id); fetchProfessionalHours(p.id); fetchRecentBookings(p.id); setStep(prefillFromProfile.current && selectedDate && selectedTime ? 'client' : 'datetime'); }}
                     className="p-5 rounded-2xl cursor-pointer transition-all duration-200 hover:scale-[1.02] text-center"
                     style={{
                       background: sel ? `${T.accent}10` : T.card,
@@ -1545,7 +1562,13 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
         {/* ═══ CLIENT INFO ═══ */}
         {step === 'client' && (
           <div className="space-y-5 animate-fade-in">
-            <button onClick={() => setStep('datetime')} className="flex items-center gap-1 text-sm font-medium hover:opacity-80" style={{ color: T.textSec }}>
+            <button onClick={() => {
+              if (prefillFromProfile.current) {
+                setStep('services');
+              } else {
+                setStep('datetime');
+              }
+            }} className="flex items-center gap-1 text-sm font-medium hover:opacity-80" style={{ color: T.textSec }}>
               <ChevronLeft className="h-4 w-4" /> Voltar
             </button>
             <div>
