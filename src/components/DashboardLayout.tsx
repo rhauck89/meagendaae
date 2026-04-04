@@ -309,7 +309,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
 
             {/* Navigation */}
             <nav className="flex-1 px-3 space-y-1 overflow-y-auto sidebar-nav">
-              {navItems.map(item => renderNavLink(item))}
+              {navItems.map(item => renderNavLink(item, item.href === '/dashboard/solicitacoes' ? pendingRequests : undefined))}
 
               {isAdmin && renderCollapsibleGroup('Financeiro', DollarSign, isFinanceActive, financeOpen, setFinanceOpen, financeSubItems)}
               {isAdmin && renderCollapsibleGroup('Configurações', Settings, isSettingsActive, settingsOpen, setSettingsOpen, settingsSubItems)}
