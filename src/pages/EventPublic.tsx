@@ -48,7 +48,7 @@ type Service = {
 };
 
 const EventPublic = () => {
-  const { eventSlug } = useParams();
+  const { eventId, eventSlug } = useParams();
   const [event, setEvent] = useState<Event | null>(null);
   const [company, setCompany] = useState<any>(null);
   const [slots, setSlots] = useState<Slot[]>([]);
