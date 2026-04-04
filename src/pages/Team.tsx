@@ -35,7 +35,7 @@ const Team = () => {
   // Edit modal state
    const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<any>(null);
-  const [editForm, setEditForm] = useState({ name: '', email: '', collaborator_type: 'commissioned' as string, commission_type: 'percentage' as string, commission_value: '' as string | number, booking_mode: 'fixed_grid' as string, grid_interval: 15 as number, break_time: 0 as number });
+  const [editForm, setEditForm] = useState({ name: '', email: '', collaborator_type: 'commissioned' as string, commission_type: 'percentage' as string, commission_value: '' as string | number, booking_mode: 'hybrid' as string, grid_interval: 15 as number, break_time: 0 as number });
 
   // Disable/Delete confirm state
   const [disableDialogOpen, setDisableDialogOpen] = useState(false);
@@ -226,7 +226,7 @@ const Team = () => {
       collaborator_type: collaborator.collaborator_type || 'commissioned',
       commission_type: collaborator.commission_type || 'none',
       commission_value: collaborator.commission_value || '',
-      booking_mode: (collaborator as any).booking_mode || 'fixed_grid',
+      booking_mode: (collaborator as any).booking_mode || 'hybrid',
       grid_interval: (collaborator as any).grid_interval || 15,
       break_time: (collaborator as any).break_time || 0,
     });
