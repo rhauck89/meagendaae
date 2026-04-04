@@ -51,6 +51,7 @@ import PlansPage from "./pages/PlansPage";
 import NotFound from "./pages/NotFound";
 import AppRedirect from "./pages/AppRedirect";
 import CompanySelector from "./pages/CompanySelector";
+import AppointmentRequests from "./pages/AppointmentRequests";
 
 // Settings sub-pages
 import SettingsGeneral from "./pages/settings/SettingsGeneral";
