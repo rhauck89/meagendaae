@@ -50,6 +50,7 @@ import HelpCenter from "./pages/HelpCenter";
 import PlansPage from "./pages/PlansPage";
 import NotFound from "./pages/NotFound";
 import AppRedirect from "./pages/AppRedirect";
+import CompanySelector from "./pages/CompanySelector";
 
 // Settings sub-pages
 import SettingsGeneral from "./pages/settings/SettingsGeneral";
@@ -118,6 +119,7 @@ const PlatformRoutes = () => (
     <Route path="/auth" element={<Auth />} />
     <Route path="/forgot-password" element={<ForgotPassword />} />
     <Route path="/reset-password" element={<ResetPassword />} />
+    <Route path="/select-company" element={<ProtectedRoute><CompanySelector /></ProtectedRoute>} />
     <Route path="/barbearia/:slug" element={<BarbershopLanding routeBusinessType="barbershop" />} />
     <Route path="/estetica/:slug" element={<BarbershopLanding routeBusinessType="esthetic" />} />
     <Route path="/barbearia/:slug/promo/:promoSlug" element={<PromotionPublic />} />
