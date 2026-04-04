@@ -6,9 +6,11 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
-import { Clock, Calendar as CalendarIcon, Plus, Trash2, Timer, RefreshCw } from 'lucide-react';
+import { Clock, Calendar as CalendarIcon, Plus, Trash2, Timer, RefreshCw, Zap, Grid3X3 } from 'lucide-react';
 import SettingsBreadcrumb from '@/components/SettingsBreadcrumb';
 
 const dayNames = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
@@ -19,16 +21,22 @@ const SettingsSchedule = () => {
   const [exceptions, setExceptions] = useState<any[]>([]);
   const [newException, setNewException] = useState({ date: '', reason: '', is_closed: true });
   const [bufferMinutes, setBufferMinutes] = useState(0);
+  const [bookingMode, setBookingMode] = useState<string>('fixed_grid');
+  const [fixedSlotInterval, setFixedSlotInterval] = useState<number>(15);
   const [syncDialogOpen, setSyncDialogOpen] = useState(false);
   const [syncing, setSyncing] = useState(false);
 
   useEffect(() => {
-    if (companyId) { fetchHours(); fetchExceptions(); fetchBuffer(); }
+    if (companyId) { fetchHours(); fetchExceptions(); fetchCompanySettings(); }
   }, [companyId]);
 
-  const fetchBuffer = async () => {
-    const { data } = await supabase.from('companies').select('buffer_minutes').eq('id', companyId!).single();
-    if (data) setBufferMinutes((data as any).buffer_minutes ?? 0);
+  const fetchCompanySettings = async () => {
+    const { data } = await supabase.from('companies').select('buffer_minutes, booking_mode, fixed_slot_interval').eq('id', companyId!).single();
+    if (data) {
+      setBufferMinutes((data as any).buffer_minutes ?? 0);
+      setBookingMode((data as any).booking_mode ?? 'fixed_grid');
+      setFixedSlotInterval((data as any).fixed_slot_interval ?? 15);
+    }
   };
 
   const fetchHours = async () => {
@@ -56,6 +64,11 @@ const SettingsSchedule = () => {
     toast.success('Intervalo salvo');
   };
 
+  const saveBookingMode = async () => {
+    await supabase.from('companies').update({ booking_mode: bookingMode, fixed_slot_interval: fixedSlotInterval } as any).eq('id', companyId!);
+    toast.success('Modo de agendamento salvo');
+  };
+
   const addException = async () => {
     if (!newException.date) return toast.error('Selecione uma data');
     await supabase.from('business_exceptions').insert({ company_id: companyId!, exception_date: newException.date, reason: newException.reason, is_closed: newException.is_closed });
@@ -73,7 +86,6 @@ const SettingsSchedule = () => {
     if (!companyId) return;
     setSyncing(true);
     try {
-      // Get company business hours
       const { data: companyHours, error: hoursError } = await supabase
         .from('business_hours')
         .select('day_of_week, open_time, close_time, lunch_start, lunch_end, is_closed')
@@ -85,7 +97,6 @@ const SettingsSchedule = () => {
         return;
       }
 
-      // Get all active collaborators
       const { data: activeCollaborators, error: collabError } = await supabase
         .from('collaborators')
         .select('profile_id')
@@ -100,14 +111,12 @@ const SettingsSchedule = () => {
       let successCount = 0;
 
       for (const collab of activeCollaborators) {
-        // Delete existing professional hours
         await supabase
           .from('professional_working_hours')
           .delete()
           .eq('professional_id', collab.profile_id)
           .eq('company_id', companyId);
 
-        // Insert company hours as professional hours
         const profHours = companyHours.map((h) => ({
           professional_id: collab.profile_id,
           company_id: companyId,
@@ -142,6 +151,69 @@ const SettingsSchedule = () => {
         <h2 className="text-xl font-display font-bold">Agenda</h2>
         <p className="text-sm text-muted-foreground">Horários de funcionamento, intervalos e exceções</p>
       </div>
+
+      {/* Booking Mode */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Zap className="h-5 w-5" /> Modo de Agendamento
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <RadioGroup value={bookingMode} onValueChange={setBookingMode} className="space-y-3">
+            <div className={`flex items-start gap-3 p-4 rounded-lg border transition-colors ${bookingMode === 'intelligent' ? 'border-primary bg-primary/5' : 'bg-card'}`}>
+              <RadioGroupItem value="intelligent" id="mode-intelligent" className="mt-1" />
+              <div className="space-y-1">
+                <Label htmlFor="mode-intelligent" className="font-medium cursor-pointer flex items-center gap-2">
+                  <Zap className="h-4 w-4 text-primary" />
+                  Agendamento Inteligente
+                  <span className="text-xs text-primary font-normal">(recomendado)</span>
+                </Label>
+                <p className="text-xs text-muted-foreground">
+                  Os horários disponíveis são calculados dinamicamente com base na duração do serviço e no intervalo entre atendimentos. Evita lacunas inutilizáveis na agenda.
+                </p>
+                <p className="text-xs text-muted-foreground italic">
+                  Ex: Serviço de 30min + 5min intervalo → próximo horário às 07:35
+                </p>
+              </div>
+            </div>
+            <div className={`flex items-start gap-3 p-4 rounded-lg border transition-colors ${bookingMode === 'fixed_grid' ? 'border-primary bg-primary/5' : 'bg-card'}`}>
+              <RadioGroupItem value="fixed_grid" id="mode-fixed" className="mt-1" />
+              <div className="space-y-1">
+                <Label htmlFor="mode-fixed" className="font-medium cursor-pointer flex items-center gap-2">
+                  <Grid3X3 className="h-4 w-4 text-primary" />
+                  Grade Fixa de Horários
+                </Label>
+                <p className="text-xs text-muted-foreground">
+                  Os horários seguem intervalos fixos independentemente da duração do serviço.
+                </p>
+                <p className="text-xs text-muted-foreground italic">
+                  Ex: Intervalo de 30min → 07:00, 07:30, 08:00, 08:30...
+                </p>
+              </div>
+            </div>
+          </RadioGroup>
+
+          {bookingMode === 'fixed_grid' && (
+            <div className="pl-8 space-y-2">
+              <Label className="text-xs">Intervalo da grade</Label>
+              <Select value={String(fixedSlotInterval)} onValueChange={(v) => setFixedSlotInterval(Number(v))}>
+                <SelectTrigger className="w-40">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="15">15 minutos</SelectItem>
+                  <SelectItem value="30">30 minutos</SelectItem>
+                  <SelectItem value="45">45 minutos</SelectItem>
+                  <SelectItem value="60">60 minutos</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
+          <Button size="sm" onClick={saveBookingMode}>Salvar modo</Button>
+        </CardContent>
+      </Card>
 
       {/* Buffer */}
       <Card>

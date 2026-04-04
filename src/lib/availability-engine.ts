@@ -1,5 +1,7 @@
 import { addMinutes, format, parseISO } from 'date-fns';
 
+export type BookingMode = 'intelligent' | 'fixed_grid';
+
 export interface BusinessHours {
   day_of_week: number;
   open_time: string;
@@ -23,116 +25,49 @@ export interface ExistingAppointment {
 
 export interface BlockedTime {
   block_date: string;
-  start_time: string; // HH:mm or HH:mm:ss
+  start_time: string;
   end_time: string;
 }
 
 export interface AvailabilityParams {
   date: Date;
-  totalDuration: number; // in minutes
+  totalDuration: number;
   businessHours: BusinessHours[];
   exceptions: BusinessException[];
   existingAppointments: ExistingAppointment[];
-  slotInterval?: number; // default 15 minutes
-  bufferMinutes?: number; // buffer between appointments
-  professionalHours?: BusinessHours[]; // override company hours
-  blockedTimes?: BlockedTime[]; // manual time blocks
-  professionalId?: string; // for debug logging
+  slotInterval?: number;
+  bufferMinutes?: number;
+  professionalHours?: BusinessHours[];
+  blockedTimes?: BlockedTime[];
+  professionalId?: string;
+  bookingMode?: BookingMode;
 }
 
 /**
- * Smart availability engine that calculates available time slots
- * considering business hours, lunch breaks, exceptions, existing appointments,
- * buffer time, professional-specific working hours, and blocked times.
+ * Parse a time string "HH:mm" or "HH:mm:ss" into a Date on the given base date.
  */
-export function calculateAvailableSlots(params: AvailabilityParams): string[] {
-  const {
-    date,
-    totalDuration,
-    businessHours,
-    exceptions,
-    existingAppointments,
-    slotInterval = 15,
-    bufferMinutes = 0,
-    professionalHours,
-    blockedTimes = [],
-    professionalId,
-  } = params;
+function parseTime(t: string, baseDate: Date): Date {
+  const [h, m] = t.split(':').map(Number);
+  const d = new Date(baseDate);
+  d.setHours(h, m, 0, 0);
+  return d;
+}
 
-  const debugInfo = {
-    professionalId: professionalId ?? 'N/A',
-    date: format(date, 'yyyy-MM-dd'),
-    totalDuration,
-    businessHoursCount: businessHours.length,
-    professionalHoursCount: professionalHours?.length ?? 0,
-    existingAppointmentsCount: existingAppointments.length,
-    blockedTimesCount: blockedTimes.length,
-    bufferMinutes,
-    slotInterval,
-  };
-
-  if (totalDuration <= 0) {
-    console.warn('[AvailabilityEngine] totalDuration <= 0, returning no slots', debugInfo);
-    return [];
-  }
-
-  const dateStr = format(date, 'yyyy-MM-dd');
-
-  // 1. Check for exception on this date
-  const exception = exceptions.find((e) => e.exception_date === dateStr);
-  if (exception?.is_closed) {
-    console.warn('[AvailabilityEngine] Date is closed (exception)', { dateStr, exception });
-    return [];
-  }
-
-  // 2. Get working hours - professional hours override company hours
-  const dayOfWeek = date.getDay();
-  const usingProfessionalHours = !!(professionalHours && professionalHours.length > 0);
-  const activeHours = usingProfessionalHours ? professionalHours! : businessHours;
-  const hours = activeHours.find((h) => h.day_of_week === dayOfWeek);
-
-  console.log('[AvailabilityEngine] Hours resolution', {
-    dayOfWeek,
-    usingProfessionalHours,
-    fallbackToCompany: !usingProfessionalHours,
-    activeHoursEntries: activeHours.map(h => ({
-      day: h.day_of_week,
-      open: h.open_time,
-      close: h.close_time,
-      closed: h.is_closed,
-    })),
-    matchedDay: hours ? { open: hours.open_time, close: hours.close_time, closed: hours.is_closed } : 'NOT FOUND',
-    ...debugInfo,
-  });
-  
-  if (!hours || hours.is_closed) {
-    console.warn('[AvailabilityEngine] No working hours for day', {
-      dayOfWeek,
-      reason: !hours ? 'No entry for this day_of_week' : 'Day is marked as closed',
-      ...debugInfo,
-    });
-    return [];
-  }
-
-  // Use exception hours if available
-  const openTimeStr = exception?.open_time || hours.open_time;
-  const closeTimeStr = exception?.close_time || hours.close_time;
-
-  const parseTime = (t: string): Date => {
-    const [h, m] = t.split(':').map(Number);
-    const d = new Date(date);
-    d.setHours(h, m, 0, 0);
-    return d;
-  };
-
-  const openTime = parseTime(openTimeStr);
-  const closeTime = parseTime(closeTimeStr);
-  const lunchStart = hours.lunch_start ? parseTime(hours.lunch_start) : null;
-  const lunchEnd = hours.lunch_end ? parseTime(hours.lunch_end) : null;
-
-  // 3. Build blocked intervals (lunch + existing appointments + blocked times)
+/**
+ * Build the list of blocked intervals from lunch, existing appointments, and manual blocks.
+ */
+function buildBlockedIntervals(
+  date: Date,
+  dateStr: string,
+  hours: BusinessHours,
+  existingAppointments: ExistingAppointment[],
+  blockedTimes: BlockedTime[],
+  bufferMinutes: number
+): Array<{ start: Date; end: Date }> {
   const blocked: Array<{ start: Date; end: Date }> = [];
 
+  const lunchStart = hours.lunch_start ? parseTime(hours.lunch_start, date) : null;
+  const lunchEnd = hours.lunch_end ? parseTime(hours.lunch_end, date) : null;
   if (lunchStart && lunchEnd) {
     blocked.push({ start: lunchStart, end: lunchEnd });
   }
@@ -143,30 +78,73 @@ export function calculateAvailableSlots(params: AvailabilityParams): string[] {
     blocked.push({ start: aptStart, end: aptEnd });
   }
 
-  // Add blocked times for this date
   for (const bt of blockedTimes) {
     if (bt.block_date === dateStr) {
-      blocked.push({ start: parseTime(bt.start_time), end: parseTime(bt.end_time) });
+      blocked.push({ start: parseTime(bt.start_time, date), end: parseTime(bt.end_time, date) });
     }
   }
 
   blocked.sort((a, b) => a.start.getTime() - b.start.getTime());
+  return blocked;
+}
 
-  // 4. Calculate earliest allowed slot if date is today
+/**
+ * Get the earliest allowed slot time if the date is today.
+ */
+function getEarliestSlotTime(date: Date, slotInterval: number): Date | null {
   const now = new Date();
   const isToday = date.getFullYear() === now.getFullYear() &&
     date.getMonth() === now.getMonth() &&
     date.getDate() === now.getDate();
 
-  let earliestSlotTime: Date | null = null;
-  if (isToday) {
-    const nowMinutes = now.getHours() * 60 + now.getMinutes();
-    const roundedMinutes = Math.ceil(nowMinutes / slotInterval) * slotInterval;
-    earliestSlotTime = new Date(date);
-    earliestSlotTime.setHours(Math.floor(roundedMinutes / 60), roundedMinutes % 60, 0, 0);
-  }
+  if (!isToday) return null;
 
-  // 5. Generate slots - the slot itself occupies totalDuration + buffer
+  const nowMinutes = now.getHours() * 60 + now.getMinutes();
+  const roundedMinutes = Math.ceil(nowMinutes / slotInterval) * slotInterval;
+  const earliest = new Date(date);
+  earliest.setHours(Math.floor(roundedMinutes / 60), roundedMinutes % 60, 0, 0);
+  return earliest;
+}
+
+/**
+ * Resolve working hours for a given date, considering exceptions and professional overrides.
+ */
+function resolveWorkingHours(
+  date: Date,
+  businessHours: BusinessHours[],
+  professionalHours: BusinessHours[] | undefined,
+  exceptions: BusinessException[]
+): { hours: BusinessHours; openTimeStr: string; closeTimeStr: string } | null {
+  const dateStr = format(date, 'yyyy-MM-dd');
+  const exception = exceptions.find((e) => e.exception_date === dateStr);
+  if (exception?.is_closed) return null;
+
+  const dayOfWeek = date.getDay();
+  const activeHours = (professionalHours && professionalHours.length > 0) ? professionalHours : businessHours;
+  const hours = activeHours.find((h) => h.day_of_week === dayOfWeek);
+  if (!hours || hours.is_closed) return null;
+
+  return {
+    hours,
+    openTimeStr: exception?.open_time || hours.open_time,
+    closeTimeStr: exception?.close_time || hours.close_time,
+  };
+}
+
+/**
+ * FIXED GRID MODE: Slots at regular intervals regardless of service duration.
+ * Uses slotInterval as the fixed step (e.g. every 15, 30, 45, or 60 min).
+ */
+function calculateFixedGridSlots(
+  date: Date,
+  openTime: Date,
+  closeTime: Date,
+  totalDuration: number,
+  bufferMinutes: number,
+  slotInterval: number,
+  blocked: Array<{ start: Date; end: Date }>,
+  earliestSlotTime: Date | null
+): string[] {
   const effectiveDuration = totalDuration + bufferMinutes;
   const slots: string[] = [];
   let current = new Date(openTime);
@@ -174,7 +152,6 @@ export function calculateAvailableSlots(params: AvailabilityParams): string[] {
   while (current.getTime() + effectiveDuration * 60000 <= closeTime.getTime()) {
     const slotEnd = addMinutes(current, effectiveDuration);
 
-    // Skip past slots for today
     if (earliestSlotTime && current < earliestSlotTime) {
       current = addMinutes(current, slotInterval);
       continue;
@@ -191,13 +168,118 @@ export function calculateAvailableSlots(params: AvailabilityParams): string[] {
     current = addMinutes(current, slotInterval);
   }
 
+  return slots;
+}
+
+/**
+ * INTELLIGENT MODE: Slots are calculated dynamically based on real free gaps.
+ * After each existing appointment, the next slot starts at appointment_end + buffer.
+ * This prevents unusable gaps in the schedule.
+ */
+function calculateIntelligentSlots(
+  date: Date,
+  openTime: Date,
+  closeTime: Date,
+  totalDuration: number,
+  bufferMinutes: number,
+  blocked: Array<{ start: Date; end: Date }>,
+  earliestSlotTime: Date | null
+): string[] {
+  const effectiveDuration = totalDuration + bufferMinutes;
+
+  // Build free windows by subtracting blocked intervals from [openTime, closeTime]
+  const freeWindows: Array<{ start: Date; end: Date }> = [];
+  let windowStart = new Date(openTime);
+
+  for (const b of blocked) {
+    if (b.start > windowStart && b.start < closeTime) {
+      freeWindows.push({ start: new Date(windowStart), end: new Date(b.start) });
+    }
+    if (b.end > windowStart) {
+      windowStart = new Date(b.end);
+    }
+  }
+  if (windowStart < closeTime) {
+    freeWindows.push({ start: new Date(windowStart), end: new Date(closeTime) });
+  }
+
+  const slots: string[] = [];
+
+  for (const window of freeWindows) {
+    let current = new Date(window.start);
+
+    while (current.getTime() + effectiveDuration * 60000 <= window.end.getTime()) {
+      if (earliestSlotTime && current < earliestSlotTime) {
+        // In intelligent mode, jump by service duration to avoid tiny increments
+        current = addMinutes(current, totalDuration + bufferMinutes);
+        continue;
+      }
+
+      slots.push(format(current, 'HH:mm'));
+      // Next slot starts right after this service + buffer
+      current = addMinutes(current, totalDuration + bufferMinutes);
+    }
+  }
+
+  return slots;
+}
+
+/**
+ * Smart availability engine that calculates available time slots.
+ * Supports two modes:
+ * - fixed_grid: Regular intervals (default, backward compatible)
+ * - intelligent: Dynamic gaps based on service duration + buffer
+ */
+export function calculateAvailableSlots(params: AvailabilityParams): string[] {
+  const {
+    date,
+    totalDuration,
+    businessHours,
+    exceptions,
+    existingAppointments,
+    slotInterval = 15,
+    bufferMinutes = 0,
+    professionalHours,
+    blockedTimes = [],
+    professionalId,
+    bookingMode = 'fixed_grid',
+  } = params;
+
+  if (totalDuration <= 0) {
+    console.warn('[AvailabilityEngine] totalDuration <= 0, returning no slots');
+    return [];
+  }
+
+  const dateStr = format(date, 'yyyy-MM-dd');
+
+  const resolved = resolveWorkingHours(date, businessHours, professionalHours, exceptions);
+  if (!resolved) return [];
+
+  const { hours, openTimeStr, closeTimeStr } = resolved;
+  const openTime = parseTime(openTimeStr, date);
+  const closeTime = parseTime(closeTimeStr, date);
+
+  const blocked = buildBlockedIntervals(date, dateStr, hours, existingAppointments, blockedTimes, bufferMinutes);
+  const earliestSlotTime = getEarliestSlotTime(date, bookingMode === 'intelligent' ? 5 : slotInterval);
+
+  let slots: string[];
+
+  if (bookingMode === 'intelligent') {
+    slots = calculateIntelligentSlots(date, openTime, closeTime, totalDuration, bufferMinutes, blocked, earliestSlotTime);
+  } else {
+    slots = calculateFixedGridSlots(date, openTime, closeTime, totalDuration, bufferMinutes, slotInterval, blocked, earliestSlotTime);
+  }
+
   console.log('[AvailabilityEngine] Result', {
-    ...debugInfo,
+    professionalId: professionalId ?? 'N/A',
+    date: dateStr,
+    bookingMode,
+    totalDuration,
+    bufferMinutes,
+    slotInterval,
     openTime: format(openTime, 'HH:mm'),
     closeTime: format(closeTime, 'HH:mm'),
-    lunchBreak: hours.lunch_start ? `${hours.lunch_start}-${hours.lunch_end}` : 'none',
     blockedIntervals: blocked.length,
-    effectiveDuration,
     slotsFound: slots.length,
   });
 
