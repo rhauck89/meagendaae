@@ -226,6 +226,9 @@ const Team = () => {
       collaborator_type: collaborator.collaborator_type || 'commissioned',
       commission_type: collaborator.commission_type || 'none',
       commission_value: collaborator.commission_value || '',
+      booking_mode: (collaborator as any).booking_mode || 'fixed_grid',
+      grid_interval: (collaborator as any).grid_interval || 15,
+      break_time: (collaborator as any).break_time || 0,
     });
     setEditDialogOpen(true);
   };
