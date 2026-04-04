@@ -78,7 +78,7 @@ const getDisplayStatus = (apt: any): string => {
 };
 
 const statusFilterMap: Record<StatusTab, (apt: any) => boolean> = {
-  all: () => true,
+  all: (apt) => apt.status !== 'rescheduled',
   confirmed: (apt) => {
     const ds = getDisplayStatus(apt);
     return ds === 'confirmed' || ds === 'in_progress' || ds === 'late' || apt.status === 'pending';
