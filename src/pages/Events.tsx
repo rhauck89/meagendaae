@@ -419,7 +419,7 @@ const Events = () => {
   const openSlotsDialog = async (event: Event) => {
     setSelectedEvent(event);
     await loadEventSlots(event.id);
-    if (professionals.length > 0) setSlotProfessional(professionals[0].profile_id);
+    if (professionals.length > 0) setSlotProfessionals([professionals[0].profile_id]);
     setShowSlotsDialog(true);
   };
 
