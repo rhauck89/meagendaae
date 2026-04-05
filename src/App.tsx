@@ -160,6 +160,7 @@ const PlatformRoutes = () => (
     <Route path="/dashboard/waitlist" element={<DashboardRoute><Waitlist /></DashboardRoute>} />
     <Route path="/dashboard/clients" element={<DashboardRoute><Clients /></DashboardRoute>} />
     <Route path="/dashboard/profile" element={<DashboardRoute><ProfilePage /></DashboardRoute>} />
+    <Route path="/dashboard/my-finance" element={<DashboardRoute><ProfessionalFinance /></DashboardRoute>} />
     <Route path="/dashboard/events" element={<DashboardRoute><Events /></DashboardRoute>} />
     <Route path="/dashboard/promotions" element={<DashboardRoute><Promotions /></DashboardRoute>} />
     <Route path="/dashboard/support" element={<DashboardRoute><Support /></DashboardRoute>} />

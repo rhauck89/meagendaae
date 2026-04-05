@@ -315,6 +315,9 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
               {isAdmin && renderCollapsibleGroup('Configurações', Settings, isSettingsActive, settingsOpen, setSettingsOpen, settingsSubItems)}
 
               {renderNavLink({ href: '/dashboard/profile', icon: User, label: 'Meu Perfil' })}
+              {!isAdmin && !collapsed && profile?.full_name && (
+                <p className="px-3 -mt-1 mb-1 text-xs text-sidebar-foreground/50 truncate">{profile.full_name}</p>
+              )}
 
               <div className="pt-2 mt-2 border-t border-sidebar-border">
                 {!collapsed && <p className="px-3 py-1.5 text-xs font-semibold text-sidebar-foreground/40 uppercase tracking-wider">Ajuda</p>}
