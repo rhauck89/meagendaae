@@ -112,6 +112,32 @@ const Clients = () => {
     setAddClientForm({ name: '', whatsapp: '', email: '', birth_date: '', notes: '' });
   };
 
+  // Fetch all appointments for stats (professional-scoped if not admin)
+  const { data: appointments = [] } = useQuery({
+    queryKey: ['client-appointments-stats', companyId, isAdmin, profileId],
+    queryFn: async () => {
+      if (!companyId) return [];
+      let query = supabase
+        .from('appointments')
+        .select('id, client_id, professional_id, start_time, total_price, status')
+        .eq('company_id', companyId)
+        .in('status', ['completed', 'confirmed', 'pending', 'cancelled']);
+      if (!isAdmin && profileId) {
+        query = query.eq('professional_id', profileId);
+      }
+      const { data, error } = await query;
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!companyId,
+  });
+
+  // Derive client IDs from appointments for professional view
+  const professionalClientIds = useMemo(() => {
+    if (isAdmin) return null;
+    return new Set(appointments.map(a => a.client_id).filter(Boolean));
+  }, [isAdmin, appointments]);
+
   // Fetch all clients
   const { data: clients = [], isLoading } = useQuery({
     queryKey: ['clients', companyId],
@@ -128,21 +154,11 @@ const Clients = () => {
     enabled: !!companyId,
   });
 
-  // Fetch all appointments for stats
-  const { data: appointments = [] } = useQuery({
-    queryKey: ['client-appointments-stats', companyId],
-    queryFn: async () => {
-      if (!companyId) return [];
-      const { data, error } = await supabase
-        .from('appointments')
-        .select('id, client_id, professional_id, start_time, total_price, status')
-        .eq('company_id', companyId)
-        .in('status', ['completed', 'confirmed', 'pending', 'cancelled']);
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!companyId,
-  });
+  // Filter clients for professionals (only those they served)
+  const visibleClients = useMemo(() => {
+    if (isAdmin || !professionalClientIds) return clients;
+    return clients.filter(c => professionalClientIds.has(c.id));
+  }, [clients, isAdmin, professionalClientIds]);
 
   // Fetch profiles for professional names
   const { data: profiles = [] } = useQuery({
