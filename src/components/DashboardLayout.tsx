@@ -62,7 +62,6 @@ const financeSubItems = [
 const professionalNavItems = [
   { href: '/dashboard', icon: Calendar, label: 'Minha Agenda' },
   { href: '/dashboard/services', icon: Scissors, label: 'Meus Serviços' },
-  { href: '/dashboard/profile', icon: User, label: 'Meu Perfil' },
 ];
 
 const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
