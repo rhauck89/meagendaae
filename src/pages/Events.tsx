@@ -1273,6 +1273,7 @@ const Events = () => {
                     Criado por: {professionals.find(p => p.profile_id === (event as any).created_by)?.profiles?.full_name || 'Admin'}
                   </p>
                 )}
+                {event.description && <p className="text-sm text-muted-foreground line-clamp-2">{event.description}</p>}
               </CardHeader>
               <CardContent className="space-y-3">
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
