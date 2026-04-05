@@ -36,6 +36,13 @@ const SettingsCompany = () => {
   const [brCities, setBrCities] = useState<{ id: number; name: string }[]>([]);
   const [loadingCities, setLoadingCities] = useState(false);
 
+  // Professional permissions
+  const [profPermClients, setProfPermClients] = useState(true);
+  const [profPermPromotions, setProfPermPromotions] = useState(true);
+  const [profPermEvents, setProfPermEvents] = useState(true);
+  const [profPermRequests, setProfPermRequests] = useState(true);
+  const [profPermFinance, setProfPermFinance] = useState(true);
+
   const [cropImage, setCropImage] = useState<string | null>(null);
   const [cropMode, setCropMode] = useState<CropMode>('avatar');
   const logoInputRef = useRef<HTMLInputElement>(null);
