@@ -60,14 +60,14 @@ const financeSubItems = [
   { href: '/dashboard/finance/reports', icon: FileBarChart, label: 'Relatórios' },
 ];
 
-const professionalNavItems = [
-  { href: '/dashboard', icon: Calendar, label: 'Minha Agenda' },
-  { href: '/dashboard/services', icon: Scissors, label: 'Meus Serviços' },
-  { href: '/dashboard/clients', icon: UserCheck, label: 'Clientes' },
-  { href: '/dashboard/promotions', icon: Megaphone, label: 'Promoções' },
-  { href: '/dashboard/events', icon: PartyPopper, label: 'Agenda Aberta' },
-  { href: '/dashboard/solicitacoes', icon: Inbox, label: 'Solicitações' },
-  { href: '/dashboard/my-finance', icon: DollarSign, label: 'Financeiro' },
+const allProfessionalNavItems = [
+  { href: '/dashboard', icon: Calendar, label: 'Minha Agenda', permKey: null },
+  { href: '/dashboard/services', icon: Scissors, label: 'Meus Serviços', permKey: null },
+  { href: '/dashboard/clients', icon: UserCheck, label: 'Clientes', permKey: 'clients' as const },
+  { href: '/dashboard/promotions', icon: Megaphone, label: 'Promoções', permKey: 'promotions' as const },
+  { href: '/dashboard/events', icon: PartyPopper, label: 'Agenda Aberta', permKey: 'events' as const },
+  { href: '/dashboard/solicitacoes', icon: Inbox, label: 'Solicitações', permKey: 'requests' as const },
+  { href: '/dashboard/my-finance', icon: DollarSign, label: 'Financeiro', permKey: 'finance' as const },
 ];
 
 const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
