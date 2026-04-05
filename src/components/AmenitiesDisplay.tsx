@@ -1,8 +1,8 @@
 import { useState } from 'react';
-import { Icon } from 'lucide-react';
 import dynamicIconImports from 'lucide-react/dynamicIconImports';
 import { lazy, Suspense } from 'react';
-import { ChevronDown, ChevronUp } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 interface Amenity {
   id: string;
@@ -39,24 +39,24 @@ const LucideIcon = ({ name, ...props }: { name: string; className?: string; styl
 };
 
 export function AmenitiesDisplay({ amenities, theme, maxVisible = 4, compact = false }: AmenitiesDisplayProps) {
-  const [expanded, setExpanded] = useState(false);
+  const [modalOpen, setModalOpen] = useState(false);
 
   if (!amenities || amenities.length === 0) return null;
 
-  // Sort: featured first
   const sorted = [...amenities].sort((a, b) => {
     if (a.is_featured && !b.is_featured) return -1;
     if (!a.is_featured && b.is_featured) return 1;
     return 0;
   });
 
-  const visible = expanded ? sorted : sorted.slice(0, maxVisible);
+  const visible = sorted.slice(0, maxVisible);
   const hasMore = sorted.length > maxVisible;
+  const extraCount = sorted.length - maxVisible;
 
   if (compact) {
     return (
       <div className="flex items-center gap-1.5 flex-wrap">
-        {sorted.slice(0, maxVisible).map(a => (
+        {visible.map(a => (
           <div
             key={a.id}
             className="flex items-center gap-1 px-2 py-1 rounded-md text-xs"
@@ -70,54 +70,80 @@ export function AmenitiesDisplay({ amenities, theme, maxVisible = 4, compact = f
     );
   }
 
+  const accentColor = theme?.accent || 'hsl(var(--primary))';
+  const secColor = theme?.textSec || 'hsl(var(--muted-foreground))';
+
   return (
-    <div className="w-full">
-      <div className="flex items-center gap-2 mb-3">
-        <span className="text-base">✨</span>
-        <h3 className="text-sm font-semibold" style={theme ? { color: theme.text } : {}}>
+    <TooltipProvider delayDuration={200}>
+      <div className="w-full">
+        <p className="text-xs font-medium mb-2" style={{ color: secColor }}>
           Comodidades
-        </h3>
-      </div>
-      <div className="grid grid-cols-4 gap-2">
-        {visible.map(a => (
-          <div
-            key={a.id}
-            className="flex flex-col items-center justify-center gap-1.5 p-3 rounded-xl border aspect-square"
-            style={theme ? {
-              background: theme.card,
-              borderColor: theme.border,
-            } : {
-              background: 'hsl(var(--card))',
-              borderColor: 'hsl(var(--border))',
-            }}
-          >
-            <LucideIcon
-              name={a.icon}
-              className="w-5 h-5"
-              style={theme ? { color: theme.accent } : { color: 'hsl(var(--primary))' }}
-            />
-            <span
-              className="text-[10px] text-center leading-tight font-medium line-clamp-2"
-              style={theme ? { color: theme.textSec } : { color: 'hsl(var(--muted-foreground))' }}
+        </p>
+        <div className="flex items-center gap-3">
+          {visible.map(a => (
+            <Tooltip key={a.id}>
+              <TooltipTrigger asChild>
+                <div
+                  className="flex items-center justify-center w-9 h-9 rounded-lg border cursor-default transition-colors hover:opacity-80"
+                  style={theme ? {
+                    background: `${theme.accent}10`,
+                    borderColor: `${theme.accent}25`,
+                  } : {
+                    background: 'hsl(var(--primary) / 0.08)',
+                    borderColor: 'hsl(var(--primary) / 0.15)',
+                  }}
+                >
+                  <LucideIcon
+                    name={a.icon}
+                    className="w-[18px] h-[18px]"
+                    style={{ color: accentColor }}
+                  />
+                </div>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" className="text-xs">
+                {a.name}
+              </TooltipContent>
+            </Tooltip>
+          ))}
+          {hasMore && (
+            <button
+              onClick={() => setModalOpen(true)}
+              className="flex items-center justify-center w-9 h-9 rounded-lg border text-xs font-semibold cursor-pointer transition-colors hover:opacity-80"
+              style={theme ? {
+                background: `${theme.accent}10`,
+                borderColor: `${theme.accent}25`,
+                color: accentColor,
+              } : {
+                background: 'hsl(var(--primary) / 0.08)',
+                borderColor: 'hsl(var(--primary) / 0.15)',
+                color: 'hsl(var(--primary))',
+              }}
             >
-              {a.name}
-            </span>
-          </div>
-        ))}
-      </div>
-      {hasMore && (
-        <button
-          onClick={() => setExpanded(!expanded)}
-          className="w-full mt-2 py-2 text-xs font-medium flex items-center justify-center gap-1 rounded-lg transition-colors"
-          style={theme ? { color: theme.accent, background: `${theme.accent}10` } : {}}
-        >
-          {expanded ? (
-            <>Mostrar menos <ChevronUp className="w-3 h-3" /></>
-          ) : (
-            <>Ver todas ({sorted.length}) <ChevronDown className="w-3 h-3" /></>
+              +{extraCount}
+            </button>
           )}
-        </button>
-      )}
-    </div>
+        </div>
+      </div>
+
+      <Dialog open={modalOpen} onOpenChange={setModalOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Comodidades</DialogTitle>
+          </DialogHeader>
+          <div className="grid grid-cols-2 gap-3 pt-2">
+            {sorted.map(a => (
+              <div key={a.id} className="flex items-center gap-2 text-sm">
+                <LucideIcon
+                  name={a.icon}
+                  className="w-4 h-4 shrink-0"
+                  style={{ color: accentColor }}
+                />
+                <span style={{ color: theme?.text || 'hsl(var(--foreground))' }}>{a.name}</span>
+              </div>
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
+    </TooltipProvider>
   );
 }
