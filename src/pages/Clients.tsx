@@ -181,7 +181,7 @@ const Clients = () => {
   const clientStatsMap = useMemo(() => {
     const map: Record<string, { totalVisits: number; totalSpent: number; lastVisit: string | null; favProfName: string; favProfId: string | null; cancelledCount: number }> = {};
     
-    clients.forEach(client => {
+    visibleClients.forEach(client => {
       const clientAppts = appointments.filter(a => a.client_id === client.id);
       const completedAppts = clientAppts.filter(a => a.status === 'completed');
       const totalVisits = completedAppts.length;
@@ -203,7 +203,7 @@ const Clients = () => {
     });
     
     return map;
-  }, [clients, appointments, profileMap]);
+  }, [visibleClients, appointments, profileMap]);
 
   // Analytics metrics
   const metrics = useMemo(() => {
