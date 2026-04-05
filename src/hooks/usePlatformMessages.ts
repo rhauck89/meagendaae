@@ -7,7 +7,10 @@ const DISMISSED_KEY = 'dismissed_platform_messages';
 
 const getDismissedIds = (): string[] => {
   try {
-    return JSON.parse(localStorage.getItem(DISMISSED_KEY) || '[]');
+    const raw = localStorage.getItem(DISMISSED_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
   } catch { return []; }
 };
 
