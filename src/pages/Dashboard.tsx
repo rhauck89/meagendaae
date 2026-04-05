@@ -1560,7 +1560,7 @@ const Dashboard = () => {
                 {cancelTarget && (
                   <>
                     <p><strong>Cliente:</strong> {cancelTarget.client_name || 'N/A'}</p>
-                    <p><strong>Serviço:</strong> {cancelTarget.appointment_services?.map((s: any) => s.service?.name).join(', ') || 'N/A'}</p>
+                    <p><strong>Serviço:</strong> {formatServicesWithDuration(cancelTarget.appointment_services) || 'N/A'}</p>
                     <p><strong>Horário:</strong> {format(parseISO(cancelTarget.start_time), 'HH:mm')} - {format(parseISO(cancelTarget.end_time), 'HH:mm')}</p>
                   </>
                 )}
