@@ -1040,6 +1040,11 @@ export default function Promotions() {
                         <CardTitle className="text-lg">{promo.title}</CardTitle>
                         {renderStatusBadge(promo)}
                       </div>
+                      {isAdmin && promo.created_by && (
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Criado por: {professionals.find((p: any) => p.profile_id === promo.created_by)?.profiles?.full_name || 'Admin'}
+                        </p>
+                      )}
                     </CardHeader>
                     <CardContent className="space-y-3">
                       {promo.description && <p className="text-sm text-muted-foreground">{promo.description}</p>}
