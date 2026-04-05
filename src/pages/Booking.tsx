@@ -1231,7 +1231,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                 <Button
                   onClick={async () => {
                     if (skipProfessionalStep) {
-                      if (prefillFromProfile.current && selectedDate && selectedTime) {
+                      if (preselected.isActive() && selectedDate && selectedTime) {
                         setStep('client');
                       } else {
                         setStep('datetime');
