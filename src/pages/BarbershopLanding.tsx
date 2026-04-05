@@ -67,6 +67,8 @@ export default function BarbershopLanding({ routeBusinessType, customSlug }: Bar
   const [companyPromotions, setCompanyPromotions] = useState<any[]>([]);
   const [isWhitelabel, setIsWhitelabel] = useState(false);
 
+  const { amenities: companyAmenities } = useCompanyAmenities(company?.id);
+
   const isDark = businessType === 'barbershop';
 
   const branding = getCompanyBranding(companySettings, isDark);
