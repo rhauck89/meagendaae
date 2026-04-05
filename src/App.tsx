@@ -72,6 +72,7 @@ import FinanceCommissions from "./pages/finance/FinanceCommissions";
 import FinanceReports from "./pages/finance/FinanceReports";
 import FinancePayables from "./pages/finance/FinancePayables";
 import FinanceReceivables from "./pages/finance/FinanceReceivables";
+import ProfessionalFinance from "./pages/ProfessionalFinance";
 
 const queryClient = new QueryClient();
 
