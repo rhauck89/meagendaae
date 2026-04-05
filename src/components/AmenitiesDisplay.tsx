@@ -76,22 +76,25 @@ export function AmenitiesDisplay({ amenities, theme, maxVisible = 4, compact = f
   return (
     <TooltipProvider delayDuration={200}>
       <div className="w-full">
-        <p className="text-xs font-medium mb-2" style={{ color: secColor }}>
+        <p className="text-xs font-medium mb-2 text-center" style={{ color: secColor }}>
           Comodidades
         </p>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center justify-center gap-3 flex-wrap">
           {visible.map(a => (
             <Tooltip key={a.id}>
               <TooltipTrigger asChild>
                 <div
-                  className="flex items-center justify-center w-12 h-12 rounded-xl border cursor-default transition-colors hover:opacity-80"
+                  className="flex items-center justify-center w-12 h-12 rounded-xl border cursor-default transition-all duration-200 hover:scale-105 hover:shadow-lg"
                   style={theme ? {
                     background: `${theme.accent}10`,
                     borderColor: `${theme.accent}25`,
-                  } : {
+                    '--hover-shadow': `0 0 12px ${theme.accent}30`,
+                  } as React.CSSProperties : {
                     background: 'hsl(var(--primary) / 0.08)',
                     borderColor: 'hsl(var(--primary) / 0.15)',
                   }}
+                  onMouseEnter={e => { if (theme) (e.currentTarget.style.borderColor = `${theme.accent}60`); (e.currentTarget.style.boxShadow = theme ? `0 0 12px ${theme.accent}30` : '0 0 12px hsl(var(--primary) / 0.2)'); }}
+                  onMouseLeave={e => { if (theme) (e.currentTarget.style.borderColor = `${theme.accent}25`); e.currentTarget.style.boxShadow = 'none'; }}
                 >
                   <LucideIcon
                     name={a.icon}
@@ -108,7 +111,7 @@ export function AmenitiesDisplay({ amenities, theme, maxVisible = 4, compact = f
           {hasMore && (
             <button
               onClick={() => setModalOpen(true)}
-              className="flex items-center justify-center w-12 h-12 rounded-xl border text-sm font-semibold cursor-pointer transition-colors hover:opacity-80"
+              className="flex items-center justify-center w-12 h-12 rounded-xl border text-sm font-semibold cursor-pointer transition-all duration-200 hover:scale-105 hover:shadow-lg"
               style={theme ? {
                 background: `${theme.accent}10`,
                 borderColor: `${theme.accent}25`,
