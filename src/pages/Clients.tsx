@@ -309,7 +309,7 @@ const Clients = () => {
     return `${days} dias`;
   };
 
-  const selectedClient = clients.find(c => c.id === selectedClientId);
+  const selectedClient = visibleClients.find(c => c.id === selectedClientId);
 
   if (selectedClient) {
     return (
