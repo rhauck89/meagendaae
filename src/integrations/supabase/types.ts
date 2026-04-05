@@ -3678,7 +3678,7 @@ export type Database = {
         Returns: {
           end_time: string
           start_time: string
-          status: Database["public"]["Enums"]["appointment_status"]
+          status: string
         }[]
       }
       get_company_by_slug: {
