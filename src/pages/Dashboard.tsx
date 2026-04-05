@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
+import { formatServicesWithDuration } from '@/lib/format-services';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUserRole } from '@/hooks/useUserRole';
 import { useOnDataRefresh } from '@/hooks/useRefreshData';

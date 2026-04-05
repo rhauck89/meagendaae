@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { formatServicesWithDuration } from '@/lib/format-services';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent } from '@/components/ui/card';
