@@ -47,6 +47,8 @@ export default function ProfessionalPublicProfile() {
   const [loading, setLoading] = useState(true);
   const [companySettings, setCompanySettings] = useState<any>(null);
 
+  const { amenities: companyAmenities } = useCompanyAmenities(company?.id);
+
   useEffect(() => { if (slug && professionalSlug) load(); }, [slug, professionalSlug]);
 
   const load = async () => {
