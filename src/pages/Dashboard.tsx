@@ -1707,7 +1707,7 @@ const Dashboard = () => {
               {rescheduleTarget && (
                 <span className="block space-y-1 mt-1">
                   <span className="block"><strong>Cliente:</strong> {rescheduleTarget.client_name || 'Cliente'}</span>
-                  <span className="block"><strong>Serviço:</strong> {rescheduleTarget.appointment_services?.map((s: any) => s.service?.name).join(', ')}</span>
+                  <span className="block"><strong>Serviço:</strong> {formatServicesWithDuration(rescheduleTarget.appointment_services)}</span>
                   <span className="block"><strong>Horário atual:</strong> {format(parseISO(rescheduleTarget.start_time), 'dd/MM/yyyy HH:mm')} - {format(parseISO(rescheduleTarget.end_time), 'HH:mm')}</span>
                 </span>
               )}
