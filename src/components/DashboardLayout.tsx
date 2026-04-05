@@ -4,6 +4,7 @@ import { useUserRole } from '@/hooks/useUserRole';
 import { useUserTicketCounts } from '@/hooks/useSupportTicketCounts';
 import { usePendingRequestCounts } from '@/hooks/usePendingRequestCounts';
 import { usePlatformMessages } from '@/hooks/usePlatformMessages';
+import { useProfessionalPermissions } from '@/hooks/useProfessionalPermissions';
 import { useCompanyBrandInfo } from '@/hooks/useCompanyBrandInfo';
 import {
   Calendar, Scissors, Users, Settings, LogOut, Menu, X, User, UserCheck,
