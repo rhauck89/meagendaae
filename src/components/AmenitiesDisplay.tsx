@@ -84,7 +84,7 @@ export function AmenitiesDisplay({ amenities, theme, maxVisible = 4, compact = f
             <Tooltip key={a.id}>
               <TooltipTrigger asChild>
                 <div
-                  className="flex items-center justify-center w-12 h-12 rounded-xl border cursor-default transition-colors hover:opacity-80"
+                  className="flex items-center justify-center w-12 h-12 rounded-xl border cursor-default transition-all duration-200 hover:scale-105 hover:shadow-lg"
                   style={theme ? {
                     background: `${theme.accent}10`,
                     borderColor: `${theme.accent}25`,
