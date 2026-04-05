@@ -482,6 +482,11 @@ export default function MarketplaceCategory() {
                         <span className="text-xs text-[hsl(var(--muted-foreground))]">Novo no Agendae</span>
                       )}
                     </div>
+                    {companyAmenities[company.id]?.length > 0 && (
+                      <div className="mt-3">
+                        <AmenitiesDisplay amenities={companyAmenities[company.id]} compact maxVisible={4} />
+                      </div>
+                    )}
                     <div className="mt-4">
                       <Button size="sm" className="w-full bg-[hsl(var(--primary))] text-[hsl(var(--primary-foreground))] hover:bg-[hsl(var(--primary))]/90">
                         Ver perfil
