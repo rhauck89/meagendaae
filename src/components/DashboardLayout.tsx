@@ -73,6 +73,7 @@ const allProfessionalNavItems = [
 const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
   const { profile, companyId, signOut, loading: authLoading } = useAuth();
   const { isAdmin } = useUserRole();
+  const profPerms = useProfessionalPermissions();
   const brandInfo = useCompanyBrandInfo();
   const location = useLocation();
   const navigate = useNavigate();
