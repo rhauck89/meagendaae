@@ -123,6 +123,7 @@ export default function MarketplaceCategory() {
   const [stateFilter, setStateFilter] = useState('all');
   const [sortBy, setSortBy] = useState<SortOption>(geo.latitude ? 'nearest' : 'rating');
   const [radius, setRadius] = useState<RadiusOption>('10');
+  const [companyAmenities, setCompanyAmenities] = useState<Record<string, any[]>>({});
 
   useEffect(() => {
     if (!config) return;
