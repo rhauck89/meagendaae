@@ -62,6 +62,8 @@ const financeSubItems = [
 const professionalNavItems = [
   { href: '/dashboard', icon: Calendar, label: 'Minha Agenda' },
   { href: '/dashboard/services', icon: Scissors, label: 'Meus Serviços' },
+  { href: '/dashboard/promotions', icon: Megaphone, label: 'Promoções' },
+  { href: '/dashboard/events', icon: PartyPopper, label: 'Agenda Aberta' },
   { href: '/dashboard/my-finance', icon: DollarSign, label: 'Financeiro' },
 ];
 
