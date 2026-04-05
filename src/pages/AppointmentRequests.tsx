@@ -49,11 +49,18 @@ const AppointmentRequests = () => {
 
   const fetchRequests = async () => {
     setLoading(true);
-    const { data } = await supabase
+    let query = supabase
       .from('appointment_requests' as any)
       .select('*')
       .eq('company_id', companyId!)
       .order('created_at', { ascending: false });
+    
+    // Professionals only see their own requests
+    if (!isAdmin && profileId) {
+      query = query.eq('professional_id', profileId);
+    }
+    
+    const { data } = await query;
     if (data) setRequests(data as any[]);
     setLoading(false);
   };

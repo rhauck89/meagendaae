@@ -329,9 +329,11 @@ const Clients = () => {
           <h2 className="text-xl sm:text-2xl font-display font-bold">Clientes</h2>
           <p className="text-muted-foreground text-sm">{visibleClients.length} clientes cadastrados</p>
         </div>
-        <Button className="gap-2 w-full sm:w-auto" onClick={() => setAddClientOpen(true)}>
-          <UserPlus className="h-4 w-4" /> Cadastrar cliente
-        </Button>
+        {isAdmin && (
+          <Button className="gap-2 w-full sm:w-auto" onClick={() => setAddClientOpen(true)}>
+            <UserPlus className="h-4 w-4" /> Cadastrar cliente
+          </Button>
+        )}
       </div>
 
       {/* Add Client Dialog */}
