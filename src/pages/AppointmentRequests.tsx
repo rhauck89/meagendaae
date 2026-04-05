@@ -23,7 +23,8 @@ const statusLabels: Record<string, { label: string; color: string }> = {
 };
 
 const AppointmentRequests = () => {
-  const { companyId } = useAuth();
+  const { companyId, profile } = useAuth();
+  const { isAdmin, profileId } = useUserRole();
   const [requests, setRequests] = useState<any[]>([]);
   const [services, setServices] = useState<Record<string, string>>({});
   const [professionals, setProfessionals] = useState<Record<string, string>>({});
