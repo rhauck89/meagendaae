@@ -273,6 +273,13 @@ export default function ProfessionalPublicProfile() {
           </p>
         )}
 
+        {/* Amenities */}
+        {companyAmenities.length > 0 && (
+          <div className="w-full max-w-xs">
+            <AmenitiesDisplay amenities={companyAmenities} theme={T} />
+          </div>
+        )}
+
         {/* Next Available Slot - Highlighted */}
         {nextAvailable && nextAvailable.slots.length > 0 && (
           <div className="w-full max-w-xs">
