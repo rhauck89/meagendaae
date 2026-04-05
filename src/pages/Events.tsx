@@ -434,7 +434,7 @@ const Events = () => {
         toast.success('Evento atualizado!');
         return editingEvent.id;
       } else {
-        const payload = { ...basePayload, status: 'draft' as const };
+        const payload = { ...basePayload, status: 'draft' as const, created_by: profile?.id || null };
         const { data: newEvent, error } = await supabase.from('events').insert(payload).select('id').single();
         if (error) throw error;
         const newId = newEvent.id;
