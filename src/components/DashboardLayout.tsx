@@ -91,6 +91,10 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
   const [settingsOpen, setSettingsOpen] = useState(isSettingsActive);
   const [financeOpen, setFinanceOpen] = useState(isFinanceActive);
 
+  const professionalNavItems = allProfessionalNavItems.filter(item => {
+    if (!item.permKey) return true;
+    return profPerms[item.permKey];
+  });
   const navItems = isAdmin ? adminNavItems : professionalNavItems;
 
   const toggleCollapsed = useCallback(() => {
