@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useUserRole } from '@/hooks/useUserRole';
 import { useFeatureDiscovery } from '@/hooks/useFeatureDiscovery';
 import { FeatureIntroModal } from '@/components/FeatureIntroModal';
 import { useOnDataRefresh } from '@/hooks/useRefreshData';
