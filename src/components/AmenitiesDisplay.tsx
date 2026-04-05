@@ -88,10 +88,13 @@ export function AmenitiesDisplay({ amenities, theme, maxVisible = 4, compact = f
                   style={theme ? {
                     background: `${theme.accent}10`,
                     borderColor: `${theme.accent}25`,
-                  } : {
+                    '--hover-shadow': `0 0 12px ${theme.accent}30`,
+                  } as React.CSSProperties : {
                     background: 'hsl(var(--primary) / 0.08)',
                     borderColor: 'hsl(var(--primary) / 0.15)',
                   }}
+                  onMouseEnter={e => { if (theme) (e.currentTarget.style.borderColor = `${theme.accent}60`); (e.currentTarget.style.boxShadow = theme ? `0 0 12px ${theme.accent}30` : '0 0 12px hsl(var(--primary) / 0.2)'); }}
+                  onMouseLeave={e => { if (theme) (e.currentTarget.style.borderColor = `${theme.accent}25`); e.currentTarget.style.boxShadow = 'none'; }}
                 >
                   <LucideIcon
                     name={a.icon}
