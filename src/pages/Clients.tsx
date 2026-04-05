@@ -285,7 +285,7 @@ const Clients = () => {
   };
 
   // Birthday calculations
-  const clientsWithBirthdays = clients
+  const clientsWithBirthdays = visibleClients
     .filter(c => c.birth_date)
     .map(c => {
       const today = new Date();
