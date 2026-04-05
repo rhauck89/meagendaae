@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
+import { formatServicesWithDuration } from '@/lib/format-services';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUserRole } from '@/hooks/useUserRole';
 import { useOnDataRefresh } from '@/hooks/useRefreshData';
@@ -828,7 +829,7 @@ const Dashboard = () => {
                     <div className="flex-1 min-w-0">
                       <p className="font-semibold truncate">{apt.client_name || apt.client?.name || 'Cliente'}</p>
                       <p className="text-sm text-muted-foreground truncate">
-                        {apt.appointment_services?.map((s: any) => s.service?.name).join(', ')}
+                        {formatServicesWithDuration(apt.appointment_services)}
                       </p>
                       {apt.promotion_id && (
                         <span className="inline-flex items-center gap-1 text-xs font-medium px-1.5 py-0.5 rounded bg-accent/10 text-accent-foreground mt-0.5">🔥 Promoção</span>
@@ -880,7 +881,7 @@ const Dashboard = () => {
                   <div className="flex-1 min-w-0">
                     <p className="font-semibold truncate">{apt.client_name || apt.client?.name || 'Cliente'}</p>
                     <p className="text-sm text-muted-foreground truncate">
-                      {apt.appointment_services?.map((s: any) => s.service?.name).join(', ')}
+                      {formatServicesWithDuration(apt.appointment_services)}
                     </p>
                     <p className="text-xs text-muted-foreground">com {apt.professional?.full_name}</p>
                   </div>
@@ -1394,7 +1395,7 @@ const Dashboard = () => {
                             <div className="flex-1">
                               <p className="font-semibold">{apt.client_name || apt.client?.name || 'Cliente'}</p>
                               <p className="text-sm text-muted-foreground">
-                                {apt.appointment_services?.map((s: any) => s.service?.name).join(', ')}
+                                {formatServicesWithDuration(apt.appointment_services)}
                               </p>
                               {apt.promotion_id && (
                                 <span className="inline-flex items-center gap-1 text-xs font-medium px-1.5 py-0.5 rounded bg-orange-500/10 text-orange-500 mt-0.5">🔥 Promoção</span>
@@ -1560,7 +1561,7 @@ const Dashboard = () => {
                 {cancelTarget && (
                   <>
                     <p><strong>Cliente:</strong> {cancelTarget.client_name || 'N/A'}</p>
-                    <p><strong>Serviço:</strong> {cancelTarget.appointment_services?.map((s: any) => s.service?.name).join(', ') || 'N/A'}</p>
+                    <p><strong>Serviço:</strong> {formatServicesWithDuration(cancelTarget.appointment_services) || 'N/A'}</p>
                     <p><strong>Horário:</strong> {format(parseISO(cancelTarget.start_time), 'HH:mm')} - {format(parseISO(cancelTarget.end_time), 'HH:mm')}</p>
                   </>
                 )}
@@ -1707,7 +1708,7 @@ const Dashboard = () => {
               {rescheduleTarget && (
                 <span className="block space-y-1 mt-1">
                   <span className="block"><strong>Cliente:</strong> {rescheduleTarget.client_name || 'Cliente'}</span>
-                  <span className="block"><strong>Serviço:</strong> {rescheduleTarget.appointment_services?.map((s: any) => s.service?.name).join(', ')}</span>
+                  <span className="block"><strong>Serviço:</strong> {formatServicesWithDuration(rescheduleTarget.appointment_services)}</span>
                   <span className="block"><strong>Horário atual:</strong> {format(parseISO(rescheduleTarget.start_time), 'dd/MM/yyyy HH:mm')} - {format(parseISO(rescheduleTarget.end_time), 'HH:mm')}</span>
                 </span>
               )}

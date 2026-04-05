@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { formatServicesWithDuration } from '@/lib/format-services';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent } from '@/components/ui/card';
@@ -99,7 +100,7 @@ const MyAppointments = () => {
                     com {apt.professional?.full_name}
                   </p>
                   <p className="text-muted-foreground">
-                    {apt.appointment_services?.map((s: any) => s.service?.name).join(', ')}
+                    {formatServicesWithDuration(apt.appointment_services)}
                   </p>
                 </div>
                 <div className="flex items-center justify-between pt-2 border-t">
