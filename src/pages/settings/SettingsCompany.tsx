@@ -260,6 +260,9 @@ const SettingsCompany = () => {
         </CardContent>
       </Card>
 
+      {/* Amenities */}
+      <AmenitiesSettings />
+
       <Button onClick={save}>Salvar dados da empresa</Button>
 
       {cropImage && (
