@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useUserRole } from '@/hooks/useUserRole';
 import { useFeatureDiscovery } from '@/hooks/useFeatureDiscovery';
 import { FeatureIntroModal } from '@/components/FeatureIntroModal';
 import { useOnDataRefresh } from '@/hooks/useRefreshData';
@@ -116,7 +117,8 @@ const WIZARD_STEPS = [
 ] as const;
 
 const Events = () => {
-  const { companyId } = useAuth();
+  const { companyId, profile } = useAuth();
+  const { isAdmin } = useUserRole();
   const { hasSeen, markSeen, loading: discoveryLoading } = useFeatureDiscovery();
   const [showIntro, setShowIntro] = useState(false);
   const [events, setEvents] = useState<Event[]>([]);
@@ -219,11 +221,18 @@ const Events = () => {
 
   const loadEvents = async () => {
     setLoading(true);
-    const { data } = await supabase
+    let query = supabase
       .from('events')
       .select('*')
       .eq('company_id', companyId!)
       .order('start_date', { ascending: false });
+    
+    // Professionals only see their own events
+    if (!isAdmin && profile?.id) {
+      query = query.eq('created_by', profile.id);
+    }
+    
+    const { data } = await query;
     const eventsList = (data as any[]) || [];
     setEvents(eventsList);
 
@@ -374,7 +383,12 @@ const Events = () => {
       setSelectedServiceIds(services.map(s => s.id));
       setEventServices([]);
     }
-    if (professionals.length > 0) setSlotProfessionals([professionals[0].profile_id]);
+    // For professionals, always lock to their own profile
+    if (!isAdmin && profile?.id) {
+      setSlotProfessionals([profile.id]);
+    } else if (professionals.length > 0) {
+      setSlotProfessionals([professionals[0].profile_id]);
+    }
     setSlotStartTime('09:00');
     setSlotEndTime('18:00');
     setWizardStep(0);
@@ -420,7 +434,7 @@ const Events = () => {
         toast.success('Evento atualizado!');
         return editingEvent.id;
       } else {
-        const payload = { ...basePayload, status: 'draft' as const };
+        const payload = { ...basePayload, status: 'draft' as const, created_by: profile?.id || null };
         const { data: newEvent, error } = await supabase.from('events').insert(payload).select('id').single();
         if (error) throw error;
         const newId = newEvent.id;
@@ -971,6 +985,7 @@ const Events = () => {
 
   const renderStep2Schedule = () => (
     <div className="space-y-4">
+      {isAdmin && (
       <div className="space-y-2">
         <Label>Profissionais do evento</Label>
         <div className="flex items-center gap-2 pb-1">
@@ -999,6 +1014,7 @@ const Events = () => {
           ))}
         </div>
       </div>
+      )}
 
       <div>
         <Label>Máx. agendamentos por slot</Label>
@@ -1252,6 +1268,11 @@ const Events = () => {
                   <CardTitle className="text-lg">{event.name}</CardTitle>
                   <Badge className={cn('text-xs', statusColors[event.status])}>{statusLabels[event.status]}</Badge>
                 </div>
+                {isAdmin && (event as any).created_by && (
+                  <p className="text-xs text-muted-foreground">
+                    Criado por: {professionals.find(p => p.profile_id === (event as any).created_by)?.profiles?.full_name || 'Admin'}
+                  </p>
+                )}
                 {event.description && <p className="text-sm text-muted-foreground line-clamp-2">{event.description}</p>}
               </CardHeader>
               <CardContent className="space-y-3">

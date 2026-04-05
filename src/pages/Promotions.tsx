@@ -237,11 +237,18 @@ export default function Promotions() {
   };
 
   const fetchPromotions = async () => {
-    const { data } = await supabase
+    let query = supabase
       .from('promotions')
       .select('*')
       .eq('company_id', companyId!)
       .order('created_at', { ascending: false });
+    
+    // Professionals only see their own promotions
+    if (!isAdmin && profile?.id) {
+      query = query.eq('created_by', profile.id);
+    }
+    
+    const { data } = await query;
     if (data) setPromotions(data as unknown as Promotion[]);
   };
 
@@ -1033,6 +1040,11 @@ export default function Promotions() {
                         <CardTitle className="text-lg">{promo.title}</CardTitle>
                         {renderStatusBadge(promo)}
                       </div>
+                      {isAdmin && promo.created_by && (
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Criado por: {professionals.find((p: any) => p.profile_id === promo.created_by)?.profiles?.full_name || 'Admin'}
+                        </p>
+                      )}
                     </CardHeader>
                     <CardContent className="space-y-3">
                       {promo.description && <p className="text-sm text-muted-foreground">{promo.description}</p>}
