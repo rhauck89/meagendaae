@@ -61,16 +61,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   useEffect(() => {
+    let cancelled = false;
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (_event, session) => {
+        if (cancelled) return;
         setSession(session);
         setUser(session?.user ?? null);
 
         if (session?.user) {
-          // Use setTimeout to avoid Supabase auth deadlock, but await inside
+          // Use setTimeout to avoid Supabase auth deadlock
           setTimeout(async () => {
+            if (cancelled) return;
             await fetchUserData(session.user.id);
-            setLoading(false);
+            if (!cancelled) setLoading(false);
           }, 0);
         } else {
           setProfile(null);
@@ -82,10 +86,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     );
 
     supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!session) setLoading(false);
+      if (!cancelled && !session) setLoading(false);
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      cancelled = true;
+      subscription.unsubscribe();
+    };
   }, []);
 
   const signOut = async () => {
