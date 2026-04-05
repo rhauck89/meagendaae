@@ -30,12 +30,12 @@ const LucideIcon = ({ name, ...props }: { name: string; className?: string; styl
   if (dynamicIconImports[iconName]) {
     const IconComp = lazy(dynamicIconImports[iconName]);
     return (
-      <Suspense fallback={<div className="w-5 h-5" />}>
+      <Suspense fallback={<div className="w-7 h-7" />}>
         <IconComp {...props} />
       </Suspense>
     );
   }
-  return <div className="w-5 h-5" />;
+  return <div className="w-7 h-7" />;
 };
 
 export function AmenitiesDisplay({ amenities, theme, maxVisible = 4, compact = false }: AmenitiesDisplayProps) {
@@ -84,7 +84,7 @@ export function AmenitiesDisplay({ amenities, theme, maxVisible = 4, compact = f
             <Tooltip key={a.id}>
               <TooltipTrigger asChild>
                 <div
-                  className="flex items-center justify-center w-9 h-9 rounded-lg border cursor-default transition-colors hover:opacity-80"
+                  className="flex items-center justify-center w-12 h-12 rounded-xl border cursor-default transition-colors hover:opacity-80"
                   style={theme ? {
                     background: `${theme.accent}10`,
                     borderColor: `${theme.accent}25`,
@@ -95,7 +95,7 @@ export function AmenitiesDisplay({ amenities, theme, maxVisible = 4, compact = f
                 >
                   <LucideIcon
                     name={a.icon}
-                    className="w-[18px] h-[18px]"
+                    className="w-7 h-7"
                     style={{ color: accentColor }}
                   />
                 </div>
@@ -108,7 +108,7 @@ export function AmenitiesDisplay({ amenities, theme, maxVisible = 4, compact = f
           {hasMore && (
             <button
               onClick={() => setModalOpen(true)}
-              className="flex items-center justify-center w-9 h-9 rounded-lg border text-xs font-semibold cursor-pointer transition-colors hover:opacity-80"
+              className="flex items-center justify-center w-12 h-12 rounded-xl border text-sm font-semibold cursor-pointer transition-colors hover:opacity-80"
               style={theme ? {
                 background: `${theme.accent}10`,
                 borderColor: `${theme.accent}25`,
@@ -126,16 +126,33 @@ export function AmenitiesDisplay({ amenities, theme, maxVisible = 4, compact = f
       </div>
 
       <Dialog open={modalOpen} onOpenChange={setModalOpen}>
-        <DialogContent className="max-w-sm">
+        <DialogContent
+          className="max-w-md sm:max-w-lg"
+          style={theme ? {
+            background: theme.bg,
+            borderColor: `${theme.border}`,
+            boxShadow: '0 0 30px rgba(0,0,0,0.5)',
+            color: theme.text,
+          } : {}}
+        >
           <DialogHeader>
-            <DialogTitle>Comodidades</DialogTitle>
+            <DialogTitle style={theme ? { color: theme.text } : {}}>
+              Comodidades
+            </DialogTitle>
           </DialogHeader>
-          <div className="grid grid-cols-2 gap-3 pt-2">
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 pt-2">
             {sorted.map(a => (
-              <div key={a.id} className="flex items-center gap-2 text-sm">
+              <div
+                key={a.id}
+                className="flex items-center gap-3 text-sm px-3 py-2.5 rounded-lg"
+                style={theme ? {
+                  background: `${theme.accent}08`,
+                  borderColor: `${theme.accent}15`,
+                } : {}}
+              >
                 <LucideIcon
                   name={a.icon}
-                  className="w-4 h-4 shrink-0"
+                  className="w-5 h-5 shrink-0"
                   style={{ color: accentColor }}
                 />
                 <span style={{ color: theme?.text || 'hsl(var(--foreground))' }}>{a.name}</span>
