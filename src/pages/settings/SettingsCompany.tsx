@@ -156,6 +156,11 @@ const SettingsCompany = () => {
       district: companyDistrict, city: companyCity, state: companyState,
       postal_code: companyPostalCode, google_maps_url: companyGoogleMapsUrl,
       instagram: companyInstagram, facebook: companyFacebook, website: companyWebsite,
+      prof_perm_clients: profPermClients,
+      prof_perm_promotions: profPermPromotions,
+      prof_perm_events: profPermEvents,
+      prof_perm_requests: profPermRequests,
+      prof_perm_finance: profPermFinance,
     } as any).eq('id', companyId!);
     toast.success('Dados da empresa salvos');
   };
