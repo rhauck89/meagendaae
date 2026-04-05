@@ -1604,6 +1604,7 @@ export type Database = {
           company_id: string
           cover_image: string | null
           created_at: string
+          created_by: string | null
           description: string | null
           end_date: string
           id: string
@@ -1621,6 +1622,7 @@ export type Database = {
           company_id: string
           cover_image?: string | null
           created_at?: string
+          created_by?: string | null
           description?: string | null
           end_date: string
           id?: string
@@ -1638,6 +1640,7 @@ export type Database = {
           company_id?: string
           cover_image?: string | null
           created_at?: string
+          created_by?: string | null
           description?: string | null
           end_date?: string
           id?: string
@@ -1678,6 +1681,20 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "public_company_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "events_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "events_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "public_professionals"
             referencedColumns: ["id"]
           },
         ]
