@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { toast } from 'sonner';
 import { Building2, Camera, Phone, MapPin, Globe, Instagram, Facebook } from 'lucide-react';
 import SettingsBreadcrumb from '@/components/SettingsBreadcrumb';
+import AmenitiesSettings from '@/components/AmenitiesSettings';
 import ImageCropDialog from '@/components/ImageCropDialog';
 import type { CropMode } from '@/components/ImageCropDialog';
 
