@@ -1268,7 +1268,11 @@ const Events = () => {
                   <CardTitle className="text-lg">{event.name}</CardTitle>
                   <Badge className={cn('text-xs', statusColors[event.status])}>{statusLabels[event.status]}</Badge>
                 </div>
-                {event.description && <p className="text-sm text-muted-foreground line-clamp-2">{event.description}</p>}
+                {isAdmin && (event as any).created_by && (
+                  <p className="text-xs text-muted-foreground">
+                    Criado por: {professionals.find(p => p.profile_id === (event as any).created_by)?.profiles?.full_name || 'Admin'}
+                  </p>
+                )}
               </CardHeader>
               <CardContent className="space-y-3">
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
