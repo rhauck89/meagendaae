@@ -111,7 +111,7 @@ export function AmenitiesDisplay({ amenities, theme, maxVisible = 4, compact = f
           {hasMore && (
             <button
               onClick={() => setModalOpen(true)}
-              className="flex items-center justify-center w-12 h-12 rounded-xl border text-sm font-semibold cursor-pointer transition-colors hover:opacity-80"
+              className="flex items-center justify-center w-12 h-12 rounded-xl border text-sm font-semibold cursor-pointer transition-all duration-200 hover:scale-105 hover:shadow-lg"
               style={theme ? {
                 background: `${theme.accent}10`,
                 borderColor: `${theme.accent}25`,
