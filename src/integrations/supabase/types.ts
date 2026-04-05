@@ -3523,6 +3523,7 @@ export type Database = {
           active: boolean | null
           avatar_url: string | null
           banner_url: string | null
+          bio: string | null
           booking_mode: string | null
           break_time: number | null
           company_id: string | null
@@ -3530,6 +3531,8 @@ export type Database = {
           id: string | null
           name: string | null
           slug: string | null
+          social_links: Json | null
+          whatsapp: string | null
         }
         Relationships: [
           {
