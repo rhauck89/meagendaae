@@ -985,6 +985,7 @@ const Events = () => {
 
   const renderStep2Schedule = () => (
     <div className="space-y-4">
+      {isAdmin && (
       <div className="space-y-2">
         <Label>Profissionais do evento</Label>
         <div className="flex items-center gap-2 pb-1">
@@ -1013,6 +1014,7 @@ const Events = () => {
           ))}
         </div>
       </div>
+      )}
 
       <div>
         <Label>Máx. agendamentos por slot</Label>
