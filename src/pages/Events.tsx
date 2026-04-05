@@ -383,7 +383,12 @@ const Events = () => {
       setSelectedServiceIds(services.map(s => s.id));
       setEventServices([]);
     }
-    if (professionals.length > 0) setSlotProfessionals([professionals[0].profile_id]);
+    // For professionals, always lock to their own profile
+    if (!isAdmin && profile?.id) {
+      setSlotProfessionals([profile.id]);
+    } else if (professionals.length > 0) {
+      setSlotProfessionals([professionals[0].profile_id]);
+    }
     setSlotStartTime('09:00');
     setSlotEndTime('18:00');
     setWizardStep(0);
