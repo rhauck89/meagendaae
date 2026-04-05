@@ -19,6 +19,7 @@ import { calculateAvailableSlots, type BusinessHours, type BusinessException, ty
 import { PlatformBranding } from '@/components/PlatformBranding';
 import { CustomRequestForm } from '@/components/CustomRequestForm';
 import { getCompanyBranding, buildThemeFromBranding } from '@/hooks/useCompanyBranding';
+import { usePreselectedSlot } from '@/hooks/usePreselectedSlot';
 
 const StarRating = ({ rating, size = 14 }: { rating: number; size?: number }) => {
   return (
