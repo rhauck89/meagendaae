@@ -534,11 +534,24 @@ export default function BarbershopLanding({ routeBusinessType, customSlug }: Bar
               {companyPromotions.map((promo: any) => {
                 const remaining = promo.max_slots > 0 ? promo.max_slots - promo.used_slots : null;
                 const isLow = remaining !== null && remaining > 0 && remaining <= 5;
+                const isSoldOut = remaining !== null && remaining === 0;
                 return (
                   <div
                     key={promo.id}
-                    className="rounded-xl p-4"
-                    style={{ background: T.card, border: `1px solid ${T.border}` }}
+                    className={cn(
+                      "rounded-xl p-4 transition-all duration-200",
+                      isSoldOut ? "opacity-60" : "cursor-pointer hover:scale-[1.02]"
+                    )}
+                    style={{
+                      background: T.card,
+                      border: `1px solid ${T.border}`,
+                    }}
+                    onMouseEnter={e => { if (!isSoldOut) e.currentTarget.style.borderColor = `${T.accent}60`; }}
+                    onMouseLeave={e => { e.currentTarget.style.borderColor = T.border; }}
+                    onClick={() => {
+                      if (isSoldOut) return;
+                      navigate(`/${bookingBasePath}/${slug}/agendar?promo=${promo.id}`);
+                    }}
                   >
                     <p className="font-bold" style={{ color: T.text }}>{promo.title}</p>
                     {promo.description && (
@@ -555,9 +568,9 @@ export default function BarbershopLanding({ routeBusinessType, customSlug }: Bar
                     )}
                     {remaining !== null && (
                       <p className={cn('text-sm font-semibold mt-2',
-                        remaining === 0 ? 'text-destructive' : isLow ? 'text-orange-500' : ''
-                      )} style={remaining > 5 ? { color: T.accent } : undefined}>
-                        {remaining === 0 ? '❌ Esgotado' :
+                        isSoldOut ? 'text-destructive' : isLow ? 'text-orange-500' : ''
+                      )} style={!isSoldOut && !isLow ? { color: T.accent } : undefined}>
+                        {isSoldOut ? '❌ Esgotado' :
                          isLow ? `🔥 Últimas ${remaining} vagas` :
                          `${remaining} vagas disponíveis`}
                       </p>
