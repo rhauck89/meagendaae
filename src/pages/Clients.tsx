@@ -327,7 +327,7 @@ const Clients = () => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <h2 className="text-xl sm:text-2xl font-display font-bold">Clientes</h2>
-          <p className="text-muted-foreground text-sm">{clients.length} clientes cadastrados</p>
+          <p className="text-muted-foreground text-sm">{visibleClients.length} clientes cadastrados</p>
         </div>
         <Button className="gap-2 w-full sm:w-auto" onClick={() => setAddClientOpen(true)}>
           <UserPlus className="h-4 w-4" /> Cadastrar cliente
