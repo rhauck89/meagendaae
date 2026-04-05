@@ -4,6 +4,7 @@ import { useUserRole } from '@/hooks/useUserRole';
 import { useUserTicketCounts } from '@/hooks/useSupportTicketCounts';
 import { usePendingRequestCounts } from '@/hooks/usePendingRequestCounts';
 import { usePlatformMessages } from '@/hooks/usePlatformMessages';
+import { useProfessionalPermissions } from '@/hooks/useProfessionalPermissions';
 import { useCompanyBrandInfo } from '@/hooks/useCompanyBrandInfo';
 import {
   Calendar, Scissors, Users, Settings, LogOut, Menu, X, User, UserCheck,
@@ -59,19 +60,20 @@ const financeSubItems = [
   { href: '/dashboard/finance/reports', icon: FileBarChart, label: 'Relatórios' },
 ];
 
-const professionalNavItems = [
-  { href: '/dashboard', icon: Calendar, label: 'Minha Agenda' },
-  { href: '/dashboard/services', icon: Scissors, label: 'Meus Serviços' },
-  { href: '/dashboard/clients', icon: UserCheck, label: 'Clientes' },
-  { href: '/dashboard/promotions', icon: Megaphone, label: 'Promoções' },
-  { href: '/dashboard/events', icon: PartyPopper, label: 'Agenda Aberta' },
-  { href: '/dashboard/solicitacoes', icon: Inbox, label: 'Solicitações' },
-  { href: '/dashboard/my-finance', icon: DollarSign, label: 'Financeiro' },
+const allProfessionalNavItems = [
+  { href: '/dashboard', icon: Calendar, label: 'Minha Agenda', permKey: null },
+  { href: '/dashboard/services', icon: Scissors, label: 'Meus Serviços', permKey: null },
+  { href: '/dashboard/clients', icon: UserCheck, label: 'Clientes', permKey: 'clients' as const },
+  { href: '/dashboard/promotions', icon: Megaphone, label: 'Promoções', permKey: 'promotions' as const },
+  { href: '/dashboard/events', icon: PartyPopper, label: 'Agenda Aberta', permKey: 'events' as const },
+  { href: '/dashboard/solicitacoes', icon: Inbox, label: 'Solicitações', permKey: 'requests' as const },
+  { href: '/dashboard/my-finance', icon: DollarSign, label: 'Financeiro', permKey: 'finance' as const },
 ];
 
 const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
   const { profile, companyId, signOut, loading: authLoading } = useAuth();
   const { isAdmin } = useUserRole();
+  const profPerms = useProfessionalPermissions();
   const brandInfo = useCompanyBrandInfo();
   const location = useLocation();
   const navigate = useNavigate();
@@ -89,6 +91,10 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
   const [settingsOpen, setSettingsOpen] = useState(isSettingsActive);
   const [financeOpen, setFinanceOpen] = useState(isFinanceActive);
 
+  const professionalNavItems = allProfessionalNavItems.filter(item => {
+    if (!item.permKey) return true;
+    return profPerms[item.permKey];
+  });
   const navItems = isAdmin ? adminNavItems : professionalNavItems;
 
   const toggleCollapsed = useCallback(() => {

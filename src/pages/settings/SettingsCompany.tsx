@@ -6,8 +6,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
-import { Building2, Camera, Phone, MapPin, Globe, Instagram, Facebook } from 'lucide-react';
+import { Building2, Camera, Phone, MapPin, Globe, Instagram, Facebook, ShieldCheck } from 'lucide-react';
 import SettingsBreadcrumb from '@/components/SettingsBreadcrumb';
 import AmenitiesSettings from '@/components/AmenitiesSettings';
 import ImageCropDialog from '@/components/ImageCropDialog';
@@ -34,6 +35,13 @@ const SettingsCompany = () => {
   const [brStates, setBrStates] = useState<{ id: number; name: string; uf: string }[]>([]);
   const [brCities, setBrCities] = useState<{ id: number; name: string }[]>([]);
   const [loadingCities, setLoadingCities] = useState(false);
+
+  // Professional permissions
+  const [profPermClients, setProfPermClients] = useState(true);
+  const [profPermPromotions, setProfPermPromotions] = useState(true);
+  const [profPermEvents, setProfPermEvents] = useState(true);
+  const [profPermRequests, setProfPermRequests] = useState(true);
+  const [profPermFinance, setProfPermFinance] = useState(true);
 
   const [cropImage, setCropImage] = useState<string | null>(null);
   const [cropMode, setCropMode] = useState<CropMode>('avatar');
@@ -78,6 +86,11 @@ const SettingsCompany = () => {
       setCompanyInstagram((data as any).instagram ?? '');
       setCompanyFacebook((data as any).facebook ?? '');
       setCompanyWebsite((data as any).website ?? '');
+      setProfPermClients((data as any).prof_perm_clients ?? true);
+      setProfPermPromotions((data as any).prof_perm_promotions ?? true);
+      setProfPermEvents((data as any).prof_perm_events ?? true);
+      setProfPermRequests((data as any).prof_perm_requests ?? true);
+      setProfPermFinance((data as any).prof_perm_finance ?? true);
     }
   };
 
@@ -143,6 +156,11 @@ const SettingsCompany = () => {
       district: companyDistrict, city: companyCity, state: companyState,
       postal_code: companyPostalCode, google_maps_url: companyGoogleMapsUrl,
       instagram: companyInstagram, facebook: companyFacebook, website: companyWebsite,
+      prof_perm_clients: profPermClients,
+      prof_perm_promotions: profPermPromotions,
+      prof_perm_events: profPermEvents,
+      prof_perm_requests: profPermRequests,
+      prof_perm_finance: profPermFinance,
     } as any).eq('id', companyId!);
     toast.success('Dados da empresa salvos');
   };
@@ -258,6 +276,26 @@ const SettingsCompany = () => {
           <div className="space-y-1"><Label className="text-xs flex items-center gap-1"><Instagram className="w-3 h-3" /> Instagram</Label><Input value={companyInstagram} onChange={(e) => setCompanyInstagram(e.target.value)} placeholder="@suaempresa" /></div>
           <div className="space-y-1"><Label className="text-xs flex items-center gap-1"><Facebook className="w-3 h-3" /> Facebook</Label><Input value={companyFacebook} onChange={(e) => setCompanyFacebook(e.target.value)} /></div>
           <div className="space-y-1"><Label className="text-xs flex items-center gap-1"><Globe className="w-3 h-3" /> Website</Label><Input value={companyWebsite} onChange={(e) => setCompanyWebsite(e.target.value)} /></div>
+        </CardContent>
+      </Card>
+
+      {/* Professional Permissions */}
+      <Card>
+        <CardHeader><CardTitle className="flex items-center gap-2"><ShieldCheck className="h-5 w-5" /> Permissões do Profissional</CardTitle></CardHeader>
+        <CardContent className="space-y-4">
+          <p className="text-xs text-muted-foreground">Controle quais módulos aparecem no painel dos profissionais da equipe.</p>
+          {([
+            { label: 'Clientes', value: profPermClients, setter: setProfPermClients },
+            { label: 'Promoções', value: profPermPromotions, setter: setProfPermPromotions },
+            { label: 'Agenda Aberta', value: profPermEvents, setter: setProfPermEvents },
+            { label: 'Solicitações', value: profPermRequests, setter: setProfPermRequests },
+            { label: 'Financeiro', value: profPermFinance, setter: setProfPermFinance },
+          ] as const).map((item) => (
+            <div key={item.label} className="flex items-center justify-between">
+              <Label className="text-sm">{item.label}</Label>
+              <Switch checked={item.value} onCheckedChange={item.setter} />
+            </div>
+          ))}
         </CardContent>
       </Card>
 
