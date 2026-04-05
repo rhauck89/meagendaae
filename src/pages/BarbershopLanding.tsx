@@ -292,6 +292,11 @@ export default function BarbershopLanding({ routeBusinessType, customSlug }: Bar
           </div>
         )}
 
+        {/* Amenities - above action buttons */}
+        {companyAmenities.length > 0 && (
+          <AmenitiesDisplay amenities={companyAmenities} theme={T} />
+        )}
+
         {/* 5) Primary Buttons */}
         <div className="w-full max-w-xs flex flex-col gap-3 mt-2">
           <Button
@@ -468,12 +473,6 @@ export default function BarbershopLanding({ routeBusinessType, customSlug }: Bar
           </section>
         )}
 
-        {/* Amenities */}
-        {companyAmenities.length > 0 && (
-          <section>
-            <AmenitiesDisplay amenities={companyAmenities} theme={T} />
-          </section>
-        )}
 
         {/* Agenda Aberta */}
         {companyEvents.length > 0 && (
