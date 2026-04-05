@@ -62,8 +62,10 @@ const financeSubItems = [
 const professionalNavItems = [
   { href: '/dashboard', icon: Calendar, label: 'Minha Agenda' },
   { href: '/dashboard/services', icon: Scissors, label: 'Meus Serviços' },
+  { href: '/dashboard/clients', icon: UserCheck, label: 'Clientes' },
   { href: '/dashboard/promotions', icon: Megaphone, label: 'Promoções' },
   { href: '/dashboard/events', icon: PartyPopper, label: 'Agenda Aberta' },
+  { href: '/dashboard/solicitacoes', icon: Inbox, label: 'Solicitações' },
   { href: '/dashboard/my-finance', icon: DollarSign, label: 'Financeiro' },
 ];
 
@@ -312,6 +314,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
             {/* Navigation */}
             <nav className="flex-1 px-3 space-y-1 overflow-y-auto sidebar-nav">
               {navItems.map(item => renderNavLink(item, item.href === '/dashboard/solicitacoes' ? pendingRequests : undefined))}
+
 
               {isAdmin && renderCollapsibleGroup('Financeiro', DollarSign, isFinanceActive, financeOpen, setFinanceOpen, financeSubItems)}
               {isAdmin && renderCollapsibleGroup('Configurações', Settings, isSettingsActive, settingsOpen, setSettingsOpen, settingsSubItems)}

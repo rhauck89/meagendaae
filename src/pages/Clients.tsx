@@ -112,6 +112,32 @@ const Clients = () => {
     setAddClientForm({ name: '', whatsapp: '', email: '', birth_date: '', notes: '' });
   };
 
+  // Fetch all appointments for stats (professional-scoped if not admin)
+  const { data: appointments = [] } = useQuery({
+    queryKey: ['client-appointments-stats', companyId, isAdmin, profileId],
+    queryFn: async () => {
+      if (!companyId) return [];
+      let query = supabase
+        .from('appointments')
+        .select('id, client_id, professional_id, start_time, total_price, status')
+        .eq('company_id', companyId)
+        .in('status', ['completed', 'confirmed', 'pending', 'cancelled']);
+      if (!isAdmin && profileId) {
+        query = query.eq('professional_id', profileId);
+      }
+      const { data, error } = await query;
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!companyId,
+  });
+
+  // Derive client IDs from appointments for professional view
+  const professionalClientIds = useMemo(() => {
+    if (isAdmin) return null;
+    return new Set(appointments.map(a => a.client_id).filter(Boolean));
+  }, [isAdmin, appointments]);
+
   // Fetch all clients
   const { data: clients = [], isLoading } = useQuery({
     queryKey: ['clients', companyId],
@@ -128,21 +154,11 @@ const Clients = () => {
     enabled: !!companyId,
   });
 
-  // Fetch all appointments for stats
-  const { data: appointments = [] } = useQuery({
-    queryKey: ['client-appointments-stats', companyId],
-    queryFn: async () => {
-      if (!companyId) return [];
-      const { data, error } = await supabase
-        .from('appointments')
-        .select('id, client_id, professional_id, start_time, total_price, status')
-        .eq('company_id', companyId)
-        .in('status', ['completed', 'confirmed', 'pending', 'cancelled']);
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!companyId,
-  });
+  // Filter clients for professionals (only those they served)
+  const visibleClients = useMemo(() => {
+    if (isAdmin || !professionalClientIds) return clients;
+    return clients.filter(c => professionalClientIds.has(c.id));
+  }, [clients, isAdmin, professionalClientIds]);
 
   // Fetch profiles for professional names
   const { data: profiles = [] } = useQuery({
@@ -165,7 +181,7 @@ const Clients = () => {
   const clientStatsMap = useMemo(() => {
     const map: Record<string, { totalVisits: number; totalSpent: number; lastVisit: string | null; favProfName: string; favProfId: string | null; cancelledCount: number }> = {};
     
-    clients.forEach(client => {
+    visibleClients.forEach(client => {
       const clientAppts = appointments.filter(a => a.client_id === client.id);
       const completedAppts = clientAppts.filter(a => a.status === 'completed');
       const totalVisits = completedAppts.length;
@@ -187,22 +203,22 @@ const Clients = () => {
     });
     
     return map;
-  }, [clients, appointments, profileMap]);
+  }, [visibleClients, appointments, profileMap]);
 
   // Analytics metrics
   const metrics = useMemo(() => {
     const monthStart = startOfMonth(new Date()).toISOString();
-    const newClients = clients.filter(c => c.created_at >= monthStart).length;
-    const recurringClients = clients.filter(c => (clientStatsMap[c.id]?.totalVisits || 0) > 1).length;
+    const newClients = visibleClients.filter(c => c.created_at >= monthStart).length;
+    const recurringClients = visibleClients.filter(c => (clientStatsMap[c.id]?.totalVisits || 0) > 1).length;
     const totalCancellations = appointments.filter(a => a.status === 'cancelled').length;
     
-    const topClients = [...clients]
+    const topClients = [...visibleClients]
       .map(c => ({ name: c.name, spent: clientStatsMap[c.id]?.totalSpent || 0 }))
       .sort((a, b) => b.spent - a.spent)
       .slice(0, 3);
 
     return { newClients, recurringClients, totalCancellations, topClients };
-  }, [clients, appointments, clientStatsMap]);
+  }, [visibleClients, appointments, clientStatsMap]);
 
   // Unique professionals for filter
   const uniqueProfessionals = useMemo(() => {
@@ -213,13 +229,13 @@ const Clients = () => {
 
   // Filter and sort
   const filtered = useMemo(() => {
-    let result = clients.filter(c =>
+    let result = visibleClients.filter(c =>
       c.name.toLowerCase().includes(search.toLowerCase()) ||
       (c.whatsapp && c.whatsapp.includes(search))
     );
 
-    // Professional filter
-    if (profFilter !== 'all') {
+    // Professional filter (only for admin)
+    if (isAdmin && profFilter !== 'all') {
       const clientIdsWithProf = new Set(
         appointments.filter(a => a.professional_id === profFilter && a.status === 'completed').map(a => a.client_id)
       );
@@ -250,7 +266,7 @@ const Clients = () => {
     });
 
     return result;
-  }, [clients, search, sortColumn, sortDirection, profFilter, clientStatsMap, appointments]);
+  }, [visibleClients, search, sortColumn, sortDirection, profFilter, clientStatsMap, appointments, isAdmin]);
 
   const toggleSort = (col: SortColumn) => {
     if (sortColumn === col) {
@@ -269,7 +285,7 @@ const Clients = () => {
   };
 
   // Birthday calculations
-  const clientsWithBirthdays = clients
+  const clientsWithBirthdays = visibleClients
     .filter(c => c.birth_date)
     .map(c => {
       const today = new Date();
@@ -293,7 +309,7 @@ const Clients = () => {
     return `${days} dias`;
   };
 
-  const selectedClient = clients.find(c => c.id === selectedClientId);
+  const selectedClient = visibleClients.find(c => c.id === selectedClientId);
 
   if (selectedClient) {
     return (
@@ -311,11 +327,13 @@ const Clients = () => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <h2 className="text-xl sm:text-2xl font-display font-bold">Clientes</h2>
-          <p className="text-muted-foreground text-sm">{clients.length} clientes cadastrados</p>
+          <p className="text-muted-foreground text-sm">{visibleClients.length} clientes cadastrados</p>
         </div>
-        <Button className="gap-2 w-full sm:w-auto" onClick={() => setAddClientOpen(true)}>
-          <UserPlus className="h-4 w-4" /> Cadastrar cliente
-        </Button>
+        {isAdmin && (
+          <Button className="gap-2 w-full sm:w-auto" onClick={() => setAddClientOpen(true)}>
+            <UserPlus className="h-4 w-4" /> Cadastrar cliente
+          </Button>
+        )}
       </div>
 
       {/* Add Client Dialog */}
