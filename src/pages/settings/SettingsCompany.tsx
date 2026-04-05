@@ -86,6 +86,11 @@ const SettingsCompany = () => {
       setCompanyInstagram((data as any).instagram ?? '');
       setCompanyFacebook((data as any).facebook ?? '');
       setCompanyWebsite((data as any).website ?? '');
+      setProfPermClients((data as any).prof_perm_clients ?? true);
+      setProfPermPromotions((data as any).prof_perm_promotions ?? true);
+      setProfPermEvents((data as any).prof_perm_events ?? true);
+      setProfPermRequests((data as any).prof_perm_requests ?? true);
+      setProfPermFinance((data as any).prof_perm_finance ?? true);
     }
   };
 
