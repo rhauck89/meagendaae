@@ -151,6 +151,33 @@ export default function MarketplaceCategory() {
 
     const uniqueStates = [...new Set(items.map(c => c.state).filter(Boolean))] as string[];
     setStates(uniqueStates.sort());
+
+    // Fetch amenities for all companies
+    if (items.length > 0) {
+      const ids = items.map(c => c.id);
+      const { data: amData } = await supabase
+        .from('company_amenities' as any)
+        .select('company_id, amenity_id, is_featured, amenities(id, name, icon)')
+        .in('company_id', ids);
+      if (amData) {
+        const grouped: Record<string, any[]> = {};
+        (amData as any[]).forEach(ca => {
+          if (!grouped[ca.company_id]) grouped[ca.company_id] = [];
+          grouped[ca.company_id].push({
+            id: ca.amenity_id,
+            name: ca.amenities?.name ?? '',
+            icon: ca.amenities?.icon ?? '',
+            is_featured: ca.is_featured,
+          });
+        });
+        // Sort each: featured first
+        Object.keys(grouped).forEach(k => {
+          grouped[k].sort((a: any, b: any) => (a.is_featured && !b.is_featured ? -1 : !a.is_featured && b.is_featured ? 1 : 0));
+        });
+        setCompanyAmenities(grouped);
+      }
+    }
+
     setLoading(false);
   };
 
