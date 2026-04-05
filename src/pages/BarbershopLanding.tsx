@@ -473,12 +473,6 @@ export default function BarbershopLanding({ routeBusinessType, customSlug }: Bar
           </section>
         )}
 
-        {/* Amenities */}
-        {companyAmenities.length > 0 && (
-          <section>
-            <AmenitiesDisplay amenities={companyAmenities} theme={T} />
-          </section>
-        )}
 
         {/* Agenda Aberta */}
         {companyEvents.length > 0 && (
