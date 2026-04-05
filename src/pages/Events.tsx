@@ -221,11 +221,18 @@ const Events = () => {
 
   const loadEvents = async () => {
     setLoading(true);
-    const { data } = await supabase
+    let query = supabase
       .from('events')
       .select('*')
       .eq('company_id', companyId!)
       .order('start_date', { ascending: false });
+    
+    // Professionals only see their own events
+    if (!isAdmin && profile?.id) {
+      query = query.eq('created_by', profile.id);
+    }
+    
+    const { data } = await query;
     const eventsList = (data as any[]) || [];
     setEvents(eventsList);
 
