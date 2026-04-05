@@ -1239,7 +1239,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                     } else {
                       const profs = await fetchProfessionals();
                       if (profs.length === 1) {
-                        if (prefillFromProfile.current && selectedDate && selectedTime) {
+                        if (preselected.isActive() && selectedDate && selectedTime) {
                           setStep('client');
                         } else {
                           setStep('datetime');
