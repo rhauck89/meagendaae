@@ -12,6 +12,7 @@ import {
   Star, MapPin, Search, Scissors, ArrowRight, ChevronRight, Sparkles,
   Navigation, Loader2
 } from 'lucide-react';
+import { AmenitiesDisplay } from '@/components/AmenitiesDisplay';
 
 interface CategoryConfig {
   slug: string;

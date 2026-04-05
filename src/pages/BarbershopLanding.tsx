@@ -11,6 +11,8 @@ import { cn } from '@/lib/utils';
 import { formatWhatsApp } from '@/lib/whatsapp';
 import { PlatformBranding } from '@/components/PlatformBranding';
 import { getCompanyBranding, buildThemeFromBranding, useApplyBranding } from '@/hooks/useCompanyBranding';
+import { useCompanyAmenities } from '@/hooks/useCompanyAmenities';
+import { AmenitiesDisplay } from '@/components/AmenitiesDisplay';
 
 type BusinessType = 'barbershop' | 'esthetic';
 

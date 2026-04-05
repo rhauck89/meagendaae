@@ -12,6 +12,8 @@ import { calculateAvailableSlots, type BusinessHours, type BusinessException, ty
 import { formatWhatsApp } from '@/lib/whatsapp';
 import { PlatformBranding } from '@/components/PlatformBranding';
 import { getCompanyBranding, buildThemeFromBranding, useApplyBranding } from '@/hooks/useCompanyBranding';
+import { useCompanyAmenities } from '@/hooks/useCompanyAmenities';
+import { AmenitiesDisplay } from '@/components/AmenitiesDisplay';
 
 type BusinessType = 'barbershop' | 'esthetic';
 
