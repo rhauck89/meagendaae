@@ -19,6 +19,7 @@ import { calculateAvailableSlots, type BusinessHours, type BusinessException, ty
 import { PlatformBranding } from '@/components/PlatformBranding';
 import { CustomRequestForm } from '@/components/CustomRequestForm';
 import { getCompanyBranding, buildThemeFromBranding } from '@/hooks/useCompanyBranding';
+import { usePreselectedSlot } from '@/hooks/usePreselectedSlot';
 
 const StarRating = ({ rating, size = 14 }: { rating: number; size?: number }) => {
   return (
@@ -143,10 +144,8 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
   const { slug: paramSlug, professionalSlug } = useParams<{ slug: string; professionalSlug?: string }>();
   const slug = customSlug || paramSlug;
   const [searchParams] = useSearchParams();
-  const prefillDateRef = useRef(searchParams.get('date'));
-  const prefillTimeRef = useRef(searchParams.get('time'));
+  const preselected = usePreselectedSlot();
   const promoIdRef = useRef(searchParams.get('promo'));
-  const prefillFromProfile = useRef(!!(searchParams.get('date') && searchParams.get('time')));
   const [company, setCompany] = useState<any>(null);
   const [services, setServices] = useState<any[]>([]);
   const [professionals, setProfessionals] = useState<any[]>([]);
@@ -382,14 +381,13 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
     }
 
     // Apply prefilled date/time from URL query params (e.g. from quick booking buttons)
-    if (prefillDateRef.current) {
-      const [y, mo, d] = prefillDateRef.current.split('-').map(Number);
-      const prefillDate = new Date(y, mo - 1, d);
+    const prefillDate = preselected.getParsedDate();
+    if (prefillDate) {
       setSelectedDate(prefillDate);
-      if (prefillTimeRef.current) {
-        setSelectedTime(prefillTimeRef.current);
+      const initVals = preselected.getInitialValues();
+      if (initVals.time) {
+        setSelectedTime(initVals.time);
       }
-      prefillDateRef.current = null;
     }
 
     // Load promotion data if ?promo= param is present
@@ -691,9 +689,9 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
   };
 
   useEffect(() => {
-    // Don't reset time if it was prefilled from URL and this is the first date set
-    if (prefillTimeRef.current && selectedTime === prefillTimeRef.current) {
-      prefillTimeRef.current = null;
+    // Don't reset time if it's a locked preselected slot or quick slot
+    if (preselected.isLockedTime(selectedTime)) {
+      // Locked slot — preserve time
     } else if (skipTimeResetRef.current) {
       // Quick slot was used — don't reset time
       skipTimeResetRef.current = false;
@@ -716,7 +714,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
     if (professionals.length === 1 && selectedProfessional !== professionals[0].id) {
       setSelectedProfessional(professionals[0].id);
       fetchProfessionalHours(professionals[0].id);
-      if (step === 'professional') setStep(prefillFromProfile.current && selectedDate && selectedTime ? 'client' : 'datetime');
+      if (step === 'professional') setStep(preselected.isActive() && selectedDate && selectedTime ? 'client' : 'datetime');
     }
   }, [professionals, selectedProfessional, step]);
 
@@ -1233,7 +1231,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                 <Button
                   onClick={async () => {
                     if (skipProfessionalStep) {
-                      if (prefillFromProfile.current && selectedDate && selectedTime) {
+                      if (preselected.isActive() && selectedDate && selectedTime) {
                         setStep('client');
                       } else {
                         setStep('datetime');
@@ -1241,7 +1239,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                     } else {
                       const profs = await fetchProfessionals();
                       if (profs.length === 1) {
-                        if (prefillFromProfile.current && selectedDate && selectedTime) {
+                        if (preselected.isActive() && selectedDate && selectedTime) {
                           setStep('client');
                         } else {
                           setStep('datetime');
@@ -1277,7 +1275,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                 return (
                   <div
                     key={p.id}
-                    onClick={() => { setSelectedProfessional(p.id); fetchProfessionalHours(p.id); fetchRecentBookings(p.id); setStep(prefillFromProfile.current && selectedDate && selectedTime ? 'client' : 'datetime'); }}
+                    onClick={() => { setSelectedProfessional(p.id); fetchProfessionalHours(p.id); fetchRecentBookings(p.id); setStep(preselected.isActive() && selectedDate && selectedTime ? 'client' : 'datetime'); }}
                     className="p-5 rounded-2xl cursor-pointer transition-all duration-200 hover:scale-[1.02] text-center"
                     style={{
                       background: sel ? `${T.accent}10` : T.card,
@@ -1612,7 +1610,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
         {step === 'client' && (
           <div className="space-y-5 animate-fade-in">
             <button onClick={() => {
-              if (prefillFromProfile.current) {
+              if (preselected.isActive()) {
                 setStep('services');
               } else {
                 setStep('datetime');
