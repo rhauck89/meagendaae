@@ -381,14 +381,13 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
     }
 
     // Apply prefilled date/time from URL query params (e.g. from quick booking buttons)
-    if (prefillDateRef.current) {
-      const [y, mo, d] = prefillDateRef.current.split('-').map(Number);
-      const prefillDate = new Date(y, mo - 1, d);
+    const prefillDate = preselected.getParsedDate();
+    if (prefillDate) {
       setSelectedDate(prefillDate);
-      if (prefillTimeRef.current) {
-        setSelectedTime(prefillTimeRef.current);
+      const initVals = preselected.getInitialValues();
+      if (initVals.time) {
+        setSelectedTime(initVals.time);
       }
-      prefillDateRef.current = null;
     }
 
     // Load promotion data if ?promo= param is present
