@@ -1610,7 +1610,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
         {step === 'client' && (
           <div className="space-y-5 animate-fade-in">
             <button onClick={() => {
-              if (prefillFromProfile.current) {
+              if (preselected.isActive()) {
                 setStep('services');
               } else {
                 setStep('datetime');
