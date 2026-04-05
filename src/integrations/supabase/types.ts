@@ -14,6 +14,27 @@ export type Database = {
   }
   public: {
     Tables: {
+      amenities: {
+        Row: {
+          created_at: string
+          icon: string
+          id: string
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          icon: string
+          id?: string
+          name: string
+        }
+        Update: {
+          created_at?: string
+          icon?: string
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
       appointment_requests: {
         Row: {
           client_name: string
@@ -829,6 +850,66 @@ export type Database = {
             columns: ["plan_id"]
             isOneToOne: false
             referencedRelation: "plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      company_amenities: {
+        Row: {
+          amenity_id: string
+          company_id: string
+          created_at: string
+          id: string
+          is_featured: boolean
+        }
+        Insert: {
+          amenity_id: string
+          company_id: string
+          created_at?: string
+          id?: string
+          is_featured?: boolean
+        }
+        Update: {
+          amenity_id?: string
+          company_id?: string
+          created_at?: string
+          id?: string
+          is_featured?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_amenities_amenity_id_fkey"
+            columns: ["amenity_id"]
+            isOneToOne: false
+            referencedRelation: "amenities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_amenities_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_amenities_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies_billing"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_amenities_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "public_company"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_amenities_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "public_company_view"
             referencedColumns: ["id"]
           },
         ]

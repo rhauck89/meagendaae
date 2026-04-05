@@ -12,6 +12,7 @@ import {
   Star, MapPin, Search, Scissors, ArrowRight, ChevronRight, Sparkles,
   Navigation, Loader2
 } from 'lucide-react';
+import { AmenitiesDisplay } from '@/components/AmenitiesDisplay';
 
 interface CategoryConfig {
   slug: string;
@@ -122,6 +123,7 @@ export default function MarketplaceCategory() {
   const [stateFilter, setStateFilter] = useState('all');
   const [sortBy, setSortBy] = useState<SortOption>(geo.latitude ? 'nearest' : 'rating');
   const [radius, setRadius] = useState<RadiusOption>('10');
+  const [companyAmenities, setCompanyAmenities] = useState<Record<string, any[]>>({});
 
   useEffect(() => {
     if (!config) return;
@@ -149,6 +151,33 @@ export default function MarketplaceCategory() {
 
     const uniqueStates = [...new Set(items.map(c => c.state).filter(Boolean))] as string[];
     setStates(uniqueStates.sort());
+
+    // Fetch amenities for all companies
+    if (items.length > 0) {
+      const ids = items.map(c => c.id);
+      const { data: amData } = await supabase
+        .from('company_amenities' as any)
+        .select('company_id, amenity_id, is_featured, amenities(id, name, icon)')
+        .in('company_id', ids);
+      if (amData) {
+        const grouped: Record<string, any[]> = {};
+        (amData as any[]).forEach(ca => {
+          if (!grouped[ca.company_id]) grouped[ca.company_id] = [];
+          grouped[ca.company_id].push({
+            id: ca.amenity_id,
+            name: ca.amenities?.name ?? '',
+            icon: ca.amenities?.icon ?? '',
+            is_featured: ca.is_featured,
+          });
+        });
+        // Sort each: featured first
+        Object.keys(grouped).forEach(k => {
+          grouped[k].sort((a: any, b: any) => (a.is_featured && !b.is_featured ? -1 : !a.is_featured && b.is_featured ? 1 : 0));
+        });
+        setCompanyAmenities(grouped);
+      }
+    }
+
     setLoading(false);
   };
 
@@ -453,6 +482,11 @@ export default function MarketplaceCategory() {
                         <span className="text-xs text-[hsl(var(--muted-foreground))]">Novo no Agendae</span>
                       )}
                     </div>
+                    {companyAmenities[company.id]?.length > 0 && (
+                      <div className="mt-3">
+                        <AmenitiesDisplay amenities={companyAmenities[company.id]} compact maxVisible={4} />
+                      </div>
+                    )}
                     <div className="mt-4">
                       <Button size="sm" className="w-full bg-[hsl(var(--primary))] text-[hsl(var(--primary-foreground))] hover:bg-[hsl(var(--primary))]/90">
                         Ver perfil

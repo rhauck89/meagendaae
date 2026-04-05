@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { toast } from 'sonner';
 import { Building2, Camera, Phone, MapPin, Globe, Instagram, Facebook } from 'lucide-react';
 import SettingsBreadcrumb from '@/components/SettingsBreadcrumb';
+import AmenitiesSettings from '@/components/AmenitiesSettings';
 import ImageCropDialog from '@/components/ImageCropDialog';
 import type { CropMode } from '@/components/ImageCropDialog';
 
@@ -259,6 +260,9 @@ const SettingsCompany = () => {
           <div className="space-y-1"><Label className="text-xs flex items-center gap-1"><Globe className="w-3 h-3" /> Website</Label><Input value={companyWebsite} onChange={(e) => setCompanyWebsite(e.target.value)} /></div>
         </CardContent>
       </Card>
+
+      {/* Amenities */}
+      <AmenitiesSettings />
 
       <Button onClick={save}>Salvar dados da empresa</Button>
 

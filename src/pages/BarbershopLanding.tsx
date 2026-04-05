@@ -11,6 +11,8 @@ import { cn } from '@/lib/utils';
 import { formatWhatsApp } from '@/lib/whatsapp';
 import { PlatformBranding } from '@/components/PlatformBranding';
 import { getCompanyBranding, buildThemeFromBranding, useApplyBranding } from '@/hooks/useCompanyBranding';
+import { useCompanyAmenities } from '@/hooks/useCompanyAmenities';
+import { AmenitiesDisplay } from '@/components/AmenitiesDisplay';
 
 type BusinessType = 'barbershop' | 'esthetic';
 
@@ -64,6 +66,8 @@ export default function BarbershopLanding({ routeBusinessType, customSlug }: Bar
   const [companyEvents, setCompanyEvents] = useState<any[]>([]);
   const [companyPromotions, setCompanyPromotions] = useState<any[]>([]);
   const [isWhitelabel, setIsWhitelabel] = useState(false);
+
+  const { amenities: companyAmenities } = useCompanyAmenities(company?.id);
 
   const isDark = businessType === 'barbershop';
 
@@ -461,6 +465,13 @@ export default function BarbershopLanding({ routeBusinessType, customSlug }: Bar
                 Mostrar menos
               </button>
             )}
+          </section>
+        )}
+
+        {/* Amenities */}
+        {companyAmenities.length > 0 && (
+          <section>
+            <AmenitiesDisplay amenities={companyAmenities} theme={T} />
           </section>
         )}
 

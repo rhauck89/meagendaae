@@ -12,6 +12,8 @@ import { calculateAvailableSlots, type BusinessHours, type BusinessException, ty
 import { formatWhatsApp } from '@/lib/whatsapp';
 import { PlatformBranding } from '@/components/PlatformBranding';
 import { getCompanyBranding, buildThemeFromBranding, useApplyBranding } from '@/hooks/useCompanyBranding';
+import { useCompanyAmenities } from '@/hooks/useCompanyAmenities';
+import { AmenitiesDisplay } from '@/components/AmenitiesDisplay';
 
 type BusinessType = 'barbershop' | 'esthetic';
 
@@ -44,6 +46,8 @@ export default function ProfessionalPublicProfile() {
   const [copied, setCopied] = useState(false);
   const [loading, setLoading] = useState(true);
   const [companySettings, setCompanySettings] = useState<any>(null);
+
+  const { amenities: companyAmenities } = useCompanyAmenities(company?.id);
 
   useEffect(() => { if (slug && professionalSlug) load(); }, [slug, professionalSlug]);
 
@@ -267,6 +271,13 @@ export default function ProfessionalPublicProfile() {
           <p className="text-center text-sm leading-relaxed max-w-xs" style={{ color: T.textSec }}>
             {profile.bio}
           </p>
+        )}
+
+        {/* Amenities */}
+        {companyAmenities.length > 0 && (
+          <div className="w-full max-w-xs">
+            <AmenitiesDisplay amenities={companyAmenities} theme={T} />
+          </div>
         )}
 
         {/* Next Available Slot - Highlighted */}
