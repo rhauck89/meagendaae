@@ -279,6 +279,26 @@ const SettingsCompany = () => {
         </CardContent>
       </Card>
 
+      {/* Professional Permissions */}
+      <Card>
+        <CardHeader><CardTitle className="flex items-center gap-2"><ShieldCheck className="h-5 w-5" /> Permissões do Profissional</CardTitle></CardHeader>
+        <CardContent className="space-y-4">
+          <p className="text-xs text-muted-foreground">Controle quais módulos aparecem no painel dos profissionais da equipe.</p>
+          {([
+            { label: 'Clientes', value: profPermClients, setter: setProfPermClients },
+            { label: 'Promoções', value: profPermPromotions, setter: setProfPermPromotions },
+            { label: 'Agenda Aberta', value: profPermEvents, setter: setProfPermEvents },
+            { label: 'Solicitações', value: profPermRequests, setter: setProfPermRequests },
+            { label: 'Financeiro', value: profPermFinance, setter: setProfPermFinance },
+          ] as const).map((item) => (
+            <div key={item.label} className="flex items-center justify-between">
+              <Label className="text-sm">{item.label}</Label>
+              <Switch checked={item.value} onCheckedChange={item.setter} />
+            </div>
+          ))}
+        </CardContent>
+      </Card>
+
       {/* Amenities */}
       <AmenitiesSettings />
 
