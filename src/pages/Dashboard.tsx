@@ -1394,7 +1394,7 @@ const Dashboard = () => {
                             <div className="flex-1">
                               <p className="font-semibold">{apt.client_name || apt.client?.name || 'Cliente'}</p>
                               <p className="text-sm text-muted-foreground">
-                                {apt.appointment_services?.map((s: any) => s.service?.name).join(', ')}
+                                {formatServicesWithDuration(apt.appointment_services)}
                               </p>
                               {apt.promotion_id && (
                                 <span className="inline-flex items-center gap-1 text-xs font-medium px-1.5 py-0.5 rounded bg-orange-500/10 text-orange-500 mt-0.5">🔥 Promoção</span>
