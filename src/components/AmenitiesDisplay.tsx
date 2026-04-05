@@ -76,10 +76,10 @@ export function AmenitiesDisplay({ amenities, theme, maxVisible = 4, compact = f
   return (
     <TooltipProvider delayDuration={200}>
       <div className="w-full">
-        <p className="text-xs font-medium mb-2" style={{ color: secColor }}>
+        <p className="text-xs font-medium mb-2 text-center" style={{ color: secColor }}>
           Comodidades
         </p>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center justify-center gap-3 flex-wrap">
           {visible.map(a => (
             <Tooltip key={a.id}>
               <TooltipTrigger asChild>
