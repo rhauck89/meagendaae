@@ -880,7 +880,7 @@ const Dashboard = () => {
                   <div className="flex-1 min-w-0">
                     <p className="font-semibold truncate">{apt.client_name || apt.client?.name || 'Cliente'}</p>
                     <p className="text-sm text-muted-foreground truncate">
-                      {apt.appointment_services?.map((s: any) => s.service?.name).join(', ')}
+                      {formatServicesWithDuration(apt.appointment_services)}
                     </p>
                     <p className="text-xs text-muted-foreground">com {apt.professional?.full_name}</p>
                   </div>
