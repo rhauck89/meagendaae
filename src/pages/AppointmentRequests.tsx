@@ -265,6 +265,9 @@ const AppointmentRequests = () => {
                             <span>{professionals[req.professional_id]}</span>
                           </>
                         )}
+                        {isAdmin && req.professional_id && req.professional_id !== profileId && (
+                          <Badge variant="secondary" className="text-[10px] ml-1">Visualização</Badge>
+                        )}
                       </div>
                       <div className="flex items-center gap-2 text-sm">
                         <Clock className="h-3.5 w-3.5 text-muted-foreground" />
