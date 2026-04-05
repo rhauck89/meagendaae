@@ -208,17 +208,17 @@ const Clients = () => {
   // Analytics metrics
   const metrics = useMemo(() => {
     const monthStart = startOfMonth(new Date()).toISOString();
-    const newClients = clients.filter(c => c.created_at >= monthStart).length;
-    const recurringClients = clients.filter(c => (clientStatsMap[c.id]?.totalVisits || 0) > 1).length;
+    const newClients = visibleClients.filter(c => c.created_at >= monthStart).length;
+    const recurringClients = visibleClients.filter(c => (clientStatsMap[c.id]?.totalVisits || 0) > 1).length;
     const totalCancellations = appointments.filter(a => a.status === 'cancelled').length;
     
-    const topClients = [...clients]
+    const topClients = [...visibleClients]
       .map(c => ({ name: c.name, spent: clientStatsMap[c.id]?.totalSpent || 0 }))
       .sort((a, b) => b.spent - a.spent)
       .slice(0, 3);
 
     return { newClients, recurringClients, totalCancellations, topClients };
-  }, [clients, appointments, clientStatsMap]);
+  }, [visibleClients, appointments, clientStatsMap]);
 
   // Unique professionals for filter
   const uniqueProfessionals = useMemo(() => {
