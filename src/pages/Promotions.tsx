@@ -237,11 +237,18 @@ export default function Promotions() {
   };
 
   const fetchPromotions = async () => {
-    const { data } = await supabase
+    let query = supabase
       .from('promotions')
       .select('*')
       .eq('company_id', companyId!)
       .order('created_at', { ascending: false });
+    
+    // Professionals only see their own promotions
+    if (!isAdmin && profile?.id) {
+      query = query.eq('created_by', profile.id);
+    }
+    
+    const { data } = await query;
     if (data) setPromotions(data as unknown as Promotion[]);
   };
 
