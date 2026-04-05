@@ -229,13 +229,13 @@ const Clients = () => {
 
   // Filter and sort
   const filtered = useMemo(() => {
-    let result = clients.filter(c =>
+    let result = visibleClients.filter(c =>
       c.name.toLowerCase().includes(search.toLowerCase()) ||
       (c.whatsapp && c.whatsapp.includes(search))
     );
 
-    // Professional filter
-    if (profFilter !== 'all') {
+    // Professional filter (only for admin)
+    if (isAdmin && profFilter !== 'all') {
       const clientIdsWithProf = new Set(
         appointments.filter(a => a.professional_id === profFilter && a.status === 'completed').map(a => a.client_id)
       );
@@ -266,7 +266,7 @@ const Clients = () => {
     });
 
     return result;
-  }, [clients, search, sortColumn, sortDirection, profFilter, clientStatsMap, appointments]);
+  }, [visibleClients, search, sortColumn, sortDirection, profFilter, clientStatsMap, appointments, isAdmin]);
 
   const toggleSort = (col: SortColumn) => {
     if (sortColumn === col) {
