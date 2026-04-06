@@ -126,8 +126,13 @@ const Team = () => {
       collaborator_type: 'commissioned',
       payment_type: 'percentage',
       commission_value: '',
+      booking_mode: 'hybrid',
+      grid_interval: 15,
+      break_time: 0,
+      selectedServiceIds: [],
     });
     setCreatedCredentials(null);
+    setWizardStep(1);
   };
 
   const refreshTeam = async () => {
