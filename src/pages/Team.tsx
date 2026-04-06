@@ -15,6 +15,7 @@ import { Plus, Users, Percent, DollarSign, Settings, Copy, ExternalLink, Mail, K
 import { format } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
+import { Checkbox } from '@/components/ui/checkbox';
 import ProfessionalPanel from '@/components/ProfessionalPanel';
 
 const ROLE_TITLES = ['Barbeiro', 'Cabeleireira', 'Esteticista', 'Manicure', 'Recepcionista'];
