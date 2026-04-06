@@ -11,10 +11,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Plus, Users, Percent, DollarSign, Settings, Copy, ExternalLink, Mail, KeyRound, MessageCircle, Pencil, UserX, UserCheck, Trash2, CalendarOff } from 'lucide-react';
+import { Plus, Users, Percent, DollarSign, Settings, Copy, ExternalLink, Mail, KeyRound, MessageCircle, Pencil, UserX, UserCheck, Trash2, CalendarOff, ChevronLeft, ChevronRight, Check, Clock } from 'lucide-react';
 import { format } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
+import { Checkbox } from '@/components/ui/checkbox';
 import ProfessionalPanel from '@/components/ProfessionalPanel';
 
 const ROLE_TITLES = ['Barbeiro', 'Cabeleireira', 'Esteticista', 'Manicure', 'Recepcionista'];
@@ -49,6 +50,9 @@ const Team = () => {
   const [absenceTarget, setAbsenceTarget] = useState<any>(null);
   const [absenceForm, setAbsenceForm] = useState({ absence_start: '', absence_end: '', absence_type: 'ferias' });
 
+  // Wizard step state
+  const [wizardStep, setWizardStep] = useState(1);
+
   const [form, setForm] = useState({
     name: '',
     email: '',
@@ -57,6 +61,26 @@ const Team = () => {
     collaborator_type: 'commissioned' as 'partner' | 'commissioned' | 'independent',
     payment_type: 'percentage' as 'percentage' | 'fixed' | 'none',
     commission_value: '' as string | number,
+    booking_mode: 'hybrid' as string,
+    grid_interval: 15 as number,
+    break_time: 0 as number,
+    selectedServiceIds: [] as string[],
+  });
+
+  // Fetch company services for step 3
+  const { data: companyServices = [] } = useQuery({
+    queryKey: ['company-services', companyId],
+    enabled: Boolean(companyId),
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('services')
+        .select('id, name, duration_minutes, price')
+        .eq('company_id', companyId!)
+        .eq('active', true)
+        .order('name');
+      if (error) throw error;
+      return data ?? [];
+    },
   });
 
   const teamQueryKey = ['collaborators', companyId];
@@ -102,8 +126,13 @@ const Team = () => {
       collaborator_type: 'commissioned',
       payment_type: 'percentage',
       commission_value: '',
+      booking_mode: 'hybrid',
+      grid_interval: 15,
+      break_time: 0,
+      selectedServiceIds: [],
     });
     setCreatedCredentials(null);
+    setWizardStep(1);
   };
 
   const refreshTeam = async () => {
@@ -145,6 +174,10 @@ const Team = () => {
           role_title: form.role_title,
           slug: professionalSlug,
           temp_password: tempPassword,
+          booking_mode: form.booking_mode,
+          grid_interval: form.grid_interval,
+          break_time: form.break_time,
+          service_ids: form.selectedServiceIds,
         },
       });
 
@@ -550,10 +583,10 @@ const Team = () => {
               <Plus className="mr-2 h-4 w-4" /> Adicionar Profissional
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-md">
+          <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>
-                {createdCredentials ? 'Profissional Criado!' : 'Novo Profissional'}
+                {createdCredentials ? 'Profissional Criado!' : `Novo Profissional — Etapa ${wizardStep} de 4`}
               </DialogTitle>
             </DialogHeader>
 
@@ -584,13 +617,7 @@ const Team = () => {
                 </div>
                 <p className="text-xs text-muted-foreground">O profissional pode alterar a senha após o primeiro login.</p>
                 <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    className="flex-1"
-                    onClick={() =>
-                      copyToClipboard(fullMessage, 'Dados de acesso')
-                    }
-                  >
+                  <Button variant="outline" className="flex-1" onClick={() => copyToClipboard(fullMessage, 'Dados de acesso')}>
                     <Copy className="mr-2 h-4 w-4" /> Copiar acesso
                   </Button>
                   <Button className="flex-1 bg-green-600 hover:bg-green-700 text-white" asChild>
@@ -606,75 +633,212 @@ const Team = () => {
               );
             })() : (
               <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label>Nome</Label>
-                  <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+                {/* Step indicators */}
+                <div className="flex items-center gap-2 justify-center">
+                  {[1, 2, 3, 4].map((s) => (
+                    <div key={s} className={`flex items-center justify-center h-8 w-8 rounded-full text-xs font-semibold ${s === wizardStep ? 'bg-primary text-primary-foreground' : s < wizardStep ? 'bg-primary/20 text-primary' : 'bg-muted text-muted-foreground'}`}>
+                      {s < wizardStep ? <Check className="h-4 w-4" /> : s}
+                    </div>
+                  ))}
                 </div>
-                <div className="space-y-2">
-                  <Label>Email</Label>
-                  <Input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
-                </div>
-                <div className="space-y-2">
-                  <Label>WhatsApp</Label>
-                  <Input value={form.whatsapp} onChange={(e) => setForm({ ...form, whatsapp: e.target.value })} placeholder="(31) 99999-9999" />
-                </div>
-                <div className="space-y-2">
-                  <Label>Função</Label>
-                  <Select value={form.role_title} onValueChange={(v) => setForm({ ...form, role_title: v })}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      {ROLE_TITLES.map((t) => (
-                        <SelectItem key={t} value={t}>{t}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label>Tipo</Label>
-                  <Select value={form.collaborator_type} onValueChange={(value) => setForm({ ...form, collaborator_type: value as any })}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="partner">Sócio</SelectItem>
-                      <SelectItem value="commissioned">Comissionado</SelectItem>
-                      <SelectItem value="independent">Independente</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label>Forma de pagamento</Label>
-                  <Select value={form.payment_type} onValueChange={(value) => setForm({ ...form, payment_type: value as 'percentage' | 'fixed' | 'none' })}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="percentage">Percentual</SelectItem>
-                      <SelectItem value="fixed">Valor fixo</SelectItem>
-                      <SelectItem value="none">Sem comissão</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                {form.payment_type === 'percentage' && (
-                  <div className="space-y-2">
-                    <Label>Comissão (%)</Label>
-                    <Input
-                      type="number"
-                      value={form.commission_value}
-                      onChange={(e) => setForm({ ...form, commission_value: e.target.value })}
-                      placeholder="Ex: 10"
-                    />
+
+                {/* Step 1: Basic Info */}
+                {wizardStep === 1 && (
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label>Nome *</Label>
+                      <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Nome completo" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Email *</Label>
+                      <Input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder="email@exemplo.com" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>WhatsApp</Label>
+                      <Input value={form.whatsapp} onChange={(e) => setForm({ ...form, whatsapp: e.target.value })} placeholder="(31) 99999-9999" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Função</Label>
+                      <Select value={form.role_title} onValueChange={(v) => setForm({ ...form, role_title: v })}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          {ROLE_TITLES.map((t) => (
+                            <SelectItem key={t} value={t}>{t}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Tipo</Label>
+                      <Select value={form.collaborator_type} onValueChange={(value) => setForm({ ...form, collaborator_type: value as any })}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="partner">Sócio</SelectItem>
+                          <SelectItem value="commissioned">Comissionado</SelectItem>
+                          <SelectItem value="independent">Independente</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Forma de pagamento</Label>
+                      <Select value={form.payment_type} onValueChange={(value) => setForm({ ...form, payment_type: value as 'percentage' | 'fixed' | 'none' })}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="percentage">Percentual</SelectItem>
+                          <SelectItem value="fixed">Valor fixo</SelectItem>
+                          <SelectItem value="none">Sem comissão</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    {form.payment_type === 'percentage' && (
+                      <div className="space-y-2">
+                        <Label>Comissão (%)</Label>
+                        <Input type="number" value={form.commission_value} onChange={(e) => setForm({ ...form, commission_value: e.target.value })} placeholder="Ex: 10" />
+                      </div>
+                    )}
+                    {form.payment_type === 'fixed' && (
+                      <div className="space-y-2">
+                        <Label>Valor por serviço (R$)</Label>
+                        <Input type="number" step="0.01" value={form.commission_value} onChange={(e) => setForm({ ...form, commission_value: e.target.value })} placeholder="Ex: 25.00" />
+                      </div>
+                    )}
+                    <Button className="w-full" onClick={() => {
+                      if (!form.name.trim() || !form.email.trim()) return toast.error('Preencha nome e email');
+                      setWizardStep(2);
+                    }}>
+                      Próximo <ChevronRight className="ml-2 h-4 w-4" />
+                    </Button>
                   </div>
                 )}
-                {form.payment_type === 'fixed' && (
-                  <div className="space-y-2">
-                    <Label>Valor por serviço (R$)</Label>
-                    <Input
-                      type="number"
-                      step="0.01"
-                      value={form.commission_value}
-                      onChange={(e) => setForm({ ...form, commission_value: e.target.value })}
-                      placeholder="Ex: 25.00"
-                    />
+
+                {/* Step 2: Scheduling Config */}
+                {wizardStep === 2 && (
+                  <div className="space-y-4">
+                    <p className="text-sm text-muted-foreground">Configure como a agenda do profissional irá funcionar.</p>
+                    <div className="space-y-2">
+                      <Label>Modo de agendamento</Label>
+                      <Select value={form.booking_mode} onValueChange={(v) => setForm({ ...form, booking_mode: v })}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="intelligent">
+                            <div className="flex flex-col items-start">
+                              <span>Inteligente</span>
+                              <span className="text-xs text-muted-foreground">Horários calculados dinamicamente</span>
+                            </div>
+                          </SelectItem>
+                          <SelectItem value="fixed_grid">
+                            <div className="flex flex-col items-start">
+                              <span>Grade fixa</span>
+                              <span className="text-xs text-muted-foreground">Intervalos fixos de horário</span>
+                            </div>
+                          </SelectItem>
+                          <SelectItem value="hybrid">
+                            <div className="flex flex-col items-start">
+                              <span>Híbrida (recomendado)</span>
+                              <span className="text-xs text-muted-foreground">Grade fixa com validação de duração</span>
+                            </div>
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    {(form.booking_mode === 'fixed_grid' || form.booking_mode === 'hybrid') && (
+                      <div className="space-y-2">
+                        <Label>Intervalo da grade (minutos)</Label>
+                        <Select value={String(form.grid_interval)} onValueChange={(v) => setForm({ ...form, grid_interval: Number(v) })}>
+                          <SelectTrigger><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="15">15 minutos</SelectItem>
+                            <SelectItem value="30">30 minutos</SelectItem>
+                            <SelectItem value="45">45 minutos</SelectItem>
+                            <SelectItem value="60">60 minutos</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
+                    <div className="space-y-2">
+                      <Label>Intervalo entre atendimentos (minutos)</Label>
+                      <Input type="number" min={0} max={60} value={form.break_time} onChange={(e) => setForm({ ...form, break_time: Number(e.target.value) || 0 })} placeholder="Ex: 5" />
+                    </div>
+                    <div className="flex gap-2">
+                      <Button variant="outline" className="flex-1" onClick={() => setWizardStep(1)}>
+                        <ChevronLeft className="mr-2 h-4 w-4" /> Voltar
+                      </Button>
+                      <Button className="flex-1" onClick={() => setWizardStep(3)}>
+                        Próximo <ChevronRight className="ml-2 h-4 w-4" />
+                      </Button>
+                    </div>
                   </div>
                 )}
-                <Button onClick={handleAdd} className="w-full">Adicionar</Button>
+
+                {/* Step 3: Services */}
+                {wizardStep === 3 && (
+                  <div className="space-y-4">
+                    <p className="text-sm text-muted-foreground">Selecione os serviços que este profissional realiza.</p>
+                    {companyServices.length === 0 ? (
+                      <p className="text-sm text-muted-foreground text-center py-4">Nenhum serviço cadastrado. Você pode vincular depois.</p>
+                    ) : (
+                      <div className="space-y-2 max-h-60 overflow-y-auto">
+                        {companyServices.map((svc: any) => (
+                          <label key={svc.id} className="flex items-center gap-3 p-2 rounded-md border cursor-pointer hover:bg-muted/50 transition-colors">
+                            <Checkbox
+                              checked={form.selectedServiceIds.includes(svc.id)}
+                              onCheckedChange={(checked) => {
+                                setForm(prev => ({
+                                  ...prev,
+                                  selectedServiceIds: checked
+                                    ? [...prev.selectedServiceIds, svc.id]
+                                    : prev.selectedServiceIds.filter(id => id !== svc.id),
+                                }));
+                              }}
+                            />
+                            <div className="flex-1">
+                              <p className="text-sm font-medium">{svc.name}</p>
+                              <p className="text-xs text-muted-foreground">
+                                {svc.duration_minutes ? `${svc.duration_minutes} min` : ''}{svc.price ? ` • R$ ${Number(svc.price).toFixed(2)}` : ''}
+                              </p>
+                            </div>
+                          </label>
+                        ))}
+                      </div>
+                    )}
+                    <div className="flex gap-2">
+                      <Button variant="outline" className="flex-1" onClick={() => setWizardStep(2)}>
+                        <ChevronLeft className="mr-2 h-4 w-4" /> Voltar
+                      </Button>
+                      <Button className="flex-1" onClick={() => setWizardStep(4)}>
+                        Próximo <ChevronRight className="ml-2 h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Step 4: Confirmation */}
+                {wizardStep === 4 && (
+                  <div className="space-y-4">
+                    <p className="text-sm text-muted-foreground">Revise os dados antes de confirmar.</p>
+                    <div className="rounded-lg border bg-muted/50 p-4 space-y-3 text-sm">
+                      <div className="flex justify-between"><span className="text-muted-foreground">Nome</span><span className="font-medium">{form.name}</span></div>
+                      <div className="flex justify-between"><span className="text-muted-foreground">Email</span><span className="font-medium">{form.email}</span></div>
+                      {form.whatsapp && <div className="flex justify-between"><span className="text-muted-foreground">WhatsApp</span><span className="font-medium">{form.whatsapp}</span></div>}
+                      <div className="flex justify-between"><span className="text-muted-foreground">Tipo</span><span className="font-medium">{form.collaborator_type === 'partner' ? 'Sócio' : form.collaborator_type === 'independent' ? 'Independente' : 'Comissionado'}</span></div>
+                      <div className="flex justify-between"><span className="text-muted-foreground">Comissão</span><span className="font-medium">{paymentLabel(form.payment_type, Number(form.commission_value) || 0)}</span></div>
+                      <div className="flex justify-between"><span className="text-muted-foreground">Modo de agenda</span><span className="font-medium">{form.booking_mode === 'intelligent' ? 'Inteligente' : form.booking_mode === 'fixed_grid' ? 'Grade fixa' : 'Híbrida'}</span></div>
+                      {(form.booking_mode === 'fixed_grid' || form.booking_mode === 'hybrid') && (
+                        <div className="flex justify-between"><span className="text-muted-foreground">Intervalo</span><span className="font-medium">{form.grid_interval} min</span></div>
+                      )}
+                      {form.break_time > 0 && <div className="flex justify-between"><span className="text-muted-foreground">Pausa entre atend.</span><span className="font-medium">{form.break_time} min</span></div>}
+                      <div className="flex justify-between"><span className="text-muted-foreground">Serviços</span><span className="font-medium">{form.selectedServiceIds.length > 0 ? `${form.selectedServiceIds.length} selecionado(s)` : 'Nenhum'}</span></div>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button variant="outline" className="flex-1" onClick={() => setWizardStep(3)}>
+                        <ChevronLeft className="mr-2 h-4 w-4" /> Voltar
+                      </Button>
+                      <Button className="flex-1" onClick={handleAdd}>
+                        <Check className="mr-2 h-4 w-4" /> Confirmar
+                      </Button>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </DialogContent>
