@@ -109,9 +109,14 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Check if user with this email already exists
-    const { data: existingUsers } = await supabaseAdmin.auth.admin.listUsers();
-    const existingUser = existingUsers?.users?.find((u: any) => u.email === email);
+    // Check if user with this email already exists (use getUserByEmail instead of listing all)
+    let existingUser: any = null;
+    try {
+      const { data: userData } = await supabaseAdmin.auth.admin.getUserByEmail(email);
+      if (userData?.user) existingUser = userData.user;
+    } catch {
+      // User doesn't exist — will be created below
+    }
 
     let userId: string;
 
