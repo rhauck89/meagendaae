@@ -50,6 +50,9 @@ const Team = () => {
   const [absenceTarget, setAbsenceTarget] = useState<any>(null);
   const [absenceForm, setAbsenceForm] = useState({ absence_start: '', absence_end: '', absence_type: 'ferias' });
 
+  // Wizard step state
+  const [wizardStep, setWizardStep] = useState(1);
+
   const [form, setForm] = useState({
     name: '',
     email: '',
@@ -58,6 +61,26 @@ const Team = () => {
     collaborator_type: 'commissioned' as 'partner' | 'commissioned' | 'independent',
     payment_type: 'percentage' as 'percentage' | 'fixed' | 'none',
     commission_value: '' as string | number,
+    booking_mode: 'hybrid' as string,
+    grid_interval: 15 as number,
+    break_time: 0 as number,
+    selectedServiceIds: [] as string[],
+  });
+
+  // Fetch company services for step 3
+  const { data: companyServices = [] } = useQuery({
+    queryKey: ['company-services', companyId],
+    enabled: Boolean(companyId),
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('services')
+        .select('id, name, duration_minutes, price')
+        .eq('company_id', companyId!)
+        .eq('active', true)
+        .order('name');
+      if (error) throw error;
+      return data ?? [];
+    },
   });
 
   const teamQueryKey = ['collaborators', companyId];
