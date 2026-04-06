@@ -273,6 +273,17 @@ Deno.serve(async (req) => {
       console.error("Failed to copy company hours to professional", scheduleErr);
     }
 
+    // Link services if provided
+    const serviceIds = Array.isArray(body.service_ids) ? body.service_ids.filter((id: any) => typeof id === "string" && id.length > 0) : [];
+    if (serviceIds.length > 0) {
+      const links = serviceIds.map((svcId: string) => ({
+        service_id: svcId,
+        professional_id: profileId,
+        company_id: companyId,
+      }));
+      await supabaseAdmin.from("service_professionals").insert(links);
+    }
+
     return jsonResponse({
       success: true,
       collaborator: {
