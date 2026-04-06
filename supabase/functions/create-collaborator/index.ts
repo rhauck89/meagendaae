@@ -212,6 +212,12 @@ Deno.serve(async (req) => {
       .maybeSingle();
 
     if (!existingCollaborator) {
+      const bookingMode = ["intelligent", "fixed_grid", "hybrid"].includes(body.booking_mode) ? body.booking_mode : "hybrid";
+      const rawGridInterval = Number(body.grid_interval);
+      const gridInterval = [15, 30, 45, 60].includes(rawGridInterval) ? rawGridInterval : 15;
+      const rawBreakTime = Number(body.break_time);
+      const breakTime = Number.isFinite(rawBreakTime) && rawBreakTime >= 0 && rawBreakTime <= 60 ? rawBreakTime : 0;
+
       const { error: collaboratorError } = await supabaseAdmin.from("collaborators").insert({
         company_id: companyId,
         profile_id: profileId,
@@ -220,6 +226,9 @@ Deno.serve(async (req) => {
         commission_value: paymentType === "none" ? 0 : commissionValue,
         commission_percent: paymentType === "percentage" ? commissionValue : 0,
         slug: slug || null,
+        booking_mode: bookingMode,
+        grid_interval: gridInterval,
+        break_time: breakTime,
       });
 
       if (collaboratorError) {
