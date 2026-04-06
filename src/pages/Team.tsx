@@ -174,6 +174,10 @@ const Team = () => {
           role_title: form.role_title,
           slug: professionalSlug,
           temp_password: tempPassword,
+          booking_mode: form.booking_mode,
+          grid_interval: form.grid_interval,
+          break_time: form.break_time,
+          service_ids: form.selectedServiceIds,
         },
       });
 
