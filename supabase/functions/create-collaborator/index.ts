@@ -109,9 +109,14 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Check if user with this email already exists
-    const { data: existingUsers } = await supabaseAdmin.auth.admin.listUsers();
-    const existingUser = existingUsers?.users?.find((u: any) => u.email === email);
+    // Check if user with this email already exists (use getUserByEmail instead of listing all)
+    let existingUser: any = null;
+    try {
+      const { data: userData } = await supabaseAdmin.auth.admin.getUserByEmail(email);
+      if (userData?.user) existingUser = userData.user;
+    } catch {
+      // User doesn't exist — will be created below
+    }
 
     let userId: string;
 
@@ -165,10 +170,13 @@ Deno.serve(async (req) => {
       }
       profileId = insertedProfile.id;
     } else {
-      // MULTI-TENANT FIX: Do NOT overwrite company_id for existing users!
-      // Only update non-critical fields if needed (whatsapp enrichment)
+      // Update company_id if null (profile created by trigger without company context)
+      // and update name/email/whatsapp to ensure data consistency
       const updateData: Record<string, any> = {};
+      if (!existingProfile.company_id) updateData.company_id = companyId;
       if (whatsapp) updateData.whatsapp = whatsapp;
+      updateData.full_name = name;
+      updateData.email = email;
       
       if (Object.keys(updateData).length > 0) {
         await supabaseAdmin
