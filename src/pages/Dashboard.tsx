@@ -14,7 +14,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Clock, DollarSign, Users, UserCheck, UserMinus, AlertTriangle, Bell, MailCheck, Cake, Ban, Trash2, Timer, RefreshCw, AlertCircle, TrendingUp, BarChart3, XCircle, Percent, Receipt, Send } from 'lucide-react';
+import { Calendar as CalendarIcon, CalendarCheck, ChevronLeft, ChevronRight, Clock, DollarSign, Users, UserCheck, UserMinus, AlertTriangle, Bell, MailCheck, Cake, Ban, Trash2, Timer, RefreshCw, AlertCircle, TrendingUp, BarChart3, XCircle, Percent, Receipt, Send } from 'lucide-react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { BlockTimeDialog } from '@/components/BlockTimeDialog';
 import { Calendar as DatePickerCalendar } from '@/components/ui/calendar';
@@ -99,7 +99,7 @@ const Dashboard = () => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [appointments, setAppointments] = useState<any[]>([]);
   const [stats, setStats] = useState({ total: 0, revenue: 0, revenueCompleted: 0, clients: 0 });
-  const [monthlyStats, setMonthlyStats] = useState({ revenue: 0, revenueCompleted: 0, clients: 0, cancellations: 0, occupancyRate: 0, avgTicket: 0 });
+  const [monthlyStats, setMonthlyStats] = useState({ revenue: 0, revenueCompleted: 0, clients: 0, completedAppointments: 0, cancellations: 0, occupancyRate: 0, avgTicket: 0 });
   const [dailyTrends, setDailyTrends] = useState<{ date: string; revenue: number; clients: number; cancellations: number; occupancy: number }[]>([]);
   const [waitlistCount, setWaitlistCount] = useState(0);
   const [waitlistServiceBreakdown, setWaitlistServiceBreakdown] = useState<Record<string, number>>({});
@@ -343,6 +343,7 @@ const Dashboard = () => {
       revenue,
       revenueCompleted,
       clients: uniqueClients,
+      completedAppointments: completed.length,
       cancellations: cancelled.length,
       occupancyRate,
       avgTicket,
@@ -1146,11 +1147,11 @@ const Dashboard = () => {
             <CardContent className="p-4 space-y-1">
               <div className="flex items-center gap-2">
                 <div className="w-8 h-8 rounded-lg bg-accent/10 flex items-center justify-center shrink-0">
-                  <Users className="h-4 w-4 text-accent" />
+                  <CalendarCheck className="h-4 w-4 text-accent" />
                 </div>
-                <p className="text-sm text-muted-foreground">Clientes atendidos</p>
+                <p className="text-sm text-muted-foreground">Agendamentos feitos</p>
               </div>
-              <p className="text-2xl font-semibold">{monthlyStats.clients}</p>
+              <p className="text-2xl font-semibold">{monthlyStats.completedAppointments}</p>
               {dailyTrends.length > 0 && (
                 <div className="h-6 w-full opacity-70">
                   <ResponsiveContainer width="100%" height="100%">
