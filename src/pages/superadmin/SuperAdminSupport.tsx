@@ -81,6 +81,14 @@ function formatFileSize(bytes: number) {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
+function getFileType(fileName: string): string {
+  const ext = fileName.split('.').pop()?.toLowerCase() || '';
+  if (['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext)) return `image/${ext === 'jpg' ? 'jpeg' : ext}`;
+  if (['mp4', 'mov', 'webm'].includes(ext)) return `video/${ext}`;
+  if (ext === 'pdf') return 'application/pdf';
+  return 'application/octet-stream';
+}
+
 function isImage(type: string) {
   return /^image\/(jpeg|jpg|png|gif|webp)$/i.test(type);
 }
