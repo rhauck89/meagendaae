@@ -1,0 +1,1 @@
+ALTER TABLE public.services ADD COLUMN IF NOT EXISTS booking_mode text NOT NULL DEFAULT 'company_default';
