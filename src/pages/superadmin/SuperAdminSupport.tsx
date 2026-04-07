@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { MessageSquare, Send, Filter, Paperclip, Eye, Download, FileText, Film, Search, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
+import { MessageSquare, Send, Filter, Paperclip, Eye, Download, FileText, Film, Search, ChevronLeft, ChevronRight, Loader2, Building2, User, ExternalLink } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 
@@ -118,7 +118,7 @@ const SuperAdminSupport = () => {
   const [sending, setSending] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [previewType, setPreviewType] = useState<string>('');
-
+  const [companyDetail, setCompanyDetail] = useState<{ company: any; profile: any } | null>(null);
   // All companies map for search
   const [allCompaniesMap, setAllCompaniesMap] = useState<Map<string, string>>(new Map());
 
@@ -237,6 +237,24 @@ const SuperAdminSupport = () => {
     fetchAttachments(t.id);
   };
 
+  const fetchCompanyDetail = async (companyId: string, userId: string) => {
+    const [compRes, profRes] = await Promise.all([
+      companyId ? supabase.from('companies').select('id, name, created_at, plan_id, subscription_status').eq('id', companyId).maybeSingle() : Promise.resolve({ data: null }),
+      userId ? supabase.from('profiles').select('full_name, email, role, user_id').eq('user_id', userId).maybeSingle() : Promise.resolve({ data: null }),
+    ]);
+    
+    let planName = null;
+    if (compRes.data?.plan_id) {
+      const { data: plan } = await supabase.from('plans').select('name').eq('id', compRes.data.plan_id).maybeSingle();
+      planName = plan?.name;
+    }
+
+    setCompanyDetail({
+      company: compRes.data ? { ...compRes.data, plan_name: planName } : null,
+      profile: profRes.data,
+    });
+  };
+
   const openPreview = (att: Attachment) => {
     setPreviewUrl(att.file_url);
     setPreviewType(getFileType(att.file_name));
@@ -347,7 +365,6 @@ const SuperAdminSupport = () => {
                     <TableHead>Protocolo</TableHead>
                     <TableHead>Título</TableHead>
                     <TableHead>Empresa</TableHead>
-                    <TableHead>Usuário</TableHead>
                     <TableHead>Categoria</TableHead>
                     <TableHead>Prioridade</TableHead>
                     <TableHead>Status</TableHead>
@@ -357,15 +374,30 @@ const SuperAdminSupport = () => {
                 </TableHeader>
                 <TableBody>
                   {filteredTickets.length === 0 ? (
-                    <TableRow><TableCell colSpan={9} className="text-center py-8 text-muted-foreground">Nenhum ticket encontrado</TableCell></TableRow>
+                    <TableRow><TableCell colSpan={8} className="text-center py-8 text-muted-foreground">Nenhum ticket encontrado</TableCell></TableRow>
                   ) : filteredTickets.map(t => {
                     const s = statusMap[t.status] || statusMap.open;
                     return (
                       <TableRow key={t.id} className="cursor-pointer" onClick={() => openTicket(t)}>
                         <TableCell className="text-xs font-mono text-muted-foreground">{t.protocol_number || '—'}</TableCell>
                         <TableCell className="font-medium text-sm max-w-[180px] truncate">{t.title}</TableCell>
-                        <TableCell className="text-sm">{t.company?.name || 'Sistema'}</TableCell>
-                        <TableCell className="text-sm">{t.profile?.full_name || '—'}</TableCell>
+                        <TableCell>
+                          {t.company?.name ? (
+                            <button
+                              className="text-sm text-primary hover:underline font-medium text-left"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setCompanyDetail({ company: t.company, profile: t.profile });
+                                // Fetch full company details
+                                fetchCompanyDetail(t.company_id, t.user_id);
+                              }}
+                            >
+                              {t.company.name}
+                            </button>
+                          ) : (
+                            <span className="text-sm text-muted-foreground">Sistema</span>
+                          )}
+                        </TableCell>
                         <TableCell><Badge variant="outline" className="text-xs">{categoryMap[t.category] || t.category}</Badge></TableCell>
                         <TableCell><span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${priorityMap[t.priority]?.bg || ''} ${priorityMap[t.priority]?.text || ''}`}>{priorityMap[t.priority]?.label || t.priority}</span></TableCell>
                         <TableCell><Badge variant={s.variant} className="text-xs">{s.label}</Badge></TableCell>
@@ -563,6 +595,63 @@ const SuperAdminSupport = () => {
           )}
           {previewUrl && !isImage(previewType) && !isVideo(previewType) && (
             <iframe src={previewUrl} className="w-full h-[75vh] rounded border-0" />
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Company Detail Modal */}
+      <Dialog open={!!companyDetail} onOpenChange={() => setCompanyDetail(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Building2 className="h-5 w-5 text-primary" />
+              Detalhes
+            </DialogTitle>
+          </DialogHeader>
+          {companyDetail && (
+            <div className="space-y-4">
+              {companyDetail.company ? (
+                <div className="space-y-2 border rounded-lg p-4 bg-muted/30">
+                  <h4 className="font-semibold text-sm flex items-center gap-2">
+                    <Building2 className="h-4 w-4 text-muted-foreground" />
+                    Empresa
+                  </h4>
+                  <p className="text-base font-medium">{companyDetail.company.name}</p>
+                  <div className="grid grid-cols-2 gap-2 text-sm">
+                    <div>
+                      <p className="text-muted-foreground text-xs">Plano</p>
+                      <p className="font-medium">{companyDetail.company.plan_name || 'Sem plano'}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground text-xs">Status</p>
+                      <Badge variant="outline" className="text-xs capitalize">{companyDetail.company.subscription_status || 'trial'}</Badge>
+                    </div>
+                    <div className="col-span-2">
+                      <p className="text-muted-foreground text-xs">Criada em</p>
+                      <p className="font-medium">{companyDetail.company.created_at ? format(new Date(companyDetail.company.created_at), 'dd/MM/yyyy') : '—'}</p>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">Nenhuma empresa vinculada (Sistema)</p>
+              )}
+
+              {companyDetail.profile && (
+                <div className="space-y-2 border rounded-lg p-4 bg-muted/30">
+                  <h4 className="font-semibold text-sm flex items-center gap-2">
+                    <User className="h-4 w-4 text-muted-foreground" />
+                    Usuário que abriu o ticket
+                  </h4>
+                  <p className="text-base font-medium">{companyDetail.profile.full_name}</p>
+                  <p className="text-sm text-muted-foreground">{companyDetail.profile.email || '—'}</p>
+                  <Badge variant="secondary" className="text-xs capitalize">{companyDetail.profile.role || 'Usuário'}</Badge>
+                </div>
+              )}
+
+              <Button variant="outline" className="w-full" onClick={() => setCompanyDetail(null)}>
+                Fechar
+              </Button>
+            </div>
           )}
         </DialogContent>
       </Dialog>
