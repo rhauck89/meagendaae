@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { MessageSquare, Send, Filter } from 'lucide-react';
+import { MessageSquare, Send, Filter, Paperclip, Eye, Download, FileText, Film, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 
@@ -23,6 +23,7 @@ interface Ticket {
   created_at: string;
   company_id: string;
   user_id: string;
+  protocol_number?: string;
   company?: { name: string } | null;
   profile?: { full_name: string; email: string } | null;
 }
@@ -32,6 +33,14 @@ interface Message {
   message: string;
   is_admin: boolean;
   created_at: string;
+}
+
+interface Attachment {
+  id: string;
+  file_name: string;
+  file_url: string;
+  file_size: number;
+  ticket_id: string;
 }
 
 const statusOptions = [
@@ -66,6 +75,28 @@ const priorityMap: Record<string, string> = {
   urgent: 'Urgente',
 };
 
+function formatFileSize(bytes: number) {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function getFileType(fileName: string): string {
+  const ext = fileName.split('.').pop()?.toLowerCase() || '';
+  if (['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext)) return `image/${ext === 'jpg' ? 'jpeg' : ext}`;
+  if (['mp4', 'mov', 'webm'].includes(ext)) return `video/${ext}`;
+  if (ext === 'pdf') return 'application/pdf';
+  return 'application/octet-stream';
+}
+
+function isImage(type: string) {
+  return /^image\/(jpeg|jpg|png|gif|webp)$/i.test(type);
+}
+
+function isVideo(type: string) {
+  return /^video\//i.test(type);
+}
+
 const SuperAdminSupport = () => {
   const { user } = useAuth();
   const [tickets, setTickets] = useState<Ticket[]>([]);
@@ -77,11 +108,13 @@ const SuperAdminSupport = () => {
 
   const [viewTicket, setViewTicket] = useState<Ticket | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
+  const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [sending, setSending] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [previewType, setPreviewType] = useState<string>('');
 
   const fetchTickets = async () => {
-    // Fetch tickets then enrich with company/profile data
     let query = supabase
       .from('support_tickets')
       .select('*')
@@ -94,12 +127,10 @@ const SuperAdminSupport = () => {
     const { data } = await query;
     if (!data) { setLoading(false); return; }
 
-    // Enrich with company names
     const companyIds = [...new Set(data.map((t: any) => t.company_id))];
     const { data: comps } = await supabase.from('companies').select('id, name').in('id', companyIds);
     const compMap = new Map((comps || []).map((c: any) => [c.id, c.name]));
 
-    // Enrich with profile names
     const userIds = [...new Set(data.map((t: any) => t.user_id))];
     const { data: profiles } = await supabase.from('profiles').select('user_id, full_name, email').in('user_id', userIds);
     const profMap = new Map((profiles || []).map((p: any) => [p.user_id, p]));
@@ -128,6 +159,15 @@ const SuperAdminSupport = () => {
     if (data) setMessages(data as Message[]);
   };
 
+  const fetchAttachments = async (ticketId: string) => {
+    const { data } = await supabase
+      .from('support_attachments')
+      .select('*')
+      .eq('ticket_id', ticketId)
+      .order('created_at', { ascending: true });
+    setAttachments((data as Attachment[]) || []);
+  };
+
   useEffect(() => {
     fetchCompanies();
   }, []);
@@ -139,6 +179,17 @@ const SuperAdminSupport = () => {
   const openTicket = (t: Ticket) => {
     setViewTicket(t);
     fetchMessages(t.id);
+    fetchAttachments(t.id);
+  };
+
+  const getFileUrl = (filePath: string) => {
+    const { data } = supabase.storage.from('support-attachments').getPublicUrl(filePath);
+    return data.publicUrl;
+  };
+
+  const openPreview = (att: Attachment) => {
+    setPreviewUrl(att.file_url);
+    setPreviewType(getFileType(att.file_name));
   };
 
   const sendAdminMessage = async () => {
@@ -151,7 +202,6 @@ const SuperAdminSupport = () => {
       is_admin: true,
     } as any);
 
-    // Update ticket status to answered
     await supabase.from('support_tickets').update({ status: 'answered', updated_at: new Date().toISOString() } as any).eq('id', viewTicket.id);
     setViewTicket(prev => prev ? { ...prev, status: 'answered' } : null);
 
@@ -220,6 +270,7 @@ const SuperAdminSupport = () => {
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead>Protocolo</TableHead>
                   <TableHead>Título</TableHead>
                   <TableHead>Empresa</TableHead>
                   <TableHead>Usuário</TableHead>
@@ -232,11 +283,12 @@ const SuperAdminSupport = () => {
               </TableHeader>
               <TableBody>
                 {tickets.length === 0 ? (
-                  <TableRow><TableCell colSpan={8} className="text-center py-8 text-muted-foreground">Nenhum ticket encontrado</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={9} className="text-center py-8 text-muted-foreground">Nenhum ticket encontrado</TableCell></TableRow>
                 ) : tickets.map(t => {
                   const s = statusMap[t.status] || statusMap.open;
                   return (
                     <TableRow key={t.id} className="cursor-pointer" onClick={() => openTicket(t)}>
+                      <TableCell className="text-xs font-mono text-muted-foreground">{t.protocol_number || '—'}</TableCell>
                       <TableCell className="font-medium text-sm max-w-[180px] truncate">{t.title}</TableCell>
                       <TableCell className="text-sm">{t.company?.name || '—'}</TableCell>
                       <TableCell className="text-sm">{t.profile?.full_name || '—'}</TableCell>
@@ -260,16 +312,67 @@ const SuperAdminSupport = () => {
       <Dialog open={!!viewTicket} onOpenChange={() => setViewTicket(null)}>
         <DialogContent className="max-w-lg max-h-[85vh] flex flex-col">
           <DialogHeader>
+            {viewTicket?.protocol_number && (
+              <p className="text-xs font-mono text-muted-foreground">{viewTicket.protocol_number}</p>
+            )}
             <DialogTitle className="text-base">{viewTicket?.title}</DialogTitle>
             <div className="flex flex-wrap gap-2 mt-1">
               {viewTicket && <Badge variant={statusMap[viewTicket.status]?.variant || 'outline'} className="text-xs">{statusMap[viewTicket.status]?.label}</Badge>}
               {viewTicket && <Badge variant="outline" className="text-xs">{categoryMap[viewTicket.category] || viewTicket.category}</Badge>}
+              {viewTicket && <Badge variant="outline" className="text-xs">{priorityMap[viewTicket.priority] || viewTicket.priority}</Badge>}
               {viewTicket && <span className="text-xs text-muted-foreground">• {viewTicket.company?.name}</span>}
             </div>
           </DialogHeader>
 
           {viewTicket && (
             <p className="text-sm text-muted-foreground border-b pb-3">{viewTicket.description}</p>
+          )}
+
+          {/* Attachments */}
+          {attachments.length > 0 && (
+            <div className="border-b pb-3 space-y-2">
+              <p className="text-xs font-semibold flex items-center gap-1"><Paperclip className="h-3 w-3" /> Anexos</p>
+              <div className="space-y-2">
+                {attachments.map(att => {
+                  const url = att.file_url;
+                  const fileType = getFileType(att.file_name);
+                  return (
+                    <div key={att.id} className="flex items-center gap-3 p-2 rounded-md bg-muted/50">
+                      {isImage(fileType) ? (
+                        <img
+                          src={url}
+                          alt={att.file_name}
+                          className="w-16 h-16 rounded object-cover cursor-pointer border"
+                          onClick={() => openPreview(att)}
+                        />
+                      ) : isVideo(fileType) ? (
+                        <div className="w-16 h-16 rounded bg-muted flex items-center justify-center cursor-pointer border" onClick={() => openPreview(att)}>
+                          <Film className="h-6 w-6 text-muted-foreground" />
+                        </div>
+                      ) : (
+                        <div className="w-16 h-16 rounded bg-muted flex items-center justify-center border">
+                          <FileText className="h-6 w-6 text-muted-foreground" />
+                        </div>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm truncate max-w-[180px]" title={att.file_name}>{att.file_name}</p>
+                        <p className="text-xs text-muted-foreground">{formatFileSize(att.file_size)}</p>
+                      </div>
+                      <div className="flex gap-1">
+                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openPreview(att)} title="Visualizar">
+                          <Eye className="h-3.5 w-3.5" />
+                        </Button>
+                        <a href={url} download={att.file_name} target="_blank" rel="noopener noreferrer">
+                          <Button variant="ghost" size="icon" className="h-7 w-7" title="Baixar">
+                            <Download className="h-3.5 w-3.5" />
+                          </Button>
+                        </a>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
           )}
 
           {/* Status change */}
@@ -314,6 +417,24 @@ const SuperAdminSupport = () => {
               <Send className="h-4 w-4" />
             </Button>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Preview Modal */}
+      <Dialog open={!!previewUrl} onOpenChange={() => { setPreviewUrl(null); setPreviewType(''); }}>
+        <DialogContent className="max-w-3xl max-h-[90vh] p-2">
+          <DialogHeader className="sr-only">
+            <DialogTitle>Visualizar anexo</DialogTitle>
+          </DialogHeader>
+          {previewUrl && isImage(previewType) && (
+            <img src={previewUrl} alt="Preview" className="w-full max-h-[80vh] object-contain rounded" />
+          )}
+          {previewUrl && isVideo(previewType) && (
+            <video src={previewUrl} controls className="w-full max-h-[80vh] rounded" />
+          )}
+          {previewUrl && !isImage(previewType) && !isVideo(previewType) && (
+            <iframe src={previewUrl} className="w-full h-[75vh] rounded border-0" />
+          )}
         </DialogContent>
       </Dialog>
     </div>

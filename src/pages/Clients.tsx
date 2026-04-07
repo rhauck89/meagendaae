@@ -856,7 +856,7 @@ const ClientProfile = ({ client, companyId, profileMap, onBack }: ClientProfileP
 
     setSaving(true);
     try {
-      const updateData: Record<string, unknown> = {
+      const updateData = {
         name: editForm.name.trim(),
         whatsapp: editForm.whatsapp.trim() ? formatWhatsApp(editForm.whatsapp.trim()) : null,
         email: editForm.email.trim() || null,
@@ -865,7 +865,7 @@ const ClientProfile = ({ client, companyId, profileMap, onBack }: ClientProfileP
 
       const { error } = await supabase
         .from('clients')
-        .update(updateData)
+        .update(updateData as any)
         .eq('id', client.id)
         .eq('company_id', companyId);
 
