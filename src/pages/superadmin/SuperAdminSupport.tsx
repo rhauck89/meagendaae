@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent } from '@/components/ui/card';
@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { MessageSquare, Send, Filter, Paperclip, Eye, Download, FileText, Film, X } from 'lucide-react';
+import { MessageSquare, Send, Filter, Paperclip, Eye, Download, FileText, Film, Search, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 
@@ -42,6 +42,8 @@ interface Attachment {
   file_size: number;
   ticket_id: string;
 }
+
+const PAGE_SIZE = 20;
 
 const statusOptions = [
   { value: 'all', label: 'Todos' },
@@ -100,11 +102,14 @@ function isVideo(type: string) {
 const SuperAdminSupport = () => {
   const { user } = useAuth();
   const [tickets, setTickets] = useState<Ticket[]>([]);
+  const [totalCount, setTotalCount] = useState(0);
   const [companies, setCompanies] = useState<{ id: string; name: string }[]>([]);
   const [loading, setLoading] = useState(true);
   const [filterStatus, setFilterStatus] = useState('all');
   const [filterCompany, setFilterCompany] = useState('all');
   const [filterCategory, setFilterCategory] = useState('all');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [currentPage, setCurrentPage] = useState(0);
 
   const [viewTicket, setViewTicket] = useState<Ticket | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -114,26 +119,59 @@ const SuperAdminSupport = () => {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [previewType, setPreviewType] = useState<string>('');
 
+  // All companies map for search
+  const [allCompaniesMap, setAllCompaniesMap] = useState<Map<string, string>>(new Map());
+
   const fetchTickets = async () => {
+    setLoading(true);
+
+    // First get total count with filters
+    let countQuery = supabase
+      .from('support_tickets')
+      .select('*', { count: 'exact', head: true });
+
+    if (filterStatus !== 'all') countQuery = countQuery.eq('status', filterStatus);
+    if (filterCompany !== 'all') countQuery = countQuery.eq('company_id', filterCompany);
+    if (filterCategory !== 'all') countQuery = countQuery.eq('category', filterCategory);
+
+    // Fetch data with pagination
     let query = supabase
       .from('support_tickets')
       .select('*')
-      .order('created_at', { ascending: false });
+      .order('created_at', { ascending: false })
+      .range(currentPage * PAGE_SIZE, (currentPage + 1) * PAGE_SIZE - 1);
 
     if (filterStatus !== 'all') query = query.eq('status', filterStatus);
     if (filterCompany !== 'all') query = query.eq('company_id', filterCompany);
     if (filterCategory !== 'all') query = query.eq('category', filterCategory);
 
-    const { data } = await query;
+    const [countResult, dataResult] = await Promise.all([countQuery, query]);
+    
+    const data = dataResult.data;
+    const count = countResult.count || 0;
+
     if (!data) { setLoading(false); return; }
 
-    const companyIds = [...new Set(data.map((t: any) => t.company_id))];
-    const { data: comps } = await supabase.from('companies').select('id, name').in('id', companyIds);
-    const compMap = new Map((comps || []).map((c: any) => [c.id, c.name]));
+    // Enrich with company and profile data
+    const companyIds = [...new Set(data.map((t: any) => t.company_id).filter(Boolean))];
+    const userIds = [...new Set(data.map((t: any) => t.user_id).filter(Boolean))];
 
-    const userIds = [...new Set(data.map((t: any) => t.user_id))];
-    const { data: profiles } = await supabase.from('profiles').select('user_id, full_name, email').in('user_id', userIds);
-    const profMap = new Map((profiles || []).map((p: any) => [p.user_id, p]));
+    const [compsResult, profilesResult] = await Promise.all([
+      companyIds.length > 0
+        ? supabase.from('companies').select('id, name').in('id', companyIds)
+        : Promise.resolve({ data: [] }),
+      userIds.length > 0
+        ? supabase.from('profiles').select('user_id, full_name, email').in('user_id', userIds)
+        : Promise.resolve({ data: [] }),
+    ]);
+
+    const compMap = new Map((compsResult.data || []).map((c: any) => [c.id, c.name]));
+    const profMap = new Map((profilesResult.data || []).map((p: any) => [p.user_id, p]));
+
+    // Update global companies map
+    const newMap = new Map(allCompaniesMap);
+    (compsResult.data || []).forEach((c: any) => newMap.set(c.id, c.name));
+    setAllCompaniesMap(newMap);
 
     const enriched = data.map((t: any) => ({
       ...t,
@@ -142,6 +180,7 @@ const SuperAdminSupport = () => {
     }));
 
     setTickets(enriched);
+    setTotalCount(count);
     setLoading(false);
   };
 
@@ -173,18 +212,29 @@ const SuperAdminSupport = () => {
   }, []);
 
   useEffect(() => {
+    setCurrentPage(0);
+  }, [filterStatus, filterCompany, filterCategory, searchQuery]);
+
+  useEffect(() => {
     fetchTickets();
-  }, [filterStatus, filterCompany, filterCategory]);
+  }, [filterStatus, filterCompany, filterCategory, currentPage]);
+
+  // Client-side search filtering
+  const filteredTickets = useMemo(() => {
+    if (!searchQuery.trim()) return tickets;
+    const q = searchQuery.toLowerCase();
+    return tickets.filter(t =>
+      (t.protocol_number || '').toLowerCase().includes(q) ||
+      t.title.toLowerCase().includes(q) ||
+      (t.company?.name || '').toLowerCase().includes(q) ||
+      (t.profile?.full_name || '').toLowerCase().includes(q)
+    );
+  }, [tickets, searchQuery]);
 
   const openTicket = (t: Ticket) => {
     setViewTicket(t);
     fetchMessages(t.id);
     fetchAttachments(t.id);
-  };
-
-  const getFileUrl = (filePath: string) => {
-    const { data } = supabase.storage.from('support-attachments').getPublicUrl(filePath);
-    return data.publicUrl;
   };
 
   const openPreview = (att: Attachment) => {
@@ -217,14 +267,16 @@ const SuperAdminSupport = () => {
     toast.success('Status atualizado');
   };
 
-  const stats = {
+  const stats = useMemo(() => ({
     open: tickets.filter(t => t.status === 'open').length,
     in_progress: tickets.filter(t => t.status === 'in_progress').length,
     answered: tickets.filter(t => t.status === 'answered').length,
-    total: tickets.length,
-  };
+    total: totalCount,
+  }), [tickets, totalCount]);
 
-  if (loading) return <div className="flex items-center justify-center py-12"><p className="text-muted-foreground">Carregando...</p></div>;
+  const totalPages = Math.ceil(totalCount / PAGE_SIZE);
+  const rangeStart = currentPage * PAGE_SIZE + 1;
+  const rangeEnd = Math.min((currentPage + 1) * PAGE_SIZE, totalCount);
 
   return (
     <div className="space-y-6">
@@ -238,73 +290,150 @@ const SuperAdminSupport = () => {
         <Card><CardContent className="p-4 text-center"><p className="text-xs text-muted-foreground">Respondidos</p><p className="text-2xl font-display font-bold text-success">{stats.answered}</p></CardContent></Card>
       </div>
 
-      {/* Filters */}
-      <div className="flex flex-wrap gap-2 items-center">
-        <Filter className="h-4 w-4 text-muted-foreground" />
-        <Select value={filterStatus} onValueChange={setFilterStatus}>
-          <SelectTrigger className="w-[150px]"><SelectValue placeholder="Status" /></SelectTrigger>
-          <SelectContent>
-            {statusOptions.map(s => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}
-          </SelectContent>
-        </Select>
-        <Select value={filterCompany} onValueChange={setFilterCompany}>
-          <SelectTrigger className="w-[180px]"><SelectValue placeholder="Empresa" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todas as empresas</SelectItem>
-            {companies.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
-          </SelectContent>
-        </Select>
-        <Select value={filterCategory} onValueChange={setFilterCategory}>
-          <SelectTrigger className="w-[150px]"><SelectValue placeholder="Categoria" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todas</SelectItem>
-            {Object.entries(categoryMap).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
-          </SelectContent>
-        </Select>
+      {/* Search + Filters */}
+      <div className="space-y-3">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Buscar por protocolo, título, empresa ou usuário..."
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+            className="pl-10"
+          />
+        </div>
+        <div className="flex flex-wrap gap-2 items-center">
+          <Filter className="h-4 w-4 text-muted-foreground" />
+          <Select value={filterStatus} onValueChange={setFilterStatus}>
+            <SelectTrigger className="w-[150px]"><SelectValue placeholder="Status" /></SelectTrigger>
+            <SelectContent>
+              {statusOptions.map(s => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          <Select value={filterCompany} onValueChange={setFilterCompany}>
+            <SelectTrigger className="w-[180px]"><SelectValue placeholder="Empresa" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todas as empresas</SelectItem>
+              {companies.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          <Select value={filterCategory} onValueChange={setFilterCategory}>
+            <SelectTrigger className="w-[150px]"><SelectValue placeholder="Categoria" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todas</SelectItem>
+              {Object.entries(categoryMap).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
       </div>
+
+      {/* Results count */}
+      <p className="text-sm text-muted-foreground">
+        {searchQuery.trim() ? `${filteredTickets.length} tickets encontrados` : `${totalCount} tickets encontrados`}
+      </p>
 
       {/* Tickets Table */}
       <Card>
         <CardContent className="p-0">
           <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Protocolo</TableHead>
-                  <TableHead>Título</TableHead>
-                  <TableHead>Empresa</TableHead>
-                  <TableHead>Usuário</TableHead>
-                  <TableHead>Categoria</TableHead>
-                  <TableHead>Prioridade</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="hidden md:table-cell">Data</TableHead>
-                  <TableHead className="w-[60px]" />
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {tickets.length === 0 ? (
-                  <TableRow><TableCell colSpan={9} className="text-center py-8 text-muted-foreground">Nenhum ticket encontrado</TableCell></TableRow>
-                ) : tickets.map(t => {
-                  const s = statusMap[t.status] || statusMap.open;
+            {loading ? (
+              <div className="flex items-center justify-center py-12 gap-2">
+                <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                <p className="text-muted-foreground text-sm">Carregando tickets...</p>
+              </div>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Protocolo</TableHead>
+                    <TableHead>Título</TableHead>
+                    <TableHead>Empresa</TableHead>
+                    <TableHead>Usuário</TableHead>
+                    <TableHead>Categoria</TableHead>
+                    <TableHead>Prioridade</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="hidden md:table-cell">Data</TableHead>
+                    <TableHead className="w-[60px]" />
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredTickets.length === 0 ? (
+                    <TableRow><TableCell colSpan={9} className="text-center py-8 text-muted-foreground">Nenhum ticket encontrado</TableCell></TableRow>
+                  ) : filteredTickets.map(t => {
+                    const s = statusMap[t.status] || statusMap.open;
+                    return (
+                      <TableRow key={t.id} className="cursor-pointer" onClick={() => openTicket(t)}>
+                        <TableCell className="text-xs font-mono text-muted-foreground">{t.protocol_number || '—'}</TableCell>
+                        <TableCell className="font-medium text-sm max-w-[180px] truncate">{t.title}</TableCell>
+                        <TableCell className="text-sm">{t.company?.name || 'Sistema'}</TableCell>
+                        <TableCell className="text-sm">{t.profile?.full_name || '—'}</TableCell>
+                        <TableCell><Badge variant="outline" className="text-xs">{categoryMap[t.category] || t.category}</Badge></TableCell>
+                        <TableCell className="text-xs">{priorityMap[t.priority] || t.priority}</TableCell>
+                        <TableCell><Badge variant={s.variant} className="text-xs">{s.label}</Badge></TableCell>
+                        <TableCell className="hidden md:table-cell text-xs text-muted-foreground">{format(new Date(t.created_at), 'dd/MM/yyyy HH:mm')}</TableCell>
+                        <TableCell>
+                          <Button variant="ghost" size="sm"><MessageSquare className="h-4 w-4" /></Button>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            )}
+          </div>
+
+          {/* Pagination */}
+          {!loading && totalPages > 1 && !searchQuery.trim() && (
+            <div className="flex items-center justify-between px-4 py-3 border-t">
+              <p className="text-xs text-muted-foreground">
+                Mostrando {rangeStart}–{rangeEnd} de {totalCount} tickets
+              </p>
+              <div className="flex items-center gap-1">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={currentPage === 0}
+                  onClick={() => setCurrentPage(p => p - 1)}
+                  className="h-8 px-2 text-xs"
+                >
+                  <ChevronLeft className="h-3.5 w-3.5 mr-1" />
+                  Anterior
+                </Button>
+                {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
+                  let pageNum: number;
+                  if (totalPages <= 5) {
+                    pageNum = i;
+                  } else if (currentPage < 3) {
+                    pageNum = i;
+                  } else if (currentPage > totalPages - 4) {
+                    pageNum = totalPages - 5 + i;
+                  } else {
+                    pageNum = currentPage - 2 + i;
+                  }
                   return (
-                    <TableRow key={t.id} className="cursor-pointer" onClick={() => openTicket(t)}>
-                      <TableCell className="text-xs font-mono text-muted-foreground">{t.protocol_number || '—'}</TableCell>
-                      <TableCell className="font-medium text-sm max-w-[180px] truncate">{t.title}</TableCell>
-                      <TableCell className="text-sm">{t.company?.name || '—'}</TableCell>
-                      <TableCell className="text-sm">{t.profile?.full_name || '—'}</TableCell>
-                      <TableCell><Badge variant="outline" className="text-xs">{categoryMap[t.category] || t.category}</Badge></TableCell>
-                      <TableCell className="text-xs">{priorityMap[t.priority] || t.priority}</TableCell>
-                      <TableCell><Badge variant={s.variant} className="text-xs">{s.label}</Badge></TableCell>
-                      <TableCell className="hidden md:table-cell text-xs text-muted-foreground">{format(new Date(t.created_at), 'dd/MM/yyyy HH:mm')}</TableCell>
-                      <TableCell>
-                        <Button variant="ghost" size="sm"><MessageSquare className="h-4 w-4" /></Button>
-                      </TableCell>
-                    </TableRow>
+                    <Button
+                      key={pageNum}
+                      variant={pageNum === currentPage ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => setCurrentPage(pageNum)}
+                      className="h-8 w-8 p-0 text-xs"
+                    >
+                      {pageNum + 1}
+                    </Button>
                   );
                 })}
-              </TableBody>
-            </Table>
-          </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={currentPage >= totalPages - 1}
+                  onClick={() => setCurrentPage(p => p + 1)}
+                  className="h-8 px-2 text-xs"
+                >
+                  Próximo
+                  <ChevronRight className="h-3.5 w-3.5 ml-1" />
+                </Button>
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -320,7 +449,7 @@ const SuperAdminSupport = () => {
               {viewTicket && <Badge variant={statusMap[viewTicket.status]?.variant || 'outline'} className="text-xs">{statusMap[viewTicket.status]?.label}</Badge>}
               {viewTicket && <Badge variant="outline" className="text-xs">{categoryMap[viewTicket.category] || viewTicket.category}</Badge>}
               {viewTicket && <Badge variant="outline" className="text-xs">{priorityMap[viewTicket.priority] || viewTicket.priority}</Badge>}
-              {viewTicket && <span className="text-xs text-muted-foreground">• {viewTicket.company?.name}</span>}
+              {viewTicket && <span className="text-xs text-muted-foreground">• {viewTicket.company?.name || 'Sistema'}</span>}
             </div>
           </DialogHeader>
 
