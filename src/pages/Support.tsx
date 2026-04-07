@@ -493,12 +493,12 @@ const Support = () => {
           {attachments.length > 0 && (
             <div className="border-b pb-3">
               <p className="text-xs font-medium mb-2">📎 Anexos</p>
-              <div className="space-y-1">
+              <div className="space-y-1 overflow-hidden">
                 {attachments.map(att => (
-                  <div key={att.id} className="flex items-center gap-2 bg-muted/50 rounded-md px-3 py-2">
-                    {getFileIcon(att.file_name)}
-                    <span className="flex-1 truncate text-xs">{att.file_name}</span>
-                    <span className="text-xs text-muted-foreground">{formatFileSize(att.file_size)}</span>
+                  <div key={att.id} className="flex items-center gap-2 bg-muted/50 rounded-md px-3 py-2 min-w-0">
+                    <span className="shrink-0">{getFileIcon(att.file_name)}</span>
+                    <span className="truncate text-xs min-w-0 max-w-[220px]" title={att.file_name}>{att.file_name}</span>
+                    <span className="text-xs text-muted-foreground shrink-0">{formatFileSize(att.file_size)}</span>
                     <a href={att.file_url} target="_blank" rel="noopener noreferrer">
                       <Button variant="ghost" size="icon" className="h-6 w-6">
                         <Eye className="h-3 w-3" />
