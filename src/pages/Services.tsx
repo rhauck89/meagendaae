@@ -228,7 +228,7 @@ const Services = () => {
                 </span>
                 {(service as any).recommended_return_days && (
                   <span className="flex items-center gap-1">
-                    <RefreshCw className="h-4 w-4" /> Retorno: {(service as any).recommended_return_days} dias
+                    <RefreshCw className="h-4 w-4" /> Lembrete automático: {(service as any).recommended_return_days} dias
                   </span>
                 )}
               </div>
