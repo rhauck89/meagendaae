@@ -75,6 +75,7 @@ const Services = () => {
             duration_minutes: Number(form.duration_minutes) || 0,
             price: Number(form.price) || 0,
             recommended_return_days: form.recommended_return_days ? Number(form.recommended_return_days) : null,
+            booking_mode: form.booking_mode,
           } as any)
           .eq('id', editing.id)
           .eq('company_id', companyId);
@@ -88,6 +89,7 @@ const Services = () => {
           duration_minutes: Number(form.duration_minutes) || 0,
           price: Number(form.price) || 0,
           recommended_return_days: form.recommended_return_days ? Number(form.recommended_return_days) : null,
+          booking_mode: form.booking_mode,
         } as any);
 
         if (error) throw error;
