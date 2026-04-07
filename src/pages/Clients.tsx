@@ -208,17 +208,35 @@ const Clients = () => {
   // Analytics metrics
   const metrics = useMemo(() => {
     const monthStart = startOfMonth(new Date()).toISOString();
-    const newClients = visibleClients.filter(c => c.created_at >= monthStart).length;
-    const recurringClients = visibleClients.filter(c => (clientStatsMap[c.id]?.totalVisits || 0) > 1).length;
-    const totalCancellations = appointments.filter(a => a.status === 'cancelled').length;
     
-    const topClients = [...visibleClients]
-      .map(c => ({ name: c.name, spent: clientStatsMap[c.id]?.totalSpent || 0 }))
-      .sort((a, b) => b.spent - a.spent)
-      .slice(0, 3);
+    // Total de clientes
+    const totalClients = visibleClients.length;
+    
+    // Clientes no mês - clients whose first appointment was this month
+    const clientFirstAppt: Record<string, string> = {};
+    appointments.filter(a => a.status === 'completed' || a.status === 'confirmed').forEach(a => {
+      if (a.client_id && (!clientFirstAppt[a.client_id] || a.start_time < clientFirstAppt[a.client_id])) {
+        clientFirstAppt[a.client_id] = a.start_time;
+      }
+    });
+    const newClientsMonth = Object.entries(clientFirstAppt).filter(([, firstDate]) => firstDate >= monthStart).length;
+    
+    // Total de agendamentos
+    const totalAppointments = appointments.filter(a => a.status === 'completed' || a.status === 'confirmed').length;
+    
+    // Top cliente do mês
+    const monthAppts = appointments.filter(a => a.start_time >= monthStart && (a.status === 'completed' || a.status === 'confirmed'));
+    const clientMonthCount: Record<string, number> = {};
+    monthAppts.forEach(a => {
+      if (a.client_id) clientMonthCount[a.client_id] = (clientMonthCount[a.client_id] || 0) + 1;
+    });
+    const topEntry = Object.entries(clientMonthCount).sort((a, b) => b[1] - a[1])[0];
+    const topClientMonth = topEntry
+      ? { name: visibleClients.find(c => c.id === topEntry[0])?.name || 'Desconhecido', count: topEntry[1] }
+      : null;
 
-    return { newClients, recurringClients, totalCancellations, topClients };
-  }, [visibleClients, appointments, clientStatsMap]);
+    return { totalClients, newClientsMonth, totalAppointments, topClientMonth };
+  }, [visibleClients, appointments]);
 
   // Unique professionals for filter
   const uniqueProfessionals = useMemo(() => {
