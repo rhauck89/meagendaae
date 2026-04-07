@@ -10,7 +10,7 @@ import {
   Calendar, Scissors, Users, Settings, LogOut, Menu, X, User, UserCheck,
   PartyPopper, Megaphone, MessageSquare, ChevronDown, Building2, Clock, Zap, Palette, Globe, CreditCard, Bell, HelpCircle, Info, AlertTriangle,
   DollarSign, ArrowUpDown, TrendingUp, TrendingDown, FolderOpen, Percent, FileBarChart, Receipt, HandCoins,
-  ChevronsLeft, ChevronsRight, Inbox,
+  ChevronsLeft, ChevronsRight, Inbox, Crown, Scissors as ScissorsIcon, ArrowLeftRight,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useState, useEffect, useCallback } from 'react';
@@ -25,6 +25,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { format } from 'date-fns';
+import RoleSelectorDialog from './RoleSelectorDialog';
 
 const SIDEBAR_COLLAPSED_KEY = 'sidebar-collapsed';
 
