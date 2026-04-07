@@ -9,7 +9,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Switch } from '@/components/ui/switch';
-import { Plus, Pencil, Trash2, Clock, DollarSign, RefreshCw } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Plus, Pencil, Trash2, Clock, DollarSign, RefreshCw, Zap, Grid3X3 } from 'lucide-react';
 import { toast } from 'sonner';
 
 const Services = () => {
@@ -18,7 +19,16 @@ const Services = () => {
   const { refresh } = useRefreshData();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<any | null>(null);
-  const [form, setForm] = useState({ name: '', duration_minutes: '' as string | number, price: '' as string | number, recommended_return_days: '' as string | number });
+  const [form, setForm] = useState({ name: '', duration_minutes: '' as string | number, price: '' as string | number, recommended_return_days: '' as string | number, booking_mode: 'company_default' });
+  const [companyBookingMode, setCompanyBookingMode] = useState<string>('fixed_grid');
+
+  useEffect(() => {
+    if (companyId) {
+      supabase.from('companies').select('booking_mode').eq('id', companyId).single().then(({ data }) => {
+        if (data) setCompanyBookingMode((data as any).booking_mode ?? 'fixed_grid');
+      });
+    }
+  }, [companyId]);
 
   const servicesQueryKey = ['services', companyId];
 
@@ -50,7 +60,7 @@ const Services = () => {
 
   const resetForm = () => {
     setEditing(null);
-    setForm({ name: '', duration_minutes: '', price: '', recommended_return_days: '' });
+    setForm({ name: '', duration_minutes: '', price: '', recommended_return_days: '', booking_mode: 'company_default' });
   };
 
   const handleSave = async () => {
@@ -66,6 +76,7 @@ const Services = () => {
             duration_minutes: Number(form.duration_minutes) || 0,
             price: Number(form.price) || 0,
             recommended_return_days: form.recommended_return_days ? Number(form.recommended_return_days) : null,
+            booking_mode: form.booking_mode,
           } as any)
           .eq('id', editing.id)
           .eq('company_id', companyId);
@@ -79,6 +90,7 @@ const Services = () => {
           duration_minutes: Number(form.duration_minutes) || 0,
           price: Number(form.price) || 0,
           recommended_return_days: form.recommended_return_days ? Number(form.recommended_return_days) : null,
+          booking_mode: form.booking_mode,
         } as any);
 
         if (error) throw error;
@@ -131,6 +143,7 @@ const Services = () => {
       duration_minutes: service.duration_minutes,
       price: Number(service.price),
       recommended_return_days: service.recommended_return_days || '',
+      booking_mode: (service as any).booking_mode || 'company_default',
     });
     setDialogOpen(true);
   };
@@ -203,6 +216,28 @@ const Services = () => {
                   Exemplo: Se o cliente cortar o cabelo hoje e o retorno estiver definido como 25 dias, o sistema enviará automaticamente um lembrete em 25 dias convidando o cliente a agendar novamente. Deixe vazio para não enviar lembrete.
                 </p>
               </div>
+              <div className="space-y-2">
+                <Label>Modo de agendamento</Label>
+                <Select
+                  value={form.booking_mode}
+                  onValueChange={(v) => setForm({ ...form, booking_mode: v })}
+                  disabled={companyBookingMode !== 'hybrid'}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="company_default">Usar padrão da empresa</SelectItem>
+                    <SelectItem value="intelligent">Agendamento inteligente</SelectItem>
+                    <SelectItem value="fixed_grid">Grade fixa</SelectItem>
+                  </SelectContent>
+                </Select>
+                {companyBookingMode !== 'hybrid' && (
+                  <p className="text-xs text-muted-foreground italic">
+                    Ative o Modo Híbrido nas configurações da agenda para personalizar por serviço.
+                  </p>
+                )}
+              </div>
               <Button onClick={handleSave} className="w-full">
                 {editing ? 'Salvar' : 'Criar'}
               </Button>
@@ -229,6 +264,12 @@ const Services = () => {
                 {(service as any).recommended_return_days && (
                   <span className="flex items-center gap-1">
                     <RefreshCw className="h-4 w-4" /> Lembrete automático: {(service as any).recommended_return_days} dias
+                  </span>
+                )}
+                {companyBookingMode === 'hybrid' && (service as any).booking_mode && (service as any).booking_mode !== 'company_default' && (
+                  <span className="flex items-center gap-1">
+                    {(service as any).booking_mode === 'intelligent' ? <Zap className="h-4 w-4" /> : <Grid3X3 className="h-4 w-4" />}
+                    {(service as any).booking_mode === 'intelligent' ? 'Inteligente' : 'Grade fixa'}
                   </span>
                 )}
               </div>

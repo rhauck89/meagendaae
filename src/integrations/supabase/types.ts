@@ -2732,6 +2732,7 @@ export type Database = {
       services: {
         Row: {
           active: boolean
+          booking_mode: string
           company_id: string
           created_at: string
           duration_minutes: number
@@ -2743,6 +2744,7 @@ export type Database = {
         }
         Insert: {
           active?: boolean
+          booking_mode?: string
           company_id: string
           created_at?: string
           duration_minutes: number
@@ -2754,6 +2756,7 @@ export type Database = {
         }
         Update: {
           active?: boolean
+          booking_mode?: string
           company_id?: string
           created_at?: string
           duration_minutes?: number
