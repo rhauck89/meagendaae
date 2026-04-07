@@ -617,9 +617,11 @@ export type Database = {
           company_id: string
           created_at: string
           grid_interval: number
+          has_system_access: boolean
           id: string
           profile_id: string
           slug: string | null
+          use_company_banner: boolean
         }
         Insert: {
           absence_end?: string | null
@@ -635,9 +637,11 @@ export type Database = {
           company_id: string
           created_at?: string
           grid_interval?: number
+          has_system_access?: boolean
           id?: string
           profile_id: string
           slug?: string | null
+          use_company_banner?: boolean
         }
         Update: {
           absence_end?: string | null
@@ -653,9 +657,11 @@ export type Database = {
           company_id?: string
           created_at?: string
           grid_interval?: number
+          has_system_access?: boolean
           id?: string
           profile_id?: string
           slug?: string | null
+          use_company_banner?: boolean
         }
         Relationships: [
           {
@@ -3934,7 +3940,7 @@ export type Database = {
         | "rescheduled"
       business_type: "barbershop" | "esthetic"
       collaborator_type: "partner" | "commissioned" | "independent"
-      commission_type: "percentage" | "fixed" | "none"
+      commission_type: "percentage" | "fixed" | "none" | "own_revenue"
       event_status: "draft" | "published" | "cancelled" | "completed"
       subscription_status: "active" | "inactive" | "blocked" | "trial"
       waiting_list_status:
@@ -4091,7 +4097,7 @@ export const Constants = {
       ],
       business_type: ["barbershop", "esthetic"],
       collaborator_type: ["partner", "commissioned", "independent"],
-      commission_type: ["percentage", "fixed", "none"],
+      commission_type: ["percentage", "fixed", "none", "own_revenue"],
       event_status: ["draft", "published", "cancelled", "completed"],
       subscription_status: ["active", "inactive", "blocked", "trial"],
       waiting_list_status: [
