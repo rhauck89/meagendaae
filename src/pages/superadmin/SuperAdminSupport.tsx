@@ -70,11 +70,11 @@ const categoryMap: Record<string, string> = {
   bug: 'Bug',
 };
 
-const priorityMap: Record<string, string> = {
-  low: 'Baixa',
-  medium: 'Média',
-  high: 'Alta',
-  urgent: 'Urgente',
+const priorityMap: Record<string, { label: string; bg: string; text: string }> = {
+  low: { label: 'Baixa', bg: 'bg-blue-100', text: 'text-blue-700' },
+  medium: { label: 'Média', bg: 'bg-yellow-100', text: 'text-yellow-700' },
+  high: { label: 'Alta', bg: 'bg-orange-100', text: 'text-orange-700' },
+  urgent: { label: 'Urgente', bg: 'bg-red-100', text: 'text-red-700' },
 };
 
 function formatFileSize(bytes: number) {
@@ -367,7 +367,7 @@ const SuperAdminSupport = () => {
                         <TableCell className="text-sm">{t.company?.name || 'Sistema'}</TableCell>
                         <TableCell className="text-sm">{t.profile?.full_name || '—'}</TableCell>
                         <TableCell><Badge variant="outline" className="text-xs">{categoryMap[t.category] || t.category}</Badge></TableCell>
-                        <TableCell className="text-xs">{priorityMap[t.priority] || t.priority}</TableCell>
+                        <TableCell><span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${priorityMap[t.priority]?.bg || ''} ${priorityMap[t.priority]?.text || ''}`}>{priorityMap[t.priority]?.label || t.priority}</span></TableCell>
                         <TableCell><Badge variant={s.variant} className="text-xs">{s.label}</Badge></TableCell>
                         <TableCell className="hidden md:table-cell text-xs text-muted-foreground">{format(new Date(t.created_at), 'dd/MM/yyyy HH:mm')}</TableCell>
                         <TableCell>
@@ -448,7 +448,7 @@ const SuperAdminSupport = () => {
             <div className="flex flex-wrap gap-2 mt-1">
               {viewTicket && <Badge variant={statusMap[viewTicket.status]?.variant || 'outline'} className="text-xs">{statusMap[viewTicket.status]?.label}</Badge>}
               {viewTicket && <Badge variant="outline" className="text-xs">{categoryMap[viewTicket.category] || viewTicket.category}</Badge>}
-              {viewTicket && <Badge variant="outline" className="text-xs">{priorityMap[viewTicket.priority] || viewTicket.priority}</Badge>}
+              {viewTicket && <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${priorityMap[viewTicket.priority]?.bg || ''} ${priorityMap[viewTicket.priority]?.text || ''}`}>{priorityMap[viewTicket.priority]?.label || viewTicket.priority}</span>}
               {viewTicket && <span className="text-xs text-muted-foreground">• {viewTicket.company?.name || 'Sistema'}</span>}
             </div>
           </DialogHeader>
