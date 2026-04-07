@@ -91,6 +91,22 @@
   }
 }
 
+/* Professional mode sidebar override */
+.sidebar-professional {
+  --sidebar-background: 184 60% 15%;
+  --sidebar-border: 184 50% 22%;
+  --sidebar-primary: 174 72% 56%;
+  --sidebar-primary-foreground: 184 60% 15%;
+  --sidebar-accent: 174 72% 56%;
+  --sidebar-accent-foreground: 0 0% 100%;
+  --sidebar-ring: 174 72% 56%;
+}
+
+.dark .sidebar-professional {
+  --sidebar-background: 184 60% 10%;
+  --sidebar-border: 184 50% 16%;
+}
+
 @layer base {
   * {
     @apply border-border;

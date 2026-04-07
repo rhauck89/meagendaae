@@ -89,6 +89,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
 
   // Determine effective admin status based on login mode
   const needsRoleSelection = isAdminRole && isAlsoCollaborator && !loginMode;
+  const isProfessionalMode = isAdminRole && isAlsoCollaborator && loginMode === 'professional';
   const isAdmin = isAdminRole && (!isAlsoCollaborator || loginMode !== 'professional');
 
   const isSettingsActive = location.pathname.startsWith('/dashboard/settings');
@@ -273,19 +274,16 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
         {/* Sidebar */}
         <aside className={cn(
           'fixed inset-y-0 left-0 z-50 bg-sidebar text-sidebar-foreground flex flex-col transition-all duration-250 ease-in-out',
-          // Mobile: always full width overlay
           'w-[80vw] max-w-[300px] lg:max-w-none',
           sidebarOpen ? 'translate-x-0' : '-translate-x-full',
-          // Desktop: respect collapsed state
           `lg:translate-x-0 lg:${sidebarWidth}`,
+          isProfessionalMode && 'sidebar-professional',
         )}
           style={{ width: undefined }}
         >
-          {/* Use inline style for desktop width to avoid Tailwind dynamic class issues */}
           <div className={cn('flex flex-col h-full', collapsed ? 'lg:w-[72px]' : 'lg:w-64')} style={{ transition: 'width 0.25s ease-in-out' }}>
           {/* Header */}
             <div className={cn('p-4 flex items-center', collapsed ? 'lg:justify-center lg:px-2' : 'gap-3 px-6')}>
-              {/* Mobile: always show full logo */}
               <div className="lg:hidden">
                 <PlatformLogo
                   companyLogo={brandInfo.logo_url}
@@ -293,7 +291,6 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
                   isWhitelabel={brandInfo.isWhitelabel}
                 />
               </div>
-              {/* Desktop expanded: full logo */}
               {!collapsed && (
                 <div className="hidden lg:block">
                   <PlatformLogo
@@ -303,7 +300,6 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
                   />
                 </div>
               )}
-              {/* Desktop collapsed: compact icon only */}
               {collapsed && (
                 <div className="hidden lg:flex items-center justify-center">
                   <PlatformLogo
@@ -316,6 +312,50 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
               )}
               <button className="ml-auto lg:hidden" onClick={() => setSidebarOpen(false)}><X className="h-5 w-5" /></button>
             </div>
+
+            {/* Mode indicator badge */}
+            {isAdminRole && isAlsoCollaborator && loginMode && (
+              <div className={cn('mx-3 mb-2', collapsed && 'lg:mx-1')}>
+                {collapsed ? (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button
+                        onClick={handleSwitchMode}
+                        className={cn(
+                          'w-full flex items-center justify-center py-2 rounded-lg text-xs font-medium transition-colors',
+                          isAdmin
+                            ? 'bg-amber-500/15 text-amber-300 hover:bg-amber-500/25'
+                            : 'bg-teal-500/15 text-teal-300 hover:bg-teal-500/25'
+                        )}
+                      >
+                        {isAdmin ? <Crown className="h-4 w-4" /> : <Scissors className="h-4 w-4" />}
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent side="right">
+                      {isAdmin ? 'Modo Administrador — Clique para trocar' : 'Modo Profissional — Clique para trocar'}
+                    </TooltipContent>
+                  </Tooltip>
+                ) : (
+                  <button
+                    onClick={handleSwitchMode}
+                    className={cn(
+                      'w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-xs font-medium transition-colors',
+                      isAdmin
+                        ? 'bg-amber-500/15 text-amber-300 hover:bg-amber-500/25'
+                        : 'bg-teal-500/15 text-teal-300 hover:bg-teal-500/25'
+                    )}
+                  >
+                    {isAdmin ? <Crown className="h-4 w-4 shrink-0" /> : <Scissors className="h-4 w-4 shrink-0" />}
+                    <div className="flex-1 text-left min-w-0">
+                      <p className="font-semibold text-[11px] leading-tight">
+                        {isAdmin ? 'Administrando empresa' : 'Atendendo como profissional'}
+                      </p>
+                    </div>
+                    <ArrowLeftRight className="h-3 w-3 opacity-50 shrink-0" />
+                  </button>
+                )}
+              </div>
+            )}
 
             {/* Collapse toggle - desktop only */}
             <div className="hidden lg:flex px-3 pb-2">
@@ -387,7 +427,10 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
 
         {/* Main content */}
         <main className={cn('flex-1 flex flex-col min-h-screen transition-[margin] duration-250 ease-in-out', collapsed ? 'lg:ml-[72px]' : 'lg:ml-64')}>
-           <header className="h-16 border-b flex items-center px-4 lg:px-8 bg-card sticky top-0 z-50 shadow-[0_2px_8px_rgba(0,0,0,0.08)]">
+           <header className={cn(
+              "h-16 border-b flex items-center px-4 lg:px-8 bg-card sticky top-0 z-50 shadow-[0_2px_8px_rgba(0,0,0,0.08)]",
+              isProfessionalMode && "border-b-2 border-b-teal-500/40"
+            )}>
             <button className="lg:hidden mr-4" onClick={() => setSidebarOpen(true)}><Menu className="h-6 w-6" /></button>
             <h1 className="text-lg font-display font-semibold flex-1">{currentLabel}</h1>
 
