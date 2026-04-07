@@ -118,7 +118,7 @@ const SuperAdminSupport = () => {
   const [sending, setSending] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [previewType, setPreviewType] = useState<string>('');
-
+  const [companyDetail, setCompanyDetail] = useState<{ company: any; profile: any } | null>(null);
   // All companies map for search
   const [allCompaniesMap, setAllCompaniesMap] = useState<Map<string, string>>(new Map());
 
