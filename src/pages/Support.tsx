@@ -80,6 +80,21 @@ function formatFileSize(bytes: number) {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
+function isImageFile(name: string) {
+  const ext = name.split('.').pop()?.toLowerCase();
+  return ['jpg', 'jpeg', 'png', 'webp'].includes(ext || '');
+}
+
+function isVideoFile(name: string) {
+  const ext = name.split('.').pop()?.toLowerCase();
+  return ['mp4', 'mov', 'webm'].includes(ext || '');
+}
+
+function isPdfFile(name: string) {
+  const ext = name.split('.').pop()?.toLowerCase();
+  return ext === 'pdf';
+}
+
 const Support = () => {
   const { user, companyId } = useAuth();
   const [tickets, setTickets] = useState<Ticket[]>([]);
@@ -95,6 +110,7 @@ const Support = () => {
   const [sending, setSending] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [creating, setCreating] = useState(false);
+  const [previewAttachment, setPreviewAttachment] = useState<Attachment | null>(null);
 
   // Create form state
   const [form, setForm] = useState({
@@ -203,7 +219,6 @@ const Support = () => {
       return;
     }
 
-    // Upload pending files
     if (pendingFiles.length > 0) {
       await uploadFilesForTicket((data as any).id, pendingFiles);
     }
@@ -493,22 +508,33 @@ const Support = () => {
           {attachments.length > 0 && (
             <div className="border-b pb-3">
               <p className="text-xs font-medium mb-2">📎 Anexos</p>
-              <div className="space-y-1 overflow-hidden">
+              <div className="space-y-2 overflow-hidden">
                 {attachments.map(att => (
-                  <div key={att.id} className="flex items-center gap-2 bg-muted/50 rounded-md px-3 py-2 min-w-0">
-                    <span className="shrink-0">{getFileIcon(att.file_name)}</span>
-                    <span className="truncate text-xs min-w-0 max-w-[220px]" title={att.file_name}>{att.file_name}</span>
-                    <span className="text-xs text-muted-foreground shrink-0">{formatFileSize(att.file_size)}</span>
-                    <a href={att.file_url} target="_blank" rel="noopener noreferrer">
-                      <Button variant="ghost" size="icon" className="h-6 w-6">
-                        <Eye className="h-3 w-3" />
-                      </Button>
-                    </a>
-                    <a href={att.file_url} download={att.file_name}>
-                      <Button variant="ghost" size="icon" className="h-6 w-6">
-                        <Download className="h-3 w-3" />
-                      </Button>
-                    </a>
+                  <div key={att.id} className="space-y-2">
+                    <div className="flex items-center gap-2 bg-muted/50 rounded-md px-3 py-2 min-w-0">
+                      <span className="shrink-0">{getFileIcon(att.file_name)}</span>
+                      <span className="truncate text-xs min-w-0 max-w-[220px]" title={att.file_name}>{att.file_name}</span>
+                      <span className="text-xs text-muted-foreground shrink-0">{formatFileSize(att.file_size)}</span>
+                      <div className="flex items-center gap-1 shrink-0 ml-auto">
+                        <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setPreviewAttachment(att)} title="Visualizar">
+                          <Eye className="h-3 w-3" />
+                        </Button>
+                        <a href={att.file_url} download={att.file_name}>
+                          <Button variant="ghost" size="icon" className="h-6 w-6" title="Baixar">
+                            <Download className="h-3 w-3" />
+                          </Button>
+                        </a>
+                      </div>
+                    </div>
+                    {/* Image thumbnail */}
+                    {isImageFile(att.file_name) && (
+                      <img
+                        src={att.file_url}
+                        alt={att.file_name}
+                        className="max-w-[160px] rounded-md cursor-pointer border border-border hover:border-primary/50 transition-colors"
+                        onClick={() => setPreviewAttachment(att)}
+                      />
+                    )}
                   </div>
                 ))}
               </div>
@@ -552,6 +578,51 @@ const Support = () => {
               </Button>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Attachment Preview Modal */}
+      <Dialog open={!!previewAttachment} onOpenChange={() => setPreviewAttachment(null)}>
+        <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="text-sm truncate" title={previewAttachment?.file_name}>
+              Visualizar anexo
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="flex-1 min-h-0 overflow-auto flex items-center justify-center py-4">
+            {previewAttachment && isImageFile(previewAttachment.file_name) && (
+              <img
+                src={previewAttachment.file_url}
+                alt={previewAttachment.file_name}
+                className="max-w-full max-h-[60vh] rounded-lg object-contain"
+              />
+            )}
+            {previewAttachment && isVideoFile(previewAttachment.file_name) && (
+              <video controls className="max-w-full max-h-[60vh] rounded-lg">
+                <source src={previewAttachment.file_url} />
+                Seu navegador não suporta vídeo.
+              </video>
+            )}
+            {previewAttachment && isPdfFile(previewAttachment.file_name) && (
+              <iframe
+                src={previewAttachment.file_url}
+                className="w-full h-[60vh] rounded-lg border border-border"
+                title={previewAttachment.file_name}
+              />
+            )}
+          </div>
+
+          <DialogFooter className="flex gap-2">
+            <Button variant="outline" onClick={() => setPreviewAttachment(null)}>Fechar</Button>
+            {previewAttachment && (
+              <a href={previewAttachment.file_url} download={previewAttachment.file_name}>
+                <Button>
+                  <Download className="h-4 w-4 mr-1" /> Download
+                </Button>
+              </a>
+            )}
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
