@@ -266,6 +266,12 @@ const Services = () => {
                     <RefreshCw className="h-4 w-4" /> Lembrete automático: {(service as any).recommended_return_days} dias
                   </span>
                 )}
+                {companyBookingMode === 'hybrid' && (service as any).booking_mode && (service as any).booking_mode !== 'company_default' && (
+                  <span className="flex items-center gap-1">
+                    {(service as any).booking_mode === 'intelligent' ? <Zap className="h-4 w-4" /> : <Grid3X3 className="h-4 w-4" />}
+                    {(service as any).booking_mode === 'intelligent' ? 'Inteligente' : 'Grade fixa'}
+                  </span>
+                )}
               </div>
               <div className="flex gap-2">
                 <Button variant="outline" size="sm" onClick={() => openEdit(service)}>
