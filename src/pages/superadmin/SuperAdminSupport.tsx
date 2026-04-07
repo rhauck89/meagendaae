@@ -38,9 +38,9 @@ interface Message {
 interface Attachment {
   id: string;
   file_name: string;
-  file_path: string;
+  file_url: string;
   file_size: number;
-  file_type: string;
+  ticket_id: string;
 }
 
 const statusOptions = [
