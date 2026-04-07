@@ -343,6 +343,7 @@ const Dashboard = () => {
       revenue,
       revenueCompleted,
       clients: uniqueClients,
+      completedAppointments: completed.length,
       cancellations: cancelled.length,
       occupancyRate,
       avgTicket,
