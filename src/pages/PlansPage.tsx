@@ -22,16 +22,24 @@ interface Plan {
   promotions: boolean;
   discount_coupons: boolean;
   whitelabel: boolean;
+  feature_requests: boolean;
+  feature_financial_level: string;
   active: boolean;
 }
 
 const featureList = [
-  { key: 'automatic_messages', label: 'Mensagens Automáticas' },
-  { key: 'open_scheduling', label: 'Agendamento Aberto' },
+  { key: 'open_scheduling', label: 'Agenda Aberta' },
   { key: 'promotions', label: 'Promoções' },
-  { key: 'discount_coupons', label: 'Cupons de Desconto' },
+  { key: 'feature_requests', label: 'Solicitações' },
+  { key: 'automatic_messages', label: 'Automação' },
   { key: 'whitelabel', label: 'Whitelabel' },
 ] as const;
+
+const financialLabels: Record<string, string> = {
+  none: 'Sem acesso',
+  basic: 'Relatório geral',
+  full: 'Financeiro completo',
+};
 
 const PlansPage = () => {
   const { companyId } = useAuth();
@@ -79,7 +87,6 @@ const PlansPage = () => {
       toast.error('Erro ao alterar plano');
     } else {
       toast.success(`Plano alterado para ${plan.name}`);
-      // Reload after a moment
       setTimeout(() => window.location.reload(), 1000);
     }
     setChangingPlan(null);
@@ -133,6 +140,7 @@ const PlansPage = () => {
           {plans.map((plan) => {
             const isCurrent = plan.id === currentPlan.planId;
             const price = billingCycle === 'yearly' ? plan.yearly_price : plan.monthly_price;
+            const finLabel = financialLabels[(plan as any).feature_financial_level] || 'Sem acesso';
 
             return (
               <Card key={plan.id} className={`relative ${isCurrent ? 'ring-2 ring-primary' : ''}`}>
@@ -159,11 +167,11 @@ const PlansPage = () => {
                 </CardHeader>
                 <CardContent className="space-y-3">
                   <div className="text-sm text-center text-muted-foreground">
-                    Até {plan.members_limit} membro{plan.members_limit !== 1 ? 's' : ''}
+                    {plan.members_limit === 0 ? 'Membros ilimitados' : `Até ${plan.members_limit} membro${plan.members_limit !== 1 ? 's' : ''}`}
                   </div>
                   <div className="space-y-2 pt-3 border-t">
                     {featureList.map(({ key, label }) => {
-                      const enabled = plan[key];
+                      const enabled = (plan as any)[key];
                       return (
                         <div key={key} className="flex items-center gap-2 text-sm">
                           {enabled ? (
@@ -175,6 +183,17 @@ const PlansPage = () => {
                         </div>
                       );
                     })}
+                    {/* Financial level */}
+                    <div className="flex items-center gap-2 text-sm">
+                      {(plan as any).feature_financial_level !== 'none' ? (
+                        <Check className="h-4 w-4 text-success shrink-0" />
+                      ) : (
+                        <X className="h-4 w-4 text-muted-foreground/30 shrink-0" />
+                      )}
+                      <span className={(plan as any).feature_financial_level !== 'none' ? '' : 'text-muted-foreground/50'}>
+                        {finLabel}
+                      </span>
+                    </div>
                   </div>
                 </CardContent>
                 <CardFooter>
