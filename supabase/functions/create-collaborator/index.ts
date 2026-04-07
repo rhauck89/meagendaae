@@ -25,18 +25,15 @@ Deno.serve(async (req) => {
       return jsonResponse({ error: "Server configuration error" }, 500);
     }
 
-    // 1. Read Authorization header
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
       return jsonResponse({ error: "Not authenticated" }, 401);
     }
 
-    // 2. Create user-context client with the token
     const supabaseUser = createClient(supabaseUrl, anonKey, {
       global: { headers: { Authorization: authHeader } },
     });
 
-    // 3. Validate the authenticated user
     const { data: authData, error: authError } = await supabaseUser.auth.getUser();
     const caller = authData?.user;
 
@@ -44,10 +41,8 @@ Deno.serve(async (req) => {
       return jsonResponse({ error: "Invalid token" }, 401);
     }
 
-    // Admin client for privileged operations
     const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey);
 
-    // Parse body
     let body: any;
     try {
       body = await req.json();
@@ -59,7 +54,7 @@ Deno.serve(async (req) => {
     const email = typeof body.email === "string" ? body.email.trim().toLowerCase() : "";
     const companyId = typeof body.company_id === "string" ? body.company_id.trim() : "";
     const collaboratorType = ["partner", "commissioned", "independent"].includes(body.collaborator_type) ? body.collaborator_type : "commissioned";
-    const paymentType = ["percentage", "fixed", "none"].includes(body.payment_type) ? body.payment_type : null;
+    const paymentType = ["percentage", "fixed", "none", "own_revenue"].includes(body.payment_type) ? body.payment_type : null;
     const role = body.role === "collaborator" ? "collaborator" : null;
     const rawCommissionValue = Number(body.commission_value);
     const commissionValue = Number.isFinite(rawCommissionValue) && rawCommissionValue >= 0 ? rawCommissionValue : NaN;
@@ -67,27 +62,43 @@ Deno.serve(async (req) => {
     const rawSlug = typeof body.slug === "string" ? body.slug.trim() : null;
     const slug = rawSlug || name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
     const tempPassword = typeof body.temp_password === "string" ? body.temp_password : `${crypto.randomUUID().slice(0, 12)}A1!`;
+    const hasSystemAccess = body.has_system_access !== false;
+    const useCompanyBanner = body.use_company_banner !== false;
+    const isAdminSelf = body.is_admin_self === true;
 
-    if (!name || !email || !companyId || !paymentType || !role || Number.isNaN(commissionValue)) {
-      return jsonResponse({
-        error: "Missing or invalid fields",
-        fields: {
-          name: Boolean(name),
-          email: Boolean(email),
-          company_id: Boolean(companyId),
-          payment_type: Boolean(paymentType),
-          role: Boolean(role),
-          commission_value: !Number.isNaN(commissionValue),
-        },
-      }, 400);
+    // For own_revenue, commission_value defaults to 0
+    const effectiveCommissionValue = paymentType === "own_revenue" ? 0 : commissionValue;
+
+    if (!name || !companyId || !paymentType || !role || (paymentType !== "own_revenue" && paymentType !== "none" && Number.isNaN(commissionValue))) {
+      // Email is only required if has system access and not admin-self
+      if (hasSystemAccess && !isAdminSelf && !email) {
+        return jsonResponse({ error: "Email is required for system access" }, 400);
+      }
+      if (!name || !companyId || !paymentType || !role) {
+        return jsonResponse({
+          error: "Missing or invalid fields",
+          fields: {
+            name: Boolean(name),
+            company_id: Boolean(companyId),
+            payment_type: Boolean(paymentType),
+            role: Boolean(role),
+          },
+        }, 400);
+      }
     }
 
-    const emailIsValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-    if (!emailIsValid || name.length > 255 || email.length > 255) {
-      return jsonResponse({ error: "Invalid name or email" }, 400);
+    if (email) {
+      const emailIsValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+      if (!emailIsValid || email.length > 255) {
+        return jsonResponse({ error: "Invalid email" }, 400);
+      }
     }
 
-    // 4. Retrieve caller's company_id from profile
+    if (name.length > 255) {
+      return jsonResponse({ error: "Invalid name" }, 400);
+    }
+
+    // Retrieve caller's company_id from profile
     const { data: callerProfile, error: profileError } = await supabaseAdmin
       .from("profiles")
       .select("company_id")
@@ -101,7 +112,6 @@ Deno.serve(async (req) => {
       });
     }
 
-    // 5. Only allow if user belongs to the target company
     if (callerProfile.company_id !== companyId) {
       return jsonResponse({
         success: true,
@@ -109,53 +119,136 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Check if user with this email already exists (use getUserByEmail instead of listing all)
-    let existingUser: any = null;
-    try {
-      const { data: userData } = await supabaseAdmin.auth.admin.getUserByEmail(email);
-      if (userData?.user) existingUser = userData.user;
-    } catch {
-      // User doesn't exist — will be created below
-    }
-
     let userId: string;
-
-    if (existingUser) {
-      userId = existingUser.id;
-    } else {
-      const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
-        email,
-        password: tempPassword,
-        email_confirm: true,
-        user_metadata: { full_name: name },
-      });
-
-      if (createError || !newUser.user) {
-        return jsonResponse({
-          success: true,
-          warning: `Collaborator creation failed: ${createError?.message || "Failed to create user"}`,
-        });
-      }
-      userId = newUser.user.id;
-    }
-
-    // Check if user already has a profile
-    const { data: existingProfile } = await supabaseAdmin
-      .from("profiles")
-      .select("id, company_id")
-      .eq("user_id", userId)
-      .maybeSingle();
-
     let profileId: string;
 
-    if (!existingProfile) {
-      // No profile exists — create one linked to this company
+    if (isAdminSelf) {
+      // Link to the admin's own user/profile
+      userId = caller.id;
+
+      const { data: adminProfile } = await supabaseAdmin
+        .from("profiles")
+        .select("id")
+        .eq("user_id", caller.id)
+        .maybeSingle();
+
+      if (!adminProfile) {
+        return jsonResponse({ error: "Admin profile not found" }, 400);
+      }
+      profileId = adminProfile.id;
+
+      // Update profile name if needed
+      await supabaseAdmin
+        .from("profiles")
+        .update({ full_name: name })
+        .eq("id", profileId);
+    } else if (hasSystemAccess && email) {
+      // Create or find user with system access
+      let existingUser: any = null;
+      try {
+        const { data: userData } = await supabaseAdmin.auth.admin.getUserByEmail(email);
+        if (userData?.user) existingUser = userData.user;
+      } catch {
+        // User doesn't exist
+      }
+
+      if (existingUser) {
+        userId = existingUser.id;
+      } else {
+        const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
+          email,
+          password: tempPassword,
+          email_confirm: true,
+          user_metadata: { full_name: name },
+        });
+
+        if (createError || !newUser.user) {
+          return jsonResponse({
+            success: true,
+            warning: `Collaborator creation failed: ${createError?.message || "Failed to create user"}`,
+          });
+        }
+        userId = newUser.user.id;
+      }
+
+      // Check/create profile
+      const { data: existingProfile } = await supabaseAdmin
+        .from("profiles")
+        .select("id, company_id")
+        .eq("user_id", userId)
+        .maybeSingle();
+
+      if (!existingProfile) {
+        const { data: insertedProfile, error: insertProfileError } = await supabaseAdmin
+          .from("profiles")
+          .insert({
+            user_id: userId,
+            full_name: name,
+            email,
+            company_id: companyId,
+            whatsapp: whatsapp || null,
+          })
+          .select("id")
+          .single();
+
+        if (insertProfileError || !insertedProfile) {
+          return jsonResponse({
+            success: true,
+            warning: `Profile creation failed: ${insertProfileError?.message}`,
+          });
+        }
+        profileId = insertedProfile.id;
+      } else {
+        const updateData: Record<string, any> = {};
+        if (!existingProfile.company_id) updateData.company_id = companyId;
+        if (whatsapp) updateData.whatsapp = whatsapp;
+        updateData.full_name = name;
+        updateData.email = email;
+        
+        if (Object.keys(updateData).length > 0) {
+          await supabaseAdmin
+            .from("profiles")
+            .update(updateData)
+            .eq("id", existingProfile.id);
+        }
+        profileId = existingProfile.id;
+      }
+
+      // Insert role
+      const { data: existingRoleCheck } = await supabaseAdmin
+        .from("user_roles")
+        .select("id")
+        .eq("user_id", userId)
+        .eq("company_id", companyId)
+        .eq("role", role)
+        .maybeSingle();
+
+      if (!existingRoleCheck) {
+        const { error: roleInsertError } = await supabaseAdmin.from("user_roles").insert({
+          user_id: userId,
+          company_id: companyId,
+          role,
+        });
+
+        if (roleInsertError) {
+          return jsonResponse({
+            success: true,
+            warning: `Role assignment failed: ${roleInsertError.message}`,
+          });
+        }
+      }
+    } else {
+      // No system access - create a "ghost" profile with no auth user
+      // Use the admin's userId as a placeholder owner but with a distinct profile
+      // We'll create a profile without a real auth user - use a generated UUID
+      const ghostUserId = crypto.randomUUID();
+
       const { data: insertedProfile, error: insertProfileError } = await supabaseAdmin
         .from("profiles")
         .insert({
-          user_id: userId,
+          user_id: ghostUserId,
           full_name: name,
-          email,
+          email: email || null,
           company_id: companyId,
           whatsapp: whatsapp || null,
         })
@@ -169,46 +262,7 @@ Deno.serve(async (req) => {
         });
       }
       profileId = insertedProfile.id;
-    } else {
-      // Update company_id if null (profile created by trigger without company context)
-      // and update name/email/whatsapp to ensure data consistency
-      const updateData: Record<string, any> = {};
-      if (!existingProfile.company_id) updateData.company_id = companyId;
-      if (whatsapp) updateData.whatsapp = whatsapp;
-      updateData.full_name = name;
-      updateData.email = email;
-      
-      if (Object.keys(updateData).length > 0) {
-        await supabaseAdmin
-          .from("profiles")
-          .update(updateData)
-          .eq("id", existingProfile.id);
-      }
-      profileId = existingProfile.id;
-    }
-
-    // Insert role for this company (ignore if already exists)
-    const { data: existingRoleCheck } = await supabaseAdmin
-      .from("user_roles")
-      .select("id")
-      .eq("user_id", userId)
-      .eq("company_id", companyId)
-      .eq("role", role)
-      .maybeSingle();
-
-    if (!existingRoleCheck) {
-      const { error: roleInsertError } = await supabaseAdmin.from("user_roles").insert({
-        user_id: userId,
-        company_id: companyId,
-        role,
-      });
-
-      if (roleInsertError) {
-        return jsonResponse({
-          success: true,
-          warning: `Role assignment failed: ${roleInsertError.message}`,
-        });
-      }
+      userId = ghostUserId;
     }
 
     // Insert collaborator (check if already exists)
@@ -230,13 +284,15 @@ Deno.serve(async (req) => {
         company_id: companyId,
         profile_id: profileId,
         collaborator_type: collaboratorType,
-        commission_type: paymentType,
-        commission_value: paymentType === "none" ? 0 : commissionValue,
-        commission_percent: paymentType === "percentage" ? commissionValue : 0,
+        commission_type: paymentType === "own_revenue" ? "own_revenue" : paymentType,
+        commission_value: paymentType === "none" || paymentType === "own_revenue" ? 0 : (Number.isNaN(commissionValue) ? 0 : commissionValue),
+        commission_percent: paymentType === "percentage" ? (Number.isNaN(commissionValue) ? 0 : commissionValue) : 0,
         slug: slug || null,
         booking_mode: bookingMode,
         grid_interval: gridInterval,
         break_time: breakTime,
+        has_system_access: hasSystemAccess,
+        use_company_banner: useCompanyBanner,
       });
 
       if (collaboratorError) {
@@ -299,7 +355,9 @@ Deno.serve(async (req) => {
         profile_id: profileId,
         company_id: companyId,
         payment_type: paymentType,
-        commission_value: paymentType === "none" ? 0 : commissionValue,
+        commission_value: paymentType === "none" || paymentType === "own_revenue" ? 0 : (Number.isNaN(commissionValue) ? 0 : commissionValue),
+        has_system_access: hasSystemAccess,
+        is_admin_self: isAdminSelf,
       },
     });
   } catch (error) {
