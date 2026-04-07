@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Plus, Pencil, Trash2, CreditCard } from 'lucide-react';
@@ -23,6 +24,8 @@ interface Plan {
   promotions: boolean;
   discount_coupons: boolean;
   whitelabel: boolean;
+  feature_requests: boolean;
+  feature_financial_level: string;
   active: boolean;
   sort_order: number;
 }
@@ -38,17 +41,17 @@ const emptyPlan: Omit<Plan, 'id'> = {
   promotions: false,
   discount_coupons: false,
   whitelabel: false,
+  feature_requests: false,
+  feature_financial_level: 'none',
   active: true,
   sort_order: 0,
 };
 
-const featureLabels: { key: keyof Pick<Plan, 'automatic_messages' | 'open_scheduling' | 'promotions' | 'discount_coupons' | 'whitelabel'>; label: string }[] = [
-  { key: 'automatic_messages', label: 'Mensagens Automáticas' },
-  { key: 'open_scheduling', label: 'Agendamento Aberto' },
-  { key: 'promotions', label: 'Promoções' },
-  { key: 'discount_coupons', label: 'Cupons de Desconto' },
-  { key: 'whitelabel', label: 'Whitelabel' },
-];
+const financialLevelLabels: Record<string, string> = {
+  none: 'Nenhum acesso',
+  basic: 'Relatório geral',
+  full: 'Financeiro completo',
+};
 
 const SuperAdminPlans = () => {
   const [plans, setPlans] = useState<Plan[]>([]);
@@ -112,6 +115,18 @@ const SuperAdminPlans = () => {
     fetchPlans();
   };
 
+  const getFeatureBadges = (plan: Plan) => {
+    const badges: string[] = [];
+    if (plan.open_scheduling) badges.push('Agenda Aberta');
+    if (plan.promotions) badges.push('Promoções');
+    if (plan.feature_requests) badges.push('Solicitações');
+    if (plan.feature_financial_level === 'basic') badges.push('Financeiro básico');
+    if (plan.feature_financial_level === 'full') badges.push('Financeiro completo');
+    if (plan.automatic_messages) badges.push('Automação');
+    if (plan.whitelabel) badges.push('Whitelabel');
+    return badges;
+  };
+
   if (loading) {
     return <div className="flex items-center justify-center py-12"><p className="text-muted-foreground">Carregando...</p></div>;
   }
@@ -149,57 +164,59 @@ const SuperAdminPlans = () => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {plans.map((plan) => (
-                    <TableRow key={plan.id}>
-                      <TableCell className="font-medium">{plan.name}</TableCell>
-                      <TableCell>
-                        <div className="text-sm">
-                          <span className="font-medium">R${Number(plan.monthly_price).toFixed(2).replace('.', ',')}</span>
-                          <span className="text-muted-foreground">/mês</span>
-                        </div>
-                        {Number(plan.yearly_price) > 0 && (
-                          <div className="text-xs text-muted-foreground">
-                            R${Number(plan.yearly_price).toFixed(2).replace('.', ',')}/ano
-                            {Number(plan.yearly_discount) > 0 && (
-                              <Badge variant="outline" className="ml-1 text-[10px] text-success">{plan.yearly_discount}% off</Badge>
+                  {plans.map((plan) => {
+                    const badges = getFeatureBadges(plan);
+                    return (
+                      <TableRow key={plan.id}>
+                        <TableCell className="font-medium">{plan.name}</TableCell>
+                        <TableCell>
+                          <div className="text-sm">
+                            <span className="font-medium">R${Number(plan.monthly_price).toFixed(2).replace('.', ',')}</span>
+                            <span className="text-muted-foreground">/mês</span>
+                          </div>
+                          {Number(plan.yearly_price) > 0 && (
+                            <div className="text-xs text-muted-foreground">
+                              R${Number(plan.yearly_price).toFixed(2).replace('.', ',')}/ano
+                              {Number(plan.yearly_discount) > 0 && (
+                                <Badge variant="outline" className="ml-1 text-[10px] text-success">{plan.yearly_discount}% off</Badge>
+                              )}
+                            </div>
+                          )}
+                        </TableCell>
+                        <TableCell className="hidden md:table-cell">
+                          {plan.members_limit === 0 ? 'Ilimitado' : plan.members_limit}
+                        </TableCell>
+                        <TableCell className="hidden lg:table-cell">
+                          <div className="flex flex-wrap gap-1">
+                            {badges.length > 0 ? badges.map(b => (
+                              <Badge key={b} variant="outline" className="text-xs">{b}</Badge>
+                            )) : (
+                              <span className="text-xs text-muted-foreground">Básico</span>
                             )}
                           </div>
-                        )}
-                      </TableCell>
-                      <TableCell className="hidden md:table-cell">{plan.members_limit}</TableCell>
-                      <TableCell className="hidden lg:table-cell">
-                        <div className="flex flex-wrap gap-1">
-                          {plan.automatic_messages && <Badge variant="outline" className="text-xs">Mensagens</Badge>}
-                          {plan.open_scheduling && <Badge variant="outline" className="text-xs">Agendamento</Badge>}
-                          {plan.promotions && <Badge variant="outline" className="text-xs">Promoções</Badge>}
-                          {plan.discount_coupons && <Badge variant="outline" className="text-xs">Cupons</Badge>}
-                          {plan.whitelabel && <Badge variant="outline" className="text-xs">Whitelabel</Badge>}
-                          {!plan.automatic_messages && !plan.open_scheduling && !plan.promotions && !plan.discount_coupons && !plan.whitelabel && (
-                            <span className="text-xs text-muted-foreground">Básico</span>
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge
-                          variant="outline"
-                          className={`text-xs cursor-pointer ${plan.active ? 'bg-success/10 text-success' : 'bg-muted text-muted-foreground'}`}
-                          onClick={() => toggleActive(plan)}
-                        >
-                          {plan.active ? 'Ativo' : 'Inativo'}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-1">
-                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(plan)}>
-                            <Pencil className="h-4 w-4" />
-                          </Button>
-                          <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => setDeleteConfirm(plan.id)}>
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                        </TableCell>
+                        <TableCell>
+                          <Badge
+                            variant="outline"
+                            className={`text-xs cursor-pointer ${plan.active ? 'bg-success/10 text-success' : 'bg-muted text-muted-foreground'}`}
+                            onClick={() => toggleActive(plan)}
+                          >
+                            {plan.active ? 'Ativo' : 'Inativo'}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-1">
+                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(plan)}>
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                            <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => setDeleteConfirm(plan.id)}>
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
                 </TableBody>
               </Table>
             </div>
@@ -209,7 +226,7 @@ const SuperAdminPlans = () => {
 
       {/* Create/Edit Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{editingPlan ? 'Editar Plano' : 'Novo Plano'}</DialogTitle>
           </DialogHeader>
@@ -225,7 +242,14 @@ const SuperAdminPlans = () => {
               </div>
               <div className="space-y-1">
                 <Label className="text-xs">Limite de membros</Label>
-                <Input type="number" min={1} value={form.members_limit} onChange={(e) => setForm(f => ({ ...f, members_limit: parseInt(e.target.value) || 1 }))} />
+                <Input
+                  type="number"
+                  min={0}
+                  value={form.members_limit}
+                  onChange={(e) => setForm(f => ({ ...f, members_limit: parseInt(e.target.value) || 0 }))}
+                  placeholder="0 = ilimitado"
+                />
+                <p className="text-[10px] text-muted-foreground">0 = ilimitado</p>
               </div>
             </div>
             <div className="grid grid-cols-2 gap-3">
@@ -241,15 +265,45 @@ const SuperAdminPlans = () => {
 
             <div className="space-y-3 pt-2 border-t">
               <Label className="text-xs text-muted-foreground">Recursos inclusos</Label>
-              {featureLabels.map(({ key, label }) => (
-                <div key={key} className="flex items-center justify-between">
-                  <Label className="text-sm">{label}</Label>
-                  <Switch
-                    checked={form[key] as boolean}
-                    onCheckedChange={(v) => setForm(f => ({ ...f, [key]: v }))}
-                  />
-                </div>
-              ))}
+
+              <div className="flex items-center justify-between">
+                <Label className="text-sm">Agenda Aberta</Label>
+                <Switch checked={form.open_scheduling} onCheckedChange={(v) => setForm(f => ({ ...f, open_scheduling: v }))} />
+              </div>
+
+              <div className="flex items-center justify-between">
+                <Label className="text-sm">Promoções</Label>
+                <Switch checked={form.promotions} onCheckedChange={(v) => setForm(f => ({ ...f, promotions: v }))} />
+              </div>
+
+              <div className="flex items-center justify-between">
+                <Label className="text-sm">Solicitações</Label>
+                <Switch checked={form.feature_requests} onCheckedChange={(v) => setForm(f => ({ ...f, feature_requests: v }))} />
+              </div>
+
+              <div className="space-y-1">
+                <Label className="text-sm">Financeiro</Label>
+                <Select value={form.feature_financial_level} onValueChange={(v) => setForm(f => ({ ...f, feature_financial_level: v }))}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Nenhum acesso</SelectItem>
+                    <SelectItem value="basic">Relatório geral</SelectItem>
+                    <SelectItem value="full">Financeiro completo</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="flex items-center justify-between">
+                <Label className="text-sm">Automação</Label>
+                <Switch checked={form.automatic_messages} onCheckedChange={(v) => setForm(f => ({ ...f, automatic_messages: v }))} />
+              </div>
+
+              <div className="flex items-center justify-between">
+                <Label className="text-sm">Whitelabel</Label>
+                <Switch checked={form.whitelabel} onCheckedChange={(v) => setForm(f => ({ ...f, whitelabel: v }))} />
+              </div>
             </div>
 
             <div className="flex items-center justify-between pt-2 border-t">

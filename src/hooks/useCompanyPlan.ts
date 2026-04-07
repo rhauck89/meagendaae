@@ -9,6 +9,8 @@ interface PlanFeatures {
   discount_coupons: boolean;
   whitelabel: boolean;
   members_limit: number;
+  feature_requests: boolean;
+  feature_financial_level: string;
 }
 
 interface CompanyPlanInfo {
@@ -34,6 +36,8 @@ const defaultFeatures: PlanFeatures = {
   discount_coupons: false,
   whitelabel: false,
   members_limit: 1,
+  feature_requests: false,
+  feature_financial_level: 'none',
 };
 
 export const useCompanyPlan = (): CompanyPlanInfo => {
@@ -97,6 +101,7 @@ export const useCompanyPlan = (): CompanyPlanInfo => {
           setPlanName(plan.name);
           setMonthlyPrice(Number(plan.monthly_price));
           setYearlyPrice(Number(plan.yearly_price));
+          const p = plan as any;
           setFeatures({
             automatic_messages: plan.automatic_messages,
             open_scheduling: plan.open_scheduling,
@@ -104,6 +109,8 @@ export const useCompanyPlan = (): CompanyPlanInfo => {
             discount_coupons: plan.discount_coupons,
             whitelabel: plan.whitelabel,
             members_limit: plan.members_limit,
+            feature_requests: p.feature_requests ?? false,
+            feature_financial_level: p.feature_financial_level ?? 'none',
           });
         }
       }
@@ -117,6 +124,12 @@ export const useCompanyPlan = (): CompanyPlanInfo => {
   const isFeatureEnabled = (feature: keyof PlanFeatures): boolean => {
     // During active trial, all features are enabled
     if (trialActive && !trialExpired) return true;
+    
+    // For financial level, 'none' means disabled
+    if (feature === 'feature_financial_level') {
+      return features.feature_financial_level !== 'none';
+    }
+    
     return !!features[feature];
   };
 
