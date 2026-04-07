@@ -126,6 +126,7 @@ const SuperAdminLayout = ({ children }: { children: React.ReactNode }) => {
         <div className="mt-10 pb-6">
           <PlatformFooter />
         </div>
+      </main>
     </div>
   );
 };
