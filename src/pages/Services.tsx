@@ -18,7 +18,16 @@ const Services = () => {
   const { refresh } = useRefreshData();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<any | null>(null);
-  const [form, setForm] = useState({ name: '', duration_minutes: '' as string | number, price: '' as string | number, recommended_return_days: '' as string | number });
+  const [form, setForm] = useState({ name: '', duration_minutes: '' as string | number, price: '' as string | number, recommended_return_days: '' as string | number, booking_mode: 'company_default' });
+  const [companyBookingMode, setCompanyBookingMode] = useState<string>('fixed_grid');
+
+  useEffect(() => {
+    if (companyId) {
+      supabase.from('companies').select('booking_mode').eq('id', companyId).single().then(({ data }) => {
+        if (data) setCompanyBookingMode((data as any).booking_mode ?? 'fixed_grid');
+      });
+    }
+  }, [companyId]);
 
   const servicesQueryKey = ['services', companyId];
 

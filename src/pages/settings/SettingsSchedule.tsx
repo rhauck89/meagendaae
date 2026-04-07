@@ -199,9 +199,25 @@ const SettingsSchedule = () => {
                 </p>
               </div>
             </div>
+            <div className={`flex items-start gap-3 p-4 rounded-lg border transition-colors ${bookingMode === 'hybrid' ? 'border-primary bg-primary/5' : 'bg-card'}`}>
+              <RadioGroupItem value="hybrid" id="mode-hybrid" className="mt-1" />
+              <div className="space-y-1">
+                <Label htmlFor="mode-hybrid" className="font-medium cursor-pointer flex items-center gap-2">
+                  <Zap className="h-4 w-4 text-primary" />
+                  <Grid3X3 className="h-4 w-4 text-primary" />
+                  Modo Híbrido
+                </Label>
+                <p className="text-xs text-muted-foreground">
+                  Cada serviço pode escolher entre agendamento inteligente ou grade fixa individualmente.
+                </p>
+                <p className="text-xs text-muted-foreground italic">
+                  Ex: Corte → inteligente, Barba → grade fixa
+                </p>
+              </div>
+            </div>
           </RadioGroup>
 
-          {bookingMode === 'fixed_grid' && (
+          {(bookingMode === 'fixed_grid' || bookingMode === 'hybrid') && (
             <div className="pl-8 space-y-2">
               <Label className="text-xs">Intervalo da grade</Label>
               <Select value={String(fixedSlotInterval)} onValueChange={(v) => setFixedSlotInterval(Number(v))}>
