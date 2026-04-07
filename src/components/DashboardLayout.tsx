@@ -89,6 +89,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
 
   // Determine effective admin status based on login mode
   const needsRoleSelection = isAdminRole && isAlsoCollaborator && !loginMode;
+  const isProfessionalMode = isAdminRole && isAlsoCollaborator && loginMode === 'professional';
   const isAdmin = isAdminRole && (!isAlsoCollaborator || loginMode !== 'professional');
 
   const isSettingsActive = location.pathname.startsWith('/dashboard/settings');
