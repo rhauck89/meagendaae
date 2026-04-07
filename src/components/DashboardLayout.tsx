@@ -72,8 +72,8 @@ const allProfessionalNavItems = [
 ];
 
 const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
-  const { profile, companyId, signOut, loading: authLoading } = useAuth();
-  const { isAdmin } = useUserRole();
+  const { profile, companyId, signOut, loading: authLoading, loginMode, setLoginMode, isAlsoCollaborator } = useAuth();
+  const { isAdmin: isAdminRole } = useUserRole();
   const profPerms = useProfessionalPermissions();
   const brandInfo = useCompanyBrandInfo();
   const location = useLocation();
@@ -87,6 +87,10 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
   const { data: platformMessages, dismiss: dismissMessage } = usePlatformMessages();
   const totalNotifications = (unreadTickets || 0) + (platformMessages?.length || 0);
 
+  // Determine effective admin status based on login mode
+  const needsRoleSelection = isAdminRole && isAlsoCollaborator && !loginMode;
+  const isAdmin = isAdminRole && (!isAlsoCollaborator || loginMode !== 'professional');
+
   const isSettingsActive = location.pathname.startsWith('/dashboard/settings');
   const isFinanceActive = location.pathname.startsWith('/dashboard/finance');
   const [settingsOpen, setSettingsOpen] = useState(isSettingsActive);
@@ -98,6 +102,14 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
   });
   const navItems = isAdmin ? adminNavItems : professionalNavItems;
 
+  const handleRoleSelect = (mode: 'admin' | 'professional') => {
+    setLoginMode(mode);
+  };
+
+  const handleSwitchMode = () => {
+    const newMode = loginMode === 'admin' ? 'professional' : 'admin';
+    setLoginMode(newMode);
+  };
   const toggleCollapsed = useCallback(() => {
     setCollapsed(prev => {
       const next = !prev;
