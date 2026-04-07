@@ -427,7 +427,10 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
 
         {/* Main content */}
         <main className={cn('flex-1 flex flex-col min-h-screen transition-[margin] duration-250 ease-in-out', collapsed ? 'lg:ml-[72px]' : 'lg:ml-64')}>
-           <header className="h-16 border-b flex items-center px-4 lg:px-8 bg-card sticky top-0 z-50 shadow-[0_2px_8px_rgba(0,0,0,0.08)]">
+           <header className={cn(
+              "h-16 border-b flex items-center px-4 lg:px-8 bg-card sticky top-0 z-50 shadow-[0_2px_8px_rgba(0,0,0,0.08)]",
+              isProfessionalMode && "border-b-2 border-b-teal-500/40"
+            )}>
             <button className="lg:hidden mr-4" onClick={() => setSidebarOpen(true)}><Menu className="h-6 w-6" /></button>
             <h1 className="text-lg font-display font-semibold flex-1">{currentLabel}</h1>
 
