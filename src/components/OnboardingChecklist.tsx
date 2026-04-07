@@ -2,10 +2,9 @@ import { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUserRole } from '@/hooks/useUserRole';
 import { supabase } from '@/integrations/supabase/client';
-import { useCompanyPlan } from '@/hooks/useCompanyPlan';
 import { Card, CardContent } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import { CheckCircle2, Circle, Building2, Scissors, Calendar, Share2, Users, Rocket, Clock } from 'lucide-react';
+import { CheckCircle2, Circle, Building2, Clock, Share2, Rocket } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 
@@ -14,38 +13,29 @@ interface ChecklistStep {
   label: string;
   icon: any;
   route: string;
-  requiresTeam?: boolean;
-  adminOnly?: boolean;
-  professionalOnly?: boolean;
 }
 
 const adminSteps: ChecklistStep[] = [
-  { key: 'company', label: 'Configure sua empresa', icon: Building2, route: '/dashboard/settings/company', adminOnly: true },
-  { key: 'service', label: 'Crie seu primeiro serviço', icon: Scissors, route: '/dashboard/services' },
-  { key: 'appointment', label: 'Faça seu primeiro agendamento', icon: Calendar, route: '/dashboard' },
-  { key: 'share', label: 'Compartilhe seu link de agendamento', icon: Share2, route: '/dashboard/settings/general' },
-  { key: 'team', label: 'Adicione um profissional', icon: Users, route: '/dashboard/team', requiresTeam: true, adminOnly: true },
+  { key: 'company', label: 'Configure sua empresa', icon: Building2, route: '/dashboard/settings/company' },
+  { key: 'hours', label: 'Configure os horários', icon: Clock, route: '/dashboard/settings/schedule' },
+  { key: 'share', label: 'Ative sua página pública', icon: Share2, route: '/dashboard/settings/general' },
 ];
 
 const professionalSteps: ChecklistStep[] = [
-  { key: 'schedule', label: 'Configure seus horários', icon: Clock, route: '/dashboard/services', professionalOnly: true },
-  { key: 'appointment', label: 'Realize seu primeiro atendimento', icon: Calendar, route: '/dashboard', professionalOnly: true },
-  { key: 'share', label: 'Compartilhe seu link de agendamento', icon: Share2, route: '/dashboard/profile', professionalOnly: true },
+  { key: 'schedule', label: 'Configure seus horários', icon: Clock, route: '/dashboard/services' },
+  { key: 'appointment', label: 'Realize seu primeiro atendimento', icon: Share2, route: '/dashboard' },
+  { key: 'share', label: 'Compartilhe seu link de agendamento', icon: Share2, route: '/dashboard/profile' },
 ];
 
 const OnboardingChecklist = () => {
   const { companyId } = useAuth();
   const { isAdmin, profileId } = useUserRole();
-  const plan = useCompanyPlan();
   const navigate = useNavigate();
   const [completedSteps, setCompletedSteps] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [dismissed, setDismissed] = useState(false);
 
-  const supportsTeam = plan.features.members_limit > 1 || plan.trialActive;
-
   const steps = isAdmin ? adminSteps : professionalSteps;
-  const activeSteps = steps.filter(s => !s.requiresTeam || supportsTeam);
 
   useEffect(() => {
     if (!companyId) return;
@@ -57,7 +47,6 @@ const OnboardingChecklist = () => {
     const completed = new Set<string>();
 
     if (isAdmin) {
-      // Admin checks
       const { data: company } = await supabase
         .from('companies')
         .select('phone, address, whatsapp')
@@ -67,29 +56,20 @@ const OnboardingChecklist = () => {
         completed.add('company');
       }
 
-      const { count: serviceCount } = await supabase
-        .from('services')
+      const { count: hoursCount } = await supabase
+        .from('business_hours')
         .select('id', { count: 'exact', head: true })
         .eq('company_id', companyId);
-      if (serviceCount && serviceCount > 0) completed.add('service');
+      if (hoursCount && hoursCount > 0) completed.add('hours');
 
-      const { count: apptCount } = await supabase
-        .from('appointments')
-        .select('id', { count: 'exact', head: true })
-        .eq('company_id', companyId);
-      if (apptCount && apptCount > 0) completed.add('appointment');
-
+      // Share = has at least one collaborator (page is active)
       const { count: collabCount } = await supabase
         .from('collaborators')
         .select('id', { count: 'exact', head: true })
         .eq('company_id', companyId);
-      if (collabCount && collabCount > 1) completed.add('team');
-
-      if (completed.has('appointment')) completed.add('share');
+      if (collabCount && collabCount > 0) completed.add('share');
     } else {
-      // Professional checks
       if (profileId) {
-        // Check if has working hours configured
         const { count: hoursCount } = await supabase
           .from('professional_working_hours')
           .select('id', { count: 'exact', head: true })
@@ -97,7 +77,6 @@ const OnboardingChecklist = () => {
           .eq('company_id', companyId);
         if (hoursCount && hoursCount > 0) completed.add('schedule');
 
-        // Check if has appointments
         const { count: apptCount } = await supabase
           .from('appointments')
           .select('id', { count: 'exact', head: true })
@@ -115,8 +94,8 @@ const OnboardingChecklist = () => {
 
   if (loading || dismissed) return null;
 
-  const completedCount = activeSteps.filter(s => completedSteps.has(s.key)).length;
-  const totalSteps = activeSteps.length;
+  const completedCount = steps.filter(s => completedSteps.has(s.key)).length;
+  const totalSteps = steps.length;
   const percent = Math.round((completedCount / totalSteps) * 100);
 
   if (completedCount >= totalSteps) return null;
@@ -143,7 +122,7 @@ const OnboardingChecklist = () => {
         <Progress value={percent} className="h-1.5 mb-4" />
 
         <div className="space-y-1.5">
-          {activeSteps.map((step) => {
+          {steps.map((step) => {
             const done = completedSteps.has(step.key);
             return (
               <button
