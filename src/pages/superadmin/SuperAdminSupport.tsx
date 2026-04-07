@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { MessageSquare, Send, Filter, Paperclip, Eye, Download, FileText, Film, Search, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
+import { MessageSquare, Send, Filter, Paperclip, Eye, Download, FileText, Film, Search, ChevronLeft, ChevronRight, Loader2, Building2, User, ExternalLink } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 
