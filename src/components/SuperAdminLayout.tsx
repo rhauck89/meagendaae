@@ -120,11 +120,12 @@ const SuperAdminLayout = ({ children }: { children: React.ReactNode }) => {
             </button>
           )}
         </header>
-        <div className="flex-1 p-3 sm:p-4 lg:p-8 overflow-auto overflow-x-hidden">{children}</div>
-      </main>
-      <footer className="lg:ml-64">
-        <PlatformFooter />
-      </footer>
+        <div className="flex-1 p-3 sm:p-4 lg:p-8 overflow-auto overflow-x-hidden">
+          <PageContainer>{children}</PageContainer>
+        </div>
+        <div className="mt-10 pb-6">
+          <PlatformFooter />
+        </div>
     </div>
   );
 };
