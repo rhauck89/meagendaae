@@ -205,16 +205,29 @@ const Clients = () => {
     return map;
   }, [visibleClients, appointments, profileMap]);
 
-  // Analytics metrics
+  // Analytics metrics - respects professional filter
   const metrics = useMemo(() => {
     const monthStart = startOfMonth(new Date()).toISOString();
     
+    // Filter appointments by selected professional if admin has filter active
+    const filteredAppts = (isAdmin && profFilter !== 'all')
+      ? appointments.filter(a => a.professional_id === profFilter)
+      : appointments;
+    
+    // Filter visible clients by professional filter
+    const filteredClientIds = (isAdmin && profFilter !== 'all')
+      ? new Set(filteredAppts.filter(a => a.status === 'completed').map(a => a.client_id).filter(Boolean))
+      : null;
+    const metricsClients = filteredClientIds
+      ? visibleClients.filter(c => filteredClientIds.has(c.id))
+      : visibleClients;
+    
     // Total de clientes
-    const totalClients = visibleClients.length;
+    const totalClients = metricsClients.length;
     
     // Clientes no mês - clients whose first appointment was this month
     const clientFirstAppt: Record<string, string> = {};
-    appointments.filter(a => a.status === 'completed' || a.status === 'confirmed').forEach(a => {
+    filteredAppts.filter(a => a.status === 'completed' || a.status === 'confirmed').forEach(a => {
       if (a.client_id && (!clientFirstAppt[a.client_id] || a.start_time < clientFirstAppt[a.client_id])) {
         clientFirstAppt[a.client_id] = a.start_time;
       }
@@ -222,21 +235,21 @@ const Clients = () => {
     const newClientsMonth = Object.entries(clientFirstAppt).filter(([, firstDate]) => firstDate >= monthStart).length;
     
     // Total de agendamentos
-    const totalAppointments = appointments.filter(a => a.status === 'completed' || a.status === 'confirmed').length;
+    const totalAppointments = filteredAppts.filter(a => a.status === 'completed' || a.status === 'confirmed').length;
     
     // Top cliente do mês
-    const monthAppts = appointments.filter(a => a.start_time >= monthStart && (a.status === 'completed' || a.status === 'confirmed'));
+    const monthAppts = filteredAppts.filter(a => a.start_time >= monthStart && (a.status === 'completed' || a.status === 'confirmed'));
     const clientMonthCount: Record<string, number> = {};
     monthAppts.forEach(a => {
       if (a.client_id) clientMonthCount[a.client_id] = (clientMonthCount[a.client_id] || 0) + 1;
     });
     const topEntry = Object.entries(clientMonthCount).sort((a, b) => b[1] - a[1])[0];
     const topClientMonth = topEntry
-      ? { name: visibleClients.find(c => c.id === topEntry[0])?.name || 'Desconhecido', count: topEntry[1] }
+      ? { name: metricsClients.find(c => c.id === topEntry[0])?.name || 'Desconhecido', count: topEntry[1] }
       : null;
 
     return { totalClients, newClientsMonth, totalAppointments, topClientMonth };
-  }, [visibleClients, appointments]);
+  }, [visibleClients, appointments, isAdmin, profFilter]);
 
   // Unique professionals for filter
   const uniqueProfessionals = useMemo(() => {
