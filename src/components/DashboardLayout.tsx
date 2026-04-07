@@ -493,6 +493,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
         </main>
         <OnboardingPopup />
         <PushNotificationPrompt />
+        <RoleSelectorDialog open={needsRoleSelection} onSelect={handleRoleSelect} />
       </div>
     </TooltipProvider>
   );
