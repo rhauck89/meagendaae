@@ -70,11 +70,11 @@ const categoryMap: Record<string, string> = {
   bug: 'Bug',
 };
 
-const priorityMap: Record<string, string> = {
-  low: 'Baixa',
-  medium: 'Média',
-  high: 'Alta',
-  urgent: 'Urgente',
+const priorityMap: Record<string, { label: string; bg: string; text: string }> = {
+  low: { label: 'Baixa', bg: 'bg-blue-100', text: 'text-blue-700' },
+  medium: { label: 'Média', bg: 'bg-yellow-100', text: 'text-yellow-700' },
+  high: { label: 'Alta', bg: 'bg-orange-100', text: 'text-orange-700' },
+  urgent: { label: 'Urgente', bg: 'bg-red-100', text: 'text-red-700' },
 };
 
 function formatFileSize(bytes: number) {
