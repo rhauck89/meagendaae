@@ -598,6 +598,63 @@ const SuperAdminSupport = () => {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Company Detail Modal */}
+      <Dialog open={!!companyDetail} onOpenChange={() => setCompanyDetail(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Building2 className="h-5 w-5 text-primary" />
+              Detalhes
+            </DialogTitle>
+          </DialogHeader>
+          {companyDetail && (
+            <div className="space-y-4">
+              {companyDetail.company ? (
+                <div className="space-y-2 border rounded-lg p-4 bg-muted/30">
+                  <h4 className="font-semibold text-sm flex items-center gap-2">
+                    <Building2 className="h-4 w-4 text-muted-foreground" />
+                    Empresa
+                  </h4>
+                  <p className="text-base font-medium">{companyDetail.company.name}</p>
+                  <div className="grid grid-cols-2 gap-2 text-sm">
+                    <div>
+                      <p className="text-muted-foreground text-xs">Plano</p>
+                      <p className="font-medium">{companyDetail.company.plan_name || 'Sem plano'}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground text-xs">Status</p>
+                      <Badge variant="outline" className="text-xs capitalize">{companyDetail.company.subscription_status || 'trial'}</Badge>
+                    </div>
+                    <div className="col-span-2">
+                      <p className="text-muted-foreground text-xs">Criada em</p>
+                      <p className="font-medium">{companyDetail.company.created_at ? format(new Date(companyDetail.company.created_at), 'dd/MM/yyyy') : '—'}</p>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">Nenhuma empresa vinculada (Sistema)</p>
+              )}
+
+              {companyDetail.profile && (
+                <div className="space-y-2 border rounded-lg p-4 bg-muted/30">
+                  <h4 className="font-semibold text-sm flex items-center gap-2">
+                    <User className="h-4 w-4 text-muted-foreground" />
+                    Usuário que abriu o ticket
+                  </h4>
+                  <p className="text-base font-medium">{companyDetail.profile.full_name}</p>
+                  <p className="text-sm text-muted-foreground">{companyDetail.profile.email || '—'}</p>
+                  <Badge variant="secondary" className="text-xs capitalize">{companyDetail.profile.role || 'Usuário'}</Badge>
+                </div>
+              )}
+
+              <Button variant="outline" className="w-full" onClick={() => setCompanyDetail(null)}>
+                Fechar
+              </Button>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
