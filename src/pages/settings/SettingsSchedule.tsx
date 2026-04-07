@@ -57,7 +57,7 @@ const SettingsSchedule = () => {
   };
 
   const updateHour = async (id: string, field: string, value: any) => {
-    await supabase.from('business_hours').update({ [field]: value }).eq('id', id);
+    await supabase.from('business_hours').update({ [field]: value } as any).eq('id', id);
     fetchHours();
   };
 
