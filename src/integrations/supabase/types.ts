@@ -1896,6 +1896,8 @@ export type Database = {
           automatic_messages: boolean
           created_at: string
           discount_coupons: boolean
+          feature_financial_level: string
+          feature_requests: boolean
           id: string
           members_limit: number
           monthly_price: number
@@ -1913,6 +1915,8 @@ export type Database = {
           automatic_messages?: boolean
           created_at?: string
           discount_coupons?: boolean
+          feature_financial_level?: string
+          feature_requests?: boolean
           id?: string
           members_limit?: number
           monthly_price?: number
@@ -1930,6 +1934,8 @@ export type Database = {
           automatic_messages?: boolean
           created_at?: string
           discount_coupons?: boolean
+          feature_financial_level?: string
+          feature_requests?: boolean
           id?: string
           members_limit?: number
           monthly_price?: number
