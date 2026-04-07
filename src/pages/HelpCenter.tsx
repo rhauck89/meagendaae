@@ -44,10 +44,10 @@ const HelpCenter = () => {
   const [search, setSearch] = useState('');
   const [selectedVideo, setSelectedVideo] = useState<TutorialVideo | null>(null);
   const [completedIds, setCompletedIds] = useState<Set<string>>(new Set());
-  const { role } = useUserRole();
+  const { isProfessional, isCollaborator } = useUserRole();
 
   // Determine visibility filter based on role
-  const visibilityFilter = role === 'professional' || role === 'collaborator' ? 'profissional' : 'empresa';
+  const visibilityFilter = (isProfessional || isCollaborator) ? 'profissional' : 'empresa';
 
   useEffect(() => {
     const load = async () => {
