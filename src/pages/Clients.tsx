@@ -437,45 +437,55 @@ const Clients = () => {
       {/* Analytics Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <Card>
-          <CardContent className="pt-5 pb-4">
-            <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1">
-              <UserPlus className="h-3.5 w-3.5" /> Novos clientes
+          <CardContent className="p-4 flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+              <Users className="h-5 w-5 text-primary" />
             </div>
-            <p className="text-2xl font-bold">{metrics.newClients}</p>
-            <p className="text-xs text-muted-foreground mt-0.5">este mês</p>
+            <div className="min-w-0">
+              <p className="text-xs text-muted-foreground">Total de Clientes</p>
+              <p className="text-2xl font-bold">{metrics.totalClients}</p>
+              <p className="text-xs text-muted-foreground">acumulado</p>
+            </div>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="pt-5 pb-4">
-            <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1">
-              <UserCheck className="h-3.5 w-3.5" /> Clientes recorrentes
+          <CardContent className="p-4 flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-green-500/10 flex items-center justify-center shrink-0">
+              <UserPlus className="h-5 w-5 text-green-500" />
             </div>
-            <p className="text-2xl font-bold">{metrics.recurringClients}</p>
-            <p className="text-xs text-muted-foreground mt-0.5">mais de 1 agendamento</p>
+            <div className="min-w-0">
+              <p className="text-xs text-muted-foreground">Clientes no mês</p>
+              <p className="text-2xl font-bold">{metrics.newClientsMonth}</p>
+              <p className="text-xs text-muted-foreground">novos este mês</p>
+            </div>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="pt-5 pb-4">
-            <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1">
-              <XCircle className="h-3.5 w-3.5" /> Cancelamentos
+          <CardContent className="p-4 flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center shrink-0">
+              <CalendarCheck className="h-5 w-5 text-blue-500" />
             </div>
-            <p className="text-2xl font-bold">{metrics.totalCancellations}</p>
-            <p className="text-xs text-muted-foreground mt-0.5">total geral</p>
+            <div className="min-w-0">
+              <p className="text-xs text-muted-foreground">Total de Agendamentos</p>
+              <p className="text-2xl font-bold">{metrics.totalAppointments}</p>
+              <p className="text-xs text-muted-foreground">realizados</p>
+            </div>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="pt-5 pb-4">
-            <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1">
-              <Trophy className="h-3.5 w-3.5" /> Top clientes
+          <CardContent className="p-4 flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-amber-500/10 flex items-center justify-center shrink-0">
+              <Crown className="h-5 w-5 text-amber-500" />
             </div>
-            <div className="space-y-0.5 mt-1">
-              {metrics.topClients.length > 0 ? metrics.topClients.map((tc, i) => (
-                <p key={i} className="text-xs truncate">
-                  <span className="font-medium">{tc.name}</span>
-                  <span className="text-muted-foreground ml-1">R$ {tc.spent.toFixed(0)}</span>
-                </p>
-              )) : (
-                <p className="text-xs text-muted-foreground">Sem dados</p>
+            <div className="min-w-0">
+              <p className="text-xs text-muted-foreground">Top Cliente do mês</p>
+              {metrics.topClientMonth ? (
+                <>
+                  <p className="text-sm font-bold truncate">{metrics.topClientMonth.name}</p>
+                  <p className="text-xs text-muted-foreground">{metrics.topClientMonth.count} atendimentos</p>
+                </>
+              ) : (
+                <p className="text-sm text-muted-foreground">Sem dados</p>
               )}
             </div>
           </CardContent>
