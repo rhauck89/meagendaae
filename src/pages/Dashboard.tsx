@@ -1090,8 +1090,8 @@ const Dashboard = () => {
         </Tooltip>
         <Card>
           <CardContent className="p-4 flex items-center gap-2">
-            <div className="w-10 h-10 rounded-xl bg-secondary/10 flex items-center justify-center shrink-0">
-              <Mail className="h-5 w-5 text-secondary" />
+            <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+              <MailCheck className="h-5 w-5 text-primary" />
             </div>
             <div className="min-w-0">
               <p className="text-sm text-muted-foreground">Lembretes enviados</p>
