@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Plus, Users, Percent, DollarSign, Settings, Copy, ExternalLink, Mail, KeyRound, MessageCircle, Pencil, UserX, UserCheck, Trash2, CalendarOff, ChevronLeft, ChevronRight, Check, Clock, Wallet } from 'lucide-react';
+import { Plus, Users, Percent, DollarSign, Settings, Copy, ExternalLink, Mail, KeyRound, MessageCircle, Pencil, UserX, UserCheck, Trash2, CalendarOff, ChevronLeft, ChevronRight, Check, Clock, Wallet, Crown } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -97,7 +97,7 @@ const Team = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('companies')
-        .select('slug, business_type, booking_mode, fixed_slot_interval')
+        .select('slug, business_type, booking_mode, fixed_slot_interval, owner_id')
         .eq('id', companyId!)
         .single();
       if (error) throw error;
@@ -483,6 +483,11 @@ const Team = () => {
             )}
           </div>
           <div className="flex flex-wrap items-center gap-2">
+            {collaborator.profile?.user_id === company?.owner_id && (
+              <Badge className="flex items-center gap-1 bg-amber-100 text-amber-800 border-amber-300">
+                <Crown className="h-3 w-3" /> Administrador
+              </Badge>
+            )}
             <Badge variant="outline">
               {collaborator.collaborator_type === 'partner' ? 'Sócio' : collaborator.collaborator_type === 'independent' ? 'Independente' : 'Comissionado'}
             </Badge>

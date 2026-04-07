@@ -2149,6 +2149,7 @@ export type Database = {
           expected_return_date: string | null
           full_name: string
           id: string
+          last_login_mode: string | null
           last_visit_date: string | null
           opt_in_date: string | null
           opt_in_whatsapp: boolean
@@ -2170,6 +2171,7 @@ export type Database = {
           expected_return_date?: string | null
           full_name: string
           id?: string
+          last_login_mode?: string | null
           last_visit_date?: string | null
           opt_in_date?: string | null
           opt_in_whatsapp?: boolean
@@ -2191,6 +2193,7 @@ export type Database = {
           expected_return_date?: string | null
           full_name?: string
           id?: string
+          last_login_mode?: string | null
           last_visit_date?: string | null
           opt_in_date?: string | null
           opt_in_whatsapp?: boolean

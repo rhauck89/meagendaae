@@ -2,6 +2,8 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 
+type LoginMode = 'admin' | 'professional' | null;
+
 interface AuthContextType {
   user: User | null;
   session: Session | null;
@@ -9,6 +11,9 @@ interface AuthContextType {
   profile: any | null;
   companyId: string | null;
   roles: string[];
+  loginMode: LoginMode;
+  setLoginMode: (mode: LoginMode) => void;
+  isAlsoCollaborator: boolean;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
 }
@@ -20,6 +25,9 @@ const AuthContext = createContext<AuthContextType>({
   profile: null,
   companyId: null,
   roles: [],
+  loginMode: null,
+  setLoginMode: () => {},
+  isAlsoCollaborator: false,
   signOut: async () => {},
   refreshProfile: async () => {},
 });
@@ -33,6 +41,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [profile, setProfile] = useState<any | null>(null);
   const [companyId, setCompanyId] = useState<string | null>(null);
   const [roles, setRoles] = useState<string[]>([]);
+  const [loginMode, setLoginModeState] = useState<LoginMode>(null);
+  const [isAlsoCollaborator, setIsAlsoCollaborator] = useState(false);
+
+  const setLoginMode = async (mode: LoginMode) => {
+    setLoginModeState(mode);
+    if (mode && user) {
+      // Save preference to profile
+      await supabase.from('profiles').update({ last_login_mode: mode }).eq('user_id', user.id);
+    }
+  };
 
   const fetchUserData = async (userId: string) => {
     console.log('[AuthContext] Fetching user data for userId:', userId);
@@ -43,18 +61,36 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     ]);
 
     console.log('[AuthContext] Profile response:', profileRes.data, profileRes.error);
-    console.log('[AuthContext] Profile role field:', profileRes.data?.role);
     console.log('[AuthContext] user_roles response:', rolesRes.data, rolesRes.error);
 
     if (profileRes.data) {
       setProfile(profileRes.data);
       setCompanyId(profileRes.data.company_id);
+      
+      // Restore saved login mode
+      if (profileRes.data.last_login_mode) {
+        setLoginModeState(profileRes.data.last_login_mode as LoginMode);
+      }
     }
 
     if (rolesRes.data) {
       const mappedRoles = rolesRes.data.map((r) => r.role);
       console.log('[AuthContext] Mapped roles from user_roles table:', mappedRoles);
       setRoles(mappedRoles);
+
+      // Check if admin user also has a collaborator record
+      const isAdminRole = mappedRoles.includes('professional');
+      if (isAdminRole && profileRes.data?.id) {
+        const { data: collabData } = await supabase
+          .from('collaborators')
+          .select('id')
+          .eq('profile_id', profileRes.data.id)
+          .eq('active', true)
+          .limit(1);
+        setIsAlsoCollaborator(!!(collabData && collabData.length > 0));
+      } else {
+        setIsAlsoCollaborator(false);
+      }
     } else {
       console.warn('[AuthContext] No roles found in user_roles table for user:', userId);
     }
@@ -70,7 +106,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setUser(session?.user ?? null);
 
         if (session?.user) {
-          // Use setTimeout to avoid Supabase auth deadlock
           setTimeout(async () => {
             if (cancelled) return;
             await fetchUserData(session.user.id);
@@ -80,6 +115,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setProfile(null);
           setCompanyId(null);
           setRoles([]);
+          setLoginModeState(null);
+          setIsAlsoCollaborator(false);
           setLoading(false);
         }
       }
@@ -106,7 +143,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   return (
-    <AuthContext.Provider value={{ user, session, loading, profile, companyId, roles, signOut, refreshProfile }}>
+    <AuthContext.Provider value={{ user, session, loading, profile, companyId, roles, loginMode, setLoginMode, isAlsoCollaborator, signOut, refreshProfile }}>
       {children}
     </AuthContext.Provider>
   );

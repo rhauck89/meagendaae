@@ -10,7 +10,7 @@ import {
   Calendar, Scissors, Users, Settings, LogOut, Menu, X, User, UserCheck,
   PartyPopper, Megaphone, MessageSquare, ChevronDown, Building2, Clock, Zap, Palette, Globe, CreditCard, Bell, HelpCircle, Info, AlertTriangle,
   DollarSign, ArrowUpDown, TrendingUp, TrendingDown, FolderOpen, Percent, FileBarChart, Receipt, HandCoins,
-  ChevronsLeft, ChevronsRight, Inbox,
+  ChevronsLeft, ChevronsRight, Inbox, Crown, Scissors as ScissorsIcon, ArrowLeftRight,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useState, useEffect, useCallback } from 'react';
@@ -25,6 +25,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { format } from 'date-fns';
+import RoleSelectorDialog from './RoleSelectorDialog';
 
 const SIDEBAR_COLLAPSED_KEY = 'sidebar-collapsed';
 
@@ -71,8 +72,8 @@ const allProfessionalNavItems = [
 ];
 
 const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
-  const { profile, companyId, signOut, loading: authLoading } = useAuth();
-  const { isAdmin } = useUserRole();
+  const { profile, companyId, signOut, loading: authLoading, loginMode, setLoginMode, isAlsoCollaborator } = useAuth();
+  const { isAdmin: isAdminRole } = useUserRole();
   const profPerms = useProfessionalPermissions();
   const brandInfo = useCompanyBrandInfo();
   const location = useLocation();
@@ -86,6 +87,10 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
   const { data: platformMessages, dismiss: dismissMessage } = usePlatformMessages();
   const totalNotifications = (unreadTickets || 0) + (platformMessages?.length || 0);
 
+  // Determine effective admin status based on login mode
+  const needsRoleSelection = isAdminRole && isAlsoCollaborator && !loginMode;
+  const isAdmin = isAdminRole && (!isAlsoCollaborator || loginMode !== 'professional');
+
   const isSettingsActive = location.pathname.startsWith('/dashboard/settings');
   const isFinanceActive = location.pathname.startsWith('/dashboard/finance');
   const [settingsOpen, setSettingsOpen] = useState(isSettingsActive);
@@ -97,6 +102,14 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
   });
   const navItems = isAdmin ? adminNavItems : professionalNavItems;
 
+  const handleRoleSelect = (mode: 'admin' | 'professional') => {
+    setLoginMode(mode);
+  };
+
+  const handleSwitchMode = () => {
+    const newMode = loginMode === 'admin' ? 'professional' : 'admin';
+    setLoginMode(newMode);
+  };
   const toggleCollapsed = useCallback(() => {
     setCollapsed(prev => {
       const next = !prev;
@@ -374,9 +387,39 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
 
         {/* Main content */}
         <main className={cn('flex-1 flex flex-col min-h-screen transition-[margin] duration-250 ease-in-out', collapsed ? 'lg:ml-[72px]' : 'lg:ml-64')}>
-          <header className="h-16 border-b flex items-center px-4 lg:px-8 bg-card sticky top-0 z-50 shadow-[0_2px_8px_rgba(0,0,0,0.08)]">
+           <header className="h-16 border-b flex items-center px-4 lg:px-8 bg-card sticky top-0 z-50 shadow-[0_2px_8px_rgba(0,0,0,0.08)]">
             <button className="lg:hidden mr-4" onClick={() => setSidebarOpen(true)}><Menu className="h-6 w-6" /></button>
             <h1 className="text-lg font-display font-semibold flex-1">{currentLabel}</h1>
+
+            {/* Mode switcher for admin+professional users */}
+            {isAdminRole && isAlsoCollaborator && loginMode && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    onClick={handleSwitchMode}
+                    className="flex items-center gap-2 mr-3 px-3 py-1.5 rounded-lg text-xs font-medium border border-border hover:bg-muted transition-colors"
+                  >
+                    {loginMode === 'admin' ? (
+                      <>
+                        <Crown className="h-3.5 w-3.5 text-amber-600" />
+                        <span className="hidden sm:inline">Administrador</span>
+                        <ArrowLeftRight className="h-3 w-3 text-muted-foreground" />
+                      </>
+                    ) : (
+                      <>
+                        <Scissors className="h-3.5 w-3.5 text-primary" />
+                        <span className="hidden sm:inline">Profissional</span>
+                        <ArrowLeftRight className="h-3 w-3 text-muted-foreground" />
+                      </>
+                    )}
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  {loginMode === 'admin' ? 'Trocar para modo Profissional' : 'Trocar para modo Administrador'}
+                </TooltipContent>
+              </Tooltip>
+            )}
+
             <Popover>
               <PopoverTrigger asChild>
                 <button className="relative p-2 rounded-lg hover:bg-muted transition-colors">
@@ -450,6 +493,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
         </main>
         <OnboardingPopup />
         <PushNotificationPrompt />
+        <RoleSelectorDialog open={needsRoleSelection} onSelect={handleRoleSelect} />
       </div>
     </TooltipProvider>
   );
