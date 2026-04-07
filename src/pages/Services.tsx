@@ -189,14 +189,19 @@ const Services = () => {
                 </div>
               </div>
               <div className="space-y-2">
-                <Label>Retorno recomendado (dias)</Label>
+                <Label>Lembrete automático de retorno (dias)</Label>
                 <Input
                   type="number"
                   value={form.recommended_return_days}
                   onChange={(e) => setForm({ ...form, recommended_return_days: e.target.value })}
-                  placeholder="Ex: 25"
+                  placeholder="Ex: 20 dias"
                 />
-                <p className="text-xs text-muted-foreground">Dias até o próximo retorno do cliente</p>
+                <p className="text-xs text-muted-foreground">
+                  Após esse número de dias do atendimento, o sistema enviará automaticamente um lembrete ao cliente sugerindo um novo agendamento.
+                </p>
+                <p className="text-xs text-muted-foreground/70 italic">
+                  Exemplo: Se o cliente cortar o cabelo hoje e o retorno estiver definido como 25 dias, o sistema enviará automaticamente um lembrete em 25 dias convidando o cliente a agendar novamente. Deixe vazio para não enviar lembrete.
+                </p>
               </div>
               <Button onClick={handleSave} className="w-full">
                 {editing ? 'Salvar' : 'Criar'}
@@ -223,7 +228,7 @@ const Services = () => {
                 </span>
                 {(service as any).recommended_return_days && (
                   <span className="flex items-center gap-1">
-                    <RefreshCw className="h-4 w-4" /> Retorno: {(service as any).recommended_return_days} dias
+                    <RefreshCw className="h-4 w-4" /> Lembrete automático: {(service as any).recommended_return_days} dias
                   </span>
                 )}
               </div>
