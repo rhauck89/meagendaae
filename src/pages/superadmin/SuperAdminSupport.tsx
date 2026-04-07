@@ -188,9 +188,8 @@ const SuperAdminSupport = () => {
   };
 
   const openPreview = (att: Attachment) => {
-    const url = getFileUrl(att.file_path);
-    setPreviewUrl(url);
-    setPreviewType(att.file_type);
+    setPreviewUrl(att.file_url);
+    setPreviewType(getFileType(att.file_name));
   };
 
   const sendAdminMessage = async () => {
@@ -335,17 +334,18 @@ const SuperAdminSupport = () => {
               <p className="text-xs font-semibold flex items-center gap-1"><Paperclip className="h-3 w-3" /> Anexos</p>
               <div className="space-y-2">
                 {attachments.map(att => {
-                  const url = getFileUrl(att.file_path);
+                  const url = att.file_url;
+                  const fileType = getFileType(att.file_name);
                   return (
                     <div key={att.id} className="flex items-center gap-3 p-2 rounded-md bg-muted/50">
-                      {isImage(att.file_type) ? (
+                      {isImage(fileType) ? (
                         <img
                           src={url}
                           alt={att.file_name}
                           className="w-16 h-16 rounded object-cover cursor-pointer border"
                           onClick={() => openPreview(att)}
                         />
-                      ) : isVideo(att.file_type) ? (
+                      ) : isVideo(fileType) ? (
                         <div className="w-16 h-16 rounded bg-muted flex items-center justify-center cursor-pointer border" onClick={() => openPreview(att)}>
                           <Film className="h-6 w-6 text-muted-foreground" />
                         </div>
