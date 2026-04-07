@@ -59,7 +59,7 @@ const Services = () => {
 
   const resetForm = () => {
     setEditing(null);
-    setForm({ name: '', duration_minutes: '', price: '', recommended_return_days: '' });
+    setForm({ name: '', duration_minutes: '', price: '', recommended_return_days: '', booking_mode: 'company_default' });
   };
 
   const handleSave = async () => {
@@ -140,6 +140,7 @@ const Services = () => {
       duration_minutes: service.duration_minutes,
       price: Number(service.price),
       recommended_return_days: service.recommended_return_days || '',
+      booking_mode: (service as any).booking_mode || 'company_default',
     });
     setDialogOpen(true);
   };
