@@ -13,7 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Search, MessageCircle, Users, ArrowLeft, Calendar, DollarSign, Star, Scissors, Cake, Pencil, UserPlus, Ban, ShieldCheck, ArrowUpDown, ArrowUp, ArrowDown, UserCheck, XCircle, Trophy } from 'lucide-react';
+import { Search, MessageCircle, Users, ArrowLeft, Calendar, DollarSign, Star, Scissors, Cake, Pencil, UserPlus, Ban, ShieldCheck, ArrowUpDown, ArrowUp, ArrowDown, CalendarCheck, Crown } from 'lucide-react';
 import { format, parseISO, startOfMonth } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { displayWhatsApp, formatWhatsApp } from '@/lib/whatsapp';
@@ -205,20 +205,51 @@ const Clients = () => {
     return map;
   }, [visibleClients, appointments, profileMap]);
 
-  // Analytics metrics
+  // Analytics metrics - respects professional filter
   const metrics = useMemo(() => {
     const monthStart = startOfMonth(new Date()).toISOString();
-    const newClients = visibleClients.filter(c => c.created_at >= monthStart).length;
-    const recurringClients = visibleClients.filter(c => (clientStatsMap[c.id]?.totalVisits || 0) > 1).length;
-    const totalCancellations = appointments.filter(a => a.status === 'cancelled').length;
     
-    const topClients = [...visibleClients]
-      .map(c => ({ name: c.name, spent: clientStatsMap[c.id]?.totalSpent || 0 }))
-      .sort((a, b) => b.spent - a.spent)
-      .slice(0, 3);
+    // Filter appointments by selected professional if admin has filter active
+    const filteredAppts = (isAdmin && profFilter !== 'all')
+      ? appointments.filter(a => a.professional_id === profFilter)
+      : appointments;
+    
+    // Filter visible clients by professional filter
+    const filteredClientIds = (isAdmin && profFilter !== 'all')
+      ? new Set(filteredAppts.filter(a => a.status === 'completed').map(a => a.client_id).filter(Boolean))
+      : null;
+    const metricsClients = filteredClientIds
+      ? visibleClients.filter(c => filteredClientIds.has(c.id))
+      : visibleClients;
+    
+    // Total de clientes
+    const totalClients = metricsClients.length;
+    
+    // Clientes no mês - clients whose first appointment was this month
+    const clientFirstAppt: Record<string, string> = {};
+    filteredAppts.filter(a => a.status === 'completed' || a.status === 'confirmed').forEach(a => {
+      if (a.client_id && (!clientFirstAppt[a.client_id] || a.start_time < clientFirstAppt[a.client_id])) {
+        clientFirstAppt[a.client_id] = a.start_time;
+      }
+    });
+    const newClientsMonth = Object.entries(clientFirstAppt).filter(([, firstDate]) => firstDate >= monthStart).length;
+    
+    // Total de agendamentos
+    const totalAppointments = filteredAppts.filter(a => a.status === 'completed' || a.status === 'confirmed').length;
+    
+    // Top cliente do mês
+    const monthAppts = filteredAppts.filter(a => a.start_time >= monthStart && (a.status === 'completed' || a.status === 'confirmed'));
+    const clientMonthCount: Record<string, number> = {};
+    monthAppts.forEach(a => {
+      if (a.client_id) clientMonthCount[a.client_id] = (clientMonthCount[a.client_id] || 0) + 1;
+    });
+    const topEntry = Object.entries(clientMonthCount).sort((a, b) => b[1] - a[1])[0];
+    const topClientMonth = topEntry
+      ? { name: metricsClients.find(c => c.id === topEntry[0])?.name || 'Desconhecido', count: topEntry[1] }
+      : null;
 
-    return { newClients, recurringClients, totalCancellations, topClients };
-  }, [visibleClients, appointments, clientStatsMap]);
+    return { totalClients, newClientsMonth, totalAppointments, topClientMonth };
+  }, [visibleClients, appointments, isAdmin, profFilter]);
 
   // Unique professionals for filter
   const uniqueProfessionals = useMemo(() => {
@@ -419,45 +450,55 @@ const Clients = () => {
       {/* Analytics Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <Card>
-          <CardContent className="pt-5 pb-4">
-            <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1">
-              <UserPlus className="h-3.5 w-3.5" /> Novos clientes
+          <CardContent className="p-4 flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+              <Users className="h-5 w-5 text-primary" />
             </div>
-            <p className="text-2xl font-bold">{metrics.newClients}</p>
-            <p className="text-xs text-muted-foreground mt-0.5">este mês</p>
+            <div className="min-w-0">
+              <p className="text-xs text-muted-foreground">Total de Clientes</p>
+              <p className="text-2xl font-bold">{metrics.totalClients}</p>
+              <p className="text-xs text-muted-foreground">acumulado</p>
+            </div>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="pt-5 pb-4">
-            <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1">
-              <UserCheck className="h-3.5 w-3.5" /> Clientes recorrentes
+          <CardContent className="p-4 flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-green-500/10 flex items-center justify-center shrink-0">
+              <UserPlus className="h-5 w-5 text-green-500" />
             </div>
-            <p className="text-2xl font-bold">{metrics.recurringClients}</p>
-            <p className="text-xs text-muted-foreground mt-0.5">mais de 1 agendamento</p>
+            <div className="min-w-0">
+              <p className="text-xs text-muted-foreground">Clientes no mês</p>
+              <p className="text-2xl font-bold">{metrics.newClientsMonth}</p>
+              <p className="text-xs text-muted-foreground">novos este mês</p>
+            </div>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="pt-5 pb-4">
-            <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1">
-              <XCircle className="h-3.5 w-3.5" /> Cancelamentos
+          <CardContent className="p-4 flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center shrink-0">
+              <CalendarCheck className="h-5 w-5 text-blue-500" />
             </div>
-            <p className="text-2xl font-bold">{metrics.totalCancellations}</p>
-            <p className="text-xs text-muted-foreground mt-0.5">total geral</p>
+            <div className="min-w-0">
+              <p className="text-xs text-muted-foreground">Total de Agendamentos</p>
+              <p className="text-2xl font-bold">{metrics.totalAppointments}</p>
+              <p className="text-xs text-muted-foreground">realizados</p>
+            </div>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="pt-5 pb-4">
-            <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1">
-              <Trophy className="h-3.5 w-3.5" /> Top clientes
+          <CardContent className="p-4 flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-amber-500/10 flex items-center justify-center shrink-0">
+              <Crown className="h-5 w-5 text-amber-500" />
             </div>
-            <div className="space-y-0.5 mt-1">
-              {metrics.topClients.length > 0 ? metrics.topClients.map((tc, i) => (
-                <p key={i} className="text-xs truncate">
-                  <span className="font-medium">{tc.name}</span>
-                  <span className="text-muted-foreground ml-1">R$ {tc.spent.toFixed(0)}</span>
-                </p>
-              )) : (
-                <p className="text-xs text-muted-foreground">Sem dados</p>
+            <div className="min-w-0">
+              <p className="text-xs text-muted-foreground">Top Cliente do mês</p>
+              {metrics.topClientMonth ? (
+                <>
+                  <p className="text-sm font-bold truncate">{metrics.topClientMonth.name}</p>
+                  <p className="text-xs text-muted-foreground">{metrics.topClientMonth.count} atendimentos</p>
+                </>
+              ) : (
+                <p className="text-sm text-muted-foreground">Sem dados</p>
               )}
             </div>
           </CardContent>
