@@ -237,6 +237,24 @@ const SuperAdminSupport = () => {
     fetchAttachments(t.id);
   };
 
+  const fetchCompanyDetail = async (companyId: string, userId: string) => {
+    const [compRes, profRes] = await Promise.all([
+      companyId ? supabase.from('companies').select('id, name, created_at, plan_id, subscription_status').eq('id', companyId).maybeSingle() : Promise.resolve({ data: null }),
+      userId ? supabase.from('profiles').select('full_name, email, role, user_id').eq('user_id', userId).maybeSingle() : Promise.resolve({ data: null }),
+    ]);
+    
+    let planName = null;
+    if (compRes.data?.plan_id) {
+      const { data: plan } = await supabase.from('plans').select('name').eq('id', compRes.data.plan_id).maybeSingle();
+      planName = plan?.name;
+    }
+
+    setCompanyDetail({
+      company: compRes.data ? { ...compRes.data, plan_name: planName } : null,
+      profile: profRes.data,
+    });
+  };
+
   const openPreview = (att: Attachment) => {
     setPreviewUrl(att.file_url);
     setPreviewType(getFileType(att.file_name));
