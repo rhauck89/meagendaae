@@ -347,7 +347,6 @@ const SuperAdminSupport = () => {
                     <TableHead>Protocolo</TableHead>
                     <TableHead>Título</TableHead>
                     <TableHead>Empresa</TableHead>
-                    <TableHead>Usuário</TableHead>
                     <TableHead>Categoria</TableHead>
                     <TableHead>Prioridade</TableHead>
                     <TableHead>Status</TableHead>
@@ -357,15 +356,30 @@ const SuperAdminSupport = () => {
                 </TableHeader>
                 <TableBody>
                   {filteredTickets.length === 0 ? (
-                    <TableRow><TableCell colSpan={9} className="text-center py-8 text-muted-foreground">Nenhum ticket encontrado</TableCell></TableRow>
+                    <TableRow><TableCell colSpan={8} className="text-center py-8 text-muted-foreground">Nenhum ticket encontrado</TableCell></TableRow>
                   ) : filteredTickets.map(t => {
                     const s = statusMap[t.status] || statusMap.open;
                     return (
                       <TableRow key={t.id} className="cursor-pointer" onClick={() => openTicket(t)}>
                         <TableCell className="text-xs font-mono text-muted-foreground">{t.protocol_number || '—'}</TableCell>
                         <TableCell className="font-medium text-sm max-w-[180px] truncate">{t.title}</TableCell>
-                        <TableCell className="text-sm">{t.company?.name || 'Sistema'}</TableCell>
-                        <TableCell className="text-sm">{t.profile?.full_name || '—'}</TableCell>
+                        <TableCell>
+                          {t.company?.name ? (
+                            <button
+                              className="text-sm text-primary hover:underline font-medium text-left"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setCompanyDetail({ company: t.company, profile: t.profile });
+                                // Fetch full company details
+                                fetchCompanyDetail(t.company_id, t.user_id);
+                              }}
+                            >
+                              {t.company.name}
+                            </button>
+                          ) : (
+                            <span className="text-sm text-muted-foreground">Sistema</span>
+                          )}
+                        </TableCell>
                         <TableCell><Badge variant="outline" className="text-xs">{categoryMap[t.category] || t.category}</Badge></TableCell>
                         <TableCell><span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${priorityMap[t.priority]?.bg || ''} ${priorityMap[t.priority]?.text || ''}`}>{priorityMap[t.priority]?.label || t.priority}</span></TableCell>
                         <TableCell><Badge variant={s.variant} className="text-xs">{s.label}</Badge></TableCell>
