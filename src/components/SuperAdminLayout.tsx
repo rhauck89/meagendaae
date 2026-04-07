@@ -1,6 +1,8 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSupportTicketCounts } from '@/hooks/useSupportTicketCounts';
+import PageContainer from '@/components/layout/PageContainer';
+import { useSupportTicketCounts } from '@/hooks/useSupportTicketCounts';
 import {
   LayoutDashboard, Building2, CreditCard, DollarSign, BarChart3, Settings, LogOut, Menu, X,
   ShieldCheck, MessageSquare, Bell, Video, Megaphone,
