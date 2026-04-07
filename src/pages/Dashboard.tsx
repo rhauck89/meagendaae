@@ -1147,11 +1147,11 @@ const Dashboard = () => {
             <CardContent className="p-4 space-y-1">
               <div className="flex items-center gap-2">
                 <div className="w-8 h-8 rounded-lg bg-accent/10 flex items-center justify-center shrink-0">
-                  <Users className="h-4 w-4 text-accent" />
+                  <CalendarCheck className="h-4 w-4 text-accent" />
                 </div>
-                <p className="text-sm text-muted-foreground">Clientes atendidos</p>
+                <p className="text-sm text-muted-foreground">Agendamentos feitos</p>
               </div>
-              <p className="text-2xl font-semibold">{monthlyStats.clients}</p>
+              <p className="text-2xl font-semibold">{monthlyStats.completedAppointments}</p>
               {dailyTrends.length > 0 && (
                 <div className="h-6 w-full opacity-70">
                   <ResponsiveContainer width="100%" height="100%">
