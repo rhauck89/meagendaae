@@ -2867,6 +2867,7 @@ export type Database = {
           description: string
           id: string
           priority: string
+          protocol_number: string | null
           status: string
           title: string
           updated_at: string
@@ -2879,6 +2880,7 @@ export type Database = {
           description: string
           id?: string
           priority?: string
+          protocol_number?: string | null
           status?: string
           title: string
           updated_at?: string
@@ -2891,6 +2893,7 @@ export type Database = {
           description?: string
           id?: string
           priority?: string
+          protocol_number?: string | null
           status?: string
           title?: string
           updated_at?: string
