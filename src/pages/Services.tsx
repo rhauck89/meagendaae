@@ -9,7 +9,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Switch } from '@/components/ui/switch';
-import { Plus, Pencil, Trash2, Clock, DollarSign, RefreshCw } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Plus, Pencil, Trash2, Clock, DollarSign, RefreshCw, Zap, Grid3X3 } from 'lucide-react';
 import { toast } from 'sonner';
 
 const Services = () => {
@@ -214,6 +215,28 @@ const Services = () => {
                 <p className="text-xs text-muted-foreground/70 italic">
                   Exemplo: Se o cliente cortar o cabelo hoje e o retorno estiver definido como 25 dias, o sistema enviará automaticamente um lembrete em 25 dias convidando o cliente a agendar novamente. Deixe vazio para não enviar lembrete.
                 </p>
+              </div>
+              <div className="space-y-2">
+                <Label>Modo de agendamento</Label>
+                <Select
+                  value={form.booking_mode}
+                  onValueChange={(v) => setForm({ ...form, booking_mode: v })}
+                  disabled={companyBookingMode !== 'hybrid'}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="company_default">Usar padrão da empresa</SelectItem>
+                    <SelectItem value="intelligent">Agendamento inteligente</SelectItem>
+                    <SelectItem value="fixed_grid">Grade fixa</SelectItem>
+                  </SelectContent>
+                </Select>
+                {companyBookingMode !== 'hybrid' && (
+                  <p className="text-xs text-muted-foreground italic">
+                    Ative o Modo Híbrido nas configurações da agenda para personalizar por serviço.
+                  </p>
+                )}
               </div>
               <Button onClick={handleSave} className="w-full">
                 {editing ? 'Salvar' : 'Criar'}
