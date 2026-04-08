@@ -3794,6 +3794,8 @@ export type Database = {
       }
       public_promotions: {
         Row: {
+          cashback_rules_text: string | null
+          cashback_validity_days: number | null
           company_id: string | null
           created_by: string | null
           description: string | null
@@ -3807,6 +3809,7 @@ export type Database = {
           professional_filter: string | null
           professional_ids: string[] | null
           promotion_price: number | null
+          promotion_type: string | null
           service_duration: number | null
           service_id: string | null
           service_ids: string[] | null
