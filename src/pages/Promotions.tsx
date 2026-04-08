@@ -692,7 +692,7 @@ export default function Promotions() {
       {/* Promotion type selector */}
       <div>
         <Label>Tipo de Promoção *</Label>
-        <Select value={promotionType} onValueChange={(v: 'traditional' | 'cashback') => { setPromotionType(v); setWizardStep(1); }}>
+        <Select value={promotionType} onValueChange={(v: 'traditional' | 'cashback') => { setPromotionType(v); setWizardStep(1); if (v === 'cashback' && discountType === 'fixed_price') setDiscountType('percentage'); }}>
           <SelectTrigger><SelectValue /></SelectTrigger>
           <SelectContent>
             <SelectItem value="traditional">Promoção Tradicional</SelectItem>
