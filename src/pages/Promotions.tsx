@@ -857,6 +857,42 @@ export default function Promotions() {
     );
   };
 
+  const renderCashbackStep = () => (
+    <div className="space-y-4">
+      <div className="rounded-lg border border-emerald-200 bg-emerald-50 dark:bg-emerald-950/20 dark:border-emerald-800 p-4">
+        <h4 className="font-medium text-emerald-700 dark:text-emerald-400 mb-2">💰 Configuração do Cashback</h4>
+        <p className="text-xs text-muted-foreground">O cashback será gerado automaticamente quando o serviço for concluído.</p>
+      </div>
+
+      <div>
+        <Label>Validade do cashback após serviço concluído (em dias) *</Label>
+        <Input type="number" value={cashbackValidityDays} onChange={e => setCashbackValidityDays(e.target.value)} placeholder="Ex: 30" min="1" />
+        <p className="text-xs text-muted-foreground mt-1">O crédito expira após este período se não for utilizado.</p>
+      </div>
+
+      <div>
+        <Label>Regras da promoção</Label>
+        <Textarea value={cashbackRulesText} onChange={e => setCashbackRulesText(e.target.value)} placeholder="Ex: Válido apenas para serviços acima de R$50. Não acumulável com outras promoções." rows={3} />
+        <p className="text-xs text-muted-foreground mt-1">Texto exibido na página da promoção e nos cards de divulgação.</p>
+      </div>
+
+      <div className="flex items-center justify-between rounded-lg border p-4">
+        <div>
+          <Label className="text-sm font-medium">Cashback acumulativo?</Label>
+          <p className="text-xs text-muted-foreground mt-0.5">Se ativado, o cliente pode acumular créditos de múltiplos serviços.</p>
+        </div>
+        <Switch checked={cashbackCumulative} onCheckedChange={setCashbackCumulative} />
+      </div>
+
+      <div className="rounded-lg bg-muted/50 p-3 text-sm space-y-1">
+        <p className="font-medium text-xs text-muted-foreground">📋 Resumo:</p>
+        <p className="text-xs">• Cashback: {discountType === 'percentage' ? `${discountValue || 0}% do valor pago` : `R$ ${discountValue || '0'} fixo`}</p>
+        <p className="text-xs">• Validade: {cashbackValidityDays || 30} dias</p>
+        <p className="text-xs">• Acumulativo: {cashbackCumulative ? 'Sim' : 'Não'}</p>
+      </div>
+    </div>
+  );
+
   const renderStep2 = () => (
     <div className="space-y-4">
       <label className="flex items-center gap-2 cursor-pointer">
@@ -1006,13 +1042,14 @@ export default function Promotions() {
                   </div>
                 ))}
               </div>
-              <Progress value={(wizardStep / 3) * 100} className="h-1.5" />
+              <Progress value={(wizardStep / totalSteps) * 100} className="h-1.5" />
             </div>
 
             {/* Step content */}
             {wizardStep === 1 && renderStep1()}
-            {wizardStep === 2 && renderStep2()}
-            {wizardStep === 3 && renderStep3()}
+            {promotionType === 'cashback' && wizardStep === 2 && renderCashbackStep()}
+            {((promotionType === 'cashback' && wizardStep === 3) || (promotionType === 'traditional' && wizardStep === 2)) && renderStep2()}
+            {((promotionType === 'cashback' && wizardStep === 4) || (promotionType === 'traditional' && wizardStep === 3)) && renderStep3()}
 
             {/* Navigation */}
             <div className="flex justify-between pt-2">
