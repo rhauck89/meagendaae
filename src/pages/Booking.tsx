@@ -1235,6 +1235,18 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
               <h2 className="text-2xl font-bold tracking-tight">{isPromoMode ? 'Escolha um serviço da promoção' : 'Escolha os serviços'}</h2>
               <p className="text-sm mt-1" style={{ color: T.textSec }}>{isCashbackPromo ? 'Selecione o serviço e ganhe cashback após concluir' : isPromoMode ? 'Selecione o serviço que deseja agendar com desconto' : 'Selecione um ou mais serviços desejados'}</p>
             </div>
+            {/* Cashback balance indicator */}
+            {cashbackCredits.length > 0 && cashbackTotal > 0 && (
+              <div className="rounded-xl p-3 flex items-center gap-3" style={{ background: '#10b98115', border: '1px solid #10b98130' }}>
+                <span className="text-lg">💳</span>
+                <div>
+                  <p className="font-semibold text-sm" style={{ color: '#10b981' }}>
+                    Cashback disponível: R$ {cashbackTotal.toFixed(2)}
+                  </p>
+                  <p className="text-xs" style={{ color: T.textSec }}>Você pode usar este crédito na confirmação do agendamento</p>
+                </div>
+              </div>
+            )}
             <div className="space-y-3">
               {(() => {
                 const promoServiceIds = promoData?.service_ids || (promoData?.service_id ? [promoData.service_id] : []);
