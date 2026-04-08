@@ -598,6 +598,9 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
     }, 0);
   })();
 
+  const cashbackDiscount = useCashback ? Math.min(cashbackTotal, totalPrice) : 0;
+  const finalPrice = Math.max(0, totalPrice - cashbackDiscount);
+
   const toggleService = (id: string) => {
     setSelectedServices((prev) =>
       prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
