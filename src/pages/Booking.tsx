@@ -1006,7 +1006,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
         professionalName: professionalProfile?.full_name || 'Profissional',
         professionalAvatar: professionalProfile?.avatar_url || null,
         serviceNames: bookedServiceNames, date: selectedDate, time: selectedTime,
-        totalPrice, totalDuration, companyName: company.name,
+        totalPrice: finalPrice, totalDuration, companyName: company.name,
         companyPhone: (company as any).whatsapp || company.phone || companySettings?.whatsapp_number || null,
         companyAddress: [(company as any).address, (company as any).address_number ? `${(company as any).address_number}` : null].filter(Boolean).join(', ') + ((company as any).district ? ` - ${(company as any).district}` : '') || null,
         companyCity: (company as any).city || null,
