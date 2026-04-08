@@ -547,6 +547,62 @@ const Dashboard = () => {
         created_by: user?.id,
         notes: commissionAmount > 0 ? `Comissão: R$ ${commissionAmount.toFixed(2)} | Lucro: R$ ${companyProfit.toFixed(2)}` : null,
       });
+
+      // Generate cashback credits if appointment is linked to a cashback promotion
+      if (apt.promotion_id) {
+        try {
+          const { data: promo } = await supabase
+            .from('promotions')
+            .select('id, promotion_type, discount_type, discount_value, cashback_validity_days, cashback_cumulative')
+            .eq('id', apt.promotion_id)
+            .single();
+
+          if (promo && promo.promotion_type === 'cashback' && apt.client_id) {
+            // Calculate cashback amount
+            let cashbackAmount = 0;
+            if (promo.discount_type === 'percentage' && promo.discount_value) {
+              cashbackAmount = totalPrice * Number(promo.discount_value) / 100;
+            } else if ((promo.discount_type === 'fixed_amount') && promo.discount_value) {
+              cashbackAmount = Number(promo.discount_value);
+            }
+
+            if (cashbackAmount > 0) {
+              // Check if cumulative is allowed
+              if (!promo.cashback_cumulative) {
+                const { data: existing } = await supabase
+                  .from('client_cashback')
+                  .select('id')
+                  .eq('client_id', apt.client_id)
+                  .eq('promotion_id', promo.id)
+                  .eq('company_id', companyId)
+                  .in('status', ['active'])
+                  .limit(1);
+                if (existing && existing.length > 0) {
+                  console.log('[Dashboard] Cashback not cumulative, skipping');
+                  // Skip — non-cumulative and already has active credit
+                }
+              }
+
+              const validityDays = promo.cashback_validity_days || 30;
+              const expiresAt = new Date();
+              expiresAt.setDate(expiresAt.getDate() + validityDays);
+
+              await supabase.from('client_cashback').insert({
+                client_id: apt.client_id,
+                company_id: companyId,
+                promotion_id: promo.id,
+                appointment_id: apt.id,
+                amount: cashbackAmount,
+                status: 'active',
+                expires_at: expiresAt.toISOString(),
+              });
+              toast.success(`Cashback de R$ ${cashbackAmount.toFixed(2)} gerado para o cliente!`);
+            }
+          }
+        } catch (cashbackErr) {
+          console.error('[Dashboard] Cashback generation error:', cashbackErr);
+        }
+      }
     }
 
     // If cancelling, trigger waitlist check
