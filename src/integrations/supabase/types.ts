@@ -531,6 +531,112 @@ export type Database = {
           },
         ]
       }
+      client_cashback: {
+        Row: {
+          amount: number
+          appointment_id: string | null
+          client_id: string
+          company_id: string
+          created_at: string
+          expires_at: string
+          id: string
+          promotion_id: string
+          status: string
+          used_appointment_id: string | null
+          used_at: string | null
+        }
+        Insert: {
+          amount?: number
+          appointment_id?: string | null
+          client_id: string
+          company_id: string
+          created_at?: string
+          expires_at: string
+          id?: string
+          promotion_id: string
+          status?: string
+          used_appointment_id?: string | null
+          used_at?: string | null
+        }
+        Update: {
+          amount?: number
+          appointment_id?: string | null
+          client_id?: string
+          company_id?: string
+          created_at?: string
+          expires_at?: string
+          id?: string
+          promotion_id?: string
+          status?: string
+          used_appointment_id?: string | null
+          used_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_cashback_appointment_id_fkey"
+            columns: ["appointment_id"]
+            isOneToOne: false
+            referencedRelation: "appointments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_cashback_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_cashback_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_cashback_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies_billing"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_cashback_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "public_company"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_cashback_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "public_company_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_cashback_promotion_id_fkey"
+            columns: ["promotion_id"]
+            isOneToOne: false
+            referencedRelation: "promotions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_cashback_promotion_id_fkey"
+            columns: ["promotion_id"]
+            isOneToOne: false
+            referencedRelation: "public_promotions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_cashback_used_appointment_id_fkey"
+            columns: ["used_appointment_id"]
+            isOneToOne: false
+            referencedRelation: "appointments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       clients: {
         Row: {
           birth_date: string | null
@@ -2400,6 +2506,9 @@ export type Database = {
       }
       promotions: {
         Row: {
+          cashback_cumulative: boolean
+          cashback_rules_text: string | null
+          cashback_validity_days: number | null
           client_filter: string
           client_filter_value: number | null
           company_id: string
@@ -2417,6 +2526,7 @@ export type Database = {
           professional_filter: string
           professional_ids: string[] | null
           promotion_price: number | null
+          promotion_type: string
           service_id: string | null
           service_ids: string[] | null
           slug: string | null
@@ -2428,6 +2538,9 @@ export type Database = {
           used_slots: number
         }
         Insert: {
+          cashback_cumulative?: boolean
+          cashback_rules_text?: string | null
+          cashback_validity_days?: number | null
           client_filter?: string
           client_filter_value?: number | null
           company_id: string
@@ -2445,6 +2558,7 @@ export type Database = {
           professional_filter?: string
           professional_ids?: string[] | null
           promotion_price?: number | null
+          promotion_type?: string
           service_id?: string | null
           service_ids?: string[] | null
           slug?: string | null
@@ -2456,6 +2570,9 @@ export type Database = {
           used_slots?: number
         }
         Update: {
+          cashback_cumulative?: boolean
+          cashback_rules_text?: string | null
+          cashback_validity_days?: number | null
           client_filter?: string
           client_filter_value?: number | null
           company_id?: string
@@ -2473,6 +2590,7 @@ export type Database = {
           professional_filter?: string
           professional_ids?: string[] | null
           promotion_price?: number | null
+          promotion_type?: string
           service_id?: string | null
           service_ids?: string[] | null
           slug?: string | null

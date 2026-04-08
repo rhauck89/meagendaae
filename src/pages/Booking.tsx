@@ -194,6 +194,9 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
   const [nextSlots, setNextSlots] = useState<{ date: Date; slots: string[] }[]>([]);
   const [nextSlotsLoading, setNextSlotsLoading] = useState(false);
   const [quickSlotSelected, setQuickSlotSelected] = useState(false);
+  const [cashbackCredits, setCashbackCredits] = useState<{ id: string; amount: number; expires_at: string }[]>([]);
+  const [useCashback, setUseCashback] = useState(false);
+  const cashbackTotal = cashbackCredits.reduce((s, c) => s + Number(c.amount), 0);
   const slotRequestRef = useRef(0);
   const [bookingResult, setBookingResult] = useState<{
     appointmentId: string;
@@ -263,6 +266,22 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
     };
     loadSavedClient();
   }, [company]);
+
+  // Check for cashback credits when client is identified
+  useEffect(() => {
+    if (!savedClientId || !company?.id) return;
+    const checkCashback = async () => {
+      const { data } = await supabase
+        .from('client_cashback')
+        .select('id, amount, expires_at')
+        .eq('client_id', savedClientId)
+        .eq('company_id', company.id)
+        .eq('status', 'active')
+        .gt('expires_at', new Date().toISOString());
+      setCashbackCredits(data || []);
+    };
+    checkCashback();
+  }, [savedClientId, company?.id]);
 
   useEffect(() => {
     if (slug) fetchCompany();
@@ -579,6 +598,9 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
     }, 0);
   })();
 
+  const cashbackDiscount = useCashback ? Math.min(cashbackTotal, totalPrice) : 0;
+  const finalPrice = Math.max(0, totalPrice - cashbackDiscount);
+
   const toggleService = (id: string) => {
     setSelectedServices((prev) =>
       prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
@@ -874,7 +896,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
 
       const appointmentPayload = {
         p_professional_id: selectedProfessional, p_client_id: clientId,
-        p_start_time: startTime.toISOString(), p_end_time: endTime.toISOString(), p_total_price: totalPrice,
+        p_start_time: startTime.toISOString(), p_end_time: endTime.toISOString(), p_total_price: finalPrice,
         p_client_name: clientForm.full_name ?? null,
         p_client_whatsapp: formattedWhatsapp ?? null,
         p_notes: null as string | null,
@@ -984,7 +1006,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
         professionalName: professionalProfile?.full_name || 'Profissional',
         professionalAvatar: professionalProfile?.avatar_url || null,
         serviceNames: bookedServiceNames, date: selectedDate, time: selectedTime,
-        totalPrice, totalDuration, companyName: company.name,
+        totalPrice: finalPrice, totalDuration, companyName: company.name,
         companyPhone: (company as any).whatsapp || company.phone || companySettings?.whatsapp_number || null,
         companyAddress: [(company as any).address, (company as any).address_number ? `${(company as any).address_number}` : null].filter(Boolean).join(', ') + ((company as any).district ? ` - ${(company as any).district}` : '') || null,
         companyCity: (company as any).city || null,
@@ -1743,10 +1765,27 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                 </div>
               </div>
               <div style={{ borderTop: `1px solid ${T.border}` }} />
+              {/* Cashback credit */}
+              {cashbackCredits.length > 0 && (
+                <div className="rounded-xl p-3" style={{ background: `${T.accent}15`, border: `1px solid ${T.accent}30` }}>
+                  <label className="flex items-center justify-between cursor-pointer">
+                    <div>
+                      <p className="font-semibold text-sm">💰 Cashback disponível: R$ {cashbackTotal.toFixed(2)}</p>
+                      <p className="text-xs" style={{ color: T.textSec }}>Usar crédito neste agendamento</p>
+                    </div>
+                    <input type="checkbox" checked={useCashback} onChange={e => setUseCashback(e.target.checked)} className="w-5 h-5 rounded" />
+                  </label>
+                </div>
+              )}
               {/* Total */}
               <div className="flex justify-between items-center">
                 <span className="text-lg font-bold">Total</span>
-                <span className="text-2xl font-bold" style={{ color: T.accent }}>R$ {totalPrice.toFixed(2)}</span>
+                <div className="text-right">
+                  {cashbackDiscount > 0 && (
+                    <p className="text-xs line-through" style={{ color: T.textSec }}>R$ {totalPrice.toFixed(2)}</p>
+                  )}
+                  <span className="text-2xl font-bold" style={{ color: T.accent }}>R$ {finalPrice.toFixed(2)}</span>
+                </div>
               </div>
             </div>
             <Button

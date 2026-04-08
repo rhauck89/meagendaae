@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
+import { Switch } from '@/components/ui/switch';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -47,6 +48,10 @@ interface Promotion {
   status: string;
   created_at: string;
   created_by: string | null;
+  promotion_type: string;
+  cashback_validity_days: number | null;
+  cashback_rules_text: string | null;
+  cashback_cumulative: boolean;
 }
 
 interface ClientRow {
@@ -100,7 +105,7 @@ function generateSlug(title: string): string {
     .replace(/^-|-$/g, '');
 }
 
-const WIZARD_STEPS = [
+const WIZARD_STEPS_TRADITIONAL = [
   { num: 1, label: 'Serviço' },
   { num: 2, label: 'Agenda' },
   { num: 3, label: 'Mensagem' },
@@ -163,6 +168,7 @@ export default function Promotions() {
   const [wizardStep, setWizardStep] = useState(1);
 
   // Form state
+  const [promotionType, setPromotionType] = useState<'traditional' | 'cashback'>('traditional');
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [selectedServiceId, setSelectedServiceId] = useState('');
@@ -182,6 +188,14 @@ export default function Promotions() {
   const [professionalFilter, setProfessionalFilter] = useState('all');
   const [selectedProfessionalIds, setSelectedProfessionalIds] = useState<string[]>([]);
   const [messageTemplate, setMessageTemplate] = useState(DEFAULT_TEMPLATE);
+  const [cashbackValidityDays, setCashbackValidityDays] = useState('30');
+  const [cashbackRulesText, setCashbackRulesText] = useState('');
+  const [cashbackCumulative, setCashbackCumulative] = useState(false);
+
+  const WIZARD_STEPS = promotionType === 'cashback'
+    ? [{ num: 1, label: 'Serviço' }, { num: 2, label: 'Cashback' }, { num: 3, label: 'Agenda' }, { num: 4, label: 'Mensagem' }]
+    : WIZARD_STEPS_TRADITIONAL;
+  const totalSteps = WIZARD_STEPS.length;
 
   // Data
   const [services, setServices] = useState<any[]>([]);
@@ -327,11 +341,16 @@ export default function Promotions() {
     const effectiveIds = getEffectiveServiceIds();
     if (effectiveIds.length === 0) return 'Selecione ao menos um serviço';
     
-    if (discountType === 'fixed_price') {
+    if (promotionType === 'cashback') {
+      // Cashback only uses percentage or fixed_amount
+      if (!discountValue) return 'Informe o valor do cashback';
+      const val = parseFloat(discountValue);
+      if (val <= 0) return 'O valor do cashback deve ser maior que zero';
+      if (discountType === 'percentage' && val >= 100) return 'O percentual de cashback deve ser menor que 100%';
+    } else if (discountType === 'fixed_price') {
       if (!promotionPrice) return 'Informe o preço promocional';
       const promo = parseFloat(promotionPrice);
       if (promo <= 0) return 'O preço promocional deve ser maior que zero';
-      // For single service, validate against original
       if (effectiveIds.length === 1) {
         const svc = services.find(s => s.id === effectiveIds[0]);
         if (svc && promo >= Number(svc.price)) return 'O preço promocional deve ser menor que o preço original';
@@ -357,11 +376,11 @@ export default function Promotions() {
     if (wizardStep === 1) {
       const err = validateStep1();
       if (err) { toast({ title: err, variant: 'destructive' }); return; }
-    } else if (wizardStep === 2) {
+    } else if ((promotionType === 'cashback' && wizardStep === 3) || (promotionType === 'traditional' && wizardStep === 2)) {
       const err = validateStep2();
       if (err) { toast({ title: err, variant: 'destructive' }); return; }
     }
-    setWizardStep(prev => Math.min(prev + 1, 3));
+    setWizardStep(prev => Math.min(prev + 1, totalSteps));
   };
 
   const goBack = () => setWizardStep(prev => Math.max(prev - 1, 1));
@@ -474,7 +493,7 @@ export default function Promotions() {
       description: description || null,
       service_id: primaryServiceId,
       service_ids: effectiveIds.length > 1 ? effectiveIds : null,
-      discount_type: discountType,
+      discount_type: promotionType === 'cashback' ? discountType : discountType,
       discount_value: discountType !== 'fixed_price' ? (parseFloat(discountValue) || null) : null,
       promotion_price: payloadPromoPrice,
       original_price: payloadOrigPrice,
@@ -490,6 +509,10 @@ export default function Promotions() {
       message_template: messageTemplate,
       created_by: profile?.id || null,
       status: 'active',
+      promotion_type: promotionType,
+      cashback_validity_days: promotionType === 'cashback' ? (parseInt(cashbackValidityDays) || 30) : null,
+      cashback_rules_text: promotionType === 'cashback' ? (cashbackRulesText || null) : null,
+      cashback_cumulative: promotionType === 'cashback' ? cashbackCumulative : false,
     };
 
     if (!isAdmin && profile?.id) {
@@ -517,12 +540,14 @@ export default function Promotions() {
   };
 
   const resetForm = () => {
+    setPromotionType('traditional');
     setTitle(''); setDescription(''); setSelectedServiceId(''); setSelectedServiceIds([]);
     setServiceSelectionMode('single'); setDiscountType('fixed_price'); setDiscountValue('');
     setPromotionPrice('');
     setStartDate(''); setEndDate(''); setSingleDay(false); setStartTime(''); setEndTime(''); setMaxSlots('10');
     setClientFilter('all'); setClientFilterValue('30'); setProfessionalFilter('all');
     setSelectedProfessionalIds([]); setMessageTemplate(DEFAULT_TEMPLATE);
+    setCashbackValidityDays('30'); setCashbackRulesText(''); setCashbackCumulative(false);
     setWizardStep(1);
   };
 
@@ -664,6 +689,21 @@ export default function Promotions() {
     
     return (
     <div className="space-y-4">
+      {/* Promotion type selector */}
+      <div>
+        <Label>Tipo de Promoção *</Label>
+        <Select value={promotionType} onValueChange={(v: 'traditional' | 'cashback') => { setPromotionType(v); setWizardStep(1); if (v === 'cashback' && discountType === 'fixed_price') setDiscountType('percentage'); }}>
+          <SelectTrigger><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="traditional">Promoção Tradicional</SelectItem>
+            <SelectItem value="cashback">Cashback</SelectItem>
+          </SelectContent>
+        </Select>
+        <p className="text-xs text-muted-foreground mt-1">
+          {promotionType === 'traditional' ? 'Desconto aplicado no momento do agendamento.' : 'Cliente recebe crédito após o serviço concluído para usar no próximo agendamento.'}
+        </p>
+      </div>
+
       <div>
         <Label>Título *</Label>
         <Input value={title} onChange={e => setTitle(e.target.value)} placeholder="Ex: Corte Promocional" />
@@ -730,11 +770,11 @@ export default function Promotions() {
         </div>
       )}
 
-      {/* Discount type */}
+      {/* Discount/Cashback type */}
       {effectiveIds.length > 0 && (
         <>
           <div>
-            <Label>Tipo de desconto *</Label>
+            <Label>{promotionType === 'cashback' ? 'Tipo de cashback *' : 'Tipo de desconto *'}</Label>
             <Select value={discountType} onValueChange={(v: 'fixed_price' | 'percentage' | 'fixed_amount') => {
               setDiscountType(v);
               setPromotionPrice('');
@@ -742,15 +782,15 @@ export default function Promotions() {
             }}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="fixed_price">Preço fixo (R$)</SelectItem>
-                <SelectItem value="percentage">Porcentagem (%)</SelectItem>
-                <SelectItem value="fixed_amount">Valor fixo de desconto (R$)</SelectItem>
+                {promotionType === 'traditional' && <SelectItem value="fixed_price">Preço fixo (R$)</SelectItem>}
+                <SelectItem value="percentage">{promotionType === 'cashback' ? 'Percentual do serviço (%)' : 'Porcentagem (%)'}</SelectItem>
+                <SelectItem value="fixed_amount">{promotionType === 'cashback' ? 'Valor fixo (R$)' : 'Valor fixo de desconto (R$)'}</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
-          {/* Fixed price input */}
-          {discountType === 'fixed_price' && (
+          {/* Fixed price input (traditional only) */}
+          {discountType === 'fixed_price' && promotionType === 'traditional' && (
             <div>
               <Label>Preço Promocional *</Label>
               <Input type="number" value={promotionPrice} onChange={e => setPromotionPrice(e.target.value)} placeholder="Ex: 25.00" step="0.01" />
@@ -760,21 +800,23 @@ export default function Promotions() {
           {/* Percentage input */}
           {discountType === 'percentage' && (
             <div>
-              <Label>Desconto (%) *</Label>
-              <Input type="number" value={discountValue} onChange={e => setDiscountValue(e.target.value)} placeholder="Ex: 20" min="1" max="99" />
+              <Label>{promotionType === 'cashback' ? 'Cashback (%) *' : 'Desconto (%) *'}</Label>
+              <Input type="number" value={discountValue} onChange={e => setDiscountValue(e.target.value)} placeholder="Ex: 10" min="1" max="99" />
+              {promotionType === 'cashback' && <p className="text-xs text-muted-foreground mt-1">Ex: 10% de cashback sobre o valor pago</p>}
             </div>
           )}
 
           {/* Fixed amount input */}
           {discountType === 'fixed_amount' && (
             <div>
-              <Label>Desconto (R$) *</Label>
+              <Label>{promotionType === 'cashback' ? 'Cashback (R$) *' : 'Desconto (R$) *'}</Label>
               <Input type="number" value={discountValue} onChange={e => setDiscountValue(e.target.value)} placeholder="Ex: 10.00" step="0.01" />
+              {promotionType === 'cashback' && <p className="text-xs text-muted-foreground mt-1">Ex: R$10 de cashback por serviço concluído</p>}
             </div>
           )}
 
-          {/* Preview of prices */}
-          {selectedSvcs.length > 0 && (discountType !== 'fixed_price' ? parseFloat(discountValue) > 0 : parseFloat(promotionPrice) > 0) && (
+          {/* Preview of prices (traditional) */}
+          {promotionType === 'traditional' && selectedSvcs.length > 0 && (discountType !== 'fixed_price' ? parseFloat(discountValue) > 0 : parseFloat(promotionPrice) > 0) && (
             <div className="rounded-lg border p-3 space-y-2">
               <p className="text-xs font-medium text-muted-foreground">Prévia dos preços:</p>
               {selectedSvcs.slice(0, 5).map(svc => {
@@ -795,11 +837,66 @@ export default function Promotions() {
               {selectedSvcs.length > 5 && <p className="text-xs text-muted-foreground">...e mais {selectedSvcs.length - 5} serviço(s)</p>}
             </div>
           )}
+
+          {/* Preview of cashback */}
+          {promotionType === 'cashback' && selectedSvcs.length > 0 && parseFloat(discountValue) > 0 && (
+            <div className="rounded-lg border border-emerald-200 bg-emerald-50 dark:bg-emerald-950/20 dark:border-emerald-800 p-3 space-y-2">
+              <p className="text-xs font-medium text-emerald-700 dark:text-emerald-400">💰 Prévia do cashback:</p>
+              {selectedSvcs.slice(0, 5).map(svc => {
+                const orig = Number(svc.price);
+                const cashbackAmount = discountType === 'percentage'
+                  ? orig * (parseFloat(discountValue) / 100)
+                  : parseFloat(discountValue);
+                return (
+                  <div key={svc.id} className="flex items-center justify-between text-sm">
+                    <span>{svc.name} (R$ {orig.toFixed(2)})</span>
+                    <span className="font-bold text-emerald-700 dark:text-emerald-400">+ R$ {cashbackAmount.toFixed(2)} cashback</span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </>
       )}
     </div>
     );
   };
+
+  const renderCashbackStep = () => (
+    <div className="space-y-4">
+      <div className="rounded-lg border border-emerald-200 bg-emerald-50 dark:bg-emerald-950/20 dark:border-emerald-800 p-4">
+        <h4 className="font-medium text-emerald-700 dark:text-emerald-400 mb-2">💰 Configuração do Cashback</h4>
+        <p className="text-xs text-muted-foreground">O cashback será gerado automaticamente quando o serviço for concluído.</p>
+      </div>
+
+      <div>
+        <Label>Validade do cashback após serviço concluído (em dias) *</Label>
+        <Input type="number" value={cashbackValidityDays} onChange={e => setCashbackValidityDays(e.target.value)} placeholder="Ex: 30" min="1" />
+        <p className="text-xs text-muted-foreground mt-1">O crédito expira após este período se não for utilizado.</p>
+      </div>
+
+      <div>
+        <Label>Regras da promoção</Label>
+        <Textarea value={cashbackRulesText} onChange={e => setCashbackRulesText(e.target.value)} placeholder="Ex: Válido apenas para serviços acima de R$50. Não acumulável com outras promoções." rows={3} />
+        <p className="text-xs text-muted-foreground mt-1">Texto exibido na página da promoção e nos cards de divulgação.</p>
+      </div>
+
+      <div className="flex items-center justify-between rounded-lg border p-4">
+        <div>
+          <Label className="text-sm font-medium">Cashback acumulativo?</Label>
+          <p className="text-xs text-muted-foreground mt-0.5">Se ativado, o cliente pode acumular créditos de múltiplos serviços.</p>
+        </div>
+        <Switch checked={cashbackCumulative} onCheckedChange={setCashbackCumulative} />
+      </div>
+
+      <div className="rounded-lg bg-muted/50 p-3 text-sm space-y-1">
+        <p className="font-medium text-xs text-muted-foreground">📋 Resumo:</p>
+        <p className="text-xs">• Cashback: {discountType === 'percentage' ? `${discountValue || 0}% do valor pago` : `R$ ${discountValue || '0'} fixo`}</p>
+        <p className="text-xs">• Validade: {cashbackValidityDays || 30} dias</p>
+        <p className="text-xs">• Acumulativo: {cashbackCumulative ? 'Sim' : 'Não'}</p>
+      </div>
+    </div>
+  );
 
   const renderStep2 = () => (
     <div className="space-y-4">
@@ -950,13 +1047,14 @@ export default function Promotions() {
                   </div>
                 ))}
               </div>
-              <Progress value={(wizardStep / 3) * 100} className="h-1.5" />
+              <Progress value={(wizardStep / totalSteps) * 100} className="h-1.5" />
             </div>
 
             {/* Step content */}
             {wizardStep === 1 && renderStep1()}
-            {wizardStep === 2 && renderStep2()}
-            {wizardStep === 3 && renderStep3()}
+            {promotionType === 'cashback' && wizardStep === 2 && renderCashbackStep()}
+            {((promotionType === 'cashback' && wizardStep === 3) || (promotionType === 'traditional' && wizardStep === 2)) && renderStep2()}
+            {((promotionType === 'cashback' && wizardStep === 4) || (promotionType === 'traditional' && wizardStep === 3)) && renderStep3()}
 
             {/* Navigation */}
             <div className="flex justify-between pt-2">
@@ -966,7 +1064,7 @@ export default function Promotions() {
                 </Button>
               ) : <div />}
 
-              {wizardStep < 3 ? (
+              {wizardStep < totalSteps ? (
                 <Button onClick={goNext}>
                   Próximo<ChevronRight className="h-4 w-4 ml-1" />
                 </Button>
@@ -1027,11 +1125,18 @@ export default function Promotions() {
                 const promoServiceIds = promo.service_ids || (promo.service_id ? [promo.service_id] : []);
                 const promoSvcs = services.filter(s => promoServiceIds.includes(s.id));
                 const isHighlighted = promo.id === highlightedPromoId;
-                const discountLabel = promo.discount_type === 'percentage' && promo.discount_value
-                  ? `${promo.discount_value}% OFF`
-                  : promo.discount_type === 'fixed_amount' && promo.discount_value
-                  ? `R$ ${Number(promo.discount_value).toFixed(2)} OFF`
-                  : null;
+                const isCashback = promo.promotion_type === 'cashback';
+                const discountLabel = isCashback
+                  ? (promo.discount_type === 'percentage' && promo.discount_value
+                    ? `${promo.discount_value}% Cashback`
+                    : promo.discount_type === 'fixed_amount' && promo.discount_value
+                    ? `R$ ${Number(promo.discount_value).toFixed(2)} Cashback`
+                    : null)
+                  : (promo.discount_type === 'percentage' && promo.discount_value
+                    ? `${promo.discount_value}% OFF`
+                    : promo.discount_type === 'fixed_amount' && promo.discount_value
+                    ? `R$ ${Number(promo.discount_value).toFixed(2)} OFF`
+                    : null);
 
                 return (
                   <Card key={promo.id} className={`transition-all duration-500 ${status === 'expired' || status === 'paused' ? 'opacity-70' : ''} ${isHighlighted ? 'ring-2 ring-primary shadow-lg animate-pulse' : ''}`}>
@@ -1049,10 +1154,18 @@ export default function Promotions() {
                     <CardContent className="space-y-3">
                       {promo.description && <p className="text-sm text-muted-foreground">{promo.description}</p>}
 
-                      {/* Discount badge */}
-                      {discountLabel && (
-                        <Badge className="bg-primary/10 text-primary border-primary/20">{discountLabel}</Badge>
-                      )}
+                      {/* Type + Discount badge */}
+                      <div className="flex flex-wrap gap-1.5">
+                        {isCashback && (
+                          <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400 dark:border-emerald-800">💰 Cashback</Badge>
+                        )}
+                        {discountLabel && (
+                          <Badge className={isCashback ? 'bg-emerald-50 text-emerald-600 border-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-400' : 'bg-primary/10 text-primary border-primary/20'}>{discountLabel}</Badge>
+                        )}
+                        {isCashback && promo.cashback_validity_days && (
+                          <Badge variant="outline" className="text-xs">Validade: {promo.cashback_validity_days} dias</Badge>
+                        )}
+                      </div>
 
                       {/* Service + pricing */}
                       {promoSvcs.length === 1 && svc && (
