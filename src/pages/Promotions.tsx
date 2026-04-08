@@ -168,6 +168,7 @@ export default function Promotions() {
   const [wizardStep, setWizardStep] = useState(1);
 
   // Form state
+  const [promotionType, setPromotionType] = useState<'traditional' | 'cashback'>('traditional');
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [selectedServiceId, setSelectedServiceId] = useState('');
@@ -187,6 +188,14 @@ export default function Promotions() {
   const [professionalFilter, setProfessionalFilter] = useState('all');
   const [selectedProfessionalIds, setSelectedProfessionalIds] = useState<string[]>([]);
   const [messageTemplate, setMessageTemplate] = useState(DEFAULT_TEMPLATE);
+  const [cashbackValidityDays, setCashbackValidityDays] = useState('30');
+  const [cashbackRulesText, setCashbackRulesText] = useState('');
+  const [cashbackCumulative, setCashbackCumulative] = useState(false);
+
+  const WIZARD_STEPS = promotionType === 'cashback'
+    ? [{ num: 1, label: 'Serviço' }, { num: 2, label: 'Cashback' }, { num: 3, label: 'Agenda' }, { num: 4, label: 'Mensagem' }]
+    : WIZARD_STEPS_TRADITIONAL;
+  const totalSteps = WIZARD_STEPS.length;
 
   // Data
   const [services, setServices] = useState<any[]>([]);
