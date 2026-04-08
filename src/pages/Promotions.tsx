@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
+import { Switch } from '@/components/ui/switch';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -47,6 +48,10 @@ interface Promotion {
   status: string;
   created_at: string;
   created_by: string | null;
+  promotion_type: string;
+  cashback_validity_days: number | null;
+  cashback_rules_text: string | null;
+  cashback_cumulative: boolean;
 }
 
 interface ClientRow {
