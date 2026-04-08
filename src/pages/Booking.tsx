@@ -267,7 +267,22 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
     loadSavedClient();
   }, [company]);
 
+  // Check for cashback credits when client is identified
   useEffect(() => {
+    if (!savedClientId || !company?.id) return;
+    const checkCashback = async () => {
+      const { data } = await supabase
+        .from('client_cashback')
+        .select('id, amount, expires_at')
+        .eq('client_id', savedClientId)
+        .eq('company_id', company.id)
+        .eq('status', 'active')
+        .gt('expires_at', new Date().toISOString());
+      setCashbackCredits(data || []);
+    };
+    checkCashback();
+  }, [savedClientId, company?.id]);
+
     if (slug) fetchCompany();
   }, [slug]);
 
