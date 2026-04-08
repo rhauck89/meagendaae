@@ -488,7 +488,7 @@ export default function Promotions() {
       description: description || null,
       service_id: primaryServiceId,
       service_ids: effectiveIds.length > 1 ? effectiveIds : null,
-      discount_type: discountType,
+      discount_type: promotionType === 'cashback' ? discountType : discountType,
       discount_value: discountType !== 'fixed_price' ? (parseFloat(discountValue) || null) : null,
       promotion_price: payloadPromoPrice,
       original_price: payloadOrigPrice,
@@ -504,6 +504,10 @@ export default function Promotions() {
       message_template: messageTemplate,
       created_by: profile?.id || null,
       status: 'active',
+      promotion_type: promotionType,
+      cashback_validity_days: promotionType === 'cashback' ? (parseInt(cashbackValidityDays) || 30) : null,
+      cashback_rules_text: promotionType === 'cashback' ? (cashbackRulesText || null) : null,
+      cashback_cumulative: promotionType === 'cashback' ? cashbackCumulative : false,
     };
 
     if (!isAdmin && profile?.id) {
