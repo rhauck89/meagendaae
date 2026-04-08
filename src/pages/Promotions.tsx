@@ -105,7 +105,7 @@ function generateSlug(title: string): string {
     .replace(/^-|-$/g, '');
 }
 
-const WIZARD_STEPS = [
+const WIZARD_STEPS_TRADITIONAL = [
   { num: 1, label: 'Serviço' },
   { num: 2, label: 'Agenda' },
   { num: 3, label: 'Mensagem' },
