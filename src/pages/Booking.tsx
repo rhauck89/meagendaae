@@ -138,6 +138,9 @@ interface PromotionInfo {
   used_slots: number;
   professional_ids: string[] | null;
   professional_filter: string;
+  promotion_type?: string;
+  cashback_validity_days?: number | null;
+  cashback_rules_text?: string | null;
 }
 
 const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
@@ -573,7 +576,13 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
     .filter((s) => selectedServices.includes(s.id))
     .reduce((sum, s) => sum + (Number(s.duration_minutes) || 0), 0);
 
+  const isCashbackPromo = isPromoMode && promoData?.promotion_type === 'cashback';
+
   const totalPrice = (() => {
+    // Cashback promos: client pays full price — no discount applied
+    if (isCashbackPromo) {
+      return services.filter((s) => selectedServices.includes(s.id)).reduce((sum, s) => sum + Number(s.price), 0);
+    }
     if (!isPromoMode || !promoData) {
       return services.filter((s) => selectedServices.includes(s.id)).reduce((sum, s) => sum + Number(s.price), 0);
     }
@@ -596,6 +605,21 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
       }
       return sum + Number(s.price);
     }, 0);
+  })();
+
+  // Calculate cashback the client will EARN (not a discount)
+  const cashbackEarnAmount = (() => {
+    if (!isCashbackPromo || !promoData) return 0;
+    const promoServiceIds = promoData.service_ids || (promoData.service_id ? [promoData.service_id] : []);
+    const promoServicesTotal = services
+      .filter(s => selectedServices.includes(s.id) && promoServiceIds.includes(s.id))
+      .reduce((sum, s) => sum + Number(s.price), 0);
+    if (promoData.discount_type === 'percentage' && promoData.discount_value) {
+      return promoServicesTotal * Number(promoData.discount_value) / 100;
+    } else if (promoData.discount_type === 'fixed_amount' && promoData.discount_value) {
+      return Number(promoData.discount_value);
+    }
+    return 0;
   })();
 
   const cashbackDiscount = useCashback ? Math.min(cashbackTotal, totalPrice) : 0;
