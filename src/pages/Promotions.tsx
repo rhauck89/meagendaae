@@ -684,6 +684,21 @@ export default function Promotions() {
     
     return (
     <div className="space-y-4">
+      {/* Promotion type selector */}
+      <div>
+        <Label>Tipo de Promoção *</Label>
+        <Select value={promotionType} onValueChange={(v: 'traditional' | 'cashback') => { setPromotionType(v); setWizardStep(1); }}>
+          <SelectTrigger><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="traditional">Promoção Tradicional</SelectItem>
+            <SelectItem value="cashback">Cashback</SelectItem>
+          </SelectContent>
+        </Select>
+        <p className="text-xs text-muted-foreground mt-1">
+          {promotionType === 'traditional' ? 'Desconto aplicado no momento do agendamento.' : 'Cliente recebe crédito após o serviço concluído para usar no próximo agendamento.'}
+        </p>
+      </div>
+
       <div>
         <Label>Título *</Label>
         <Input value={title} onChange={e => setTitle(e.target.value)} placeholder="Ex: Corte Promocional" />
