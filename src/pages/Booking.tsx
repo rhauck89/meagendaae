@@ -980,7 +980,24 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
       });
       await supabase.rpc('create_appointment_services', { p_appointment_id: appointmentId, p_services: aptServicesPayload });
 
-      // Fire webhooks
+      // Mark used cashback credits
+      if (useCashback && cashbackCredits.length > 0 && cashbackDiscount > 0) {
+        let remaining = cashbackDiscount;
+        for (const credit of cashbackCredits) {
+          if (remaining <= 0) break;
+          remaining -= Number(credit.amount);
+          await supabase
+            .from('client_cashback')
+            .update({
+              status: 'used',
+              used_at: new Date().toISOString(),
+              used_appointment_id: appointmentId as string,
+            })
+            .eq('id', credit.id);
+        }
+      }
+
+
       try {
         const { data: webhookConfigs } = await supabase
           .from('webhook_configs').select('url')
