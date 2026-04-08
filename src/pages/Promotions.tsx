@@ -634,7 +634,7 @@ export default function Promotions() {
       return profNames.slice(0, -1).join(', ') + ' e ' + profNames[profNames.length - 1];
     })();
 
-    let msg = promotion.message_template || DEFAULT_TEMPLATE;
+    let msg = promotion.message_template || (promotion.promotion_type === 'cashback' ? DEFAULT_CASHBACK_TEMPLATE : DEFAULT_TEMPLATE);
     msg = msg.replace(/\{\{cliente_nome\}\}/g, client.name);
     msg = msg.replace(/\{\{cliente_primeiro_nome\}\}/g, client.name.split(' ')[0]);
     msg = msg.replace(/\{\{cliente_aniversario\}\}/g, client.birth_date ? format(parseISO(client.birth_date), 'dd/MM') : '');
@@ -645,6 +645,15 @@ export default function Promotions() {
     msg = msg.replace(/\{\{valor_normal\}\}/g, promotion.original_price ? `R$ ${Number(promotion.original_price).toFixed(2)}` : '');
     msg = msg.replace(/\{\{valor_promocional\}\}/g, promotion.promotion_price ? `R$ ${Number(promotion.promotion_price).toFixed(2)}` : '');
     msg = msg.replace(/\{\{link_promocao\}\}/g, promoLink);
+    // Cashback-specific tags
+    if (promotion.promotion_type === 'cashback') {
+      const cashbackVal = promotion.discount_type === 'percentage'
+        ? `${Number(promotion.discount_value || 0)}%`
+        : `R$ ${Number(promotion.discount_value || 0).toFixed(2)}`;
+      msg = msg.replace(/\{\{valor_cashback\}\}/g, cashbackVal);
+      msg = msg.replace(/\{\{validade_cashback\}\}/g, String(promotion.cashback_validity_days || 30));
+      msg = msg.replace(/\{\{regras_cashback\}\}/g, promotion.cashback_rules_text || '');
+    }
 
     return `https://wa.me/${number}?text=${encodeURIComponent(msg)}`;
   };
