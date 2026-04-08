@@ -765,11 +765,11 @@ export default function Promotions() {
         </div>
       )}
 
-      {/* Discount type */}
+      {/* Discount/Cashback type */}
       {effectiveIds.length > 0 && (
         <>
           <div>
-            <Label>Tipo de desconto *</Label>
+            <Label>{promotionType === 'cashback' ? 'Tipo de cashback *' : 'Tipo de desconto *'}</Label>
             <Select value={discountType} onValueChange={(v: 'fixed_price' | 'percentage' | 'fixed_amount') => {
               setDiscountType(v);
               setPromotionPrice('');
@@ -777,15 +777,15 @@ export default function Promotions() {
             }}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="fixed_price">Preço fixo (R$)</SelectItem>
-                <SelectItem value="percentage">Porcentagem (%)</SelectItem>
-                <SelectItem value="fixed_amount">Valor fixo de desconto (R$)</SelectItem>
+                {promotionType === 'traditional' && <SelectItem value="fixed_price">Preço fixo (R$)</SelectItem>}
+                <SelectItem value="percentage">{promotionType === 'cashback' ? 'Percentual do serviço (%)' : 'Porcentagem (%)'}</SelectItem>
+                <SelectItem value="fixed_amount">{promotionType === 'cashback' ? 'Valor fixo (R$)' : 'Valor fixo de desconto (R$)'}</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
-          {/* Fixed price input */}
-          {discountType === 'fixed_price' && (
+          {/* Fixed price input (traditional only) */}
+          {discountType === 'fixed_price' && promotionType === 'traditional' && (
             <div>
               <Label>Preço Promocional *</Label>
               <Input type="number" value={promotionPrice} onChange={e => setPromotionPrice(e.target.value)} placeholder="Ex: 25.00" step="0.01" />
@@ -795,21 +795,23 @@ export default function Promotions() {
           {/* Percentage input */}
           {discountType === 'percentage' && (
             <div>
-              <Label>Desconto (%) *</Label>
-              <Input type="number" value={discountValue} onChange={e => setDiscountValue(e.target.value)} placeholder="Ex: 20" min="1" max="99" />
+              <Label>{promotionType === 'cashback' ? 'Cashback (%) *' : 'Desconto (%) *'}</Label>
+              <Input type="number" value={discountValue} onChange={e => setDiscountValue(e.target.value)} placeholder="Ex: 10" min="1" max="99" />
+              {promotionType === 'cashback' && <p className="text-xs text-muted-foreground mt-1">Ex: 10% de cashback sobre o valor pago</p>}
             </div>
           )}
 
           {/* Fixed amount input */}
           {discountType === 'fixed_amount' && (
             <div>
-              <Label>Desconto (R$) *</Label>
+              <Label>{promotionType === 'cashback' ? 'Cashback (R$) *' : 'Desconto (R$) *'}</Label>
               <Input type="number" value={discountValue} onChange={e => setDiscountValue(e.target.value)} placeholder="Ex: 10.00" step="0.01" />
+              {promotionType === 'cashback' && <p className="text-xs text-muted-foreground mt-1">Ex: R$10 de cashback por serviço concluído</p>}
             </div>
           )}
 
-          {/* Preview of prices */}
-          {selectedSvcs.length > 0 && (discountType !== 'fixed_price' ? parseFloat(discountValue) > 0 : parseFloat(promotionPrice) > 0) && (
+          {/* Preview of prices (traditional) */}
+          {promotionType === 'traditional' && selectedSvcs.length > 0 && (discountType !== 'fixed_price' ? parseFloat(discountValue) > 0 : parseFloat(promotionPrice) > 0) && (
             <div className="rounded-lg border p-3 space-y-2">
               <p className="text-xs font-medium text-muted-foreground">Prévia dos preços:</p>
               {selectedSvcs.slice(0, 5).map(svc => {
@@ -828,6 +830,25 @@ export default function Promotions() {
                 );
               })}
               {selectedSvcs.length > 5 && <p className="text-xs text-muted-foreground">...e mais {selectedSvcs.length - 5} serviço(s)</p>}
+            </div>
+          )}
+
+          {/* Preview of cashback */}
+          {promotionType === 'cashback' && selectedSvcs.length > 0 && parseFloat(discountValue) > 0 && (
+            <div className="rounded-lg border border-emerald-200 bg-emerald-50 dark:bg-emerald-950/20 dark:border-emerald-800 p-3 space-y-2">
+              <p className="text-xs font-medium text-emerald-700 dark:text-emerald-400">💰 Prévia do cashback:</p>
+              {selectedSvcs.slice(0, 5).map(svc => {
+                const orig = Number(svc.price);
+                const cashbackAmount = discountType === 'percentage'
+                  ? orig * (parseFloat(discountValue) / 100)
+                  : parseFloat(discountValue);
+                return (
+                  <div key={svc.id} className="flex items-center justify-between text-sm">
+                    <span>{svc.name} (R$ {orig.toFixed(2)})</span>
+                    <span className="font-bold text-emerald-700 dark:text-emerald-400">+ R$ {cashbackAmount.toFixed(2)} cashback</span>
+                  </div>
+                );
+              })}
             </div>
           )}
         </>
