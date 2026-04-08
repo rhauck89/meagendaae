@@ -70,7 +70,7 @@ interface PromoMetrics {
   clientsReached: number;
 }
 
-const MESSAGE_TAGS = [
+const MESSAGE_TAGS_TRADITIONAL = [
   { tag: '{{cliente_nome}}', label: 'Nome' },
   { tag: '{{cliente_primeiro_nome}}', label: 'Primeiro Nome' },
   { tag: '{{cliente_aniversario}}', label: 'Aniversário' },
@@ -80,6 +80,18 @@ const MESSAGE_TAGS = [
   { tag: '{{profissionais_promocao}}', label: 'Profissionais' },
   { tag: '{{valor_normal}}', label: 'Valor Normal' },
   { tag: '{{valor_promocional}}', label: 'Valor Promo' },
+  { tag: '{{link_promocao}}', label: 'Link' },
+];
+
+const MESSAGE_TAGS_CASHBACK = [
+  { tag: '{{cliente_nome}}', label: 'Nome' },
+  { tag: '{{cliente_primeiro_nome}}', label: 'Primeiro Nome' },
+  { tag: '{{empresa_nome}}', label: 'Empresa' },
+  { tag: '{{servicos_promocao}}', label: 'Serviços' },
+  { tag: '{{profissionais_promocao}}', label: 'Profissionais' },
+  { tag: '{{valor_cashback}}', label: 'Valor Cashback' },
+  { tag: '{{validade_cashback}}', label: 'Validade Cashback' },
+  { tag: '{{regras_cashback}}', label: 'Regras Cashback' },
   { tag: '{{link_promocao}}', label: 'Link' },
 ];
 
@@ -97,6 +109,26 @@ Garanta seu horário:
 {{link_promocao}}
 
 Te esperamos! 🙏`;
+
+const DEFAULT_CASHBACK_TEMPLATE = `Olá {{cliente_nome}}! 👋
+
+A *{{empresa_nome}}* preparou uma promoção especial para você! 🎉
+
+✂️ Serviço participante: {{servicos_promocao}}
+
+💰 Ao realizar este serviço você ganha *{{valor_cashback}} de cashback* para usar no seu próximo agendamento!
+
+📅 Profissionais participantes: {{profissionais_promocao}}
+
+⏳ Validade do cashback: {{validade_cashback}} dias após realizar o serviço.
+
+📌 Regras da promoção:
+{{regras_cashback}}
+
+⚠️ O cashback é válido somente para seu *próximo agendamento* e dentro do prazo informado.
+
+Agende agora e garanta seu benefício:
+{{link_promocao}}`;
 
 function generateSlug(title: string): string {
   return title.toLowerCase()
