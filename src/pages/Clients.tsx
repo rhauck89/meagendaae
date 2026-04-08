@@ -800,6 +800,24 @@ const ClientProfile = ({ client, companyId, profileMap, onBack }: ClientProfileP
     },
   });
 
+  // Fetch cashback credits
+  const { data: cashbackCredits = [] } = useQuery({
+    queryKey: ['client-cashback', client.id, companyId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('client_cashback')
+        .select('id, amount, status, expires_at, created_at, promotion:promotions(title)')
+        .eq('client_id', client.id)
+        .eq('company_id', companyId)
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
+  const activeCashback = cashbackCredits.filter((c: any) => c.status === 'active' && new Date(c.expires_at) > new Date());
+  const cashbackTotal = activeCashback.reduce((sum: number, c: any) => sum + Number(c.amount), 0);
+
   const serviceMap = Object.fromEntries(services.map(s => [s.id, s.name]));
 
   const completedAppts = appointments.filter(a => a.status === 'completed');
@@ -1059,6 +1077,52 @@ const ClientProfile = ({ client, companyId, profileMap, onBack }: ClientProfileP
           </CardContent>
         </Card>
       </div>
+
+      {/* Cashback credits */}
+      {cashbackCredits.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2">
+              💰 Cashback
+              {cashbackTotal > 0 && (
+                <Badge className="bg-green-100 text-green-800 ml-2">
+                  Disponível: R$ {cashbackTotal.toFixed(2)}
+                </Badge>
+              )}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              {cashbackCredits.map((credit: any) => {
+                const isActive = credit.status === 'active' && new Date(credit.expires_at) > new Date();
+                const daysLeft = isActive ? Math.ceil((new Date(credit.expires_at).getTime() - Date.now()) / (1000 * 60 * 60 * 24)) : 0;
+                const promoTitle = (credit.promotion as any)?.title || 'Promoção';
+                return (
+                  <div key={credit.id} className={`flex items-center justify-between p-3 rounded-lg border ${isActive ? 'bg-green-50 border-green-200' : 'bg-muted/30 border-border'}`}>
+                    <div className="min-w-0">
+                      <p className={`font-semibold text-sm ${isActive ? 'text-green-800' : 'text-muted-foreground line-through'}`}>
+                        R$ {Number(credit.amount).toFixed(2)}
+                      </p>
+                      <p className="text-xs text-muted-foreground truncate">{promoTitle}</p>
+                    </div>
+                    <div className="text-right shrink-0">
+                      {isActive ? (
+                        <Badge variant="outline" className="text-xs text-green-700 border-green-300">
+                          {daysLeft} dias restantes
+                        </Badge>
+                      ) : (
+                        <Badge variant="secondary" className="text-xs">
+                          {credit.status === 'used' ? 'Usado' : 'Expirado'}
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Service breakdown */}
       {Object.keys(serviceCount).length > 0 && (
