@@ -1154,10 +1154,18 @@ export default function Promotions() {
                     <CardContent className="space-y-3">
                       {promo.description && <p className="text-sm text-muted-foreground">{promo.description}</p>}
 
-                      {/* Discount badge */}
-                      {discountLabel && (
-                        <Badge className="bg-primary/10 text-primary border-primary/20">{discountLabel}</Badge>
-                      )}
+                      {/* Type + Discount badge */}
+                      <div className="flex flex-wrap gap-1.5">
+                        {isCashback && (
+                          <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400 dark:border-emerald-800">💰 Cashback</Badge>
+                        )}
+                        {discountLabel && (
+                          <Badge className={isCashback ? 'bg-emerald-50 text-emerald-600 border-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-400' : 'bg-primary/10 text-primary border-primary/20'}>{discountLabel}</Badge>
+                        )}
+                        {isCashback && promo.cashback_validity_days && (
+                          <Badge variant="outline" className="text-xs">Validade: {promo.cashback_validity_days} dias</Badge>
+                        )}
+                      </div>
 
                       {/* Service + pricing */}
                       {promoSvcs.length === 1 && svc && (
