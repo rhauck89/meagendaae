@@ -70,7 +70,7 @@ interface PromoMetrics {
   clientsReached: number;
 }
 
-const MESSAGE_TAGS = [
+const MESSAGE_TAGS_TRADITIONAL = [
   { tag: '{{cliente_nome}}', label: 'Nome' },
   { tag: '{{cliente_primeiro_nome}}', label: 'Primeiro Nome' },
   { tag: '{{cliente_aniversario}}', label: 'Aniversário' },
@@ -80,6 +80,18 @@ const MESSAGE_TAGS = [
   { tag: '{{profissionais_promocao}}', label: 'Profissionais' },
   { tag: '{{valor_normal}}', label: 'Valor Normal' },
   { tag: '{{valor_promocional}}', label: 'Valor Promo' },
+  { tag: '{{link_promocao}}', label: 'Link' },
+];
+
+const MESSAGE_TAGS_CASHBACK = [
+  { tag: '{{cliente_nome}}', label: 'Nome' },
+  { tag: '{{cliente_primeiro_nome}}', label: 'Primeiro Nome' },
+  { tag: '{{empresa_nome}}', label: 'Empresa' },
+  { tag: '{{servicos_promocao}}', label: 'Serviços' },
+  { tag: '{{profissionais_promocao}}', label: 'Profissionais' },
+  { tag: '{{valor_cashback}}', label: 'Valor Cashback' },
+  { tag: '{{validade_cashback}}', label: 'Validade Cashback' },
+  { tag: '{{regras_cashback}}', label: 'Regras Cashback' },
   { tag: '{{link_promocao}}', label: 'Link' },
 ];
 
@@ -97,6 +109,26 @@ Garanta seu horário:
 {{link_promocao}}
 
 Te esperamos! 🙏`;
+
+const DEFAULT_CASHBACK_TEMPLATE = `Olá {{cliente_nome}}! 👋
+
+A *{{empresa_nome}}* preparou uma promoção especial para você! 🎉
+
+✂️ Serviço participante: {{servicos_promocao}}
+
+💰 Ao realizar este serviço você ganha *{{valor_cashback}} de cashback* para usar no seu próximo agendamento!
+
+📅 Profissionais participantes: {{profissionais_promocao}}
+
+⏳ Validade do cashback: {{validade_cashback}} dias após realizar o serviço.
+
+📌 Regras da promoção:
+{{regras_cashback}}
+
+⚠️ O cashback é válido somente para seu *próximo agendamento* e dentro do prazo informado.
+
+Agende agora e garanta seu benefício:
+{{link_promocao}}`;
 
 function generateSlug(title: string): string {
   return title.toLowerCase()
@@ -602,7 +634,7 @@ export default function Promotions() {
       return profNames.slice(0, -1).join(', ') + ' e ' + profNames[profNames.length - 1];
     })();
 
-    let msg = promotion.message_template || DEFAULT_TEMPLATE;
+    let msg = promotion.message_template || (promotion.promotion_type === 'cashback' ? DEFAULT_CASHBACK_TEMPLATE : DEFAULT_TEMPLATE);
     msg = msg.replace(/\{\{cliente_nome\}\}/g, client.name);
     msg = msg.replace(/\{\{cliente_primeiro_nome\}\}/g, client.name.split(' ')[0]);
     msg = msg.replace(/\{\{cliente_aniversario\}\}/g, client.birth_date ? format(parseISO(client.birth_date), 'dd/MM') : '');
@@ -613,6 +645,15 @@ export default function Promotions() {
     msg = msg.replace(/\{\{valor_normal\}\}/g, promotion.original_price ? `R$ ${Number(promotion.original_price).toFixed(2)}` : '');
     msg = msg.replace(/\{\{valor_promocional\}\}/g, promotion.promotion_price ? `R$ ${Number(promotion.promotion_price).toFixed(2)}` : '');
     msg = msg.replace(/\{\{link_promocao\}\}/g, promoLink);
+    // Cashback-specific tags
+    if (promotion.promotion_type === 'cashback') {
+      const cashbackVal = promotion.discount_type === 'percentage'
+        ? `${Number(promotion.discount_value || 0)}%`
+        : `R$ ${Number(promotion.discount_value || 0).toFixed(2)}`;
+      msg = msg.replace(/\{\{valor_cashback\}\}/g, cashbackVal);
+      msg = msg.replace(/\{\{validade_cashback\}\}/g, String(promotion.cashback_validity_days || 30));
+      msg = msg.replace(/\{\{regras_cashback\}\}/g, promotion.cashback_rules_text || '');
+    }
 
     return `https://wa.me/${number}?text=${encodeURIComponent(msg)}`;
   };
@@ -692,7 +733,7 @@ export default function Promotions() {
       {/* Promotion type selector */}
       <div>
         <Label>Tipo de Promoção *</Label>
-        <Select value={promotionType} onValueChange={(v: 'traditional' | 'cashback') => { setPromotionType(v); setWizardStep(1); if (v === 'cashback' && discountType === 'fixed_price') setDiscountType('percentage'); }}>
+        <Select value={promotionType} onValueChange={(v: 'traditional' | 'cashback') => { setPromotionType(v); setWizardStep(1); if (v === 'cashback' && discountType === 'fixed_price') setDiscountType('percentage'); setMessageTemplate(v === 'cashback' ? DEFAULT_CASHBACK_TEMPLATE : DEFAULT_TEMPLATE); }}>
           <SelectTrigger><SelectValue /></SelectTrigger>
           <SelectContent>
             <SelectItem value="traditional">Promoção Tradicional</SelectItem>
@@ -998,9 +1039,14 @@ export default function Promotions() {
       )}
 
       <div>
-        <Label>Mensagem WhatsApp</Label>
+        <div className="mb-2">
+          <Label>Mensagem WhatsApp</Label>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            {promotionType === 'cashback' ? 'Mensagem de divulgação da promoção com cashback' : 'Mensagem de divulgação da promoção'}
+          </p>
+        </div>
         <div className="flex flex-wrap gap-1 mb-2">
-          {MESSAGE_TAGS.map(t => (
+          {(promotionType === 'cashback' ? MESSAGE_TAGS_CASHBACK : MESSAGE_TAGS_TRADITIONAL).map(t => (
             <Button key={t.tag} type="button" variant="outline" size="sm" onClick={() => setMessageTemplate(prev => prev + t.tag)} className="text-xs h-7">
               <Tag className="h-3 w-3 mr-1" />{t.label}
             </Button>
