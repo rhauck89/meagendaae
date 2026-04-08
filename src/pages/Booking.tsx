@@ -283,6 +283,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
     checkCashback();
   }, [savedClientId, company?.id]);
 
+  useEffect(() => {
     if (slug) fetchCompany();
   }, [slug]);
 
