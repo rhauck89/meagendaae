@@ -1765,10 +1765,27 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                 </div>
               </div>
               <div style={{ borderTop: `1px solid ${T.border}` }} />
+              {/* Cashback credit */}
+              {cashbackCredits.length > 0 && (
+                <div className="rounded-xl p-3" style={{ background: `${T.accent}15`, border: `1px solid ${T.accent}30` }}>
+                  <label className="flex items-center justify-between cursor-pointer">
+                    <div>
+                      <p className="font-semibold text-sm">💰 Cashback disponível: R$ {cashbackTotal.toFixed(2)}</p>
+                      <p className="text-xs" style={{ color: T.textSec }}>Usar crédito neste agendamento</p>
+                    </div>
+                    <input type="checkbox" checked={useCashback} onChange={e => setUseCashback(e.target.checked)} className="w-5 h-5 rounded" />
+                  </label>
+                </div>
+              )}
               {/* Total */}
               <div className="flex justify-between items-center">
                 <span className="text-lg font-bold">Total</span>
-                <span className="text-2xl font-bold" style={{ color: T.accent }}>R$ {totalPrice.toFixed(2)}</span>
+                <div className="text-right">
+                  {cashbackDiscount > 0 && (
+                    <p className="text-xs line-through" style={{ color: T.textSec }}>R$ {totalPrice.toFixed(2)}</p>
+                  )}
+                  <span className="text-2xl font-bold" style={{ color: T.accent }}>R$ {finalPrice.toFixed(2)}</span>
+                </div>
               </div>
             </div>
             <Button
