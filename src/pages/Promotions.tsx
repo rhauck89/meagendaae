@@ -1059,7 +1059,7 @@ export default function Promotions() {
                 </Button>
               ) : <div />}
 
-              {wizardStep < 3 ? (
+              {wizardStep < totalSteps ? (
                 <Button onClick={goNext}>
                   Próximo<ChevronRight className="h-4 w-4 ml-1" />
                 </Button>
