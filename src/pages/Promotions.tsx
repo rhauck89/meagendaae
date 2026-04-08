@@ -371,11 +371,11 @@ export default function Promotions() {
     if (wizardStep === 1) {
       const err = validateStep1();
       if (err) { toast({ title: err, variant: 'destructive' }); return; }
-    } else if (wizardStep === 2) {
+    } else if ((promotionType === 'cashback' && wizardStep === 3) || (promotionType === 'traditional' && wizardStep === 2)) {
       const err = validateStep2();
       if (err) { toast({ title: err, variant: 'destructive' }); return; }
     }
-    setWizardStep(prev => Math.min(prev + 1, 3));
+    setWizardStep(prev => Math.min(prev + 1, totalSteps));
   };
 
   const goBack = () => setWizardStep(prev => Math.max(prev - 1, 1));
@@ -531,12 +531,14 @@ export default function Promotions() {
   };
 
   const resetForm = () => {
+    setPromotionType('traditional');
     setTitle(''); setDescription(''); setSelectedServiceId(''); setSelectedServiceIds([]);
     setServiceSelectionMode('single'); setDiscountType('fixed_price'); setDiscountValue('');
     setPromotionPrice('');
     setStartDate(''); setEndDate(''); setSingleDay(false); setStartTime(''); setEndTime(''); setMaxSlots('10');
     setClientFilter('all'); setClientFilterValue('30'); setProfessionalFilter('all');
     setSelectedProfessionalIds([]); setMessageTemplate(DEFAULT_TEMPLATE);
+    setCashbackValidityDays('30'); setCashbackRulesText(''); setCashbackCumulative(false);
     setWizardStep(1);
   };
 
