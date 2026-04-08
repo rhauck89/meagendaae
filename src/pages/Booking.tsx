@@ -1179,19 +1179,34 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
           <div className="rounded-2xl p-4 space-y-2" style={{ background: `${T.accent}15`, border: `1px solid ${T.accent}40` }}>
             <div className="flex items-center gap-2">
               <Sparkles className="h-4 w-4" style={{ color: T.accent }} />
-              <span className="text-xs font-bold uppercase tracking-wider" style={{ color: T.accent }}>Promoção</span>
+              <span className="text-xs font-bold uppercase tracking-wider" style={{ color: T.accent }}>
+                {isCashbackPromo ? 'Promoção Cashback' : 'Promoção'}
+              </span>
             </div>
             <p className="font-bold text-base">{promoData.title}</p>
-            {promoData.service_name && (
-              <div className="flex items-center gap-3">
-                <span className="text-sm" style={{ color: T.textSec }}>{promoData.service_name}</span>
-                {promoData.original_price != null && promoData.promotion_price != null && (
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm line-through" style={{ color: T.textSec }}>R$ {Number(promoData.original_price).toFixed(2)}</span>
-                    <span className="text-sm font-bold" style={{ color: T.accent }}>R$ {Number(promoData.promotion_price).toFixed(2)}</span>
-                  </div>
+            {isCashbackPromo ? (
+              <div className="space-y-1">
+                <p className="text-sm" style={{ color: T.accent }}>
+                  💰 Ganhe {promoData.discount_type === 'percentage' ? `${promoData.discount_value}%` : `R$ ${Number(promoData.discount_value || 0).toFixed(2)}`} de cashback após concluir o serviço!
+                </p>
+                {promoData.cashback_validity_days && (
+                  <p className="text-xs" style={{ color: T.textSec }}>
+                    Válido por {promoData.cashback_validity_days} dias para uso no próximo agendamento
+                  </p>
                 )}
               </div>
+            ) : (
+              promoData.service_name && (
+                <div className="flex items-center gap-3">
+                  <span className="text-sm" style={{ color: T.textSec }}>{promoData.service_name}</span>
+                  {promoData.original_price != null && promoData.promotion_price != null && (
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm line-through" style={{ color: T.textSec }}>R$ {Number(promoData.original_price).toFixed(2)}</span>
+                      <span className="text-sm font-bold" style={{ color: T.accent }}>R$ {Number(promoData.promotion_price).toFixed(2)}</span>
+                    </div>
+                  )}
+                </div>
+              )
             )}
           </div>
         )}
@@ -1242,7 +1257,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                           <Clock className="h-3.5 w-3.5" /> {svc.duration_minutes} min
                         </span>
                       </div>
-                      {isPromoMode && promoData && promoServiceIds.includes(svc.id) ? (() => {
+                      {isPromoMode && promoData && !isCashbackPromo && promoServiceIds.includes(svc.id) ? (() => {
                         const orig = Number(svc.price);
                         let promo = orig;
                         if (promoData.discount_type === 'percentage' && promoData.discount_value) {
@@ -1258,7 +1273,12 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                             <p className="font-bold text-lg" style={{ color: T.accent }}>R$ {promo.toFixed(2)}</p>
                           </div>
                         );
-                      })() : (
+                      })() : isCashbackPromo && promoServiceIds.includes(svc.id) ? (
+                        <div className="text-right shrink-0">
+                          <p className="font-bold text-lg" style={{ color: T.accent }}>R$ {Number(svc.price).toFixed(2)}</p>
+                          <p className="text-xs" style={{ color: '#10b981' }}>💰 cashback</p>
+                        </div>
+                      ) : (
                         <p className="font-bold text-lg shrink-0" style={{ color: T.accent }}>R$ {Number(svc.price).toFixed(2)}</p>
                       )}
                     </div>
@@ -1789,7 +1809,18 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                 </div>
               </div>
               <div style={{ borderTop: `1px solid ${T.border}` }} />
-              {/* Cashback credit */}
+              {/* Cashback earn info for cashback promo */}
+              {isCashbackPromo && cashbackEarnAmount > 0 && (
+                <div className="rounded-xl p-3" style={{ background: '#10b98115', border: '1px solid #10b98130' }}>
+                  <p className="font-semibold text-sm" style={{ color: '#10b981' }}>
+                    💰 Você ganhará R$ {cashbackEarnAmount.toFixed(2)} de cashback
+                  </p>
+                  <p className="text-xs" style={{ color: T.textSec }}>
+                    Crédito disponível após conclusão do serviço{promoData?.cashback_validity_days ? `, válido por ${promoData.cashback_validity_days} dias` : ''}
+                  </p>
+                </div>
+              )}
+              {/* Cashback credit (use existing credits) */}
               {cashbackCredits.length > 0 && (
                 <div className="rounded-xl p-3" style={{ background: `${T.accent}15`, border: `1px solid ${T.accent}30` }}>
                   <label className="flex items-center justify-between cursor-pointer">
