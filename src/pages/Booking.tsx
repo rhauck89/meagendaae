@@ -896,7 +896,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
 
       const appointmentPayload = {
         p_professional_id: selectedProfessional, p_client_id: clientId,
-        p_start_time: startTime.toISOString(), p_end_time: endTime.toISOString(), p_total_price: totalPrice,
+        p_start_time: startTime.toISOString(), p_end_time: endTime.toISOString(), p_total_price: finalPrice,
         p_client_name: clientForm.full_name ?? null,
         p_client_whatsapp: formattedWhatsapp ?? null,
         p_notes: null as string | null,
