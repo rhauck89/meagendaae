@@ -724,7 +724,7 @@ export default function Promotions() {
       {/* Promotion type selector */}
       <div>
         <Label>Tipo de Promoção *</Label>
-        <Select value={promotionType} onValueChange={(v: 'traditional' | 'cashback') => { setPromotionType(v); setWizardStep(1); if (v === 'cashback' && discountType === 'fixed_price') setDiscountType('percentage'); }}>
+        <Select value={promotionType} onValueChange={(v: 'traditional' | 'cashback') => { setPromotionType(v); setWizardStep(1); if (v === 'cashback' && discountType === 'fixed_price') setDiscountType('percentage'); setMessageTemplate(v === 'cashback' ? DEFAULT_CASHBACK_TEMPLATE : DEFAULT_TEMPLATE); }}>
           <SelectTrigger><SelectValue /></SelectTrigger>
           <SelectContent>
             <SelectItem value="traditional">Promoção Tradicional</SelectItem>
@@ -1030,9 +1030,14 @@ export default function Promotions() {
       )}
 
       <div>
-        <Label>Mensagem WhatsApp</Label>
+        <div className="mb-2">
+          <Label>Mensagem WhatsApp</Label>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            {promotionType === 'cashback' ? 'Mensagem de divulgação da promoção com cashback' : 'Mensagem de divulgação da promoção'}
+          </p>
+        </div>
         <div className="flex flex-wrap gap-1 mb-2">
-          {MESSAGE_TAGS.map(t => (
+          {(promotionType === 'cashback' ? MESSAGE_TAGS_CASHBACK : MESSAGE_TAGS_TRADITIONAL).map(t => (
             <Button key={t.tag} type="button" variant="outline" size="sm" onClick={() => setMessageTemplate(prev => prev + t.tag)} className="text-xs h-7">
               <Tag className="h-3 w-3 mr-1" />{t.label}
             </Button>
