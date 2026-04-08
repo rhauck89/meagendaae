@@ -341,11 +341,16 @@ export default function Promotions() {
     const effectiveIds = getEffectiveServiceIds();
     if (effectiveIds.length === 0) return 'Selecione ao menos um serviço';
     
-    if (discountType === 'fixed_price') {
+    if (promotionType === 'cashback') {
+      // Cashback only uses percentage or fixed_amount
+      if (!discountValue) return 'Informe o valor do cashback';
+      const val = parseFloat(discountValue);
+      if (val <= 0) return 'O valor do cashback deve ser maior que zero';
+      if (discountType === 'percentage' && val >= 100) return 'O percentual de cashback deve ser menor que 100%';
+    } else if (discountType === 'fixed_price') {
       if (!promotionPrice) return 'Informe o preço promocional';
       const promo = parseFloat(promotionPrice);
       if (promo <= 0) return 'O preço promocional deve ser maior que zero';
-      // For single service, validate against original
       if (effectiveIds.length === 1) {
         const svc = services.find(s => s.id === effectiveIds[0]);
         if (svc && promo >= Number(svc.price)) return 'O preço promocional deve ser menor que o preço original';
@@ -1120,11 +1125,18 @@ export default function Promotions() {
                 const promoServiceIds = promo.service_ids || (promo.service_id ? [promo.service_id] : []);
                 const promoSvcs = services.filter(s => promoServiceIds.includes(s.id));
                 const isHighlighted = promo.id === highlightedPromoId;
-                const discountLabel = promo.discount_type === 'percentage' && promo.discount_value
-                  ? `${promo.discount_value}% OFF`
-                  : promo.discount_type === 'fixed_amount' && promo.discount_value
-                  ? `R$ ${Number(promo.discount_value).toFixed(2)} OFF`
-                  : null;
+                const isCashback = promo.promotion_type === 'cashback';
+                const discountLabel = isCashback
+                  ? (promo.discount_type === 'percentage' && promo.discount_value
+                    ? `${promo.discount_value}% Cashback`
+                    : promo.discount_type === 'fixed_amount' && promo.discount_value
+                    ? `R$ ${Number(promo.discount_value).toFixed(2)} Cashback`
+                    : null)
+                  : (promo.discount_type === 'percentage' && promo.discount_value
+                    ? `${promo.discount_value}% OFF`
+                    : promo.discount_type === 'fixed_amount' && promo.discount_value
+                    ? `R$ ${Number(promo.discount_value).toFixed(2)} OFF`
+                    : null);
 
                 return (
                   <Card key={promo.id} className={`transition-all duration-500 ${status === 'expired' || status === 'paused' ? 'opacity-70' : ''} ${isHighlighted ? 'ring-2 ring-primary shadow-lg animate-pulse' : ''}`}>
