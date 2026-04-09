@@ -1261,6 +1261,18 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                 </div>
               </div>
             )}
+            {/* Loyalty points indicator */}
+            {loyaltyPoints > 0 && (
+              <div className="rounded-xl p-3 flex items-center gap-3" style={{ background: `${T.accent}10`, border: `1px solid ${T.accent}25` }}>
+                <span className="text-lg">⭐</span>
+                <div>
+                  <p className="font-semibold text-sm" style={{ color: T.accent }}>
+                    Você possui {loyaltyPoints} pontos no programa de fidelidade
+                  </p>
+                  <p className="text-xs" style={{ color: T.textSec }}>Acumule pontos e troque por recompensas</p>
+                </div>
+              </div>
+            )}
             <div className="space-y-3">
               {(() => {
                 const promoServiceIds = promoData?.service_ids || (promoData?.service_id ? [promoData.service_id] : []);
