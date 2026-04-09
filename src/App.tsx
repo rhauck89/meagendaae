@@ -32,6 +32,7 @@ import Clients from "./pages/Clients";
 import Events from "./pages/Events";
 import EventPublic from "./pages/EventPublic";
 import Promotions from "./pages/Promotions";
+import Loyalty from "./pages/Loyalty";
 import PromotionPublic from "./pages/PromotionPublic";
 import DashboardLayout from "./components/DashboardLayout";
 import SuperAdminLayout from "./components/SuperAdminLayout";
@@ -163,6 +164,7 @@ const PlatformRoutes = () => (
     <Route path="/dashboard/my-finance" element={<DashboardRoute><ProfessionalFinance /></DashboardRoute>} />
     <Route path="/dashboard/events" element={<DashboardRoute><Events /></DashboardRoute>} />
     <Route path="/dashboard/promotions" element={<DashboardRoute><Promotions /></DashboardRoute>} />
+    <Route path="/dashboard/loyalty" element={<DashboardRoute><Loyalty /></DashboardRoute>} />
     <Route path="/dashboard/support" element={<DashboardRoute><Support /></DashboardRoute>} />
     <Route path="/dashboard/solicitacoes" element={<DashboardRoute><AppointmentRequests /></DashboardRoute>} />
     <Route path="/dashboard/help" element={<DashboardRoute><HelpCenter /></DashboardRoute>} />

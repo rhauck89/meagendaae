@@ -36,6 +36,7 @@ const adminNavItems = [
   { href: '/dashboard/clients', icon: UserCheck, label: 'Clientes' },
   { href: '/dashboard/events', icon: PartyPopper, label: 'Agenda Aberta' },
   { href: '/dashboard/promotions', icon: Megaphone, label: 'Promoções' },
+  { href: '/dashboard/loyalty', icon: Star, label: 'Fidelidade' },
   { href: '/dashboard/solicitacoes', icon: Inbox, label: 'Solicitações' },
 ];
 
