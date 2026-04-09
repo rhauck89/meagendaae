@@ -1278,6 +1278,11 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                 <div>
                   <p className="font-semibold text-sm" style={{ color: T.accent }}>
                     Você possui {loyaltyPoints} pontos no programa de fidelidade
+                    {loyaltyPointValue > 0 && (
+                      <span className="font-normal text-xs ml-1" style={{ color: T.textSec }}>
+                        (equivalente a R$ {(loyaltyPoints * loyaltyPointValue).toFixed(2).replace('.', ',')})
+                      </span>
+                    )}
                   </p>
                   <p className="text-xs" style={{ color: T.textSec }}>Acumule pontos e troque por recompensas</p>
                 </div>
