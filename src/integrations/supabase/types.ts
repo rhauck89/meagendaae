@@ -649,6 +649,8 @@ export type Database = {
           name: string
           next_recommended_visit: string | null
           opt_in_whatsapp: boolean
+          registration_complete: boolean
+          user_id: string | null
           whatsapp: string | null
         }
         Insert: {
@@ -662,6 +664,8 @@ export type Database = {
           name: string
           next_recommended_visit?: string | null
           opt_in_whatsapp?: boolean
+          registration_complete?: boolean
+          user_id?: string | null
           whatsapp?: string | null
         }
         Update: {
@@ -675,6 +679,8 @@ export type Database = {
           name?: string
           next_recommended_visit?: string | null
           opt_in_whatsapp?: boolean
+          registration_complete?: boolean
+          user_id?: string | null
           whatsapp?: string | null
         }
         Relationships: [
@@ -4250,6 +4256,10 @@ export type Database = {
         Args: { p_appointment_id: string }
         Returns: Json
       }
+      check_client_registration: {
+        Args: { p_client_id: string }
+        Returns: boolean
+      }
       create_appointment: {
         Args: {
           p_client_id: string
@@ -4376,6 +4386,10 @@ export type Database = {
             }
             Returns: string
           }
+      link_client_to_user: {
+        Args: { p_phone: string; p_user_id: string }
+        Returns: undefined
+      }
       lookup_client_by_whatsapp: {
         Args: { _company_id: string; _whatsapp: string }
         Returns: string

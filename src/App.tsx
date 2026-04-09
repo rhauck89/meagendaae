@@ -53,6 +53,8 @@ import NotFound from "./pages/NotFound";
 import AppRedirect from "./pages/AppRedirect";
 import CompanySelector from "./pages/CompanySelector";
 import AppointmentRequests from "./pages/AppointmentRequests";
+import ClientPortal from "./pages/ClientPortal";
+import ClientAuth from "./pages/ClientAuth";
 
 // Settings sub-pages
 import SettingsGeneral from "./pages/settings/SettingsGeneral";
@@ -139,6 +141,8 @@ const PlatformRoutes = () => (
     <Route path="/perfil/estetica/:slug/:professionalSlug" element={<ProfessionalPublicProfile />} />
     <Route path="/booking/:slug" element={<Booking />} />
     <Route path="/my-appointments" element={<MyAppointments />} />
+    <Route path="/minha-conta" element={<ProtectedRoute><ClientPortal /></ProtectedRoute>} />
+    <Route path="/cliente/auth" element={<ClientAuth />} />
     <Route path="/review/:appointmentId" element={<ReviewPage />} />
     <Route path="/cancel/:appointmentId" element={<CancelAppointment />} />
     <Route path="/reschedule/:appointmentId" element={<RescheduleAppointment />} />

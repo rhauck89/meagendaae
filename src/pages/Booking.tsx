@@ -2130,6 +2130,9 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                 <Button onClick={resetBooking} className="w-full rounded-xl py-6 font-semibold text-base shadow-lg transition-all hover:scale-[1.01]" style={{ background: T.accent, color: '#000' }}>
                   <RotateCcw className="h-4 w-4 mr-2" /> Agendar outro serviço
                 </Button>
+                <button onClick={() => window.location.href = '/cliente/auth'} className="w-full py-3 rounded-xl text-sm font-medium hover:opacity-80 flex items-center justify-center gap-2" style={{ color: T.accent }}>
+                  <User className="h-4 w-4" /> Acessar Minha Conta
+                </button>
                 <button onClick={() => window.location.href = '/'} className="w-full py-3 rounded-xl text-sm font-medium hover:opacity-80" style={{ color: T.textSec }}>
                   <Home className="h-4 w-4 mr-1 inline" /> Voltar ao início
                 </button>
