@@ -53,6 +53,8 @@ import NotFound from "./pages/NotFound";
 import AppRedirect from "./pages/AppRedirect";
 import CompanySelector from "./pages/CompanySelector";
 import AppointmentRequests from "./pages/AppointmentRequests";
+import ClientPortal from "./pages/ClientPortal";
+import ClientAuth from "./pages/ClientAuth";
 
 // Settings sub-pages
 import SettingsGeneral from "./pages/settings/SettingsGeneral";
