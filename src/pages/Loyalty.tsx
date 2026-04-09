@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
@@ -11,10 +11,10 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Star, Trophy, Gift, ArrowUpDown, Settings, Eye, Plus, Pencil, Trash2, AlertTriangle, CheckCircle, XCircle, Search } from 'lucide-react';
+import { Textarea } from '@/components/ui/textarea';
+import { Star, Trophy, Gift, ArrowUpDown, Settings, Eye, Plus, Pencil, Trash2, AlertTriangle, CheckCircle, XCircle, Search, Upload, ImageIcon } from 'lucide-react';
 import { toast } from 'sonner';
-import { format, parseISO, differenceInDays } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
+import { format, parseISO } from 'date-fns';
 import { cn } from '@/lib/utils';
 
 const Loyalty = () => {
@@ -28,6 +28,7 @@ const Loyalty = () => {
   const [scoringType, setScoringType] = useState('per_service');
   const [pointsPerService, setPointsPerService] = useState(10);
   const [pointsPerCurrency, setPointsPerCurrency] = useState(1);
+  const [pointValue, setPointValue] = useState(0.05);
   const [participatingServices, setParticipatingServices] = useState('all');
   const [participatingProfessionals, setParticipatingProfessionals] = useState('all');
   const [specificServiceIds, setSpecificServiceIds] = useState<string[]>([]);
@@ -44,8 +45,11 @@ const Loyalty = () => {
   const [rewardName, setRewardName] = useState('');
   const [rewardDesc, setRewardDesc] = useState('');
   const [rewardType, setRewardType] = useState('service');
-  const [rewardPoints, setRewardPoints] = useState(100);
-  const [rewardExtraCost, setRewardExtraCost] = useState(0);
+  const [rewardRealValue, setRewardRealValue] = useState(0);
+  const [rewardImageFile, setRewardImageFile] = useState<File | null>(null);
+  const [rewardImagePreview, setRewardImagePreview] = useState<string | null>(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Transactions
   const [transactions, setTransactions] = useState<any[]>([]);
@@ -53,12 +57,14 @@ const Loyalty = () => {
 
   // Redemptions
   const [redemptions, setRedemptions] = useState<any[]>([]);
-  const [validateDialog, setValidateDialog] = useState(false);
   const [validateCode, setValidateCode] = useState('');
 
   // Overview stats
   const [stats, setStats] = useState({ totalIssued: 0, totalRedeemed: 0, totalActive: 0 });
   const [topClients, setTopClients] = useState<any[]>([]);
+
+  // Auto-calculate points from real value
+  const calculatedPoints = pointValue > 0 ? Math.ceil(rewardRealValue / pointValue) : 0;
 
   const fetchConfig = useCallback(async () => {
     if (!companyId) return;
@@ -70,15 +76,17 @@ const Loyalty = () => {
       .maybeSingle();
 
     if (data) {
-      setConfig(data);
-      setEnabled((data as any).enabled);
-      setScoringType((data as any).scoring_type);
-      setPointsPerService((data as any).points_per_service);
-      setPointsPerCurrency(Number((data as any).points_per_currency));
-      setParticipatingServices((data as any).participating_services);
-      setParticipatingProfessionals((data as any).participating_professionals);
-      setSpecificServiceIds((data as any).specific_service_ids || []);
-      setSpecificProfessionalIds((data as any).specific_professional_ids || []);
+      const d = data as any;
+      setConfig(d);
+      setEnabled(d.enabled);
+      setScoringType(d.scoring_type);
+      setPointsPerService(d.points_per_service);
+      setPointsPerCurrency(Number(d.points_per_currency));
+      setPointValue(Number(d.point_value) || 0.05);
+      setParticipatingServices(d.participating_services);
+      setParticipatingProfessionals(d.participating_professionals);
+      setSpecificServiceIds(d.specific_service_ids || []);
+      setSpecificProfessionalIds(d.specific_professional_ids || []);
     }
     setConfigLoading(false);
   }, [companyId]);
@@ -148,7 +156,6 @@ const Loyalty = () => {
       setStats({ totalIssued: issued, totalRedeemed: redeemed, totalActive: issued - redeemed });
     }
 
-    // Top clients by balance
     const { data: clientTx } = await supabase
       .from('loyalty_points_transactions' as any)
       .select('client_id, points, transaction_type, clients:client_id(name)')
@@ -186,6 +193,7 @@ const Loyalty = () => {
       scoring_type: scoringType,
       points_per_service: pointsPerService,
       points_per_currency: pointsPerCurrency,
+      point_value: pointValue,
       participating_services: participatingServices,
       participating_professionals: participatingProfessionals,
       specific_service_ids: specificServiceIds,
@@ -201,15 +209,46 @@ const Loyalty = () => {
     fetchConfig();
   };
 
+  const uploadRewardImage = async (file: File): Promise<string | null> => {
+    if (!companyId) return null;
+    setUploadingImage(true);
+    try {
+      const ext = file.name.split('.').pop();
+      const path = `${companyId}/${Date.now()}.${ext}`;
+      const { error } = await supabase.storage.from('loyalty-rewards').upload(path, file, { upsert: true });
+      if (error) {
+        // Bucket may not exist yet - just skip image
+        console.error('Upload error:', error);
+        toast.error('Erro ao fazer upload da imagem');
+        return null;
+      }
+      const { data: urlData } = supabase.storage.from('loyalty-rewards').getPublicUrl(path);
+      return urlData.publicUrl;
+    } finally {
+      setUploadingImage(false);
+    }
+  };
+
   const saveRewardItem = async () => {
     if (!companyId || !rewardName.trim()) return;
+
+    let imageUrl = editingReward?.image_url || null;
+    if (rewardImageFile) {
+      const uploaded = await uploadRewardImage(rewardImageFile);
+      if (uploaded) imageUrl = uploaded;
+    }
+
+    const autoPoints = pointValue > 0 ? Math.ceil(rewardRealValue / pointValue) : 0;
+
     const payload = {
       company_id: companyId,
       name: rewardName,
       description: rewardDesc,
       item_type: rewardType,
-      points_required: rewardPoints,
-      extra_cost: rewardExtraCost,
+      real_value: rewardRealValue,
+      points_required: autoPoints,
+      extra_cost: 0,
+      image_url: imageUrl,
     };
 
     if (editingReward) {
@@ -218,10 +257,19 @@ const Loyalty = () => {
       await supabase.from('loyalty_reward_items' as any).insert(payload as any);
     }
     setRewardDialog(false);
-    setEditingReward(null);
-    setRewardName(''); setRewardDesc(''); setRewardType('service'); setRewardPoints(100); setRewardExtraCost(0);
+    resetRewardForm();
     fetchRewardItems();
     toast.success(editingReward ? 'Item atualizado!' : 'Item cadastrado!');
+  };
+
+  const resetRewardForm = () => {
+    setEditingReward(null);
+    setRewardName('');
+    setRewardDesc('');
+    setRewardType('service');
+    setRewardRealValue(0);
+    setRewardImageFile(null);
+    setRewardImagePreview(null);
   };
 
   const deleteRewardItem = async (id: string) => {
@@ -240,7 +288,6 @@ const Loyalty = () => {
     } as any).eq('id', redemptionId);
 
     if (action === 'cancelled' && redemption.client_id && companyId) {
-      // Return points
       const { data: lastTx } = await supabase
         .from('loyalty_points_transactions' as any)
         .select('balance_after')
@@ -287,9 +334,7 @@ const Loyalty = () => {
       return;
     }
 
-    // Confirm it
     await handleValidateRedemption((data as any).id, 'confirmed');
-    setValidateDialog(false);
     setValidateCode('');
   };
 
@@ -298,9 +343,19 @@ const Loyalty = () => {
     setRewardName(item.name);
     setRewardDesc(item.description || '');
     setRewardType(item.item_type);
-    setRewardPoints(item.points_required);
-    setRewardExtraCost(Number(item.extra_cost));
+    setRewardRealValue(Number(item.real_value) || 0);
+    setRewardImageFile(null);
+    setRewardImagePreview(item.image_url || null);
     setRewardDialog(true);
+  };
+
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setRewardImageFile(file);
+    const reader = new FileReader();
+    reader.onload = () => setRewardImagePreview(reader.result as string);
+    reader.readAsDataURL(file);
   };
 
   const typeLabel: Record<string, string> = { product: 'Produto', service: 'Serviço', discount: 'Desconto' };
@@ -310,6 +365,8 @@ const Loyalty = () => {
   const filteredTransactions = txFilter
     ? transactions.filter((t: any) => (t.clients?.name || '').toLowerCase().includes(txFilter.toLowerCase()))
     : transactions;
+
+  const formatCurrency = (v: number) => `R$ ${v.toFixed(2).replace('.', ',')}`;
 
   return (
     <div className="space-y-6">
@@ -333,18 +390,21 @@ const Loyalty = () => {
               <CardContent className="pt-6">
                 <p className="text-sm text-muted-foreground">Pontos emitidos</p>
                 <p className="text-2xl font-bold text-primary">{stats.totalIssued.toLocaleString('pt-BR')}</p>
+                {pointValue > 0 && <p className="text-xs text-muted-foreground mt-1">≈ {formatCurrency(stats.totalIssued * pointValue)}</p>}
               </CardContent>
             </Card>
             <Card>
               <CardContent className="pt-6">
                 <p className="text-sm text-muted-foreground">Pontos resgatados</p>
                 <p className="text-2xl font-bold text-destructive">{stats.totalRedeemed.toLocaleString('pt-BR')}</p>
+                {pointValue > 0 && <p className="text-xs text-muted-foreground mt-1">≈ {formatCurrency(stats.totalRedeemed * pointValue)}</p>}
               </CardContent>
             </Card>
             <Card>
               <CardContent className="pt-6">
                 <p className="text-sm text-muted-foreground">Pontos ativos</p>
                 <p className="text-2xl font-bold text-success">{stats.totalActive.toLocaleString('pt-BR')}</p>
+                {pointValue > 0 && <p className="text-xs text-muted-foreground mt-1">≈ {formatCurrency(stats.totalActive * pointValue)}</p>}
               </CardContent>
             </Card>
           </div>
@@ -393,7 +453,10 @@ const Loyalty = () => {
                         </span>
                         <span className="text-sm font-medium">{c.name}</span>
                       </div>
-                      <Badge variant="secondary">{c.balance} pts</Badge>
+                      <div className="text-right">
+                        <Badge variant="secondary">{c.balance} pts</Badge>
+                        {pointValue > 0 && <p className="text-[10px] text-muted-foreground mt-0.5">≈ {formatCurrency(c.balance * pointValue)}</p>}
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -449,6 +512,18 @@ const Loyalty = () => {
                       </div>
                     </div>
                   )}
+
+                  {/* Point value for redemption */}
+                  <div className="space-y-1 p-4 rounded-lg border border-primary/20 bg-primary/5">
+                    <Label className="text-sm font-medium">Valor de cada ponto no resgate (R$)</Label>
+                    <Input type="number" min={0.01} step={0.01} value={pointValue} onChange={e => setPointValue(parseFloat(e.target.value) || 0.01)} className="max-w-xs" />
+                    <p className="text-xs text-muted-foreground">
+                      1 ponto = {formatCurrency(pointValue)} · 100 pontos = {formatCurrency(100 * pointValue)} · 1000 pontos = {formatCurrency(1000 * pointValue)}
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Este valor é usado para calcular automaticamente quantos pontos são necessários para resgatar cada item.
+                    </p>
+                  </div>
 
                   {/* Participating services */}
                   <div className="space-y-2">
@@ -515,51 +590,94 @@ const Loyalty = () => {
         <TabsContent value="rewards" className="space-y-4 mt-4">
           <div className="flex items-center justify-between">
             <h3 className="font-semibold">Itens disponíveis para resgate</h3>
-            <Button size="sm" onClick={() => { setEditingReward(null); setRewardName(''); setRewardDesc(''); setRewardType('service'); setRewardPoints(100); setRewardExtraCost(0); setRewardDialog(true); }}>
+            <Button size="sm" onClick={() => { resetRewardForm(); setRewardDialog(true); }}>
               <Plus className="h-4 w-4 mr-1" /> Novo item
             </Button>
           </div>
+
+          {pointValue <= 0 && (
+            <div className="p-3 rounded-lg bg-warning/10 border border-warning/20 flex gap-2">
+              <AlertTriangle className="h-4 w-4 text-warning shrink-0 mt-0.5" />
+              <p className="text-xs text-warning">Configure o "Valor de cada ponto no resgate" nas Configurações para que os pontos sejam calculados automaticamente.</p>
+            </div>
+          )}
 
           {rewardItems.length === 0 ? (
             <Card><CardContent className="py-8 text-center text-muted-foreground">Nenhum item cadastrado. Crie itens de resgate para seus clientes.</CardContent></Card>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {rewardItems.map((item: any) => (
-                <Card key={item.id} className={cn(!item.active && 'opacity-50')}>
-                  <CardContent className="pt-4 space-y-2">
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <p className="font-medium">{item.name}</p>
-                        <Badge variant="outline" className="text-xs mt-1">{typeLabel[item.item_type]}</Badge>
+              {rewardItems.map((item: any) => {
+                const itemRealValue = Number(item.real_value) || 0;
+                const itemPoints = Number(item.points_required) || 0;
+                return (
+                  <Card key={item.id} className={cn(!item.active && 'opacity-50')}>
+                    <CardContent className="pt-4 space-y-2">
+                      {item.image_url && (
+                        <div className="w-full h-32 rounded-lg overflow-hidden bg-muted mb-2">
+                          <img src={item.image_url} alt={item.name} className="w-full h-full object-cover" />
+                        </div>
+                      )}
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <p className="font-medium">{item.name}</p>
+                          <Badge variant="outline" className="text-xs mt-1">{typeLabel[item.item_type]}</Badge>
+                        </div>
+                        <div className="flex gap-1">
+                          <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => openEditReward(item)}><Pencil className="h-3.5 w-3.5" /></Button>
+                          <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => deleteRewardItem(item.id)}><Trash2 className="h-3.5 w-3.5" /></Button>
+                        </div>
                       </div>
-                      <div className="flex gap-1">
-                        <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => openEditReward(item)}><Pencil className="h-3.5 w-3.5" /></Button>
-                        <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => deleteRewardItem(item.id)}><Trash2 className="h-3.5 w-3.5" /></Button>
+                      {item.description && <p className="text-xs text-muted-foreground">{item.description}</p>}
+                      <div className="space-y-1 mt-2 p-2 rounded bg-muted/50">
+                        <div className="flex items-center gap-2">
+                          <Star className="h-4 w-4 text-amber-500" />
+                          <span className="font-bold text-sm">{itemPoints.toLocaleString('pt-BR')} pontos</span>
+                        </div>
+                        {itemRealValue > 0 && (
+                          <p className="text-xs text-muted-foreground">Valor do item: {formatCurrency(itemRealValue)}</p>
+                        )}
                       </div>
-                    </div>
-                    {item.description && <p className="text-xs text-muted-foreground">{item.description}</p>}
-                    <div className="flex items-center gap-2 mt-2">
-                      <Star className="h-4 w-4 text-amber-500" />
-                      <span className="font-bold text-sm">{item.points_required} pontos</span>
-                      {Number(item.extra_cost) > 0 && <span className="text-xs text-muted-foreground">+ R$ {Number(item.extra_cost).toFixed(2)}</span>}
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+                    </CardContent>
+                  </Card>
+                );
+              })}
             </div>
           )}
 
           {/* Reward dialog */}
           <Dialog open={rewardDialog} onOpenChange={setRewardDialog}>
-            <DialogContent>
+            <DialogContent className="max-w-md">
               <DialogHeader>
                 <DialogTitle>{editingReward ? 'Editar item' : 'Novo item de resgate'}</DialogTitle>
                 <DialogDescription>Configure o item que os clientes poderão resgatar com pontos.</DialogDescription>
               </DialogHeader>
               <div className="space-y-4">
+                {/* Image upload */}
+                <div className="space-y-1">
+                  <Label>Imagem</Label>
+                  <input ref={fileInputRef} type="file" accept="image/*" onChange={handleImageSelect} className="hidden" />
+                  {rewardImagePreview ? (
+                    <div className="relative w-full h-32 rounded-lg overflow-hidden bg-muted border cursor-pointer" onClick={() => fileInputRef.current?.click()}>
+                      <img src={rewardImagePreview} alt="Preview" className="w-full h-full object-cover" />
+                      <div className="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
+                        <Upload className="h-6 w-6 text-white" />
+                      </div>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="w-full h-24 rounded-lg border-2 border-dashed border-muted-foreground/30 flex flex-col items-center justify-center gap-1 hover:border-primary/50 transition-colors"
+                    >
+                      <ImageIcon className="h-6 w-6 text-muted-foreground" />
+                      <span className="text-xs text-muted-foreground">Clique para adicionar imagem</span>
+                    </button>
+                  )}
+                </div>
+
                 <div className="space-y-1">
                   <Label>Nome</Label>
-                  <Input value={rewardName} onChange={e => setRewardName(e.target.value)} placeholder="Ex: Corte Masculino" />
+                  <Input value={rewardName} onChange={e => setRewardName(e.target.value)} placeholder="Ex: Pomada Modeladora" />
                 </div>
                 <div className="space-y-1">
                   <Label>Descrição</Label>
@@ -576,18 +694,28 @@ const Loyalty = () => {
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-1">
-                    <Label>Pontos necessários</Label>
-                    <Input type="number" min={1} value={rewardPoints} onChange={e => setRewardPoints(parseInt(e.target.value) || 1)} />
-                  </div>
-                  <div className="space-y-1">
-                    <Label>Valor adicional (R$)</Label>
-                    <Input type="number" min={0} step={0.01} value={rewardExtraCost} onChange={e => setRewardExtraCost(parseFloat(e.target.value) || 0)} />
-                    <p className="text-[10px] text-muted-foreground">0 = somente pontos</p>
-                  </div>
+                <div className="space-y-1">
+                  <Label>Valor real do item (R$)</Label>
+                  <Input type="number" min={0} step={0.01} value={rewardRealValue} onChange={e => setRewardRealValue(parseFloat(e.target.value) || 0)} />
+                  <p className="text-xs text-muted-foreground">Informe o valor de mercado do item</p>
                 </div>
-                <Button className="w-full" onClick={saveRewardItem}>{editingReward ? 'Salvar' : 'Cadastrar'}</Button>
+
+                {/* Auto-calculated points display */}
+                {rewardRealValue > 0 && pointValue > 0 && (
+                  <div className="p-3 rounded-lg bg-primary/10 border border-primary/20 space-y-1">
+                    <p className="text-sm font-medium flex items-center gap-2">
+                      <Star className="h-4 w-4 text-amber-500" />
+                      Este item custa: <span className="font-bold text-primary">{calculatedPoints.toLocaleString('pt-BR')} pontos</span>
+                    </p>
+                    <p className="text-[10px] text-muted-foreground">
+                      Cálculo: {formatCurrency(rewardRealValue)} ÷ {formatCurrency(pointValue)} por ponto = {calculatedPoints.toLocaleString('pt-BR')} pontos
+                    </p>
+                  </div>
+                )}
+
+                <Button className="w-full" onClick={saveRewardItem} disabled={uploadingImage}>
+                  {uploadingImage ? 'Enviando imagem...' : editingReward ? 'Salvar' : 'Cadastrar'}
+                </Button>
               </div>
             </DialogContent>
           </Dialog>
@@ -615,6 +743,7 @@ const Loyalty = () => {
                         <th className="text-left p-3 font-medium">Cliente</th>
                         <th className="text-left p-3 font-medium">Tipo</th>
                         <th className="text-right p-3 font-medium">Pontos</th>
+                        <th className="text-right p-3 font-medium">Valor equiv.</th>
                         <th className="text-right p-3 font-medium">Saldo</th>
                         <th className="text-left p-3 font-medium">Descrição</th>
                       </tr>
@@ -627,6 +756,9 @@ const Loyalty = () => {
                           <td className="p-3"><span className={cn('text-xs font-medium', txTypeColor[t.transaction_type])}>{txTypeLabel[t.transaction_type]}</span></td>
                           <td className={cn('p-3 text-right font-medium', t.points > 0 ? 'text-success' : 'text-destructive')}>
                             {t.points > 0 ? '+' : ''}{t.points}
+                          </td>
+                          <td className="p-3 text-right text-xs text-muted-foreground">
+                            {pointValue > 0 ? formatCurrency(Math.abs(t.points) * pointValue) : '—'}
                           </td>
                           <td className="p-3 text-right">{t.balance_after}</td>
                           <td className="p-3 text-xs text-muted-foreground max-w-[200px] truncate">{t.description || '—'}</td>

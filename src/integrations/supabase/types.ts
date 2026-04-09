@@ -1945,6 +1945,7 @@ export type Database = {
           id: string
           participating_professionals: string
           participating_services: string
+          point_value: number
           points_per_currency: number
           points_per_service: number
           scoring_type: string
@@ -1959,6 +1960,7 @@ export type Database = {
           id?: string
           participating_professionals?: string
           participating_services?: string
+          point_value?: number
           points_per_currency?: number
           points_per_service?: number
           scoring_type?: string
@@ -1973,6 +1975,7 @@ export type Database = {
           id?: string
           participating_professionals?: string
           participating_services?: string
+          point_value?: number
           points_per_currency?: number
           points_per_service?: number
           scoring_type?: string
@@ -2173,6 +2176,7 @@ export type Database = {
           item_type: string
           name: string
           points_required: number
+          real_value: number
           updated_at: string
         }
         Insert: {
@@ -2186,6 +2190,7 @@ export type Database = {
           item_type?: string
           name: string
           points_required?: number
+          real_value?: number
           updated_at?: string
         }
         Update: {
@@ -2199,6 +2204,7 @@ export type Database = {
           item_type?: string
           name?: string
           points_required?: number
+          real_value?: number
           updated_at?: string
         }
         Relationships: [

@@ -201,6 +201,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
   const [useCashback, setUseCashback] = useState(false);
   const cashbackTotal = cashbackCredits.reduce((s, c) => s + Number(c.amount), 0);
   const [loyaltyPoints, setLoyaltyPoints] = useState(0);
+  const [loyaltyPointValue, setLoyaltyPointValue] = useState(0);
   const slotRequestRef = useRef(0);
   const [bookingResult, setBookingResult] = useState<{
     appointmentId: string;
@@ -296,6 +297,15 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
         .limit(1)
         .maybeSingle();
       setLoyaltyPoints((txs as any)?.balance_after || 0);
+      // Fetch point value from config
+      const { data: lc } = await supabase
+        .from('loyalty_config' as any)
+        .select('point_value, enabled')
+        .eq('company_id', company.id)
+        .maybeSingle();
+      if (lc && (lc as any).enabled) {
+        setLoyaltyPointValue(Number((lc as any).point_value) || 0);
+      }
     };
     checkLoyalty();
   }, [savedClientId, company?.id]);
@@ -1268,6 +1278,11 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                 <div>
                   <p className="font-semibold text-sm" style={{ color: T.accent }}>
                     Você possui {loyaltyPoints} pontos no programa de fidelidade
+                    {loyaltyPointValue > 0 && (
+                      <span className="font-normal text-xs ml-1" style={{ color: T.textSec }}>
+                        (equivalente a R$ {(loyaltyPoints * loyaltyPointValue).toFixed(2).replace('.', ',')})
+                      </span>
+                    )}
                   </p>
                   <p className="text-xs" style={{ color: T.textSec }}>Acumule pontos e troque por recompensas</p>
                 </div>
