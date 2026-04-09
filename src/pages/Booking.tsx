@@ -285,6 +285,19 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
       setCashbackCredits(data || []);
     };
     checkCashback();
+    // Check loyalty points
+    const checkLoyalty = async () => {
+      const { data: txs } = await supabase
+        .from('loyalty_points_transactions' as any)
+        .select('balance_after')
+        .eq('client_id', savedClientId)
+        .eq('company_id', company.id)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      setLoyaltyPoints((txs as any)?.balance_after || 0);
+    };
+    checkLoyalty();
   }, [savedClientId, company?.id]);
 
   useEffect(() => {
