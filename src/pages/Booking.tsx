@@ -200,6 +200,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
   const [cashbackCredits, setCashbackCredits] = useState<{ id: string; amount: number; expires_at: string }[]>([]);
   const [useCashback, setUseCashback] = useState(false);
   const cashbackTotal = cashbackCredits.reduce((s, c) => s + Number(c.amount), 0);
+  const [loyaltyPoints, setLoyaltyPoints] = useState(0);
   const slotRequestRef = useRef(0);
   const [bookingResult, setBookingResult] = useState<{
     appointmentId: string;
@@ -284,6 +285,19 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
       setCashbackCredits(data || []);
     };
     checkCashback();
+    // Check loyalty points
+    const checkLoyalty = async () => {
+      const { data: txs } = await supabase
+        .from('loyalty_points_transactions' as any)
+        .select('balance_after')
+        .eq('client_id', savedClientId)
+        .eq('company_id', company.id)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      setLoyaltyPoints((txs as any)?.balance_after || 0);
+    };
+    checkLoyalty();
   }, [savedClientId, company?.id]);
 
   useEffect(() => {
@@ -1244,6 +1258,18 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                     Cashback disponível: R$ {cashbackTotal.toFixed(2)}
                   </p>
                   <p className="text-xs" style={{ color: T.textSec }}>Você pode usar este crédito na confirmação do agendamento</p>
+                </div>
+              </div>
+            )}
+            {/* Loyalty points indicator */}
+            {loyaltyPoints > 0 && (
+              <div className="rounded-xl p-3 flex items-center gap-3" style={{ background: `${T.accent}10`, border: `1px solid ${T.accent}25` }}>
+                <span className="text-lg">⭐</span>
+                <div>
+                  <p className="font-semibold text-sm" style={{ color: T.accent }}>
+                    Você possui {loyaltyPoints} pontos no programa de fidelidade
+                  </p>
+                  <p className="text-xs" style={{ color: T.textSec }}>Acumule pontos e troque por recompensas</p>
                 </div>
               </div>
             )}

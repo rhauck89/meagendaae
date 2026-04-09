@@ -603,6 +603,56 @@ const Dashboard = () => {
           console.error('[Dashboard] Cashback generation error:', cashbackErr);
         }
       }
+
+      // === LOYALTY POINTS ===
+      try {
+        const { data: loyaltyConfig } = await supabase
+          .from('loyalty_config' as any)
+          .select('*')
+          .eq('company_id', companyId)
+          .eq('enabled', true)
+          .maybeSingle();
+
+        if (loyaltyConfig && apt.client_id) {
+          const lc = loyaltyConfig as any;
+          const profOk = lc.participating_professionals === 'all' || (lc.specific_professional_ids || []).includes(apt.professional_id);
+          if (profOk) {
+            const aptServices = apt.appointment_services || [];
+            const eligibleServices = aptServices.filter((as: any) =>
+              lc.participating_services === 'all' || (lc.specific_service_ids || []).includes(as.service_id)
+            );
+            if (eligibleServices.length > 0) {
+              let pointsToAward = 0;
+              if (lc.scoring_type === 'per_service') {
+                pointsToAward = eligibleServices.length * (lc.points_per_service || 10);
+              } else {
+                const eligibleTotal = eligibleServices.reduce((sum: number, as: any) => sum + Number(as.price || 0), 0);
+                pointsToAward = Math.floor(eligibleTotal * Number(lc.points_per_currency || 1));
+              }
+              if (pointsToAward > 0) {
+                const { data: lastTx } = await supabase
+                  .from('loyalty_points_transactions' as any)
+                  .select('balance_after')
+                  .eq('company_id', companyId)
+                  .eq('client_id', apt.client_id)
+                  .order('created_at', { ascending: false })
+                  .limit(1)
+                  .maybeSingle();
+                const currentBalance = (lastTx as any)?.balance_after || 0;
+                await supabase.from('loyalty_points_transactions' as any).insert({
+                  company_id: companyId, client_id: apt.client_id, points: pointsToAward,
+                  transaction_type: 'earn', reference_type: 'appointment', reference_id: apt.id,
+                  description: `Serviço concluído — ${apt.client_name || 'Cliente'}`,
+                  balance_after: currentBalance + pointsToAward,
+                } as any);
+                toast.success(`+${pointsToAward} pontos de fidelidade!`);
+              }
+            }
+          }
+        }
+      } catch (loyaltyErr) {
+        console.error('[Dashboard] Loyalty points error:', loyaltyErr);
+      }
     }
 
     // If cancelling, trigger waitlist check
