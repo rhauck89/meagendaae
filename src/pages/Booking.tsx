@@ -2066,6 +2066,11 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                 `${baseUrl}/cancel/${bookingResult.appointmentId}`,
               ]),
               '',
+              '📱 Acompanhe seus horários, cashback e pontos:',
+              `${baseUrl}/minha-conta`,
+              '',
+              'Se ainda não tiver cadastro completo, finalize para liberar seus benefícios! 🎁',
+              '',
               'Obrigado! 🙏',
             ].join('\n');
             return `https://wa.me/${phone.startsWith('55') ? phone : '55' + phone}?text=${encodeURIComponent(msg)}`;
