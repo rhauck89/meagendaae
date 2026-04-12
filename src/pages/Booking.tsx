@@ -1890,6 +1890,9 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
               <p className="text-xs mt-1" style={{ color: T.textSec }}>💰 Cashback &nbsp; ⭐ Pontos de fidelidade</p>
             </div>
           </div>
+        )}
+
+        {/* ═══ CONFIRM ═══ */}
         {step === 'confirm' && (
           <div className="space-y-5 animate-fade-in">
             <button onClick={() => setStep('client')} className="flex items-center gap-1 text-sm font-medium hover:opacity-80" style={{ color: T.textSec }}>
