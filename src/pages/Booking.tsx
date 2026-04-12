@@ -56,7 +56,7 @@ const InteractiveStarRating = ({ rating, onRate, size = 32 }: { rating: number; 
   );
 };
 
-type Step = 'services' | 'professional' | 'datetime' | 'client' | 'confirm' | 'success';
+type Step = 'services' | 'professional' | 'datetime' | 'client' | 'benefits' | 'confirm' | 'success';
 type BusinessType = 'barbershop' | 'esthetic';
 
 interface BookingPageProps {
@@ -1811,7 +1811,13 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                   toast.error('Informe seu nome para continuar.');
                   return;
                 }
-                setStep('confirm');
+                // Check if company has cashback or loyalty active — show benefits step
+                const hasBenefits = (loyaltyPointValue > 0) || (isPromoMode && promoData?.promotion_type === 'cashback');
+                if (hasBenefits && !savedClientId) {
+                  setStep('benefits');
+                } else {
+                  setStep('confirm');
+                }
               }}
               className="w-full rounded-xl py-6 font-semibold text-base shadow-lg transition-all hover:scale-[1.01]"
               style={{ background: T.accent, color: '#000' }}
@@ -1819,6 +1825,70 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
             >
               Revisar Agendamento <ChevronRight className="h-4 w-4 ml-1" />
             </Button>
+          </div>
+        )}
+
+        {/* ═══ BENEFITS CHOICE ═══ */}
+        {step === 'benefits' && (
+          <div className="space-y-5 animate-fade-in">
+            <button onClick={() => setStep('client')} className="flex items-center gap-1 text-sm font-medium hover:opacity-80" style={{ color: T.textSec }}>
+              <ChevronLeft className="h-4 w-4" /> Voltar
+            </button>
+            <div>
+              <h2 className="text-2xl font-bold tracking-tight">Ganhe benefícios!</h2>
+              <p className="text-sm mt-1" style={{ color: T.textSec }}>
+                Crie uma conta e acumule recompensas a cada serviço
+              </p>
+            </div>
+
+            {/* Option 1: Quick booking */}
+            <div
+              className="rounded-2xl p-5 cursor-pointer transition-all hover:scale-[1.01]"
+              style={{ background: T.card, border: `1px solid ${T.border}` }}
+              onClick={() => setStep('confirm')}
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center text-lg" style={{ background: `${T.accent}15` }}>
+                  🟢
+                </div>
+                <div className="flex-1">
+                  <p className="font-semibold text-base">Agendar sem cadastro</p>
+                  <p className="text-xs mt-0.5" style={{ color: T.textSec }}>Agendar rapidamente (sem criar conta)</p>
+                </div>
+                <ChevronRight className="h-5 w-5" style={{ color: T.textSec }} />
+              </div>
+            </div>
+
+            {/* Option 2: Create account */}
+            <div
+              className="rounded-2xl p-5 cursor-pointer transition-all hover:scale-[1.01]"
+              style={{ background: `${T.accent}08`, border: `1.5px solid ${T.accent}` }}
+              onClick={() => window.location.href = '/cliente/auth'}
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center text-lg" style={{ background: `${T.accent}20` }}>
+                  🔵
+                </div>
+                <div className="flex-1">
+                  <p className="font-semibold text-base">Criar conta e ganhar benefícios</p>
+                  <p className="text-xs mt-0.5" style={{ color: T.textSec }}>Criar conta e ganhar benefícios 🎁</p>
+                </div>
+                <ChevronRight className="h-5 w-5" style={{ color: T.accent }} />
+              </div>
+              <div className="mt-4 space-y-2 pl-[52px]">
+                <p className="text-xs flex items-center gap-2" style={{ color: T.text }}>💰 Cashback em serviços</p>
+                <p className="text-xs flex items-center gap-2" style={{ color: T.text }}>⭐ Pontos de fidelidade</p>
+                <p className="text-xs flex items-center gap-2" style={{ color: T.text }}>📅 Histórico de agendamentos</p>
+                <p className="text-xs flex items-center gap-2" style={{ color: T.text }}>🔔 Promoções e avisos</p>
+                <p className="text-xs mt-2 font-medium" style={{ color: T.accent }}>Leva menos de 30 segundos</p>
+              </div>
+            </div>
+
+            {/* Warning */}
+            <div className="rounded-xl p-4" style={{ background: '#F59E0B10', border: '1px solid #F59E0B30' }}>
+              <p className="text-xs font-semibold" style={{ color: '#F59E0B' }}>⚠️ Sem cadastro você não acumula:</p>
+              <p className="text-xs mt-1" style={{ color: T.textSec }}>💰 Cashback &nbsp; ⭐ Pontos de fidelidade</p>
+            </div>
           </div>
         )}
 

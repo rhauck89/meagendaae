@@ -9,7 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Calendar, Clock, DollarSign, Star, Gift, Bell, User, LogOut, ChevronRight, CheckCircle2, AlertCircle, Sparkles, X } from 'lucide-react';
+import { Calendar, Clock, DollarSign, Star, Gift, Bell, User, LogOut, ChevronRight, CheckCircle2, AlertCircle, Sparkles, X, MapPin, Info } from 'lucide-react';
 import { format, parseISO, differenceInDays, isPast } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
@@ -22,6 +22,12 @@ interface ClientRecord {
   email: string | null;
   birth_date: string | null;
   registration_complete: boolean;
+  postal_code: string | null;
+  street: string | null;
+  address_number: string | null;
+  district: string | null;
+  city: string | null;
+  state: string | null;
 }
 
 interface AppointmentRow {
@@ -30,6 +36,7 @@ interface AppointmentRow {
   end_time: string;
   total_price: number;
   status: string;
+  company_id: string;
   company: { name: string } | null;
   professional: { full_name: string } | null;
   appointment_services: { service: { name: string } | null; price: number }[];
@@ -41,6 +48,7 @@ interface CashbackRow {
   status: string;
   expires_at: string;
   created_at: string;
+  company_id: string;
   promotion: { title: string } | null;
 }
 
@@ -51,6 +59,7 @@ interface LoyaltyTx {
   description: string | null;
   balance_after: number;
   created_at: string;
+  company_id: string;
 }
 
 interface RewardItem {
@@ -81,36 +90,38 @@ const ClientPortal = () => {
   const [clients, setClients] = useState<ClientRecord[]>([]);
   const [selectedCompanyId, setSelectedCompanyId] = useState<string | null>(null);
   const [appointments, setAppointments] = useState<AppointmentRow[]>([]);
-  const [cashbacks, setCashbacks] = useState<CashbackRow[]>([]);
-  const [loyaltyTxs, setLoyaltyTxs] = useState<LoyaltyTx[]>([]);
+  const [allCashbacks, setAllCashbacks] = useState<CashbackRow[]>([]);
+  const [allLoyaltyTxs, setAllLoyaltyTxs] = useState<LoyaltyTx[]>([]);
   const [rewards, setRewards] = useState<RewardItem[]>([]);
-  const [loyaltyConfig, setLoyaltyConfig] = useState<any>(null);
+  const [loyaltyConfigs, setLoyaltyConfigs] = useState<Record<string, any>>({});
   const [companies, setCompanies] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [showCompleteProfile, setShowCompleteProfile] = useState(false);
-  const [profileForm, setProfileForm] = useState({ email: '', birth_date: '' });
+  const [profileForm, setProfileForm] = useState({
+    email: '', birth_date: '',
+    postal_code: '', street: '', address_number: '', district: '', city: '', state: '',
+  });
 
-  // Check if company has cashback/loyalty active
-  const [companyCashbackActive, setCompanyCashbackActive] = useState(false);
-  const [companyLoyaltyActive, setCompanyLoyaltyActive] = useState(false);
+  const [companyCashbackActive, setCompanyCashbackActive] = useState<Record<string, boolean>>({});
+  const [companyLoyaltyActive, setCompanyLoyaltyActive] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
-    if (!user) { navigate('/auth'); return; }
+    if (!user) { navigate('/cliente/auth'); return; }
     loadClientData();
   }, [user]);
-
-  useEffect(() => {
-    if (selectedCompanyId) loadCompanyData(selectedCompanyId);
-  }, [selectedCompanyId]);
 
   const currentClient = useMemo(() =>
     clients.find(c => c.company_id === selectedCompanyId) || clients[0],
     [clients, selectedCompanyId]
   );
 
+  const isRegistrationIncomplete = useMemo(() => {
+    if (!currentClient) return true;
+    return !currentClient.email || !currentClient.birth_date;
+  }, [currentClient]);
+
   const loadClientData = async () => {
     setLoading(true);
-    // First link any unlinked client records by phone
     const { data: profileData } = await supabase
       .from('profiles')
       .select('whatsapp')
@@ -124,105 +135,144 @@ const ClientPortal = () => {
       });
     }
 
-    // Fetch all client records for this user
     const { data: clientData } = await supabase
       .from('clients')
-      .select('id, company_id, name, whatsapp, email, birth_date, registration_complete')
+      .select('id, company_id, name, whatsapp, email, birth_date, registration_complete, postal_code, street, address_number, district, city, state')
       .eq('user_id', user!.id);
 
     if (clientData && clientData.length > 0) {
-      setClients(clientData);
+      setClients(clientData as ClientRecord[]);
       const firstCompany = clientData[0].company_id;
       setSelectedCompanyId(firstCompany);
 
-      // Get company names
       const companyIds = [...new Set(clientData.map(c => c.company_id))];
-      const { data: companyData } = await supabase
-        .from('companies')
-        .select('id, name')
-        .in('id', companyIds);
-      if (companyData) {
+      const [companyRes, cashbackRes, loyaltyTxRes, rewardsRes] = await Promise.all([
+        supabase.from('companies').select('id, name').in('id', companyIds),
+        supabase.from('client_cashback')
+          .select('id, amount, status, expires_at, created_at, company_id, promotion:promotions!client_cashback_promotion_id_fkey(title)')
+          .in('client_id', clientData.map(c => c.id))
+          .order('created_at', { ascending: false }),
+        supabase.from('loyalty_points_transactions')
+          .select('*')
+          .in('client_id', clientData.map(c => c.id))
+          .order('created_at', { ascending: false })
+          .limit(200),
+        supabase.from('loyalty_reward_items')
+          .select('*')
+          .in('company_id', companyIds)
+          .eq('active', true),
+      ]);
+
+      if (companyRes.data) {
         const map: Record<string, string> = {};
-        companyData.forEach(c => { map[c.id] = c.name; });
+        companyRes.data.forEach(c => { map[c.id] = c.name; });
         setCompanies(map);
       }
 
-      // Check incomplete registration
+      setAllCashbacks((cashbackRes.data || []) as any);
+      setAllLoyaltyTxs((loyaltyTxRes.data || []) as any);
+      setRewards((rewardsRes.data || []) as any);
+
+      // Check cashback and loyalty status per company
+      const cashActive: Record<string, boolean> = {};
+      const loyalActive: Record<string, boolean> = {};
+      const lcMap: Record<string, any> = {};
+
+      for (const cid of companyIds) {
+        const [promoCheck, lcRes] = await Promise.all([
+          supabase.from('promotions').select('id').eq('company_id', cid).eq('promotion_type', 'cashback').eq('status', 'active').limit(1),
+          supabase.from('loyalty_config').select('*').eq('company_id', cid).single(),
+        ]);
+        cashActive[cid] = !!(promoCheck.data && promoCheck.data.length > 0);
+        loyalActive[cid] = !!lcRes.data?.enabled;
+        if (lcRes.data) lcMap[cid] = lcRes.data;
+      }
+      setCompanyCashbackActive(cashActive);
+      setCompanyLoyaltyActive(loyalActive);
+      setLoyaltyConfigs(lcMap);
+
+      // Load appointments for all clients
+      const clientIds = clientData.map(c => c.id);
+      const { data: aptData } = await supabase
+        .from('appointments')
+        .select('id, start_time, end_time, total_price, status, company_id, company:companies(name), professional:profiles!appointments_professional_id_fkey(full_name), appointment_services(price, service:services(name))')
+        .in('client_id', clientIds)
+        .order('start_time', { ascending: false })
+        .limit(100);
+      setAppointments((aptData || []) as any);
+
+      // Pre-fill profile form
       const client = clientData[0];
       if (!client.email || !client.birth_date) {
-        setShowCompleteProfile(true);
-        setProfileForm({
+        setProfileForm(f => ({
+          ...f,
           email: client.email || '',
           birth_date: client.birth_date || '',
-        });
+          postal_code: (client as any).postal_code || '',
+          street: (client as any).street || '',
+          address_number: (client as any).address_number || '',
+          district: (client as any).district || '',
+          city: (client as any).city || '',
+          state: (client as any).state || '',
+        }));
       }
     }
     setLoading(false);
   };
 
-  const loadCompanyData = async (companyId: string) => {
-    const client = clients.find(c => c.company_id === companyId);
-    if (!client) return;
+  // Filtered data for selected company
+  const companyCashbacks = useMemo(() =>
+    allCashbacks.filter(c => c.company_id === selectedCompanyId),
+    [allCashbacks, selectedCompanyId]
+  );
+  const companyLoyaltyTxs = useMemo(() =>
+    allLoyaltyTxs.filter(t => t.company_id === selectedCompanyId),
+    [allLoyaltyTxs, selectedCompanyId]
+  );
+  const companyRewards = useMemo(() =>
+    rewards.filter(r => r.company_id === selectedCompanyId),
+    [rewards, selectedCompanyId]
+  );
+  const companyAppointments = useMemo(() =>
+    selectedCompanyId ? appointments.filter(a => a.company_id === selectedCompanyId) : appointments,
+    [appointments, selectedCompanyId]
+  );
 
-    // Load appointments, cashback, loyalty, rewards in parallel
-    const [aptsRes, cashRes, loyaltyTxRes, rewardsRes, loyaltyConfigRes, promoCheck] = await Promise.all([
-      supabase
-        .from('appointments')
-        .select('id, start_time, end_time, total_price, status, company:companies(name), professional:profiles!appointments_professional_id_fkey(full_name), appointment_services(price, service:services(name))')
-        .eq('client_id', client.id)
-        .eq('company_id', companyId)
-        .order('start_time', { ascending: false })
-        .limit(50),
-      supabase
-        .from('client_cashback')
-        .select('id, amount, status, expires_at, created_at, promotion:promotions!client_cashback_promotion_id_fkey(title)')
-        .eq('client_id', client.id)
-        .eq('company_id', companyId)
-        .order('created_at', { ascending: false }),
-      supabase
-        .from('loyalty_points_transactions')
-        .select('*')
-        .eq('client_id', client.id)
-        .eq('company_id', companyId)
-        .order('created_at', { ascending: false })
-        .limit(50),
-      supabase
-        .from('loyalty_reward_items')
-        .select('*')
-        .eq('company_id', companyId)
-        .eq('active', true),
-      supabase
-        .from('loyalty_config')
-        .select('*')
-        .eq('company_id', companyId)
-        .single(),
-      supabase
-        .from('promotions')
-        .select('id')
-        .eq('company_id', companyId)
-        .eq('promotion_type', 'cashback')
-        .eq('status', 'active')
-        .limit(1),
-    ]);
+  const isCashbackActive = selectedCompanyId ? companyCashbackActive[selectedCompanyId] : false;
+  const isLoyaltyActive = selectedCompanyId ? companyLoyaltyActive[selectedCompanyId] : false;
+  const loyaltyConfig = selectedCompanyId ? loyaltyConfigs[selectedCompanyId] : null;
 
-    setAppointments((aptsRes.data || []) as any);
-    setCashbacks((cashRes.data || []) as any);
-    setLoyaltyTxs(loyaltyTxRes.data || []);
-    setRewards((rewardsRes.data || []) as any);
-    setLoyaltyConfig(loyaltyConfigRes.data);
-    setCompanyCashbackActive(!!(promoCheck.data && promoCheck.data.length > 0));
-    setCompanyLoyaltyActive(!!loyaltyConfigRes.data?.enabled);
-  };
-
-  const activeCashback = cashbacks.filter(c => c.status === 'active' && !isPast(parseISO(c.expires_at)));
+  const activeCashback = companyCashbacks.filter(c => c.status === 'active' && !isPast(parseISO(c.expires_at)));
   const cashbackTotal = activeCashback.reduce((s, c) => s + Number(c.amount), 0);
 
-  const loyaltyBalance = loyaltyTxs.length > 0 ? loyaltyTxs[0].balance_after : 0;
+  const loyaltyBalance = companyLoyaltyTxs.length > 0 ? companyLoyaltyTxs[0].balance_after : 0;
   const pointValue = loyaltyConfig?.point_value || 0.05;
   const balanceEquivalent = loyaltyBalance * pointValue;
 
-  const upcomingAppointments = appointments.filter(a => !isPast(parseISO(a.start_time)) && !['cancelled', 'no_show'].includes(a.status));
-  const pastAppointments = appointments.filter(a => isPast(parseISO(a.start_time)) || ['cancelled', 'no_show'].includes(a.status));
+  const upcomingAppointments = companyAppointments.filter(a => !isPast(parseISO(a.start_time)) && !['cancelled', 'no_show'].includes(a.status));
+  const pastAppointments = companyAppointments.filter(a => isPast(parseISO(a.start_time)) || ['cancelled', 'no_show'].includes(a.status));
+
+  // Multi-company cashback summary
+  const cashbackByCompany = useMemo(() => {
+    const map: Record<string, number> = {};
+    allCashbacks.filter(c => c.status === 'active' && !isPast(parseISO(c.expires_at))).forEach(c => {
+      map[c.company_id] = (map[c.company_id] || 0) + Number(c.amount);
+    });
+    return map;
+  }, [allCashbacks]);
+
+  // Multi-company loyalty summary
+  const pointsByCompany = useMemo(() => {
+    const map: Record<string, number> = {};
+    const seen = new Set<string>();
+    allLoyaltyTxs.forEach(t => {
+      if (!seen.has(t.company_id)) {
+        seen.add(t.company_id);
+        map[t.company_id] = t.balance_after;
+      }
+    });
+    return map;
+  }, [allLoyaltyTxs]);
 
   // Notifications
   const notifications = useMemo(() => {
@@ -233,8 +283,7 @@ const ClientPortal = () => {
         items.push({ icon: <AlertCircle className="h-4 w-4 text-yellow-500" />, text: `Cashback de R$ ${expiringSoon.reduce((s, c) => s + Number(c.amount), 0).toFixed(2)} expira em breve!`, type: 'warning' });
       }
     }
-    // Rewards reachable
-    rewards.forEach(r => {
+    companyRewards.forEach(r => {
       const diff = r.points_required - loyaltyBalance;
       if (diff <= 0) {
         items.push({ icon: <Gift className="h-4 w-4 text-green-500" />, text: `🎁 Você já pode resgatar: ${r.name}`, type: 'success' });
@@ -243,21 +292,29 @@ const ClientPortal = () => {
       }
     });
     return items;
-  }, [cashbackTotal, activeCashback, rewards, loyaltyBalance]);
+  }, [cashbackTotal, activeCashback, companyRewards, loyaltyBalance]);
 
   const handleCompleteProfile = async () => {
     if (!currentClient) return;
     const updates: any = {};
     if (profileForm.email) updates.email = profileForm.email;
     if (profileForm.birth_date) updates.birth_date = profileForm.birth_date;
-    updates.registration_complete = true;
+    if (profileForm.postal_code) updates.postal_code = profileForm.postal_code;
+    if (profileForm.street) updates.street = profileForm.street;
+    if (profileForm.address_number) updates.address_number = profileForm.address_number;
+    if (profileForm.district) updates.district = profileForm.district;
+    if (profileForm.city) updates.city = profileForm.city;
+    if (profileForm.state) updates.state = profileForm.state;
+    updates.registration_complete = !!(profileForm.email && profileForm.birth_date);
 
-    const { error } = await supabase
-      .from('clients')
-      .update(updates)
-      .eq('id', currentClient.id);
+    // Update all client records for this user
+    for (const client of clients) {
+      await supabase
+        .from('clients')
+        .update(updates)
+        .eq('id', client.id);
+    }
 
-    if (error) { toast.error('Erro ao atualizar cadastro'); return; }
     toast.success('Cadastro atualizado com sucesso!');
     setShowCompleteProfile(false);
     loadClientData();
@@ -280,6 +337,9 @@ const ClientPortal = () => {
     </div>
   );
 
+  const totalCashbackAll = Object.values(cashbackByCompany).reduce((s, v) => s + v, 0);
+  const totalPointsAll = Object.values(pointsByCompany).reduce((s, v) => s + v, 0);
+
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
@@ -296,7 +356,7 @@ const ClientPortal = () => {
       </header>
 
       <div className="max-w-2xl mx-auto px-4 py-6 space-y-6">
-        {/* Company selector if multiple */}
+        {/* Company selector */}
         {Object.keys(companies).length > 1 && (
           <div className="flex gap-2 overflow-x-auto pb-2">
             {Object.entries(companies).map(([id, name]) => (
@@ -314,19 +374,16 @@ const ClientPortal = () => {
         )}
 
         {/* Incomplete profile banner */}
-        {currentClient && (!currentClient.email || !currentClient.birth_date) && (
+        {isRegistrationIncomplete && (
           <Card className="border-primary/30 bg-primary/5">
             <CardContent className="p-4">
               <div className="flex items-start gap-3">
                 <Sparkles className="h-6 w-6 text-primary mt-0.5 shrink-0" />
                 <div className="flex-1 space-y-2">
-                  <p className="font-semibold text-sm">👋 Olá {currentClient.name}!</p>
-                  <p className="text-xs text-muted-foreground">
-                    Complete seu cadastro e aproveite benefícios como:
-                  </p>
+                  <p className="font-semibold text-sm">👋 Complete seu cadastro para liberar benefícios:</p>
                   <ul className="text-xs text-muted-foreground space-y-1">
-                    {companyCashbackActive && <li>💰 Cashback em serviços</li>}
-                    {companyLoyaltyActive && <li>⭐ Pontos no programa de fidelidade</li>}
+                    {isCashbackActive && <li>💰 Cashback em serviços</li>}
+                    {isLoyaltyActive && <li>⭐ Pontos de fidelidade</li>}
                     <li>📅 Histórico completo de agendamentos</li>
                     <li>🔔 Avisos de promoções e horários disponíveis</li>
                   </ul>
@@ -339,6 +396,50 @@ const ClientPortal = () => {
           </Card>
         )}
 
+        {/* Multi-company benefits info */}
+        {Object.keys(companies).length > 1 && (
+          <Card className="border-blue-500/20 bg-blue-500/5">
+            <CardContent className="p-3 flex items-start gap-2">
+              <Info className="h-4 w-4 text-blue-500 mt-0.5 shrink-0" />
+              <p className="text-xs text-muted-foreground">
+                💡 Seus benefícios são válidos apenas na empresa onde foram gerados.
+              </p>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Multi-company summary */}
+        {Object.keys(companies).length > 1 && (totalCashbackAll > 0 || totalPointsAll > 0) && (
+          <div className="space-y-2">
+            {totalCashbackAll > 0 && (
+              <Card>
+                <CardContent className="p-3">
+                  <p className="text-xs font-semibold text-muted-foreground mb-2">💰 Cashback por empresa</p>
+                  {Object.entries(cashbackByCompany).map(([cid, amt]) => (
+                    <div key={cid} className="flex justify-between text-sm">
+                      <span>{companies[cid]}</span>
+                      <span className="font-semibold text-green-600">R$ {amt.toFixed(2)}</span>
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
+            )}
+            {totalPointsAll > 0 && (
+              <Card>
+                <CardContent className="p-3">
+                  <p className="text-xs font-semibold text-muted-foreground mb-2">⭐ Pontos por empresa</p>
+                  {Object.entries(pointsByCompany).map(([cid, pts]) => (
+                    <div key={cid} className="flex justify-between text-sm">
+                      <span>{companies[cid]}</span>
+                      <span className="font-semibold text-yellow-600">{pts} pontos</span>
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
+            )}
+          </div>
+        )}
+
         {/* Quick stats */}
         <div className="grid grid-cols-3 gap-3">
           <Card>
@@ -348,7 +449,7 @@ const ClientPortal = () => {
               <p className="text-xs text-muted-foreground">Próximos</p>
             </CardContent>
           </Card>
-          {companyCashbackActive && (
+          {isCashbackActive && (
             <Card>
               <CardContent className="p-3 text-center">
                 <DollarSign className="h-5 w-5 mx-auto mb-1 text-green-500" />
@@ -357,16 +458,19 @@ const ClientPortal = () => {
               </CardContent>
             </Card>
           )}
-          {companyLoyaltyActive && (
+          {isLoyaltyActive && (
             <Card>
               <CardContent className="p-3 text-center">
                 <Star className="h-5 w-5 mx-auto mb-1 text-yellow-500" />
                 <p className="text-lg font-bold">{loyaltyBalance}</p>
                 <p className="text-xs text-muted-foreground">Pontos</p>
+                {pointValue > 0 && (
+                  <p className="text-[10px] text-muted-foreground">≈ R$ {balanceEquivalent.toFixed(2)}</p>
+                )}
               </CardContent>
             </Card>
           )}
-          {!companyCashbackActive && !companyLoyaltyActive && (
+          {!isCashbackActive && !isLoyaltyActive && (
             <>
               <Card>
                 <CardContent className="p-3 text-center">
@@ -378,13 +482,22 @@ const ClientPortal = () => {
               <Card>
                 <CardContent className="p-3 text-center">
                   <Clock className="h-5 w-5 mx-auto mb-1 text-muted-foreground" />
-                  <p className="text-lg font-bold">{appointments.length}</p>
+                  <p className="text-lg font-bold">{companyAppointments.length}</p>
                   <p className="text-xs text-muted-foreground">Total</p>
                 </CardContent>
               </Card>
             </>
           )}
         </div>
+
+        {/* Benefit highlights */}
+        {(cashbackTotal > 0 || loyaltyBalance > 0) && selectedCompanyId && (
+          <Card className="border-green-500/20 bg-green-500/5">
+            <CardContent className="p-3">
+              <p className="text-sm font-semibold">🎁 Você tem benefícios disponíveis nesta barbearia</p>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Notifications */}
         {notifications.length > 0 && (
@@ -404,10 +517,10 @@ const ClientPortal = () => {
         <Tabs defaultValue="appointments" className="w-full">
           <TabsList className="w-full grid grid-cols-4">
             <TabsTrigger value="appointments" className="text-xs">📅 Agenda</TabsTrigger>
-            {companyCashbackActive && <TabsTrigger value="cashback" className="text-xs">💰 Cashback</TabsTrigger>}
-            {companyLoyaltyActive && <TabsTrigger value="loyalty" className="text-xs">⭐ Pontos</TabsTrigger>}
-            {companyLoyaltyActive && <TabsTrigger value="rewards" className="text-xs">🎁 Resgatar</TabsTrigger>}
-            {!companyCashbackActive && !companyLoyaltyActive && <TabsTrigger value="notifications" className="text-xs">🔔 Avisos</TabsTrigger>}
+            {isCashbackActive && <TabsTrigger value="cashback" className="text-xs">💰 Cashback</TabsTrigger>}
+            {isLoyaltyActive && <TabsTrigger value="loyalty" className="text-xs">⭐ Pontos</TabsTrigger>}
+            {isLoyaltyActive && <TabsTrigger value="rewards" className="text-xs">🎁 Resgatar</TabsTrigger>}
+            {!isCashbackActive && !isLoyaltyActive && <TabsTrigger value="notifications" className="text-xs">🔔 Avisos</TabsTrigger>}
           </TabsList>
 
           {/* Appointments Tab */}
@@ -428,6 +541,9 @@ const ClientPortal = () => {
                           </p>
                           {apt.professional && (
                             <p className="text-xs text-muted-foreground">Com: {apt.professional.full_name}</p>
+                          )}
+                          {apt.company && Object.keys(companies).length > 1 && (
+                            <p className="text-xs text-muted-foreground">📍 {apt.company.name}</p>
                           )}
                         </div>
                         <Badge className={statusColors[apt.status] || 'bg-muted'}>
@@ -463,6 +579,9 @@ const ClientPortal = () => {
                         <p className="text-xs text-muted-foreground">
                           {apt.appointment_services?.map(s => s.service?.name).filter(Boolean).join(', ')}
                         </p>
+                        {apt.company && Object.keys(companies).length > 1 && (
+                          <p className="text-xs text-muted-foreground">📍 {apt.company.name}</p>
+                        )}
                       </div>
                       <div className="text-right">
                         <Badge className={`${statusColors[apt.status] || 'bg-muted'} text-xs`}>
@@ -478,7 +597,7 @@ const ClientPortal = () => {
           </TabsContent>
 
           {/* Cashback Tab */}
-          {companyCashbackActive && (
+          {isCashbackActive && (
             <TabsContent value="cashback" className="space-y-4 mt-4">
               <Card className="bg-green-500/5 border-green-500/20">
                 <CardContent className="p-4 text-center">
@@ -489,10 +608,10 @@ const ClientPortal = () => {
 
               <div className="space-y-2">
                 <h3 className="text-sm font-semibold text-muted-foreground">Detalhes</h3>
-                {cashbacks.length === 0 ? (
+                {companyCashbacks.length === 0 ? (
                   <p className="text-sm text-muted-foreground text-center py-8">Nenhum cashback registrado</p>
                 ) : (
-                  cashbacks.map(cb => {
+                  companyCashbacks.map(cb => {
                     const daysLeft = differenceInDays(parseISO(cb.expires_at), new Date());
                     return (
                       <Card key={cb.id}>
@@ -502,6 +621,9 @@ const ClientPortal = () => {
                             <p className="text-xs text-muted-foreground">
                               {cb.promotion?.title || 'Promoção'}
                             </p>
+                            {companies[cb.company_id] && Object.keys(companies).length > 1 && (
+                              <p className="text-xs text-muted-foreground">📍 {companies[cb.company_id]}</p>
+                            )}
                           </div>
                           <div className="text-right">
                             {cb.status === 'active' && daysLeft > 0 ? (
@@ -524,7 +646,7 @@ const ClientPortal = () => {
           )}
 
           {/* Loyalty Points Tab */}
-          {companyLoyaltyActive && (
+          {isLoyaltyActive && (
             <TabsContent value="loyalty" className="space-y-4 mt-4">
               <Card className="bg-yellow-500/5 border-yellow-500/20">
                 <CardContent className="p-4 text-center">
@@ -540,10 +662,10 @@ const ClientPortal = () => {
 
               <div className="space-y-2">
                 <h3 className="text-sm font-semibold text-muted-foreground">Movimentações</h3>
-                {loyaltyTxs.length === 0 ? (
+                {companyLoyaltyTxs.length === 0 ? (
                   <p className="text-sm text-muted-foreground text-center py-8">Nenhuma movimentação</p>
                 ) : (
-                  loyaltyTxs.map(tx => (
+                  companyLoyaltyTxs.map(tx => (
                     <Card key={tx.id}>
                       <CardContent className="p-3 flex justify-between items-center">
                         <div>
@@ -569,17 +691,17 @@ const ClientPortal = () => {
           )}
 
           {/* Rewards Tab */}
-          {companyLoyaltyActive && (
+          {isLoyaltyActive && (
             <TabsContent value="rewards" className="space-y-4 mt-4">
               <div className="flex items-center justify-between">
                 <p className="text-sm text-muted-foreground">Seu saldo: <strong>{loyaltyBalance} pontos</strong></p>
               </div>
 
-              {rewards.length === 0 ? (
+              {companyRewards.length === 0 ? (
                 <p className="text-sm text-muted-foreground text-center py-8">Nenhuma recompensa disponível</p>
               ) : (
                 <div className="grid gap-3">
-                  {rewards.map(reward => {
+                  {companyRewards.map(reward => {
                     const canRedeem = loyaltyBalance >= reward.points_required;
                     const partial = loyaltyBalance > 0 && loyaltyBalance < reward.points_required;
                     const cashNeeded = partial ? (reward.points_required - loyaltyBalance) * pointValue : 0;
@@ -625,7 +747,7 @@ const ClientPortal = () => {
           )}
 
           {/* Notifications Tab (fallback) */}
-          {!companyCashbackActive && !companyLoyaltyActive && (
+          {!isCashbackActive && !isLoyaltyActive && (
             <TabsContent value="notifications" className="space-y-4 mt-4">
               <p className="text-sm text-muted-foreground text-center py-8">Nenhuma notificação no momento</p>
             </TabsContent>
@@ -635,13 +757,13 @@ const ClientPortal = () => {
 
       {/* Complete Profile Dialog */}
       <Dialog open={showCompleteProfile} onOpenChange={setShowCompleteProfile}>
-        <DialogContent className="max-w-sm">
+        <DialogContent className="max-w-sm max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Completar cadastro</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label>Email</Label>
+              <Label>Email *</Label>
               <Input
                 type="email"
                 value={profileForm.email}
@@ -650,14 +772,77 @@ const ClientPortal = () => {
               />
             </div>
             <div className="space-y-2">
-              <Label>Data de nascimento</Label>
+              <Label>Data de nascimento *</Label>
               <Input
                 type="date"
                 value={profileForm.birth_date}
                 onChange={e => setProfileForm(f => ({ ...f, birth_date: e.target.value }))}
               />
             </div>
-            <Button className="w-full" onClick={handleCompleteProfile}>
+
+            <div className="border-t pt-4">
+              <p className="text-sm font-semibold text-muted-foreground mb-3 flex items-center gap-1">
+                <MapPin className="h-3.5 w-3.5" /> Endereço (opcional)
+              </p>
+              <div className="space-y-3">
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <Label className="text-xs">CEP</Label>
+                    <Input
+                      value={profileForm.postal_code}
+                      onChange={e => setProfileForm(f => ({ ...f, postal_code: e.target.value }))}
+                      placeholder="00000-000"
+                      maxLength={9}
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Número</Label>
+                    <Input
+                      value={profileForm.address_number}
+                      onChange={e => setProfileForm(f => ({ ...f, address_number: e.target.value }))}
+                      placeholder="123"
+                    />
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Rua</Label>
+                  <Input
+                    value={profileForm.street}
+                    onChange={e => setProfileForm(f => ({ ...f, street: e.target.value }))}
+                    placeholder="Rua / Avenida"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Bairro</Label>
+                  <Input
+                    value={profileForm.district}
+                    onChange={e => setProfileForm(f => ({ ...f, district: e.target.value }))}
+                    placeholder="Bairro"
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <Label className="text-xs">Cidade</Label>
+                    <Input
+                      value={profileForm.city}
+                      onChange={e => setProfileForm(f => ({ ...f, city: e.target.value }))}
+                      placeholder="Cidade"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Estado</Label>
+                    <Input
+                      value={profileForm.state}
+                      onChange={e => setProfileForm(f => ({ ...f, state: e.target.value }))}
+                      placeholder="UF"
+                      maxLength={2}
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <Button className="w-full" onClick={handleCompleteProfile} disabled={!profileForm.email || !profileForm.birth_date}>
               Salvar
             </Button>
           </div>

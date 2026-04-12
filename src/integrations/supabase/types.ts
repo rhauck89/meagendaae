@@ -639,47 +639,65 @@ export type Database = {
       }
       clients: {
         Row: {
+          address_number: string | null
           birth_date: string | null
+          city: string | null
           company_id: string
           cpf: string | null
           created_at: string
+          district: string | null
           email: string | null
           id: string
           is_blocked: boolean
           name: string
           next_recommended_visit: string | null
           opt_in_whatsapp: boolean
+          postal_code: string | null
           registration_complete: boolean
+          state: string | null
+          street: string | null
           user_id: string | null
           whatsapp: string | null
         }
         Insert: {
+          address_number?: string | null
           birth_date?: string | null
+          city?: string | null
           company_id: string
           cpf?: string | null
           created_at?: string
+          district?: string | null
           email?: string | null
           id?: string
           is_blocked?: boolean
           name: string
           next_recommended_visit?: string | null
           opt_in_whatsapp?: boolean
+          postal_code?: string | null
           registration_complete?: boolean
+          state?: string | null
+          street?: string | null
           user_id?: string | null
           whatsapp?: string | null
         }
         Update: {
+          address_number?: string | null
           birth_date?: string | null
+          city?: string | null
           company_id?: string
           cpf?: string | null
           created_at?: string
+          district?: string | null
           email?: string | null
           id?: string
           is_blocked?: boolean
           name?: string
           next_recommended_visit?: string | null
           opt_in_whatsapp?: boolean
+          postal_code?: string | null
           registration_complete?: boolean
+          state?: string | null
+          street?: string | null
           user_id?: string | null
           whatsapp?: string | null
         }
