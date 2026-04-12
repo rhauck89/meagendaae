@@ -2246,6 +2246,25 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
         <PlatformBranding isDark={isDark} hide={isWhitelabel} />
       </div>
 
+      {/* Floating Minha Conta Button */}
+      {step !== 'success' && (
+        <button
+          onClick={() => window.location.href = isClientLoggedIn ? '/minha-conta' : '/cliente/auth'}
+          className="fixed bottom-6 left-6 z-50 flex items-center gap-2 px-4 py-3 rounded-full shadow-xl transition-transform hover:scale-105 text-sm font-semibold"
+          style={{ background: T.accent, color: '#000' }}
+          title="Minha Conta"
+        >
+          <User className="h-4 w-4" />
+          <span className="hidden sm:inline">Minha Conta</span>
+          <span className="sm:hidden">Conta</span>
+          {isClientLoggedIn && (cashbackTotal > 0 || loyaltyPoints > 0) && (
+            <span className="ml-1 px-2 py-0.5 rounded-full text-xs font-bold" style={{ background: 'rgba(0,0,0,0.2)' }}>
+              {cashbackTotal > 0 ? `R$${cashbackTotal.toFixed(0)}` : `${loyaltyPoints} pts`}
+            </span>
+          )}
+        </button>
+      )}
+
       {/* Floating WhatsApp Button */}
       {companyWhatsapp && step !== 'success' && (
         <a
