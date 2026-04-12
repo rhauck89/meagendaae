@@ -336,6 +336,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
     checkBenefits();
   }, [company?.id]);
 
+  useEffect(() => {
     if (slug) fetchCompany();
   }, [slug]);
 
