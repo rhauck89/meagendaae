@@ -2220,20 +2220,47 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                 </button>
               </div>
 
-              {/* ── Rating info ── */}
-              <div className="rounded-2xl p-4 text-center" style={{ background: T.card, border: `1px solid ${T.border}` }}>
-                <p className="text-sm" style={{ color: T.textSec }}>
-                  Após seu atendimento, você receberá um link para avaliar sua experiência ⭐
-                </p>
-              </div>
+              {/* ── Portal CTA Block ── */}
+              {!isClientLoggedIn ? (
+                <div className="rounded-2xl p-5 space-y-3 text-left" style={{ background: `${T.accent}15`, border: `1px solid ${T.accent}40` }}>
+                  <p className="text-base font-bold flex items-center gap-2">🎁 Crie sua conta e desbloqueie benefícios!</p>
+                  <div className="grid grid-cols-2 gap-2 text-sm" style={{ color: T.textSec }}>
+                    {hasBenefitsActive && <span>💰 Cashback em serviços</span>}
+                    {hasBenefitsActive && <span>⭐ Pontos de fidelidade</span>}
+                    <span>📅 Acompanhe agendamentos</span>
+                    <span>🔔 Receba promoções</span>
+                  </div>
+                  <p className="text-xs" style={{ color: T.textSec }}>Leva menos de 30 segundos</p>
+                  <Button onClick={() => window.location.href = '/cliente/auth'} className="w-full rounded-xl py-5 font-semibold text-base" style={{ background: T.accent, color: '#000' }}>
+                    Completar cadastro e acessar minha conta
+                  </Button>
+                </div>
+              ) : (
+                <div className="rounded-2xl p-5 space-y-3" style={{ background: T.card, border: `1px solid ${T.border}` }}>
+                  <p className="text-base font-semibold flex items-center gap-2">👤 Acesse sua conta</p>
+                  <p className="text-sm" style={{ color: T.textSec }}>Gerencie seus agendamentos, veja seu cashback e pontos.</p>
+                  {(cashbackTotal > 0 || loyaltyPoints > 0) && (
+                    <div className="flex gap-3 text-sm font-medium">
+                      {cashbackTotal > 0 && <span style={{ color: T.accent }}>💰 R${cashbackTotal.toFixed(2)}</span>}
+                      {loyaltyPoints > 0 && <span style={{ color: T.accent }}>⭐ {loyaltyPoints} pts{loyaltyPointValue > 0 ? ` (R$${(loyaltyPoints * loyaltyPointValue).toFixed(2)})` : ''}</span>}
+                    </div>
+                  )}
+                  <Button onClick={() => window.location.href = '/minha-conta'} className="w-full rounded-xl py-5 font-semibold text-base" style={{ background: T.accent, color: '#000' }}>
+                    <User className="h-4 w-4 mr-2" /> Acessar minha conta
+                  </Button>
+                </div>
+              )}
+
+              {hasBenefitsActive && !isClientLoggedIn && (
+                <div className="rounded-xl px-4 py-3 text-center text-sm font-medium" style={{ background: `${T.accent}10`, color: T.accent }}>
+                  💰 Você pode ganhar benefícios neste agendamento!
+                </div>
+              )}
 
               <div className="space-y-3 pt-2">
                 <Button onClick={resetBooking} className="w-full rounded-xl py-6 font-semibold text-base shadow-lg transition-all hover:scale-[1.01]" style={{ background: T.accent, color: '#000' }}>
                   <RotateCcw className="h-4 w-4 mr-2" /> Agendar outro serviço
                 </Button>
-                <button onClick={() => window.location.href = '/cliente/auth'} className="w-full py-3 rounded-xl text-sm font-medium hover:opacity-80 flex items-center justify-center gap-2" style={{ color: T.accent }}>
-                  <User className="h-4 w-4" /> Acessar Minha Conta
-                </button>
                 <button onClick={() => window.location.href = '/'} className="w-full py-3 rounded-xl text-sm font-medium hover:opacity-80" style={{ color: T.textSec }}>
                   <Home className="h-4 w-4 mr-1 inline" /> Voltar ao início
                 </button>
