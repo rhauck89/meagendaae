@@ -203,6 +203,8 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
   const [loyaltyPoints, setLoyaltyPoints] = useState(0);
   const [loyaltyPointValue, setLoyaltyPointValue] = useState(0);
   const slotRequestRef = useRef(0);
+  const [isClientLoggedIn, setIsClientLoggedIn] = useState(false);
+  const [hasBenefitsActive, setHasBenefitsActive] = useState(false);
   const [bookingResult, setBookingResult] = useState<{
     appointmentId: string;
     professionalName: string;
