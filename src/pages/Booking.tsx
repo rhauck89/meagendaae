@@ -312,7 +312,30 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
     checkLoyalty();
   }, [savedClientId, company?.id]);
 
+  // Check if client is logged in
   useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setIsClientLoggedIn(!!session?.user);
+    });
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setIsClientLoggedIn(!!session?.user);
+    });
+    return () => subscription.unsubscribe();
+  }, []);
+
+  // Check if company has cashback or loyalty active
+  useEffect(() => {
+    if (!company?.id) return;
+    const checkBenefits = async () => {
+      const [cashbackRes, loyaltyRes] = await Promise.all([
+        supabase.from('promotions' as any).select('id').eq('company_id', company.id).eq('promotion_type', 'cashback').eq('active', true).limit(1),
+        supabase.from('loyalty_config' as any).select('enabled').eq('company_id', company.id).eq('enabled', true).limit(1),
+      ]);
+      setHasBenefitsActive(!!((cashbackRes.data as any[])?.length || (loyaltyRes.data as any[])?.length));
+    };
+    checkBenefits();
+  }, [company?.id]);
+
     if (slug) fetchCompany();
   }, [slug]);
 
