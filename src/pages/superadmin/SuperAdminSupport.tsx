@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { MessageSquare, Send, Filter, Paperclip, Eye, Download, FileText, Film, Search, ChevronLeft, ChevronRight, Loader2, Building2, User, ExternalLink } from 'lucide-react';
+import { MessageSquare, Send, Filter, Paperclip, Eye, Download, FileText, Film, Search, ChevronLeft, ChevronRight, Loader2, Building2, User, ExternalLink, Lock, Unlock } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 
@@ -51,7 +51,7 @@ const statusOptions = [
   { value: 'in_progress', label: 'Em andamento' },
   { value: 'answered', label: 'Respondido' },
   { value: 'resolved', label: 'Resolvido' },
-  { value: 'closed', label: 'Fechado' },
+  { value: 'closed', label: 'Encerrado' },
 ];
 
 const statusMap: Record<string, { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline' }> = {
@@ -59,7 +59,7 @@ const statusMap: Record<string, { label: string; variant: 'default' | 'secondary
   in_progress: { label: 'Em andamento', variant: 'default' },
   answered: { label: 'Respondido', variant: 'secondary' },
   resolved: { label: 'Resolvido', variant: 'outline' },
-  closed: { label: 'Fechado', variant: 'outline' },
+  closed: { label: 'Encerrado', variant: 'outline' },
 };
 
 const categoryMap: Record<string, string> = {
@@ -289,6 +289,7 @@ const SuperAdminSupport = () => {
     open: tickets.filter(t => t.status === 'open').length,
     in_progress: tickets.filter(t => t.status === 'in_progress').length,
     answered: tickets.filter(t => t.status === 'answered').length,
+    closed: tickets.filter(t => t.status === 'closed').length,
     total: totalCount,
   }), [tickets, totalCount]);
 
@@ -301,11 +302,12 @@ const SuperAdminSupport = () => {
       <h2 className="text-xl font-display font-semibold">🎫 Suporte</h2>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
         <Card><CardContent className="p-4 text-center"><p className="text-xs text-muted-foreground">Total</p><p className="text-2xl font-display font-bold">{stats.total}</p></CardContent></Card>
         <Card><CardContent className="p-4 text-center"><p className="text-xs text-muted-foreground">Abertos</p><p className="text-2xl font-display font-bold text-destructive">{stats.open}</p></CardContent></Card>
         <Card><CardContent className="p-4 text-center"><p className="text-xs text-muted-foreground">Em andamento</p><p className="text-2xl font-display font-bold text-primary">{stats.in_progress}</p></CardContent></Card>
         <Card><CardContent className="p-4 text-center"><p className="text-xs text-muted-foreground">Respondidos</p><p className="text-2xl font-display font-bold text-success">{stats.answered}</p></CardContent></Card>
+        <Card><CardContent className="p-4 text-center"><p className="text-xs text-muted-foreground">Encerrados</p><p className="text-2xl font-display font-bold">{stats.closed}</p></CardContent></Card>
       </div>
 
       {/* Search + Filters */}
@@ -551,17 +553,32 @@ const SuperAdminSupport = () => {
 
           <ScrollArea className="flex-1 min-h-0 max-h-[250px] pr-2">
             <div className="space-y-3 py-2">
-              {messages.map(m => (
-                <div key={m.id} className={`flex ${m.is_admin ? 'justify-end' : 'justify-start'}`}>
-                  <div className={`max-w-[80%] rounded-lg p-3 text-sm ${m.is_admin ? 'bg-primary text-primary-foreground' : 'bg-muted'}`}>
-                    {m.is_admin && <p className="text-xs font-semibold mb-1 opacity-70">Admin</p>}
-                    <p className="whitespace-pre-wrap">{m.message}</p>
-                    <p className={`text-xs mt-1 ${m.is_admin ? 'opacity-70' : 'text-muted-foreground'}`}>
-                      {format(new Date(m.created_at), 'dd/MM HH:mm')}
-                    </p>
+              {messages.map(m => {
+                // System messages (close/reopen events)
+                const isSystemMsg = m.message.startsWith('🔒') || m.message.startsWith('🔓');
+                if (isSystemMsg) {
+                  return (
+                    <div key={m.id} className="flex justify-center">
+                      <div className="bg-muted/70 rounded-full px-4 py-1.5 text-xs text-muted-foreground flex items-center gap-1.5">
+                        {m.message.startsWith('🔒') ? <Lock className="h-3 w-3" /> : <Unlock className="h-3 w-3" />}
+                        <span>{m.message}</span>
+                        <span className="opacity-60">• {format(new Date(m.created_at), 'dd/MM HH:mm')}</span>
+                      </div>
+                    </div>
+                  );
+                }
+                return (
+                  <div key={m.id} className={`flex ${m.is_admin ? 'justify-end' : 'justify-start'}`}>
+                    <div className={`max-w-[80%] rounded-lg p-3 text-sm ${m.is_admin ? 'bg-primary text-primary-foreground' : 'bg-muted'}`}>
+                      {m.is_admin && <p className="text-xs font-semibold mb-1 opacity-70">Admin</p>}
+                      <p className="whitespace-pre-wrap">{m.message}</p>
+                      <p className={`text-xs mt-1 ${m.is_admin ? 'opacity-70' : 'text-muted-foreground'}`}>
+                        {format(new Date(m.created_at), 'dd/MM HH:mm')}
+                      </p>
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
               {messages.length === 0 && <p className="text-center text-sm text-muted-foreground py-4">Nenhuma mensagem</p>}
             </div>
           </ScrollArea>
