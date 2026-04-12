@@ -9,9 +9,10 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Plus, MessageSquare, Paperclip, Send, X, FileText, Image, Film, Download, CheckCircle, Eye } from 'lucide-react';
+import { Plus, MessageSquare, Paperclip, Send, X, FileText, Image, Film, Download, CheckCircle, Eye, Lock, Unlock } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 
@@ -49,7 +50,7 @@ const statusMap: Record<string, { label: string; variant: 'default' | 'secondary
   in_progress: { label: 'Em andamento', variant: 'default' },
   answered: { label: 'Respondido', variant: 'secondary' },
   resolved: { label: 'Resolvido', variant: 'outline' },
-  closed: { label: 'Fechado', variant: 'outline' },
+  closed: { label: 'Encerrado', variant: 'outline' },
 };
 
 const priorityMap: Record<string, string> = {
@@ -111,6 +112,7 @@ const Support = () => {
   const [uploading, setUploading] = useState(false);
   const [creating, setCreating] = useState(false);
   const [previewAttachment, setPreviewAttachment] = useState<Attachment | null>(null);
+  const [closeConfirmOpen, setCloseConfirmOpen] = useState(false);
 
   // Create form state
   const [form, setForm] = useState({
@@ -259,6 +261,41 @@ const Support = () => {
     setSending(false);
   };
 
+  const handleCloseTicket = async () => {
+    if (!viewTicket) return;
+    // Update status
+    await supabase.from('support_tickets').update({ status: 'closed', updated_at: new Date().toISOString() } as any).eq('id', viewTicket.id);
+    // Add system message
+    await supabase.from('support_messages').insert({
+      ticket_id: viewTicket.id,
+      user_id: user!.id,
+      message: '🔒 Ticket encerrado pelo cliente',
+      is_admin: false,
+    } as any);
+    setViewTicket(prev => prev ? { ...prev, status: 'closed' } : null);
+    setCloseConfirmOpen(false);
+    fetchMessages(viewTicket.id);
+    fetchTickets();
+    toast.success('✅ Ticket encerrado com sucesso');
+  };
+
+  const handleReopenTicket = async () => {
+    if (!viewTicket) return;
+    // Update status
+    await supabase.from('support_tickets').update({ status: 'open', updated_at: new Date().toISOString() } as any).eq('id', viewTicket.id);
+    // Add system message
+    await supabase.from('support_messages').insert({
+      ticket_id: viewTicket.id,
+      user_id: user!.id,
+      message: '🔓 Ticket reaberto pelo cliente',
+      is_admin: false,
+    } as any);
+    setViewTicket(prev => prev ? { ...prev, status: 'open' } : null);
+    fetchMessages(viewTicket.id);
+    fetchTickets();
+    toast.success('🔓 Ticket reaberto');
+  };
+
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !viewTicket) return;
@@ -296,6 +333,8 @@ const Support = () => {
   };
 
   if (loading) return <div className="flex items-center justify-center py-12"><p className="text-muted-foreground">Carregando...</p></div>;
+
+  const isTicketClosed = viewTicket?.status === 'closed';
 
   return (
     <div className="space-y-6">
@@ -483,6 +522,22 @@ const Support = () => {
         </DialogContent>
       </Dialog>
 
+      {/* Close Ticket Confirmation */}
+      <AlertDialog open={closeConfirmOpen} onOpenChange={setCloseConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Encerrar ticket?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja encerrar este ticket? Você poderá reabri-lo posteriormente se necessário.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleCloseTicket}>Sim, encerrar</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       {/* View Ticket Dialog */}
       <Dialog open={!!viewTicket} onOpenChange={() => setViewTicket(null)}>
         <DialogContent className="max-w-lg max-h-[85vh] flex flex-col">
@@ -543,39 +598,72 @@ const Support = () => {
 
           <ScrollArea className="flex-1 min-h-0 max-h-[300px] pr-2">
             <div className="space-y-3 py-2">
-              {messages.map(m => (
-                <div key={m.id} className={`flex ${m.is_admin ? 'justify-start' : 'justify-end'}`}>
-                  <div className={`max-w-[80%] rounded-lg p-3 text-sm ${m.is_admin ? 'bg-muted' : 'bg-primary text-primary-foreground'}`}>
-                    {m.is_admin && <p className="text-xs font-semibold mb-1 opacity-70">Suporte</p>}
-                    <p className="whitespace-pre-wrap">{m.message}</p>
-                    <p className={`text-xs mt-1 ${m.is_admin ? 'text-muted-foreground' : 'opacity-70'}`}>
-                      {format(new Date(m.created_at), 'dd/MM HH:mm')}
-                    </p>
+              {messages.map(m => {
+                // System messages (close/reopen events)
+                const isSystemMsg = m.message.startsWith('🔒') || m.message.startsWith('🔓');
+                if (isSystemMsg) {
+                  return (
+                    <div key={m.id} className="flex justify-center">
+                      <div className="bg-muted/70 rounded-full px-4 py-1.5 text-xs text-muted-foreground flex items-center gap-1.5">
+                        {m.message.startsWith('🔒') ? <Lock className="h-3 w-3" /> : <Unlock className="h-3 w-3" />}
+                        <span>{m.message}</span>
+                        <span className="opacity-60">• {format(new Date(m.created_at), 'dd/MM HH:mm')}</span>
+                      </div>
+                    </div>
+                  );
+                }
+                return (
+                  <div key={m.id} className={`flex ${m.is_admin ? 'justify-start' : 'justify-end'}`}>
+                    <div className={`max-w-[80%] rounded-lg p-3 text-sm ${m.is_admin ? 'bg-muted' : 'bg-primary text-primary-foreground'}`}>
+                      {m.is_admin && <p className="text-xs font-semibold mb-1 opacity-70">Suporte</p>}
+                      <p className="whitespace-pre-wrap">{m.message}</p>
+                      <p className={`text-xs mt-1 ${m.is_admin ? 'text-muted-foreground' : 'opacity-70'}`}>
+                        {format(new Date(m.created_at), 'dd/MM HH:mm')}
+                      </p>
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
               {messages.length === 0 && <p className="text-center text-sm text-muted-foreground py-4">Nenhuma mensagem ainda</p>}
             </div>
           </ScrollArea>
 
-          {viewTicket?.status !== 'closed' && (
-            <div className="flex gap-2 pt-2 border-t">
-              <Input
-                placeholder="Digite sua mensagem..."
-                value={newMessage}
-                onChange={e => setNewMessage(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && !e.shiftKey && sendMessage()}
-                className="flex-1"
-              />
-              <label>
-                <input type="file" className="hidden" accept=".jpg,.jpeg,.png,.pdf,.mp4,.mov,.webm" onChange={handleFileUpload} />
-                <Button variant="outline" size="icon" asChild disabled={uploading}>
-                  <span><Paperclip className="h-4 w-4" /></span>
-                </Button>
-              </label>
-              <Button size="icon" onClick={sendMessage} disabled={sending || !newMessage.trim()}>
-                <Send className="h-4 w-4" />
+          {/* Close/Reopen buttons and message input */}
+          {isTicketClosed ? (
+            <div className="pt-2 border-t space-y-3">
+              <div className="flex items-center gap-2 bg-muted/50 rounded-lg p-3">
+                <Lock className="h-4 w-4 text-muted-foreground shrink-0" />
+                <p className="text-sm text-muted-foreground">Este ticket foi encerrado. Reabra para continuar a conversa.</p>
+              </div>
+              <Button variant="outline" className="w-full" onClick={handleReopenTicket}>
+                <Unlock className="h-4 w-4 mr-2" /> Reabrir Ticket
               </Button>
+            </div>
+          ) : (
+            <div className="pt-2 border-t space-y-2">
+              <div className="flex gap-2">
+                <Input
+                  placeholder="Digite sua mensagem..."
+                  value={newMessage}
+                  onChange={e => setNewMessage(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && !e.shiftKey && sendMessage()}
+                  className="flex-1"
+                />
+                <label>
+                  <input type="file" className="hidden" accept=".jpg,.jpeg,.png,.pdf,.mp4,.mov,.webm" onChange={handleFileUpload} />
+                  <Button variant="outline" size="icon" asChild disabled={uploading}>
+                    <span><Paperclip className="h-4 w-4" /></span>
+                  </Button>
+                </label>
+                <Button size="icon" onClick={sendMessage} disabled={sending || !newMessage.trim()}>
+                  <Send className="h-4 w-4" />
+                </Button>
+              </div>
+              {(viewTicket?.status === 'answered' || viewTicket?.status === 'resolved') && (
+                <Button variant="outline" size="sm" className="w-full text-muted-foreground" onClick={() => setCloseConfirmOpen(true)}>
+                  <Lock className="h-3.5 w-3.5 mr-1.5" /> Encerrar Ticket
+                </Button>
+              )}
             </div>
           )}
         </DialogContent>

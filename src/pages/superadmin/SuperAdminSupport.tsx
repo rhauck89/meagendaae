@@ -51,7 +51,7 @@ const statusOptions = [
   { value: 'in_progress', label: 'Em andamento' },
   { value: 'answered', label: 'Respondido' },
   { value: 'resolved', label: 'Resolvido' },
-  { value: 'closed', label: 'Fechado' },
+  { value: 'closed', label: 'Encerrado' },
 ];
 
 const statusMap: Record<string, { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline' }> = {
@@ -59,7 +59,7 @@ const statusMap: Record<string, { label: string; variant: 'default' | 'secondary
   in_progress: { label: 'Em andamento', variant: 'default' },
   answered: { label: 'Respondido', variant: 'secondary' },
   resolved: { label: 'Resolvido', variant: 'outline' },
-  closed: { label: 'Fechado', variant: 'outline' },
+  closed: { label: 'Encerrado', variant: 'outline' },
 };
 
 const categoryMap: Record<string, string> = {
