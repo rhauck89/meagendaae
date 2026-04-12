@@ -56,7 +56,7 @@ const InteractiveStarRating = ({ rating, onRate, size = 32 }: { rating: number; 
   );
 };
 
-type Step = 'services' | 'professional' | 'datetime' | 'client' | 'confirm' | 'success';
+type Step = 'services' | 'professional' | 'datetime' | 'client' | 'benefits' | 'confirm' | 'success';
 type BusinessType = 'barbershop' | 'esthetic';
 
 interface BookingPageProps {
@@ -1811,7 +1811,13 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                   toast.error('Informe seu nome para continuar.');
                   return;
                 }
-                setStep('confirm');
+                // Check if company has cashback or loyalty active — show benefits step
+                const hasBenefits = (loyaltyPointValue > 0) || (isPromoMode && promoData?.promotion_type === 'cashback');
+                if (hasBenefits && !savedClientId) {
+                  setStep('benefits');
+                } else {
+                  setStep('confirm');
+                }
               }}
               className="w-full rounded-xl py-6 font-semibold text-base shadow-lg transition-all hover:scale-[1.01]"
               style={{ background: T.accent, color: '#000' }}
