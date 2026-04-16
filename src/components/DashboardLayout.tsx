@@ -74,7 +74,7 @@ const allProfessionalNavItems = [
 
 const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
   const { profile, companyId, signOut, loading: authLoading, loginMode, setLoginMode, isAlsoCollaborator } = useAuth();
-  const { isAdmin: isAdminRole } = useUserRole();
+  const { isAdmin: isAdminRole, isAdmin, isProfessionalMode } = useUserRole();
   const profPerms = useProfessionalPermissions();
   const brandInfo = useCompanyBrandInfo();
   const location = useLocation();
@@ -88,10 +88,8 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
   const { data: platformMessages, dismiss: dismissMessage } = usePlatformMessages();
   const totalNotifications = (unreadTickets || 0) + (platformMessages?.length || 0);
 
-  // Determine effective admin status based on login mode
+  // Determine if role selection dialog is needed
   const needsRoleSelection = isAdminRole && isAlsoCollaborator && !loginMode;
-  const isProfessionalMode = isAdminRole && isAlsoCollaborator && loginMode === 'professional';
-  const isAdmin = isAdminRole && (!isAlsoCollaborator || loginMode !== 'professional');
 
   const isSettingsActive = location.pathname.startsWith('/dashboard/settings');
   const isFinanceActive = location.pathname.startsWith('/dashboard/finance');
