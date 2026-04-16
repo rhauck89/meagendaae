@@ -1352,10 +1352,13 @@ const Dashboard = () => {
         </Card>
       )}
 
-      {/* 5. Agenda do dia */}
+      {/* 5. Calendário de Agendamentos */}
 
-      <Card>
+      <Card id="agenda-completa">
         <CardHeader className="pb-3">
+          <CardTitle className="text-lg font-display flex items-center gap-2 mb-3">
+            <CalendarIcon className="h-5 w-5" /> Calendário de Agendamentos
+          </CardTitle>
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="flex items-center gap-2">
               <Button variant="outline" size="icon" onClick={() => navigate(-1)}>
