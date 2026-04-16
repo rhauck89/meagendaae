@@ -9,7 +9,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { formatWhatsApp, buildWhatsAppUrl } from '@/lib/whatsapp';
 import { Clock, Send, CheckCircle2, MessageCircle } from 'lucide-react';
-import { formatWhatsApp } from '@/lib/whatsapp';
+
 
 function applyWhatsAppMask(value: string): string {
   const digits = value.replace(/\D/g, '').slice(0, 11);
