@@ -366,6 +366,13 @@ export default function ProfessionalPublicProfile() {
           </div>
         )}
 
+        {/* Cashback indicator */}
+        {activeCashback && (
+          <div className="w-full max-w-xs rounded-xl p-3 text-center text-sm font-medium" style={{ background: '#10b98115', border: '1px solid #10b98130', color: '#10b981' }}>
+            💰 Cashback ativo: Ganhe {activeCashback} de volta
+          </div>
+        )}
+
         {/* Primary CTA */}
         <Button
           onClick={() => navigate(bookingUrl)}
