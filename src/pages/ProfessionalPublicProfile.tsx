@@ -47,6 +47,7 @@ export default function ProfessionalPublicProfile() {
   const [copied, setCopied] = useState(false);
   const [loading, setLoading] = useState(true);
   const [companySettings, setCompanySettings] = useState<any>(null);
+  const [activeCashback, setActiveCashback] = useState<string | null>(null);
 
   const { amenities: companyAmenities } = useCompanyAmenities(company?.id);
 
@@ -105,6 +106,30 @@ export default function ProfessionalPublicProfile() {
     // Fetch company settings for branding
     const { data: csData } = await supabase.from('public_company_settings' as any).select('primary_color, secondary_color, background_color').eq('company_id', comp.id).single();
     if (csData) setCompanySettings(csData);
+
+    // Check for active cashback promotions
+    try {
+      const today = format(new Date(), 'yyyy-MM-dd');
+      const { data: cbPromos } = await supabase
+        .from('promotions')
+        .select('discount_type, discount_value, professional_filter, professional_ids')
+        .eq('company_id', comp.id)
+        .eq('promotion_type', 'cashback')
+        .eq('status', 'active')
+        .lte('start_date', today)
+        .gte('end_date', today);
+      if (cbPromos && cbPromos.length > 0) {
+        const eligible = cbPromos.find((p: any) =>
+          p.professional_filter !== 'specific' || (p.professional_ids || []).includes(prof.id)
+        );
+        if (eligible) {
+          const label = eligible.discount_type === 'percentage'
+            ? `${eligible.discount_value}% de cashback`
+            : `R$ ${Number(eligible.discount_value).toFixed(2)} de cashback`;
+          setActiveCashback(label);
+        }
+      }
+    } catch { /* ignore */ }
 
     // Next available slots
     await fetchNextSlots(comp, prof);
