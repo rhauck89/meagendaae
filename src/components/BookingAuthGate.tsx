@@ -93,12 +93,13 @@ export const BookingAuthGate = ({
         return;
       }
 
-      // 3. Link any existing client records by phone
-      if (signUpData.user && defaultWhatsapp) {
+      // 3. Link any existing client records by phone OR email
+      if (signUpData.user) {
         await supabase.rpc('link_client_to_user', {
           p_user_id: signUpData.user.id,
-          p_phone: defaultWhatsapp,
-        });
+          p_phone: defaultWhatsapp || null,
+          p_email: parsed.data.email,
+        } as any);
       }
 
       toast.success('Conta criada! Você está logado.');
