@@ -303,16 +303,23 @@ const Team = () => {
         .eq('id', editTarget.profile_id);
 
       const commissionType = editForm.commission_type as 'percentage' | 'fixed' | 'none' | 'own_revenue';
+      const updateData: any = {
+        collaborator_type: editForm.collaborator_type as any,
+        commission_type: commissionType as any,
+        commission_value: commissionType === 'none' || commissionType === 'own_revenue' ? 0 : (Number(editForm.commission_value) || 0),
+        break_time: editForm.break_time,
+      };
+      // Only allow booking_mode change if permitted
+      if ((company as any)?.prof_perm_booking_mode) {
+        updateData.booking_mode = editForm.booking_mode;
+      }
+      // Only allow grid_interval change if permitted
+      if ((company as any)?.prof_perm_grid_interval) {
+        updateData.grid_interval = editForm.grid_interval;
+      }
       await supabase
         .from('collaborators')
-        .update({
-          collaborator_type: editForm.collaborator_type as any,
-          commission_type: commissionType as any,
-          commission_value: commissionType === 'none' || commissionType === 'own_revenue' ? 0 : (Number(editForm.commission_value) || 0),
-          booking_mode: editForm.booking_mode,
-          grid_interval: editForm.grid_interval,
-          break_time: editForm.break_time,
-        } as any)
+        .update(updateData)
         .eq('id', editTarget.id);
 
       toast.success('Profissional atualizado!');
