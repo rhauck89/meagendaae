@@ -359,6 +359,40 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
     } catch { /* ignore */ }
   }, [company?.id, services, professionals, isPromoMode]);
 
+  // Auto-rebook when ?rebook=1 is present in URL (triggered from BarbershopLanding)
+  const rebookTriggered = useRef(false);
+  useEffect(() => {
+    if (rebookTriggered.current) return;
+    if (searchParams.get('rebook') !== '1') return;
+    if (!lastBooking || !company?.id || services.length === 0) return;
+    rebookTriggered.current = true;
+    (async () => {
+      setSelectedServices(lastBooking.serviceIds);
+      if (!professionalSlug) {
+        setSelectedProfessional(lastBooking.professionalId);
+        const profs = await fetchProfessionals();
+        const profStillExists = profs.some((p: any) => p.id === lastBooking.professionalId);
+        if (!profStillExists) {
+          toast.error('Esse profissional não está disponível no momento. Escolha outro.');
+          setSelectedProfessional(null);
+          setStep('professional');
+          return;
+        }
+      }
+      const { data: spLinks } = await supabase
+        .from('service_professionals')
+        .select('service_id')
+        .eq('professional_id', lastBooking.professionalId)
+        .in('service_id', lastBooking.serviceIds);
+      if (!spLinks || spLinks.length !== lastBooking.serviceIds.length) {
+        toast.error('Serviço não disponível com esse profissional. Escolha manualmente.');
+        setStep('services');
+        return;
+      }
+      setStep('datetime');
+    })();
+  }, [lastBooking, company?.id, services, searchParams, professionalSlug]);
+
   useEffect(() => {
     if (!company?.id) return;
     const checkBenefits = async () => {
@@ -1424,87 +1458,6 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
         {/* ═══ SERVICES ═══ */}
         {step === 'services' && (
           <div className="space-y-5 animate-fade-in">
-            {/* Smart Rebooking Block */}
-            {lastBooking && !rebookDismissed && !isPromoMode && (() => {
-              const daysSince = Math.floor((Date.now() - new Date(lastBooking.bookedAt).getTime()) / (1000 * 60 * 60 * 24));
-              return (
-                <div className="rounded-2xl p-5 space-y-4" style={{ background: `${T.accent}10`, border: `1.5px solid ${T.accent}40` }}>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <RotateCcw className="h-5 w-5" style={{ color: T.accent }} />
-                      <span className="font-bold text-base">Agendar novamente?</span>
-                    </div>
-                    <button onClick={() => setRebookDismissed(true)} className="p-1 rounded-full hover:opacity-70" style={{ color: T.textSec }}>
-                      <X className="h-4 w-4" />
-                    </button>
-                  </div>
-                  {daysSince >= 14 && (
-                    <p className="text-sm font-medium" style={{ color: T.accent }}>
-                      👀 Está na hora de agendar novamente — faz {daysSince} dias!
-                    </p>
-                  )}
-                  <div className="flex items-center gap-4 p-3 rounded-xl" style={{ background: T.card, border: `1px solid ${T.border}` }}>
-                    {lastBooking.professionalAvatar ? (
-                      <img src={lastBooking.professionalAvatar} alt="" className="w-12 h-12 rounded-full object-cover shrink-0" />
-                    ) : (
-                      <div className="w-12 h-12 rounded-full flex items-center justify-center text-lg font-bold shrink-0" style={{ background: `${T.accent}20`, color: T.accent }}>
-                        {lastBooking.professionalName.charAt(0).toUpperCase()}
-                      </div>
-                    )}
-                    <div className="min-w-0 flex-1">
-                      <p className="font-semibold text-sm truncate">{lastBooking.serviceNames.join(', ')}</p>
-                      <p className="text-xs mt-0.5" style={{ color: T.textSec }}>
-                        <Clock className="h-3 w-3 inline mr-1" />{lastBooking.totalDuration} min • com {lastBooking.professionalName}
-                      </p>
-                      <p className="text-xs font-semibold mt-0.5" style={{ color: T.accent }}>
-                        R$ {lastBooking.totalPrice.toFixed(2)}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <Button
-                      onClick={async () => {
-                        setSelectedServices(lastBooking.serviceIds);
-                        if (!professionalSlug) {
-                          setSelectedProfessional(lastBooking.professionalId);
-                          const profs = await fetchProfessionals();
-                          const profStillExists = profs.some((p: any) => p.id === lastBooking.professionalId);
-                          if (!profStillExists) {
-                            toast.error('Esse profissional não está disponível no momento. Escolha outro.');
-                            setSelectedProfessional(null);
-                            setStep('professional');
-                            return;
-                          }
-                        }
-                        // Check service-professional link
-                        const { data: spLinks } = await supabase
-                          .from('service_professionals')
-                          .select('service_id')
-                          .eq('professional_id', lastBooking.professionalId)
-                          .in('service_id', lastBooking.serviceIds);
-                        if (!spLinks || spLinks.length !== lastBooking.serviceIds.length) {
-                          toast.error('Serviço não disponível com esse profissional. Escolha manualmente.');
-                          setStep('services');
-                          return;
-                        }
-                        setStep('datetime');
-                      }}
-                      className="w-full rounded-xl py-5 font-semibold text-base"
-                      style={{ background: T.accent, color: '#000' }}
-                    >
-                      <RotateCcw className="h-4 w-4 mr-2" /> Repetir agendamento
-                    </Button>
-                    <button
-                      onClick={() => setRebookDismissed(true)}
-                      className="w-full py-2 text-sm font-medium rounded-xl hover:opacity-80"
-                      style={{ color: T.textSec }}
-                    >
-                      Escolher outro serviço
-                    </button>
-                  </div>
-                </div>
-              );
-            })()}
 
             <div>
               <h2 className="text-2xl font-bold tracking-tight">{isPromoMode ? 'Escolha um serviço da promoção' : 'Escolha os serviços'}</h2>
