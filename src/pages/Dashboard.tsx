@@ -1426,7 +1426,7 @@ const Dashboard = () => {
               ))}
             </div>
             {/* Display mode toggle: Lista / Calendário */}
-            {!isMobile && viewMode === 'day' && (
+            {!isMobile && (
               <div className="flex gap-1 bg-muted rounded-lg p-1">
                 <Button
                   variant={agendaDisplayMode === 'lista' ? 'default' : 'ghost'}
@@ -1447,7 +1447,7 @@ const Dashboard = () => {
               </div>
             )}
             {/* Column mode toggle for calendar view */}
-            {!isMobile && viewMode === 'day' && agendaDisplayMode === 'calendario' && isAdmin && collaboratorsList.length > 1 && (
+            {!isMobile && agendaDisplayMode === 'calendario' && isAdmin && collaboratorsList.length > 1 && (
               <div className="flex gap-1 bg-muted rounded-lg p-1">
                 <Button
                   variant={timelineColumnMode === 'day' ? 'default' : 'ghost'}
@@ -1506,7 +1506,7 @@ const Dashboard = () => {
           )}
 
           {/* Calendar Timeline View */}
-          {agendaDisplayMode === 'calendario' && !isMobile && viewMode === 'day' ? (
+          {agendaDisplayMode === 'calendario' && !isMobile ? (
             <>
               {appointments.length === 0 ? (
                 <div className="text-center py-12 text-muted-foreground">
