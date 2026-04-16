@@ -2355,7 +2355,13 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                     <span>✔ Receber promoções exclusivas</span>
                   </div>
                   <p className="text-xs" style={{ color: T.textSec }}>Leva menos de 30 segundos</p>
-                  <Button onClick={() => window.location.href = '/cliente/auth?tab=signup'} className="w-full rounded-xl py-5 font-semibold text-base" style={{ background: T.accent, color: '#000' }}>
+                  <Button onClick={() => {
+                    const params = new URLSearchParams({ tab: 'signup' });
+                    if (clientForm.full_name) params.set('name', clientForm.full_name);
+                    if (clientForm.whatsapp) params.set('phone', clientForm.whatsapp);
+                    if (clientForm.email) params.set('email', clientForm.email);
+                    window.location.href = `/cliente/auth?${params.toString()}`;
+                  }} className="w-full rounded-xl py-5 font-semibold text-base" style={{ background: T.accent, color: '#000' }}>
                     Concluir meu cadastro
                   </Button>
                 </div>
