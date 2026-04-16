@@ -186,6 +186,8 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
   const [availableSlots, setAvailableSlots] = useState<string[]>([]);
   const [generatedSlots, setGeneratedSlots] = useState<string[]>([]);
   const [clientForm, setClientForm] = useState({ full_name: '', email: '', whatsapp: '', birth_date: '' });
+  const [clientPassword, setClientPassword] = useState('');
+  const [authLoading, setAuthLoading] = useState(false);
   const skipTimeResetRef = useRef(false);
   const [optInWhatsapp, setOptInWhatsapp] = useState(false);
   const [savedClientId, setSavedClientId] = useState<string | null>(null);
@@ -2056,9 +2058,16 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                 )}
               </div>
               <div className="space-y-1.5">
-                <Label className="text-sm font-medium flex items-center gap-1.5" style={{ color: T.textSec }}><Mail className="h-3.5 w-3.5" /> Email (opcional)</Label>
+                <Label className="text-sm font-medium flex items-center gap-1.5" style={{ color: T.textSec }}><Mail className="h-3.5 w-3.5" /> Email *</Label>
                 <Input type="email" value={clientForm.email} onChange={(e) => setClientForm({ ...clientForm, email: e.target.value })} placeholder="seuemail@exemplo.com" className="rounded-xl h-12 text-base" style={{ background: T.card, border: `1px solid ${T.border}`, color: T.text }} />
               </div>
+              {!isClientLoggedIn && (
+                <div className="space-y-1.5">
+                  <Label className="text-sm font-medium flex items-center gap-1.5" style={{ color: T.textSec }}>🔒 Senha *</Label>
+                  <Input type="password" value={clientPassword} onChange={(e) => setClientPassword(e.target.value)} placeholder="Mínimo 6 caracteres" autoComplete="new-password" className="rounded-xl h-12 text-base" style={{ background: T.card, border: `1px solid ${T.border}`, color: T.text }} />
+                  <p className="text-xs" style={{ color: T.textSec }}>Se já tem conta, use sua senha. Caso contrário, criaremos automaticamente.</p>
+                </div>
+              )}
               <div className="space-y-1.5">
                 <Label className="text-sm font-medium flex items-center gap-1.5" style={{ color: T.textSec }}><Cake className="h-3.5 w-3.5" /> Data de nascimento</Label>
                 <Input type="date" value={clientForm.birth_date} onChange={(e) => setClientForm({ ...clientForm, birth_date: e.target.value })} className="rounded-xl h-12 text-base" style={{ background: T.card, border: `1px solid ${T.border}`, color: T.text }} />
@@ -2074,7 +2083,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
               <p className="text-sm mt-1" style={{ color: '#F87171' }}>Informe seu número de WhatsApp para continuar.</p>
             )}
             <Button
-              onClick={() => {
+              onClick={async () => {
                 if (!clientForm.whatsapp || !isValidWhatsApp(clientForm.whatsapp)) {
                   toast.error('Informe seu número de WhatsApp para continuar.');
                   return;
@@ -2083,6 +2092,78 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                   toast.error('Informe seu nome para continuar.');
                   return;
                 }
+                if (!clientForm.email?.trim()) {
+                  toast.error('Informe seu email para continuar.');
+                  return;
+                }
+
+                // ── Inline auth: sign in or sign up silently ──
+                if (!isClientLoggedIn) {
+                  if (!clientPassword || clientPassword.length < 6) {
+                    toast.error('A senha deve ter no mínimo 6 caracteres.');
+                    return;
+                  }
+                  setAuthLoading(true);
+                  try {
+                    const emailTrimmed = clientForm.email.trim().toLowerCase();
+                    // Try sign in first
+                    const { error: signInError } = await supabase.auth.signInWithPassword({
+                      email: emailTrimmed,
+                      password: clientPassword,
+                    });
+                    if (!signInError) {
+                      toast.success('Login realizado!');
+                      // link_client_to_user will be called when session is set
+                      const formattedPhone = clientForm.whatsapp ? formatWhatsApp(clientForm.whatsapp) : '';
+                      if (formattedPhone) {
+                        const { data: { user } } = await supabase.auth.getUser();
+                        if (user) {
+                          await supabase.rpc('link_client_to_user', { p_user_id: user.id, p_phone: formattedPhone });
+                        }
+                      }
+                    } else {
+                      // If invalid credentials, try sign up
+                      const isInvalidCreds = /invalid login|invalid credentials/i.test(signInError.message);
+                      if (!isInvalidCreds) {
+                        toast.error(signInError.message);
+                        setAuthLoading(false);
+                        return;
+                      }
+                      const formattedPhone = clientForm.whatsapp ? formatWhatsApp(clientForm.whatsapp) : '';
+                      const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+                        email: emailTrimmed,
+                        password: clientPassword,
+                        options: {
+                          emailRedirectTo: `${window.location.origin}/`,
+                          data: {
+                            full_name: clientForm.full_name.trim(),
+                            whatsapp: formattedPhone,
+                            role: 'client',
+                          },
+                        },
+                      });
+                      if (signUpError) {
+                        if (/already registered|already exists/i.test(signUpError.message)) {
+                          toast.error('Já existe uma conta com este email. Verifique sua senha.');
+                        } else {
+                          toast.error(signUpError.message);
+                        }
+                        setAuthLoading(false);
+                        return;
+                      }
+                      if (signUpData.user && formattedPhone) {
+                        await supabase.rpc('link_client_to_user', { p_user_id: signUpData.user.id, p_phone: formattedPhone });
+                      }
+                      toast.success('Conta criada!');
+                    }
+                  } catch (err: any) {
+                    toast.error(err?.message || 'Erro ao autenticar');
+                    setAuthLoading(false);
+                    return;
+                  }
+                  setAuthLoading(false);
+                }
+
                 // Check if company has cashback or loyalty active — show benefits step
                 const hasBenefits = (loyaltyPointValue > 0) || (isPromoMode && promoData?.promotion_type === 'cashback');
                 if (hasBenefits && !savedClientId) {
@@ -2093,9 +2174,15 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
               }}
               className="w-full rounded-xl py-6 font-semibold text-base shadow-lg transition-all hover:scale-[1.01]"
               style={{ background: T.accent, color: '#000' }}
-              disabled={!clientForm.full_name.trim() || !clientForm.whatsapp || !isValidWhatsApp(clientForm.whatsapp)}
+              disabled={authLoading || !clientForm.full_name.trim() || !clientForm.whatsapp || !isValidWhatsApp(clientForm.whatsapp) || !clientForm.email?.trim() || (!isClientLoggedIn && clientPassword.length < 6)}
             >
-              Revisar Agendamento <ChevronRight className="h-4 w-4 ml-1" />
+              {authLoading ? (
+                <div className="flex items-center gap-2">
+                  <div className="w-5 h-5 border-2 rounded-full animate-spin" style={{ borderColor: '#000 transparent transparent transparent' }} /> Autenticando...
+                </div>
+              ) : (
+                <>Revisar Agendamento <ChevronRight className="h-4 w-4 ml-1" /></>
+              )}
             </Button>
           </div>
         )}
