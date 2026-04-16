@@ -187,6 +187,8 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
   const [optInWhatsapp, setOptInWhatsapp] = useState(false);
   const [savedClientId, setSavedClientId] = useState<string | null>(null);
   const [clientLoaded, setClientLoaded] = useState(false);
+  const [clientDataWasAutoFilled, setClientDataWasAutoFilled] = useState(false);
+  const [saveDataForNext, setSaveDataForNext] = useState(true);
   const [loading, setLoading] = useState(false);
   const [slotsLoading, setSlotsLoading] = useState(false);
   const [appointmentsLoaded, setAppointmentsLoaded] = useState(false);
