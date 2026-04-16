@@ -41,15 +41,15 @@ const getAppointmentMinutesInTimezone = (value: string, timezone: string) => {
 
 const filterOverlappingSlots = (
   slots: string[], appointments: ExistingAppointment[], serviceDuration: number,
-  bufferMinutes: number, timezone: string, excludeId: string,
+  _bufferMinutes: number, timezone: string, excludeId: string,
 ) => {
   return slots.filter((slot) => {
     const slotStart = timeStringToMinutes(slot);
     const slotEnd = slotStart + serviceDuration;
     return !appointments.some((apt) => {
-      if ((apt as any).id === excludeId) return false; // Exclude current appointment
+      if ((apt as any).id === excludeId) return false;
       const aStart = getAppointmentMinutesInTimezone(apt.start_time, timezone);
-      const aEnd = getAppointmentMinutesInTimezone(apt.end_time, timezone) + bufferMinutes;
+      const aEnd = getAppointmentMinutesInTimezone(apt.end_time, timezone);
       return aStart < slotEnd && aEnd > slotStart;
     });
   });

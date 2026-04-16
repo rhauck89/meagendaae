@@ -88,18 +88,20 @@ const filterOverlappingSlots = (
   slots: string[],
   appointments: ExistingAppointment[],
   serviceDuration: number,
-  bufferMinutes: number,
+  _bufferMinutes: number,
   timezone: string,
 ) => {
+  // The availability engine already handles buffer internally.
+  // This filter is a safety net — just verify no raw overlap with appointments.
   return slots.filter((slot) => {
     const slotStart = timeStringToMinutes(slot);
-    const slotEnd = slotStart + serviceDuration + bufferMinutes;
+    const slotEnd = slotStart + serviceDuration;
 
     return !appointments.some((appointment) => {
       const appointmentStart = getAppointmentMinutesInTimezone(appointment.start_time, timezone);
-      const appointmentEndWithBuffer = getAppointmentMinutesInTimezone(appointment.end_time, timezone) + bufferMinutes;
+      const appointmentEnd = getAppointmentMinutesInTimezone(appointment.end_time, timezone);
 
-      return appointmentStart < slotEnd && appointmentEndWithBuffer > slotStart;
+      return appointmentStart < slotEnd && appointmentEnd > slotStart;
     });
   });
 };

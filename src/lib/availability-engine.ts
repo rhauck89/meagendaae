@@ -43,6 +43,12 @@ export interface AvailabilityParams {
   bookingMode?: BookingMode;
 }
 
+export interface SlotSuggestion {
+  slot: string;
+  gapMinutes: number;
+  fitsService: boolean;
+}
+
 /**
  * Parse a time string "HH:mm" or "HH:mm:ss" into a Date on the given base date.
  */
@@ -55,6 +61,7 @@ function parseTime(t: string, baseDate: Date): Date {
 
 /**
  * Build the list of blocked intervals from lunch, existing appointments, and manual blocks.
+ * NOTE: Buffer is NOT added here — each mode handles buffer in its own slot logic.
  */
 function buildBlockedIntervals(
   date: Date,
@@ -62,7 +69,6 @@ function buildBlockedIntervals(
   hours: BusinessHours,
   existingAppointments: ExistingAppointment[],
   blockedTimes: BlockedTime[],
-  bufferMinutes: number
 ): Array<{ start: Date; end: Date }> {
   const blocked: Array<{ start: Date; end: Date }> = [];
 
@@ -74,7 +80,7 @@ function buildBlockedIntervals(
 
   for (const apt of existingAppointments) {
     const aptStart = parseISO(apt.start_time);
-    const aptEnd = addMinutes(parseISO(apt.end_time), bufferMinutes);
+    const aptEnd = parseISO(apt.end_time);
     blocked.push({ start: aptStart, end: aptEnd });
   }
 
@@ -91,7 +97,7 @@ function buildBlockedIntervals(
 /**
  * Get the earliest allowed slot time if the date is today.
  */
-function getEarliestSlotTime(date: Date, slotInterval: number): Date | null {
+function getEarliestSlotTime(date: Date, roundTo: number): Date | null {
   const now = new Date();
   const isToday = date.getFullYear() === now.getFullYear() &&
     date.getMonth() === now.getMonth() &&
@@ -100,7 +106,7 @@ function getEarliestSlotTime(date: Date, slotInterval: number): Date | null {
   if (!isToday) return null;
 
   const nowMinutes = now.getHours() * 60 + now.getMinutes();
-  const roundedMinutes = Math.ceil(nowMinutes / slotInterval) * slotInterval;
+  const roundedMinutes = Math.ceil(nowMinutes / roundTo) * roundTo;
   const earliest = new Date(date);
   earliest.setHours(Math.floor(roundedMinutes / 60), roundedMinutes % 60, 0, 0);
   return earliest;
@@ -132,11 +138,38 @@ function resolveWorkingHours(
 }
 
 /**
+ * Build free windows by subtracting blocked intervals (with buffer) from [openTime, closeTime].
+ */
+function buildFreeWindows(
+  openTime: Date,
+  closeTime: Date,
+  blocked: Array<{ start: Date; end: Date }>,
+  bufferMinutes: number
+): Array<{ start: Date; end: Date }> {
+  const freeWindows: Array<{ start: Date; end: Date }> = [];
+  let windowStart = new Date(openTime);
+
+  for (const b of blocked) {
+    if (b.start > windowStart && b.start < closeTime) {
+      freeWindows.push({ start: new Date(windowStart), end: new Date(b.start) });
+    }
+    // After each blocked interval, add buffer before next available slot
+    const endWithBuffer = addMinutes(b.end, bufferMinutes);
+    if (endWithBuffer > windowStart) {
+      windowStart = new Date(endWithBuffer);
+    }
+  }
+  if (windowStart < closeTime) {
+    freeWindows.push({ start: new Date(windowStart), end: new Date(closeTime) });
+  }
+
+  return freeWindows;
+}
+
+/**
  * FIXED GRID MODE: Slots at regular intervals regardless of service duration.
- * Uses slotInterval as the fixed step (e.g. every 15, 30, 45, or 60 min).
  */
 function calculateFixedGridSlots(
-  date: Date,
   openTime: Date,
   closeTime: Date,
   totalDuration: number,
@@ -145,23 +178,30 @@ function calculateFixedGridSlots(
   blocked: Array<{ start: Date; end: Date }>,
   earliestSlotTime: Date | null
 ): string[] {
-  const effectiveDuration = totalDuration + bufferMinutes;
   const slots: string[] = [];
   let current = new Date(openTime);
 
-  while (current.getTime() + effectiveDuration * 60000 <= closeTime.getTime()) {
-    const slotEnd = addMinutes(current, effectiveDuration);
-
+  while (current.getTime() + totalDuration * 60000 <= closeTime.getTime()) {
     if (earliestSlotTime && current < earliestSlotTime) {
       current = addMinutes(current, slotInterval);
       continue;
     }
 
-    const hasConflict = blocked.some(
-      (b) => current < b.end && slotEnd > b.start
-    );
+    const slotEnd = addMinutes(current, totalDuration);
 
-    if (!hasConflict) {
+    // Check conflict with blocked intervals (considering buffer around blocked)
+    const hasConflict = blocked.some((b) => {
+      const bStartWithBuffer = addMinutes(b.start, -bufferMinutes);
+      return current < b.end && slotEnd > b.start;
+    });
+
+    // Also check that buffer after this slot doesn't overlap next blocked
+    const slotEndWithBuffer = addMinutes(current, totalDuration + bufferMinutes);
+    const hasBufferConflict = blocked.some((b) => {
+      return current < addMinutes(b.end, bufferMinutes) && slotEndWithBuffer > b.start;
+    });
+
+    if (!hasConflict && !hasBufferConflict) {
       slots.push(format(current, 'HH:mm'));
     }
 
@@ -173,11 +213,11 @@ function calculateFixedGridSlots(
 
 /**
  * INTELLIGENT MODE: Slots are calculated dynamically based on real free gaps.
- * After each existing appointment, the next slot starts at appointment_end + buffer.
- * This prevents unusable gaps in the schedule.
+ * Slots start at exact gap boundaries — no fixed grid.
+ * Example: if a 20min service ends at 11:20 with 5min buffer,
+ * next slot starts at 11:25, not 11:30.
  */
 function calculateIntelligentSlots(
-  date: Date,
   openTime: Date,
   closeTime: Date,
   totalDuration: number,
@@ -185,38 +225,21 @@ function calculateIntelligentSlots(
   blocked: Array<{ start: Date; end: Date }>,
   earliestSlotTime: Date | null
 ): string[] {
-  const effectiveDuration = totalDuration + bufferMinutes;
-
-  // Build free windows by subtracting blocked intervals from [openTime, closeTime]
-  const freeWindows: Array<{ start: Date; end: Date }> = [];
-  let windowStart = new Date(openTime);
-
-  for (const b of blocked) {
-    if (b.start > windowStart && b.start < closeTime) {
-      freeWindows.push({ start: new Date(windowStart), end: new Date(b.start) });
-    }
-    if (b.end > windowStart) {
-      windowStart = new Date(b.end);
-    }
-  }
-  if (windowStart < closeTime) {
-    freeWindows.push({ start: new Date(windowStart), end: new Date(closeTime) });
-  }
-
+  const freeWindows = buildFreeWindows(openTime, closeTime, blocked, bufferMinutes);
   const slots: string[] = [];
 
   for (const window of freeWindows) {
     let current = new Date(window.start);
 
-    while (current.getTime() + effectiveDuration * 60000 <= window.end.getTime()) {
+    while (current.getTime() + totalDuration * 60000 <= window.end.getTime()) {
       if (earliestSlotTime && current < earliestSlotTime) {
-        // In intelligent mode, jump by service duration to avoid tiny increments
-        current = addMinutes(current, totalDuration + bufferMinutes);
+        // Jump forward by 1 minute to find the exact earliest valid time
+        current = addMinutes(current, 1);
         continue;
       }
 
       slots.push(format(current, 'HH:mm'));
-      // Next slot starts right after this service + buffer
+      // Next slot starts after service duration + buffer
       current = addMinutes(current, totalDuration + bufferMinutes);
     }
   }
@@ -227,10 +250,8 @@ function calculateIntelligentSlots(
 /**
  * HYBRID MODE: Uses fixed grid intervals but validates each slot
  * can actually fit the service duration without overlapping blocked intervals.
- * Combines predictable grid times with intelligent gap prevention.
  */
 function calculateHybridSlots(
-  date: Date,
   openTime: Date,
   closeTime: Date,
   totalDuration: number,
@@ -239,24 +260,31 @@ function calculateHybridSlots(
   blocked: Array<{ start: Date; end: Date }>,
   earliestSlotTime: Date | null
 ): string[] {
-  const effectiveDuration = totalDuration + bufferMinutes;
   const slots: string[] = [];
   let current = new Date(openTime);
 
-  while (current.getTime() + effectiveDuration * 60000 <= closeTime.getTime()) {
+  while (current.getTime() + totalDuration * 60000 <= closeTime.getTime()) {
     if (earliestSlotTime && current < earliestSlotTime) {
       current = addMinutes(current, slotInterval);
       continue;
     }
 
-    const slotEnd = addMinutes(current, effectiveDuration);
+    const slotEnd = addMinutes(current, totalDuration);
+    const slotEndWithBuffer = addMinutes(current, totalDuration + bufferMinutes);
 
-    const hasConflict = blocked.some(
-      (b) => current < b.end && slotEnd > b.start
-    );
+    const hasConflict = blocked.some((b) => {
+      const bEndWithBuffer = addMinutes(b.end, bufferMinutes);
+      return current < bEndWithBuffer && slotEnd > b.start;
+    });
 
     if (!hasConflict) {
-      slots.push(format(current, 'HH:mm'));
+      // Also verify buffer after this slot doesn't overlap next blocked
+      const bufferConflict = blocked.some((b) => {
+        return slotEndWithBuffer > b.start && slotEnd <= b.start;
+      });
+      if (!bufferConflict) {
+        slots.push(format(current, 'HH:mm'));
+      }
     }
 
     current = addMinutes(current, slotInterval);
@@ -267,9 +295,10 @@ function calculateHybridSlots(
 
 /**
  * Smart availability engine that calculates available time slots.
- * Supports two modes:
- * - fixed_grid: Regular intervals (default, backward compatible)
- * - intelligent: Dynamic gaps based on service duration + buffer
+ * Supports three modes:
+ * - intelligent: Dynamic gaps based on real service duration (recommended)
+ * - fixed_grid: Regular intervals (backward compatible)
+ * - hybrid: Fixed grid with gap validation
  */
 export function calculateAvailableSlots(params: AvailabilityParams): string[] {
   const {
@@ -300,17 +329,18 @@ export function calculateAvailableSlots(params: AvailabilityParams): string[] {
   const openTime = parseTime(openTimeStr, date);
   const closeTime = parseTime(closeTimeStr, date);
 
-  const blocked = buildBlockedIntervals(date, dateStr, hours, existingAppointments, blockedTimes, bufferMinutes);
-  const earliestSlotTime = getEarliestSlotTime(date, bookingMode === 'intelligent' ? 5 : slotInterval);
+  // Build blocked intervals WITHOUT buffer (each mode handles buffer internally)
+  const blocked = buildBlockedIntervals(date, dateStr, hours, existingAppointments, blockedTimes);
+  const earliestSlotTime = getEarliestSlotTime(date, bookingMode === 'intelligent' ? 1 : slotInterval);
 
   let slots: string[];
 
   if (bookingMode === 'intelligent') {
-    slots = calculateIntelligentSlots(date, openTime, closeTime, totalDuration, bufferMinutes, blocked, earliestSlotTime);
+    slots = calculateIntelligentSlots(openTime, closeTime, totalDuration, bufferMinutes, blocked, earliestSlotTime);
   } else if (bookingMode === 'hybrid') {
-    slots = calculateHybridSlots(date, openTime, closeTime, totalDuration, bufferMinutes, slotInterval, blocked, earliestSlotTime);
+    slots = calculateHybridSlots(openTime, closeTime, totalDuration, bufferMinutes, slotInterval, blocked, earliestSlotTime);
   } else {
-    slots = calculateFixedGridSlots(date, openTime, closeTime, totalDuration, bufferMinutes, slotInterval, blocked, earliestSlotTime);
+    slots = calculateFixedGridSlots(openTime, closeTime, totalDuration, bufferMinutes, slotInterval, blocked, earliestSlotTime);
   }
 
   console.log('[AvailabilityEngine] Result', {
@@ -330,8 +360,22 @@ export function calculateAvailableSlots(params: AvailabilityParams): string[] {
 }
 
 /**
+ * Find the next available slot suggestion when a service doesn't fit.
+ * Returns the earliest slot where the service can be scheduled.
+ */
+export function suggestNextAvailableSlot(params: AvailabilityParams): SlotSuggestion | null {
+  const slots = calculateAvailableSlots(params);
+  if (slots.length === 0) return null;
+
+  return {
+    slot: slots[0],
+    gapMinutes: params.totalDuration,
+    fitsService: true,
+  };
+}
+
+/**
  * Validate that a given time string is on the fixed grid.
- * Returns true if the time aligns with the grid interval starting from openTime.
  */
 export function isTimeOnGrid(
   time: string,
@@ -348,7 +392,6 @@ export function isTimeOnGrid(
 
 /**
  * Validate a selected time slot for fixed_grid mode.
- * Checks that the time aligns with the configured grid interval.
  */
 export function validateTimeSlot(
   selectedTime: string,
