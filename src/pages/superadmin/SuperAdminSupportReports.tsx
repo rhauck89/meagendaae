@@ -129,7 +129,7 @@ const SuperAdminSupportReports = () => {
             <div className="h-[300px]">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
-                  <Pie data={byCategoryData} cx="50%" cy="50%" labelLine={false} outerRadius={100} dataKey="value" label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}>
+                  <Pie data={byCategoryData} cx="50%" cy="50%" labelLine={false} outerRadius={100} dataKey="value" label={piePercentLabel}>
                     {byCategoryData.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
                   </Pie>
                   <Tooltip />
@@ -151,7 +151,7 @@ const SuperAdminSupportReports = () => {
             <div className="h-[300px]">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
-                  <Pie data={byPriorityData} cx="50%" cy="50%" labelLine={false} outerRadius={100} dataKey="value" label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}>
+                  <Pie data={byPriorityData} cx="50%" cy="50%" labelLine={false} outerRadius={100} dataKey="value" label={piePercentLabel}>
                     {byPriorityData.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
                   </Pie>
                   <Tooltip />
