@@ -347,7 +347,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
                     {isAdmin ? <Crown className="h-4 w-4 shrink-0" /> : <Scissors className="h-4 w-4 shrink-0" />}
                     <div className="flex-1 text-left min-w-0">
                       <p className="font-semibold text-[11px] leading-tight">
-                        {isAdmin ? 'Administrando empresa' : 'Atendendo como profissional'}
+                        {isAdmin ? 'Administrando empresa' : `Atendendo como: ${profile?.full_name || 'Profissional'}`}
                       </p>
                     </div>
                     <ArrowLeftRight className="h-3 w-3 opacity-50 shrink-0" />
