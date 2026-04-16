@@ -348,11 +348,30 @@ const ClientPortal = () => {
     () => Object.values(companies).filter(c => companyLoyaltyActive[c.id]),
     [companies, companyLoyaltyActive]);
 
-  // Loja: empresas que possuem ao menos um item de recompensa ativo (independe de vínculo)
+  // Loja: empresas com itens ativos, ordenadas (1) com pontos > 0, (2) com histórico, (3) outras
+  const appointmentCompanyIds = useMemo(
+    () => new Set(appointments.map(a => a.company_id)),
+    [appointments]);
   const companiesWithRewards = useMemo(() => {
     const ids = [...new Set(rewards.map(r => r.company_id))];
-    return ids.map(id => companies[id]).filter(Boolean) as CompanyInfo[];
-  }, [rewards, companies]);
+    const list = ids.map(id => companies[id]).filter(Boolean) as CompanyInfo[];
+    return list.sort((a, b) => {
+      const pa = pointsByCompany[a.id] || 0;
+      const pb = pointsByCompany[b.id] || 0;
+      if (pa !== pb) return pb - pa; // mais pontos primeiro
+      const ha = appointmentCompanyIds.has(a.id) ? 1 : 0;
+      const hb = appointmentCompanyIds.has(b.id) ? 1 : 0;
+      if (ha !== hb) return hb - ha; // histórico primeiro
+      return a.name.localeCompare(b.name);
+    });
+  }, [rewards, companies, pointsByCompany, appointmentCompanyIds]);
+
+  // Auto-seleciona empresa com mais pontos (ou primeira ordenada) quando a Loja carrega
+  useEffect(() => {
+    if (rewardsCompanyId) return;
+    if (companiesWithRewards.length === 0) return;
+    setRewardsCompanyId(companiesWithRewards[0].id);
+  }, [companiesWithRewards, rewardsCompanyId]);
 
   const anyCashback = companiesWithCashback.length > 0;
   const anyLoyalty = companiesWithLoyalty.length > 0;
