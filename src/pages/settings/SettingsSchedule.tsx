@@ -26,18 +26,22 @@ const SettingsSchedule = () => {
   const [allowCustomRequests, setAllowCustomRequests] = useState(false);
   const [syncDialogOpen, setSyncDialogOpen] = useState(false);
   const [syncing, setSyncing] = useState(false);
+  const [profPermBookingMode, setProfPermBookingMode] = useState(false);
+  const [profPermGridInterval, setProfPermGridInterval] = useState(false);
 
   useEffect(() => {
     if (companyId) { fetchHours(); fetchExceptions(); fetchCompanySettings(); }
   }, [companyId]);
 
   const fetchCompanySettings = async () => {
-    const { data } = await supabase.from('companies').select('buffer_minutes, booking_mode, fixed_slot_interval, allow_custom_requests').eq('id', companyId!).single();
+    const { data } = await supabase.from('companies').select('buffer_minutes, booking_mode, fixed_slot_interval, allow_custom_requests, prof_perm_booking_mode, prof_perm_grid_interval').eq('id', companyId!).single();
     if (data) {
       setBufferMinutes((data as any).buffer_minutes ?? 0);
       setBookingMode((data as any).booking_mode ?? 'fixed_grid');
       setFixedSlotInterval((data as any).fixed_slot_interval ?? 15);
       setAllowCustomRequests((data as any).allow_custom_requests ?? false);
+      setProfPermBookingMode((data as any).prof_perm_booking_mode ?? false);
+      setProfPermGridInterval((data as any).prof_perm_grid_interval ?? false);
     }
   };
 
