@@ -372,12 +372,20 @@ const Dashboard = () => {
     if (!companyId) return;
     const days = 14;
     const startDate = format(addDays(new Date(), -days + 1), 'yyyy-MM-dd');
-    const { data } = await supabase
+    let query = supabase
       .from('appointments')
       .select('start_time, status, total_price')
       .eq('company_id', companyId)
       .gte('start_time', `${startDate}T00:00:00`)
       .order('start_time', { ascending: true });
+
+    if (!isAdmin && profileId) {
+      query = query.eq('professional_id', profileId);
+    } else if (filterProfessional !== 'all') {
+      query = query.eq('professional_id', filterProfessional);
+    }
+
+    const { data } = await query;
 
     if (!data) return;
 
