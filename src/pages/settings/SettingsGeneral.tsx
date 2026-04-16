@@ -11,6 +11,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { toast } from 'sonner';
 import { Building2, Link2, Copy } from 'lucide-react';
 import SettingsBreadcrumb from '@/components/SettingsBreadcrumb';
+import { resetOnboardingChecklist } from '@/components/OnboardingChecklist';
+import { resetTutorialProgress } from '@/components/TutorialProgressWidget';
 
 const SettingsGeneral = () => {
   const { companyId } = useAuth();
