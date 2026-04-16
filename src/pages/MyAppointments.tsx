@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { formatServicesWithDuration } from '@/lib/format-services';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Calendar, Clock, X } from 'lucide-react';
+import { Calendar, Clock, X, User, LogOut } from 'lucide-react';
 import { format, parseISO, isPast } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
@@ -28,21 +29,49 @@ const statusLabels: Record<string, string> = {
 };
 
 const MyAppointments = () => {
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
+  const navigate = useNavigate();
   const [appointments, setAppointments] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (user) fetchAppointments();
+    if (user) {
+      linkAndFetch();
+    } else {
+      setLoading(false);
+    }
   }, [user]);
 
-  const fetchAppointments = async () => {
-    const { data: profile } = await supabase
+  const linkAndFetch = async () => {
+    setLoading(true);
+
+    // Get user's phone from profile and link any unlinked client records
+    const { data: profileData } = await supabase
       .from('profiles')
-      .select('id')
+      .select('whatsapp')
       .eq('user_id', user!.id)
       .single();
 
-    if (!profile) return;
+    if (profileData?.whatsapp) {
+      await supabase.rpc('link_client_to_user', {
+        p_user_id: user!.id,
+        p_phone: profileData.whatsapp,
+      });
+    }
+
+    // Fetch client records linked to this user
+    const { data: clientData } = await supabase
+      .from('clients')
+      .select('id')
+      .eq('user_id', user!.id);
+
+    if (!clientData || clientData.length === 0) {
+      setAppointments([]);
+      setLoading(false);
+      return;
+    }
+
+    const clientIds = clientData.map(c => c.id);
 
     const { data } = await supabase
       .from('appointments')
@@ -52,30 +81,76 @@ const MyAppointments = () => {
         company:companies(name),
         appointment_services(*, service:services(name))
       `)
-      .eq('client_id', profile.id)
+      .in('client_id', clientIds)
       .order('start_time', { ascending: false });
 
     if (data) setAppointments(data);
+    setLoading(false);
   };
 
   const cancelAppointment = async (id: string) => {
     await supabase.from('appointments').update({ status: 'cancelled' as any }).eq('id', id);
     toast.success('Agendamento cancelado');
-    fetchAppointments();
+    linkAndFetch();
   };
+
+  // Unauthenticated state
+  if (!user && !loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background p-4">
+        <div className="w-full max-w-sm text-center space-y-5">
+          <User className="h-16 w-16 mx-auto text-primary/60" />
+          <div>
+            <h2 className="text-xl font-bold">Seus Agendamentos</h2>
+            <p className="text-muted-foreground text-sm mt-2">
+              Faça login para ver seus agendamentos e acompanhar seu histórico.
+            </p>
+          </div>
+          <div className="space-y-3">
+            <Button onClick={() => navigate('/cliente/auth?tab=login')} className="w-full">
+              Fazer login
+            </Button>
+            <Button variant="outline" onClick={() => navigate('/cliente/auth?tab=signup')} className="w-full">
+              Criar conta
+            </Button>
+          </div>
+          <Button variant="ghost" className="w-full text-sm" onClick={() => navigate('/')}>
+            Voltar ao início
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <p className="text-muted-foreground">Carregando...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b bg-card">
-        <div className="max-w-2xl mx-auto px-4 py-4">
+        <div className="max-w-2xl mx-auto px-4 py-4 flex items-center justify-between">
           <h1 className="font-display font-bold text-xl">Meus Agendamentos</h1>
+          <Button variant="ghost" size="icon" onClick={signOut}>
+            <LogOut className="h-5 w-5" />
+          </Button>
         </div>
       </header>
       <div className="max-w-2xl mx-auto px-4 py-6 space-y-4">
         {appointments.length === 0 ? (
-          <div className="text-center py-12 text-muted-foreground">
+          <div className="text-center py-12 text-muted-foreground space-y-4">
             <Calendar className="h-12 w-12 mx-auto mb-3 opacity-40" />
-            <p>Nenhum agendamento encontrado</p>
+            <p className="font-semibold">Nenhum agendamento encontrado</p>
+            <p className="text-sm">
+              Ainda não encontramos agendamentos vinculados à sua conta. Após realizar um agendamento, seus dados aparecerão aqui automaticamente.
+            </p>
+            <Button onClick={() => navigate('/')} variant="outline">
+              Explorar estabelecimentos
+            </Button>
           </div>
         ) : (
           appointments.map((apt) => (
