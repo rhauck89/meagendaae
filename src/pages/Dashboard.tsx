@@ -317,7 +317,7 @@ const Dashboard = () => {
         total: todayAppts.length,
         revenue: todayAppts.filter((a) => a.status === 'confirmed' || a.status === 'completed').reduce((sum, a) => sum + Number(a.total_price), 0),
         revenueCompleted: todayAppts.filter((a) => a.status === 'completed').reduce((sum, a) => sum + Number(a.total_price), 0),
-        clients: new Set(todayAppts.map((a) => a.client_id)).size,
+        clients: todayAppts.filter((a) => ['confirmed', 'completed', 'pending', 'in_progress'].includes(a.status)).length,
       });
     }
   };
@@ -1148,7 +1148,12 @@ const Dashboard = () => {
       {/* 3. Resumo do Dia */}
       <div>
         <div className="flex items-center justify-between mb-3">
-          <h3 className="text-lg font-display font-semibold">📊 Resumo do Dia</h3>
+          <div>
+            <h3 className="text-lg font-display font-semibold">📊 Resumo do Dia</h3>
+            <p className="text-sm text-muted-foreground capitalize">
+              {format(new Date(), "EEEE, d 'de' MMMM 'de' yyyy", { locale: ptBR })}
+            </p>
+          </div>
           <FinancialPrivacyToggle />
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
