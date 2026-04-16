@@ -927,7 +927,14 @@ const Dashboard = () => {
           ) : (
             <div className="space-y-3">
               {items.map(({ apt, label, icon, style }) => (
-                <div key={apt.id} className={cn('p-4 rounded-xl border transition-shadow', style)}>
+                <div key={apt.id} className={cn('p-4 rounded-xl border transition-shadow cursor-pointer', style)}
+                  onClick={() => {
+                    setHighlightedAppointmentId(apt.id);
+                    const el = document.getElementById(`agenda-apt-${apt.id}`);
+                    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    setTimeout(() => setHighlightedAppointmentId(null), 3000);
+                  }}
+                >
                   <div className="flex items-center gap-4">
                     <div className="text-center min-w-[60px]">
                       <p className="text-lg font-display font-bold">{format(parseISO(apt.start_time), 'HH:mm')}</p>
