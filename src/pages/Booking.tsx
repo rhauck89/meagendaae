@@ -2561,6 +2561,23 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
         </button>
       )}
 
+      {/* Complete signup modal: opens from "Concluir cadastro" button on success screen */}
+      {company?.id && (
+        <CompleteSignupModal
+          open={showCompleteSignup}
+          onOpenChange={setShowCompleteSignup}
+          defaultName={clientForm.full_name}
+          defaultEmail={clientForm.email}
+          defaultWhatsapp={clientForm.whatsapp}
+          defaultBirthDate={clientForm.birth_date}
+          companyId={company.id}
+          onSuccess={() => {
+            setHasValidClient(true);
+            window.location.href = '/minha-conta';
+          }}
+        />
+      )}
+
       {/* Floating WhatsApp Button */}
       {companyWhatsapp && step !== 'success' && (
         <a
