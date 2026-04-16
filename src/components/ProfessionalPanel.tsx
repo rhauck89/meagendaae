@@ -238,8 +238,38 @@ const ProfessionalPanel = ({ collaborator, open, onOpenChange, onUpdated }: Prof
           </TabsContent>
 
           <TabsContent value="services" className="space-y-3 mt-4">
-            <p className="text-sm text-muted-foreground">Selecione os serviços que este profissional realiza:</p>
-            {services.map((svc) => {
+            {/* Search */}
+            <div className="relative">
+              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Buscar serviço..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-9 pr-8"
+              />
+              {searchQuery && (
+                <button onClick={() => setSearchQuery('')} className="absolute right-2.5 top-2.5 text-muted-foreground hover:text-foreground">
+                  <X className="h-4 w-4" />
+                </button>
+              )}
+            </div>
+
+            {/* Select all + counter */}
+            <div className="flex items-center justify-between p-3 rounded-lg bg-muted/80 border">
+              <div className="flex items-center gap-3">
+                <Checkbox
+                  ref={selectAllRef}
+                  checked={allFilteredSelected ? true : someFilteredSelected ? 'indeterminate' : false}
+                  onCheckedChange={(checked) => handleSelectAll(!!checked)}
+                />
+                <span className="font-medium text-sm">Selecionar todos</span>
+              </div>
+              <span className="text-xs text-muted-foreground">
+                {assignedServiceIds.length} de {services.length} serviços
+              </span>
+            </div>
+
+            {filteredServices.map((svc) => {
               const isAssigned = assignedServiceIds.includes(svc.id);
               return (
                 <div key={svc.id} className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
@@ -271,6 +301,10 @@ const ProfessionalPanel = ({ collaborator, open, onOpenChange, onUpdated }: Prof
                 </div>
               );
             })}
+
+            {filteredServices.length === 0 && searchQuery && (
+              <p className="text-sm text-muted-foreground text-center py-4">Nenhum serviço encontrado</p>
+            )}
           </TabsContent>
 
           <TabsContent value="hours" className="space-y-3 mt-4">
