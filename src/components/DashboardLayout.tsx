@@ -74,7 +74,9 @@ const allProfessionalNavItems = [
 
 const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
   const { profile, companyId, signOut, loading: authLoading, loginMode, setLoginMode, isAlsoCollaborator, roles } = useAuth();
-  const { isAdmin: isAdminRole, isAdmin, isProfessionalMode, isProfessional } = useUserRole();
+  const { isAdmin, isProfessionalMode, isProfessional } = useUserRole();
+  // isProfessional = raw role check (always true if user has 'professional' role)
+  // isAdmin = false when in professional mode (by design)
   const profPerms = useProfessionalPermissions();
   const brandInfo = useCompanyBrandInfo();
   const location = useLocation();
@@ -89,10 +91,10 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
   const totalNotifications = (unreadTickets || 0) + (platformMessages?.length || 0);
 
   // Debug logging for role detection
-  console.log('[DashboardLayout] Role debug:', { isAdminRole, isAdmin, isProfessional, isProfessionalMode, isAlsoCollaborator, loginMode, roles });
+  console.log('[DashboardLayout] Role debug:', { isAdmin, isProfessional, isProfessionalMode, isAlsoCollaborator, loginMode, roles });
 
   // Determine if role selection dialog is needed
-  const needsRoleSelection = isAdminRole && isAlsoCollaborator && !loginMode;
+  const needsRoleSelection = isProfessional && isAlsoCollaborator && !loginMode;
 
   const isSettingsActive = location.pathname.startsWith('/dashboard/settings');
   const isFinanceActive = location.pathname.startsWith('/dashboard/finance');
@@ -330,7 +332,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
             </div>
 
             {/* Mode indicator badge */}
-            {isAdminRole && isAlsoCollaborator && loginMode && (
+            {isProfessional && isAlsoCollaborator && loginMode && (
               <div className={cn('mx-3 mb-2', collapsed && 'lg:mx-1')}>
                 {collapsed ? (
                   <Tooltip>
@@ -451,7 +453,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
             <h1 className="text-lg font-display font-semibold flex-1">{currentLabel}</h1>
 
             {/* Mode switcher for admin+professional users */}
-            {isAdminRole && isAlsoCollaborator && loginMode && (
+            {isProfessional && isAlsoCollaborator && loginMode && (
               <Tooltip>
                 <TooltipTrigger asChild>
                   <button
