@@ -147,7 +147,7 @@ const FinancePayables = () => {
                     </TableCell>
                     <TableCell>{e.description}</TableCell>
                     <TableCell className="text-muted-foreground">{e.category?.name || '—'}</TableCell>
-                    <TableCell className="text-right font-semibold text-destructive">R$ {Number(e.amount).toFixed(2)}</TableCell>
+                    <TableCell className="text-right font-semibold text-destructive">{maskValue(Number(e.amount))}</TableCell>
                     <TableCell><Badge variant="outline" className={statusColors[e.status] || ''}>{statusLabels[e.status] || e.status}</Badge></TableCell>
                     <TableCell>
                       <div className="flex gap-1">
@@ -174,7 +174,7 @@ const FinancePayables = () => {
             <CardContent className="p-4">
               <div className="flex items-start justify-between gap-2 mb-2">
                 <span className="font-medium text-sm break-words flex-1 min-w-0">{e.description}</span>
-                <span className="font-semibold text-sm text-destructive shrink-0">R$ {Number(e.amount).toFixed(2)}</span>
+                <span className="font-semibold text-sm text-destructive shrink-0">{maskValue(Number(e.amount))}</span>
               </div>
               <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground mb-2">
                 <span>{format(new Date(e.due_date + 'T12:00:00'), 'dd/MM/yyyy')}</span>
