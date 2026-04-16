@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Plus, Users, Percent, DollarSign, Settings, Copy, ExternalLink, Mail, KeyRound, MessageCircle, Pencil, UserX, UserCheck, Trash2, CalendarOff, ChevronLeft, ChevronRight, Check, Clock, Wallet, Crown } from 'lucide-react';
+import { Plus, Users, Percent, DollarSign, Settings, Copy, ExternalLink, Mail, KeyRound, MessageCircle, Pencil, UserX, UserCheck, Trash2, CalendarOff, ChevronLeft, ChevronRight, Check, Clock, Wallet, Crown, Lock } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { buildWhatsAppUrl } from '@/lib/whatsapp';
@@ -98,7 +98,7 @@ const Team = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('companies')
-        .select('slug, business_type, booking_mode, fixed_slot_interval, owner_id')
+        .select('slug, business_type, booking_mode, fixed_slot_interval, owner_id, prof_perm_booking_mode, prof_perm_grid_interval')
         .eq('id', companyId!)
         .single();
       if (error) throw error;
@@ -303,16 +303,23 @@ const Team = () => {
         .eq('id', editTarget.profile_id);
 
       const commissionType = editForm.commission_type as 'percentage' | 'fixed' | 'none' | 'own_revenue';
+      const updateData: any = {
+        collaborator_type: editForm.collaborator_type as any,
+        commission_type: commissionType as any,
+        commission_value: commissionType === 'none' || commissionType === 'own_revenue' ? 0 : (Number(editForm.commission_value) || 0),
+        break_time: editForm.break_time,
+      };
+      // Only allow booking_mode change if permitted
+      if ((company as any)?.prof_perm_booking_mode) {
+        updateData.booking_mode = editForm.booking_mode;
+      }
+      // Only allow grid_interval change if permitted
+      if ((company as any)?.prof_perm_grid_interval) {
+        updateData.grid_interval = editForm.grid_interval;
+      }
       await supabase
         .from('collaborators')
-        .update({
-          collaborator_type: editForm.collaborator_type as any,
-          commission_type: commissionType as any,
-          commission_value: commissionType === 'none' || commissionType === 'own_revenue' ? 0 : (Number(editForm.commission_value) || 0),
-          booking_mode: editForm.booking_mode,
-          grid_interval: editForm.grid_interval,
-          break_time: editForm.break_time,
-        } as any)
+        .update(updateData)
         .eq('id', editTarget.id);
 
       toast.success('Profissional atualizado!');
@@ -813,7 +820,7 @@ const Team = () => {
                   <div className="space-y-4">
                     <p className="text-sm text-muted-foreground">Configure como a agenda do profissional irá funcionar.</p>
                     
-                    <div className="flex items-center justify-between p-3 rounded-lg border">
+                     <div className="flex items-center justify-between p-3 rounded-lg border">
                       <div>
                         <p className="text-sm font-medium">Usar padrão da empresa</p>
                         <p className="text-xs text-muted-foreground">Aplica as configurações de agenda da empresa</p>
@@ -821,49 +828,75 @@ const Team = () => {
                       <Switch
                         checked={form.schedule_from_company}
                         onCheckedChange={(checked) => setForm({ ...form, schedule_from_company: checked })}
+                        disabled={!(company as any)?.prof_perm_booking_mode && !(company as any)?.prof_perm_grid_interval}
                       />
                     </div>
 
+                    {!(company as any)?.prof_perm_booking_mode && !(company as any)?.prof_perm_grid_interval && (
+                      <div className="p-3 rounded-lg bg-muted/50 border flex items-center gap-2 text-xs text-muted-foreground">
+                        <Lock className="h-3 w-3 shrink-0" />
+                        Configuração definida pela empresa. O administrador não liberou personalização.
+                      </div>
+                    )}
+
                     {!form.schedule_from_company && (
                       <>
-                        <div className="space-y-2">
-                          <Label>Modo de agendamento</Label>
-                          <Select value={form.booking_mode} onValueChange={(v) => setForm({ ...form, booking_mode: v })}>
-                            <SelectTrigger><SelectValue /></SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="intelligent">
-                                <div className="flex flex-col items-start">
-                                  <span>Inteligente</span>
-                                  <span className="text-xs text-muted-foreground">Horários calculados dinamicamente</span>
-                                </div>
-                              </SelectItem>
-                              <SelectItem value="fixed_grid">
-                                <div className="flex flex-col items-start">
-                                  <span>Grade fixa</span>
-                                  <span className="text-xs text-muted-foreground">Intervalos fixos de horário</span>
-                                </div>
-                              </SelectItem>
-                              <SelectItem value="hybrid">
-                                <div className="flex flex-col items-start">
-                                  <span>Híbrida (recomendado)</span>
-                                  <span className="text-xs text-muted-foreground">Grade fixa com validação de duração</span>
-                                </div>
-                              </SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        {(form.booking_mode === 'fixed_grid' || form.booking_mode === 'hybrid') && (
+                        {(company as any)?.prof_perm_booking_mode ? (
                           <div className="space-y-2">
-                            <Label>Intervalo da grade (minutos)</Label>
-                            <Select value={String(form.grid_interval)} onValueChange={(v) => setForm({ ...form, grid_interval: Number(v) })}>
+                            <Label>Modo de agendamento</Label>
+                            <Select value={form.booking_mode} onValueChange={(v) => setForm({ ...form, booking_mode: v })}>
                               <SelectTrigger><SelectValue /></SelectTrigger>
                               <SelectContent>
-                                <SelectItem value="15">15 minutos</SelectItem>
-                                <SelectItem value="30">30 minutos</SelectItem>
-                                <SelectItem value="45">45 minutos</SelectItem>
-                                <SelectItem value="60">60 minutos</SelectItem>
+                                <SelectItem value="intelligent">
+                                  <div className="flex flex-col items-start">
+                                    <span>Inteligente</span>
+                                    <span className="text-xs text-muted-foreground">Horários calculados dinamicamente</span>
+                                  </div>
+                                </SelectItem>
+                                <SelectItem value="fixed_grid">
+                                  <div className="flex flex-col items-start">
+                                    <span>Grade fixa</span>
+                                    <span className="text-xs text-muted-foreground">Intervalos fixos de horário</span>
+                                  </div>
+                                </SelectItem>
+                                <SelectItem value="hybrid">
+                                  <div className="flex flex-col items-start">
+                                    <span>Híbrida (recomendado)</span>
+                                    <span className="text-xs text-muted-foreground">Grade fixa com validação de duração</span>
+                                  </div>
+                                </SelectItem>
                               </SelectContent>
                             </Select>
+                          </div>
+                        ) : (
+                          <div className="p-3 rounded-lg bg-muted/50 border space-y-1">
+                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                              <Lock className="h-3 w-3" /> Gerenciado pelo administrador
+                            </div>
+                            <p className="text-sm">Modo: <span className="font-medium">{bookingModeLabel((company as any)?.booking_mode || 'fixed_grid')}</span></p>
+                          </div>
+                        )}
+                        {(company as any)?.prof_perm_grid_interval ? (
+                          (form.booking_mode === 'fixed_grid' || form.booking_mode === 'hybrid') && (
+                            <div className="space-y-2">
+                              <Label>Intervalo da grade (minutos)</Label>
+                              <Select value={String(form.grid_interval)} onValueChange={(v) => setForm({ ...form, grid_interval: Number(v) })}>
+                                <SelectTrigger><SelectValue /></SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="15">15 minutos</SelectItem>
+                                  <SelectItem value="30">30 minutos</SelectItem>
+                                  <SelectItem value="45">45 minutos</SelectItem>
+                                  <SelectItem value="60">60 minutos</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          )
+                        ) : (
+                          <div className="p-3 rounded-lg bg-muted/50 border space-y-1">
+                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                              <Lock className="h-3 w-3" /> Gerenciado pelo administrador
+                            </div>
+                            <p className="text-sm">Intervalo: <span className="font-medium">{(company as any)?.fixed_slot_interval || 15} minutos</span></p>
                           </div>
                         )}
                       </>
@@ -1081,31 +1114,56 @@ const Team = () => {
             {/* Scheduling Configuration */}
             <div className="border-t pt-4 space-y-3">
               <Label className="font-semibold text-sm">Configuração de Agenda</Label>
-              <div className="space-y-2">
-                <Label className="text-xs text-muted-foreground">Modo de agendamento</Label>
-                <Select value={editForm.booking_mode} onValueChange={(v) => setEditForm({ ...editForm, booking_mode: v })}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="intelligent">Inteligente</SelectItem>
-                    <SelectItem value="fixed_grid">Grade fixa</SelectItem>
-                    <SelectItem value="hybrid">Híbrida (recomendado)</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              {(editForm.booking_mode === 'fixed_grid' || editForm.booking_mode === 'hybrid') && (
+              
+              {/* Booking Mode */}
+              {(company as any)?.prof_perm_booking_mode ? (
                 <div className="space-y-2">
-                  <Label className="text-xs text-muted-foreground">Intervalo da grade (minutos)</Label>
-                  <Select value={String(editForm.grid_interval)} onValueChange={(v) => setEditForm({ ...editForm, grid_interval: Number(v) })}>
+                  <Label className="text-xs text-muted-foreground">Modo de agendamento</Label>
+                  <Select value={editForm.booking_mode} onValueChange={(v) => setEditForm({ ...editForm, booking_mode: v })}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="15">15 minutos</SelectItem>
-                      <SelectItem value="30">30 minutos</SelectItem>
-                      <SelectItem value="45">45 minutos</SelectItem>
-                      <SelectItem value="60">60 minutos</SelectItem>
+                      <SelectItem value="intelligent">Inteligente</SelectItem>
+                      <SelectItem value="fixed_grid">Grade fixa</SelectItem>
+                      <SelectItem value="hybrid">Híbrida (recomendado)</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
+              ) : (
+                <div className="p-3 rounded-lg bg-muted/50 border space-y-1">
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <Lock className="h-3 w-3" /> Gerenciado pelo administrador
+                  </div>
+                  <p className="text-sm">Modo: <span className="font-medium">{bookingModeLabel((company as any)?.booking_mode || 'fixed_grid')}</span></p>
+                </div>
               )}
+
+              {/* Grid Interval */}
+              {(editForm.booking_mode === 'fixed_grid' || editForm.booking_mode === 'hybrid' || (company as any)?.booking_mode === 'fixed_grid' || (company as any)?.booking_mode === 'hybrid') && (
+                <>
+                  {(company as any)?.prof_perm_grid_interval ? (
+                    <div className="space-y-2">
+                      <Label className="text-xs text-muted-foreground">Intervalo da grade (minutos)</Label>
+                      <Select value={String(editForm.grid_interval)} onValueChange={(v) => setEditForm({ ...editForm, grid_interval: Number(v) })}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="15">15 minutos</SelectItem>
+                          <SelectItem value="30">30 minutos</SelectItem>
+                          <SelectItem value="45">45 minutos</SelectItem>
+                          <SelectItem value="60">60 minutos</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  ) : (
+                    <div className="p-3 rounded-lg bg-muted/50 border space-y-1">
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <Lock className="h-3 w-3" /> Gerenciado pelo administrador
+                      </div>
+                      <p className="text-sm">Intervalo: <span className="font-medium">{(company as any)?.fixed_slot_interval || 15} minutos</span></p>
+                    </div>
+                  )}
+                </>
+              )}
+
               <div className="space-y-2">
                 <Label className="text-xs text-muted-foreground">Intervalo entre atendimentos (minutos)</Label>
                 <Input type="number" min={0} max={60} value={editForm.break_time} onChange={(e) => setEditForm({ ...editForm, break_time: Number(e.target.value) || 0 })} placeholder="Ex: 5" />

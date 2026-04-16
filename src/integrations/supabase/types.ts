@@ -872,9 +872,11 @@ export type Database = {
           phone: string | null
           plan_id: string | null
           postal_code: string | null
+          prof_perm_booking_mode: boolean
           prof_perm_clients: boolean
           prof_perm_events: boolean
           prof_perm_finance: boolean
+          prof_perm_grid_interval: boolean
           prof_perm_promotions: boolean
           prof_perm_requests: boolean
           reminders_enabled: boolean
@@ -924,9 +926,11 @@ export type Database = {
           phone?: string | null
           plan_id?: string | null
           postal_code?: string | null
+          prof_perm_booking_mode?: boolean
           prof_perm_clients?: boolean
           prof_perm_events?: boolean
           prof_perm_finance?: boolean
+          prof_perm_grid_interval?: boolean
           prof_perm_promotions?: boolean
           prof_perm_requests?: boolean
           reminders_enabled?: boolean
@@ -976,9 +980,11 @@ export type Database = {
           phone?: string | null
           plan_id?: string | null
           postal_code?: string | null
+          prof_perm_booking_mode?: boolean
           prof_perm_clients?: boolean
           prof_perm_events?: boolean
           prof_perm_finance?: boolean
+          prof_perm_grid_interval?: boolean
           prof_perm_promotions?: boolean
           prof_perm_requests?: boolean
           reminders_enabled?: boolean

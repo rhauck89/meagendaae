@@ -10,7 +10,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
-import { Clock, Calendar as CalendarIcon, Plus, Trash2, Timer, RefreshCw, Zap, Grid3X3, Inbox } from 'lucide-react';
+import { Clock, Calendar as CalendarIcon, Plus, Trash2, Timer, RefreshCw, Zap, Grid3X3, Inbox, Shield } from 'lucide-react';
 import SettingsBreadcrumb from '@/components/SettingsBreadcrumb';
 
 const dayNames = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
@@ -26,18 +26,22 @@ const SettingsSchedule = () => {
   const [allowCustomRequests, setAllowCustomRequests] = useState(false);
   const [syncDialogOpen, setSyncDialogOpen] = useState(false);
   const [syncing, setSyncing] = useState(false);
+  const [profPermBookingMode, setProfPermBookingMode] = useState(false);
+  const [profPermGridInterval, setProfPermGridInterval] = useState(false);
 
   useEffect(() => {
     if (companyId) { fetchHours(); fetchExceptions(); fetchCompanySettings(); }
   }, [companyId]);
 
   const fetchCompanySettings = async () => {
-    const { data } = await supabase.from('companies').select('buffer_minutes, booking_mode, fixed_slot_interval, allow_custom_requests').eq('id', companyId!).single();
+    const { data } = await supabase.from('companies').select('buffer_minutes, booking_mode, fixed_slot_interval, allow_custom_requests, prof_perm_booking_mode, prof_perm_grid_interval').eq('id', companyId!).single();
     if (data) {
       setBufferMinutes((data as any).buffer_minutes ?? 0);
       setBookingMode((data as any).booking_mode ?? 'fixed_grid');
       setFixedSlotInterval((data as any).fixed_slot_interval ?? 15);
       setAllowCustomRequests((data as any).allow_custom_requests ?? false);
+      setProfPermBookingMode((data as any).prof_perm_booking_mode ?? false);
+      setProfPermGridInterval((data as any).prof_perm_grid_interval ?? false);
     }
   };
 
@@ -253,7 +257,41 @@ const SettingsSchedule = () => {
         </CardContent>
       </Card>
 
-      {/* Buffer */}
+      {/* Professional Permissions */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Shield className="h-5 w-5" /> Permissões dos Profissionais
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <p className="text-xs text-muted-foreground">
+            Por padrão, profissionais herdam as configurações da empresa. Ative as opções abaixo para permitir personalização individual.
+          </p>
+          <div className="flex items-center justify-between p-3 rounded-lg border">
+            <div className="space-y-0.5">
+              <Label className="text-sm font-medium">Permitir alterar tipo de agenda</Label>
+              <p className="text-xs text-muted-foreground">Inteligente, Grade fixa ou Híbrido</p>
+            </div>
+            <Switch checked={profPermBookingMode} onCheckedChange={setProfPermBookingMode} />
+          </div>
+          <div className="flex items-center justify-between p-3 rounded-lg border">
+            <div className="space-y-0.5">
+              <Label className="text-sm font-medium">Permitir alterar intervalo da grade</Label>
+              <p className="text-xs text-muted-foreground">15, 30, 45 ou 60 minutos</p>
+            </div>
+            <Switch checked={profPermGridInterval} onCheckedChange={setProfPermGridInterval} />
+          </div>
+          <Button size="sm" onClick={async () => {
+            await supabase.from('companies').update({
+              prof_perm_booking_mode: profPermBookingMode,
+              prof_perm_grid_interval: profPermGridInterval,
+            } as any).eq('id', companyId!);
+            toast.success('Permissões salvas');
+          }}>Salvar permissões</Button>
+        </CardContent>
+      </Card>
+
       <Card>
         <CardHeader><CardTitle className="flex items-center gap-2"><Timer className="h-5 w-5" /> Intervalo entre Agendamentos</CardTitle></CardHeader>
         <CardContent>
