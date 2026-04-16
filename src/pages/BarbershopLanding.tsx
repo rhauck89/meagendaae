@@ -8,6 +8,7 @@ import { SEOHead, buildLocalBusinessJsonLd } from '@/components/SEOHead';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
+import { buildWhatsAppUrl } from '@/lib/whatsapp';
 import { formatWhatsApp } from '@/lib/whatsapp';
 import { PlatformBranding } from '@/components/PlatformBranding';
 import { getCompanyBranding, buildThemeFromBranding, useApplyBranding } from '@/hooks/useCompanyBranding';
@@ -310,7 +311,7 @@ export default function BarbershopLanding({ routeBusinessType, customSlug }: Bar
 
           {companyWhatsapp && (
             <a
-              href={`https://wa.me/${companyWhatsapp}?text=${encodeURIComponent(`Olá! Vi a página da ${company.name} e gostaria de mais informações.`)}`}
+              href={buildWhatsAppUrl(companyWhatsapp, `Olá! Vi a página da ${company.name} e gostaria de mais informações.`)}
               target="_blank"
               rel="noopener noreferrer"
               className="w-full flex items-center justify-center gap-2 h-11 rounded-xl border text-sm font-medium transition-colors hover:opacity-90"
@@ -674,7 +675,7 @@ export default function BarbershopLanding({ routeBusinessType, customSlug }: Bar
       {/* Floating WhatsApp */}
       {companyWhatsapp && (
         <a
-          href={`https://wa.me/${companyWhatsapp}`}
+          href={buildWhatsAppUrl(companyWhatsapp)}
           target="_blank"
           rel="noopener noreferrer"
           className="fixed bottom-6 right-6 w-14 h-14 rounded-full flex items-center justify-center shadow-xl z-50 transition-transform hover:scale-110"

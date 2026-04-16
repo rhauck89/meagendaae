@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { CheckCircle2, XCircle, AlertTriangle, Clock, Calendar, Scissors, User, Loader2 } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-
+import { openWhatsApp } from '@/lib/whatsapp';
 const T = {
   bg: '#0B132B',
   card: '#111827',
@@ -159,7 +159,7 @@ const CancelAppointment = () => {
               <Button
                 onClick={() => {
                   const phone = companyPhone.replace(/\D/g, '');
-                  window.open(`https://wa.me/${phone.startsWith('55') ? phone : '55' + phone}`, '_blank');
+                  openWhatsApp(phone.startsWith('55') ? phone : '55' + phone);
                 }}
                 className="w-full rounded-xl py-5 font-semibold"
                 style={{ background: '#25D366', color: '#fff' }}
@@ -201,7 +201,7 @@ const CancelAppointment = () => {
                 const dateStr = format(parseISO(appointment.start_time), "dd/MM/yyyy");
                 const timeStr = format(parseISO(appointment.start_time), 'HH:mm');
                 const msg = `Olá!\n\nUm cliente cancelou um horário.\n\nCliente: ${clientName}\n\nServiço: ${services}\n\nData:\n${dateStr} às ${timeStr}`;
-                window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, '_blank');
+                openWhatsApp(phone, msg);
               }}
               className="w-full rounded-xl py-5 font-semibold"
               style={{ background: '#25D366', color: '#fff' }}

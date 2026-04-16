@@ -52,7 +52,7 @@ function buildWhatsAppUrl(professionalWhatsApp: string, data: {
     text += `\n\nMensagem:\n${data.message}`;
   }
 
-  return `https://wa.me/${professionalWhatsApp}?text=${encodeURIComponent(text)}`;
+  return buildWhatsAppUrl(professionalWhatsApp, text);
 }
 
 export function CustomRequestForm({ open, onOpenChange, companyId, services, professionals, themeColors }: CustomRequestFormProps) {
