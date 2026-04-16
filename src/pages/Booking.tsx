@@ -213,6 +213,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
   const [loyaltyPointValue, setLoyaltyPointValue] = useState(0);
   const slotRequestRef = useRef(0);
   const [isClientLoggedIn, setIsClientLoggedIn] = useState(false);
+  const [hasValidClient, setHasValidClient] = useState(false);
   
   const [hasBenefitsActive, setHasBenefitsActive] = useState(false);
   const [lastBooking, setLastBooking] = useState<{
@@ -339,6 +340,33 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
     });
     return () => subscription.unsubscribe();
   }, []);
+
+  // Check whether a valid `clients` record exists for this user in this company.
+  // Used to decide whether to show "Ver meus agendamentos" vs "Concluir cadastro".
+  useEffect(() => {
+    const checkValidClient = async () => {
+      if (!isClientLoggedIn || !company?.id) {
+        setHasValidClient(false);
+        return;
+      }
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        setHasValidClient(false);
+        return;
+      }
+      const { data, error } = await supabase
+        .from('clients')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('company_id', company.id)
+        .maybeSingle();
+      if (error) {
+        console.warn('[Booking] hasValidClient check error:', error);
+      }
+      setHasValidClient(!!data);
+    };
+    checkValidClient();
+  }, [isClientLoggedIn, company?.id, bookingResult?.appointmentId, savedClientId]);
 
   // Check if company has cashback or loyalty active
   // Load last booking for smart rebooking
@@ -2485,9 +2513,15 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                     {loyaltyPoints > 0 && <span style={{ color: T.accent }}>⭐ {loyaltyPoints} pts{loyaltyPointValue > 0 ? ` (R$${(loyaltyPoints * loyaltyPointValue).toFixed(2)})` : ''}</span>}
                   </div>
                 )}
-                <Button onClick={() => window.location.href = '/minha-conta'} className="w-full rounded-xl py-5 font-semibold text-base" style={{ background: T.accent, color: '#000' }}>
-                  <Calendar className="h-4 w-4 mr-2" /> Ver meus agendamentos
-                </Button>
+                {hasValidClient ? (
+                  <Button onClick={() => window.location.href = '/minha-conta'} className="w-full rounded-xl py-5 font-semibold text-base" style={{ background: T.accent, color: '#000' }}>
+                    <Calendar className="h-4 w-4 mr-2" /> Ver meus agendamentos
+                  </Button>
+                ) : (
+                  <Button onClick={() => window.location.href = '/minha-conta?complete=1'} className="w-full rounded-xl py-5 font-semibold text-base" style={{ background: T.accent, color: '#000' }}>
+                    <User className="h-4 w-4 mr-2" /> Concluir cadastro
+                  </Button>
+                )}
               </div>
 
               <div className="space-y-3 pt-2">
@@ -2507,7 +2541,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
       </div>
 
       {/* Floating Meus Agendamentos Button */}
-      {step !== 'success' && isClientLoggedIn && (
+      {step !== 'success' && isClientLoggedIn && hasValidClient && (
         <button
           onClick={() => window.location.href = '/minha-conta'}
           className="fixed bottom-6 left-6 z-50 flex items-center gap-2 px-4 py-3 rounded-full shadow-xl transition-transform hover:scale-105 text-sm font-semibold"
