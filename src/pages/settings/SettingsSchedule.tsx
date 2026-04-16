@@ -257,7 +257,41 @@ const SettingsSchedule = () => {
         </CardContent>
       </Card>
 
-      {/* Buffer */}
+      {/* Professional Permissions */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Shield className="h-5 w-5" /> Permissões dos Profissionais
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <p className="text-xs text-muted-foreground">
+            Por padrão, profissionais herdam as configurações da empresa. Ative as opções abaixo para permitir personalização individual.
+          </p>
+          <div className="flex items-center justify-between p-3 rounded-lg border">
+            <div className="space-y-0.5">
+              <Label className="text-sm font-medium">Permitir alterar tipo de agenda</Label>
+              <p className="text-xs text-muted-foreground">Inteligente, Grade fixa ou Híbrido</p>
+            </div>
+            <Switch checked={profPermBookingMode} onCheckedChange={setProfPermBookingMode} />
+          </div>
+          <div className="flex items-center justify-between p-3 rounded-lg border">
+            <div className="space-y-0.5">
+              <Label className="text-sm font-medium">Permitir alterar intervalo da grade</Label>
+              <p className="text-xs text-muted-foreground">15, 30, 45 ou 60 minutos</p>
+            </div>
+            <Switch checked={profPermGridInterval} onCheckedChange={setProfPermGridInterval} />
+          </div>
+          <Button size="sm" onClick={async () => {
+            await supabase.from('companies').update({
+              prof_perm_booking_mode: profPermBookingMode,
+              prof_perm_grid_interval: profPermGridInterval,
+            } as any).eq('id', companyId!);
+            toast.success('Permissões salvas');
+          }}>Salvar permissões</Button>
+        </CardContent>
+      </Card>
+
       <Card>
         <CardHeader><CardTitle className="flex items-center gap-2"><Timer className="h-5 w-5" /> Intervalo entre Agendamentos</CardTitle></CardHeader>
         <CardContent>
