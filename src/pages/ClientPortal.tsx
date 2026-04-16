@@ -106,7 +106,7 @@ const ClientPortal = () => {
   const [companyLoyaltyActive, setCompanyLoyaltyActive] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
-    if (!user) { navigate('/cliente/auth'); return; }
+    if (!user) { navigate('/cliente/auth?tab=signup'); return; }
     loadClientData();
   }, [user]);
 
@@ -140,82 +140,86 @@ const ClientPortal = () => {
       .select('id, company_id, name, whatsapp, email, birth_date, registration_complete, postal_code, street, address_number, district, city, state')
       .eq('user_id', user!.id);
 
-    if (clientData && clientData.length > 0) {
-      setClients(clientData as ClientRecord[]);
-      const firstCompany = clientData[0].company_id;
-      setSelectedCompanyId(firstCompany);
+    if (!clientData || clientData.length === 0) {
+      setClients([]);
+      setLoading(false);
+      return;
+    }
 
-      const companyIds = [...new Set(clientData.map(c => c.company_id))];
-      const [companyRes, cashbackRes, loyaltyTxRes, rewardsRes] = await Promise.all([
-        supabase.from('companies').select('id, name').in('id', companyIds),
-        supabase.from('client_cashback')
-          .select('id, amount, status, expires_at, created_at, company_id, promotion:promotions!client_cashback_promotion_id_fkey(title)')
-          .in('client_id', clientData.map(c => c.id))
-          .order('created_at', { ascending: false }),
-        supabase.from('loyalty_points_transactions')
-          .select('*')
-          .in('client_id', clientData.map(c => c.id))
-          .order('created_at', { ascending: false })
-          .limit(200),
-        supabase.from('loyalty_reward_items')
-          .select('*')
-          .in('company_id', companyIds)
-          .eq('active', true),
+    setClients(clientData as ClientRecord[]);
+    const firstCompany = clientData[0].company_id;
+    setSelectedCompanyId(firstCompany);
+
+    const companyIds = [...new Set(clientData.map(c => c.company_id))];
+    const [companyRes, cashbackRes, loyaltyTxRes, rewardsRes] = await Promise.all([
+      supabase.from('companies').select('id, name').in('id', companyIds),
+      supabase.from('client_cashback')
+        .select('id, amount, status, expires_at, created_at, company_id, promotion:promotions!client_cashback_promotion_id_fkey(title)')
+        .in('client_id', clientData.map(c => c.id))
+        .order('created_at', { ascending: false }),
+      supabase.from('loyalty_points_transactions')
+        .select('*')
+        .in('client_id', clientData.map(c => c.id))
+        .order('created_at', { ascending: false })
+        .limit(200),
+      supabase.from('loyalty_reward_items')
+        .select('*')
+        .in('company_id', companyIds)
+        .eq('active', true),
+    ]);
+
+    if (companyRes.data) {
+      const map: Record<string, string> = {};
+      companyRes.data.forEach(c => { map[c.id] = c.name; });
+      setCompanies(map);
+    }
+
+    setAllCashbacks((cashbackRes.data || []) as any);
+    setAllLoyaltyTxs((loyaltyTxRes.data || []) as any);
+    setRewards((rewardsRes.data || []) as any);
+
+    // Check cashback and loyalty status per company
+    const cashActive: Record<string, boolean> = {};
+    const loyalActive: Record<string, boolean> = {};
+    const lcMap: Record<string, any> = {};
+
+    for (const cid of companyIds) {
+      const [promoCheck, lcRes] = await Promise.all([
+        supabase.from('promotions').select('id').eq('company_id', cid).eq('promotion_type', 'cashback').eq('status', 'active').limit(1),
+        supabase.from('loyalty_config').select('*').eq('company_id', cid).single(),
       ]);
+      cashActive[cid] = !!(promoCheck.data && promoCheck.data.length > 0);
+      loyalActive[cid] = !!lcRes.data?.enabled;
+      if (lcRes.data) lcMap[cid] = lcRes.data;
+    }
+    setCompanyCashbackActive(cashActive);
+    setCompanyLoyaltyActive(loyalActive);
+    setLoyaltyConfigs(lcMap);
 
-      if (companyRes.data) {
-        const map: Record<string, string> = {};
-        companyRes.data.forEach(c => { map[c.id] = c.name; });
-        setCompanies(map);
-      }
+    // Load appointments for all clients
+    const clientIds = clientData.map(c => c.id);
+    const { data: aptData } = await supabase
+      .from('appointments')
+      .select('id, start_time, end_time, total_price, status, company_id, company:companies(name), professional:profiles!appointments_professional_id_fkey(full_name), appointment_services(price, service:services(name))')
+      .in('client_id', clientIds)
+      .order('start_time', { ascending: false })
+      .limit(100);
+    setAppointments((aptData || []) as any);
 
-      setAllCashbacks((cashbackRes.data || []) as any);
-      setAllLoyaltyTxs((loyaltyTxRes.data || []) as any);
-      setRewards((rewardsRes.data || []) as any);
-
-      // Check cashback and loyalty status per company
-      const cashActive: Record<string, boolean> = {};
-      const loyalActive: Record<string, boolean> = {};
-      const lcMap: Record<string, any> = {};
-
-      for (const cid of companyIds) {
-        const [promoCheck, lcRes] = await Promise.all([
-          supabase.from('promotions').select('id').eq('company_id', cid).eq('promotion_type', 'cashback').eq('status', 'active').limit(1),
-          supabase.from('loyalty_config').select('*').eq('company_id', cid).single(),
-        ]);
-        cashActive[cid] = !!(promoCheck.data && promoCheck.data.length > 0);
-        loyalActive[cid] = !!lcRes.data?.enabled;
-        if (lcRes.data) lcMap[cid] = lcRes.data;
-      }
-      setCompanyCashbackActive(cashActive);
-      setCompanyLoyaltyActive(loyalActive);
-      setLoyaltyConfigs(lcMap);
-
-      // Load appointments for all clients
-      const clientIds = clientData.map(c => c.id);
-      const { data: aptData } = await supabase
-        .from('appointments')
-        .select('id, start_time, end_time, total_price, status, company_id, company:companies(name), professional:profiles!appointments_professional_id_fkey(full_name), appointment_services(price, service:services(name))')
-        .in('client_id', clientIds)
-        .order('start_time', { ascending: false })
-        .limit(100);
-      setAppointments((aptData || []) as any);
-
-      // Pre-fill profile form
-      const client = clientData[0];
-      if (!client.email || !client.birth_date) {
-        setProfileForm(f => ({
-          ...f,
-          email: client.email || '',
-          birth_date: client.birth_date || '',
-          postal_code: (client as any).postal_code || '',
-          street: (client as any).street || '',
-          address_number: (client as any).address_number || '',
-          district: (client as any).district || '',
-          city: (client as any).city || '',
-          state: (client as any).state || '',
-        }));
-      }
+    // Pre-fill profile form
+    const client = clientData[0];
+    if (!client.email || !client.birth_date) {
+      setProfileForm(f => ({
+        ...f,
+        email: client.email || '',
+        birth_date: client.birth_date || '',
+        postal_code: (client as any).postal_code || '',
+        street: (client as any).street || '',
+        address_number: (client as any).address_number || '',
+        district: (client as any).district || '',
+        city: (client as any).city || '',
+        state: (client as any).state || '',
+      }));
     }
     setLoading(false);
   };
@@ -339,6 +343,26 @@ const ClientPortal = () => {
 
   const totalCashbackAll = Object.values(cashbackByCompany).reduce((s, v) => s + v, 0);
   const totalPointsAll = Object.values(pointsByCompany).reduce((s, v) => s + v, 0);
+
+  if (!loading && clients.length === 0) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+        <div className="w-full max-w-sm text-center space-y-4">
+          <User className="h-12 w-12 mx-auto text-muted-foreground" />
+          <h2 className="text-xl font-bold">Nenhum agendamento encontrado</h2>
+          <p className="text-sm text-muted-foreground">
+            Ainda não encontramos agendamentos vinculados à sua conta. Após realizar um agendamento, seus dados aparecerão aqui automaticamente.
+          </p>
+          <Button onClick={() => navigate('/')} className="w-full">
+            Explorar estabelecimentos
+          </Button>
+          <Button variant="ghost" onClick={signOut} className="w-full text-sm">
+            <LogOut className="h-4 w-4 mr-2" /> Sair
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">

@@ -2310,21 +2310,24 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
               {/* ── Portal CTA Block ── */}
               {!isClientLoggedIn ? (
                 <div className="rounded-2xl p-5 space-y-3 text-left" style={{ background: `${T.accent}15`, border: `1px solid ${T.accent}40` }}>
-                  <p className="text-base font-bold flex items-center gap-2">🎁 Crie sua conta e desbloqueie benefícios!</p>
-                  <div className="grid grid-cols-2 gap-2 text-sm" style={{ color: T.textSec }}>
-                    {hasBenefitsActive && <span>💰 Cashback em serviços</span>}
-                    {hasBenefitsActive && <span>⭐ Pontos de fidelidade</span>}
-                    <span>📅 Acompanhe agendamentos</span>
-                    <span>🔔 Receba promoções</span>
+                  <p className="text-base font-bold flex items-center gap-2">📝 Você agendou sem cadastro</p>
+                  <p className="text-sm" style={{ color: T.textSec }}>
+                    Crie sua conta para:
+                  </p>
+                  <div className="grid grid-cols-1 gap-1.5 text-sm" style={{ color: T.textSec }}>
+                    <span>✔ Acompanhar seus horários</span>
+                    {hasBenefitsActive && <span>✔ Ver cashback acumulado</span>}
+                    {hasBenefitsActive && <span>✔ Acumular pontos de fidelidade</span>}
+                    <span>✔ Receber promoções exclusivas</span>
                   </div>
                   <p className="text-xs" style={{ color: T.textSec }}>Leva menos de 30 segundos</p>
-                  <Button onClick={() => window.location.href = '/cliente/auth'} className="w-full rounded-xl py-5 font-semibold text-base" style={{ background: T.accent, color: '#000' }}>
-                    Completar cadastro e acessar minha conta
+                  <Button onClick={() => window.location.href = '/cliente/auth?tab=signup'} className="w-full rounded-xl py-5 font-semibold text-base" style={{ background: T.accent, color: '#000' }}>
+                    Concluir meu cadastro
                   </Button>
                 </div>
               ) : (
                 <div className="rounded-2xl p-5 space-y-3" style={{ background: T.card, border: `1px solid ${T.border}` }}>
-                  <p className="text-base font-semibold flex items-center gap-2">👤 Acesse sua conta</p>
+                  <p className="text-base font-semibold flex items-center gap-2">👤 Sua conta</p>
                   <p className="text-sm" style={{ color: T.textSec }}>Gerencie seus agendamentos, veja seu cashback e pontos.</p>
                   {(cashbackTotal > 0 || loyaltyPoints > 0) && (
                     <div className="flex gap-3 text-sm font-medium">
@@ -2335,12 +2338,6 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                   <Button onClick={() => window.location.href = '/minha-conta'} className="w-full rounded-xl py-5 font-semibold text-base" style={{ background: T.accent, color: '#000' }}>
                     <User className="h-4 w-4 mr-2" /> Acessar minha conta
                   </Button>
-                </div>
-              )}
-
-              {hasBenefitsActive && !isClientLoggedIn && (
-                <div className="rounded-xl px-4 py-3 text-center text-sm font-medium" style={{ background: `${T.accent}10`, color: T.accent }}>
-                  💰 Você pode ganhar benefícios neste agendamento!
                 </div>
               )}
 
@@ -2363,14 +2360,14 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
       {/* Floating Minha Conta Button */}
       {step !== 'success' && (
         <button
-          onClick={() => window.location.href = isClientLoggedIn ? '/minha-conta' : '/cliente/auth'}
+          onClick={() => window.location.href = isClientLoggedIn ? '/minha-conta' : '/cliente/auth?tab=signup'}
           className="fixed bottom-6 left-6 z-50 flex items-center gap-2 px-4 py-3 rounded-full shadow-xl transition-transform hover:scale-105 text-sm font-semibold"
           style={{ background: T.accent, color: '#000' }}
-          title="Minha Conta"
+          title={isClientLoggedIn ? 'Minha Conta' : 'Criar conta'}
         >
           <User className="h-4 w-4" />
-          <span className="hidden sm:inline">Minha Conta</span>
-          <span className="sm:hidden">Conta</span>
+          <span className="hidden sm:inline">{isClientLoggedIn ? 'Minha Conta' : 'Criar conta'}</span>
+          <span className="sm:hidden">{isClientLoggedIn ? 'Conta' : 'Cadastro'}</span>
           {isClientLoggedIn && (cashbackTotal > 0 || loyaltyPoints > 0) && (
             <span className="ml-1 px-2 py-0.5 rounded-full text-xs font-bold" style={{ background: 'rgba(0,0,0,0.2)' }}>
               {cashbackTotal > 0 ? `R$${cashbackTotal.toFixed(0)}` : `${loyaltyPoints} pts`}

@@ -1,20 +1,23 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
-import { User, Phone, Mail, Lock, ArrowLeft } from 'lucide-react';
+import { User, ArrowLeft } from 'lucide-react';
 import { formatWhatsApp, isValidWhatsApp } from '@/lib/whatsapp';
 
 const ClientAuth = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
+
+  const defaultTab = searchParams.get('tab') === 'signup' ? 'signup' : 'login';
 
   // Login form
   const [loginEmail, setLoginEmail] = useState('');
@@ -90,11 +93,13 @@ const ClientAuth = () => {
           <User className="h-12 w-12 mx-auto text-primary mb-3" />
           <h1 className="text-2xl font-bold">Área do Cliente</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Acesse seu painel para ver agendamentos, cashback e pontos
+            {defaultTab === 'signup'
+              ? 'Crie sua conta para acompanhar agendamentos, cashback e pontos'
+              : 'Acesse seu painel para ver agendamentos, cashback e pontos'}
           </p>
         </div>
 
-        <Tabs defaultValue="login">
+        <Tabs defaultValue={defaultTab}>
           <TabsList className="w-full grid grid-cols-2">
             <TabsTrigger value="login">Entrar</TabsTrigger>
             <TabsTrigger value="signup">Criar conta</TabsTrigger>
