@@ -1,0 +1,1 @@
+UPDATE public.profiles SET last_login_mode = NULL WHERE user_id = '7622ab62-f124-462c-b5d8-07b4de6c96e1';
