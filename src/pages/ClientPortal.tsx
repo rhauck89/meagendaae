@@ -1,7 +1,9 @@
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { useLocalCache } from '@/hooks/useLocalCache';
+import { ClientPortalSkeleton } from '@/components/ClientPortalSkeleton';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -106,9 +108,50 @@ const ClientPortal = () => {
 
   const [rewardsCompanyId, setRewardsCompanyId] = useState<string | null>(null);
 
+  // ---------- Cache (instant render + background revalidation) ----------
+  const cacheKey = `client_portal_${user?.id || 'anon'}`;
+  const { read: readCache, write: writeCache } = useLocalCache<{
+    clients: ClientRecord[];
+    appointments: AppointmentRow[];
+    allCashbacks: CashbackRow[];
+    allLoyaltyTxs: LoyaltyTx[];
+    rewards: RewardItem[];
+    companies: Record<string, CompanyInfo>;
+    loyaltyConfigs: Record<string, any>;
+    companyCashbackActive: Record<string, boolean>;
+    companyLoyaltyActive: Record<string, boolean>;
+  }>(cacheKey);
+
+  const hasCacheRef = useRef(false);
+
   useEffect(() => {
     if (!user) return;
-    loadClientData();
+    // Hydrate from cache instantly (no skeleton flash)
+    const cached = readCache();
+    if (cached) {
+      hasCacheRef.current = true;
+      setClients(cached.clients || []);
+      setAppointments(cached.appointments || []);
+      setAllCashbacks(cached.allCashbacks || []);
+      setAllLoyaltyTxs(cached.allLoyaltyTxs || []);
+      setRewards(cached.rewards || []);
+      setCompanies(cached.companies || {});
+      setLoyaltyConfigs(cached.loyaltyConfigs || {});
+      setCompanyCashbackActive(cached.companyCashbackActive || {});
+      setCompanyLoyaltyActive(cached.companyLoyaltyActive || {});
+      setLoading(false);
+      // Revalidate in background (do not block UI)
+      loadClientData(true);
+    } else {
+      loadClientData(false);
+    }
+
+    // Background revalidation every 30s
+    const interval = setInterval(() => {
+      loadClientData(true);
+    }, 30000);
+    return () => clearInterval(interval);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
   const primaryClient = clients[0];
@@ -117,107 +160,122 @@ const ClientPortal = () => {
     return !primaryClient.email || !primaryClient.birth_date;
   }, [primaryClient]);
 
-  const loadClientData = async () => {
-    setLoading(true);
-    const { data: profileData } = await supabase
-      .from('profiles').select('whatsapp').eq('user_id', user!.id).single();
+  const loadClientData = async (isRevalidation = false) => {
+    if (!isRevalidation) setLoading(true);
+    try {
+      const { data: profileData } = await supabase
+        .from('profiles').select('whatsapp').eq('user_id', user!.id).single();
 
-    if (profileData?.whatsapp || user!.email) {
-      await supabase.rpc('link_client_to_user', {
-        p_user_id: user!.id,
-        p_phone: profileData?.whatsapp || '',
-        p_email: user!.email || '',
-      } as any);
-    }
+      if (profileData?.whatsapp || user!.email) {
+        await supabase.rpc('link_client_to_user', {
+          p_user_id: user!.id,
+          p_phone: profileData?.whatsapp || '',
+          p_email: user!.email || '',
+        } as any);
+      }
 
-    const { data: clientData } = await supabase
-      .from('clients')
-      .select('id, company_id, name, whatsapp, email, birth_date, registration_complete, postal_code, street, address_number, district, city, state')
-      .eq('user_id', user!.id);
+      const { data: clientData } = await supabase
+        .from('clients')
+        .select('id, company_id, name, whatsapp, email, birth_date, registration_complete, postal_code, street, address_number, district, city, state')
+        .eq('user_id', user!.id);
 
-    if (!clientData || clientData.length === 0) {
-      setClients([]); setLoading(false); return;
-    }
-    setClients(clientData as ClientRecord[]);
+      if (!clientData || clientData.length === 0) {
+        if (!isRevalidation) { setClients([]); setLoading(false); }
+        return;
+      }
+      setClients(clientData as ClientRecord[]);
 
-    const companyIds = [...new Set(clientData.map(c => c.company_id))];
-    const [companyRes, cashbackRes, loyaltyTxRes, rewardsRes] = await Promise.all([
-      supabase.from('companies').select('id, name, logo_url, slug').in('id', companyIds),
-      supabase.from('client_cashback')
-        .select('id, amount, status, expires_at, created_at, company_id, promotion:promotions!client_cashback_promotion_id_fkey(title)')
-        .in('client_id', clientData.map(c => c.id))
-        .order('created_at', { ascending: false }),
-      supabase.from('loyalty_points_transactions')
-        .select('*')
-        .in('client_id', clientData.map(c => c.id))
-        .order('created_at', { ascending: false }).limit(300),
-      supabase.from('loyalty_reward_items')
-        .select('*').in('company_id', companyIds).eq('active', true),
-    ]);
-
-    if (companyRes.data) {
-      const map: Record<string, CompanyInfo> = {};
-      companyRes.data.forEach((c: any) => { map[c.id] = { id: c.id, name: c.name, logo_url: c.logo_url, slug: c.slug }; });
-      setCompanies(map);
-      if (!rewardsCompanyId && companyIds.length > 0) setRewardsCompanyId(companyIds[0]);
-    }
-
-    setAllCashbacks((cashbackRes.data || []) as any);
-    setAllLoyaltyTxs((loyaltyTxRes.data || []) as any);
-    setRewards((rewardsRes.data || []) as any);
-
-    const cashActive: Record<string, boolean> = {};
-    const loyalActive: Record<string, boolean> = {};
-    const lcMap: Record<string, any> = {};
-    for (const cid of companyIds) {
-      const [promoCheck, lcRes] = await Promise.all([
-        supabase.from('promotions').select('id').eq('company_id', cid).eq('promotion_type', 'cashback').eq('status', 'active').limit(1),
-        supabase.from('loyalty_config').select('*').eq('company_id', cid).single(),
+      const companyIds = [...new Set(clientData.map(c => c.company_id))];
+      const [companyRes, cashbackRes, loyaltyTxRes, rewardsRes] = await Promise.all([
+        supabase.from('companies').select('id, name, logo_url, slug').in('id', companyIds),
+        supabase.from('client_cashback')
+          .select('id, amount, status, expires_at, created_at, company_id, promotion:promotions!client_cashback_promotion_id_fkey(title)')
+          .in('client_id', clientData.map(c => c.id))
+          .order('created_at', { ascending: false }),
+        supabase.from('loyalty_points_transactions')
+          .select('*')
+          .in('client_id', clientData.map(c => c.id))
+          .order('created_at', { ascending: false }).limit(300),
+        supabase.from('loyalty_reward_items')
+          .select('*').in('company_id', companyIds).eq('active', true),
       ]);
-      cashActive[cid] = !!(promoCheck.data && promoCheck.data.length > 0);
-      loyalActive[cid] = !!lcRes.data?.enabled;
-      if (lcRes.data) lcMap[cid] = lcRes.data;
-    }
-    setCompanyCashbackActive(cashActive);
-    setCompanyLoyaltyActive(loyalActive);
-    setLoyaltyConfigs(lcMap);
 
-    const clientIds = clientData.map(c => c.id);
-    const { data: aptData, error: aptErr } = await supabase
-      .from('appointments')
-      .select(`
-        id, start_time, end_time, total_price, status, company_id,
-        company:companies!appointments_company_id_fkey(id, name, logo_url, slug),
-        professional:profiles!appointments_professional_id_fkey(id, full_name, avatar_url),
-        appointment_services(price, service:services(id, name))
-      `)
-      .in('client_id', clientIds)
-      .order('start_time', { ascending: false }).limit(200);
-    if (aptErr) console.error('[ClientPortal] appointments query error:', aptErr);
-    setAppointments((aptData || []) as any);
+      const companiesMap: Record<string, CompanyInfo> = {};
+      if (companyRes.data) {
+        companyRes.data.forEach((c: any) => { companiesMap[c.id] = { id: c.id, name: c.name, logo_url: c.logo_url, slug: c.slug }; });
+        setCompanies(companiesMap);
+        if (!rewardsCompanyId && companyIds.length > 0) setRewardsCompanyId(companyIds[0]);
+      }
 
-    // Merge embedded company data into companies map (covers any company missing from /companies query)
-    if (aptData) {
-      setCompanies(prev => {
-        const next = { ...prev };
+      setAllCashbacks((cashbackRes.data || []) as any);
+      setAllLoyaltyTxs((loyaltyTxRes.data || []) as any);
+      setRewards((rewardsRes.data || []) as any);
+
+      const cashActive: Record<string, boolean> = {};
+      const loyalActive: Record<string, boolean> = {};
+      const lcMap: Record<string, any> = {};
+      for (const cid of companyIds) {
+        const [promoCheck, lcRes] = await Promise.all([
+          supabase.from('promotions').select('id').eq('company_id', cid).eq('promotion_type', 'cashback').eq('status', 'active').limit(1),
+          supabase.from('loyalty_config').select('*').eq('company_id', cid).single(),
+        ]);
+        cashActive[cid] = !!(promoCheck.data && promoCheck.data.length > 0);
+        loyalActive[cid] = !!lcRes.data?.enabled;
+        if (lcRes.data) lcMap[cid] = lcRes.data;
+      }
+      setCompanyCashbackActive(cashActive);
+      setCompanyLoyaltyActive(loyalActive);
+      setLoyaltyConfigs(lcMap);
+
+      const clientIds = clientData.map(c => c.id);
+      const { data: aptData, error: aptErr } = await supabase
+        .from('appointments')
+        .select(`
+          id, start_time, end_time, total_price, status, company_id,
+          company:companies!appointments_company_id_fkey(id, name, logo_url, slug),
+          professional:profiles!appointments_professional_id_fkey(id, full_name, avatar_url),
+          appointment_services(price, service:services(id, name))
+        `)
+        .in('client_id', clientIds)
+        .order('start_time', { ascending: false }).limit(200);
+      if (aptErr) console.error('[ClientPortal] appointments query error:', aptErr);
+      setAppointments((aptData || []) as any);
+
+      if (aptData) {
         for (const a of aptData as any[]) {
-          if (a.company && !next[a.company.id]) {
-            next[a.company.id] = { id: a.company.id, name: a.company.name, logo_url: a.company.logo_url, slug: a.company.slug };
+          if (a.company && !companiesMap[a.company.id]) {
+            companiesMap[a.company.id] = { id: a.company.id, name: a.company.name, logo_url: a.company.logo_url, slug: a.company.slug };
           }
         }
-        return next;
-      });
-    }
+        setCompanies({ ...companiesMap });
+      }
 
-    const c = clientData[0];
-    setProfileForm({
-      name: c.name || '', whatsapp: c.whatsapp || '', email: c.email || '',
-      birth_date: c.birth_date || '',
-      postal_code: (c as any).postal_code || '', street: (c as any).street || '',
-      address_number: (c as any).address_number || '', district: (c as any).district || '',
-      city: (c as any).city || '', state: (c as any).state || '',
-    });
-    setLoading(false);
+      const c = clientData[0];
+      setProfileForm({
+        name: c.name || '', whatsapp: c.whatsapp || '', email: c.email || '',
+        birth_date: c.birth_date || '',
+        postal_code: (c as any).postal_code || '', street: (c as any).street || '',
+        address_number: (c as any).address_number || '', district: (c as any).district || '',
+        city: (c as any).city || '', state: (c as any).state || '',
+      });
+
+      // Persist snapshot to cache only on success (don't overwrite on errors)
+      writeCache({
+        clients: clientData as ClientRecord[],
+        appointments: (aptData || []) as any,
+        allCashbacks: (cashbackRes.data || []) as any,
+        allLoyaltyTxs: (loyaltyTxRes.data || []) as any,
+        rewards: (rewardsRes.data || []) as any,
+        companies: companiesMap,
+        loyaltyConfigs: lcMap,
+        companyCashbackActive: cashActive,
+        companyLoyaltyActive: loyalActive,
+      });
+    } catch (err) {
+      console.error('[ClientPortal] load error:', err);
+    } finally {
+      if (!isRevalidation) setLoading(false);
+    }
   };
 
   // ---------- Aggregations ----------
@@ -332,18 +390,7 @@ const ClientPortal = () => {
     </div>
   );
 
-  if (loading) return (
-    <div className="min-h-screen bg-background p-4">
-      <div className="max-w-3xl mx-auto space-y-4">
-        <div className="h-20 bg-muted/50 rounded-lg animate-pulse" />
-        <div className="flex gap-3 overflow-hidden">
-          {[1, 2, 3].map(i => <div key={i} className="h-28 w-64 shrink-0 bg-muted/40 rounded-2xl animate-pulse" />)}
-        </div>
-        <div className="h-48 bg-muted/40 rounded-2xl animate-pulse" />
-        <div className="h-32 bg-muted/40 rounded-2xl animate-pulse" />
-      </div>
-    </div>
-  );
+  if (loading) return <ClientPortalSkeleton />;
 
   if (clients.length === 0) return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
