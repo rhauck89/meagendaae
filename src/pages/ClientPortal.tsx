@@ -472,7 +472,7 @@ const ClientPortal = () => {
                       </p>
                       {nextAppointment.professional && (
                         <p className="text-xs text-muted-foreground">
-                          com <strong>{nextAppointment.professional.full_name}</strong>
+                          com <strong>{nextAppointment.professional.name}</strong>
                         </p>
                       )}
                     </div>
@@ -511,7 +511,7 @@ const ClientPortal = () => {
                         {lastAppointment.appointment_services?.map(s => s.service?.name).filter(Boolean).join(', ')}
                       </p>
                       {lastAppointment.professional && (
-                        <p className="text-xs text-muted-foreground">com {lastAppointment.professional.full_name}</p>
+                        <p className="text-xs text-muted-foreground">com {lastAppointment.professional.name}</p>
                       )}
                       <p className="text-[11px] text-muted-foreground mt-0.5">
                         {format(parseISO(lastAppointment.start_time), "dd/MM/yyyy", { locale: ptBR })}
@@ -642,7 +642,7 @@ const ClientPortal = () => {
                                     <p className="font-semibold text-sm truncate">{co?.name || 'Estabelecimento'}</p>
                                     {apt.professional && (
                                       <p className="text-xs text-muted-foreground truncate">
-                                        com {apt.professional.full_name}
+                                        com {apt.professional.name}
                                       </p>
                                     )}
                                   </div>
@@ -712,7 +712,7 @@ const ClientPortal = () => {
                             </p>
                             <p className="text-xs text-muted-foreground truncate">
                               {apt.appointment_services?.map(s => s.service?.name).filter(Boolean).join(', ')}
-                              {apt.professional && ` · ${apt.professional.full_name}`}
+                              {apt.professional && ` · ${apt.professional.name}`}
                             </p>
                           </div>
                           <p className="text-sm font-semibold shrink-0">R$ {Number(apt.total_price).toFixed(2)}</p>
