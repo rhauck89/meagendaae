@@ -23,10 +23,10 @@ const ClientAuth = () => {
   const [loginEmail, setLoginEmail] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
 
-  // Signup form
-  const [signupName, setSignupName] = useState('');
-  const [signupPhone, setSignupPhone] = useState('');
-  const [signupEmail, setSignupEmail] = useState('');
+  // Signup form — pre-fill from query params (post-booking flow)
+  const [signupName, setSignupName] = useState(searchParams.get('name') || '');
+  const [signupPhone, setSignupPhone] = useState(searchParams.get('phone') || '');
+  const [signupEmail, setSignupEmail] = useState(searchParams.get('email') || '');
   const [signupPassword, setSignupPassword] = useState('');
 
   // If already logged in, redirect to portal
