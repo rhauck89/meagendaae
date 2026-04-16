@@ -1,7 +1,9 @@
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { useLocalCache } from '@/hooks/useLocalCache';
+import { ClientPortalSkeleton } from '@/components/ClientPortalSkeleton';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -106,9 +108,50 @@ const ClientPortal = () => {
 
   const [rewardsCompanyId, setRewardsCompanyId] = useState<string | null>(null);
 
+  // ---------- Cache (instant render + background revalidation) ----------
+  const cacheKey = `client_portal_${user?.id || 'anon'}`;
+  const { read: readCache, write: writeCache } = useLocalCache<{
+    clients: ClientRecord[];
+    appointments: AppointmentRow[];
+    allCashbacks: CashbackRow[];
+    allLoyaltyTxs: LoyaltyTx[];
+    rewards: RewardItem[];
+    companies: Record<string, CompanyInfo>;
+    loyaltyConfigs: Record<string, any>;
+    companyCashbackActive: Record<string, boolean>;
+    companyLoyaltyActive: Record<string, boolean>;
+  }>(cacheKey);
+
+  const hasCacheRef = useRef(false);
+
   useEffect(() => {
     if (!user) return;
-    loadClientData();
+    // Hydrate from cache instantly (no skeleton flash)
+    const cached = readCache();
+    if (cached) {
+      hasCacheRef.current = true;
+      setClients(cached.clients || []);
+      setAppointments(cached.appointments || []);
+      setAllCashbacks(cached.allCashbacks || []);
+      setAllLoyaltyTxs(cached.allLoyaltyTxs || []);
+      setRewards(cached.rewards || []);
+      setCompanies(cached.companies || {});
+      setLoyaltyConfigs(cached.loyaltyConfigs || {});
+      setCompanyCashbackActive(cached.companyCashbackActive || {});
+      setCompanyLoyaltyActive(cached.companyLoyaltyActive || {});
+      setLoading(false);
+      // Revalidate in background (do not block UI)
+      loadClientData(true);
+    } else {
+      loadClientData(false);
+    }
+
+    // Background revalidation every 30s
+    const interval = setInterval(() => {
+      loadClientData(true);
+    }, 30000);
+    return () => clearInterval(interval);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
   const primaryClient = clients[0];
