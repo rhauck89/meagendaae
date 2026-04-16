@@ -862,9 +862,9 @@ const ClientPortal = () => {
                   <Card>
                     <CardContent className="p-8 text-center space-y-3">
                       <DollarSign className="h-12 w-12 mx-auto text-muted-foreground/40" />
-                      <p className="font-semibold">Você ainda não possui cashback</p>
+                      <p className="font-semibold">Você ainda não acumulou pontos ou cashback</p>
                       <p className="text-sm text-muted-foreground">
-                        Quando os estabelecimentos onde você se atende ativarem campanhas de cashback, seu saldo aparecerá aqui.
+                        Agende um serviço para começar a ganhar benefícios.
                       </p>
                     </CardContent>
                   </Card>
@@ -1140,68 +1140,111 @@ const ClientPortal = () => {
                           </p>
                         </CardContent>
                       </Card>
-                    ) : (
-                      <div className="grid sm:grid-cols-2 gap-3">
-                        {rewardsList.map(reward => {
-                          const canRedeem = rewardsBalance >= reward.points_required;
-                          const diff = reward.points_required - rewardsBalance;
-                          return (
-                            <Card key={reward.id} className={`overflow-hidden transition-all ${canRedeem ? 'border-green-500/40 bg-green-500/5 shadow-sm' : ''}`}>
-                              <CardContent className="p-0">
-                                {/* Header com branding da empresa */}
-                                <div className="flex items-center gap-2 px-3 py-2 border-b bg-muted/30">
-                                  {rewardsCompany?.logo_url ? (
-                                    <img src={rewardsCompany.logo_url} alt={rewardsCompany.name} className="h-5 w-5 rounded object-cover" />
-                                  ) : (
-                                    <Building2 className="h-4 w-4 text-muted-foreground" />
-                                  )}
-                                  <span className="text-[11px] font-medium text-muted-foreground truncate">
-                                    {rewardsCompany?.name}
-                                  </span>
+                    ) : (() => {
+                      const sorted = [...rewardsList].sort(
+                        (a, b) => (a.points_required - rewardsBalance) - (b.points_required - rewardsBalance)
+                      );
+                      const featured = sorted.filter(r => rewardsBalance >= r.points_required);
+                      const closest = sorted.filter(r => rewardsBalance < r.points_required);
+
+                      const renderCard = (reward: typeof rewardsList[number]) => {
+                        const canRedeem = rewardsBalance >= reward.points_required;
+                        const diff = reward.points_required - rewardsBalance;
+                        return (
+                          <Card key={reward.id} className={`overflow-hidden transition-all ${canRedeem ? 'border-green-500/40 bg-green-500/5 shadow-sm' : ''}`}>
+                            <CardContent className="p-0">
+                              {/* Header com branding da empresa (logo maior + destaque) */}
+                              <div className="flex items-center gap-2.5 px-3 py-2.5 border-b bg-muted/40">
+                                {rewardsCompany?.logo_url ? (
+                                  <img src={rewardsCompany.logo_url} alt={rewardsCompany.name} className="h-9 w-9 rounded-md object-cover border shrink-0" />
+                                ) : (
+                                  <div className="h-9 w-9 rounded-md bg-muted flex items-center justify-center shrink-0">
+                                    <Building2 className="h-5 w-5 text-muted-foreground" />
+                                  </div>
+                                )}
+                                <div className="min-w-0">
+                                  <p className="text-xs font-semibold truncate">{rewardsCompany?.name}</p>
+                                  <p className="text-[10px] text-muted-foreground leading-tight">
+                                    Resgatável apenas neste estabelecimento
+                                  </p>
                                 </div>
-                                <div className="p-3 flex gap-3">
-                                  {reward.image_url ? (
-                                    <img src={reward.image_url} alt={reward.name} className="w-20 h-20 rounded-lg object-cover shrink-0" />
-                                  ) : (
-                                    <div className="w-20 h-20 rounded-lg bg-muted flex items-center justify-center shrink-0">
-                                      <Gift className="h-7 w-7 text-muted-foreground" />
-                                    </div>
+                              </div>
+                              <div className="p-3 flex gap-3">
+                                {reward.image_url ? (
+                                  <img src={reward.image_url} alt={reward.name} className="w-20 h-20 rounded-lg object-cover shrink-0" />
+                                ) : (
+                                  <div className="w-20 h-20 rounded-lg bg-muted flex items-center justify-center shrink-0">
+                                    <Gift className="h-7 w-7 text-muted-foreground" />
+                                  </div>
+                                )}
+                                <div className="flex-1 min-w-0 flex flex-col">
+                                  <p className="font-semibold text-sm leading-tight">{reward.name}</p>
+                                  {reward.description && (
+                                    <p className="text-[11px] text-muted-foreground line-clamp-2 mt-0.5">{reward.description}</p>
                                   )}
-                                  <div className="flex-1 min-w-0 flex flex-col">
-                                    <p className="font-semibold text-sm leading-tight">{reward.name}</p>
-                                    {reward.description && (
-                                      <p className="text-[11px] text-muted-foreground line-clamp-2 mt-0.5">{reward.description}</p>
-                                    )}
-                                    <div className="mt-auto pt-2 space-y-1.5">
-                                      <p className="text-sm font-bold">{reward.points_required} pts</p>
-                                      {canRedeem ? (
-                                        <Badge className="bg-green-500/15 text-green-700 hover:bg-green-500/20 text-[10px] border-0">
-                                          ✓ Disponível para resgate
-                                        </Badge>
-                                      ) : (
+                                  <div className="mt-auto pt-2 space-y-1.5">
+                                    <p className="text-sm font-bold">{reward.points_required} pts</p>
+                                    {canRedeem ? (
+                                      <Badge className="bg-green-500/15 text-green-700 hover:bg-green-500/20 text-[10px] border-0">
+                                        ✓ Disponível para resgate
+                                      </Badge>
+                                    ) : (
+                                      <div className="space-y-1">
+                                        <Progress value={(rewardsBalance / reward.points_required) * 100} className="h-1.5" />
                                         <p className="text-[11px] text-muted-foreground">
-                                          Faltam <span className="font-semibold text-foreground">{diff}</span> pts
+                                          Faltam <span className="font-semibold text-foreground">{diff}</span> pontos para resgatar
                                         </p>
-                                      )}
-                                    </div>
+                                      </div>
+                                    )}
                                   </div>
                                 </div>
-                                <div className="px-3 pb-3">
-                                  <Button
-                                    size="sm"
-                                    className="w-full"
-                                    disabled={!canRedeem}
-                                    onClick={() => toast.info('Apresente o código no estabelecimento para resgatar.')}
-                                  >
-                                    {canRedeem ? 'Resgatar' : 'Pontos insuficientes'}
-                                  </Button>
-                                </div>
-                              </CardContent>
-                            </Card>
-                          );
-                        })}
-                      </div>
-                    )}
+                              </div>
+                              <div className="px-3 pb-3 space-y-1.5">
+                                <Button
+                                  size="default"
+                                  className="w-full h-11"
+                                  disabled={!canRedeem}
+                                  onClick={() => toast.info('Apresente o código no estabelecimento para resgatar.')}
+                                >
+                                  {canRedeem ? 'Resgatar' : 'Pontos insuficientes'}
+                                </Button>
+                                {!canRedeem && (
+                                  <p className="text-[11px] text-center text-muted-foreground">
+                                    Você está a <span className="font-semibold text-foreground">{diff}</span> pontos de resgatar.{' '}
+                                    <span className="text-primary">Agende mais um serviço para desbloquear.</span>
+                                  </p>
+                                )}
+                              </div>
+                            </CardContent>
+                          </Card>
+                        );
+                      };
+
+                      return (
+                        <div className="space-y-5">
+                          {featured.length > 0 && (
+                            <div className="space-y-2">
+                              <h3 className="text-sm font-semibold flex items-center gap-1.5">
+                                <span>🔥</span> Recompensas em destaque
+                              </h3>
+                              <div className="grid sm:grid-cols-2 gap-3">
+                                {featured.map(renderCard)}
+                              </div>
+                            </div>
+                          )}
+                          {closest.length > 0 && (
+                            <div className="space-y-2">
+                              <h3 className="text-sm font-semibold flex items-center gap-1.5">
+                                <span>🎯</span> Mais perto de você resgatar
+                              </h3>
+                              <div className="grid sm:grid-cols-2 gap-3">
+                                {closest.map(renderCard)}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })()}
                   </>
                 )}
               </TabsContent>
