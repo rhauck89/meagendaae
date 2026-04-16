@@ -4,20 +4,23 @@ import { useUserRole } from '@/hooks/useUserRole';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import { CheckCircle2, Circle, Building2, Clock, Share2, Rocket } from 'lucide-react';
+import { CheckCircle2, Circle, Building2, Clock, Share2, Rocket, Users } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 
 interface ChecklistStep {
   key: string;
   label: string;
+  description?: string;
   icon: any;
   route: string;
+  cta?: string;
 }
 
 const adminSteps: ChecklistStep[] = [
   { key: 'company', label: 'Configure sua empresa', icon: Building2, route: '/dashboard/settings/company' },
   { key: 'hours', label: 'Configure os horários', icon: Clock, route: '/dashboard/settings/schedule' },
+  { key: 'team', label: 'Cadastre sua equipe', description: 'Adicione profissionais para começar a receber agendamentos', icon: Users, route: '/dashboard/team', cta: 'Adicionar profissional' },
   { key: 'share', label: 'Ative sua página pública', icon: Share2, route: '/dashboard/settings/general' },
 ];
 
@@ -71,11 +74,17 @@ const OnboardingChecklist = () => {
         .eq('company_id', companyId);
       if (hoursCount && hoursCount > 0) completed.add('hours');
 
+      // Team: at least one collaborator besides the owner
       const { count: collabCount } = await supabase
         .from('collaborators')
         .select('id', { count: 'exact', head: true })
         .eq('company_id', companyId);
-      if (collabCount && collabCount > 0) completed.add('share');
+      if (collabCount && collabCount > 0) completed.add('team');
+
+      // Share: company has been configured enough
+      if (completed.has('company') && completed.has('hours') && completed.has('team')) {
+        completed.add('share');
+      }
     } else {
       if (profileId) {
         const { count: hoursCount } = await supabase
@@ -162,7 +171,12 @@ const OnboardingChecklist = () => {
                   <Circle className="h-4 w-4 text-muted-foreground/50 shrink-0" />
                 )}
                 <step.icon className="h-4 w-4 shrink-0 text-muted-foreground" />
-                <span className={cn(done && 'line-through')}>{step.label}</span>
+                <div className="flex flex-col">
+                  <span className={cn(done && 'line-through')}>{step.label}</span>
+                  {!done && step.description && (
+                    <span className="text-xs text-muted-foreground">{step.description}</span>
+                  )}
+                </div>
               </button>
             );
           })}
