@@ -186,6 +186,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [availableSlots, setAvailableSlots] = useState<string[]>([]);
+  const [bookingError, setBookingError] = useState<BookingErrorInfo | null>(null);
   const [generatedSlots, setGeneratedSlots] = useState<string[]>([]);
   const [clientForm, setClientForm] = useState({ full_name: '', email: '', whatsapp: '', birth_date: '' });
   const [clientPassword, setClientPassword] = useState('');
@@ -1297,7 +1298,12 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
 
       setStep('success');
     } catch (err: any) {
-      toast.error(err.message || 'Erro ao agendar');
+      const info = translateBookingError(err);
+      setBookingError(info);
+      // Conflict → user is on a stale slot list; refresh availability for the day
+      if (info.kind === 'conflict' || info.kind === 'invalid_slot') {
+        setStep('datetime');
+      }
     } finally {
       setLoading(false);
     }
