@@ -360,11 +360,11 @@ const ClientPortal = () => {
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <div className="w-full max-w-sm text-center space-y-4">
         <User className="h-16 w-16 mx-auto text-muted-foreground/40" />
-        <h2 className="text-xl font-semibold">Nenhum agendamento encontrado</h2>
+        <h2 className="text-xl font-semibold">Você ainda não possui agendamentos</h2>
         <p className="text-muted-foreground text-sm">
-          Ainda não encontramos agendamentos vinculados à sua conta. Após realizar um agendamento, seus dados aparecerão aqui automaticamente.
+          Que tal agendar seu primeiro horário?
         </p>
-        <Button onClick={() => navigate('/')} className="w-full">Explorar estabelecimentos</Button>
+        <Button onClick={() => navigate('/')} className="w-full">Agendar agora</Button>
         <Button variant="ghost" onClick={signOut} className="w-full text-sm">
           <LogOut className="h-4 w-4 mr-2" /> Sair
         </Button>
