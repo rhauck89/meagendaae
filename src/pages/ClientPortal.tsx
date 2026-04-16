@@ -432,34 +432,47 @@ const ClientPortal = () => {
     </div>
   );
 
+  // All tabs are ALWAYS visible — empty states are shown inside each tab
   const tabs = [
     { value: 'dashboard', icon: LayoutDashboard, label: 'Início' },
     { value: 'appointments', icon: Calendar, label: 'Agenda' },
-    ...(anyCashback ? [{ value: 'cashback', icon: DollarSign, label: 'Cashback' }] : []),
-    ...(anyLoyalty ? [{ value: 'loyalty', icon: Star, label: 'Pontos' }] : []),
-    ...(anyLoyalty ? [{ value: 'rewards', icon: ShoppingBag, label: 'Loja' }] : []),
+    { value: 'cashback', icon: DollarSign, label: 'Cashback' },
+    { value: 'loyalty', icon: Star, label: 'Pontos' },
+    { value: 'rewards', icon: ShoppingBag, label: 'Loja' },
     { value: 'profile', icon: User, label: 'Perfil' },
   ];
 
   return (
     <div className="min-h-screen bg-background pb-24 md:pb-6">
       {/* Universal Agendaê header */}
-      <header className="border-b bg-card sticky top-0 z-20">
-        <div className="max-w-3xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
+      <header className="border-b bg-card sticky top-0 z-20 shadow-sm">
+        <div className="max-w-3xl mx-auto px-4 py-4 flex items-center justify-between gap-3">
           <div className="flex items-center gap-3 min-w-0">
-            <PlatformLogo compact onDarkBackground={false} className="shrink-0" />
-            <div className="min-w-0">
-              <p className="font-display font-bold text-base leading-tight truncate">
-                Olá, {primaryClient?.name?.split(' ')[0] || 'cliente'}
-              </p>
-              <p className="text-xs text-muted-foreground truncate">
-                Seus agendamentos, cashback e pontos
-              </p>
+            <div className="shrink-0 scale-125 origin-left">
+              <PlatformLogo onDarkBackground={false} />
             </div>
           </div>
-          <Button variant="ghost" size="icon" onClick={signOut} aria-label="Sair">
-            <LogOut className="h-5 w-5" />
-          </Button>
+          <div className="flex items-center gap-2">
+            <div className="text-right hidden sm:block">
+              <p className="text-sm font-semibold leading-tight truncate max-w-[160px]">
+                Olá, {primaryClient?.name?.split(' ')[0] || 'cliente'}
+              </p>
+              <p className="text-[11px] text-muted-foreground">
+                Seus agendamentos e benefícios
+              </p>
+            </div>
+            <Button variant="ghost" size="icon" onClick={signOut} aria-label="Sair">
+              <LogOut className="h-5 w-5" />
+            </Button>
+          </div>
+        </div>
+        <div className="sm:hidden max-w-3xl mx-auto px-4 pb-3">
+          <p className="text-sm font-semibold leading-tight">
+            Olá, {primaryClient?.name?.split(' ')[0] || 'cliente'} 👋
+          </p>
+          <p className="text-xs text-muted-foreground">
+            Seus agendamentos, cashback e pontos
+          </p>
         </div>
       </header>
 
@@ -689,8 +702,19 @@ const ClientPortal = () => {
           </TabsContent>
 
           {/* ================= CASHBACK (per company) ================= */}
-          {anyCashback && (
-            <TabsContent value="cashback" className="space-y-4 mt-4">
+          <TabsContent value="cashback" className="space-y-4 mt-4">
+            {!anyCashback ? (
+              <Card>
+                <CardContent className="p-8 text-center space-y-3">
+                  <DollarSign className="h-12 w-12 mx-auto text-muted-foreground/40" />
+                  <p className="font-semibold">Você ainda não possui cashback</p>
+                  <p className="text-sm text-muted-foreground">
+                    Quando os estabelecimentos onde você se atende ativarem campanhas de cashback, seu saldo aparecerá aqui.
+                  </p>
+                </CardContent>
+              </Card>
+            ) : (
+            <>
               <Card className="bg-green-500/5 border-green-500/20">
                 <CardContent className="p-6 text-center">
                   <p className="text-sm text-muted-foreground">Cashback total disponível</p>
