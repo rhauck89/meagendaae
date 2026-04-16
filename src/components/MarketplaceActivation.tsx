@@ -24,7 +24,7 @@ const activationSteps: ActivationStep[] = [
   { key: 'service', label: 'Crie seu primeiro serviço', icon: Scissors, route: '/dashboard/services' },
   { key: 'team', label: 'Adicione um profissional', icon: Users, route: '/dashboard/team', requiresTeam: true },
   { key: 'schedule', label: 'Configure horários de atendimento', icon: Clock, route: '/dashboard/settings/schedule' },
-  { key: 'public_page', label: 'Ative sua página pública', icon: Globe, route: '/dashboard/settings/general' },
+  { key: 'public_page', label: 'Divulgue sua agenda', icon: Globe, route: '/dashboard/settings/general' },
 ];
 
 const MarketplaceActivation = () => {
