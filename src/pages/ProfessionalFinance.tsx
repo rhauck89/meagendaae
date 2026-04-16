@@ -8,6 +8,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { DollarSign, TrendingUp, Users, Target, Percent } from 'lucide-react';
+import { useFinancialPrivacy } from '@/contexts/FinancialPrivacyContext';
+import FinancialPrivacyToggle from '@/components/FinancialPrivacyToggle';
 import { format, startOfDay, endOfDay, startOfMonth, endOfMonth, subDays, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
@@ -165,12 +167,14 @@ const ProfessionalFinance = () => {
     return professionalValue;
   };
 
-  const formatCurrency = (v: number) => `R$ ${v.toFixed(2).replace('.', ',')}`;
+  const { maskValue: privacyMask } = useFinancialPrivacy();
+  const formatCurrency = (v: number) => privacyMask(v);
 
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
+        <div className="flex items-center gap-2">
+          <div>
           <h2 className="text-2xl font-bold">Financeiro</h2>
           {collaborator && (
             <p className="text-sm text-muted-foreground">
@@ -178,6 +182,8 @@ const ProfessionalFinance = () => {
               {metrics.isCommissioned && ` • ${commissionLabel(metrics.commType, metrics.commValue)}`}
             </p>
           )}
+        </div>
+          <FinancialPrivacyToggle />
         </div>
         <div className="flex items-center gap-2 flex-wrap">
           <Select value={dateFilter} onValueChange={(v) => setDateFilter(v as DateFilter)}>
