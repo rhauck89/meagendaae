@@ -1496,7 +1496,8 @@ const Dashboard = () => {
                       return (
                         <div
                           key={apt.id}
-                          className={cn("flex flex-col sm:flex-row sm:items-center gap-3 p-4 rounded-xl border transition-shadow hover:shadow-md", statusCardStyles[displayStatus] || 'bg-card')}
+                          id={`agenda-apt-${apt.id}`}
+                          className={cn("flex flex-col sm:flex-row sm:items-center gap-3 p-4 rounded-xl border transition-all hover:shadow-md", statusCardStyles[displayStatus] || 'bg-card', highlightedAppointmentId === apt.id && 'ring-2 ring-primary shadow-lg')}
                         >
                           <div className="flex items-center gap-3 flex-1">
                             <div className="text-center min-w-[60px]">
