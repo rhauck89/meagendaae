@@ -1425,6 +1425,46 @@ const Dashboard = () => {
                 </Button>
               ))}
             </div>
+            {/* Display mode toggle: Lista / Calendário */}
+            {!isMobile && viewMode === 'day' && (
+              <div className="flex gap-1 bg-muted rounded-lg p-1">
+                <Button
+                  variant={agendaDisplayMode === 'lista' ? 'default' : 'ghost'}
+                  size="sm"
+                  className="gap-1.5"
+                  onClick={() => { setAgendaDisplayMode('lista'); localStorage.setItem('agenda_display_mode', 'lista'); }}
+                >
+                  <List className="h-3.5 w-3.5" /> Lista
+                </Button>
+                <Button
+                  variant={agendaDisplayMode === 'calendario' ? 'default' : 'ghost'}
+                  size="sm"
+                  className="gap-1.5"
+                  onClick={() => { setAgendaDisplayMode('calendario'); localStorage.setItem('agenda_display_mode', 'calendario'); }}
+                >
+                  <LayoutGrid className="h-3.5 w-3.5" /> Calendário
+                </Button>
+              </div>
+            )}
+            {/* Column mode toggle for calendar view */}
+            {!isMobile && viewMode === 'day' && agendaDisplayMode === 'calendario' && isAdmin && collaboratorsList.length > 1 && (
+              <div className="flex gap-1 bg-muted rounded-lg p-1">
+                <Button
+                  variant={timelineColumnMode === 'day' ? 'default' : 'ghost'}
+                  size="sm"
+                  onClick={() => setTimelineColumnMode('day')}
+                >
+                  Dia
+                </Button>
+                <Button
+                  variant={timelineColumnMode === 'professionals' ? 'default' : 'ghost'}
+                  size="sm"
+                  onClick={() => setTimelineColumnMode('professionals')}
+                >
+                  Profissionais
+                </Button>
+              </div>
+            )}
           </div>
         </CardHeader>
         <CardContent>
