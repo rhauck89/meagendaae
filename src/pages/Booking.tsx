@@ -337,6 +337,24 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
   }, []);
 
   // Check if company has cashback or loyalty active
+  // Load last booking for smart rebooking
+  useEffect(() => {
+    if (!company?.id || isPromoMode) return;
+    try {
+      const stored = localStorage.getItem(`last_booking_${company.id}`);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        // Validate services still exist
+        const allServicesExist = parsed.serviceIds.every((sid: string) => services.find((s: any) => s.id === sid));
+        // Validate professional still exists (if professionals loaded)
+        const profExists = !professionalSlug || professionals.some((p: any) => p.id === parsed.professionalId);
+        if (allServicesExist && profExists) {
+          setLastBooking(parsed);
+        }
+      }
+    } catch { /* ignore */ }
+  }, [company?.id, services, professionals, isPromoMode]);
+
   useEffect(() => {
     if (!company?.id) return;
     const checkBenefits = async () => {
