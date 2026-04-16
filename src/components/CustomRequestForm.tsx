@@ -34,7 +34,7 @@ interface CustomRequestFormProps {
   };
 }
 
-function buildWhatsAppUrl(professionalWhatsApp: string, data: {
+function buildRequestWhatsAppUrl(professionalWhatsApp: string, data: {
   clientName: string;
   serviceName: string;
   requestedDate: string;
