@@ -1478,6 +1478,9 @@ const Dashboard = () => {
                   <div className="text-center py-12 text-muted-foreground">
                     <CalendarIcon className="h-12 w-12 mx-auto mb-3 opacity-40" />
                     <p>Nenhum agendamento neste período</p>
+                    <Button className="mt-4 gap-2" variant="outline" onClick={() => setManualAppointmentOpen(true)}>
+                      <CalendarIcon className="h-4 w-4" /> Agendar manualmente
+                    </Button>
                   </div>
                 ) : (
                   <div className="space-y-3">
