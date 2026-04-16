@@ -104,6 +104,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
 
   const handleRoleSelect = (mode: 'admin' | 'professional') => {
     setLoginMode(mode);
+    navigate('/dashboard');
   };
 
   const handleSwitchMode = () => {
