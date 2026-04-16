@@ -4284,6 +4284,16 @@ export type Database = {
         Args: { p_client_id: string }
         Returns: boolean
       }
+      complete_client_signup: {
+        Args: {
+          p_birth_date?: string
+          p_company_id: string
+          p_email?: string
+          p_name: string
+          p_whatsapp?: string
+        }
+        Returns: string
+      }
       create_appointment: {
         Args: {
           p_client_id: string
