@@ -375,25 +375,6 @@ const ClientPortal = () => {
   const totalCashbackAll = Object.values(cashbackByCompany).reduce((s, v) => s + v, 0);
   const totalPointsAll = Object.values(pointsByCompany).reduce((s, v) => s + v, 0);
 
-  if (!loading && clients.length === 0) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center p-4">
-        <div className="w-full max-w-sm text-center space-y-4">
-          <User className="h-12 w-12 mx-auto text-muted-foreground" />
-          <h2 className="text-xl font-bold">Nenhum agendamento encontrado</h2>
-          <p className="text-sm text-muted-foreground">
-            Ainda não encontramos agendamentos vinculados à sua conta. Após realizar um agendamento, seus dados aparecerão aqui automaticamente.
-          </p>
-          <Button onClick={() => navigate('/')} className="w-full">
-            Explorar estabelecimentos
-          </Button>
-          <Button variant="ghost" onClick={signOut} className="w-full text-sm">
-            <LogOut className="h-4 w-4 mr-2" /> Sair
-          </Button>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-background">
