@@ -8,6 +8,7 @@ import { format, parseISO, addMinutes, addDays, startOfDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
 import { calculateAvailableSlots, type BusinessHours, type BusinessException, type ExistingAppointment, type BlockedTime } from '@/lib/availability-engine';
+import { openWhatsApp } from '@/lib/whatsapp';
 
 const T = {
   bg: '#0B132B',
