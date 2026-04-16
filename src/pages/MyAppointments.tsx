@@ -52,11 +52,12 @@ const MyAppointments = () => {
       .eq('user_id', user!.id)
       .single();
 
-    if (profileData?.whatsapp) {
+    if (profileData?.whatsapp || user!.email) {
       await supabase.rpc('link_client_to_user', {
         p_user_id: user!.id,
-        p_phone: profileData.whatsapp,
-      });
+        p_phone: profileData?.whatsapp || '',
+        p_email: user!.email || '',
+      } as any);
     }
 
     // Fetch client records linked to this user
