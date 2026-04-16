@@ -10,7 +10,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
-import { Clock, Calendar as CalendarIcon, Plus, Trash2, Timer, RefreshCw, Zap, Grid3X3, Inbox } from 'lucide-react';
+import { Clock, Calendar as CalendarIcon, Plus, Trash2, Timer, RefreshCw, Zap, Grid3X3, Inbox, Shield } from 'lucide-react';
 import SettingsBreadcrumb from '@/components/SettingsBreadcrumb';
 
 const dayNames = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
