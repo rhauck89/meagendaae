@@ -447,11 +447,11 @@ const FinanceReports = () => {
             ) : (
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
-                  <Pie data={expensesByCat} cx="50%" cy="50%" outerRadius={100} dataKey="value" nameKey="name" label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}>
-                    {expensesByCat.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
+                  <Pie data={expensesChartData} cx="50%" cy="50%" outerRadius={100} dataKey="value" nameKey="name" label={piePercentLabel} labelLine={false}>
+                    {expensesChartData.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
                   </Pie>
-                  <Tooltip formatter={(v: number) => `R$ ${v.toFixed(2)}`} />
-                  <Legend />
+                  <Tooltip formatter={(v: number) => tooltipCurrencyFormatter(v)} />
+                  <Legend formatter={(value) => truncateName(value, 20)} />
                 </PieChart>
               </ResponsiveContainer>
             )}
@@ -469,10 +469,10 @@ const FinanceReports = () => {
             ) : (
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
-                  <Pie data={revenueByPayment} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={100} label={({ name, value }) => `${name}: R$ ${value.toFixed(2)}`}>
-                    {revenueByPayment.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
+                  <Pie data={paymentChartData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={100} label={piePercentLabel} labelLine={false}>
+                    {paymentChartData.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
                   </Pie>
-                  <Tooltip formatter={(v: number) => `R$ ${v.toFixed(2)}`} />
+                  <Tooltip formatter={(v: number) => tooltipCurrencyFormatter(v)} />
                   <Legend />
                 </PieChart>
               </ResponsiveContainer>
