@@ -67,8 +67,8 @@ const MyAppointments = () => {
       .eq('user_id', user!.id);
 
     if (!clientData || clientData.length === 0) {
-      setAppointments([]);
-      setLoading(false);
+      // No linked client → redirect to portal so the user can complete registration
+      navigate('/minha-conta?complete=1', { replace: true });
       return;
     }
 
