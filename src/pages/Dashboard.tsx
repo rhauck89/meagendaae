@@ -579,25 +579,45 @@ const Dashboard = () => {
         notes: noteParts.length > 0 ? noteParts.join(' | ') : null,
       });
 
-      // Generate cashback credits if appointment is linked to a cashback promotion
-      if (apt.promotion_id) {
+      // Generate cashback credits — AUTO-DETECT active cashback promotions
+      if (apt.client_id) {
         try {
-          const { data: promo } = await supabase
+          const appointmentDate = format(parseISO(apt.start_time), 'yyyy-MM-dd');
+          
+          // Find all active cashback promotions for this company where date is in range
+          const { data: cashbackPromos } = await supabase
             .from('promotions')
-            .select('id, promotion_type, discount_type, discount_value, cashback_validity_days, cashback_cumulative')
-            .eq('id', apt.promotion_id)
-            .single();
+            .select('id, promotion_type, discount_type, discount_value, cashback_validity_days, cashback_cumulative, service_id, service_ids, professional_filter, professional_ids')
+            .eq('company_id', companyId)
+            .eq('promotion_type', 'cashback')
+            .eq('status', 'active')
+            .lte('start_date', appointmentDate)
+            .gte('end_date', appointmentDate);
 
-          if (promo && promo.promotion_type === 'cashback' && apt.client_id) {
-            // Calculate cashback amount
-            let cashbackAmount = 0;
-            if (promo.discount_type === 'percentage' && promo.discount_value) {
-              cashbackAmount = netPrice * Number(promo.discount_value) / 100;
-            } else if ((promo.discount_type === 'fixed_amount') && promo.discount_value) {
-              cashbackAmount = Number(promo.discount_value);
-            }
+          if (cashbackPromos && cashbackPromos.length > 0) {
+            const appointmentServiceIds = (apt.appointment_services || []).map((as: any) => as.service_id);
+            
+            for (const promo of cashbackPromos) {
+              // Check professional eligibility
+              if (promo.professional_filter === 'specific' && promo.professional_ids) {
+                if (!promo.professional_ids.includes(apt.professional_id)) continue;
+              }
+              
+              // Check service eligibility
+              const promoServiceIds = promo.service_ids || (promo.service_id ? [promo.service_id] : []);
+              const hasEligibleService = promoServiceIds.length === 0 || appointmentServiceIds.some((sid: string) => promoServiceIds.includes(sid));
+              if (!hasEligibleService) continue;
 
-            if (cashbackAmount > 0) {
+              // Calculate cashback amount
+              let cashbackAmount = 0;
+              if (promo.discount_type === 'percentage' && promo.discount_value) {
+                cashbackAmount = netPrice * Number(promo.discount_value) / 100;
+              } else if (promo.discount_type === 'fixed_amount' && promo.discount_value) {
+                cashbackAmount = Number(promo.discount_value);
+              }
+
+              if (cashbackAmount <= 0) continue;
+
               // Check if cumulative is allowed
               if (!promo.cashback_cumulative) {
                 const { data: existing } = await supabase
@@ -608,10 +628,7 @@ const Dashboard = () => {
                   .eq('company_id', companyId)
                   .in('status', ['active'])
                   .limit(1);
-                if (existing && existing.length > 0) {
-                  console.log('[Dashboard] Cashback not cumulative, skipping');
-                  // Skip — non-cumulative and already has active credit
-                }
+                if (existing && existing.length > 0) continue;
               }
 
               const validityDays = promo.cashback_validity_days || 30;
@@ -627,11 +644,11 @@ const Dashboard = () => {
                 status: 'active',
                 expires_at: expiresAt.toISOString(),
               });
-              toast.success(`Cashback de R$ ${cashbackAmount.toFixed(2)} gerado para o cliente!`);
+              toast.success(`Cashback de R$ ${cashbackAmount.toFixed(2)} gerado automaticamente!`);
             }
           }
         } catch (cashbackErr) {
-          console.error('[Dashboard] Cashback generation error:', cashbackErr);
+          console.error('[Dashboard] Cashback auto-generation error:', cashbackErr);
         }
       }
 

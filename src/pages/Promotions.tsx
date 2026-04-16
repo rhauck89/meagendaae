@@ -92,7 +92,6 @@ const MESSAGE_TAGS_CASHBACK = [
   { tag: '{{valor_cashback}}', label: 'Valor Cashback' },
   { tag: '{{validade_cashback}}', label: 'Validade Cashback' },
   { tag: '{{regras_cashback}}', label: 'Regras Cashback' },
-  { tag: '{{link_promocao}}', label: 'Link' },
 ];
 
 const DEFAULT_TEMPLATE = `Olá {{cliente_nome}}! 👋
@@ -127,8 +126,7 @@ A *{{empresa_nome}}* preparou uma promoção especial para você! 🎉
 
 ⚠️ O cashback é válido somente para seu *próximo agendamento* e dentro do prazo informado.
 
-Agende agora e garanta seu benefício:
-{{link_promocao}}`;
+Agende pelo nosso sistema e garanta seu benefício! 🙌`;
 
 function generateSlug(title: string): string {
   return title.toLowerCase()
@@ -1259,12 +1257,21 @@ export default function Promotions() {
                         )}
                       </div>
 
-                      {promo.slug && (
+                      {/* Link — only for traditional promos */}
+                      {!isCashback && promo.slug && (
                         <div className="flex items-center gap-2">
                           <Input readOnly value={getPromoLink(promo)} className="text-xs h-8 bg-muted" />
                           <Button size="sm" variant="ghost" className="h-8" onClick={() => { navigator.clipboard.writeText(getPromoLink(promo)); toast({ title: 'Link copiado!' }); }}>
                             <Copy className="h-3 w-3" />
                           </Button>
+                        </div>
+                      )}
+
+                      {/* Cashback auto-apply indicator */}
+                      {isCashback && status === 'active' && (
+                        <div className="flex items-center gap-2 text-xs text-emerald-600 bg-emerald-50 dark:bg-emerald-950/20 p-2 rounded-lg">
+                          <Flame className="h-3 w-3" />
+                          <span>Cashback aplicado automaticamente ao concluir atendimentos elegíveis</span>
                         </div>
                       )}
 
@@ -1278,11 +1285,13 @@ export default function Promotions() {
                         <Button size="sm" variant="outline" onClick={() => fetchMetrics(promo)}>
                           <BarChart3 className="h-3 w-3 mr-1" />Métricas
                         </Button>
-                        <Button size="sm" variant="ghost" asChild>
-                          <a href={getPromoLink(promo)} target="_blank" rel="noopener noreferrer">
-                            <Eye className="h-3 w-3 mr-1" />Ver
-                          </a>
-                        </Button>
+                        {!isCashback && (
+                          <Button size="sm" variant="ghost" asChild>
+                            <a href={getPromoLink(promo)} target="_blank" rel="noopener noreferrer">
+                              <Eye className="h-3 w-3 mr-1" />Ver
+                            </a>
+                          </Button>
+                        )}
                       </div>
                     </CardContent>
                   </Card>

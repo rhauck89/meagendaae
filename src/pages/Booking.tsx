@@ -201,6 +201,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
   const [cashbackCredits, setCashbackCredits] = useState<{ id: string; amount: number; expires_at: string }[]>([]);
   const [useCashback, setUseCashback] = useState(false);
   const cashbackTotal = cashbackCredits.reduce((s, c) => s + Number(c.amount), 0);
+  const [autoCashbackPromos, setAutoCashbackPromos] = useState<any[]>([]);
   const [loyaltyPoints, setLoyaltyPoints] = useState(0);
   const [loyaltyPointValue, setLoyaltyPointValue] = useState(0);
   const slotRequestRef = useRef(0);
@@ -409,6 +410,20 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
     if (reviewCount > 0 || completedCount > 0) {
       setCompanyStats({ avgRating, reviewCount, completedCount });
     }
+
+    // Fetch active cashback promotions for auto-detection
+    try {
+      const today = format(new Date(), 'yyyy-MM-dd');
+      const { data: cbPromos } = await supabase
+        .from('promotions')
+        .select('id, promotion_type, discount_type, discount_value, cashback_validity_days, service_id, service_ids, professional_filter, professional_ids')
+        .eq('company_id', comp.id)
+        .eq('promotion_type', 'cashback')
+        .eq('status', 'active')
+        .lte('start_date', today)
+        .gte('end_date', today);
+      if (cbPromos) setAutoCashbackPromos(cbPromos);
+    } catch { /* ignore */ }
 
     // Check if company has any active professionals
     if (!professionalSlug && !promoIdRef.current) {
@@ -673,15 +688,39 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
 
   // Calculate cashback the client will EARN (not a discount)
   const cashbackEarnAmount = (() => {
-    if (!isCashbackPromo || !promoData) return 0;
-    const promoServiceIds = promoData.service_ids || (promoData.service_id ? [promoData.service_id] : []);
-    const promoServicesTotal = services
-      .filter(s => selectedServices.includes(s.id) && promoServiceIds.includes(s.id))
-      .reduce((sum, s) => sum + Number(s.price), 0);
-    if (promoData.discount_type === 'percentage' && promoData.discount_value) {
-      return promoServicesTotal * Number(promoData.discount_value) / 100;
-    } else if (promoData.discount_type === 'fixed_amount' && promoData.discount_value) {
-      return Number(promoData.discount_value);
+    // From promo-mode cashback
+    if (isCashbackPromo && promoData) {
+      const promoServiceIds = promoData.service_ids || (promoData.service_id ? [promoData.service_id] : []);
+      const promoServicesTotal = services
+        .filter(s => selectedServices.includes(s.id) && promoServiceIds.includes(s.id))
+        .reduce((sum, s) => sum + Number(s.price), 0);
+      if (promoData.discount_type === 'percentage' && promoData.discount_value) {
+        return promoServicesTotal * Number(promoData.discount_value) / 100;
+      } else if (promoData.discount_type === 'fixed_amount' && promoData.discount_value) {
+        return Number(promoData.discount_value);
+      }
+      return 0;
+    }
+    // Auto-detect from active cashback promotions
+    if (!isPromoMode && autoCashbackPromos.length > 0 && selectedProfessional && selectedServices.length > 0) {
+      let total = 0;
+      for (const promo of autoCashbackPromos) {
+        // Check professional eligibility
+        if (promo.professional_filter === 'specific' && promo.professional_ids) {
+          if (!promo.professional_ids.includes(selectedProfessional)) continue;
+        }
+        const promoServiceIds = promo.service_ids || (promo.service_id ? [promo.service_id] : []);
+        const eligible = services
+          .filter(s => selectedServices.includes(s.id) && (promoServiceIds.length === 0 || promoServiceIds.includes(s.id)));
+        if (eligible.length === 0) continue;
+        const eligibleTotal = eligible.reduce((sum, s) => sum + Number(s.price), 0);
+        if (promo.discount_type === 'percentage' && promo.discount_value) {
+          total += eligibleTotal * Number(promo.discount_value) / 100;
+        } else if (promo.discount_type === 'fixed_amount' && promo.discount_value) {
+          total += Number(promo.discount_value);
+        }
+      }
+      return total;
     }
     return 0;
   })();
@@ -2023,14 +2062,14 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                 </div>
               </div>
               <div style={{ borderTop: `1px solid ${T.border}` }} />
-              {/* Cashback earn info for cashback promo */}
-              {isCashbackPromo && cashbackEarnAmount > 0 && (
+              {/* Cashback earn info — auto-detected or promo-based */}
+              {cashbackEarnAmount > 0 && (
                 <div className="rounded-xl p-3" style={{ background: '#10b98115', border: '1px solid #10b98130' }}>
                   <p className="font-semibold text-sm" style={{ color: '#10b981' }}>
                     💰 Você ganhará R$ {cashbackEarnAmount.toFixed(2)} de cashback
                   </p>
                   <p className="text-xs" style={{ color: T.textSec }}>
-                    Crédito disponível após conclusão do serviço{promoData?.cashback_validity_days ? `, válido por ${promoData.cashback_validity_days} dias` : ''}
+                    Crédito disponível após conclusão do serviço para usar no próximo agendamento
                   </p>
                 </div>
               )}
