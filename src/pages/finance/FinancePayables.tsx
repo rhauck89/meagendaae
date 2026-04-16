@@ -25,6 +25,7 @@ type DateFilter = 'all' | 'today' | 'week' | 'month' | 'overdue' | 'custom';
 
 const FinancePayables = () => {
   const { companyId } = useAuth();
+  const { maskValue } = useFinancialPrivacy();
   const [items, setItems] = useState<any[]>([]);
   const [statusFilter, setStatusFilter] = useState('pending');
   const [dateFilter, setDateFilter] = useState<DateFilter>('all');
