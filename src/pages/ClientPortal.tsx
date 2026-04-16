@@ -621,38 +621,68 @@ const ClientPortal = () => {
                       (acc[a.company_id] ||= []).push(a); return acc;
                     }, {})
                   ).map(([cid, list]) => (
-                    <div key={cid} className="space-y-2">
-                      <CompanyHeader company={companies[cid]} size="md" />
-                      {list.map(apt => (
-                        <Card key={apt.id}>
-                          <CardContent className="p-4 space-y-2">
-                            <div className="flex justify-between items-start gap-2">
-                              <div className="space-y-0.5 flex-1 min-w-0">
-                                <p className="font-semibold">
-                                  {format(parseISO(apt.start_time), "dd 'de' MMM", { locale: ptBR })} · {format(parseISO(apt.start_time), 'HH:mm')}
-                                </p>
-                                <p className="text-sm text-muted-foreground">
-                                  {apt.appointment_services?.map(s => s.service?.name).filter(Boolean).join(', ')}
-                                </p>
-                                {apt.professional && (
-                                  <p className="text-xs text-muted-foreground">com {apt.professional.full_name}</p>
-                                )}
+                    <div key={cid} className="space-y-3">
+                      {list.map(apt => {
+                        const co = companies[cid];
+                        const serviceNames = apt.appointment_services?.map(s => s.service?.name).filter(Boolean).join(', ');
+                        return (
+                          <Card key={apt.id} className="rounded-xl shadow-sm hover:shadow-md transition-shadow overflow-hidden">
+                            <CardContent className="p-5 space-y-4">
+                              {/* HEADER: company + professional */}
+                              <div className="flex items-start justify-between gap-3">
+                                <div className="flex items-center gap-3 min-w-0 flex-1">
+                                  {co?.logo_url ? (
+                                    <img src={co.logo_url} alt={co.name} className="h-11 w-11 rounded-lg object-cover border shrink-0" />
+                                  ) : (
+                                    <div className="h-11 w-11 rounded-lg bg-muted flex items-center justify-center shrink-0">
+                                      <Building2 className="h-5 w-5 text-muted-foreground" />
+                                    </div>
+                                  )}
+                                  <div className="min-w-0">
+                                    <p className="font-semibold text-sm truncate">{co?.name || 'Estabelecimento'}</p>
+                                    {apt.professional && (
+                                      <p className="text-xs text-muted-foreground truncate">
+                                        com {apt.professional.full_name}
+                                      </p>
+                                    )}
+                                  </div>
+                                </div>
+                                <Badge className={`${statusColors[apt.status] || 'bg-muted'} shrink-0`}>
+                                  {statusLabels[apt.status] || apt.status}
+                                </Badge>
                               </div>
-                              <Badge className={statusColors[apt.status] || 'bg-muted'}>
-                                {statusLabels[apt.status] || apt.status}
-                              </Badge>
-                            </div>
-                            <div className="flex gap-2 pt-1">
-                              <Button size="sm" variant="outline" className="flex-1" onClick={() => navigate(`/reschedule/${apt.id}`)}>
-                                Remarcar
-                              </Button>
-                              <Button size="sm" variant="outline" className="flex-1 text-destructive" onClick={() => navigate(`/cancel/${apt.id}`)}>
-                                Cancelar
-                              </Button>
-                            </div>
-                          </CardContent>
-                        </Card>
-                      ))}
+
+                              {/* BODY: service */}
+                              <div className="border-t border-b py-3">
+                                <p className="text-[11px] uppercase tracking-wide text-muted-foreground mb-0.5">Serviço</p>
+                                <p className="text-base font-semibold leading-snug">
+                                  {serviceNames || '—'}
+                                </p>
+                              </div>
+
+                              {/* FOOTER: date + time + actions */}
+                              <div className="flex items-center justify-between gap-3">
+                                <div>
+                                  <p className="text-xs text-muted-foreground capitalize">
+                                    {format(parseISO(apt.start_time), "EEE, dd 'de' MMM", { locale: ptBR })}
+                                  </p>
+                                  <p className="text-xl font-bold text-primary leading-tight">
+                                    {format(parseISO(apt.start_time), 'HH:mm')}
+                                  </p>
+                                </div>
+                                <div className="flex gap-2">
+                                  <Button size="sm" onClick={() => navigate(`/reschedule/${apt.id}`)}>
+                                    Remarcar
+                                  </Button>
+                                  <Button size="sm" variant="outline" className="text-destructive border-destructive/30 hover:bg-destructive/10 hover:text-destructive" onClick={() => navigate(`/cancel/${apt.id}`)}>
+                                    Cancelar
+                                  </Button>
+                                </div>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        );
+                      })}
                     </div>
                   ))
                 )}
