@@ -1076,30 +1076,30 @@ const ClientPortal = () => {
                             <button
                               key={co.id}
                               onClick={() => setRewardsCompanyId(co.id)}
-                              className={`shrink-0 flex flex-col items-center gap-1.5 w-20 transition-all ${
-                                isSelected ? 'scale-105' : ''
+                              className={`shrink-0 flex flex-col items-center gap-2 w-24 transition-all duration-200 ${
+                                isSelected ? 'scale-110' : hasPoints ? 'hover:scale-105' : ''
                               }`}
                             >
-                              <div className={`relative h-16 w-16 rounded-full border-2 flex items-center justify-center overflow-hidden bg-card transition-all ${
+                              <div className={`relative h-20 w-20 rounded-full border-2 flex items-center justify-center overflow-hidden bg-card transition-all ${
                                 isSelected
-                                  ? 'border-primary ring-2 ring-primary/30 shadow-md'
+                                  ? 'border-primary ring-4 ring-primary/20 shadow-lg'
                                   : hasPoints
-                                    ? 'border-border'
-                                    : 'border-border/50'
-                              } ${!hasPoints && !isSelected ? 'grayscale opacity-50' : ''}`}>
+                                    ? 'border-primary/40 shadow-sm'
+                                    : 'border-border/40'
+                              } ${!hasPoints && !isSelected ? 'grayscale opacity-40' : ''}`}>
                                 {co.logo_url ? (
                                   <img src={co.logo_url} alt={co.name} className="h-full w-full object-cover" />
                                 ) : (
-                                  <Building2 className="h-7 w-7 text-muted-foreground" />
+                                  <Building2 className="h-8 w-8 text-muted-foreground" />
                                 )}
                                 {hasPoints && (
-                                  <span className="absolute -top-1 -right-1 bg-primary text-primary-foreground text-[10px] font-bold rounded-full h-5 min-w-5 px-1 flex items-center justify-center shadow">
+                                  <span className="absolute -top-1 -right-1 bg-primary text-primary-foreground text-[10px] font-bold rounded-full h-6 min-w-6 px-1.5 flex items-center justify-center shadow-md ring-2 ring-background">
                                     {pts > 999 ? '999+' : pts}
                                   </span>
                                 )}
                               </div>
                               <span className={`text-[11px] font-medium text-center line-clamp-2 leading-tight ${
-                                isSelected ? 'text-foreground' : 'text-muted-foreground'
+                                isSelected ? 'text-foreground font-semibold' : 'text-muted-foreground'
                               }`}>
                                 {co.name}
                               </span>
@@ -1150,68 +1150,98 @@ const ClientPortal = () => {
                       const renderCard = (reward: typeof rewardsList[number]) => {
                         const canRedeem = rewardsBalance >= reward.points_required;
                         const diff = reward.points_required - rewardsBalance;
+                        const progress = Math.min(100, (rewardsBalance / reward.points_required) * 100);
                         return (
-                          <Card key={reward.id} className={`overflow-hidden transition-all ${canRedeem ? 'border-green-500/40 bg-green-500/5 shadow-sm' : ''}`}>
+                          <Card
+                            key={reward.id}
+                            className={`overflow-hidden transition-all duration-200 hover:shadow-lg ${
+                              canRedeem
+                                ? 'border-green-500/50 shadow-md ring-1 ring-green-500/20'
+                                : 'shadow-md hover:-translate-y-0.5'
+                            }`}
+                          >
                             <CardContent className="p-0">
-                              {/* Header com branding da empresa (logo maior + destaque) */}
-                              <div className="flex items-center gap-2.5 px-3 py-2.5 border-b bg-muted/40">
-                                {rewardsCompany?.logo_url ? (
-                                  <img src={rewardsCompany.logo_url} alt={rewardsCompany.name} className="h-9 w-9 rounded-md object-cover border shrink-0" />
-                                ) : (
-                                  <div className="h-9 w-9 rounded-md bg-muted flex items-center justify-center shrink-0">
-                                    <Building2 className="h-5 w-5 text-muted-foreground" />
-                                  </div>
-                                )}
-                                <div className="min-w-0">
-                                  <p className="text-xs font-semibold truncate">{rewardsCompany?.name}</p>
-                                  <p className="text-[10px] text-muted-foreground leading-tight">
+                              {/* 1. EMPRESA — topo do card, logo grande, destaque visual */}
+                              <div className="flex items-center gap-3 px-4 py-3 bg-gradient-to-r from-primary/5 via-primary/[0.02] to-transparent border-b">
+                                <div className="relative shrink-0">
+                                  {rewardsCompany?.logo_url ? (
+                                    <img
+                                      src={rewardsCompany.logo_url}
+                                      alt={rewardsCompany.name}
+                                      className="h-12 w-12 rounded-xl object-cover border-2 border-background shadow-sm ring-1 ring-border"
+                                    />
+                                  ) : (
+                                    <div className="h-12 w-12 rounded-xl bg-primary/10 border-2 border-background shadow-sm ring-1 ring-border flex items-center justify-center">
+                                      <Building2 className="h-6 w-6 text-primary" />
+                                    </div>
+                                  )}
+                                </div>
+                                <div className="min-w-0 flex-1">
+                                  <p className="text-sm font-bold truncate text-foreground">{rewardsCompany?.name}</p>
+                                  <p className="text-[10px] text-muted-foreground leading-tight flex items-center gap-1 mt-0.5">
+                                    <span className="inline-block h-1.5 w-1.5 rounded-full bg-primary/60" />
                                     Resgatável apenas neste estabelecimento
                                   </p>
                                 </div>
                               </div>
-                              <div className="p-3 flex gap-3">
+
+                              {/* 2. PRODUTO */}
+                              <div className="p-4 flex gap-4">
                                 {reward.image_url ? (
-                                  <img src={reward.image_url} alt={reward.name} className="w-20 h-20 rounded-lg object-cover shrink-0" />
+                                  <img
+                                    src={reward.image_url}
+                                    alt={reward.name}
+                                    className="w-24 h-24 rounded-xl object-cover shrink-0 border shadow-sm"
+                                  />
                                 ) : (
-                                  <div className="w-20 h-20 rounded-lg bg-muted flex items-center justify-center shrink-0">
-                                    <Gift className="h-7 w-7 text-muted-foreground" />
+                                  <div className="w-24 h-24 rounded-xl bg-gradient-to-br from-primary/10 to-primary/5 border flex items-center justify-center shrink-0 shadow-sm">
+                                    <Gift className="h-9 w-9 text-primary/70" />
                                   </div>
                                 )}
                                 <div className="flex-1 min-w-0 flex flex-col">
-                                  <p className="font-semibold text-sm leading-tight">{reward.name}</p>
+                                  <p className="font-semibold text-sm leading-tight text-foreground">{reward.name}</p>
                                   {reward.description && (
-                                    <p className="text-[11px] text-muted-foreground line-clamp-2 mt-0.5">{reward.description}</p>
+                                    <p className="text-[11px] text-muted-foreground line-clamp-2 mt-1">{reward.description}</p>
                                   )}
-                                  <div className="mt-auto pt-2 space-y-1.5">
-                                    <p className="text-sm font-bold">{reward.points_required} pts</p>
-                                    {canRedeem ? (
-                                      <Badge className="bg-green-500/15 text-green-700 hover:bg-green-500/20 text-[10px] border-0">
-                                        ✓ Disponível para resgate
-                                      </Badge>
-                                    ) : (
-                                      <div className="space-y-1">
-                                        <Progress value={(rewardsBalance / reward.points_required) * 100} className="h-1.5" />
-                                        <p className="text-[11px] text-muted-foreground">
-                                          Faltam <span className="font-semibold text-foreground">{diff}</span> pontos para resgatar
-                                        </p>
-                                      </div>
-                                    )}
+                                  {/* 3. PONTOS — badge visual em destaque, cor primária, fonte maior */}
+                                  <div className="mt-auto pt-2.5">
+                                    <div className="inline-flex items-baseline gap-1 bg-primary/10 text-primary rounded-full px-3 py-1 border border-primary/20">
+                                      <span className="text-lg font-extrabold leading-none">{reward.points_required}</span>
+                                      <span className="text-[10px] font-semibold uppercase tracking-wide">pts</span>
+                                    </div>
                                   </div>
                                 </div>
                               </div>
-                              <div className="px-3 pb-3 space-y-1.5">
+
+                              {/* Status / progresso */}
+                              <div className="px-4 pb-2">
+                                {canRedeem ? (
+                                  <Badge className="bg-green-500/15 text-green-700 hover:bg-green-500/20 text-[11px] border-0 font-semibold">
+                                    ✓ Disponível para resgate
+                                  </Badge>
+                                ) : (
+                                  <div className="space-y-1.5">
+                                    <Progress value={progress} className="h-2" />
+                                    <p className="text-[11px] text-muted-foreground">
+                                      Faltam <span className="font-bold text-foreground">{diff}</span> pontos para resgatar
+                                    </p>
+                                  </div>
+                                )}
+                              </div>
+
+                              {/* 4. AÇÃO */}
+                              <div className="px-4 pb-4 pt-2 space-y-2">
                                 <Button
                                   size="default"
-                                  className="w-full h-11"
+                                  className="w-full h-12 text-sm font-semibold shadow-sm"
                                   disabled={!canRedeem}
                                   onClick={() => toast.info('Apresente o código no estabelecimento para resgatar.')}
                                 >
-                                  {canRedeem ? 'Resgatar' : 'Pontos insuficientes'}
+                                  {canRedeem ? '🎁 Resgatar agora' : 'Pontos insuficientes'}
                                 </Button>
                                 {!canRedeem && (
-                                  <p className="text-[11px] text-center text-muted-foreground">
-                                    Você está a <span className="font-semibold text-foreground">{diff}</span> pontos de resgatar.{' '}
-                                    <span className="text-primary">Agende mais um serviço para desbloquear.</span>
+                                  <p className="text-[11px] text-center text-muted-foreground leading-relaxed">
+                                    Agende mais um serviço para desbloquear ✨
                                   </p>
                                 )}
                               </div>
