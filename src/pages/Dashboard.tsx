@@ -1924,13 +1924,11 @@ const Dashboard = () => {
                     const discount = parseFloat(completeDiscount) || 0;
                     const customAmount = parseFloat(completeCustomAmount) || Number(completeTarget.total_price);
                     const finalAmount = customAmount - discount;
-                    updateStatus(completeTarget.id, 'completed', completePaymentMethod);
-                    if (completeObservation || discount > 0) {
-                      // Update the appointment notes with discount/observation info
+                    updateStatus(completeTarget.id, 'completed', completePaymentMethod, discount, customAmount);
+                    if (completeObservation) {
                       supabase.from('appointments').update({ 
                         notes: [
                           completeTarget.notes,
-                          discount > 0 ? `Desconto: R$ ${discount.toFixed(2)}` : null,
                           completeObservation ? `Obs: ${completeObservation}` : null,
                         ].filter(Boolean).join(' | ')
                       }).eq('id', completeTarget.id).then(() => {});
