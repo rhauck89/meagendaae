@@ -4410,10 +4410,12 @@ export type Database = {
             }
             Returns: string
           }
-      link_client_to_user: {
-        Args: { p_phone: string; p_user_id: string }
-        Returns: undefined
-      }
+      link_client_to_user:
+        | { Args: { p_phone: string; p_user_id: string }; Returns: undefined }
+        | {
+            Args: { p_email?: string; p_phone?: string; p_user_id: string }
+            Returns: number
+          }
       lookup_client_by_whatsapp: {
         Args: { _company_id: string; _whatsapp: string }
         Returns: string
