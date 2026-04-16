@@ -31,6 +31,8 @@ import { AgendaWeekView } from '@/components/AgendaWeekView';
 import { AgendaMonthView } from '@/components/AgendaMonthView';
 import { ResponsiveContainer, LineChart, Line } from 'recharts';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useFinancialPrivacy } from '@/contexts/FinancialPrivacyContext';
+import FinancialPrivacyToggle from '@/components/FinancialPrivacyToggle';
 
 type ViewMode = 'day' | 'week' | 'month';
 type StatusTab = 'all' | 'confirmed' | 'completed' | 'cancelled' | 'rescheduled';
@@ -100,6 +102,8 @@ const Dashboard = () => {
   const { companyId, user } = useAuth();
   const { isAdmin, profileId } = useUserRole();
   const isMobile = useIsMobile();
+  const { maskValue } = useFinancialPrivacy();
+  const formatCurrency = (v: number) => maskValue(v);
   const [viewMode, setViewMode] = useState<ViewMode>('day');
   const [currentDate, setCurrentDate] = useState(new Date());
   const [appointments, setAppointments] = useState<any[]>([]);
@@ -964,7 +968,7 @@ const Dashboard = () => {
                       <p className="text-xs text-muted-foreground">com {apt.professional?.full_name}</p>
                     </div>
                     <div className="flex flex-col items-end gap-1 shrink-0">
-                      <span className="font-display font-bold">R$ {Number(apt.total_price).toFixed(2)}</span>
+                      <span className="font-display font-bold">{formatCurrency(Number(apt.total_price))}</span>
                       <Badge variant="outline" className="text-xs whitespace-nowrap">
                         {icon} {label}
                       </Badge>
@@ -1013,7 +1017,7 @@ const Dashboard = () => {
                     <p className="text-xs text-muted-foreground">com {apt.professional?.full_name}</p>
                   </div>
                   <div className="flex flex-col items-end gap-1 shrink-0">
-                    <span className="font-display font-bold">R$ {Number(apt.total_price).toFixed(2)}</span>
+                    <span className="font-display font-bold">{formatCurrency(Number(apt.total_price))}</span>
                   </div>
                 </div>
                 <div className="flex gap-2 flex-wrap mt-3">
@@ -1138,7 +1142,10 @@ const Dashboard = () => {
 
       {/* 3. Resumo do Dia */}
       <div>
-        <h3 className="text-lg font-display font-semibold mb-3">📊 Resumo do Dia</h3>
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-lg font-display font-semibold">📊 Resumo do Dia</h3>
+          <FinancialPrivacyToggle />
+        </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
         <Card>
           <CardContent className="p-4 flex items-center gap-2">
@@ -1147,7 +1154,7 @@ const Dashboard = () => {
             </div>
             <div className="min-w-0">
               <p className="text-sm text-muted-foreground">Receita estimada</p>
-              <p className="text-2xl font-semibold whitespace-nowrap">R$ {stats.revenue.toFixed(2)}</p>
+              <p className="text-2xl font-semibold whitespace-nowrap">{formatCurrency(stats.revenue)}</p>
             </div>
           </CardContent>
         </Card>
@@ -1158,7 +1165,7 @@ const Dashboard = () => {
             </div>
             <div className="min-w-0">
               <p className="text-sm text-muted-foreground">Receita realizada</p>
-              <p className="text-2xl font-semibold whitespace-nowrap">R$ {stats.revenueCompleted.toFixed(2)}</p>
+              <p className="text-2xl font-semibold whitespace-nowrap">{formatCurrency(stats.revenueCompleted)}</p>
             </div>
           </CardContent>
         </Card>
@@ -1247,7 +1254,7 @@ const Dashboard = () => {
                 </div>
                 <p className="text-sm text-muted-foreground">Receita estimada</p>
               </div>
-              <p className="text-2xl font-semibold whitespace-nowrap">R$ {monthlyStats.revenue.toFixed(2)}</p>
+              <p className="text-2xl font-semibold whitespace-nowrap">{formatCurrency(monthlyStats.revenue)}</p>
               {dailyTrends.length > 0 && (
                 <div className="h-6 w-full opacity-70">
                   <ResponsiveContainer width="100%" height="100%">
@@ -1265,7 +1272,7 @@ const Dashboard = () => {
                 </div>
                 <p className="text-sm text-muted-foreground">Receita realizada</p>
               </div>
-              <p className="text-2xl font-semibold whitespace-nowrap">R$ {monthlyStats.revenueCompleted.toFixed(2)}</p>
+              <p className="text-2xl font-semibold whitespace-nowrap">{formatCurrency(monthlyStats.revenueCompleted)}</p>
               {dailyTrends.length > 0 && (
                 <div className="h-6 w-full opacity-70">
                   <ResponsiveContainer width="100%" height="100%">
@@ -1337,7 +1344,7 @@ const Dashboard = () => {
                 </div>
                 <p className="text-sm text-muted-foreground">Ticket médio</p>
               </div>
-              <p className="text-2xl font-semibold whitespace-nowrap">R$ {monthlyStats.avgTicket.toFixed(2)}</p>
+              <p className="text-2xl font-semibold whitespace-nowrap">{formatCurrency(monthlyStats.avgTicket)}</p>
               {dailyTrends.length > 0 && (
                 <div className="h-6 w-full opacity-70">
                   <ResponsiveContainer width="100%" height="100%">
@@ -1658,7 +1665,7 @@ const Dashboard = () => {
                             </div>
                             <div className="flex items-center gap-2 flex-wrap">
                               <span className="font-display font-bold text-lg">
-                                R$ {Number(apt.total_price).toFixed(2)}
+                                {formatCurrency(Number(apt.total_price))}
                               </span>
                               <Badge variant="outline" className={cn('text-xs', statusColors[displayStatus])}>
                                 {statusLabels[displayStatus]}
@@ -1838,7 +1845,7 @@ const Dashboard = () => {
                 <span className="block mt-1">
                   <strong>{completeTarget.client_name || 'Cliente'}</strong> — {format(parseISO(completeTarget.start_time), 'HH:mm')}
                   <br />
-                  <span className="text-xs">R$ {Number(completeTarget.total_price).toFixed(2)}</span>
+                  <span className="text-xs">{formatCurrency(Number(completeTarget.total_price))}</span>
                 </span>
               )}
             </DialogDescription>
