@@ -862,9 +862,9 @@ const ClientPortal = () => {
                   <Card>
                     <CardContent className="p-8 text-center space-y-3">
                       <DollarSign className="h-12 w-12 mx-auto text-muted-foreground/40" />
-                      <p className="font-semibold">Você ainda não possui cashback</p>
+                      <p className="font-semibold">Você ainda não acumulou pontos ou cashback</p>
                       <p className="text-sm text-muted-foreground">
-                        Quando os estabelecimentos onde você se atende ativarem campanhas de cashback, seu saldo aparecerá aqui.
+                        Agende um serviço para começar a ganhar benefícios.
                       </p>
                     </CardContent>
                   </Card>
