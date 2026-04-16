@@ -67,10 +67,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setProfile(profileRes.data);
       setCompanyId(profileRes.data.company_id);
       
-      // Restore saved login mode
-      if (profileRes.data.last_login_mode) {
-        setLoginModeState(profileRes.data.last_login_mode as LoginMode);
-      }
+      // Save last_login_mode to restore after collaborator check
+      const savedMode = profileRes.data.last_login_mode as LoginMode;
     }
 
     if (rolesRes.data) {
