@@ -109,6 +109,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
   const handleSwitchMode = () => {
     const newMode = loginMode === 'admin' ? 'professional' : 'admin';
     setLoginMode(newMode);
+    navigate('/dashboard');
   };
   const toggleCollapsed = useCallback(() => {
     setCollapsed(prev => {
