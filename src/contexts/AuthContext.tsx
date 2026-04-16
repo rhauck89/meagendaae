@@ -73,6 +73,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (rolesRes.data) {
       const mappedRoles = rolesRes.data.map((r) => r.role);
       console.log('[AuthContext] Mapped roles from user_roles table:', mappedRoles);
+      console.log('[AuthContext] Raw user_roles data:', JSON.stringify(rolesRes.data));
       setRoles(mappedRoles);
 
       // Check if admin user also has a collaborator record
