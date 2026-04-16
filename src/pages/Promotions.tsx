@@ -92,7 +92,6 @@ const MESSAGE_TAGS_CASHBACK = [
   { tag: '{{valor_cashback}}', label: 'Valor Cashback' },
   { tag: '{{validade_cashback}}', label: 'Validade Cashback' },
   { tag: '{{regras_cashback}}', label: 'Regras Cashback' },
-  { tag: '{{link_promocao}}', label: 'Link' },
 ];
 
 const DEFAULT_TEMPLATE = `Olá {{cliente_nome}}! 👋
@@ -127,8 +126,7 @@ A *{{empresa_nome}}* preparou uma promoção especial para você! 🎉
 
 ⚠️ O cashback é válido somente para seu *próximo agendamento* e dentro do prazo informado.
 
-Agende agora e garanta seu benefício:
-{{link_promocao}}`;
+Agende pelo nosso sistema e garanta seu benefício! 🙌`;
 
 function generateSlug(title: string): string {
   return title.toLowerCase()
