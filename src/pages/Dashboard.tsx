@@ -1450,11 +1450,8 @@ const Dashboard = () => {
 
           {/* Status Tabs */}
           {(() => {
-            // Exclude appointments shown in "Próximos" and "Em atraso" sections
-            const upcomingIds = getUpcomingIds();
-            const delayedIds = new Set(getDelayedAppointments().map(a => a.id));
-            const excludedIds = new Set([...upcomingIds, ...delayedIds]);
-            const agendaAppointments = appointments.filter(a => !excludedIds.has(a.id));
+            // Show ALL appointments in the agenda block (complete view)
+            const agendaAppointments = appointments;
 
             const counts = {
               all: agendaAppointments.filter(a => a.status !== 'rescheduled').length,
