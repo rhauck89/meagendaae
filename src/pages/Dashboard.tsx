@@ -97,6 +97,7 @@ const statusFilterMap: Record<StatusTab, (apt: any) => boolean> = {
 const Dashboard = () => {
   const { companyId, user } = useAuth();
   const { isAdmin, profileId } = useUserRole();
+  const isMobile = useIsMobile();
   const [viewMode, setViewMode] = useState<ViewMode>('day');
   const [currentDate, setCurrentDate] = useState(new Date());
   const [appointments, setAppointments] = useState<any[]>([]);
@@ -137,6 +138,13 @@ const Dashboard = () => {
   const [statusTab, setStatusTab] = useState<StatusTab>('confirmed');
   const [manualAppointmentOpen, setManualAppointmentOpen] = useState(false);
   const [highlightedAppointmentId, setHighlightedAppointmentId] = useState<string | null>(null);
+  const [agendaDisplayMode, setAgendaDisplayMode] = useState<'lista' | 'calendario'>(() => {
+    if (typeof window !== 'undefined') {
+      return (localStorage.getItem('agenda_display_mode') as 'lista' | 'calendario') || 'lista';
+    }
+    return 'lista';
+  });
+  const [timelineColumnMode, setTimelineColumnMode] = useState<'day' | 'professionals'>('day');
   // Cleanup orphan Radix portal elements when reschedule modal closes
   useEffect(() => {
     if (!rescheduleDialogOpen) {
