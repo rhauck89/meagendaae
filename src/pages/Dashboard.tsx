@@ -26,7 +26,9 @@ import { formatWhatsApp } from '@/lib/whatsapp';
 import { useNavigate as useRouterNavigate } from 'react-router-dom';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { ManualAppointmentDialog } from '@/components/ManualAppointmentDialog';
+import { AgendaTimelineView } from '@/components/AgendaTimelineView';
 import { ResponsiveContainer, LineChart, Line } from 'recharts';
+import { useMobile } from '@/hooks/use-mobile';
 
 type ViewMode = 'day' | 'week' | 'month';
 type StatusTab = 'all' | 'confirmed' | 'completed' | 'cancelled' | 'rescheduled';
