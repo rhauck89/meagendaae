@@ -176,7 +176,7 @@ export const CompleteSignupModal = ({
         return;
       }
 
-      await ensureClientRecord(userId, formattedPhone);
+      await ensureClientRecord(formattedPhone);
 
       toast.success('Cadastro concluído com sucesso 🎉');
       onOpenChange(false);
