@@ -514,19 +514,20 @@ const Dashboard = () => {
     setCurrentDate(addDays(currentDate, direction * days));
   };
 
-  const updateStatus = async (id: string, status: string, paymentMethod?: string) => {
+  const updateStatus = async (id: string, status: string, paymentMethod?: string, discountAmount = 0, customAmount?: number) => {
     const apt = appointments.find((a) => a.id === id);
     await supabase.from('appointments').update({ status: status as any }).eq('id', id);
 
     // If completing, create automatic revenue with commission calculation
     if (status === 'completed' && apt && companyId) {
       const serviceNames = apt.appointment_services?.map((s: any) => s.service?.name).filter(Boolean).join(', ') || 'Serviço';
-      const totalPrice = Number(apt.total_price);
+      const grossPrice = customAmount ?? Number(apt.total_price);
+      const netPrice = Math.max(0, grossPrice - discountAmount);
 
       // Fetch collaborator commission settings
       let commissionAmount = 0;
       let professionalEarning = 0;
-      let companyProfit = totalPrice;
+      let companyProfit = netPrice;
 
       const { data: collab } = await supabase
         .from('collaborators')
@@ -539,7 +540,7 @@ const Dashboard = () => {
         const serviceCount = apt.appointment_services?.length || 1;
         const { calculateFinancials } = await import('@/lib/financial-engine');
         const breakdown = calculateFinancials(
-          totalPrice,
+          netPrice,
           serviceCount,
           collab.collaborator_type,
           collab.commission_type,
@@ -550,19 +551,23 @@ const Dashboard = () => {
         companyProfit = breakdown.companyValue;
       }
 
+      const noteParts = [];
+      if (discountAmount > 0) noteParts.push(`Desconto: R$ ${discountAmount.toFixed(2)}`);
+      if (commissionAmount > 0) noteParts.push(`Comissão: R$ ${commissionAmount.toFixed(2)} | Lucro: R$ ${companyProfit.toFixed(2)}`);
+
       await supabase.from('company_revenues').insert({
         company_id: companyId,
         appointment_id: apt.id,
         professional_id: apt.professional_id,
         description: `${apt.client_name || 'Cliente'} — ${serviceNames}`,
-        amount: totalPrice,
+        amount: netPrice,
         revenue_date: format(parseISO(apt.start_time), 'yyyy-MM-dd'),
         due_date: format(parseISO(apt.start_time), 'yyyy-MM-dd'),
         status: 'received',
         is_automatic: true,
         payment_method: paymentMethod || null,
         created_by: user?.id,
-        notes: commissionAmount > 0 ? `Comissão: R$ ${commissionAmount.toFixed(2)} | Lucro: R$ ${companyProfit.toFixed(2)}` : null,
+        notes: noteParts.length > 0 ? noteParts.join(' | ') : null,
       });
 
       // Generate cashback credits if appointment is linked to a cashback promotion
@@ -578,7 +583,7 @@ const Dashboard = () => {
             // Calculate cashback amount
             let cashbackAmount = 0;
             if (promo.discount_type === 'percentage' && promo.discount_value) {
-              cashbackAmount = totalPrice * Number(promo.discount_value) / 100;
+              cashbackAmount = netPrice * Number(promo.discount_value) / 100;
             } else if ((promo.discount_type === 'fixed_amount') && promo.discount_value) {
               cashbackAmount = Number(promo.discount_value);
             }
@@ -1898,6 +1903,19 @@ const Dashboard = () => {
                 />
               </div>
             </div>
+            {/* Net amount preview */}
+            {completeTarget && (parseFloat(completeDiscount) > 0 || completeCustomAmount) && (() => {
+              const gross = parseFloat(completeCustomAmount) || Number(completeTarget.total_price);
+              const disc = parseFloat(completeDiscount) || 0;
+              const net = Math.max(0, gross - disc);
+              return (
+                <div className="bg-muted/50 rounded-md p-3 text-sm space-y-1">
+                  <div className="flex justify-between"><span className="text-muted-foreground">Valor bruto</span><span>R$ {gross.toFixed(2)}</span></div>
+                  {disc > 0 && <div className="flex justify-between text-destructive"><span>- Desconto</span><span>R$ {disc.toFixed(2)}</span></div>}
+                  <div className="flex justify-between font-bold border-t pt-1"><span>Valor líquido</span><span>R$ {net.toFixed(2)}</span></div>
+                </div>
+              );
+            })()}
             <div>
               <label className="text-sm font-medium">Observação</label>
               <textarea
@@ -1919,13 +1937,11 @@ const Dashboard = () => {
                     const discount = parseFloat(completeDiscount) || 0;
                     const customAmount = parseFloat(completeCustomAmount) || Number(completeTarget.total_price);
                     const finalAmount = customAmount - discount;
-                    updateStatus(completeTarget.id, 'completed', completePaymentMethod);
-                    if (completeObservation || discount > 0) {
-                      // Update the appointment notes with discount/observation info
+                    updateStatus(completeTarget.id, 'completed', completePaymentMethod, discount, customAmount);
+                    if (completeObservation) {
                       supabase.from('appointments').update({ 
                         notes: [
                           completeTarget.notes,
-                          discount > 0 ? `Desconto: R$ ${discount.toFixed(2)}` : null,
                           completeObservation ? `Obs: ${completeObservation}` : null,
                         ].filter(Boolean).join(' | ')
                       }).eq('id', completeTarget.id).then(() => {});

@@ -26,6 +26,8 @@ const paymentMethodLabels: Record<string, string> = {
   dinheiro: 'Dinheiro',
   pix: 'Pix',
   cartao: 'Cartão',
+  cartao_credito: 'Cartão de Crédito',
+  cartao_debito: 'Cartão de Débito',
   transferencia: 'Transferência',
   outro: 'Outro',
 };
