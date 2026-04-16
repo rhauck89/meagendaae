@@ -187,6 +187,8 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
   const [optInWhatsapp, setOptInWhatsapp] = useState(false);
   const [savedClientId, setSavedClientId] = useState<string | null>(null);
   const [clientLoaded, setClientLoaded] = useState(false);
+  const [clientDataWasAutoFilled, setClientDataWasAutoFilled] = useState(false);
+  const [saveDataForNext, setSaveDataForNext] = useState(true);
   const [loading, setLoading] = useState(false);
   const [slotsLoading, setSlotsLoading] = useState(false);
   const [appointmentsLoaded, setAppointmentsLoaded] = useState(false);
@@ -267,6 +269,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
             birth_date: '',
           });
           setOptInWhatsapp(c.opt_in_whatsapp || false);
+          setClientDataWasAutoFilled(true);
         } catch (e) {
           console.warn('[Booking] Failed to parse stored client data');
         }
@@ -1009,10 +1012,16 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
           full_name: clientForm.full_name, email: clientForm.email || '', whatsapp: clientForm.whatsapp || '',
           opt_in_whatsapp: optInWhatsapp,
         });
+        // Always save client_id for this company (needed for rebooking logic)
         localStorage.setItem(`client_id_${company.id}`, clientId);
+        // Data will be persisted/cleared on success screen based on user choice
         localStorage.setItem(`client_data_${company.id}`, clientDataJson);
         localStorage.setItem('meagendae_client_data', clientDataJson);
         setSavedClientId(clientId);
+        // Track booking count
+        const countKey = 'meagendae_booking_count';
+        const currentCount = parseInt(localStorage.getItem(countKey) || '0', 10);
+        localStorage.setItem(countKey, String(currentCount + 1));
       }
 
       const [h, m] = selectedTime.split(':').map(Number);
@@ -1873,6 +1882,29 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                 {savedClientId ? 'Dados carregados automaticamente' : 'Preencha para finalizar o agendamento'}
               </p>
             </div>
+            {clientDataWasAutoFilled && (
+              <div className="rounded-xl px-4 py-3 flex items-center justify-between" style={{ background: `${T.accent}10`, border: `1px solid ${T.accent}30` }}>
+                <span className="text-sm" style={{ color: T.accent }}>✅ Seus dados foram preenchidos automaticamente</span>
+                <button
+                  onClick={() => {
+                    setClientForm({ full_name: '', email: '', whatsapp: '', birth_date: '' });
+                    setOptInWhatsapp(false);
+                    setSavedClientId(null);
+                    setClientDataWasAutoFilled(false);
+                    if (company) {
+                      localStorage.removeItem(`client_id_${company.id}`);
+                      localStorage.removeItem(`client_data_${company.id}`);
+                    }
+                    localStorage.removeItem('meagendae_client_data');
+                    toast.success('Dados limpos com sucesso');
+                  }}
+                  className="text-xs px-3 py-1.5 rounded-lg font-medium transition-all hover:opacity-80"
+                  style={{ background: T.card, border: `1px solid ${T.border}`, color: T.textSec }}
+                >
+                  🗑 Limpar
+                </button>
+              </div>
+            )}
             <div className="space-y-4">
               <div className="space-y-1.5">
                 <Label className="text-sm font-medium flex items-center gap-1.5" style={{ color: T.textSec }}><User className="h-3.5 w-3.5" /> Nome completo *</Label>
@@ -2338,6 +2370,46 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                   <Button onClick={() => window.location.href = '/minha-conta'} className="w-full rounded-xl py-5 font-semibold text-base" style={{ background: T.accent, color: '#000' }}>
                     <User className="h-4 w-4 mr-2" /> Acessar minha conta
                   </Button>
+                </div>
+              )}
+
+              {/* Save data checkbox */}
+              {!isClientLoggedIn && (
+                <div className="flex items-start gap-3 rounded-xl px-4 py-3" style={{ background: T.card, border: `1px solid ${T.border}` }}>
+                  <Checkbox
+                    id="save-data-next"
+                    checked={saveDataForNext}
+                    onCheckedChange={(v) => {
+                      const checked = v === true;
+                      setSaveDataForNext(checked);
+                      if (!checked && company) {
+                        localStorage.removeItem(`client_data_${company.id}`);
+                        localStorage.removeItem('meagendae_client_data');
+                      } else if (checked && company) {
+                        const clientDataJson = JSON.stringify({
+                          full_name: clientForm.full_name, email: clientForm.email || '', whatsapp: clientForm.whatsapp || '',
+                          opt_in_whatsapp: optInWhatsapp,
+                        });
+                        localStorage.setItem(`client_data_${company.id}`, clientDataJson);
+                        localStorage.setItem('meagendae_client_data', clientDataJson);
+                      }
+                    }}
+                  />
+                  <label htmlFor="save-data-next" className="text-sm leading-snug cursor-pointer" style={{ color: T.textSec }}>
+                    Salvar meus dados para próximos agendamentos
+                  </label>
+                </div>
+              )}
+
+              {/* Account upgrade nudge after 2+ bookings */}
+              {!isClientLoggedIn && parseInt(localStorage.getItem('meagendae_booking_count') || '0', 10) >= 2 && (
+                <div className="rounded-xl px-4 py-3 text-center" style={{ background: `${T.accent}10`, border: `1px solid ${T.accent}30` }}>
+                  <p className="text-sm font-medium" style={{ color: T.accent }}>
+                    🎁 Crie sua conta e acompanhe seus agendamentos + cashback
+                  </p>
+                  <button onClick={() => window.location.href = '/cliente/auth?tab=signup'} className="text-xs mt-1 underline font-medium" style={{ color: T.accent }}>
+                    Criar conta grátis
+                  </button>
                 </div>
               )}
 
