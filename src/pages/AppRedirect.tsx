@@ -6,14 +6,13 @@ import { usePlatformSettings } from '@/hooks/usePlatformSettings';
 const SPLASH_MIN_MS = 1000;
 
 const AppRedirect = () => {
-  const { user, loading } = useAuth();
+  const { user, loading, companyId, profile } = useAuth();
   const navigate = useNavigate();
   const settings = usePlatformSettings();
   const [splashDone, setSplashDone] = useState(false);
   const [animateIn, setAnimateIn] = useState(false);
 
   useEffect(() => {
-    // Trigger entrance animation after mount
     requestAnimationFrame(() => setAnimateIn(true));
     const timer = setTimeout(() => setSplashDone(true), SPLASH_MIN_MS);
     return () => clearTimeout(timer);
@@ -21,7 +20,13 @@ const AppRedirect = () => {
 
   useEffect(() => {
     if (loading || !splashDone) return;
-    navigate(user ? '/dashboard' : '/auth', { replace: true });
+    if (!user) {
+      navigate('/auth', { replace: true });
+      return;
+    }
+    // User is logged in — always go to dashboard.
+    // DashboardLayout will handle onboarding if companyId is missing.
+    navigate('/dashboard', { replace: true });
   }, [user, loading, splashDone, navigate]);
 
   const bgColor = settings?.splash_background_color || '#0f2a5c';
