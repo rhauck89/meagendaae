@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Calendar } from '@/components/ui/calendar';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Scissors, Sparkles, Clock, DollarSign, ChevronRight, ChevronLeft, CheckCircle2, Bell, Zap, CalendarPlus, MessageCircle, RotateCcw, Home, User, Phone, Mail, Cake, MapPin, Star, X } from 'lucide-react';
+import { Scissors, Sparkles, Clock, DollarSign, ChevronRight, ChevronLeft, CheckCircle2, Bell, Zap, CalendarPlus, MessageCircle, RotateCcw, Home, User, Phone, Mail, Cake, MapPin, Star, X, AlertTriangle } from 'lucide-react';
 import { format, addMinutes, addDays, isToday, isTomorrow, startOfDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
@@ -152,6 +152,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
   const [company, setCompany] = useState<any>(null);
   const [services, setServices] = useState<any[]>([]);
   const [professionals, setProfessionals] = useState<any[]>([]);
+  const [noProfessionals, setNoProfessionals] = useState(false);
   const [businessHours, setBusinessHours] = useState<BusinessHours[]>([]);
   const [exceptions, setExceptions] = useState<BusinessException[]>([]);
   const [businessType, setBusinessType] = useState<BusinessType>('barbershop');
@@ -409,8 +410,21 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
       setCompanyStats({ avgRating, reviewCount, completedCount });
     }
 
+    // Check if company has any active professionals
+    if (!professionalSlug && !promoIdRef.current) {
+      const { data: allProfs } = await supabase
+        .from('public_professionals' as any)
+        .select('id')
+        .eq('company_id', comp.id)
+        .eq('active', true)
+        .limit(1);
+      if (!allProfs || (allProfs as any[]).length === 0) {
+        setNoProfessionals(true);
+        return;
+      }
+    }
+
     if (professionalSlug) {
-      console.log('[Booking] Resolving professional by slug', { companyId: comp.id, professionalSlug });
       const { data: pubProfs, error: collabErr } = await supabase
         .from('public_professionals' as any)
         .select('*')
@@ -1119,6 +1133,23 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
         <div className="flex flex-col items-center gap-3">
           <div className="w-8 h-8 border-2 rounded-full animate-spin" style={{ borderColor: `${T.accent} transparent transparent transparent` }} />
           <p style={{ color: T.textSec }}>Carregando...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // ─── No Professionals State ───
+  if (noProfessionals) {
+    return (
+      <div className="min-h-screen flex items-center justify-center" style={{ background: T.bg, color: T.text }}>
+        <div className="flex flex-col items-center gap-4 text-center px-6 max-w-md">
+          <div className="w-16 h-16 rounded-full flex items-center justify-center" style={{ background: `${T.accent}20` }}>
+            <AlertTriangle style={{ color: T.accent }} className="h-8 w-8" />
+          </div>
+          <h2 className="text-xl font-bold">Agenda indisponível</h2>
+          <p className="text-sm" style={{ color: T.textSec }}>
+            Esta empresa ainda não possui profissionais disponíveis para agendamento. Tente novamente mais tarde.
+          </p>
         </div>
       </div>
     );
