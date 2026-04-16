@@ -352,8 +352,15 @@ const ClientPortal = () => {
     () => Object.values(companies).filter(c => companyLoyaltyActive[c.id]),
     [companies, companyLoyaltyActive]);
 
+  // Loja: empresas que possuem ao menos um item de recompensa ativo (independe de vínculo)
+  const companiesWithRewards = useMemo(() => {
+    const ids = [...new Set(rewards.map(r => r.company_id))];
+    return ids.map(id => companies[id]).filter(Boolean) as CompanyInfo[];
+  }, [rewards, companies]);
+
   const anyCashback = companiesWithCashback.length > 0;
   const anyLoyalty = companiesWithLoyalty.length > 0;
+  const anyRewards = companiesWithRewards.length > 0;
 
   const handleSaveProfile = async () => {
     if (!primaryClient) return;
