@@ -423,6 +423,9 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
         .lte('start_date', today)
         .gte('end_date', today);
       if (cbPromos) setAutoCashbackPromos(cbPromos);
+    } catch { /* ignore */ }
+
+    // Check if company has any active professionals
     if (!professionalSlug && !promoIdRef.current) {
       const { data: allProfs } = await supabase
         .from('public_professionals' as any)
