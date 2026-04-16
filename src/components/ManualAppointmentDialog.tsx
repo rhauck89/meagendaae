@@ -79,11 +79,11 @@ export function ManualAppointmentDialog({
     setClientSearch('');
     setClients([]);
     setSelectedClient(null);
-    setSelectedProfessional(isAdmin ? '' : (profileId || ''));
+    setSelectedProfessional(initialProfessionalId || (isAdmin ? '' : (profileId || '')));
     setSelectedServices([]);
-    setSelectedDate(undefined);
+    setSelectedDate(initialDate || undefined);
     setAvailableSlots([]);
-    setSelectedSlot(null);
+    setSelectedSlot(initialTime || null);
     setSendWhatsApp(false);
   };
 
