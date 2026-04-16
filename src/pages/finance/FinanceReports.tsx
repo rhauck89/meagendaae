@@ -12,6 +12,7 @@ import { startOfMonth, subMonths, startOfDay, endOfDay, startOfMonth as som, end
 import { ptBR } from 'date-fns/locale';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend, LineChart, Line } from 'recharts';
 import { calculateFinancials } from '@/lib/financial-engine';
+import { truncateName, groupOthers, piePercentLabel, tooltipCurrencyFormatter, adaptiveBarHeight } from '@/lib/chart-utils';
 
 const COLORS = ['hsl(var(--primary))', 'hsl(var(--success))', 'hsl(var(--warning))', 'hsl(var(--destructive))', 'hsl(var(--accent))', '#8884d8', '#82ca9d', '#ffc658'];
 
@@ -170,8 +171,14 @@ const FinanceReports = () => {
     setRevenueByPayment(Object.entries(map).map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value));
   };
 
-  const revenueChartData = profitByPro.map(p => ({ name: p.name, receita: p.revenue, comissão: p.commission, lucro: p.profit }));
-  const serviceChartData = revenueByService.slice(0, 8).map(s => ({ name: s.name, value: s.revenue }));
+  const revenueChartDataRaw = profitByPro.map(p => ({ name: p.name, shortName: truncateName(p.name), receita: p.revenue, comissão: p.commission, lucro: p.profit }));
+  const revenueChartData = groupOthers(revenueChartDataRaw, 'receita', 'name', 7).map(d => ({ ...d, shortName: truncateName(d.name) }));
+  const serviceChartData = groupOthers(
+    revenueByService.map(s => ({ name: s.name, value: s.revenue })),
+    'value', 'name', 5
+  );
+  const expensesChartData = groupOthers(expensesByCat, 'value', 'name', 5);
+  const paymentChartData = groupOthers(revenueByPayment, 'value', 'name', 5);
 
   return (
     <div className="space-y-6 w-full max-w-full">
