@@ -213,6 +213,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
   const [loyaltyPointValue, setLoyaltyPointValue] = useState(0);
   const slotRequestRef = useRef(0);
   const [isClientLoggedIn, setIsClientLoggedIn] = useState(false);
+  const [hasValidClient, setHasValidClient] = useState(false);
   
   const [hasBenefitsActive, setHasBenefitsActive] = useState(false);
   const [lastBooking, setLastBooking] = useState<{
@@ -339,6 +340,33 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
     });
     return () => subscription.unsubscribe();
   }, []);
+
+  // Check whether a valid `clients` record exists for this user in this company.
+  // Used to decide whether to show "Ver meus agendamentos" vs "Concluir cadastro".
+  useEffect(() => {
+    const checkValidClient = async () => {
+      if (!isClientLoggedIn || !company?.id) {
+        setHasValidClient(false);
+        return;
+      }
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        setHasValidClient(false);
+        return;
+      }
+      const { data, error } = await supabase
+        .from('clients')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('company_id', company.id)
+        .maybeSingle();
+      if (error) {
+        console.warn('[Booking] hasValidClient check error:', error);
+      }
+      setHasValidClient(!!data);
+    };
+    checkValidClient();
+  }, [isClientLoggedIn, company?.id, bookingResult?.appointmentId, savedClientId]);
 
   // Check if company has cashback or loyalty active
   // Load last booking for smart rebooking
