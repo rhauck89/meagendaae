@@ -359,6 +359,40 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
     } catch { /* ignore */ }
   }, [company?.id, services, professionals, isPromoMode]);
 
+  // Auto-rebook when ?rebook=1 is present in URL (triggered from BarbershopLanding)
+  const rebookTriggered = useRef(false);
+  useEffect(() => {
+    if (rebookTriggered.current) return;
+    if (searchParams.get('rebook') !== '1') return;
+    if (!lastBooking || !company?.id || services.length === 0) return;
+    rebookTriggered.current = true;
+    (async () => {
+      setSelectedServices(lastBooking.serviceIds);
+      if (!professionalSlug) {
+        setSelectedProfessional(lastBooking.professionalId);
+        const profs = await fetchProfessionals();
+        const profStillExists = profs.some((p: any) => p.id === lastBooking.professionalId);
+        if (!profStillExists) {
+          toast.error('Esse profissional não está disponível no momento. Escolha outro.');
+          setSelectedProfessional(null);
+          setStep('professional');
+          return;
+        }
+      }
+      const { data: spLinks } = await supabase
+        .from('service_professionals')
+        .select('service_id')
+        .eq('professional_id', lastBooking.professionalId)
+        .in('service_id', lastBooking.serviceIds);
+      if (!spLinks || spLinks.length !== lastBooking.serviceIds.length) {
+        toast.error('Serviço não disponível com esse profissional. Escolha manualmente.');
+        setStep('services');
+        return;
+      }
+      setStep('datetime');
+    })();
+  }, [lastBooking, company?.id, services, searchParams, professionalSlug]);
+
   useEffect(() => {
     if (!company?.id) return;
     const checkBenefits = async () => {
