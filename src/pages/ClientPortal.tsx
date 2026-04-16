@@ -1062,37 +1062,71 @@ const ClientPortal = () => {
                   </Card>
                 ) : (
                   <>
+                    {/* Seletor horizontal estilo Livelo: logos coloridas (com pontos) vs grayscale (sem pontos) */}
                     <div>
                       <p className="text-xs font-semibold text-muted-foreground mb-2">
                         Escolha o estabelecimento:
                       </p>
-                      <div className="flex gap-2 overflow-x-auto pb-1 -mx-4 px-4">
-                        {companiesWithRewards.map(co => (
-                          <button
-                            key={co.id}
-                            onClick={() => setRewardsCompanyId(co.id)}
-                            className={`shrink-0 flex items-center gap-2 px-3 py-2 rounded-lg border transition-colors ${
-                              rewardsCompanyId === co.id
-                                ? 'bg-primary text-primary-foreground border-primary'
-                                : 'bg-card hover:bg-muted'
-                            }`}
-                          >
-                            {co.logo_url ? (
-                              <img src={co.logo_url} alt={co.name} className="h-5 w-5 rounded object-cover" />
-                            ) : (
-                              <Building2 className="h-4 w-4" />
-                            )}
-                            <span className="text-xs font-medium whitespace-nowrap">{co.name}</span>
-                          </button>
-                        ))}
+                      <div className="flex gap-3 overflow-x-auto pb-2 -mx-4 px-4">
+                        {companiesWithRewards.map(co => {
+                          const pts = pointsByCompany[co.id] || 0;
+                          const hasPoints = pts > 0;
+                          const isSelected = rewardsCompanyId === co.id;
+                          return (
+                            <button
+                              key={co.id}
+                              onClick={() => setRewardsCompanyId(co.id)}
+                              className={`shrink-0 flex flex-col items-center gap-1.5 w-20 transition-all ${
+                                isSelected ? 'scale-105' : ''
+                              }`}
+                            >
+                              <div className={`relative h-16 w-16 rounded-full border-2 flex items-center justify-center overflow-hidden bg-card transition-all ${
+                                isSelected
+                                  ? 'border-primary ring-2 ring-primary/30 shadow-md'
+                                  : hasPoints
+                                    ? 'border-border'
+                                    : 'border-border/50'
+                              } ${!hasPoints && !isSelected ? 'grayscale opacity-50' : ''}`}>
+                                {co.logo_url ? (
+                                  <img src={co.logo_url} alt={co.name} className="h-full w-full object-cover" />
+                                ) : (
+                                  <Building2 className="h-7 w-7 text-muted-foreground" />
+                                )}
+                                {hasPoints && (
+                                  <span className="absolute -top-1 -right-1 bg-primary text-primary-foreground text-[10px] font-bold rounded-full h-5 min-w-5 px-1 flex items-center justify-center shadow">
+                                    {pts > 999 ? '999+' : pts}
+                                  </span>
+                                )}
+                              </div>
+                              <span className={`text-[11px] font-medium text-center line-clamp-2 leading-tight ${
+                                isSelected ? 'text-foreground' : 'text-muted-foreground'
+                              }`}>
+                                {co.name}
+                              </span>
+                            </button>
+                          );
+                        })}
                       </div>
                     </div>
 
+                    {/* Saldo na empresa selecionada */}
                     {rewardsCompany && (
-                      <Card className="bg-primary/5 border-primary/20">
-                        <CardContent className="p-3 flex items-center justify-between gap-2">
-                          <CompanyHeader company={rewardsCompany} />
-                          <p className="text-lg font-bold text-primary">{rewardsBalance} pts</p>
+                      <Card className="bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20">
+                        <CardContent className="p-4 flex items-center justify-between gap-3">
+                          <div className="flex items-center gap-3 min-w-0">
+                            {rewardsCompany.logo_url ? (
+                              <img src={rewardsCompany.logo_url} alt={rewardsCompany.name} className="h-10 w-10 rounded-lg object-cover border" />
+                            ) : (
+                              <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center">
+                                <Building2 className="h-5 w-5 text-muted-foreground" />
+                              </div>
+                            )}
+                            <div className="min-w-0">
+                              <p className="text-xs text-muted-foreground">Seus pontos nesta empresa</p>
+                              <p className="text-sm font-semibold truncate">{rewardsCompany.name}</p>
+                            </div>
+                          </div>
+                          <p className="text-2xl font-bold text-primary shrink-0">{rewardsBalance}<span className="text-sm font-medium ml-1">pts</span></p>
                         </CardContent>
                       </Card>
                     )}
@@ -1110,34 +1144,57 @@ const ClientPortal = () => {
                       <div className="grid sm:grid-cols-2 gap-3">
                         {rewardsList.map(reward => {
                           const canRedeem = rewardsBalance >= reward.points_required;
-                          const partial = rewardsBalance > 0 && rewardsBalance < reward.points_required;
-                          const cashNeeded = partial ? (reward.points_required - rewardsBalance) * rewardsPointValue : 0;
                           const diff = reward.points_required - rewardsBalance;
                           return (
-                            <Card key={reward.id} className={canRedeem ? 'border-green-500/30 bg-green-500/5' : ''}>
-                              <CardContent className="p-4">
-                                <div className="flex gap-3">
-                                  {reward.image_url ? (
-                                    <img src={reward.image_url} alt={reward.name} className="w-16 h-16 rounded-lg object-cover shrink-0" />
+                            <Card key={reward.id} className={`overflow-hidden transition-all ${canRedeem ? 'border-green-500/40 bg-green-500/5 shadow-sm' : ''}`}>
+                              <CardContent className="p-0">
+                                {/* Header com branding da empresa */}
+                                <div className="flex items-center gap-2 px-3 py-2 border-b bg-muted/30">
+                                  {rewardsCompany?.logo_url ? (
+                                    <img src={rewardsCompany.logo_url} alt={rewardsCompany.name} className="h-5 w-5 rounded object-cover" />
                                   ) : (
-                                    <div className="w-16 h-16 rounded-lg bg-muted flex items-center justify-center shrink-0">
-                                      <Gift className="h-6 w-6 text-muted-foreground" />
+                                    <Building2 className="h-4 w-4 text-muted-foreground" />
+                                  )}
+                                  <span className="text-[11px] font-medium text-muted-foreground truncate">
+                                    {rewardsCompany?.name}
+                                  </span>
+                                </div>
+                                <div className="p-3 flex gap-3">
+                                  {reward.image_url ? (
+                                    <img src={reward.image_url} alt={reward.name} className="w-20 h-20 rounded-lg object-cover shrink-0" />
+                                  ) : (
+                                    <div className="w-20 h-20 rounded-lg bg-muted flex items-center justify-center shrink-0">
+                                      <Gift className="h-7 w-7 text-muted-foreground" />
                                     </div>
                                   )}
-                                  <div className="flex-1 min-w-0">
-                                    <p className="font-semibold text-sm">{reward.name}</p>
+                                  <div className="flex-1 min-w-0 flex flex-col">
+                                    <p className="font-semibold text-sm leading-tight">{reward.name}</p>
                                     {reward.description && (
-                                      <p className="text-xs text-muted-foreground line-clamp-2">{reward.description}</p>
+                                      <p className="text-[11px] text-muted-foreground line-clamp-2 mt-0.5">{reward.description}</p>
                                     )}
-                                    <p className="text-sm font-bold mt-1">{reward.points_required} pts</p>
-                                    {canRedeem ? (
-                                      <Badge className="bg-green-500/10 text-green-600 mt-1 text-xs">Disponível</Badge>
-                                    ) : partial ? (
-                                      <p className="text-xs text-muted-foreground mt-1">+ R$ {cashNeeded.toFixed(2)}</p>
-                                    ) : (
-                                      <p className="text-xs text-muted-foreground mt-1">Faltam {diff} pts</p>
-                                    )}
+                                    <div className="mt-auto pt-2 space-y-1.5">
+                                      <p className="text-sm font-bold">{reward.points_required} pts</p>
+                                      {canRedeem ? (
+                                        <Badge className="bg-green-500/15 text-green-700 hover:bg-green-500/20 text-[10px] border-0">
+                                          ✓ Disponível para resgate
+                                        </Badge>
+                                      ) : (
+                                        <p className="text-[11px] text-muted-foreground">
+                                          Faltam <span className="font-semibold text-foreground">{diff}</span> pts
+                                        </p>
+                                      )}
+                                    </div>
                                   </div>
+                                </div>
+                                <div className="px-3 pb-3">
+                                  <Button
+                                    size="sm"
+                                    className="w-full"
+                                    disabled={!canRedeem}
+                                    onClick={() => toast.info('Apresente o código no estabelecimento para resgatar.')}
+                                  >
+                                    {canRedeem ? 'Resgatar' : 'Pontos insuficientes'}
+                                  </Button>
                                 </div>
                               </CardContent>
                             </Card>
