@@ -22,6 +22,7 @@ import { getCompanyBranding, buildThemeFromBranding } from '@/hooks/useCompanyBr
 import { usePreselectedSlot } from '@/hooks/usePreselectedSlot';
 import { Lock } from 'lucide-react';
 import { CompleteSignupModal } from '@/components/CompleteSignupModal';
+import { BookingErrorDialog, translateBookingError, type BookingErrorInfo } from '@/components/BookingErrorDialog';
 
 const StarRating = ({ rating, size = 14 }: { rating: number; size?: number }) => {
   return (
@@ -185,6 +186,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [availableSlots, setAvailableSlots] = useState<string[]>([]);
+  const [bookingError, setBookingError] = useState<BookingErrorInfo | null>(null);
   const [generatedSlots, setGeneratedSlots] = useState<string[]>([]);
   const [clientForm, setClientForm] = useState({ full_name: '', email: '', whatsapp: '', birth_date: '' });
   const [clientPassword, setClientPassword] = useState('');
@@ -1296,7 +1298,12 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
 
       setStep('success');
     } catch (err: any) {
-      toast.error(err.message || 'Erro ao agendar');
+      const info = translateBookingError(err);
+      setBookingError(info);
+      // Conflict → user is on a stale slot list; refresh availability for the day
+      if (info.kind === 'conflict' || info.kind === 'invalid_slot') {
+        setStep('datetime');
+      }
     } finally {
       setLoading(false);
     }
@@ -2577,6 +2584,24 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
           }}
         />
       )}
+
+      {/* Centralized booking error dialog with smart suggestions */}
+      <BookingErrorDialog
+        open={!!bookingError}
+        onOpenChange={(o) => { if (!o) setBookingError(null); }}
+        error={bookingError}
+        suggestions={availableSlots}
+        onPickSuggestion={(slot) => {
+          setSelectedTime(slot);
+          setBookingError(null);
+          setStep('datetime');
+        }}
+        onRetry={() => setBookingError(null)}
+        onSeeAvailable={() => {
+          setBookingError(null);
+          setStep('datetime');
+        }}
+      />
 
       {/* Floating WhatsApp Button */}
       {companyWhatsapp && step !== 'success' && (
