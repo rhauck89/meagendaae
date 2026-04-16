@@ -998,8 +998,9 @@ const ClientPortal = () => {
                   })}
                 </div>
               )}
-            </TabsContent>
-          )}
+            </>
+            )}
+          </TabsContent>
 
           {/* ================= PROFILE ================= */}
           <TabsContent value="profile" className="space-y-4 mt-4">
