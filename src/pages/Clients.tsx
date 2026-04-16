@@ -16,7 +16,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Search, MessageCircle, Users, ArrowLeft, Calendar, DollarSign, Star, Scissors, Cake, Pencil, UserPlus, Ban, ShieldCheck, ArrowUpDown, ArrowUp, ArrowDown, CalendarCheck, Crown } from 'lucide-react';
 import { format, parseISO, startOfMonth } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { displayWhatsApp, formatWhatsApp } from '@/lib/whatsapp';
+import { displayWhatsApp, formatWhatsApp, openWhatsApp } from '@/lib/whatsapp';
 import { toast } from 'sonner';
 
 interface ClientRow {
@@ -534,7 +534,7 @@ const Clients = () => {
                         size="icon"
                         variant="ghost"
                         className="h-7 w-7 text-green-600"
-                        onClick={() => window.open(`https://wa.me/${c.whatsapp}`, '_blank')}
+                        onClick={() => openWhatsApp(c.whatsapp!)}
                       >
                         <MessageCircle className="h-3.5 w-3.5" />
                       </Button>
@@ -665,7 +665,7 @@ const Clients = () => {
                                 className="text-green-600"
                                 onClick={e => {
                                   e.stopPropagation();
-                                  window.open(`https://wa.me/${client.whatsapp}`, '_blank');
+                                  openWhatsApp(client.whatsapp!);
                                 }}
                               >
                                 <MessageCircle className="h-4 w-4" />
@@ -710,7 +710,7 @@ const Clients = () => {
                             className="h-7 w-7 text-green-600"
                             onClick={e => {
                               e.stopPropagation();
-                              window.open(`https://wa.me/${client.whatsapp}`, '_blank');
+                              openWhatsApp(client.whatsapp!);
                             }}
                           >
                             <MessageCircle className="h-3.5 w-3.5" />
@@ -975,7 +975,7 @@ const ClientProfile = ({ client, companyId, profileMap, onBack }: ClientProfileP
             <Button
               size="sm"
               className="bg-green-600 hover:bg-green-700 gap-2"
-              onClick={() => window.open(`https://wa.me/${client.whatsapp}`, '_blank')}
+              onClick={() => openWhatsApp(client.whatsapp!)}
             >
               <MessageCircle className="h-4 w-4" /> <span className="hidden sm:inline">WhatsApp</span>
             </Button>

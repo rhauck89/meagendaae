@@ -8,6 +8,7 @@ import { SEOHead } from '@/components/SEOHead';
 import { format, addDays, startOfDay, isToday, isTomorrow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
+import { buildWhatsAppUrl } from '@/lib/whatsapp';
 import { calculateAvailableSlots, type BusinessHours, type BusinessException, type BlockedTime, type ExistingAppointment } from '@/lib/availability-engine';
 import { formatWhatsApp } from '@/lib/whatsapp';
 import { PlatformBranding } from '@/components/PlatformBranding';
@@ -353,7 +354,7 @@ export default function ProfessionalPublicProfile() {
         {/* WhatsApp CTA */}
         {whatsappDigits && (
           <a
-            href={`https://wa.me/${whatsappDigits}?text=${encodeURIComponent(`Olá ${professional.name}! Vi seu perfil e gostaria de agendar um horário.`)}`}
+            href={buildWhatsAppUrl(whatsappDigits, `Olá ${professional.name}! Vi seu perfil e gostaria de agendar um horário.`)}
             target="_blank"
             rel="noopener noreferrer"
             className="w-full max-w-xs flex items-center justify-center gap-2 h-11 rounded-xl border text-sm font-medium transition-colors hover:opacity-90"

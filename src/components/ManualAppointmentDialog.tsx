@@ -11,7 +11,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { format, addMinutes } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
-import { formatWhatsApp, isValidWhatsApp } from '@/lib/whatsapp';
+import { formatWhatsApp, isValidWhatsApp, openWhatsApp } from '@/lib/whatsapp';
 import { calculateAvailableSlots } from '@/lib/availability-engine';
 import { Search, CalendarIcon, Clock, User, Scissors } from 'lucide-react';
 
@@ -256,10 +256,7 @@ export function ManualAppointmentDialog({
         const profName = professionals.find(p => p.profile_id === selectedProfessional)?.profile?.full_name || 'Profissional';
         const serviceNames = selectedServices.map(sId => services.find(s => s.id === sId)?.name).filter(Boolean).join(', ');
         const dateFormatted = format(selectedDate, "dd 'de' MMMM, yyyy", { locale: ptBR });
-        const msg = encodeURIComponent(
-          `Olá ${selectedClient.name}! 👋\n\nSeu horário foi agendado com sucesso! ✅\n\n✂️ Serviço: ${serviceNames}\n👤 Profissional: ${profName}\n📅 Data: ${dateFormatted}\n🕐 Horário: ${selectedSlot}\n\nNos vemos em breve!`
-        );
-        window.open(`https://wa.me/${formatWhatsApp(selectedClient.whatsapp)}?text=${msg}`, '_blank');
+        openWhatsApp(selectedClient.whatsapp, `Olá ${selectedClient.name}! 👋\n\nSeu horário foi agendado com sucesso! ✅\n\n✂️ Serviço: ${serviceNames}\n👤 Profissional: ${profName}\n📅 Data: ${dateFormatted}\n🕐 Horário: ${selectedSlot}\n\nNos vemos em breve!`);
       }
 
       toast.success('Agendamento criado com sucesso!');

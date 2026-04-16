@@ -33,3 +33,34 @@ export function isValidWhatsApp(raw: string): boolean {
   const normalised = formatWhatsApp(raw);
   return normalised.length >= 12 && normalised.length <= 13;
 }
+
+/**
+ * Detect if user is on a mobile device.
+ */
+function isMobileDevice(): boolean {
+  if (typeof navigator === 'undefined') return false;
+  return /Android|iPhone|iPad|iPod|Opera Mini|IEMobile|WPDesktop/i.test(navigator.userAgent);
+}
+
+/**
+ * Build the correct WhatsApp URL based on environment (mobile vs desktop).
+ */
+export function buildWhatsAppUrl(phone: string, message?: string): string {
+  const digits = formatWhatsApp(phone);
+  const base = isMobileDevice()
+    ? 'https://api.whatsapp.com/send'
+    : 'https://web.whatsapp.com/send';
+  const params = new URLSearchParams();
+  if (digits) params.set('phone', digits);
+  if (message) params.set('text', message);
+  return `${base}?${params.toString()}`;
+}
+
+/**
+ * Open WhatsApp with the correct URL for the current device.
+ * Use this everywhere instead of manual window.open / wa.me links.
+ */
+export function openWhatsApp(phone: string, message?: string): void {
+  const url = buildWhatsAppUrl(phone, message);
+  window.open(url, '_blank');
+}

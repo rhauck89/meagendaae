@@ -7,8 +7,9 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { formatWhatsApp, buildWhatsAppUrl } from '@/lib/whatsapp';
 import { Clock, Send, CheckCircle2, MessageCircle } from 'lucide-react';
-import { formatWhatsApp } from '@/lib/whatsapp';
+
 
 function applyWhatsAppMask(value: string): string {
   const digits = value.replace(/\D/g, '').slice(0, 11);
@@ -34,7 +35,7 @@ interface CustomRequestFormProps {
   };
 }
 
-function buildWhatsAppUrl(professionalWhatsApp: string, data: {
+function buildRequestWhatsAppUrl(professionalWhatsApp: string, data: {
   clientName: string;
   serviceName: string;
   requestedDate: string;
@@ -52,7 +53,7 @@ function buildWhatsAppUrl(professionalWhatsApp: string, data: {
     text += `\n\nMensagem:\n${data.message}`;
   }
 
-  return `https://wa.me/${professionalWhatsApp}?text=${encodeURIComponent(text)}`;
+  return buildWhatsAppUrl(professionalWhatsApp, text);
 }
 
 export function CustomRequestForm({ open, onOpenChange, companyId, services, professionals, themeColors }: CustomRequestFormProps) {
@@ -130,7 +131,7 @@ export function CustomRequestForm({ open, onOpenChange, companyId, services, pro
         const whatsappNumber = (companyData as any)?.whatsapp;
         if (whatsappNumber) {
           const normalizedPhone = formatWhatsApp(whatsappNumber);
-          const url = buildWhatsAppUrl(normalizedPhone, {
+          const url = buildRequestWhatsAppUrl(normalizedPhone, {
             clientName: form.client_name.trim(),
             serviceName,
             requestedDate: form.requested_date,

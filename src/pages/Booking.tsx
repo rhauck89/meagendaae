@@ -14,7 +14,7 @@ import { format, addMinutes, addDays, isToday, isTomorrow, startOfDay } from 'da
 import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
-import { formatWhatsApp, displayWhatsApp, isValidWhatsApp } from '@/lib/whatsapp';
+import { formatWhatsApp, displayWhatsApp, isValidWhatsApp, buildWhatsAppUrl } from '@/lib/whatsapp';
 import { calculateAvailableSlots, validateTimeSlot, type BusinessHours, type BusinessException, type ExistingAppointment, type BlockedTime, type BookingMode } from '@/lib/availability-engine';
 import { PlatformBranding } from '@/components/PlatformBranding';
 import { CustomRequestForm } from '@/components/CustomRequestForm';
@@ -2147,7 +2147,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
               '',
               'Obrigado! 🙏',
             ].join('\n');
-            return `https://wa.me/${phone.startsWith('55') ? phone : '55' + phone}?text=${encodeURIComponent(msg)}`;
+            return buildWhatsAppUrl(phone.startsWith('55') ? phone : '55' + phone, msg);
           };
 
           const resetBooking = () => {
@@ -2343,7 +2343,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
       {/* Floating WhatsApp Button */}
       {companyWhatsapp && step !== 'success' && (
         <a
-          href={`https://wa.me/${companyWhatsapp.replace(/\D/g, '')}`}
+          href={buildWhatsAppUrl(companyWhatsapp.replace(/\D/g, ''))}
           target="_blank"
           rel="noopener noreferrer"
           className="fixed bottom-6 right-6 z-50 w-14 h-14 rounded-full flex items-center justify-center shadow-xl transition-transform hover:scale-110"

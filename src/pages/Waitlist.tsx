@@ -15,7 +15,7 @@ import { format, parseISO, addMinutes, isBefore, startOfDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
 import { calculateAvailableSlots } from '@/lib/availability-engine';
-import { formatWhatsApp } from '@/lib/whatsapp';
+import { formatWhatsApp, openWhatsApp } from '@/lib/whatsapp';
 
 type StatusTab = 'active' | 'notified' | 'expired' | 'converted' | 'all';
 
@@ -281,7 +281,7 @@ const Waitlist = () => {
         const msg = encodeURIComponent(
           `\u2705 Seu hor\u00e1rio foi confirmado!\n\n\uD83D\uDCC5 ${format(selectedDate, "dd 'de' MMMM, yyyy", { locale: ptBR })}\n\u23F0 ${selectedSlot}\n\nObrigado pela paci\u00eancia!`
         );
-        window.open(`https://wa.me/${formatWhatsApp(bookingTarget.client_whatsapp)}?text=${msg}`, '_blank');
+        openWhatsApp(bookingTarget.client_whatsapp, `✅ Seu horário foi confirmado!\n\n📅 ${format(selectedDate, "dd 'de' MMMM, yyyy", { locale: ptBR })}\n⏰ ${selectedSlot}\n\nObrigado pela paciência!`);
       }
 
       setBookingOpen(false);
@@ -395,10 +395,7 @@ const Waitlist = () => {
                             size="sm"
                             variant="outline"
                             onClick={() => {
-                              const msg = encodeURIComponent(
-                                `Ol\u00e1 ${entry.client_name}! \uD83D\uDC4B\n\nVimos que voc\u00ea est\u00e1 na nossa lista de espera.\n\nTemos novidades sobre disponibilidade! Gostaria de agendar?\n\nAguardamos seu retorno!`
-                              );
-                              window.open(`https://wa.me/${formatWhatsApp(entry.client_whatsapp)}?text=${msg}`, '_blank');
+                              openWhatsApp(entry.client_whatsapp, `Olá ${entry.client_name}! 👋\n\nVimos que você está na nossa lista de espera.\n\nTemos novidades sobre disponibilidade! Gostaria de agendar?\n\nAguardamos seu retorno!`);
                             }}
                           >
                             📲 WhatsApp
