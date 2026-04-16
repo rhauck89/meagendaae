@@ -269,6 +269,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
             birth_date: '',
           });
           setOptInWhatsapp(c.opt_in_whatsapp || false);
+          setClientDataWasAutoFilled(true);
         } catch (e) {
           console.warn('[Booking] Failed to parse stored client data');
         }
