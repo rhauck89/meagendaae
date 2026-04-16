@@ -1903,6 +1903,19 @@ const Dashboard = () => {
                 />
               </div>
             </div>
+            {/* Net amount preview */}
+            {completeTarget && (parseFloat(completeDiscount) > 0 || completeCustomAmount) && (() => {
+              const gross = parseFloat(completeCustomAmount) || Number(completeTarget.total_price);
+              const disc = parseFloat(completeDiscount) || 0;
+              const net = Math.max(0, gross - disc);
+              return (
+                <div className="bg-muted/50 rounded-md p-3 text-sm space-y-1">
+                  <div className="flex justify-between"><span className="text-muted-foreground">Valor bruto</span><span>R$ {gross.toFixed(2)}</span></div>
+                  {disc > 0 && <div className="flex justify-between text-destructive"><span>- Desconto</span><span>R$ {disc.toFixed(2)}</span></div>}
+                  <div className="flex justify-between font-bold border-t pt-1"><span>Valor líquido</span><span>R$ {net.toFixed(2)}</span></div>
+                </div>
+              );
+            })()}
             <div>
               <label className="text-sm font-medium">Observação</label>
               <textarea
