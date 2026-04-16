@@ -211,6 +211,12 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
   const slotRequestRef = useRef(0);
   const [isClientLoggedIn, setIsClientLoggedIn] = useState(false);
   const [hasBenefitsActive, setHasBenefitsActive] = useState(false);
+  const [lastBooking, setLastBooking] = useState<{
+    serviceIds: string[]; serviceNames: string[]; serviceDurations: number[];
+    professionalId: string; professionalName: string; professionalAvatar: string | null;
+    totalPrice: number; totalDuration: number; bookedAt: string;
+  } | null>(null);
+  const [rebookDismissed, setRebookDismissed] = useState(false);
   const [bookingResult, setBookingResult] = useState<{
     appointmentId: string;
     professionalName: string;
