@@ -211,6 +211,12 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
   const slotRequestRef = useRef(0);
   const [isClientLoggedIn, setIsClientLoggedIn] = useState(false);
   const [hasBenefitsActive, setHasBenefitsActive] = useState(false);
+  const [lastBooking, setLastBooking] = useState<{
+    serviceIds: string[]; serviceNames: string[]; serviceDurations: number[];
+    professionalId: string; professionalName: string; professionalAvatar: string | null;
+    totalPrice: number; totalDuration: number; bookedAt: string;
+  } | null>(null);
+  const [rebookDismissed, setRebookDismissed] = useState(false);
   const [bookingResult, setBookingResult] = useState<{
     appointmentId: string;
     professionalName: string;
@@ -331,6 +337,24 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
   }, []);
 
   // Check if company has cashback or loyalty active
+  // Load last booking for smart rebooking
+  useEffect(() => {
+    if (!company?.id || isPromoMode) return;
+    try {
+      const stored = localStorage.getItem(`last_booking_${company.id}`);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        // Validate services still exist
+        const allServicesExist = parsed.serviceIds.every((sid: string) => services.find((s: any) => s.id === sid));
+        // Validate professional still exists (if professionals loaded)
+        const profExists = !professionalSlug || professionals.some((p: any) => p.id === parsed.professionalId);
+        if (allServicesExist && profExists) {
+          setLastBooking(parsed);
+        }
+      }
+    } catch { /* ignore */ }
+  }, [company?.id, services, professionals, isPromoMode]);
+
   useEffect(() => {
     if (!company?.id) return;
     const checkBenefits = async () => {
@@ -1185,6 +1209,23 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
         companyState: (company as any).state || null,
         companyPostalCode: (company as any).postal_code || null,
       });
+
+      // Save last booking for smart rebooking
+      try {
+        const lastBooking = {
+          serviceIds: selectedServices,
+          serviceNames: bookedServiceNames,
+          serviceDurations: selectedServices.map(sid => services.find(s => s.id === sid)?.duration_minutes || 0),
+          professionalId: selectedProfessional,
+          professionalName: professionalProfile?.full_name || '',
+          professionalAvatar: professionalProfile?.avatar_url || null,
+          totalPrice: finalPrice,
+          totalDuration,
+          bookedAt: new Date().toISOString(),
+        };
+        localStorage.setItem(`last_booking_${company.id}`, JSON.stringify(lastBooking));
+      } catch { /* non-critical */ }
+
       setStep('success');
     } catch (err: any) {
       toast.error(err.message || 'Erro ao agendar');
@@ -1379,6 +1420,88 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
         {/* ═══ SERVICES ═══ */}
         {step === 'services' && (
           <div className="space-y-5 animate-fade-in">
+            {/* Smart Rebooking Block */}
+            {lastBooking && !rebookDismissed && !isPromoMode && (() => {
+              const daysSince = Math.floor((Date.now() - new Date(lastBooking.bookedAt).getTime()) / (1000 * 60 * 60 * 24));
+              return (
+                <div className="rounded-2xl p-5 space-y-4" style={{ background: `${T.accent}10`, border: `1.5px solid ${T.accent}40` }}>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <RotateCcw className="h-5 w-5" style={{ color: T.accent }} />
+                      <span className="font-bold text-base">Agendar novamente?</span>
+                    </div>
+                    <button onClick={() => setRebookDismissed(true)} className="p-1 rounded-full hover:opacity-70" style={{ color: T.textSec }}>
+                      <X className="h-4 w-4" />
+                    </button>
+                  </div>
+                  {daysSince >= 14 && (
+                    <p className="text-sm font-medium" style={{ color: T.accent }}>
+                      👀 Está na hora de agendar novamente — faz {daysSince} dias!
+                    </p>
+                  )}
+                  <div className="flex items-center gap-4 p-3 rounded-xl" style={{ background: T.card, border: `1px solid ${T.border}` }}>
+                    {lastBooking.professionalAvatar ? (
+                      <img src={lastBooking.professionalAvatar} alt="" className="w-12 h-12 rounded-full object-cover shrink-0" />
+                    ) : (
+                      <div className="w-12 h-12 rounded-full flex items-center justify-center text-lg font-bold shrink-0" style={{ background: `${T.accent}20`, color: T.accent }}>
+                        {lastBooking.professionalName.charAt(0).toUpperCase()}
+                      </div>
+                    )}
+                    <div className="min-w-0 flex-1">
+                      <p className="font-semibold text-sm truncate">{lastBooking.serviceNames.join(', ')}</p>
+                      <p className="text-xs mt-0.5" style={{ color: T.textSec }}>
+                        <Clock className="h-3 w-3 inline mr-1" />{lastBooking.totalDuration} min • com {lastBooking.professionalName}
+                      </p>
+                      <p className="text-xs font-semibold mt-0.5" style={{ color: T.accent }}>
+                        R$ {lastBooking.totalPrice.toFixed(2)}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Button
+                      onClick={async () => {
+                        setSelectedServices(lastBooking.serviceIds);
+                        if (!professionalSlug) {
+                          setSelectedProfessional(lastBooking.professionalId);
+                          const profs = await fetchProfessionals();
+                          const profStillExists = profs.some((p: any) => p.id === lastBooking.professionalId);
+                          if (!profStillExists) {
+                            toast.error('Esse profissional não está disponível no momento. Escolha outro.');
+                            setSelectedProfessional(null);
+                            setStep('professional');
+                            return;
+                          }
+                        }
+                        // Check service-professional link
+                        const { data: spLinks } = await supabase
+                          .from('service_professionals')
+                          .select('service_id')
+                          .eq('professional_id', lastBooking.professionalId)
+                          .in('service_id', lastBooking.serviceIds);
+                        if (!spLinks || spLinks.length !== lastBooking.serviceIds.length) {
+                          toast.error('Serviço não disponível com esse profissional. Escolha manualmente.');
+                          setStep('services');
+                          return;
+                        }
+                        setStep('datetime');
+                      }}
+                      className="w-full rounded-xl py-5 font-semibold text-base"
+                      style={{ background: T.accent, color: '#000' }}
+                    >
+                      <RotateCcw className="h-4 w-4 mr-2" /> Repetir agendamento
+                    </Button>
+                    <button
+                      onClick={() => setRebookDismissed(true)}
+                      className="w-full py-2 text-sm font-medium rounded-xl hover:opacity-80"
+                      style={{ color: T.textSec }}
+                    >
+                      Escolher outro serviço
+                    </button>
+                  </div>
+                </div>
+              );
+            })()}
+
             <div>
               <h2 className="text-2xl font-bold tracking-tight">{isPromoMode ? 'Escolha um serviço da promoção' : 'Escolha os serviços'}</h2>
               <p className="text-sm mt-1" style={{ color: T.textSec }}>{isCashbackPromo ? 'Selecione o serviço e ganhe cashback após concluir' : isPromoMode ? 'Selecione o serviço que deseja agendar com desconto' : 'Selecione um ou mais serviços desejados'}</p>
