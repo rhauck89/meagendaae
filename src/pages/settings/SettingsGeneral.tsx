@@ -11,6 +11,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { toast } from 'sonner';
 import { Building2, Link2, Copy } from 'lucide-react';
 import SettingsBreadcrumb from '@/components/SettingsBreadcrumb';
+import { resetOnboardingChecklist } from '@/components/OnboardingChecklist';
+import { resetTutorialProgress } from '@/components/TutorialProgressWidget';
 
 const SettingsGeneral = () => {
   const { companyId } = useAuth();
@@ -104,6 +106,26 @@ const SettingsGeneral = () => {
       )}
 
       <Button onClick={save}>Salvar configurações gerais</Button>
+
+      <Card className="border-dashed">
+        <CardContent className="p-4 flex items-center justify-between">
+          <div>
+            <p className="text-sm font-medium">Tutoriais e primeiros passos</p>
+            <p className="text-xs text-muted-foreground">Reexibir os guias de configuração no painel</p>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              resetOnboardingChecklist();
+              resetTutorialProgress();
+              toast.success('Tutoriais reativados! Volte ao painel para visualizá-los.');
+            }}
+          >
+            Ver tutorial novamente
+          </Button>
+        </CardContent>
+      </Card>
     </div>
   );
 };

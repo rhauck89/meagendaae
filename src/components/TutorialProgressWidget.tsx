@@ -4,14 +4,25 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { PlayCircle, CheckCircle2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { cn } from '@/lib/utils';
+
+const STORAGE_KEY = 'tutorial_progress_completed';
 
 const TutorialProgressWidget = () => {
   const [total, setTotal] = useState(0);
   const [completed, setCompleted] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [hidden, setHidden] = useState(false);
+  const [fadingOut, setFadingOut] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
+    if (localStorage.getItem(STORAGE_KEY) === 'true') {
+      setHidden(true);
+      setLoading(false);
+      return;
+    }
+
     const load = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
@@ -26,21 +37,33 @@ const TutorialProgressWidget = () => {
         .select('id', { count: 'exact', head: true })
         .eq('user_id', user.id);
 
-      setTotal(totalCount || 0);
-      setCompleted(completedCount || 0);
+      const t = totalCount || 0;
+      const c = completedCount || 0;
+      setTotal(t);
+      setCompleted(c);
+
+      if (t > 0 && c >= t) {
+        localStorage.setItem(STORAGE_KEY, 'true');
+        setFadingOut(true);
+        setTimeout(() => setHidden(true), 300);
+      }
+
       setLoading(false);
     };
     load();
   }, []);
 
-  if (loading || total === 0) return null;
+  if (loading || total === 0 || hidden) return null;
 
   const percent = Math.round((completed / total) * 100);
   const allDone = completed >= total;
 
   return (
     <Card
-      className="cursor-pointer hover:shadow-md transition-shadow"
+      className={cn(
+        'cursor-pointer hover:shadow-md transition-all duration-300',
+        fadingOut ? 'opacity-0' : 'opacity-100'
+      )}
       onClick={() => navigate('/dashboard/help')}
     >
       <CardContent className="p-4">
@@ -67,3 +90,7 @@ const TutorialProgressWidget = () => {
 };
 
 export default TutorialProgressWidget;
+
+export const resetTutorialProgress = () => {
+  localStorage.removeItem(STORAGE_KEY);
+};
