@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Plus, Users, Percent, DollarSign, Settings, Copy, ExternalLink, Mail, KeyRound, MessageCircle, Pencil, UserX, UserCheck, Trash2, CalendarOff, ChevronLeft, ChevronRight, Check, Clock, Wallet, Crown } from 'lucide-react';
+import { Plus, Users, Percent, DollarSign, Settings, Copy, ExternalLink, Mail, KeyRound, MessageCircle, Pencil, UserX, UserCheck, Trash2, CalendarOff, ChevronLeft, ChevronRight, Check, Clock, Wallet, Crown, Lock } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { buildWhatsAppUrl } from '@/lib/whatsapp';
@@ -98,7 +98,7 @@ const Team = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('companies')
-        .select('slug, business_type, booking_mode, fixed_slot_interval, owner_id')
+        .select('slug, business_type, booking_mode, fixed_slot_interval, owner_id, prof_perm_booking_mode, prof_perm_grid_interval')
         .eq('id', companyId!)
         .single();
       if (error) throw error;
