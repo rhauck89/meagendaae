@@ -12,6 +12,7 @@ import { startOfMonth, subMonths, startOfDay, endOfDay, startOfMonth as som, end
 import { ptBR } from 'date-fns/locale';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend, LineChart, Line } from 'recharts';
 import { calculateFinancials } from '@/lib/financial-engine';
+import { truncateName, groupOthers, piePercentLabel, tooltipCurrencyFormatter, adaptiveBarHeight } from '@/lib/chart-utils';
 
 const COLORS = ['hsl(var(--primary))', 'hsl(var(--success))', 'hsl(var(--warning))', 'hsl(var(--destructive))', 'hsl(var(--accent))', '#8884d8', '#82ca9d', '#ffc658'];
 
@@ -170,8 +171,14 @@ const FinanceReports = () => {
     setRevenueByPayment(Object.entries(map).map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value));
   };
 
-  const revenueChartData = profitByPro.map(p => ({ name: p.name, receita: p.revenue, comissão: p.commission, lucro: p.profit }));
-  const serviceChartData = revenueByService.slice(0, 8).map(s => ({ name: s.name, value: s.revenue }));
+  const revenueChartDataRaw = profitByPro.map(p => ({ name: p.name, shortName: truncateName(p.name), receita: p.revenue, comissão: p.commission, lucro: p.profit }));
+  const revenueChartData = groupOthers(revenueChartDataRaw, 'receita', 'name', 7).map(d => ({ ...d, shortName: truncateName(d.name) }));
+  const serviceChartData = groupOthers(
+    revenueByService.map(s => ({ name: s.name, value: s.revenue })),
+    'value', 'name', 5
+  );
+  const expensesChartData = groupOthers(expensesByCat, 'value', 'name', 5);
+  const paymentChartData = groupOthers(revenueByPayment, 'value', 'name', 5);
 
   return (
     <div className="space-y-6 w-full max-w-full">
@@ -266,7 +273,7 @@ const FinanceReports = () => {
         <Card>
           <CardHeader><CardTitle className="text-base">Receita por Profissional</CardTitle></CardHeader>
           <CardContent>
-            <div className="h-64">
+            <div style={{ height: adaptiveBarHeight(revenueChartData.length) }}>
               {revenueChartData.length === 0 ? (
                 <EmptyChartState />
               ) : (
@@ -274,8 +281,11 @@ const FinanceReports = () => {
                   <BarChart data={revenueChartData} layout="vertical">
                     <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
                     <XAxis type="number" tickFormatter={v => `R$${v}`} className="text-xs" />
-                    <YAxis type="category" dataKey="name" width={100} className="text-xs" />
-                    <Tooltip formatter={(v: number) => `R$ ${v.toFixed(2)}`} />
+                    <YAxis type="category" dataKey="shortName" width={110} className="text-xs" tick={{ fontSize: 11 }} />
+                    <Tooltip formatter={(v: number) => tooltipCurrencyFormatter(v)} labelFormatter={(label) => {
+                      const item = revenueChartData.find(d => d.shortName === label);
+                      return item?.name || label;
+                    }} />
                     <Legend />
                     <Bar dataKey="receita" name="Receita" fill="hsl(var(--primary))" radius={[0, 4, 4, 0]} />
                     <Bar dataKey="comissão" name="Comissão" fill="hsl(var(--warning))" radius={[0, 4, 4, 0]} />
@@ -290,17 +300,17 @@ const FinanceReports = () => {
         <Card>
           <CardHeader><CardTitle className="text-base">Receita por Serviço</CardTitle></CardHeader>
           <CardContent>
-            <div className="h-64">
+            <div className="h-72">
               {serviceChartData.length === 0 ? (
                 <EmptyChartState />
               ) : (
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
-                    <Pie data={serviceChartData} cx="50%" cy="50%" outerRadius={90} dataKey="value" nameKey="name" label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}>
+                    <Pie data={serviceChartData} cx="50%" cy="50%" outerRadius={90} dataKey="value" nameKey="name" label={piePercentLabel} labelLine={false}>
                       {serviceChartData.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
                     </Pie>
-                    <Tooltip formatter={(v: number) => `R$ ${v.toFixed(2)}`} />
-                    <Legend />
+                    <Tooltip formatter={(v: number) => tooltipCurrencyFormatter(v)} />
+                    <Legend formatter={(value) => truncateName(value, 20)} />
                   </PieChart>
                 </ResponsiveContainer>
               )}
@@ -437,11 +447,11 @@ const FinanceReports = () => {
             ) : (
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
-                  <Pie data={expensesByCat} cx="50%" cy="50%" outerRadius={100} dataKey="value" nameKey="name" label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}>
-                    {expensesByCat.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
+                  <Pie data={expensesChartData} cx="50%" cy="50%" outerRadius={100} dataKey="value" nameKey="name" label={piePercentLabel} labelLine={false}>
+                    {expensesChartData.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
                   </Pie>
-                  <Tooltip formatter={(v: number) => `R$ ${v.toFixed(2)}`} />
-                  <Legend />
+                  <Tooltip formatter={(v: number) => tooltipCurrencyFormatter(v)} />
+                  <Legend formatter={(value) => truncateName(value, 20)} />
                 </PieChart>
               </ResponsiveContainer>
             )}
@@ -459,10 +469,10 @@ const FinanceReports = () => {
             ) : (
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
-                  <Pie data={revenueByPayment} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={100} label={({ name, value }) => `${name}: R$ ${value.toFixed(2)}`}>
-                    {revenueByPayment.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
+                  <Pie data={paymentChartData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={100} label={piePercentLabel} labelLine={false}>
+                    {paymentChartData.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
                   </Pie>
-                  <Tooltip formatter={(v: number) => `R$ ${v.toFixed(2)}`} />
+                  <Tooltip formatter={(v: number) => tooltipCurrencyFormatter(v)} />
                   <Legend />
                 </PieChart>
               </ResponsiveContainer>

@@ -5,6 +5,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { format, subMonths, startOfMonth, endOfMonth, eachMonthOfInterval } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { MessageSquare, Building2, AlertTriangle, CalendarDays } from 'lucide-react';
+import { groupOthers, truncateName, piePercentLabel, tooltipCurrencyFormatter, adaptiveBarHeight } from '@/lib/chart-utils';
 
 interface Ticket {
   id: string;
@@ -76,14 +77,13 @@ const SuperAdminSupportReports = () => {
     return Object.entries(counts).map(([key, value]) => ({ name: categoryLabels[key] || key, value }));
   }, [tickets]);
 
-  // By company (top 10)
+  // By company (top 7 + others)
   const byCompanyData = useMemo(() => {
     const counts: Record<string, number> = {};
     tickets.forEach(t => { counts[t.company_id] = (counts[t.company_id] || 0) + 1; });
-    return Object.entries(counts)
-      .map(([id, value]) => ({ name: companyMap[id] || id.slice(0, 8), value }))
-      .sort((a, b) => b.value - a.value)
-      .slice(0, 10);
+    const raw = Object.entries(counts)
+      .map(([id, value]) => ({ name: companyMap[id] || id.slice(0, 8), value }));
+    return groupOthers(raw, 'value', 'name', 7);
   }, [tickets, companyMap]);
 
   // By priority
@@ -129,7 +129,7 @@ const SuperAdminSupportReports = () => {
             <div className="h-[300px]">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
-                  <Pie data={byCategoryData} cx="50%" cy="50%" labelLine={false} outerRadius={100} dataKey="value" label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}>
+                  <Pie data={byCategoryData} cx="50%" cy="50%" labelLine={false} outerRadius={100} dataKey="value" label={piePercentLabel}>
                     {byCategoryData.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
                   </Pie>
                   <Tooltip />
@@ -151,7 +151,7 @@ const SuperAdminSupportReports = () => {
             <div className="h-[300px]">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
-                  <Pie data={byPriorityData} cx="50%" cy="50%" labelLine={false} outerRadius={100} dataKey="value" label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}>
+                  <Pie data={byPriorityData} cx="50%" cy="50%" labelLine={false} outerRadius={100} dataKey="value" label={piePercentLabel}>
                     {byPriorityData.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
                   </Pie>
                   <Tooltip />
@@ -165,18 +165,21 @@ const SuperAdminSupportReports = () => {
         {/* By Company */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-base flex items-center gap-2">
-              <Building2 className="h-5 w-5" /> Tickets por Empresa (Top 10)
+              <CardTitle className="text-base flex items-center gap-2">
+              <Building2 className="h-5 w-5" /> Tickets por Empresa (Top 7)
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="h-[300px]">
+            <div style={{ height: adaptiveBarHeight(byCompanyData.length) }}>
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={byCompanyData} layout="vertical">
                   <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
                   <XAxis type="number" />
-                  <YAxis dataKey="name" type="category" width={120} className="text-xs" />
-                  <Tooltip />
+                  <YAxis dataKey="name" type="category" width={120} className="text-xs" tickFormatter={(v) => truncateName(v, 16)} />
+                  <Tooltip labelFormatter={(label) => {
+                    const item = byCompanyData.find(d => d.name === label);
+                    return item?.name || label;
+                  }} />
                   <Bar dataKey="value" name="Tickets" fill="hsl(var(--primary))" radius={[0, 4, 4, 0]} />
                 </BarChart>
               </ResponsiveContainer>
