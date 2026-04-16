@@ -151,7 +151,7 @@ const FinanceReports = () => {
     setMonthlyTrend(data);
   };
 
-  const paymentMethodLabels: Record<string, string> = { dinheiro: 'Dinheiro', pix: 'Pix', cartao: 'Cartão', transferencia: 'Transferência', outro: 'Outro' };
+  const paymentMethodLabels: Record<string, string> = { dinheiro: 'Dinheiro', pix: 'Pix', cartao: 'Cartão', cartao_credito: 'Cartão de Crédito', cartao_debito: 'Cartão de Débito', transferencia: 'Transferência', outro: 'Outro' };
 
   const fetchRevenueByPayment = async () => {
     const start = format(startDate, 'yyyy-MM-dd');
