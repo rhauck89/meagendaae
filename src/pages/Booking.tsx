@@ -1792,7 +1792,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                 <p className="text-xs text-center" style={{ color: T.textSec }}>ou escolha uma data no calendário</p>
 
                 <div className="booking-dark-calendar rounded-2xl p-4" style={{ background: T.card, border: `1px solid ${T.border}` }}>
-                  <Calendar
+                  <CalendarPicker
                     mode="single" selected={selectedDate}
                     onSelect={(date) => { setSelectedDate(date); setSelectedTime(null); }}
                     locale={ptBR}
