@@ -27,6 +27,8 @@ const professionalSteps: ChecklistStep[] = [
   { key: 'share', label: 'Compartilhe seu link de agendamento', icon: Share2, route: '/dashboard/profile' },
 ];
 
+const STORAGE_KEY = 'onboarding_checklist_completed';
+
 const OnboardingChecklist = () => {
   const { companyId } = useAuth();
   const { isAdmin, profileId } = useUserRole();
@@ -34,10 +36,17 @@ const OnboardingChecklist = () => {
   const [completedSteps, setCompletedSteps] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [dismissed, setDismissed] = useState(false);
+  const [fadingOut, setFadingOut] = useState(false);
 
   const steps = isAdmin ? adminSteps : professionalSteps;
 
   useEffect(() => {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (stored === 'true') {
+      setDismissed(true);
+      setLoading(false);
+      return;
+    }
     if (!companyId) return;
     checkProgress();
   }, [companyId, isAdmin, profileId]);
@@ -62,7 +71,6 @@ const OnboardingChecklist = () => {
         .eq('company_id', companyId);
       if (hoursCount && hoursCount > 0) completed.add('hours');
 
-      // Share = has at least one collaborator (page is active)
       const { count: collabCount } = await supabase
         .from('collaborators')
         .select('id', { count: 'exact', head: true })
@@ -89,6 +97,14 @@ const OnboardingChecklist = () => {
     }
 
     setCompletedSteps(completed);
+
+    const allDone = steps.every(s => completed.has(s.key));
+    if (allDone) {
+      localStorage.setItem(STORAGE_KEY, 'true');
+      setFadingOut(true);
+      setTimeout(() => setDismissed(true), 300);
+    }
+
     setLoading(false);
   };
 
@@ -98,10 +114,11 @@ const OnboardingChecklist = () => {
   const totalSteps = steps.length;
   const percent = Math.round((completedCount / totalSteps) * 100);
 
-  if (completedCount >= totalSteps) return null;
-
   return (
-    <Card className="border-primary/20 bg-primary/[0.02] animate-fade-in">
+    <Card className={cn(
+      'border-primary/20 bg-primary/[0.02] transition-opacity duration-300',
+      fadingOut ? 'opacity-0' : 'opacity-100 animate-fade-in'
+    )}>
       <CardContent className="p-4 sm:p-6">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
@@ -111,7 +128,10 @@ const OnboardingChecklist = () => {
           <div className="flex items-center gap-3">
             <span className="text-xs text-muted-foreground">{completedCount}/{totalSteps}</span>
             <button
-              onClick={() => setDismissed(true)}
+              onClick={() => {
+                setFadingOut(true);
+                setTimeout(() => setDismissed(true), 300);
+              }}
               className="text-xs text-muted-foreground hover:text-foreground transition-colors"
             >
               Ocultar
@@ -153,3 +173,7 @@ const OnboardingChecklist = () => {
 };
 
 export default OnboardingChecklist;
+
+export const resetOnboardingChecklist = () => {
+  localStorage.removeItem(STORAGE_KEY);
+};
