@@ -218,11 +218,7 @@ const ClientPortal = () => {
         }
       }
       setCompanies(companiesMap);
-      if (!rewardsCompanyId) {
-        const firstRewardCompany = (rewardsRes.data as any[])?.[0]?.company_id;
-        if (firstRewardCompany) setRewardsCompanyId(firstRewardCompany);
-        else if (companyIds.length > 0) setRewardsCompanyId(companyIds[0]);
-      }
+      // Auto-select handled by dedicated effect (after points are aggregated)
 
       console.log('[ClientPortal][Loja] rewards loaded:', {
         count: rewardsRes.data?.length || 0,
