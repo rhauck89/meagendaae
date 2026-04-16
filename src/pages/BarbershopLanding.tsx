@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
-import { Star, MessageCircle, MapPin, Calendar, Clock, Scissors, Sparkles, Users, Instagram, Facebook, Globe, ExternalLink } from 'lucide-react';
+import { Star, MessageCircle, MapPin, Calendar, Clock, Scissors, Sparkles, Users, Instagram, Facebook, Globe, ExternalLink, RotateCcw, X } from 'lucide-react';
 import { LocationBlock } from '@/components/LocationBlock';
 import { SEOHead, buildLocalBusinessJsonLd } from '@/components/SEOHead';
 import { format, parseISO } from 'date-fns';
@@ -67,8 +67,39 @@ export default function BarbershopLanding({ routeBusinessType, customSlug }: Bar
   const [companyEvents, setCompanyEvents] = useState<any[]>([]);
   const [companyPromotions, setCompanyPromotions] = useState<any[]>([]);
   const [isWhitelabel, setIsWhitelabel] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [lastBooking, setLastBooking] = useState<{
+    serviceIds: string[]; serviceNames: string[]; serviceDurations: number[];
+    professionalId: string; professionalName: string; professionalAvatar: string | null;
+    totalPrice: number; totalDuration: number; bookedAt: string;
+  } | null>(null);
+  const [rebookDismissed, setRebookDismissed] = useState(false);
 
   const { amenities: companyAmenities } = useCompanyAmenities(company?.id);
+
+  // Detect logged-in user
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => setIsLoggedIn(!!session?.user));
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, session) => setIsLoggedIn(!!session?.user));
+    return () => subscription.unsubscribe();
+  }, []);
+
+  // Load last booking for smart rebooking on landing
+  useEffect(() => {
+    if (!company?.id) return;
+    try {
+      const dismissed = localStorage.getItem(`rebook_dismissed_${company.id}`) === '1';
+      setRebookDismissed(dismissed);
+      const stored = localStorage.getItem(`last_booking_${company.id}`);
+      if (stored) setLastBooking(JSON.parse(stored));
+    } catch { /* ignore */ }
+  }, [company?.id]);
+
+  const handleDismissRebook = () => {
+    if (!company?.id) return;
+    try { localStorage.setItem(`rebook_dismissed_${company.id}`, '1'); } catch { /* ignore */ }
+    setRebookDismissed(true);
+  };
 
   const isDark = businessType === 'barbershop';
 
