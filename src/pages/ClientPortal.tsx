@@ -373,8 +373,8 @@ const ClientPortal = () => {
       <header className="bg-card border-b sticky top-0 z-20 shadow-sm">
         <div className="max-w-3xl mx-auto px-4 pt-4 pb-3">
           <div className="flex items-center justify-between gap-3">
-            <div className="scale-125 origin-left">
-              <PlatformLogo onDarkBackground={false} compact />
+            <div className="scale-150 origin-left">
+              <PlatformLogo onDarkBackground={false} />
             </div>
             <div className="flex items-center gap-1">
               <Button variant="ghost" size="icon" aria-label="Notificações">
@@ -494,7 +494,7 @@ const ClientPortal = () => {
                       </p>
                       {nextAppointment.professional && (
                         <p className="text-xs text-muted-foreground">
-                          com <strong>{nextAppointment.professional.name}</strong>
+                          com <strong>{nextAppointment.professional.full_name}</strong>
                         </p>
                       )}
                     </div>
@@ -533,7 +533,7 @@ const ClientPortal = () => {
                         {lastAppointment.appointment_services?.map(s => s.service?.name).filter(Boolean).join(', ')}
                       </p>
                       {lastAppointment.professional && (
-                        <p className="text-xs text-muted-foreground">com {lastAppointment.professional.name}</p>
+                        <p className="text-xs text-muted-foreground">com {lastAppointment.professional.full_name}</p>
                       )}
                       <p className="text-[11px] text-muted-foreground mt-0.5">
                         {format(parseISO(lastAppointment.start_time), "dd/MM/yyyy", { locale: ptBR })}
@@ -660,13 +660,16 @@ const ClientPortal = () => {
                                       <Building2 className="h-5 w-5 text-muted-foreground" />
                                     </div>
                                   )}
-                                  <div className="min-w-0">
-                                    <p className="font-semibold text-sm truncate">{co?.name || 'Estabelecimento'}</p>
-                                    {apt.professional && (
+                                  <div className="min-w-0 flex-1">
+                                    <p className="font-semibold text-sm truncate">{co?.name || apt.company?.name || 'Empresa não encontrada'}</p>
+                                    <div className="flex items-center gap-1.5 mt-0.5">
+                                      {apt.professional?.avatar_url && (
+                                        <img src={apt.professional.avatar_url} alt="" className="h-4 w-4 rounded-full object-cover" />
+                                      )}
                                       <p className="text-xs text-muted-foreground truncate">
-                                        com {apt.professional.name}
+                                        com {apt.professional?.full_name || 'Profissional não informado'}
                                       </p>
-                                    )}
+                                    </div>
                                   </div>
                                 </div>
                                 <Badge className={`${statusColors[apt.status] || 'bg-muted'} shrink-0`}>
@@ -734,7 +737,7 @@ const ClientPortal = () => {
                             </p>
                             <p className="text-xs text-muted-foreground truncate">
                               {apt.appointment_services?.map(s => s.service?.name).filter(Boolean).join(', ')}
-                              {apt.professional && ` · ${apt.professional.name}`}
+                              {apt.professional && ` · ${apt.professional.full_name}`}
                             </p>
                           </div>
                           <p className="text-sm font-semibold shrink-0">R$ {Number(apt.total_price).toFixed(2)}</p>
