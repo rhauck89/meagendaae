@@ -196,7 +196,7 @@ const FinanceDashboard = () => {
             </div>
             <div>
               <p className="text-xs text-muted-foreground">Faturamento</p>
-              <p className="text-xl font-display font-bold">R$ {revenue.toFixed(2)}</p>
+              <p className="text-xl font-display font-bold">{maskValue(revenue)}</p>
               <p className="text-[10px] text-muted-foreground capitalize">{currentMonthLabel}</p>
             </div>
           </CardContent>
@@ -209,7 +209,7 @@ const FinanceDashboard = () => {
             <div>
               <p className="text-xs text-muted-foreground">Atendimentos</p>
               <p className="text-xl font-display font-bold">{serviceCount}</p>
-              <p className="text-[10px] text-muted-foreground">Ticket médio: R$ {avgTicket.toFixed(2)}</p>
+              <p className="text-[10px] text-muted-foreground">Ticket médio: {maskValue(avgTicket)}</p>
             </div>
           </CardContent>
         </Card>
@@ -220,7 +220,7 @@ const FinanceDashboard = () => {
             </div>
             <div>
               <p className="text-xs text-muted-foreground">Valor Profissionais</p>
-              <p className="text-xl font-display font-bold">R$ {professionalValue.toFixed(2)}</p>
+              <p className="text-xl font-display font-bold">{maskValue(professionalValue)}</p>
               <p className="text-[10px] text-muted-foreground">Comissões do período</p>
             </div>
           </CardContent>
@@ -232,7 +232,7 @@ const FinanceDashboard = () => {
             </div>
             <div>
               <p className="text-xs text-muted-foreground">Líquido Empresa</p>
-              <p className={`text-xl font-display font-bold ${netCompany < 0 ? 'text-destructive' : ''}`}>R$ {netCompany.toFixed(2)}</p>
+              <p className={`text-xl font-display font-bold ${netCompany < 0 ? 'text-destructive' : ''}`}>{maskValue(netCompany)}</p>
               <p className="text-[10px] text-muted-foreground">Faturamento - Comissões</p>
             </div>
           </CardContent>
@@ -248,10 +248,10 @@ const FinanceDashboard = () => {
             </div>
             <div className="flex-1">
               <p className="text-xs text-muted-foreground">Contas a Pagar</p>
-              <p className="text-xl font-display font-bold text-destructive">R$ {payables.total.toFixed(2)}</p>
+              <p className="text-xl font-display font-bold text-destructive">{maskValue(payables.total)}</p>
               <div className="flex gap-2 mt-1 flex-wrap">
-                {payables.overdue > 0 && <Badge variant="destructive" className="text-[10px]"><AlertTriangle className="h-3 w-3 mr-1" />Atrasadas: R$ {payables.overdue.toFixed(2)}</Badge>}
-                {payables.dueToday > 0 && <Badge variant="outline" className="text-[10px] bg-yellow-50 text-yellow-700">Hoje: R$ {payables.dueToday.toFixed(2)}</Badge>}
+                {payables.overdue > 0 && <Badge variant="destructive" className="text-[10px]"><AlertTriangle className="h-3 w-3 mr-1" />Atrasadas: {maskValue(payables.overdue)}</Badge>}
+                {payables.dueToday > 0 && <Badge variant="outline" className="text-[10px] bg-warning/10 text-warning">Hoje: {maskValue(payables.dueToday)}</Badge>}
               </div>
             </div>
           </CardContent>
@@ -263,10 +263,10 @@ const FinanceDashboard = () => {
             </div>
             <div className="flex-1">
               <p className="text-xs text-muted-foreground">Contas a Receber</p>
-              <p className="text-xl font-display font-bold text-success">R$ {receivables.total.toFixed(2)}</p>
+              <p className="text-xl font-display font-bold text-success">{maskValue(receivables.total)}</p>
               <div className="flex gap-2 mt-1 flex-wrap">
-                {receivables.overdue > 0 && <Badge variant="destructive" className="text-[10px]"><AlertTriangle className="h-3 w-3 mr-1" />Atrasadas: R$ {receivables.overdue.toFixed(2)}</Badge>}
-                {receivables.dueToday > 0 && <Badge variant="outline" className="text-[10px] bg-yellow-50 text-yellow-700">Hoje: R$ {receivables.dueToday.toFixed(2)}</Badge>}
+                {receivables.overdue > 0 && <Badge variant="destructive" className="text-[10px]"><AlertTriangle className="h-3 w-3 mr-1" />Atrasadas: {maskValue(receivables.overdue)}</Badge>}
+                {receivables.dueToday > 0 && <Badge variant="outline" className="text-[10px] bg-warning/10 text-warning">Hoje: {maskValue(receivables.dueToday)}</Badge>}
               </div>
             </div>
           </CardContent>
