@@ -5,6 +5,8 @@ import { FeatureIntroModal } from '@/components/FeatureIntroModal';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { DollarSign, TrendingDown, TrendingUp, Scissors, Users, BarChart3, Receipt, HandCoins, AlertTriangle, Clock, CalendarDays } from 'lucide-react';
+import { useFinancialPrivacy } from '@/contexts/FinancialPrivacyContext';
+import FinancialPrivacyToggle from '@/components/FinancialPrivacyToggle';
 import { startOfMonth, endOfMonth, subMonths, format, isPast, isToday, endOfWeek, startOfWeek, addDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, LineChart, Line, Area, AreaChart } from 'recharts';
