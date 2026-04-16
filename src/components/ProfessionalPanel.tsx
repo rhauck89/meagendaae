@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -9,7 +9,7 @@ import { Switch } from '@/components/ui/switch';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
-import { Copy, Link2 } from 'lucide-react';
+import { Copy, Link2, Search, X } from 'lucide-react';
 
 const dayNames = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
 
@@ -131,6 +131,53 @@ const ProfessionalPanel = ({ collaborator, open, onOpenChange, onUpdated }: Prof
     }
   };
 
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const filteredServices = useMemo(() => {
+    if (!searchQuery.trim()) return services;
+    const q = searchQuery.toLowerCase();
+    return services.filter(s => s.name.toLowerCase().includes(q));
+  }, [services, searchQuery]);
+
+  const allFilteredSelected = filteredServices.length > 0 && filteredServices.every(s => assignedServiceIds.includes(s.id));
+  const someFilteredSelected = filteredServices.some(s => assignedServiceIds.includes(s.id));
+  const selectAllRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    if (selectAllRef.current) {
+      const el = selectAllRef.current.querySelector('[data-state]');
+      if (el && someFilteredSelected && !allFilteredSelected) {
+        (selectAllRef.current as any).dataset.state = 'indeterminate';
+      }
+    }
+  }, [someFilteredSelected, allFilteredSelected]);
+
+  const handleSelectAll = async (checked: boolean) => {
+    const profileId = collaborator.profile_id;
+    const targetIds = filteredServices.map(s => s.id);
+
+    if (checked) {
+      const toAdd = targetIds.filter(id => !assignedServiceIds.includes(id));
+      if (toAdd.length > 0) {
+        const links = toAdd.map(id => ({
+          service_id: id,
+          professional_id: profileId,
+          company_id: companyId,
+        }));
+        await supabase.from('service_professionals').insert(links as any);
+        setAssignedServiceIds(prev => [...new Set([...prev, ...toAdd])]);
+      }
+    } else {
+      for (const id of targetIds) {
+        await supabase.from('service_professionals').delete()
+          .eq('service_id', id)
+          .eq('professional_id', profileId);
+      }
+      setAssignedServiceIds(prev => prev.filter(id => !targetIds.includes(id)));
+    }
+    toast.success(checked ? 'Todos os serviços selecionados' : 'Seleção limpa');
+  };
+
   const savePriceOverride = async (serviceId: string) => {
     const value = priceOverrides[serviceId];
     const numVal = value ? parseFloat(value) : null;
@@ -191,8 +238,38 @@ const ProfessionalPanel = ({ collaborator, open, onOpenChange, onUpdated }: Prof
           </TabsContent>
 
           <TabsContent value="services" className="space-y-3 mt-4">
-            <p className="text-sm text-muted-foreground">Selecione os serviços que este profissional realiza:</p>
-            {services.map((svc) => {
+            {/* Search */}
+            <div className="relative">
+              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Buscar serviço..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-9 pr-8"
+              />
+              {searchQuery && (
+                <button onClick={() => setSearchQuery('')} className="absolute right-2.5 top-2.5 text-muted-foreground hover:text-foreground">
+                  <X className="h-4 w-4" />
+                </button>
+              )}
+            </div>
+
+            {/* Select all + counter */}
+            <div className="flex items-center justify-between p-3 rounded-lg bg-muted/80 border">
+              <div className="flex items-center gap-3">
+                <Checkbox
+                  ref={selectAllRef}
+                  checked={allFilteredSelected ? true : someFilteredSelected ? 'indeterminate' : false}
+                  onCheckedChange={(checked) => handleSelectAll(!!checked)}
+                />
+                <span className="font-medium text-sm">Selecionar todos</span>
+              </div>
+              <span className="text-xs text-muted-foreground">
+                {assignedServiceIds.length} de {services.length} serviços
+              </span>
+            </div>
+
+            {filteredServices.map((svc) => {
               const isAssigned = assignedServiceIds.includes(svc.id);
               return (
                 <div key={svc.id} className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
@@ -224,6 +301,10 @@ const ProfessionalPanel = ({ collaborator, open, onOpenChange, onUpdated }: Prof
                 </div>
               );
             })}
+
+            {filteredServices.length === 0 && searchQuery && (
+              <p className="text-sm text-muted-foreground text-center py-4">Nenhum serviço encontrado</p>
+            )}
           </TabsContent>
 
           <TabsContent value="hours" className="space-y-3 mt-4">
