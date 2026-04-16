@@ -131,6 +131,53 @@ const ProfessionalPanel = ({ collaborator, open, onOpenChange, onUpdated }: Prof
     }
   };
 
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const filteredServices = useMemo(() => {
+    if (!searchQuery.trim()) return services;
+    const q = searchQuery.toLowerCase();
+    return services.filter(s => s.name.toLowerCase().includes(q));
+  }, [services, searchQuery]);
+
+  const allFilteredSelected = filteredServices.length > 0 && filteredServices.every(s => assignedServiceIds.includes(s.id));
+  const someFilteredSelected = filteredServices.some(s => assignedServiceIds.includes(s.id));
+  const selectAllRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    if (selectAllRef.current) {
+      const el = selectAllRef.current.querySelector('[data-state]');
+      if (el && someFilteredSelected && !allFilteredSelected) {
+        (selectAllRef.current as any).dataset.state = 'indeterminate';
+      }
+    }
+  }, [someFilteredSelected, allFilteredSelected]);
+
+  const handleSelectAll = async (checked: boolean) => {
+    const profileId = collaborator.profile_id;
+    const targetIds = filteredServices.map(s => s.id);
+
+    if (checked) {
+      const toAdd = targetIds.filter(id => !assignedServiceIds.includes(id));
+      if (toAdd.length > 0) {
+        const links = toAdd.map(id => ({
+          service_id: id,
+          professional_id: profileId,
+          company_id: companyId,
+        }));
+        await supabase.from('service_professionals').insert(links as any);
+        setAssignedServiceIds(prev => [...new Set([...prev, ...toAdd])]);
+      }
+    } else {
+      for (const id of targetIds) {
+        await supabase.from('service_professionals').delete()
+          .eq('service_id', id)
+          .eq('professional_id', profileId);
+      }
+      setAssignedServiceIds(prev => prev.filter(id => !targetIds.includes(id)));
+    }
+    toast.success(checked ? 'Todos os serviços selecionados' : 'Seleção limpa');
+  };
+
   const savePriceOverride = async (serviceId: string) => {
     const value = priceOverrides[serviceId];
     const numVal = value ? parseFloat(value) : null;
