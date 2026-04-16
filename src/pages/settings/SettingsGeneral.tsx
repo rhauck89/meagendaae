@@ -117,8 +117,6 @@ const SettingsGeneral = () => {
             variant="outline"
             size="sm"
             onClick={() => {
-              const { resetOnboardingChecklist } = require('@/components/OnboardingChecklist');
-              const { resetTutorialProgress } = require('@/components/TutorialProgressWidget');
               resetOnboardingChecklist();
               resetTutorialProgress();
               toast.success('Tutoriais reativados! Volte ao painel para visualizá-los.');
