@@ -1,9 +1,10 @@
 import { useState, useCallback } from 'react';
 import Cropper, { Area } from 'react-easy-crop';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
-import { ZoomIn, ZoomOut, Check, X } from 'lucide-react';
+import { ZoomIn, ZoomOut, Check, X, Loader2 } from 'lucide-react';
+import { toast } from 'sonner';
 
 interface AvatarCropDialogProps {
   open: boolean;
@@ -13,6 +14,7 @@ interface AvatarCropDialogProps {
 }
 
 const OUTPUT_SIZE = 512;
+const MAX_BLOB_SIZE = 10 * 1024 * 1024;
 
 function createCroppedImage(imageSrc: string, pixelCrop: Area): Promise<Blob> {
   return new Promise((resolve, reject) => {
@@ -27,21 +29,12 @@ function createCroppedImage(imageSrc: string, pixelCrop: Area): Promise<Blob> {
 
       ctx.drawImage(
         image,
-        pixelCrop.x,
-        pixelCrop.y,
-        pixelCrop.width,
-        pixelCrop.height,
-        0,
-        0,
-        OUTPUT_SIZE,
-        OUTPUT_SIZE,
+        pixelCrop.x, pixelCrop.y, pixelCrop.width, pixelCrop.height,
+        0, 0, OUTPUT_SIZE, OUTPUT_SIZE,
       );
 
       canvas.toBlob(
-        (blob) => {
-          if (blob) resolve(blob);
-          else reject(new Error('Blob creation failed'));
-        },
+        (blob) => (blob ? resolve(blob) : reject(new Error('Blob creation failed'))),
         'image/jpeg',
         0.9,
       );
@@ -66,19 +59,26 @@ const AvatarCropDialog = ({ open, imageSrc, onClose, onConfirm }: AvatarCropDial
     setProcessing(true);
     try {
       const blob = await createCroppedImage(imageSrc, croppedArea);
+      if (blob.size > MAX_BLOB_SIZE) {
+        toast.error('Imagem resultante muito grande. Tente aproximar mais o corte.');
+        return;
+      }
       onConfirm(blob);
     } catch {
-      // error handled by parent
+      toast.error('Erro ao processar imagem. Tente novamente.');
     } finally {
       setProcessing(false);
     }
   };
 
   return (
-    <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="max-w-md p-0 gap-0 overflow-hidden">
+    <Dialog open={open} onOpenChange={(v) => !v && !processing && onClose()}>
+      <DialogContent className="max-w-md p-0 gap-0 overflow-hidden z-[60]">
         <DialogHeader className="p-4 pb-2">
           <DialogTitle>Ajustar foto</DialogTitle>
+          <DialogDescription className="text-xs">
+            Ajuste sua foto e clique em "Confirmar foto" para salvar.
+          </DialogDescription>
         </DialogHeader>
 
         <div className="relative w-full aspect-square bg-black">
@@ -108,12 +108,16 @@ const AvatarCropDialog = ({ open, imageSrc, onClose, onConfirm }: AvatarCropDial
           <ZoomIn className="h-4 w-4 text-muted-foreground shrink-0" />
         </div>
 
-        <DialogFooter className="p-4 pt-2 gap-2">
+        <DialogFooter className="p-4 pt-2 gap-2 relative z-20">
           <Button variant="outline" onClick={onClose} disabled={processing}>
             <X className="h-4 w-4 mr-1" /> Cancelar
           </Button>
           <Button onClick={handleConfirm} disabled={processing}>
-            <Check className="h-4 w-4 mr-1" /> {processing ? 'Processando...' : 'Confirmar'}
+            {processing ? (
+              <><Loader2 className="h-4 w-4 mr-1 animate-spin" /> Salvando imagem...</>
+            ) : (
+              <><Check className="h-4 w-4 mr-1" /> Confirmar foto</>
+            )}
           </Button>
         </DialogFooter>
       </DialogContent>
