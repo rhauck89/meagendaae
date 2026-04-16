@@ -5,6 +5,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { format, subMonths, startOfMonth, endOfMonth, eachMonthOfInterval } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { MessageSquare, Building2, AlertTriangle, CalendarDays } from 'lucide-react';
+import { groupOthers, truncateName, piePercentLabel, tooltipCurrencyFormatter, adaptiveBarHeight } from '@/lib/chart-utils';
 
 interface Ticket {
   id: string;
@@ -76,14 +77,13 @@ const SuperAdminSupportReports = () => {
     return Object.entries(counts).map(([key, value]) => ({ name: categoryLabels[key] || key, value }));
   }, [tickets]);
 
-  // By company (top 10)
+  // By company (top 7 + others)
   const byCompanyData = useMemo(() => {
     const counts: Record<string, number> = {};
     tickets.forEach(t => { counts[t.company_id] = (counts[t.company_id] || 0) + 1; });
-    return Object.entries(counts)
-      .map(([id, value]) => ({ name: companyMap[id] || id.slice(0, 8), value }))
-      .sort((a, b) => b.value - a.value)
-      .slice(0, 10);
+    const raw = Object.entries(counts)
+      .map(([id, value]) => ({ name: companyMap[id] || id.slice(0, 8), value }));
+    return groupOthers(raw, 'value', 'name', 7);
   }, [tickets, companyMap]);
 
   // By priority
