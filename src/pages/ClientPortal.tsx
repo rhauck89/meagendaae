@@ -784,12 +784,24 @@ const ClientPortal = () => {
                   })
                 )}
               </div>
-            </TabsContent>
-          )}
+            </>
+            )}
+          </TabsContent>
 
           {/* ================= LOYALTY POINTS (per company) ================= */}
-          {anyLoyalty && (
-            <TabsContent value="loyalty" className="space-y-4 mt-4">
+          <TabsContent value="loyalty" className="space-y-4 mt-4">
+            {!anyLoyalty ? (
+              <Card>
+                <CardContent className="p-8 text-center space-y-3">
+                  <Star className="h-12 w-12 mx-auto text-muted-foreground/40" />
+                  <p className="font-semibold">Você ainda não possui pontos</p>
+                  <p className="text-sm text-muted-foreground">
+                    Quando os estabelecimentos onde você se atende ativarem o programa de fidelidade, seus pontos aparecerão aqui.
+                  </p>
+                </CardContent>
+              </Card>
+            ) : (
+            <>
               <Card className="bg-yellow-500/5 border-yellow-500/20">
                 <CardContent className="p-6 text-center">
                   <p className="text-sm text-muted-foreground">Total de pontos acumulados</p>
