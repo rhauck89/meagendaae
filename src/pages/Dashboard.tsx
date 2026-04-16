@@ -1185,7 +1185,7 @@ const Dashboard = () => {
               <Users className="h-5 w-5 text-accent" />
             </div>
             <div className="min-w-0">
-              <p className="text-sm text-muted-foreground">Clientes hoje</p>
+              <p className="text-sm text-muted-foreground">Atendimentos hoje</p>
               <p className="text-2xl font-semibold">{stats.clients}</p>
             </div>
           </CardContent>
