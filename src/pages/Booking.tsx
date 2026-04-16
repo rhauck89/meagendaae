@@ -2513,9 +2513,15 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                     {loyaltyPoints > 0 && <span style={{ color: T.accent }}>⭐ {loyaltyPoints} pts{loyaltyPointValue > 0 ? ` (R$${(loyaltyPoints * loyaltyPointValue).toFixed(2)})` : ''}</span>}
                   </div>
                 )}
-                <Button onClick={() => window.location.href = '/minha-conta'} className="w-full rounded-xl py-5 font-semibold text-base" style={{ background: T.accent, color: '#000' }}>
-                  <Calendar className="h-4 w-4 mr-2" /> Ver meus agendamentos
-                </Button>
+                {hasValidClient ? (
+                  <Button onClick={() => window.location.href = '/minha-conta'} className="w-full rounded-xl py-5 font-semibold text-base" style={{ background: T.accent, color: '#000' }}>
+                    <Calendar className="h-4 w-4 mr-2" /> Ver meus agendamentos
+                  </Button>
+                ) : (
+                  <Button onClick={() => window.location.href = '/minha-conta?complete=1'} className="w-full rounded-xl py-5 font-semibold text-base" style={{ background: T.accent, color: '#000' }}>
+                    <User className="h-4 w-4 mr-2" /> Concluir cadastro
+                  </Button>
+                )}
               </div>
 
               <div className="space-y-3 pt-2">
@@ -2535,7 +2541,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
       </div>
 
       {/* Floating Meus Agendamentos Button */}
-      {step !== 'success' && isClientLoggedIn && (
+      {step !== 'success' && isClientLoggedIn && hasValidClient && (
         <button
           onClick={() => window.location.href = '/minha-conta'}
           className="fixed bottom-6 left-6 z-50 flex items-center gap-2 px-4 py-3 rounded-full shadow-xl transition-transform hover:scale-105 text-sm font-semibold"
