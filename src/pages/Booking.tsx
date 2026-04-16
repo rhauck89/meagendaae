@@ -2585,6 +2585,24 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
         />
       )}
 
+      {/* Centralized booking error dialog with smart suggestions */}
+      <BookingErrorDialog
+        open={!!bookingError}
+        onOpenChange={(o) => { if (!o) setBookingError(null); }}
+        error={bookingError}
+        suggestions={availableSlots}
+        onPickSuggestion={(slot) => {
+          setSelectedTime(slot);
+          setBookingError(null);
+          setStep('datetime');
+        }}
+        onRetry={() => setBookingError(null)}
+        onSeeAvailable={() => {
+          setBookingError(null);
+          setStep('datetime');
+        }}
+      />
+
       {/* Floating WhatsApp Button */}
       {companyWhatsapp && step !== 'success' && (
         <a
