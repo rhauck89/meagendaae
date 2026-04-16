@@ -273,7 +273,7 @@ const FinanceReports = () => {
         <Card>
           <CardHeader><CardTitle className="text-base">Receita por Profissional</CardTitle></CardHeader>
           <CardContent>
-            <div className="h-64">
+            <div style={{ height: adaptiveBarHeight(revenueChartData.length) }}>
               {revenueChartData.length === 0 ? (
                 <EmptyChartState />
               ) : (
@@ -281,8 +281,11 @@ const FinanceReports = () => {
                   <BarChart data={revenueChartData} layout="vertical">
                     <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
                     <XAxis type="number" tickFormatter={v => `R$${v}`} className="text-xs" />
-                    <YAxis type="category" dataKey="name" width={100} className="text-xs" />
-                    <Tooltip formatter={(v: number) => `R$ ${v.toFixed(2)}`} />
+                    <YAxis type="category" dataKey="shortName" width={110} className="text-xs" tick={{ fontSize: 11 }} />
+                    <Tooltip formatter={(v: number) => tooltipCurrencyFormatter(v)} labelFormatter={(label) => {
+                      const item = revenueChartData.find(d => d.shortName === label);
+                      return item?.name || label;
+                    }} />
                     <Legend />
                     <Bar dataKey="receita" name="Receita" fill="hsl(var(--primary))" radius={[0, 4, 4, 0]} />
                     <Bar dataKey="comissão" name="Comissão" fill="hsl(var(--warning))" radius={[0, 4, 4, 0]} />
@@ -297,17 +300,17 @@ const FinanceReports = () => {
         <Card>
           <CardHeader><CardTitle className="text-base">Receita por Serviço</CardTitle></CardHeader>
           <CardContent>
-            <div className="h-64">
+            <div className="h-72">
               {serviceChartData.length === 0 ? (
                 <EmptyChartState />
               ) : (
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
-                    <Pie data={serviceChartData} cx="50%" cy="50%" outerRadius={90} dataKey="value" nameKey="name" label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}>
+                    <Pie data={serviceChartData} cx="50%" cy="50%" outerRadius={90} dataKey="value" nameKey="name" label={piePercentLabel} labelLine={false}>
                       {serviceChartData.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
                     </Pie>
-                    <Tooltip formatter={(v: number) => `R$ ${v.toFixed(2)}`} />
-                    <Legend />
+                    <Tooltip formatter={(v: number) => tooltipCurrencyFormatter(v)} />
+                    <Legend formatter={(value) => truncateName(value, 20)} />
                   </PieChart>
                 </ResponsiveContainer>
               )}
