@@ -7,9 +7,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Calendar } from '@/components/ui/calendar';
+import { Calendar as CalendarPicker } from '@/components/ui/calendar';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Scissors, Sparkles, Clock, DollarSign, ChevronRight, ChevronLeft, CheckCircle2, Bell, Zap, CalendarPlus, MessageCircle, RotateCcw, Home, User, Phone, Mail, Cake, MapPin, Star, X, AlertTriangle } from 'lucide-react';
+import { Scissors, Sparkles, Clock, DollarSign, ChevronRight, ChevronLeft, CheckCircle2, Bell, Zap, CalendarPlus, MessageCircle, RotateCcw, Home, User, Phone, Mail, Cake, MapPin, Star, X, AlertTriangle, Calendar } from 'lucide-react';
 import { format, addMinutes, addDays, isToday, isTomorrow, startOfDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
@@ -1792,7 +1792,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                 <p className="text-xs text-center" style={{ color: T.textSec }}>ou escolha uma data no calendário</p>
 
                 <div className="booking-dark-calendar rounded-2xl p-4" style={{ background: T.card, border: `1px solid ${T.border}` }}>
-                  <Calendar
+                  <CalendarPicker
                     mode="single" selected={selectedDate}
                     onSelect={(date) => { setSelectedDate(date); setSelectedTime(null); }}
                     locale={ptBR}
