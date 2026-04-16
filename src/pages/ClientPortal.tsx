@@ -141,7 +141,7 @@ const ClientPortal = () => {
 
     const companyIds = [...new Set(clientData.map(c => c.company_id))];
     const [companyRes, cashbackRes, loyaltyTxRes, rewardsRes] = await Promise.all([
-      supabase.from('companies').select('id, name, logo_url, slug').in('id', companyIds),
+      supabase.from('public_company').select('id, name, logo_url, slug').in('id', companyIds),
       supabase.from('client_cashback')
         .select('id, amount, status, expires_at, created_at, company_id, promotion:promotions!client_cashback_promotion_id_fkey(title)')
         .in('client_id', clientData.map(c => c.id))
