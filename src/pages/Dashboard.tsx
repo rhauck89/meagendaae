@@ -139,6 +139,7 @@ const Dashboard = () => {
   const [companyBusinessType, setCompanyBusinessType] = useState('barbershop');
   const [statusTab, setStatusTab] = useState<StatusTab>('confirmed');
   const [manualAppointmentOpen, setManualAppointmentOpen] = useState(false);
+  const [manualAppointmentPrefill, setManualAppointmentPrefill] = useState<{ date?: Date; time?: string; professionalId?: string }>({});
   const [highlightedAppointmentId, setHighlightedAppointmentId] = useState<string | null>(null);
   const [agendaDisplayMode, setAgendaDisplayMode] = useState<'lista' | 'calendario'>(() => {
     if (typeof window !== 'undefined') {
