@@ -1081,31 +1081,56 @@ const Team = () => {
             {/* Scheduling Configuration */}
             <div className="border-t pt-4 space-y-3">
               <Label className="font-semibold text-sm">Configuração de Agenda</Label>
-              <div className="space-y-2">
-                <Label className="text-xs text-muted-foreground">Modo de agendamento</Label>
-                <Select value={editForm.booking_mode} onValueChange={(v) => setEditForm({ ...editForm, booking_mode: v })}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="intelligent">Inteligente</SelectItem>
-                    <SelectItem value="fixed_grid">Grade fixa</SelectItem>
-                    <SelectItem value="hybrid">Híbrida (recomendado)</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              {(editForm.booking_mode === 'fixed_grid' || editForm.booking_mode === 'hybrid') && (
+              
+              {/* Booking Mode */}
+              {(company as any)?.prof_perm_booking_mode ? (
                 <div className="space-y-2">
-                  <Label className="text-xs text-muted-foreground">Intervalo da grade (minutos)</Label>
-                  <Select value={String(editForm.grid_interval)} onValueChange={(v) => setEditForm({ ...editForm, grid_interval: Number(v) })}>
+                  <Label className="text-xs text-muted-foreground">Modo de agendamento</Label>
+                  <Select value={editForm.booking_mode} onValueChange={(v) => setEditForm({ ...editForm, booking_mode: v })}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="15">15 minutos</SelectItem>
-                      <SelectItem value="30">30 minutos</SelectItem>
-                      <SelectItem value="45">45 minutos</SelectItem>
-                      <SelectItem value="60">60 minutos</SelectItem>
+                      <SelectItem value="intelligent">Inteligente</SelectItem>
+                      <SelectItem value="fixed_grid">Grade fixa</SelectItem>
+                      <SelectItem value="hybrid">Híbrida (recomendado)</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
+              ) : (
+                <div className="p-3 rounded-lg bg-muted/50 border space-y-1">
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <Lock className="h-3 w-3" /> Gerenciado pelo administrador
+                  </div>
+                  <p className="text-sm">Modo: <span className="font-medium">{bookingModeLabel((company as any)?.booking_mode || 'fixed_grid')}</span></p>
+                </div>
               )}
+
+              {/* Grid Interval */}
+              {(editForm.booking_mode === 'fixed_grid' || editForm.booking_mode === 'hybrid' || (company as any)?.booking_mode === 'fixed_grid' || (company as any)?.booking_mode === 'hybrid') && (
+                <>
+                  {(company as any)?.prof_perm_grid_interval ? (
+                    <div className="space-y-2">
+                      <Label className="text-xs text-muted-foreground">Intervalo da grade (minutos)</Label>
+                      <Select value={String(editForm.grid_interval)} onValueChange={(v) => setEditForm({ ...editForm, grid_interval: Number(v) })}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="15">15 minutos</SelectItem>
+                          <SelectItem value="30">30 minutos</SelectItem>
+                          <SelectItem value="45">45 minutos</SelectItem>
+                          <SelectItem value="60">60 minutos</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  ) : (
+                    <div className="p-3 rounded-lg bg-muted/50 border space-y-1">
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <Lock className="h-3 w-3" /> Gerenciado pelo administrador
+                      </div>
+                      <p className="text-sm">Intervalo: <span className="font-medium">{(company as any)?.fixed_slot_interval || 15} minutos</span></p>
+                    </div>
+                  )}
+                </>
+              )}
+
               <div className="space-y-2">
                 <Label className="text-xs text-muted-foreground">Intervalo entre atendimentos (minutos)</Label>
                 <Input type="number" min={0} max={60} value={editForm.break_time} onChange={(e) => setEditForm({ ...editForm, break_time: Number(e.target.value) || 0 })} placeholder="Ex: 5" />
