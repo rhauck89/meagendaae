@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useFinancialPrivacy } from '@/contexts/FinancialPrivacyContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -27,6 +28,7 @@ const emptyForm = () => ({
 
 const FinanceExpenses = () => {
   const { companyId, user } = useAuth();
+  const { maskValue } = useFinancialPrivacy();
   const [expenses, setExpenses] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
   const [open, setOpen] = useState(false);
@@ -338,7 +340,7 @@ const FinanceExpenses = () => {
                     <TableCell className="text-muted-foreground">{e.category?.name || '—'}</TableCell>
                     <TableCell className="text-xs text-muted-foreground">{paymentMethodLabels[e.payment_method] || '—'}</TableCell>
                     <TableCell><Badge variant="outline" className="text-xs">{statusLabels[e.status] || e.status}</Badge></TableCell>
-                    <TableCell className="text-right font-semibold text-destructive">R$ {Number(e.amount).toFixed(2)}</TableCell>
+                    <TableCell className="text-right font-semibold text-destructive">{maskValue(Number(e.amount))}</TableCell>
                     <TableCell>
                       <div className="flex gap-1">
                         <Button variant="ghost" size="icon" onClick={() => openEdit(e)} title="Editar"><Pencil className="h-4 w-4" /></Button>
@@ -375,7 +377,7 @@ const FinanceExpenses = () => {
                   {e.is_recurring && <RefreshCw className="h-3.5 w-3.5 text-muted-foreground shrink-0" />}
                   <span className="font-medium text-sm break-words">{e.description}</span>
                 </div>
-                <span className="font-semibold text-sm text-destructive shrink-0">R$ {Number(e.amount).toFixed(2)}</span>
+                <span className="font-semibold text-sm text-destructive shrink-0">{maskValue(Number(e.amount))}</span>
               </div>
               <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground mb-2">
                 <span>{format(new Date(e.expense_date + 'T12:00:00'), 'dd/MM/yyyy')}</span>

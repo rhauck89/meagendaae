@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useFinancialPrivacy } from '@/contexts/FinancialPrivacyContext';
 import { useUserRole } from '@/hooks/useUserRole';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -14,6 +15,7 @@ import { calculateFinancials, collaboratorTypeLabel, commissionLabel } from '@/l
 
 const FinanceCommissions = () => {
   const { companyId } = useAuth();
+  const { maskValue } = useFinancialPrivacy();
   const { isAdmin, profileId } = useUserRole();
   const [startDate, setStartDate] = useState<Date>(startOfMonth(new Date()));
   const [endDate, setEndDate] = useState<Date>(new Date());
@@ -115,10 +117,10 @@ const FinanceCommissions = () => {
                     <TableCell className="font-medium">{r.name}</TableCell>
                     <TableCell className="text-center"><Badge variant="outline" className="text-xs">{collaboratorTypeLabel(r.type)}</Badge></TableCell>
                     <TableCell className="text-center">{r.count}</TableCell>
-                    <TableCell className="text-right font-semibold">R$ {r.revenue.toFixed(2)}</TableCell>
+                    <TableCell className="text-right font-semibold">{maskValue(r.revenue)}</TableCell>
                     <TableCell className="text-center"><Badge variant="outline" className="text-xs">{commissionLabel(r.commType, r.value)}</Badge></TableCell>
-                    <TableCell className="text-right font-semibold text-warning">R$ {r.professionalValue.toFixed(2)}</TableCell>
-                    <TableCell className="text-right font-display font-bold">R$ {r.companyValue.toFixed(2)}</TableCell>
+                    <TableCell className="text-right font-semibold text-warning">{maskValue(r.professionalValue)}</TableCell>
+                    <TableCell className="text-right font-display font-bold">{maskValue(r.companyValue)}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -141,7 +143,7 @@ const FinanceCommissions = () => {
               <div className="grid grid-cols-2 gap-2 text-sm">
                 <div>
                   <span className="text-xs text-muted-foreground">Faturado</span>
-                  <p className="font-semibold">R$ {r.revenue.toFixed(2)}</p>
+                  <p className="font-semibold">{maskValue(r.revenue)}</p>
                 </div>
                 <div>
                   <span className="text-xs text-muted-foreground">Serviços</span>
@@ -149,11 +151,11 @@ const FinanceCommissions = () => {
                 </div>
                 <div>
                   <span className="text-xs text-muted-foreground">Valor Prof.</span>
-                  <p className="font-semibold text-warning">R$ {r.professionalValue.toFixed(2)}</p>
+                  <p className="font-semibold text-warning">{maskValue(r.professionalValue)}</p>
                 </div>
                 <div>
                   <span className="text-xs text-muted-foreground">Valor Empresa</span>
-                  <p className="font-display font-bold">R$ {r.companyValue.toFixed(2)}</p>
+                  <p className="font-display font-bold">{maskValue(r.companyValue)}</p>
                 </div>
               </div>
               <div className="mt-2">

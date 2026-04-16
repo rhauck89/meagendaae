@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
+import { useFinancialPrivacy } from '@/contexts/FinancialPrivacyContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -33,6 +34,7 @@ type DateFilter = 'all' | 'today' | 'week' | 'month' | 'overdue' | 'custom';
 
 const FinanceReceivables = () => {
   const { companyId } = useAuth();
+  const { maskValue } = useFinancialPrivacy();
   const [items, setItems] = useState<any[]>([]);
   const [statusFilter, setStatusFilter] = useState('pending');
   const [dateFilter, setDateFilter] = useState<DateFilter>('all');
@@ -191,7 +193,7 @@ const FinanceReceivables = () => {
                     <TableCell>{r.description}</TableCell>
                     <TableCell className="text-muted-foreground">{r.category?.name || '—'}</TableCell>
                     <TableCell className="text-muted-foreground">{r.payment_method ? (paymentMethodLabels[r.payment_method] || r.payment_method) : '—'}</TableCell>
-                    <TableCell className="text-right font-semibold text-success">R$ {Number(r.amount).toFixed(2)}</TableCell>
+                    <TableCell className="text-right font-semibold text-success">{maskValue(Number(r.amount))}</TableCell>
                     <TableCell><Badge variant="outline" className={statusColors[r.status] || ''}>{statusLabels[r.status] || r.status}</Badge></TableCell>
                     <TableCell>
                       <div className="flex gap-1">
@@ -220,7 +222,7 @@ const FinanceReceivables = () => {
             <CardContent className="p-4">
               <div className="flex items-start justify-between gap-2 mb-2">
                 <span className="font-medium text-sm break-words flex-1 min-w-0">{r.description}</span>
-                <span className="font-semibold text-sm text-success shrink-0">R$ {Number(r.amount).toFixed(2)}</span>
+                <span className="font-semibold text-sm text-success shrink-0">{maskValue(Number(r.amount))}</span>
               </div>
               <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground mb-2">
                 <span>{r.due_date ? format(new Date(r.due_date + 'T12:00:00'), 'dd/MM/yyyy') : format(new Date(r.revenue_date + 'T12:00:00'), 'dd/MM/yyyy')}</span>
@@ -251,7 +253,7 @@ const FinanceReceivables = () => {
           <div className="space-y-4 py-2">
             {confirmItem && (
               <p className="text-sm text-muted-foreground">
-                {confirmItem.description} — R$ {Number(confirmItem.amount).toFixed(2)}
+                {confirmItem.description} — {maskValue(Number(confirmItem.amount))}
               </p>
             )}
             <div className="space-y-2">
