@@ -15,7 +15,7 @@ import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { formatWhatsApp, displayWhatsApp, isValidWhatsApp } from '@/lib/whatsapp';
-import { calculateAvailableSlots, type BusinessHours, type BusinessException, type ExistingAppointment, type BlockedTime, type BookingMode } from '@/lib/availability-engine';
+import { calculateAvailableSlots, validateTimeSlot, type BusinessHours, type BusinessException, type ExistingAppointment, type BlockedTime, type BookingMode } from '@/lib/availability-engine';
 import { PlatformBranding } from '@/components/PlatformBranding';
 import { CustomRequestForm } from '@/components/CustomRequestForm';
 import { getCompanyBranding, buildThemeFromBranding } from '@/hooks/useCompanyBranding';
@@ -981,6 +981,23 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
       startTime.setHours(h, m, 0, 0);
       const endTime = addMinutes(startTime, totalDuration);
       if (!clientId) throw new Error('Cadastro do cliente falhou. Tente novamente.');
+
+      // Validate time slot is on the grid for fixed_grid mode
+      if (bookingMode === 'fixed_grid') {
+        const dayOfWeek = selectedDate.getDay();
+        const activeHours = professionalHours.length > 0 ? professionalHours : businessHours;
+        const dayHours = activeHours.find(bh => bh.day_of_week === dayOfWeek);
+        if (dayHours) {
+          const validation = validateTimeSlot(selectedTime, bookingMode, fixedSlotInterval, dayHours.open_time);
+          if (!validation.valid) {
+            console.error('[Booking] Invalid time slot:', validation.error);
+            toast.error('Horário inválido. Por favor, selecione um horário da grade disponível.');
+            setStep('datetime');
+            setLoading(false);
+            return;
+          }
+        }
+      }
 
       const appointmentPayload = {
         p_professional_id: selectedProfessional, p_client_id: clientId,
