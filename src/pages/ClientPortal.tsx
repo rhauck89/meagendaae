@@ -106,7 +106,7 @@ const ClientPortal = () => {
   const [companyLoyaltyActive, setCompanyLoyaltyActive] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
-    if (!user) { navigate('/cliente/auth?tab=signup'); return; }
+    if (!user) return;
     loadClientData();
   }, [user]);
 
