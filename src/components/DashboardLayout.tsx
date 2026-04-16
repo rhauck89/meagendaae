@@ -74,7 +74,7 @@ const allProfessionalNavItems = [
 
 const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
   const { profile, companyId, signOut, loading: authLoading, loginMode, setLoginMode, isAlsoCollaborator } = useAuth();
-  const { isAdmin: isAdminRole } = useUserRole();
+  const { isAdmin: isAdminRole, isAdmin, isProfessionalMode } = useUserRole();
   const profPerms = useProfessionalPermissions();
   const brandInfo = useCompanyBrandInfo();
   const location = useLocation();
@@ -88,10 +88,8 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
   const { data: platformMessages, dismiss: dismissMessage } = usePlatformMessages();
   const totalNotifications = (unreadTickets || 0) + (platformMessages?.length || 0);
 
-  // Determine effective admin status based on login mode
+  // Determine if role selection dialog is needed
   const needsRoleSelection = isAdminRole && isAlsoCollaborator && !loginMode;
-  const isProfessionalMode = isAdminRole && isAlsoCollaborator && loginMode === 'professional';
-  const isAdmin = isAdminRole && (!isAlsoCollaborator || loginMode !== 'professional');
 
   const isSettingsActive = location.pathname.startsWith('/dashboard/settings');
   const isFinanceActive = location.pathname.startsWith('/dashboard/finance');
@@ -349,7 +347,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
                     {isAdmin ? <Crown className="h-4 w-4 shrink-0" /> : <Scissors className="h-4 w-4 shrink-0" />}
                     <div className="flex-1 text-left min-w-0">
                       <p className="font-semibold text-[11px] leading-tight">
-                        {isAdmin ? 'Administrando empresa' : 'Atendendo como profissional'}
+                        {isAdmin ? 'Administrando empresa' : `Atendendo como: ${profile?.full_name || 'Profissional'}`}
                       </p>
                     </div>
                     <ArrowLeftRight className="h-3 w-3 opacity-50 shrink-0" />
