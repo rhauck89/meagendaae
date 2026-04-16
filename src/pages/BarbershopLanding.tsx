@@ -90,10 +90,73 @@ export default function BarbershopLanding({ routeBusinessType, customSlug }: Bar
     try {
       const dismissed = localStorage.getItem(`rebook_dismissed_${company.id}`) === '1';
       setRebookDismissed(dismissed);
-      const stored = localStorage.getItem(`last_booking_${company.id}`);
-      if (stored) setLastBooking(JSON.parse(stored));
     } catch { /* ignore */ }
-  }, [company?.id]);
+
+    if (!isLoggedIn) {
+      // Fallback to localStorage for non-logged-in
+      try {
+        const stored = localStorage.getItem(`last_booking_${company.id}`);
+        if (stored) setLastBooking(JSON.parse(stored));
+      } catch { /* ignore */ }
+      return;
+    }
+
+    // Logged-in: load real last appointment from DB
+    (async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+        const { data: profile } = await supabase
+          .from('clients')
+          .select('id')
+          .eq('user_id', user.id)
+          .eq('company_id', company.id)
+          .maybeSingle();
+        if (!profile?.id) {
+          // fallback to localStorage
+          const stored = localStorage.getItem(`last_booking_${company.id}`);
+          if (stored) setLastBooking(JSON.parse(stored));
+          return;
+        }
+        const { data: appt } = await supabase
+          .from('appointments')
+          .select('id, start_time, total_price, professional_id')
+          .eq('company_id', company.id)
+          .eq('client_id', profile.id)
+          .in('status', ['completed', 'confirmed', 'pending'])
+          .order('start_time', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        if (!appt) {
+          const stored = localStorage.getItem(`last_booking_${company.id}`);
+          if (stored) setLastBooking(JSON.parse(stored));
+          return;
+        }
+        const [{ data: apptSvcs }, { data: prof }] = await Promise.all([
+          supabase.from('appointment_services').select('service_id, duration_minutes, price').eq('appointment_id', appt.id),
+          supabase.from('public_professionals' as any).select('id, name, avatar_url').eq('id', appt.professional_id).maybeSingle(),
+        ]);
+        const svcIds = (apptSvcs || []).map((s: any) => s.service_id);
+        let svcNames: string[] = [];
+        if (svcIds.length) {
+          const { data: svcs } = await supabase.from('public_services' as any).select('id, name').in('id', svcIds);
+          svcNames = svcIds.map((id: string) => (svcs as any[])?.find((s: any) => s.id === id)?.name).filter(Boolean);
+        }
+        const totalDuration = (apptSvcs || []).reduce((sum: number, s: any) => sum + (s.duration_minutes || 0), 0);
+        setLastBooking({
+          serviceIds: svcIds,
+          serviceNames: svcNames,
+          serviceDurations: (apptSvcs || []).map((s: any) => s.duration_minutes),
+          professionalId: appt.professional_id,
+          professionalName: (prof as any)?.name || 'Profissional',
+          professionalAvatar: (prof as any)?.avatar_url || null,
+          totalPrice: Number(appt.total_price || 0),
+          totalDuration,
+          bookedAt: appt.start_time,
+        });
+      } catch { /* ignore */ }
+    })();
+  }, [company?.id, isLoggedIn]);
 
   const handleDismissRebook = () => {
     if (!company?.id) return;
