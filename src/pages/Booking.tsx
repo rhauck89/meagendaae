@@ -410,8 +410,21 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
       setCompanyStats({ avgRating, reviewCount, completedCount });
     }
 
+    // Check if company has any active professionals
+    if (!professionalSlug && !promoIdRef.current) {
+      const { data: allProfs } = await supabase
+        .from('public_professionals' as any)
+        .select('id')
+        .eq('company_id', comp.id)
+        .eq('active', true)
+        .limit(1);
+      if (!allProfs || (allProfs as any[]).length === 0) {
+        setNoProfessionals(true);
+        return;
+      }
+    }
+
     if (professionalSlug) {
-      console.log('[Booking] Resolving professional by slug', { companyId: comp.id, professionalSlug });
       const { data: pubProfs, error: collabErr } = await supabase
         .from('public_professionals' as any)
         .select('*')
