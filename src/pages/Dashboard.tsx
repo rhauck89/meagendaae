@@ -312,12 +312,13 @@ const Dashboard = () => {
 
     if (data) {
       setAppointments(data);
-      const todayAppts = data.filter((a) => isSameDay(parseISO(a.start_time), new Date()));
+      const selectedAppts = data.filter((a) => isSameDay(parseISO(a.start_time), currentDate));
+      const validStatuses = ['confirmed', 'completed', 'pending', 'in_progress'];
       setStats({
-        total: todayAppts.length,
-        revenue: todayAppts.filter((a) => a.status === 'confirmed' || a.status === 'completed').reduce((sum, a) => sum + Number(a.total_price), 0),
-        revenueCompleted: todayAppts.filter((a) => a.status === 'completed').reduce((sum, a) => sum + Number(a.total_price), 0),
-        clients: todayAppts.filter((a) => ['confirmed', 'completed', 'pending', 'in_progress'].includes(a.status)).length,
+        total: selectedAppts.length,
+        revenue: selectedAppts.filter((a) => validStatuses.includes(a.status)).reduce((sum, a) => sum + Number(a.total_price), 0),
+        revenueCompleted: selectedAppts.filter((a) => a.status === 'completed').reduce((sum, a) => sum + Number(a.total_price), 0),
+        clients: selectedAppts.filter((a) => validStatuses.includes(a.status)).length,
       });
     }
   };
@@ -1151,7 +1152,7 @@ const Dashboard = () => {
           <div>
             <h3 className="text-lg font-display font-semibold">📊 Resumo do Dia</h3>
             <p className="text-sm text-muted-foreground capitalize">
-              {format(new Date(), "EEEE, d 'de' MMMM 'de' yyyy", { locale: ptBR })}
+              {format(currentDate, "EEEE, d 'de' MMMM 'de' yyyy", { locale: ptBR })}
             </p>
           </div>
           <FinancialPrivacyToggle />
@@ -1176,6 +1177,9 @@ const Dashboard = () => {
             <div className="min-w-0">
               <p className="text-sm text-muted-foreground">Receita realizada</p>
               <p className="text-2xl font-semibold whitespace-nowrap">{formatCurrency(stats.revenueCompleted)}</p>
+              {currentDate > new Date() && (
+                <p className="text-xs text-muted-foreground">(Ainda não realizado)</p>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -1185,7 +1189,7 @@ const Dashboard = () => {
               <Users className="h-5 w-5 text-accent" />
             </div>
             <div className="min-w-0">
-              <p className="text-sm text-muted-foreground">Atendimentos hoje</p>
+              <p className="text-sm text-muted-foreground">Atendimentos</p>
               <p className="text-2xl font-semibold">{stats.clients}</p>
             </div>
           </CardContent>
