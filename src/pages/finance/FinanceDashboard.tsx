@@ -1,22 +1,36 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useFeatureDiscovery } from '@/hooks/useFeatureDiscovery';
 import { FeatureIntroModal } from '@/components/FeatureIntroModal';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { DollarSign, TrendingDown, TrendingUp, Scissors, Users, BarChart3, Receipt, HandCoins, AlertTriangle, Clock, CalendarDays } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { DollarSign, TrendingDown, TrendingUp, Scissors, Users, BarChart3, Receipt, HandCoins, AlertTriangle, Clock, CalendarDays, CalendarIcon } from 'lucide-react';
 import { useFinancialPrivacy } from '@/contexts/FinancialPrivacyContext';
 import FinancialPrivacyToggle from '@/components/FinancialPrivacyToggle';
-import { startOfMonth, endOfMonth, subMonths, format, isPast, isToday, endOfWeek, startOfWeek, addDays } from 'date-fns';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
+import { startOfMonth, endOfMonth, subMonths, subDays, format, isPast, isToday, endOfWeek, startOfWeek, startOfDay, endOfDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, LineChart, Line, Area, AreaChart } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, Line, Area, AreaChart } from 'recharts';
 import { calculateFinancials } from '@/lib/financial-engine';
 import { Badge } from '@/components/ui/badge';
+import { cn } from '@/lib/utils';
+
+type FilterPreset = 'today' | 'yesterday' | 'last7' | 'this_month' | 'custom';
 
 const FinanceDashboard = () => {
   const { companyId } = useAuth();
   const { hasSeen, markSeen, loading: discoveryLoading } = useFeatureDiscovery();
   const [showIntro, setShowIntro] = useState(false);
+
+  // Filter state — default to TODAY
+  const [filterPreset, setFilterPreset] = useState<FilterPreset>('today');
+  const [customStart, setCustomStart] = useState<Date | undefined>(undefined);
+  const [customEnd, setCustomEnd] = useState<Date | undefined>(undefined);
+
+  // KPI state
   const [revenue, setRevenue] = useState(0);
   const [expenses, setExpenses] = useState(0);
   const [serviceCount, setServiceCount] = useState(0);
@@ -27,6 +41,51 @@ const FinanceDashboard = () => {
   const [cashFlowData, setCashFlowData] = useState<any[]>([]);
   const [upcomingDues, setUpcomingDues] = useState({ today: 0, thisWeek: 0, thisMonth: 0 });
 
+  const { maskValue } = useFinancialPrivacy();
+
+  // Compute date range from preset
+  const dateRange = useMemo(() => {
+    const now = new Date();
+    switch (filterPreset) {
+      case 'today':
+        return { start: format(now, 'yyyy-MM-dd'), end: format(now, 'yyyy-MM-dd') };
+      case 'yesterday': {
+        const y = subDays(now, 1);
+        return { start: format(y, 'yyyy-MM-dd'), end: format(y, 'yyyy-MM-dd') };
+      }
+      case 'last7': {
+        const s = subDays(now, 6);
+        return { start: format(s, 'yyyy-MM-dd'), end: format(now, 'yyyy-MM-dd') };
+      }
+      case 'this_month':
+        return { start: format(startOfMonth(now), 'yyyy-MM-dd'), end: format(now, 'yyyy-MM-dd') };
+      case 'custom':
+        return {
+          start: customStart ? format(customStart, 'yyyy-MM-dd') : format(now, 'yyyy-MM-dd'),
+          end: customEnd ? format(customEnd, 'yyyy-MM-dd') : format(now, 'yyyy-MM-dd'),
+        };
+      default:
+        return { start: format(now, 'yyyy-MM-dd'), end: format(now, 'yyyy-MM-dd') };
+    }
+  }, [filterPreset, customStart, customEnd]);
+
+  // Label for current filter
+  const filterLabel = useMemo(() => {
+    switch (filterPreset) {
+      case 'today': return 'Hoje';
+      case 'yesterday': return 'Ontem';
+      case 'last7': return 'Últimos 7 dias';
+      case 'this_month': return format(new Date(), "MMMM 'de' yyyy", { locale: ptBR });
+      case 'custom': {
+        if (customStart && customEnd) {
+          return `${format(customStart, 'dd/MM')} até ${format(customEnd, 'dd/MM')}`;
+        }
+        return 'Personalizado';
+      }
+      default: return '';
+    }
+  }, [filterPreset, customStart, customEnd]);
+
   // Feature discovery intro
   useEffect(() => {
     if (!discoveryLoading && !hasSeen('finance')) {
@@ -34,20 +93,19 @@ const FinanceDashboard = () => {
     }
   }, [discoveryLoading, hasSeen]);
 
+  // Fetch data when companyId or dateRange changes
   useEffect(() => {
     if (companyId) {
-      fetchCurrentMonth();
-      fetchChartData();
+      fetchPeriodData();
       fetchPayablesReceivables();
       fetchCashFlow();
       fetchUpcomingDues();
+      fetchChartData();
     }
-  }, [companyId]);
+  }, [companyId, dateRange.start, dateRange.end]);
 
-  const fetchCurrentMonth = async () => {
-    const now = new Date();
-    const start = startOfMonth(now).toISOString().split('T')[0];
-    const end = format(now, 'yyyy-MM-dd');
+  const fetchPeriodData = async () => {
+    const { start, end } = dateRange;
 
     const [aptsRes, manualRes, expsRes, collabRes] = await Promise.all([
       supabase.from('appointments').select('total_price, professional_id').eq('company_id', companyId!).eq('status', 'completed').gte('start_time', `${start}T00:00:00`).lte('start_time', `${end}T23:59:59`),
@@ -113,7 +171,7 @@ const FinanceDashboard = () => {
     const data: any[] = [];
     const now = new Date();
     for (let i = 0; i < 6; i++) {
-      const month = subMonths(now, -i); // future months
+      const month = subMonths(now, -i);
       const start = startOfMonth(month).toISOString().split('T')[0];
       const end = format(endOfMonth(month), 'yyyy-MM-dd');
       const label = format(month, 'MMM/yy', { locale: ptBR });
@@ -173,18 +231,61 @@ const FinanceDashboard = () => {
 
   const avgTicket = serviceCount > 0 ? revenue / serviceCount : 0;
   const netCompany = revenue - professionalValue;
-  const currentMonthLabel = format(new Date(), 'MMMM yyyy', { locale: ptBR });
-
-  const { maskValue } = useFinancialPrivacy();
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      {/* Header with filter */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <div>
           <h2 className="text-xl font-display font-bold">Dashboard Financeiro</h2>
-          <p className="text-sm text-muted-foreground">Visão geral das finanças da empresa</p>
+          <p className="text-sm text-muted-foreground">
+            Período: <span className="font-medium text-foreground capitalize">{filterLabel}</span>
+          </p>
         </div>
-        <FinancialPrivacyToggle />
+        <div className="flex items-center gap-2 flex-wrap">
+          <Select value={filterPreset} onValueChange={(v) => setFilterPreset(v as FilterPreset)}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="today">Hoje</SelectItem>
+              <SelectItem value="yesterday">Ontem</SelectItem>
+              <SelectItem value="last7">Últimos 7 dias</SelectItem>
+              <SelectItem value="this_month">Este mês</SelectItem>
+              <SelectItem value="custom">Personalizado</SelectItem>
+            </SelectContent>
+          </Select>
+
+          {filterPreset === 'custom' && (
+            <div className="flex items-center gap-2">
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" size="sm" className={cn("gap-1", !customStart && "text-muted-foreground")}>
+                    <CalendarIcon className="h-4 w-4" />
+                    {customStart ? format(customStart, 'dd/MM/yyyy') : 'Início'}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar mode="single" selected={customStart} onSelect={setCustomStart} initialFocus className={cn("p-3 pointer-events-auto")} />
+                </PopoverContent>
+              </Popover>
+              <span className="text-muted-foreground text-sm">até</span>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" size="sm" className={cn("gap-1", !customEnd && "text-muted-foreground")}>
+                    <CalendarIcon className="h-4 w-4" />
+                    {customEnd ? format(customEnd, 'dd/MM/yyyy') : 'Fim'}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar mode="single" selected={customEnd} onSelect={setCustomEnd} initialFocus className={cn("p-3 pointer-events-auto")} />
+                </PopoverContent>
+              </Popover>
+            </div>
+          )}
+
+          <FinancialPrivacyToggle />
+        </div>
       </div>
 
       {/* Main KPIs */}
@@ -197,7 +298,7 @@ const FinanceDashboard = () => {
             <div>
               <p className="text-xs text-muted-foreground">Faturamento</p>
               <p className="text-xl font-display font-bold">{maskValue(revenue)}</p>
-              <p className="text-[10px] text-muted-foreground capitalize">{currentMonthLabel}</p>
+              <p className="text-[10px] text-muted-foreground capitalize">{filterLabel}</p>
             </div>
           </CardContent>
         </Card>
