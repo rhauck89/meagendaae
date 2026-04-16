@@ -140,82 +140,86 @@ const ClientPortal = () => {
       .select('id, company_id, name, whatsapp, email, birth_date, registration_complete, postal_code, street, address_number, district, city, state')
       .eq('user_id', user!.id);
 
-    if (clientData && clientData.length > 0) {
-      setClients(clientData as ClientRecord[]);
-      const firstCompany = clientData[0].company_id;
-      setSelectedCompanyId(firstCompany);
+    if (!clientData || clientData.length === 0) {
+      setClients([]);
+      setLoading(false);
+      return;
+    }
 
-      const companyIds = [...new Set(clientData.map(c => c.company_id))];
-      const [companyRes, cashbackRes, loyaltyTxRes, rewardsRes] = await Promise.all([
-        supabase.from('companies').select('id, name').in('id', companyIds),
-        supabase.from('client_cashback')
-          .select('id, amount, status, expires_at, created_at, company_id, promotion:promotions!client_cashback_promotion_id_fkey(title)')
-          .in('client_id', clientData.map(c => c.id))
-          .order('created_at', { ascending: false }),
-        supabase.from('loyalty_points_transactions')
-          .select('*')
-          .in('client_id', clientData.map(c => c.id))
-          .order('created_at', { ascending: false })
-          .limit(200),
-        supabase.from('loyalty_reward_items')
-          .select('*')
-          .in('company_id', companyIds)
-          .eq('active', true),
+    setClients(clientData as ClientRecord[]);
+    const firstCompany = clientData[0].company_id;
+    setSelectedCompanyId(firstCompany);
+
+    const companyIds = [...new Set(clientData.map(c => c.company_id))];
+    const [companyRes, cashbackRes, loyaltyTxRes, rewardsRes] = await Promise.all([
+      supabase.from('companies').select('id, name').in('id', companyIds),
+      supabase.from('client_cashback')
+        .select('id, amount, status, expires_at, created_at, company_id, promotion:promotions!client_cashback_promotion_id_fkey(title)')
+        .in('client_id', clientData.map(c => c.id))
+        .order('created_at', { ascending: false }),
+      supabase.from('loyalty_points_transactions')
+        .select('*')
+        .in('client_id', clientData.map(c => c.id))
+        .order('created_at', { ascending: false })
+        .limit(200),
+      supabase.from('loyalty_reward_items')
+        .select('*')
+        .in('company_id', companyIds)
+        .eq('active', true),
+    ]);
+
+    if (companyRes.data) {
+      const map: Record<string, string> = {};
+      companyRes.data.forEach(c => { map[c.id] = c.name; });
+      setCompanies(map);
+    }
+
+    setAllCashbacks((cashbackRes.data || []) as any);
+    setAllLoyaltyTxs((loyaltyTxRes.data || []) as any);
+    setRewards((rewardsRes.data || []) as any);
+
+    // Check cashback and loyalty status per company
+    const cashActive: Record<string, boolean> = {};
+    const loyalActive: Record<string, boolean> = {};
+    const lcMap: Record<string, any> = {};
+
+    for (const cid of companyIds) {
+      const [promoCheck, lcRes] = await Promise.all([
+        supabase.from('promotions').select('id').eq('company_id', cid).eq('promotion_type', 'cashback').eq('status', 'active').limit(1),
+        supabase.from('loyalty_config').select('*').eq('company_id', cid).single(),
       ]);
+      cashActive[cid] = !!(promoCheck.data && promoCheck.data.length > 0);
+      loyalActive[cid] = !!lcRes.data?.enabled;
+      if (lcRes.data) lcMap[cid] = lcRes.data;
+    }
+    setCompanyCashbackActive(cashActive);
+    setCompanyLoyaltyActive(loyalActive);
+    setLoyaltyConfigs(lcMap);
 
-      if (companyRes.data) {
-        const map: Record<string, string> = {};
-        companyRes.data.forEach(c => { map[c.id] = c.name; });
-        setCompanies(map);
-      }
+    // Load appointments for all clients
+    const clientIds = clientData.map(c => c.id);
+    const { data: aptData } = await supabase
+      .from('appointments')
+      .select('id, start_time, end_time, total_price, status, company_id, company:companies(name), professional:profiles!appointments_professional_id_fkey(full_name), appointment_services(price, service:services(name))')
+      .in('client_id', clientIds)
+      .order('start_time', { ascending: false })
+      .limit(100);
+    setAppointments((aptData || []) as any);
 
-      setAllCashbacks((cashbackRes.data || []) as any);
-      setAllLoyaltyTxs((loyaltyTxRes.data || []) as any);
-      setRewards((rewardsRes.data || []) as any);
-
-      // Check cashback and loyalty status per company
-      const cashActive: Record<string, boolean> = {};
-      const loyalActive: Record<string, boolean> = {};
-      const lcMap: Record<string, any> = {};
-
-      for (const cid of companyIds) {
-        const [promoCheck, lcRes] = await Promise.all([
-          supabase.from('promotions').select('id').eq('company_id', cid).eq('promotion_type', 'cashback').eq('status', 'active').limit(1),
-          supabase.from('loyalty_config').select('*').eq('company_id', cid).single(),
-        ]);
-        cashActive[cid] = !!(promoCheck.data && promoCheck.data.length > 0);
-        loyalActive[cid] = !!lcRes.data?.enabled;
-        if (lcRes.data) lcMap[cid] = lcRes.data;
-      }
-      setCompanyCashbackActive(cashActive);
-      setCompanyLoyaltyActive(loyalActive);
-      setLoyaltyConfigs(lcMap);
-
-      // Load appointments for all clients
-      const clientIds = clientData.map(c => c.id);
-      const { data: aptData } = await supabase
-        .from('appointments')
-        .select('id, start_time, end_time, total_price, status, company_id, company:companies(name), professional:profiles!appointments_professional_id_fkey(full_name), appointment_services(price, service:services(name))')
-        .in('client_id', clientIds)
-        .order('start_time', { ascending: false })
-        .limit(100);
-      setAppointments((aptData || []) as any);
-
-      // Pre-fill profile form
-      const client = clientData[0];
-      if (!client.email || !client.birth_date) {
-        setProfileForm(f => ({
-          ...f,
-          email: client.email || '',
-          birth_date: client.birth_date || '',
-          postal_code: (client as any).postal_code || '',
-          street: (client as any).street || '',
-          address_number: (client as any).address_number || '',
-          district: (client as any).district || '',
-          city: (client as any).city || '',
-          state: (client as any).state || '',
-        }));
-      }
+    // Pre-fill profile form
+    const client = clientData[0];
+    if (!client.email || !client.birth_date) {
+      setProfileForm(f => ({
+        ...f,
+        email: client.email || '',
+        birth_date: client.birth_date || '',
+        postal_code: (client as any).postal_code || '',
+        street: (client as any).street || '',
+        address_number: (client as any).address_number || '',
+        district: (client as any).district || '',
+        city: (client as any).city || '',
+        state: (client as any).state || '',
+      }));
     }
     setLoading(false);
   };
