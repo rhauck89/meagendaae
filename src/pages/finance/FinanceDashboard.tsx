@@ -175,6 +175,8 @@ const FinanceDashboard = () => {
   const netCompany = revenue - professionalValue;
   const currentMonthLabel = format(new Date(), 'MMMM yyyy', { locale: ptBR });
 
+  const { maskValue } = useFinancialPrivacy();
+
   return (
     <div className="space-y-6">
       <div>
