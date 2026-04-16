@@ -360,6 +360,68 @@ export default function BarbershopLanding({ routeBusinessType, customSlug }: Bar
       </div>
 
       <div className="max-w-lg mx-auto px-4 py-8 space-y-8">
+        {/* Smart Rebooking Block — only for logged-in users with history */}
+        {isLoggedIn && lastBooking && !rebookDismissed && (() => {
+          const daysSince = Math.floor((Date.now() - new Date(lastBooking.bookedAt).getTime()) / (1000 * 60 * 60 * 24));
+          return (
+            <section className="rounded-2xl p-5 space-y-4" style={{ background: `${T.accent}10`, border: `1.5px solid ${T.accent}40` }}>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <RotateCcw className="h-5 w-5" style={{ color: T.accent }} />
+                  <span className="font-bold text-base" style={{ color: T.text }}>Agendar novamente?</span>
+                </div>
+                <button
+                  onClick={handleDismissRebook}
+                  className="p-1 rounded-full hover:opacity-70"
+                  style={{ color: T.textSec }}
+                  aria-label="Fechar"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+              {daysSince >= 14 && (
+                <p className="text-sm font-medium" style={{ color: T.accent }}>
+                  👀 Está na hora de agendar novamente — faz {daysSince} dias!
+                </p>
+              )}
+              <div className="flex items-center gap-4 p-3 rounded-xl" style={{ background: T.card, border: `1px solid ${T.border}` }}>
+                {lastBooking.professionalAvatar ? (
+                  <img src={lastBooking.professionalAvatar} alt="" className="w-12 h-12 rounded-full object-cover shrink-0" />
+                ) : (
+                  <div className="w-12 h-12 rounded-full flex items-center justify-center text-lg font-bold shrink-0" style={{ background: `${T.accent}20`, color: T.accent }}>
+                    {lastBooking.professionalName.charAt(0).toUpperCase()}
+                  </div>
+                )}
+                <div className="min-w-0 flex-1">
+                  <p className="font-semibold text-sm truncate" style={{ color: T.text }}>{lastBooking.serviceNames.join(', ')}</p>
+                  <p className="text-xs mt-0.5" style={{ color: T.textSec }}>
+                    <Clock className="h-3 w-3 inline mr-1" />{lastBooking.totalDuration} min • com {lastBooking.professionalName}
+                  </p>
+                  <p className="text-xs font-semibold mt-0.5" style={{ color: T.accent }}>
+                    R$ {lastBooking.totalPrice.toFixed(2)}
+                  </p>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Button
+                  onClick={() => navigate(`/${bookingBasePath}/${slug}/agendar?rebook=1`)}
+                  className="w-full rounded-xl py-5 font-semibold text-base"
+                  style={{ background: T.accent, color: '#000' }}
+                >
+                  <RotateCcw className="h-4 w-4 mr-2" /> Repetir agendamento
+                </Button>
+                <button
+                  onClick={() => navigate(`/${bookingBasePath}/${slug}/agendar`)}
+                  className="w-full py-2 text-sm font-medium rounded-xl hover:opacity-80"
+                  style={{ color: T.textSec }}
+                >
+                  Escolher outro serviço
+                </button>
+              </div>
+            </section>
+          );
+        })()}
+
         {/* 6) Team Section */}
         {professionals.length > 0 && (
           <section>
