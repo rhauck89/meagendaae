@@ -134,7 +134,7 @@ const Dashboard = () => {
   const [companyBusinessType, setCompanyBusinessType] = useState('barbershop');
   const [statusTab, setStatusTab] = useState<StatusTab>('confirmed');
   const [manualAppointmentOpen, setManualAppointmentOpen] = useState(false);
-
+  const [highlightedAppointmentId, setHighlightedAppointmentId] = useState<string | null>(null);
   // Cleanup orphan Radix portal elements when reschedule modal closes
   useEffect(() => {
     if (!rescheduleDialogOpen) {
