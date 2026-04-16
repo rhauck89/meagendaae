@@ -583,7 +583,7 @@ const Dashboard = () => {
             // Calculate cashback amount
             let cashbackAmount = 0;
             if (promo.discount_type === 'percentage' && promo.discount_value) {
-              cashbackAmount = totalPrice * Number(promo.discount_value) / 100;
+              cashbackAmount = netPrice * Number(promo.discount_value) / 100;
             } else if ((promo.discount_type === 'fixed_amount') && promo.discount_value) {
               cashbackAmount = Number(promo.discount_value);
             }
