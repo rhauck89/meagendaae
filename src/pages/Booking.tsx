@@ -20,7 +20,7 @@ import { PlatformBranding } from '@/components/PlatformBranding';
 import { CustomRequestForm } from '@/components/CustomRequestForm';
 import { getCompanyBranding, buildThemeFromBranding } from '@/hooks/useCompanyBranding';
 import { usePreselectedSlot } from '@/hooks/usePreselectedSlot';
-import { BookingAuthGate } from '@/components/BookingAuthGate';
+import { Lock } from 'lucide-react';
 
 const StarRating = ({ rating, size = 14 }: { rating: number; size?: number }) => {
   return (
@@ -213,7 +213,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
   const [loyaltyPointValue, setLoyaltyPointValue] = useState(0);
   const slotRequestRef = useRef(0);
   const [isClientLoggedIn, setIsClientLoggedIn] = useState(false);
-  const [authGateOpen, setAuthGateOpen] = useState(false);
+  
   const [hasBenefitsActive, setHasBenefitsActive] = useState(false);
   const [lastBooking, setLastBooking] = useState<{
     serviceIds: string[]; serviceNames: string[]; serviceDurations: number[];
