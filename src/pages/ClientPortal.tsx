@@ -31,7 +31,7 @@ interface CompanyInfo { id: string; name: string; logo_url: string | null; slug?
 interface AppointmentRow {
   id: string; start_time: string; end_time: string; total_price: number;
   status: string; company_id: string;
-  professional: { full_name: string } | null;
+  professional: { name: string } | null;
   appointment_services: { service: { name: string } | null; price: number }[];
 }
 interface CashbackRow {
@@ -141,7 +141,7 @@ const ClientPortal = () => {
 
     const companyIds = [...new Set(clientData.map(c => c.company_id))];
     const [companyRes, cashbackRes, loyaltyTxRes, rewardsRes] = await Promise.all([
-      supabase.from('companies').select('id, name, logo_url, slug').in('id', companyIds),
+      supabase.from('public_company').select('id, name, logo_url, slug').in('id', companyIds),
       supabase.from('client_cashback')
         .select('id, amount, status, expires_at, created_at, company_id, promotion:promotions!client_cashback_promotion_id_fkey(title)')
         .in('client_id', clientData.map(c => c.id))
@@ -184,7 +184,7 @@ const ClientPortal = () => {
     const clientIds = clientData.map(c => c.id);
     const { data: aptData } = await supabase
       .from('appointments')
-      .select('id, start_time, end_time, total_price, status, company_id, professional:profiles!appointments_professional_id_fkey(full_name), appointment_services(price, service:services(name))')
+      .select('id, start_time, end_time, total_price, status, company_id, professional:public_professionals!appointments_professional_id_fkey(name), appointment_services(price, service:services(name))')
       .in('client_id', clientIds)
       .order('start_time', { ascending: false }).limit(200);
     setAppointments((aptData || []) as any);
@@ -353,7 +353,9 @@ const ClientPortal = () => {
       <header className="bg-card border-b sticky top-0 z-20 shadow-sm">
         <div className="max-w-3xl mx-auto px-4 pt-4 pb-3">
           <div className="flex items-center justify-between gap-3">
-            <PlatformLogo onDarkBackground={false} compact />
+            <div className="scale-125 origin-left">
+              <PlatformLogo onDarkBackground={false} compact />
+            </div>
             <div className="flex items-center gap-1">
               <Button variant="ghost" size="icon" aria-label="Notificações">
                 <Bell className="h-5 w-5" />
@@ -472,7 +474,7 @@ const ClientPortal = () => {
                       </p>
                       {nextAppointment.professional && (
                         <p className="text-xs text-muted-foreground">
-                          com <strong>{nextAppointment.professional.full_name}</strong>
+                          com <strong>{nextAppointment.professional.name}</strong>
                         </p>
                       )}
                     </div>
@@ -511,7 +513,7 @@ const ClientPortal = () => {
                         {lastAppointment.appointment_services?.map(s => s.service?.name).filter(Boolean).join(', ')}
                       </p>
                       {lastAppointment.professional && (
-                        <p className="text-xs text-muted-foreground">com {lastAppointment.professional.full_name}</p>
+                        <p className="text-xs text-muted-foreground">com {lastAppointment.professional.name}</p>
                       )}
                       <p className="text-[11px] text-muted-foreground mt-0.5">
                         {format(parseISO(lastAppointment.start_time), "dd/MM/yyyy", { locale: ptBR })}
@@ -642,7 +644,7 @@ const ClientPortal = () => {
                                     <p className="font-semibold text-sm truncate">{co?.name || 'Estabelecimento'}</p>
                                     {apt.professional && (
                                       <p className="text-xs text-muted-foreground truncate">
-                                        com {apt.professional.full_name}
+                                        com {apt.professional.name}
                                       </p>
                                     )}
                                   </div>
@@ -712,7 +714,7 @@ const ClientPortal = () => {
                             </p>
                             <p className="text-xs text-muted-foreground truncate">
                               {apt.appointment_services?.map(s => s.service?.name).filter(Boolean).join(', ')}
-                              {apt.professional && ` · ${apt.professional.full_name}`}
+                              {apt.professional && ` · ${apt.professional.name}`}
                             </p>
                           </div>
                           <p className="text-sm font-semibold shrink-0">R$ {Number(apt.total_price).toFixed(2)}</p>
