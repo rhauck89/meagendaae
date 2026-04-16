@@ -1505,190 +1505,222 @@ const Dashboard = () => {
             </div>
           )}
 
-          {/* Status Tabs */}
-          {(() => {
-            // Show ALL appointments in the agenda block (complete view)
-            const agendaAppointments = appointments;
+          {/* Calendar Timeline View */}
+          {agendaDisplayMode === 'calendario' && !isMobile && viewMode === 'day' ? (
+            <>
+              {appointments.length === 0 ? (
+                <div className="text-center py-12 text-muted-foreground">
+                  <CalendarIcon className="h-12 w-12 mx-auto mb-3 opacity-40" />
+                  <p>Nenhum agendamento neste período</p>
+                  <Button className="mt-4 gap-2" variant="outline" onClick={() => setManualAppointmentOpen(true)}>
+                    <CalendarIcon className="h-4 w-4" /> Agendar manualmente
+                  </Button>
+                </div>
+              ) : (
+                <AgendaTimelineView
+                  appointments={appointments.filter(a => a.status !== 'rescheduled')}
+                  blockedTimes={blockedTimes}
+                  professionals={collaboratorsList}
+                  columnMode={timelineColumnMode}
+                  getDisplayStatus={getDisplayStatus}
+                  onAppointmentClick={(apt) => {
+                    // Open the complete dialog for actionable statuses
+                    const ds = getDisplayStatus(apt);
+                    if (ds === 'in_progress' || ds === 'late') {
+                      setCompleteTarget(apt);
+                      setCompleteDialogOpen(true);
+                    } else if (apt.status === 'pending' || apt.status === 'confirmed') {
+                      setCompleteTarget(apt);
+                      setCompleteDialogOpen(true);
+                    }
+                  }}
+                />
+              )}
+            </>
+          ) : (
+            /* List View */
+            (() => {
+              const agendaAppointments = appointments;
+              const counts = {
+                all: agendaAppointments.filter(a => a.status !== 'rescheduled').length,
+                confirmed: agendaAppointments.filter(statusFilterMap.confirmed).length,
+                completed: agendaAppointments.filter(statusFilterMap.completed).length,
+                cancelled: agendaAppointments.filter(statusFilterMap.cancelled).length,
+                rescheduled: agendaAppointments.filter(statusFilterMap.rescheduled).length,
+              };
+              const filteredAppts = agendaAppointments.filter(statusFilterMap[statusTab]);
 
-            const counts = {
-              all: agendaAppointments.filter(a => a.status !== 'rescheduled').length,
-              confirmed: agendaAppointments.filter(statusFilterMap.confirmed).length,
-              completed: agendaAppointments.filter(statusFilterMap.completed).length,
-              cancelled: agendaAppointments.filter(statusFilterMap.cancelled).length,
-              rescheduled: agendaAppointments.filter(statusFilterMap.rescheduled).length,
-            };
-            const filteredAppts = agendaAppointments.filter(statusFilterMap[statusTab]);
+              return (
+                <>
+                  <Tabs value={statusTab} onValueChange={(v) => setStatusTab(v as StatusTab)} className="mb-4">
+                    <TabsList className="w-full flex flex-wrap h-auto gap-1">
+                      <TabsTrigger value="all" className="text-xs sm:text-sm">Todos ({counts.all})</TabsTrigger>
+                      <TabsTrigger value="confirmed" className="text-xs sm:text-sm">Confirmados ({counts.confirmed})</TabsTrigger>
+                      <TabsTrigger value="completed" className="text-xs sm:text-sm">Concluídos ({counts.completed})</TabsTrigger>
+                      <TabsTrigger value="cancelled" className="text-xs sm:text-sm">Cancelados ({counts.cancelled})</TabsTrigger>
+                      <TabsTrigger value="rescheduled" className="text-xs sm:text-sm">Reagendados ({counts.rescheduled})</TabsTrigger>
+                    </TabsList>
+                  </Tabs>
 
-            return (
-              <>
-                <Tabs value={statusTab} onValueChange={(v) => setStatusTab(v as StatusTab)} className="mb-4">
-                  <TabsList className="w-full flex flex-wrap h-auto gap-1">
-                    <TabsTrigger value="all" className="text-xs sm:text-sm">Todos ({counts.all})</TabsTrigger>
-                    <TabsTrigger value="confirmed" className="text-xs sm:text-sm">Confirmados ({counts.confirmed})</TabsTrigger>
-                    <TabsTrigger value="completed" className="text-xs sm:text-sm">Concluídos ({counts.completed})</TabsTrigger>
-                    <TabsTrigger value="cancelled" className="text-xs sm:text-sm">Cancelados ({counts.cancelled})</TabsTrigger>
-                    <TabsTrigger value="rescheduled" className="text-xs sm:text-sm">Reagendados ({counts.rescheduled})</TabsTrigger>
-                  </TabsList>
-                </Tabs>
-
-                {filteredAppts.length === 0 ? (
-                  <div className="text-center py-12 text-muted-foreground">
-                    <CalendarIcon className="h-12 w-12 mx-auto mb-3 opacity-40" />
-                    <p>Nenhum agendamento neste período</p>
-                    <Button className="mt-4 gap-2" variant="outline" onClick={() => setManualAppointmentOpen(true)}>
-                      <CalendarIcon className="h-4 w-4" /> Agendar manualmente
-                    </Button>
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    {filteredAppts.map((apt) => {
-                      const displayStatus = getDisplayStatus(apt);
-                      return (
-                        <div
-                          key={apt.id}
-                          id={`agenda-apt-${apt.id}`}
-                          className={cn("flex flex-col sm:flex-row sm:items-center gap-3 p-4 rounded-xl border transition-all hover:shadow-md", statusCardStyles[displayStatus] || 'bg-card', highlightedAppointmentId === apt.id && 'ring-2 ring-primary shadow-lg')}
-                        >
-                          <div className="flex items-center gap-3 flex-1">
-                            <div className="text-center min-w-[60px]">
-                              <p className="text-lg font-display font-bold">
-                                {viewMode !== 'day'
-                                  ? `${format(parseISO(apt.start_time), 'dd/MM')} • ${format(parseISO(apt.start_time), 'HH:mm')}`
-                                  : format(parseISO(apt.start_time), 'HH:mm')}
-                              </p>
-                              <p className="text-xs text-muted-foreground">
-                                {format(parseISO(apt.end_time), 'HH:mm')}
-                              </p>
+                  {filteredAppts.length === 0 ? (
+                    <div className="text-center py-12 text-muted-foreground">
+                      <CalendarIcon className="h-12 w-12 mx-auto mb-3 opacity-40" />
+                      <p>Nenhum agendamento neste período</p>
+                      <Button className="mt-4 gap-2" variant="outline" onClick={() => setManualAppointmentOpen(true)}>
+                        <CalendarIcon className="h-4 w-4" /> Agendar manualmente
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {filteredAppts.map((apt) => {
+                        const displayStatus = getDisplayStatus(apt);
+                        return (
+                          <div
+                            key={apt.id}
+                            id={`agenda-apt-${apt.id}`}
+                            className={cn("flex flex-col sm:flex-row sm:items-center gap-3 p-4 rounded-xl border transition-all hover:shadow-md", statusCardStyles[displayStatus] || 'bg-card', highlightedAppointmentId === apt.id && 'ring-2 ring-primary shadow-lg')}
+                          >
+                            <div className="flex items-center gap-3 flex-1">
+                              <div className="text-center min-w-[60px]">
+                                <p className="text-lg font-display font-bold">
+                                  {viewMode !== 'day'
+                                    ? `${format(parseISO(apt.start_time), 'dd/MM')} • ${format(parseISO(apt.start_time), 'HH:mm')}`
+                                    : format(parseISO(apt.start_time), 'HH:mm')}
+                                </p>
+                                <p className="text-xs text-muted-foreground">
+                                  {format(parseISO(apt.end_time), 'HH:mm')}
+                                </p>
+                              </div>
+                              <div className="flex-1">
+                                <p className="font-semibold">{apt.client_name || apt.client?.name || 'Cliente'}</p>
+                                <p className="text-sm text-muted-foreground">
+                                  {formatServicesWithDuration(apt.appointment_services)}
+                                </p>
+                                {apt.promotion_id && (
+                                  <span className="inline-flex items-center gap-1 text-xs font-medium px-1.5 py-0.5 rounded bg-orange-500/10 text-orange-500 mt-0.5">🔥 Promoção</span>
+                                )}
+                                <p className="text-xs text-muted-foreground">
+                                  com {apt.professional?.full_name}
+                                </p>
+                                {apt.rescheduled_from_id && (() => {
+                                  const fromData = Array.isArray(apt.rescheduled_from) ? apt.rescheduled_from[0] : apt.rescheduled_from;
+                                  return fromData?.start_time ? (
+                                    <p className="text-xs text-muted-foreground italic mt-0.5 flex items-center gap-1">
+                                      ↪ Reagendado de {format(parseISO(fromData.start_time), 'HH:mm')}
+                                    </p>
+                                  ) : null;
+                                })()}
+                              </div>
                             </div>
-                            <div className="flex-1">
-                              <p className="font-semibold">{apt.client_name || apt.client?.name || 'Cliente'}</p>
-                              <p className="text-sm text-muted-foreground">
-                                {formatServicesWithDuration(apt.appointment_services)}
-                              </p>
-                              {apt.promotion_id && (
-                                <span className="inline-flex items-center gap-1 text-xs font-medium px-1.5 py-0.5 rounded bg-orange-500/10 text-orange-500 mt-0.5">🔥 Promoção</span>
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="font-display font-bold text-lg">
+                                R$ {Number(apt.total_price).toFixed(2)}
+                              </span>
+                              <Badge variant="outline" className={cn('text-xs', statusColors[displayStatus])}>
+                                {statusLabels[displayStatus]}
+                              </Badge>
+                              {apt.rescheduled_from_id && (
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <div>
+                                      <Badge className="text-xs bg-orange-500 text-white border-orange-500 hover:bg-orange-600 cursor-help">
+                                        🔁 Reagendado
+                                      </Badge>
+                                    </div>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    {(() => {
+                                      const fromData = Array.isArray(apt.rescheduled_from) ? apt.rescheduled_from[0] : apt.rescheduled_from;
+                                      return fromData?.start_time
+                                        ? `Reagendado de ${format(parseISO(fromData.start_time), "dd/MM/yyyy 'às' HH:mm")}`
+                                        : 'Reagendado de horário anterior';
+                                    })()}
+                                  </TooltipContent>
+                                </Tooltip>
                               )}
-                              <p className="text-xs text-muted-foreground">
-                                com {apt.professional?.full_name}
-                              </p>
-                              {apt.rescheduled_from_id && (() => {
-                                const fromData = Array.isArray(apt.rescheduled_from) ? apt.rescheduled_from[0] : apt.rescheduled_from;
-                                return fromData?.start_time ? (
-                                  <p className="text-xs text-muted-foreground italic mt-0.5 flex items-center gap-1">
-                                    ↪ Reagendado de {format(parseISO(fromData.start_time), 'HH:mm')}
-                                  </p>
-                                ) : null;
-                              })()}
                             </div>
-                          </div>
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <span className="font-display font-bold text-lg">
-                              R$ {Number(apt.total_price).toFixed(2)}
-                            </span>
-                            <Badge variant="outline" className={cn('text-xs', statusColors[displayStatus])}>
-                              {statusLabels[displayStatus]}
-                            </Badge>
-                            {apt.rescheduled_from_id && (
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <div>
-                                    <Badge className="text-xs bg-orange-500 text-white border-orange-500 hover:bg-orange-600 cursor-help">
-                                      🔁 Reagendado
-                                    </Badge>
-                                  </div>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  {(() => {
-                                    const fromData = Array.isArray(apt.rescheduled_from) ? apt.rescheduled_from[0] : apt.rescheduled_from;
-                                    return fromData?.start_time
-                                      ? `Reagendado de ${format(parseISO(fromData.start_time), "dd/MM/yyyy 'às' HH:mm")}`
-                                      : 'Reagendado de horário anterior';
-                                  })()}
-                                </TooltipContent>
-                              </Tooltip>
-                            )}
-                          </div>
-                          <div className="flex gap-1 flex-wrap">
-                            {(displayStatus === 'in_progress' || displayStatus === 'late') && (
-                              <Button
-                                size="sm"
-                                className="bg-success hover:bg-success/90 text-white"
-                                onClick={() => {
-                                  setCompleteTarget(apt);
-                                  setCompleteDialogOpen(true);
-                                }}
-                              >
-                                ✓ Concluir atendimento
-                              </Button>
-                            )}
-                            {apt.status === 'pending' && displayStatus !== 'late' && (
-                              <Button size="sm" onClick={() => updateStatus(apt.id, 'confirmed')}>
-                                Confirmar
-                              </Button>
-                            )}
-                            {(apt.status === 'pending' || apt.status === 'confirmed') && displayStatus !== 'in_progress' && displayStatus !== 'late' && (
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => {
-                                  setCompleteTarget(apt);
-                                  setCompleteDialogOpen(true);
-                                }}
-                              >
-                                Concluir
-                              </Button>
-                            )}
-                            {(apt.status === 'pending' || apt.status === 'confirmed') && (
-                              <>
+                            <div className="flex gap-1 flex-wrap">
+                              {(displayStatus === 'in_progress' || displayStatus === 'late') && (
+                                <Button
+                                  size="sm"
+                                  className="bg-success hover:bg-success/90 text-white"
+                                  onClick={() => {
+                                    setCompleteTarget(apt);
+                                    setCompleteDialogOpen(true);
+                                  }}
+                                >
+                                  ✓ Concluir atendimento
+                                </Button>
+                              )}
+                              {apt.status === 'pending' && displayStatus !== 'late' && (
+                                <Button size="sm" onClick={() => updateStatus(apt.id, 'confirmed')}>
+                                  Confirmar
+                                </Button>
+                              )}
+                              {(apt.status === 'pending' || apt.status === 'confirmed') && displayStatus !== 'in_progress' && displayStatus !== 'late' && (
                                 <Button
                                   size="sm"
                                   variant="outline"
                                   onClick={() => {
-                                    setDelayTargetId(apt.id);
-                                    setDelayDialogOpen(true);
+                                    setCompleteTarget(apt);
+                                    setCompleteDialogOpen(true);
                                   }}
                                 >
-                                  <Timer className="h-4 w-4 mr-1" />
-                                  Atraso
+                                  Concluir
                                 </Button>
-                                {!apt.promotion_id && (
+                              )}
+                              {(apt.status === 'pending' || apt.status === 'confirmed') && (
+                                <>
                                   <Button
                                     size="sm"
                                     variant="outline"
-                                    onClick={() => openRescheduleDialog(apt)}
+                                    onClick={() => {
+                                      setDelayTargetId(apt.id);
+                                      setDelayDialogOpen(true);
+                                    }}
                                   >
-                                    <RefreshCw className="h-4 w-4 mr-1" />
-                                    Reagendar
+                                    <Timer className="h-4 w-4 mr-1" />
+                                    Atraso
                                   </Button>
-                                )}
-                                <Button
-                                  size="sm"
-                                  variant="ghost"
-                                  className="text-destructive"
-                                  onClick={() => {
-                                    setCancelTarget(apt);
-                                    setCancelDialogOpen(true);
-                                  }}
-                                >
-                                  Cancelar
-                                </Button>
-                              </>
-                            )}
-                            {apt.delay_minutes > 0 && (
-                              <Badge variant="outline" className="text-xs border-warning text-warning">
-                                <Timer className="h-3 w-3 mr-1" />
-                                +{apt.delay_minutes}min
-                              </Badge>
-                            )}
+                                  {!apt.promotion_id && (
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={() => openRescheduleDialog(apt)}
+                                    >
+                                      <RefreshCw className="h-4 w-4 mr-1" />
+                                      Reagendar
+                                    </Button>
+                                  )}
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    className="text-destructive"
+                                    onClick={() => {
+                                      setCancelTarget(apt);
+                                      setCancelDialogOpen(true);
+                                    }}
+                                  >
+                                    Cancelar
+                                  </Button>
+                                </>
+                              )}
+                              {apt.delay_minutes > 0 && (
+                                <Badge variant="outline" className="text-xs border-warning text-warning">
+                                  <Timer className="h-3 w-3 mr-1" />
+                                  +{apt.delay_minutes}min
+                                </Badge>
+                              )}
+                            </div>
                           </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </>
-            );
-          })()}
+                        );
+                      })}
+                    </div>
+                  )}
+                </>
+              );
+            })()
+          )}
         </CardContent>
       </Card>
 
