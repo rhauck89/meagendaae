@@ -26,6 +26,7 @@ const emptyForm = () => ({
 
 const FinanceRevenues = () => {
   const { companyId, user } = useAuth();
+  const { maskValue } = useFinancialPrivacy();
   const [revenues, setRevenues] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
   const [open, setOpen] = useState(false);
@@ -234,7 +235,7 @@ const FinanceRevenues = () => {
                     </TableCell>
                     <TableCell className="text-xs text-muted-foreground">{paymentMethodLabels[r.payment_method] || '—'}</TableCell>
                     <TableCell><Badge variant="outline" className="text-xs">{statusLabels[r.status] || r.status}</Badge></TableCell>
-                    <TableCell className="text-right font-semibold text-success">R$ {Number(r.amount).toFixed(2)}</TableCell>
+                    <TableCell className="text-right font-semibold text-success">{maskValue(Number(r.amount))}</TableCell>
                     <TableCell>
                       <div className="flex gap-1">
                         {!r.is_automatic && (
@@ -262,7 +263,7 @@ const FinanceRevenues = () => {
             <CardContent className="p-4">
               <div className="flex items-start justify-between gap-2 mb-2">
                 <span className="font-medium text-sm break-words flex-1 min-w-0">{r.description}</span>
-                <span className="font-semibold text-sm text-success shrink-0">R$ {Number(r.amount).toFixed(2)}</span>
+                <span className="font-semibold text-sm text-success shrink-0">{maskValue(Number(r.amount))}</span>
               </div>
               <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground mb-2">
                 <span>{format(new Date(r.revenue_date + 'T12:00:00'), 'dd/MM/yyyy')}</span>
