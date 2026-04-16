@@ -31,7 +31,7 @@ interface CompanyInfo { id: string; name: string; logo_url: string | null; slug?
 interface AppointmentRow {
   id: string; start_time: string; end_time: string; total_price: number;
   status: string; company_id: string;
-  professional: { full_name: string } | null;
+  professional: { name: string } | null;
   appointment_services: { service: { name: string } | null; price: number }[];
 }
 interface CashbackRow {
