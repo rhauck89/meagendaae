@@ -411,7 +411,18 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
       setCompanyStats({ avgRating, reviewCount, completedCount });
     }
 
-    // Check if company has any active professionals
+    // Fetch active cashback promotions for auto-detection
+    try {
+      const today = format(new Date(), 'yyyy-MM-dd');
+      const { data: cbPromos } = await supabase
+        .from('promotions')
+        .select('id, promotion_type, discount_type, discount_value, cashback_validity_days, service_id, service_ids, professional_filter, professional_ids')
+        .eq('company_id', comp.id)
+        .eq('promotion_type', 'cashback')
+        .eq('status', 'active')
+        .lte('start_date', today)
+        .gte('end_date', today);
+      if (cbPromos) setAutoCashbackPromos(cbPromos);
     if (!professionalSlug && !promoIdRef.current) {
       const { data: allProfs } = await supabase
         .from('public_professionals' as any)
