@@ -896,12 +896,24 @@ const ClientPortal = () => {
                   ))
                 )}
               </div>
-            </TabsContent>
-          )}
+            </>
+            )}
+          </TabsContent>
 
           {/* ================= REWARDS STORE (user picks company first) ================= */}
-          {anyLoyalty && (
-            <TabsContent value="rewards" className="space-y-4 mt-4">
+          <TabsContent value="rewards" className="space-y-4 mt-4">
+            {!anyLoyalty ? (
+              <Card>
+                <CardContent className="p-8 text-center space-y-3">
+                  <ShoppingBag className="h-12 w-12 mx-auto text-muted-foreground/40" />
+                  <p className="font-semibold">Loja de recompensas indisponível</p>
+                  <p className="text-sm text-muted-foreground">
+                    Quando você acumular pontos em algum estabelecimento, poderá trocá-los por recompensas aqui.
+                  </p>
+                </CardContent>
+              </Card>
+            ) : (
+            <>
               {/* Company selector */}
               <div>
                 <p className="text-xs font-semibold text-muted-foreground mb-2">
