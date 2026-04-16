@@ -196,16 +196,39 @@ const ClientPortal = () => {
           .select('*')
           .in('client_id', clientData.map(c => c.id))
           .order('created_at', { ascending: false }).limit(300),
+        // Loja: busca TODOS os itens ativos com info da empresa embutida (sem depender de vínculo client→company)
         supabase.from('loyalty_reward_items')
-          .select('*').in('company_id', companyIds).eq('active', true),
+          .select(`
+            id, name, description, points_required, real_value, image_url, item_type, company_id,
+            company:companies!loyalty_reward_items_company_id_fkey(id, name, logo_url, slug)
+          `)
+          .eq('active', true),
       ]);
 
       const companiesMap: Record<string, CompanyInfo> = {};
       if (companyRes.data) {
         companyRes.data.forEach((c: any) => { companiesMap[c.id] = { id: c.id, name: c.name, logo_url: c.logo_url, slug: c.slug }; });
-        setCompanies(companiesMap);
-        if (!rewardsCompanyId && companyIds.length > 0) setRewardsCompanyId(companyIds[0]);
       }
+      // Hidrata o mapa de empresas com as que vieram via recompensas (multi-empresa real)
+      if (rewardsRes.data) {
+        for (const r of rewardsRes.data as any[]) {
+          if (r.company && !companiesMap[r.company.id]) {
+            companiesMap[r.company.id] = { id: r.company.id, name: r.company.name, logo_url: r.company.logo_url, slug: r.company.slug };
+          }
+        }
+      }
+      setCompanies(companiesMap);
+      if (!rewardsCompanyId) {
+        const firstRewardCompany = (rewardsRes.data as any[])?.[0]?.company_id;
+        if (firstRewardCompany) setRewardsCompanyId(firstRewardCompany);
+        else if (companyIds.length > 0) setRewardsCompanyId(companyIds[0]);
+      }
+
+      console.log('[ClientPortal][Loja] rewards loaded:', {
+        count: rewardsRes.data?.length || 0,
+        companies: [...new Set((rewardsRes.data || []).map((r: any) => r.company_id))],
+        error: rewardsRes.error,
+      });
 
       setAllCashbacks((cashbackRes.data || []) as any);
       setAllLoyaltyTxs((loyaltyTxRes.data || []) as any);
