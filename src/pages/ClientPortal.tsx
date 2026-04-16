@@ -390,18 +390,7 @@ const ClientPortal = () => {
     </div>
   );
 
-  if (loading) return (
-    <div className="min-h-screen bg-background p-4">
-      <div className="max-w-3xl mx-auto space-y-4">
-        <div className="h-20 bg-muted/50 rounded-lg animate-pulse" />
-        <div className="flex gap-3 overflow-hidden">
-          {[1, 2, 3].map(i => <div key={i} className="h-28 w-64 shrink-0 bg-muted/40 rounded-2xl animate-pulse" />)}
-        </div>
-        <div className="h-48 bg-muted/40 rounded-2xl animate-pulse" />
-        <div className="h-32 bg-muted/40 rounded-2xl animate-pulse" />
-      </div>
-    </div>
-  );
+  if (loading) return <ClientPortalSkeleton />;
 
   if (clients.length === 0) return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
