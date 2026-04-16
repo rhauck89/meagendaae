@@ -31,7 +31,8 @@ interface CompanyInfo { id: string; name: string; logo_url: string | null; slug?
 interface AppointmentRow {
   id: string; start_time: string; end_time: string; total_price: number;
   status: string; company_id: string;
-  professional: { name: string } | null;
+  company: { id: string; name: string; logo_url: string | null; slug: string | null } | null;
+  professional: { id: string; full_name: string; avatar_url: string | null } | null;
   appointment_services: { service: { name: string } | null; price: number }[];
 }
 interface CashbackRow {
@@ -141,7 +142,7 @@ const ClientPortal = () => {
 
     const companyIds = [...new Set(clientData.map(c => c.company_id))];
     const [companyRes, cashbackRes, loyaltyTxRes, rewardsRes] = await Promise.all([
-      supabase.from('public_company').select('id, name, logo_url, slug').in('id', companyIds),
+      supabase.from('companies').select('id, name, logo_url, slug').in('id', companyIds),
       supabase.from('client_cashback')
         .select('id, amount, status, expires_at, created_at, company_id, promotion:promotions!client_cashback_promotion_id_fkey(title)')
         .in('client_id', clientData.map(c => c.id))
@@ -182,12 +183,31 @@ const ClientPortal = () => {
     setLoyaltyConfigs(lcMap);
 
     const clientIds = clientData.map(c => c.id);
-    const { data: aptData } = await supabase
+    const { data: aptData, error: aptErr } = await supabase
       .from('appointments')
-      .select('id, start_time, end_time, total_price, status, company_id, professional:public_professionals!appointments_professional_id_fkey(name), appointment_services(price, service:services(name))')
+      .select(`
+        id, start_time, end_time, total_price, status, company_id,
+        company:companies!appointments_company_id_fkey(id, name, logo_url, slug),
+        professional:profiles!appointments_professional_id_fkey(id, full_name, avatar_url),
+        appointment_services(price, service:services(id, name))
+      `)
       .in('client_id', clientIds)
       .order('start_time', { ascending: false }).limit(200);
+    if (aptErr) console.error('[ClientPortal] appointments query error:', aptErr);
     setAppointments((aptData || []) as any);
+
+    // Merge embedded company data into companies map (covers any company missing from /companies query)
+    if (aptData) {
+      setCompanies(prev => {
+        const next = { ...prev };
+        for (const a of aptData as any[]) {
+          if (a.company && !next[a.company.id]) {
+            next[a.company.id] = { id: a.company.id, name: a.company.name, logo_url: a.company.logo_url, slug: a.company.slug };
+          }
+        }
+        return next;
+      });
+    }
 
     const c = clientData[0];
     setProfileForm({
