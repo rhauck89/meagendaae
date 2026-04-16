@@ -27,6 +27,8 @@ import { useNavigate as useRouterNavigate } from 'react-router-dom';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { ManualAppointmentDialog } from '@/components/ManualAppointmentDialog';
 import { AgendaTimelineView } from '@/components/AgendaTimelineView';
+import { AgendaWeekView } from '@/components/AgendaWeekView';
+import { AgendaMonthView } from '@/components/AgendaMonthView';
 import { ResponsiveContainer, LineChart, Line } from 'recharts';
 import { useIsMobile } from '@/hooks/use-mobile';
 
@@ -1447,7 +1449,7 @@ const Dashboard = () => {
               </div>
             )}
             {/* Column mode toggle for calendar view */}
-            {!isMobile && agendaDisplayMode === 'calendario' && isAdmin && collaboratorsList.length > 1 && (
+            {!isMobile && agendaDisplayMode === 'calendario' && viewMode === 'day' && isAdmin && collaboratorsList.length > 1 && (
               <div className="flex gap-1 bg-muted rounded-lg p-1">
                 <Button
                   variant={timelineColumnMode === 'day' ? 'default' : 'ghost'}
@@ -1505,34 +1507,61 @@ const Dashboard = () => {
             </div>
           )}
 
-          {/* Calendar Timeline View */}
+          {/* Calendar Views */}
           {agendaDisplayMode === 'calendario' && !isMobile ? (
             <>
-              {appointments.length === 0 ? (
-                <div className="text-center py-12 text-muted-foreground">
-                  <CalendarIcon className="h-12 w-12 mx-auto mb-3 opacity-40" />
-                  <p>Nenhum agendamento neste período</p>
-                  <Button className="mt-4 gap-2" variant="outline" onClick={() => setManualAppointmentOpen(true)}>
-                    <CalendarIcon className="h-4 w-4" /> Agendar manualmente
-                  </Button>
-                </div>
-              ) : (
-                <AgendaTimelineView
+              {viewMode === 'day' && (
+                appointments.length === 0 ? (
+                  <div className="text-center py-12 text-muted-foreground">
+                    <CalendarIcon className="h-12 w-12 mx-auto mb-3 opacity-40" />
+                    <p>Nenhum agendamento neste período</p>
+                    <Button className="mt-4 gap-2" variant="outline" onClick={() => setManualAppointmentOpen(true)}>
+                      <CalendarIcon className="h-4 w-4" /> Agendar manualmente
+                    </Button>
+                  </div>
+                ) : (
+                  <AgendaTimelineView
+                    appointments={appointments.filter(a => a.status !== 'rescheduled')}
+                    blockedTimes={blockedTimes}
+                    professionals={collaboratorsList}
+                    columnMode={timelineColumnMode}
+                    getDisplayStatus={getDisplayStatus}
+                    onAppointmentClick={(apt) => {
+                      const ds = getDisplayStatus(apt);
+                      if (ds === 'in_progress' || ds === 'late' || apt.status === 'pending' || apt.status === 'confirmed') {
+                        setCompleteTarget(apt);
+                        setCompleteDialogOpen(true);
+                      }
+                    }}
+                  />
+                )
+              )}
+              {viewMode === 'week' && (
+                <AgendaWeekView
                   appointments={appointments.filter(a => a.status !== 'rescheduled')}
-                  blockedTimes={blockedTimes}
-                  professionals={collaboratorsList}
-                  columnMode={timelineColumnMode}
+                  currentDate={currentDate}
                   getDisplayStatus={getDisplayStatus}
+                  onDayClick={(date) => {
+                    setCurrentDate(date);
+                    setViewMode('day');
+                  }}
                   onAppointmentClick={(apt) => {
-                    // Open the complete dialog for actionable statuses
                     const ds = getDisplayStatus(apt);
-                    if (ds === 'in_progress' || ds === 'late') {
-                      setCompleteTarget(apt);
-                      setCompleteDialogOpen(true);
-                    } else if (apt.status === 'pending' || apt.status === 'confirmed') {
+                    if (ds === 'in_progress' || ds === 'late' || apt.status === 'pending' || apt.status === 'confirmed') {
                       setCompleteTarget(apt);
                       setCompleteDialogOpen(true);
                     }
+                  }}
+                />
+              )}
+              {viewMode === 'month' && (
+                <AgendaMonthView
+                  appointments={appointments.filter(a => a.status !== 'rescheduled')}
+                  currentDate={currentDate}
+                  getDisplayStatus={getDisplayStatus}
+                  onDayClick={(date) => {
+                    setCurrentDate(date);
+                    setViewMode('day');
                   }}
                 />
               )}
