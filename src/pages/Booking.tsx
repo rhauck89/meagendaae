@@ -21,6 +21,7 @@ import { CustomRequestForm } from '@/components/CustomRequestForm';
 import { getCompanyBranding, buildThemeFromBranding } from '@/hooks/useCompanyBranding';
 import { usePreselectedSlot } from '@/hooks/usePreselectedSlot';
 import { Lock } from 'lucide-react';
+import { CompleteSignupModal } from '@/components/CompleteSignupModal';
 
 const StarRating = ({ rating, size = 14 }: { rating: number; size?: number }) => {
   return (
@@ -214,6 +215,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
   const slotRequestRef = useRef(0);
   const [isClientLoggedIn, setIsClientLoggedIn] = useState(false);
   const [hasValidClient, setHasValidClient] = useState(false);
+  const [showCompleteSignup, setShowCompleteSignup] = useState(false);
   
   const [hasBenefitsActive, setHasBenefitsActive] = useState(false);
   const [lastBooking, setLastBooking] = useState<{
@@ -2518,7 +2520,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                     <Calendar className="h-4 w-4 mr-2" /> Ver meus agendamentos
                   </Button>
                 ) : (
-                  <Button onClick={() => window.location.href = '/minha-conta?complete=1'} className="w-full rounded-xl py-5 font-semibold text-base" style={{ background: T.accent, color: '#000' }}>
+                  <Button onClick={() => setShowCompleteSignup(true)} className="w-full rounded-xl py-5 font-semibold text-base" style={{ background: T.accent, color: '#000' }}>
                     <User className="h-4 w-4 mr-2" /> Concluir cadastro
                   </Button>
                 )}
