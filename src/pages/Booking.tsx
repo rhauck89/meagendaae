@@ -14,7 +14,7 @@ import { format, addMinutes, addDays, isToday, isTomorrow, startOfDay } from 'da
 import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
-import { formatWhatsApp, displayWhatsApp, isValidWhatsApp } from '@/lib/whatsapp';
+import { formatWhatsApp, displayWhatsApp, isValidWhatsApp, buildWhatsAppUrl } from '@/lib/whatsapp';
 import { calculateAvailableSlots, validateTimeSlot, type BusinessHours, type BusinessException, type ExistingAppointment, type BlockedTime, type BookingMode } from '@/lib/availability-engine';
 import { PlatformBranding } from '@/components/PlatformBranding';
 import { CustomRequestForm } from '@/components/CustomRequestForm';

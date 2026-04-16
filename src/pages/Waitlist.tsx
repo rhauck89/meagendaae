@@ -15,7 +15,7 @@ import { format, parseISO, addMinutes, isBefore, startOfDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
 import { calculateAvailableSlots } from '@/lib/availability-engine';
-import { formatWhatsApp } from '@/lib/whatsapp';
+import { formatWhatsApp, openWhatsApp } from '@/lib/whatsapp';
 
 type StatusTab = 'active' | 'notified' | 'expired' | 'converted' | 'all';
 
