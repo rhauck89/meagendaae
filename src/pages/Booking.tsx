@@ -2115,11 +2115,13 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                       toast.success('Login realizado!');
                       // link_client_to_user will be called when session is set
                       const formattedPhone = clientForm.whatsapp ? formatWhatsApp(clientForm.whatsapp) : '';
-                      if (formattedPhone) {
-                        const { data: { user } } = await supabase.auth.getUser();
-                        if (user) {
-                          await supabase.rpc('link_client_to_user', { p_user_id: user.id, p_phone: formattedPhone });
-                        }
+                      const { data: { user } } = await supabase.auth.getUser();
+                      if (user) {
+                        await supabase.rpc('link_client_to_user', {
+                          p_user_id: user.id,
+                          p_phone: formattedPhone || null,
+                          p_email: emailTrimmed,
+                        } as any);
                       }
                     } else {
                       // If invalid credentials, try sign up
@@ -2151,8 +2153,12 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                         setAuthLoading(false);
                         return;
                       }
-                      if (signUpData.user && formattedPhone) {
-                        await supabase.rpc('link_client_to_user', { p_user_id: signUpData.user.id, p_phone: formattedPhone });
+                      if (signUpData.user) {
+                        await supabase.rpc('link_client_to_user', {
+                          p_user_id: signUpData.user.id,
+                          p_phone: formattedPhone || null,
+                          p_email: emailTrimmed,
+                        } as any);
                       }
                       toast.success('Conta criada!');
                     }
