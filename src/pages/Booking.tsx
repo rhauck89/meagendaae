@@ -2062,14 +2062,14 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                 </div>
               </div>
               <div style={{ borderTop: `1px solid ${T.border}` }} />
-              {/* Cashback earn info for cashback promo */}
-              {isCashbackPromo && cashbackEarnAmount > 0 && (
+              {/* Cashback earn info — auto-detected or promo-based */}
+              {cashbackEarnAmount > 0 && (
                 <div className="rounded-xl p-3" style={{ background: '#10b98115', border: '1px solid #10b98130' }}>
                   <p className="font-semibold text-sm" style={{ color: '#10b981' }}>
                     💰 Você ganhará R$ {cashbackEarnAmount.toFixed(2)} de cashback
                   </p>
                   <p className="text-xs" style={{ color: T.textSec }}>
-                    Crédito disponível após conclusão do serviço{promoData?.cashback_validity_days ? `, válido por ${promoData.cashback_validity_days} dias` : ''}
+                    Crédito disponível após conclusão do serviço para usar no próximo agendamento
                   </p>
                 </div>
               )}
