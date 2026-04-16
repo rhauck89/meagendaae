@@ -134,7 +134,7 @@ const Dashboard = () => {
   const [companyBusinessType, setCompanyBusinessType] = useState('barbershop');
   const [statusTab, setStatusTab] = useState<StatusTab>('confirmed');
   const [manualAppointmentOpen, setManualAppointmentOpen] = useState(false);
-
+  const [highlightedAppointmentId, setHighlightedAppointmentId] = useState<string | null>(null);
   // Cleanup orphan Radix portal elements when reschedule modal closes
   useEffect(() => {
     if (!rescheduleDialogOpen) {
@@ -927,7 +927,14 @@ const Dashboard = () => {
           ) : (
             <div className="space-y-3">
               {items.map(({ apt, label, icon, style }) => (
-                <div key={apt.id} className={cn('p-4 rounded-xl border transition-shadow', style)}>
+                <div key={apt.id} className={cn('p-4 rounded-xl border transition-shadow cursor-pointer', style)}
+                  onClick={() => {
+                    setHighlightedAppointmentId(apt.id);
+                    const el = document.getElementById(`agenda-apt-${apt.id}`);
+                    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    setTimeout(() => setHighlightedAppointmentId(null), 3000);
+                  }}
+                >
                   <div className="flex items-center gap-4">
                     <div className="text-center min-w-[60px]">
                       <p className="text-lg font-display font-bold">{format(parseISO(apt.start_time), 'HH:mm')}</p>
@@ -1352,10 +1359,13 @@ const Dashboard = () => {
         </Card>
       )}
 
-      {/* 5. Agenda do dia */}
+      {/* 5. Calendário de Agendamentos */}
 
-      <Card>
+      <Card id="agenda-completa">
         <CardHeader className="pb-3">
+          <CardTitle className="text-lg font-display flex items-center gap-2 mb-3">
+            <CalendarIcon className="h-5 w-5" /> Calendário de Agendamentos
+          </CardTitle>
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="flex items-center gap-2">
               <Button variant="outline" size="icon" onClick={() => navigate(-1)}>
@@ -1447,11 +1457,8 @@ const Dashboard = () => {
 
           {/* Status Tabs */}
           {(() => {
-            // Exclude appointments shown in "Próximos" and "Em atraso" sections
-            const upcomingIds = getUpcomingIds();
-            const delayedIds = new Set(getDelayedAppointments().map(a => a.id));
-            const excludedIds = new Set([...upcomingIds, ...delayedIds]);
-            const agendaAppointments = appointments.filter(a => !excludedIds.has(a.id));
+            // Show ALL appointments in the agenda block (complete view)
+            const agendaAppointments = appointments;
 
             const counts = {
               all: agendaAppointments.filter(a => a.status !== 'rescheduled').length,
@@ -1478,6 +1485,9 @@ const Dashboard = () => {
                   <div className="text-center py-12 text-muted-foreground">
                     <CalendarIcon className="h-12 w-12 mx-auto mb-3 opacity-40" />
                     <p>Nenhum agendamento neste período</p>
+                    <Button className="mt-4 gap-2" variant="outline" onClick={() => setManualAppointmentOpen(true)}>
+                      <CalendarIcon className="h-4 w-4" /> Agendar manualmente
+                    </Button>
                   </div>
                 ) : (
                   <div className="space-y-3">
@@ -1486,7 +1496,8 @@ const Dashboard = () => {
                       return (
                         <div
                           key={apt.id}
-                          className={cn("flex flex-col sm:flex-row sm:items-center gap-3 p-4 rounded-xl border transition-shadow hover:shadow-md", statusCardStyles[displayStatus] || 'bg-card')}
+                          id={`agenda-apt-${apt.id}`}
+                          className={cn("flex flex-col sm:flex-row sm:items-center gap-3 p-4 rounded-xl border transition-all hover:shadow-md", statusCardStyles[displayStatus] || 'bg-card', highlightedAppointmentId === apt.id && 'ring-2 ring-primary shadow-lg')}
                         >
                           <div className="flex items-center gap-3 flex-1">
                             <div className="text-center min-w-[60px]">
