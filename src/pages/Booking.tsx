@@ -152,6 +152,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
   const [company, setCompany] = useState<any>(null);
   const [services, setServices] = useState<any[]>([]);
   const [professionals, setProfessionals] = useState<any[]>([]);
+  const [noProfessionals, setNoProfessionals] = useState(false);
   const [businessHours, setBusinessHours] = useState<BusinessHours[]>([]);
   const [exceptions, setExceptions] = useState<BusinessException[]>([]);
   const [businessType, setBusinessType] = useState<BusinessType>('barbershop');
