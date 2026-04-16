@@ -328,3 +328,44 @@ export function calculateAvailableSlots(params: AvailabilityParams): string[] {
 
   return slots;
 }
+
+/**
+ * Validate that a given time string is on the fixed grid.
+ * Returns true if the time aligns with the grid interval starting from openTime.
+ */
+export function isTimeOnGrid(
+  time: string,
+  openTime: string,
+  slotInterval: number
+): boolean {
+  const [th, tm] = time.split(':').map(Number);
+  const [oh, om] = openTime.split(':').map(Number);
+  const timeMinutes = th * 60 + tm;
+  const openMinutes = oh * 60 + om;
+  const diff = timeMinutes - openMinutes;
+  return diff >= 0 && diff % slotInterval === 0;
+}
+
+/**
+ * Validate a selected time slot for fixed_grid mode.
+ * Checks that the time aligns with the configured grid interval.
+ */
+export function validateTimeSlot(
+  selectedTime: string,
+  bookingMode: BookingMode,
+  slotInterval: number,
+  openTime: string
+): { valid: boolean; error?: string } {
+  if (bookingMode !== 'fixed_grid') {
+    return { valid: true };
+  }
+
+  if (!isTimeOnGrid(selectedTime, openTime, slotInterval)) {
+    return {
+      valid: false,
+      error: `INVALID_TIME_SLOT: ${selectedTime} não está na grade de ${slotInterval} minutos`,
+    };
+  }
+
+  return { valid: true };
+}
