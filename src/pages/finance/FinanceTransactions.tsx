@@ -19,6 +19,7 @@ interface Transaction {
 
 const FinanceTransactions = () => {
   const { companyId } = useAuth();
+  const { maskValue } = useFinancialPrivacy();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [startDate, setStartDate] = useState<Date>(startOfMonth(new Date()));
   const [endDate, setEndDate] = useState<Date>(new Date());
@@ -103,7 +104,7 @@ const FinanceTransactions = () => {
                       </Badge>
                     </TableCell>
                     <TableCell className={cn('text-right font-semibold', t.type === 'revenue' ? 'text-success' : 'text-destructive')}>
-                      {t.type === 'expense' ? '- ' : ''}R$ {t.amount.toFixed(2)}
+                      {t.type === 'expense' ? '- ' : ''}{maskValue(t.amount)}
                     </TableCell>
                   </TableRow>
                 ))}
@@ -126,7 +127,7 @@ const FinanceTransactions = () => {
                   <span className="font-medium text-sm break-words">{t.description}</span>
                 </div>
                 <span className={cn('font-semibold text-sm shrink-0', t.type === 'revenue' ? 'text-success' : 'text-destructive')}>
-                  {t.type === 'expense' ? '- ' : ''}R$ {t.amount.toFixed(2)}
+                  {t.type === 'expense' ? '- ' : ''}{maskValue(t.amount)}
                 </span>
               </div>
               <div className="flex items-center gap-2 text-xs text-muted-foreground">
