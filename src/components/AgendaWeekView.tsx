@@ -1,8 +1,7 @@
-import { useMemo, useRef, useEffect } from 'react';
+import { useMemo, useRef, useEffect, useCallback } from 'react';
 import { format, parseISO, differenceInMinutes, startOfWeek, addDays, isSameDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
-import { ScrollArea } from '@/components/ui/scroll-area';
 
 interface WeekAppointment {
   id: string;
@@ -24,6 +23,7 @@ interface AgendaWeekViewProps {
   currentDate: Date;
   onAppointmentClick: (apt: WeekAppointment) => void;
   onDayClick: (date: Date) => void;
+  onEmptySlotClick?: (date: Date, time: string) => void;
   getDisplayStatus: (apt: any) => string;
 }
 
@@ -31,6 +31,7 @@ const HOUR_HEIGHT = 56;
 const START_HOUR = 7;
 const END_HOUR = 22;
 const TOTAL_HOURS = END_HOUR - START_HOUR;
+const SNAP_MINUTES = 30;
 
 const statusColors: Record<string, string> = {
   pending: 'bg-warning/80 border-warning text-warning-foreground',
@@ -54,11 +55,20 @@ const getBlockHeight = (startStr: string, endStr: string): number => {
   return Math.max(18, (mins / 60) * HOUR_HEIGHT);
 };
 
+const positionToTime = (y: number): string => {
+  const totalMinutes = (y / HOUR_HEIGHT) * 60 + START_HOUR * 60;
+  const snapped = Math.round(totalMinutes / SNAP_MINUTES) * SNAP_MINUTES;
+  const h = Math.floor(snapped / 60);
+  const m = snapped % 60;
+  return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
+};
+
 export const AgendaWeekView = ({
   appointments,
   currentDate,
   onAppointmentClick,
   onDayClick,
+  onEmptySlotClick,
   getDisplayStatus,
 }: AgendaWeekViewProps) => {
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -94,6 +104,17 @@ export const AgendaWeekView = ({
   const currentTimePosition = now.getHours() >= START_HOUR && now.getHours() < END_HOUR
     ? ((now.getHours() + now.getMinutes() / 60) - START_HOUR) * HOUR_HEIGHT
     : null;
+
+  const handleColumnClick = useCallback((e: React.MouseEvent<HTMLDivElement>, day: Date) => {
+    if (!onEmptySlotClick) return;
+    const target = e.target as HTMLElement;
+    if (target.closest('[data-apt]')) return;
+
+    const rect = e.currentTarget.getBoundingClientRect();
+    const y = e.clientY - rect.top + (e.currentTarget.parentElement?.parentElement?.scrollTop || 0);
+    const time = positionToTime(y);
+    onEmptySlotClick(day, time);
+  }, [onEmptySlotClick]);
 
   return (
     <div className="border rounded-lg overflow-hidden">
@@ -143,12 +164,12 @@ export const AgendaWeekView = ({
               <div
                 key={dayKey}
                 className={cn(
-                  "flex-1 min-w-[100px] relative",
+                  "flex-1 min-w-[100px] relative cursor-pointer hover:bg-primary/[0.02]",
                   colIdx < 6 && "border-r",
                   isToday && "bg-primary/5"
                 )}
+                onClick={(e) => handleColumnClick(e, day)}
               >
-                {/* Hour grid lines */}
                 {timeSlots.map((_, i) => (
                   <div key={i} className="absolute w-full border-t border-border/40" style={{ top: i * HOUR_HEIGHT }} />
                 ))}
@@ -156,7 +177,6 @@ export const AgendaWeekView = ({
                   <div key={`h-${i}`} className="absolute w-full border-t border-border/20 border-dashed" style={{ top: i * HOUR_HEIGHT + HOUR_HEIGHT / 2 }} />
                 ))}
 
-                {/* Appointments */}
                 {dayAppts.map(apt => {
                   const displayStatus = getDisplayStatus(apt);
                   const top = getTimePosition(apt.start_time);
@@ -167,12 +187,13 @@ export const AgendaWeekView = ({
                   return (
                     <div
                       key={apt.id}
+                      data-apt="true"
                       className={cn(
                         "absolute left-0.5 right-0.5 rounded border cursor-pointer z-[2] overflow-hidden transition-all hover:shadow-md hover:z-[5]",
                         colorClass
                       )}
                       style={{ top, height: Math.max(height, 20) }}
-                      onClick={() => onAppointmentClick(apt)}
+                      onClick={(e) => { e.stopPropagation(); onAppointmentClick(apt); }}
                       title={`${clientName} - ${format(parseISO(apt.start_time), 'HH:mm')} a ${format(parseISO(apt.end_time), 'HH:mm')}`}
                     >
                       <div className="px-1 py-0.5 h-full flex flex-col justify-center">
@@ -187,7 +208,6 @@ export const AgendaWeekView = ({
                   );
                 })}
 
-                {/* Current time indicator */}
                 {isToday && currentTimePosition !== null && (
                   <div className="absolute left-0 right-0 z-[10] flex items-center pointer-events-none" style={{ top: currentTimePosition }}>
                     <div className="w-1.5 h-1.5 rounded-full bg-destructive shrink-0" />

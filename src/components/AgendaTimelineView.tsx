@@ -1,8 +1,7 @@
-import { useMemo, useRef, useEffect } from 'react';
+import { useMemo, useRef, useEffect, useCallback } from 'react';
 import { format, parseISO, differenceInMinutes } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
-import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 
 interface TimelineAppointment {
   id: string;
@@ -40,13 +39,15 @@ interface AgendaTimelineViewProps {
   professionals: Professional[];
   columnMode: 'day' | 'professionals';
   onAppointmentClick: (apt: TimelineAppointment) => void;
+  onEmptySlotClick?: (time: string, professionalId?: string) => void;
   getDisplayStatus: (apt: any) => string;
 }
 
-const HOUR_HEIGHT = 60; // px per hour
+const HOUR_HEIGHT = 60;
 const START_HOUR = 7;
 const END_HOUR = 22;
 const TOTAL_HOURS = END_HOUR - START_HOUR;
+const SNAP_MINUTES = 30;
 
 const timelineStatusColors: Record<string, string> = {
   pending: 'bg-warning/80 border-warning text-warning-foreground',
@@ -81,17 +82,29 @@ const getBlockHeight = (startStr: string, endStr: string): number => {
   return Math.max(20, (mins / 60) * HOUR_HEIGHT);
 };
 
+const snapToSlot = (rawMinutes: number): number => {
+  return Math.round(rawMinutes / SNAP_MINUTES) * SNAP_MINUTES;
+};
+
+const positionToTime = (y: number): string => {
+  const totalMinutes = (y / HOUR_HEIGHT) * 60 + START_HOUR * 60;
+  const snapped = snapToSlot(totalMinutes);
+  const h = Math.floor(snapped / 60);
+  const m = snapped % 60;
+  return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
+};
+
 export const AgendaTimelineView = ({
   appointments,
   blockedTimes,
   professionals,
   columnMode,
   onAppointmentClick,
+  onEmptySlotClick,
   getDisplayStatus,
 }: AgendaTimelineViewProps) => {
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  // Auto-scroll to current hour on mount
   useEffect(() => {
     const now = new Date();
     const currentHour = now.getHours();
@@ -121,15 +134,26 @@ export const AgendaTimelineView = ({
     return slots;
   }, []);
 
-  // Current time indicator
   const now = new Date();
   const currentTimePosition = now.getHours() >= START_HOUR && now.getHours() < END_HOUR
     ? ((now.getHours() + now.getMinutes() / 60) - START_HOUR) * HOUR_HEIGHT
     : null;
 
+  const handleColumnClick = useCallback((e: React.MouseEvent<HTMLDivElement>, colId: string) => {
+    if (!onEmptySlotClick) return;
+    // Only fire if clicking on the column bg, not on an appointment or blocked time
+    const target = e.target as HTMLElement;
+    if (target.closest('[data-apt]') || target.closest('[data-blocked]')) return;
+
+    const rect = e.currentTarget.getBoundingClientRect();
+    const y = e.clientY - rect.top + (e.currentTarget.parentElement?.parentElement?.scrollTop || 0);
+    const time = positionToTime(y);
+    const profId = colId === 'all' ? undefined : colId;
+    onEmptySlotClick(time, profId);
+  }, [onEmptySlotClick]);
+
   return (
     <div className="border rounded-lg overflow-hidden">
-      {/* Column headers for multi-professional mode */}
       {columnMode === 'professionals' && columns.length > 1 && (
         <div className="flex border-b bg-muted/30">
           <div className="w-14 shrink-0 border-r" />
@@ -142,52 +166,33 @@ export const AgendaTimelineView = ({
         </div>
       )}
 
-      {/* Timeline body */}
       <div ref={scrollRef} className="overflow-auto max-h-[600px] relative">
         <div className="flex" style={{ height: TOTAL_HOURS * HOUR_HEIGHT }}>
-          {/* Time labels */}
           <div className="w-14 shrink-0 border-r relative bg-muted/10">
             {timeSlots.map((slot, i) => (
-              <div
-                key={slot}
-                className="absolute w-full text-right pr-2"
-                style={{ top: i * HOUR_HEIGHT }}
-              >
+              <div key={slot} className="absolute w-full text-right pr-2" style={{ top: i * HOUR_HEIGHT }}>
                 <span className="text-[11px] text-muted-foreground leading-none relative -top-2">{slot}</span>
               </div>
             ))}
           </div>
 
-          {/* Columns */}
           {columns.map((col, colIdx) => (
             <div
               key={col.id}
               className={cn(
-                "flex-1 min-w-[180px] relative",
+                "flex-1 min-w-[180px] relative cursor-pointer hover:bg-primary/[0.02]",
                 colIdx < columns.length - 1 && "border-r"
               )}
+              onClick={(e) => handleColumnClick(e, col.id)}
             >
-              {/* Hour grid lines */}
               {timeSlots.map((_, i) => (
-                <div
-                  key={i}
-                  className="absolute w-full border-t border-border/40"
-                  style={{ top: i * HOUR_HEIGHT }}
-                />
+                <div key={i} className="absolute w-full border-t border-border/40" style={{ top: i * HOUR_HEIGHT }} />
+              ))}
+              {timeSlots.map((_, i) => (
+                <div key={`half-${i}`} className="absolute w-full border-t border-border/20 border-dashed" style={{ top: i * HOUR_HEIGHT + HOUR_HEIGHT / 2 }} />
               ))}
 
-              {/* Half-hour lines */}
-              {timeSlots.map((_, i) => (
-                <div
-                  key={`half-${i}`}
-                  className="absolute w-full border-t border-border/20 border-dashed"
-                  style={{ top: i * HOUR_HEIGHT + HOUR_HEIGHT / 2 }}
-                />
-              ))}
-
-              {/* Blocked times */}
               {col.blockedTimes.map(bt => {
-                // Convert HH:mm to fake ISO for positioning
                 const today = format(new Date(), 'yyyy-MM-dd');
                 const startISO = `${bt.block_date || today}T${bt.start_time}:00`;
                 const endISO = `${bt.block_date || today}T${bt.end_time}:00`;
@@ -196,6 +201,7 @@ export const AgendaTimelineView = ({
                 return (
                   <div
                     key={bt.id}
+                    data-blocked="true"
                     className="absolute left-1 right-1 rounded border border-destructive/30 bg-destructive/10 z-[1] flex items-center justify-center"
                     style={{ top, height }}
                   >
@@ -206,7 +212,6 @@ export const AgendaTimelineView = ({
                 );
               })}
 
-              {/* Appointments */}
               {col.appointments.map(apt => {
                 const displayStatus = getDisplayStatus(apt);
                 const top = getTimePosition(apt.start_time);
@@ -219,12 +224,13 @@ export const AgendaTimelineView = ({
                   <div
                     key={apt.id}
                     id={`agenda-apt-${apt.id}`}
+                    data-apt="true"
                     className={cn(
                       "absolute left-1 right-1 rounded-md border cursor-pointer z-[2] overflow-hidden transition-all hover:shadow-md hover:z-[5] group",
                       colorClass
                     )}
                     style={{ top, height: Math.max(height, 24) }}
-                    onClick={() => onAppointmentClick(apt)}
+                    onClick={(e) => { e.stopPropagation(); onAppointmentClick(apt); }}
                   >
                     <div className="px-1.5 py-0.5 h-full flex flex-col justify-center">
                       <p className="text-[11px] font-semibold truncate leading-tight">{clientName}</p>
@@ -242,7 +248,6 @@ export const AgendaTimelineView = ({
                         </p>
                       )}
                     </div>
-                    {/* Hover tooltip */}
                     <div className="absolute hidden group-hover:block left-full top-0 ml-1 z-50 bg-popover border rounded-lg shadow-lg p-3 min-w-[200px] text-popover-foreground">
                       <p className="font-semibold text-sm">{clientName}</p>
                       <p className="text-xs text-muted-foreground mt-1">{serviceName}</p>
@@ -258,7 +263,6 @@ export const AgendaTimelineView = ({
                 );
               })}
 
-              {/* Current time indicator */}
               {currentTimePosition !== null && (
                 <div
                   className="absolute left-0 right-0 z-[10] flex items-center pointer-events-none"

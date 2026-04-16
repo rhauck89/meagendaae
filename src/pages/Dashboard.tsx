@@ -139,6 +139,7 @@ const Dashboard = () => {
   const [companyBusinessType, setCompanyBusinessType] = useState('barbershop');
   const [statusTab, setStatusTab] = useState<StatusTab>('confirmed');
   const [manualAppointmentOpen, setManualAppointmentOpen] = useState(false);
+  const [manualAppointmentPrefill, setManualAppointmentPrefill] = useState<{ date?: Date; time?: string; professionalId?: string }>({});
   const [highlightedAppointmentId, setHighlightedAppointmentId] = useState<string | null>(null);
   const [agendaDisplayMode, setAgendaDisplayMode] = useState<'lista' | 'calendario'>(() => {
     if (typeof window !== 'undefined') {
@@ -1111,11 +1112,17 @@ const Dashboard = () => {
 
       <ManualAppointmentDialog
         open={manualAppointmentOpen}
-        onOpenChange={setManualAppointmentOpen}
+        onOpenChange={(open) => {
+          setManualAppointmentOpen(open);
+          if (!open) setManualAppointmentPrefill({});
+        }}
         companyId={companyId!}
         userId={user?.id}
         isAdmin={isAdmin}
         profileId={profileId}
+        initialDate={manualAppointmentPrefill.date}
+        initialTime={manualAppointmentPrefill.time}
+        initialProfessionalId={manualAppointmentPrefill.professionalId}
         onCreated={() => {
           fetchAppointments();
           fetchUpcomingAppointments();
@@ -1533,6 +1540,10 @@ const Dashboard = () => {
                         setCompleteDialogOpen(true);
                       }
                     }}
+                    onEmptySlotClick={(time, professionalId) => {
+                      setManualAppointmentPrefill({ date: currentDate, time, professionalId });
+                      setManualAppointmentOpen(true);
+                    }}
                   />
                 )
               )}
@@ -1551,6 +1562,10 @@ const Dashboard = () => {
                       setCompleteTarget(apt);
                       setCompleteDialogOpen(true);
                     }
+                  }}
+                  onEmptySlotClick={(date, time) => {
+                    setManualAppointmentPrefill({ date, time });
+                    setManualAppointmentOpen(true);
                   }}
                 />
               )}

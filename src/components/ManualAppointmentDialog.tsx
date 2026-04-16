@@ -23,6 +23,9 @@ interface ManualAppointmentDialogProps {
   isAdmin: boolean;
   profileId: string | null;
   onCreated: () => void;
+  initialDate?: Date;
+  initialTime?: string;
+  initialProfessionalId?: string;
 }
 
 export function ManualAppointmentDialog({
@@ -33,6 +36,9 @@ export function ManualAppointmentDialog({
   isAdmin,
   profileId,
   onCreated,
+  initialDate,
+  initialTime,
+  initialProfessionalId,
 }: ManualAppointmentDialogProps) {
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
@@ -73,11 +79,11 @@ export function ManualAppointmentDialog({
     setClientSearch('');
     setClients([]);
     setSelectedClient(null);
-    setSelectedProfessional(isAdmin ? '' : (profileId || ''));
+    setSelectedProfessional(initialProfessionalId || (isAdmin ? '' : (profileId || '')));
     setSelectedServices([]);
-    setSelectedDate(undefined);
+    setSelectedDate(initialDate || undefined);
     setAvailableSlots([]);
-    setSelectedSlot(null);
+    setSelectedSlot(initialTime || null);
     setSendWhatsApp(false);
   };
 
