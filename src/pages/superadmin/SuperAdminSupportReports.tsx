@@ -165,18 +165,21 @@ const SuperAdminSupportReports = () => {
         {/* By Company */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-base flex items-center gap-2">
-              <Building2 className="h-5 w-5" /> Tickets por Empresa (Top 10)
+              <CardTitle className="text-base flex items-center gap-2">
+              <Building2 className="h-5 w-5" /> Tickets por Empresa (Top 7)
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="h-[300px]">
+            <div style={{ height: adaptiveBarHeight(byCompanyData.length) }}>
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={byCompanyData} layout="vertical">
                   <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
                   <XAxis type="number" />
-                  <YAxis dataKey="name" type="category" width={120} className="text-xs" />
-                  <Tooltip />
+                  <YAxis dataKey="name" type="category" width={120} className="text-xs" tickFormatter={(v) => truncateName(v, 16)} />
+                  <Tooltip labelFormatter={(label) => {
+                    const item = byCompanyData.find(d => d.name === label);
+                    return item?.name || label;
+                  }} />
                   <Bar dataKey="value" name="Tickets" fill="hsl(var(--primary))" radius={[0, 4, 4, 0]} />
                 </BarChart>
               </ResponsiveContainer>
