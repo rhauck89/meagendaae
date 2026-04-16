@@ -10,9 +10,11 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Progress } from '@/components/ui/progress';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { PlatformLogo } from '@/components/PlatformLogo';
 import {
   Calendar, Clock, DollarSign, Star, Gift, User, LogOut, CheckCircle2,
-  AlertCircle, Sparkles, MapPin, Info, LayoutDashboard, History, ShoppingBag, KeyRound, ArrowRight,
+  Sparkles, LayoutDashboard, History, ShoppingBag, KeyRound, ArrowRight,
+  Building2, ChevronRight,
 } from 'lucide-react';
 import { format, parseISO, differenceInDays, isPast } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -34,6 +36,12 @@ interface ClientRecord {
   state: string | null;
 }
 
+interface CompanyInfo {
+  id: string;
+  name: string;
+  logo_url: string | null;
+}
+
 interface AppointmentRow {
   id: string;
   start_time: string;
@@ -41,7 +49,6 @@ interface AppointmentRow {
   total_price: number;
   status: string;
   company_id: string;
-  company: { name: string } | null;
   professional: { full_name: string } | null;
   appointment_services: { service: { name: string } | null; price: number }[];
 }
@@ -87,18 +94,35 @@ const statusColors: Record<string, string> = {
   no_show: 'bg-muted text-muted-foreground',
 };
 
+/** Small reusable header showing company logo + name */
+const CompanyHeader = ({ company, size = 'sm' }: { company?: CompanyInfo; size?: 'sm' | 'md' }) => {
+  if (!company) return null;
+  const dim = size === 'md' ? 'h-10 w-10' : 'h-7 w-7';
+  return (
+    <div className="flex items-center gap-2 min-w-0">
+      {company.logo_url ? (
+        <img src={company.logo_url} alt={company.name} className={`${dim} rounded-md object-cover shrink-0 border`} />
+      ) : (
+        <div className={`${dim} rounded-md bg-muted flex items-center justify-center shrink-0`}>
+          <Building2 className="h-4 w-4 text-muted-foreground" />
+        </div>
+      )}
+      <span className={`${size === 'md' ? 'text-sm' : 'text-xs'} font-medium truncate`}>{company.name}</span>
+    </div>
+  );
+};
+
 const ClientPortal = () => {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
 
   const [clients, setClients] = useState<ClientRecord[]>([]);
-  const [selectedCompanyId, setSelectedCompanyId] = useState<string | null>(null);
   const [appointments, setAppointments] = useState<AppointmentRow[]>([]);
   const [allCashbacks, setAllCashbacks] = useState<CashbackRow[]>([]);
   const [allLoyaltyTxs, setAllLoyaltyTxs] = useState<LoyaltyTx[]>([]);
   const [rewards, setRewards] = useState<RewardItem[]>([]);
   const [loyaltyConfigs, setLoyaltyConfigs] = useState<Record<string, any>>({});
-  const [companies, setCompanies] = useState<Record<string, string>>({});
+  const [companies, setCompanies] = useState<Record<string, CompanyInfo>>({});
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('dashboard');
   const [showCompleteProfile, setShowCompleteProfile] = useState(false);
@@ -114,20 +138,19 @@ const ClientPortal = () => {
   const [companyCashbackActive, setCompanyCashbackActive] = useState<Record<string, boolean>>({});
   const [companyLoyaltyActive, setCompanyLoyaltyActive] = useState<Record<string, boolean>>({});
 
+  // Selected company for the rewards store (only place where the user must pick)
+  const [rewardsCompanyId, setRewardsCompanyId] = useState<string | null>(null);
+
   useEffect(() => {
     if (!user) return;
     loadClientData();
   }, [user]);
 
-  const currentClient = useMemo(() =>
-    clients.find(c => c.company_id === selectedCompanyId) || clients[0],
-    [clients, selectedCompanyId]
-  );
-
+  const primaryClient = clients[0];
   const isRegistrationIncomplete = useMemo(() => {
-    if (!currentClient) return true;
-    return !currentClient.email || !currentClient.birth_date;
-  }, [currentClient]);
+    if (!primaryClient) return true;
+    return !primaryClient.email || !primaryClient.birth_date;
+  }, [primaryClient]);
 
   const loadClientData = async () => {
     setLoading(true);
@@ -157,12 +180,10 @@ const ClientPortal = () => {
     }
 
     setClients(clientData as ClientRecord[]);
-    const firstCompany = clientData[0].company_id;
-    setSelectedCompanyId(firstCompany);
 
     const companyIds = [...new Set(clientData.map(c => c.company_id))];
     const [companyRes, cashbackRes, loyaltyTxRes, rewardsRes] = await Promise.all([
-      supabase.from('companies').select('id, name').in('id', companyIds),
+      supabase.from('companies').select('id, name, logo_url').in('id', companyIds),
       supabase.from('client_cashback')
         .select('id, amount, status, expires_at, created_at, company_id, promotion:promotions!client_cashback_promotion_id_fkey(title)')
         .in('client_id', clientData.map(c => c.id))
@@ -171,7 +192,7 @@ const ClientPortal = () => {
         .select('*')
         .in('client_id', clientData.map(c => c.id))
         .order('created_at', { ascending: false })
-        .limit(200),
+        .limit(300),
       supabase.from('loyalty_reward_items')
         .select('*')
         .in('company_id', companyIds)
@@ -179,9 +200,12 @@ const ClientPortal = () => {
     ]);
 
     if (companyRes.data) {
-      const map: Record<string, string> = {};
-      companyRes.data.forEach(c => { map[c.id] = c.name; });
+      const map: Record<string, CompanyInfo> = {};
+      companyRes.data.forEach((c: any) => { map[c.id] = { id: c.id, name: c.name, logo_url: c.logo_url }; });
       setCompanies(map);
+      if (!rewardsCompanyId && companyIds.length > 0) {
+        setRewardsCompanyId(companyIds[0]);
+      }
     }
 
     setAllCashbacks((cashbackRes.data || []) as any);
@@ -208,73 +232,106 @@ const ClientPortal = () => {
     const clientIds = clientData.map(c => c.id);
     const { data: aptData } = await supabase
       .from('appointments')
-      .select('id, start_time, end_time, total_price, status, company_id, company:companies(name), professional:profiles!appointments_professional_id_fkey(full_name), appointment_services(price, service:services(name))')
+      .select('id, start_time, end_time, total_price, status, company_id, professional:profiles!appointments_professional_id_fkey(full_name), appointment_services(price, service:services(name))')
       .in('client_id', clientIds)
       .order('start_time', { ascending: false })
-      .limit(100);
+      .limit(200);
     setAppointments((aptData || []) as any);
 
-    const client = clientData[0];
+    const c = clientData[0];
     setProfileForm({
-      name: client.name || '',
-      whatsapp: client.whatsapp || '',
-      email: client.email || '',
-      birth_date: client.birth_date || '',
-      postal_code: (client as any).postal_code || '',
-      street: (client as any).street || '',
-      address_number: (client as any).address_number || '',
-      district: (client as any).district || '',
-      city: (client as any).city || '',
-      state: (client as any).state || '',
+      name: c.name || '',
+      whatsapp: c.whatsapp || '',
+      email: c.email || '',
+      birth_date: c.birth_date || '',
+      postal_code: (c as any).postal_code || '',
+      street: (c as any).street || '',
+      address_number: (c as any).address_number || '',
+      district: (c as any).district || '',
+      city: (c as any).city || '',
+      state: (c as any).state || '',
     });
     setLoading(false);
   };
 
-  const companyCashbacks = useMemo(() =>
-    allCashbacks.filter(c => c.company_id === selectedCompanyId),
-    [allCashbacks, selectedCompanyId]
-  );
-  const companyLoyaltyTxs = useMemo(() =>
-    allLoyaltyTxs.filter(t => t.company_id === selectedCompanyId),
-    [allLoyaltyTxs, selectedCompanyId]
-  );
-  const companyRewards = useMemo(() =>
-    rewards.filter(r => r.company_id === selectedCompanyId),
-    [rewards, selectedCompanyId]
-  );
-  const companyAppointments = useMemo(() =>
-    selectedCompanyId ? appointments.filter(a => a.company_id === selectedCompanyId) : appointments,
-    [appointments, selectedCompanyId]
+  // ---------- Per-company aggregations ----------
+  /** Sum of active cashback per company */
+  const cashbackByCompany = useMemo(() => {
+    const map: Record<string, number> = {};
+    for (const cb of allCashbacks) {
+      if (cb.status === 'active' && !isPast(parseISO(cb.expires_at))) {
+        map[cb.company_id] = (map[cb.company_id] || 0) + Number(cb.amount);
+      }
+    }
+    return map;
+  }, [allCashbacks]);
+
+  const totalCashback = useMemo(
+    () => Object.values(cashbackByCompany).reduce((s, v) => s + v, 0),
+    [cashbackByCompany]
   );
 
-  const isCashbackActive = selectedCompanyId ? companyCashbackActive[selectedCompanyId] : false;
-  const isLoyaltyActive = selectedCompanyId ? companyLoyaltyActive[selectedCompanyId] : false;
-  const loyaltyConfig = selectedCompanyId ? loyaltyConfigs[selectedCompanyId] : null;
+  /** Latest balance per company (transactions are pre-ordered desc) */
+  const pointsByCompany = useMemo(() => {
+    const map: Record<string, number> = {};
+    for (const tx of allLoyaltyTxs) {
+      if (map[tx.company_id] === undefined) {
+        map[tx.company_id] = tx.balance_after;
+      }
+    }
+    return map;
+  }, [allLoyaltyTxs]);
 
-  const activeCashback = companyCashbacks.filter(c => c.status === 'active' && !isPast(parseISO(c.expires_at)));
-  const cashbackTotal = activeCashback.reduce((s, c) => s + Number(c.amount), 0);
+  const totalPoints = useMemo(
+    () => Object.values(pointsByCompany).reduce((s, v) => s + v, 0),
+    [pointsByCompany]
+  );
 
-  const loyaltyBalance = companyLoyaltyTxs.length > 0 ? companyLoyaltyTxs[0].balance_after : 0;
-  const pointValue = loyaltyConfig?.point_value || 0.05;
-  const balanceEquivalent = loyaltyBalance * pointValue;
+  /** Group appointments by company */
+  const appointmentsByCompany = useMemo(() => {
+    const map: Record<string, AppointmentRow[]> = {};
+    for (const a of appointments) {
+      (map[a.company_id] ||= []).push(a);
+    }
+    return map;
+  }, [appointments]);
 
-  const upcomingAppointments = companyAppointments.filter(a => !isPast(parseISO(a.start_time)) && !['cancelled', 'no_show'].includes(a.status));
-  const pastAppointments = companyAppointments.filter(a => isPast(parseISO(a.start_time)) || ['cancelled', 'no_show'].includes(a.status));
+  const upcomingAppointments = useMemo(
+    () => appointments.filter(a => !isPast(parseISO(a.start_time)) && !['cancelled', 'no_show'].includes(a.status)),
+    [appointments]
+  );
+  const pastAppointments = useMemo(
+    () => appointments.filter(a => isPast(parseISO(a.start_time)) || ['cancelled', 'no_show'].includes(a.status)),
+    [appointments]
+  );
   const completedCount = pastAppointments.filter(a => a.status === 'completed').length;
   const nextAppointment = upcomingAppointments[upcomingAppointments.length - 1] || upcomingAppointments[0];
-  const lastCompleted = pastAppointments.find(a => a.status === 'completed');
 
-  // Closest reward (smallest positive distance)
-  const nextReward = useMemo(() => {
-    const remaining = companyRewards
-      .map(r => ({ ...r, diff: r.points_required - loyaltyBalance }))
-      .filter(r => r.diff > 0)
-      .sort((a, b) => a.diff - b.diff);
-    return remaining[0] || null;
-  }, [companyRewards, loyaltyBalance]);
+  // Derived for the "Loja" (rewards store) — depends on the user-selected company
+  const rewardsCompany = rewardsCompanyId ? companies[rewardsCompanyId] : null;
+  const rewardsList = useMemo(
+    () => rewards.filter(r => r.company_id === rewardsCompanyId),
+    [rewards, rewardsCompanyId]
+  );
+  const rewardsBalance = rewardsCompanyId ? (pointsByCompany[rewardsCompanyId] || 0) : 0;
+  const rewardsConfig = rewardsCompanyId ? loyaltyConfigs[rewardsCompanyId] : null;
+  const rewardsPointValue = rewardsConfig?.point_value || 0.05;
+
+  // Companies with at least one active reward program
+  const companiesWithCashback = useMemo(
+    () => Object.values(companies).filter(c => companyCashbackActive[c.id]),
+    [companies, companyCashbackActive]
+  );
+  const companiesWithLoyalty = useMemo(
+    () => Object.values(companies).filter(c => companyLoyaltyActive[c.id]),
+    [companies, companyLoyaltyActive]
+  );
+
+  const anyCashback = companiesWithCashback.length > 0;
+  const anyLoyalty = companiesWithLoyalty.length > 0;
 
   const handleSaveProfile = async () => {
-    if (!currentClient) return;
+    if (!primaryClient) return;
     setSavingProfile(true);
     const updates: any = {
       name: profileForm.name,
@@ -378,20 +435,27 @@ const ClientPortal = () => {
   const tabs = [
     { value: 'dashboard', icon: LayoutDashboard, label: 'Início' },
     { value: 'appointments', icon: Calendar, label: 'Agenda' },
-    ...(isCashbackActive ? [{ value: 'cashback', icon: DollarSign, label: 'Cashback' }] : []),
-    ...(isLoyaltyActive ? [{ value: 'loyalty', icon: Star, label: 'Pontos' }] : []),
-    ...(isLoyaltyActive ? [{ value: 'rewards', icon: ShoppingBag, label: 'Loja' }] : []),
+    ...(anyCashback ? [{ value: 'cashback', icon: DollarSign, label: 'Cashback' }] : []),
+    ...(anyLoyalty ? [{ value: 'loyalty', icon: Star, label: 'Pontos' }] : []),
+    ...(anyLoyalty ? [{ value: 'rewards', icon: ShoppingBag, label: 'Loja' }] : []),
     { value: 'profile', icon: User, label: 'Perfil' },
   ];
 
   return (
-    <div className="min-h-screen bg-background pb-20 md:pb-6">
-      {/* Header */}
+    <div className="min-h-screen bg-background pb-24 md:pb-6">
+      {/* Universal Agendaê header */}
       <header className="border-b bg-card sticky top-0 z-20">
-        <div className="max-w-3xl mx-auto px-4 py-4 flex items-center justify-between">
-          <div>
-            <h1 className="font-display font-bold text-xl">Minha Conta</h1>
-            <p className="text-sm text-muted-foreground truncate max-w-[200px]">{currentClient?.name}</p>
+        <div className="max-w-3xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3 min-w-0">
+            <PlatformLogo compact onDarkBackground={false} className="shrink-0" />
+            <div className="min-w-0">
+              <p className="font-display font-bold text-base leading-tight truncate">
+                Olá, {primaryClient?.name?.split(' ')[0] || 'cliente'}
+              </p>
+              <p className="text-xs text-muted-foreground truncate">
+                Seus agendamentos, cashback e pontos
+              </p>
+            </div>
           </div>
           <Button variant="ghost" size="icon" onClick={signOut} aria-label="Sair">
             <LogOut className="h-5 w-5" />
@@ -400,23 +464,6 @@ const ClientPortal = () => {
       </header>
 
       <div className="max-w-3xl mx-auto px-4 py-4 space-y-4">
-        {/* Company selector */}
-        {Object.keys(companies).length > 1 && (
-          <div className="flex gap-2 overflow-x-auto pb-1">
-            {Object.entries(companies).map(([id, name]) => (
-              <Button
-                key={id}
-                variant={selectedCompanyId === id ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => setSelectedCompanyId(id)}
-                className="whitespace-nowrap shrink-0"
-              >
-                {name}
-              </Button>
-            ))}
-          </div>
-        )}
-
         {/* Incomplete profile banner */}
         {isRegistrationIncomplete && (
           <Card className="border-primary/30 bg-primary/5">
@@ -445,9 +492,9 @@ const ClientPortal = () => {
             ))}
           </TabsList>
 
-          {/* Dashboard */}
+          {/* ================= DASHBOARD ================= */}
           <TabsContent value="dashboard" className="space-y-4 mt-4">
-            {/* Quick stats */}
+            {/* Global stats (sums across companies) */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               <Card>
                 <CardContent className="p-3 text-center">
@@ -463,40 +510,20 @@ const ClientPortal = () => {
                   <p className="text-xs text-muted-foreground">Realizados</p>
                 </CardContent>
               </Card>
-              {isCashbackActive ? (
-                <Card>
-                  <CardContent className="p-3 text-center">
-                    <DollarSign className="h-5 w-5 mx-auto mb-1 text-green-500" />
-                    <p className="text-lg font-bold">R$ {cashbackTotal.toFixed(2)}</p>
-                    <p className="text-xs text-muted-foreground">Cashback</p>
-                  </CardContent>
-                </Card>
-              ) : (
-                <Card>
-                  <CardContent className="p-3 text-center">
-                    <Clock className="h-5 w-5 mx-auto mb-1 text-muted-foreground" />
-                    <p className="text-lg font-bold">{companyAppointments.length}</p>
-                    <p className="text-xs text-muted-foreground">Total</p>
-                  </CardContent>
-                </Card>
-              )}
-              {isLoyaltyActive ? (
-                <Card>
-                  <CardContent className="p-3 text-center">
-                    <Star className="h-5 w-5 mx-auto mb-1 text-yellow-500" />
-                    <p className="text-lg font-bold">{loyaltyBalance}</p>
-                    <p className="text-xs text-muted-foreground">Pontos</p>
-                  </CardContent>
-                </Card>
-              ) : (
-                <Card>
-                  <CardContent className="p-3 text-center">
-                    <Gift className="h-5 w-5 mx-auto mb-1 text-primary" />
-                    <p className="text-lg font-bold">{Object.keys(companies).length}</p>
-                    <p className="text-xs text-muted-foreground">Estab.</p>
-                  </CardContent>
-                </Card>
-              )}
+              <Card>
+                <CardContent className="p-3 text-center">
+                  <DollarSign className="h-5 w-5 mx-auto mb-1 text-green-500" />
+                  <p className="text-lg font-bold">R$ {totalCashback.toFixed(2)}</p>
+                  <p className="text-xs text-muted-foreground">Cashback total</p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="p-3 text-center">
+                  <Star className="h-5 w-5 mx-auto mb-1 text-yellow-500" />
+                  <p className="text-lg font-bold">{totalPoints}</p>
+                  <p className="text-xs text-muted-foreground">Pontos totais</p>
+                </CardContent>
+              </Card>
             </div>
 
             {/* Next appointment highlight */}
@@ -509,7 +536,8 @@ const ClientPortal = () => {
               <CardContent>
                 {nextAppointment ? (
                   <div className="space-y-2">
-                    <p className="text-2xl font-bold">
+                    <CompanyHeader company={companies[nextAppointment.company_id]} size="md" />
+                    <p className="text-2xl font-bold pt-1">
                       {format(parseISO(nextAppointment.start_time), "dd 'de' MMMM", { locale: ptBR })}
                     </p>
                     <p className="text-lg text-primary font-semibold">
@@ -539,53 +567,40 @@ const ClientPortal = () => {
               </CardContent>
             </Card>
 
-            {/* Loyalty progress */}
-            {isLoyaltyActive && nextReward && (
+            {/* Per-company benefits summary */}
+            {(anyCashback || anyLoyalty) && (
               <Card>
                 <CardHeader className="pb-2">
                   <CardTitle className="text-sm flex items-center gap-2">
-                    <Gift className="h-4 w-4 text-yellow-500" /> Próxima recompensa
+                    <Building2 className="h-4 w-4 text-muted-foreground" /> Seus benefícios por estabelecimento
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span className="font-medium">{nextReward.name}</span>
-                    <span className="text-muted-foreground">{loyaltyBalance} / {nextReward.points_required}</span>
-                  </div>
-                  <Progress value={(loyaltyBalance / nextReward.points_required) * 100} />
-                  <p className="text-xs text-muted-foreground">
-                    Faltam <strong>{nextReward.diff}</strong> pontos
-                  </p>
-                  <Button size="sm" variant="outline" className="w-full" onClick={() => setActiveTab('rewards')}>
-                    Ver loja de recompensas
-                  </Button>
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Last completed */}
-            {lastCompleted && (
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm flex items-center gap-2">
-                    <History className="h-4 w-4 text-muted-foreground" /> Último atendimento
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm font-medium">
-                    {format(parseISO(lastCompleted.start_time), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    {lastCompleted.appointment_services?.map(s => s.service?.name).filter(Boolean).join(', ')}
-                  </p>
-                  <p className="text-xs mt-1">R$ {Number(lastCompleted.total_price).toFixed(2)}</p>
+                  {Object.values(companies).map(co => {
+                    const cb = cashbackByCompany[co.id] || 0;
+                    const pts = pointsByCompany[co.id] || 0;
+                    if (cb === 0 && pts === 0) return null;
+                    return (
+                      <div key={co.id} className="flex items-center justify-between gap-2 py-2 border-b last:border-b-0">
+                        <CompanyHeader company={co} />
+                        <div className="flex items-center gap-3 text-xs shrink-0">
+                          {cb > 0 && (
+                            <span className="text-green-600 font-medium">R$ {cb.toFixed(2)}</span>
+                          )}
+                          {pts > 0 && (
+                            <span className="text-yellow-600 font-medium">{pts} pts</span>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
                 </CardContent>
               </Card>
             )}
           </TabsContent>
 
-          {/* Appointments */}
-          <TabsContent value="appointments" className="space-y-4 mt-4">
+          {/* ================= APPOINTMENTS (grouped by company) ================= */}
+          <TabsContent value="appointments" className="space-y-6 mt-4">
             <div className="space-y-3">
               <h3 className="text-sm font-semibold text-muted-foreground">Próximos agendamentos</h3>
               {upcomingAppointments.length === 0 ? (
@@ -596,39 +611,48 @@ const ClientPortal = () => {
                     <Button size="sm" onClick={() => navigate('/')}>Agendar</Button>
                   </CardContent>
                 </Card>
-              ) : upcomingAppointments.map(apt => (
-                <Card key={apt.id}>
-                  <CardContent className="p-4">
-                    <div className="flex justify-between items-start gap-2">
-                      <div className="space-y-1 flex-1 min-w-0">
-                        <p className="font-medium text-sm">
-                          {format(parseISO(apt.start_time), "dd 'de' MMMM, HH:mm", { locale: ptBR })}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {apt.appointment_services?.map(s => s.service?.name).filter(Boolean).join(', ')}
-                        </p>
-                        {apt.professional && (
-                          <p className="text-xs text-muted-foreground">Com: {apt.professional.full_name}</p>
-                        )}
-                        {apt.company && Object.keys(companies).length > 1 && (
-                          <p className="text-xs text-muted-foreground">📍 {apt.company.name}</p>
-                        )}
-                      </div>
-                      <Badge className={statusColors[apt.status] || 'bg-muted'}>
-                        {statusLabels[apt.status] || apt.status}
-                      </Badge>
-                    </div>
-                    <div className="flex gap-2 mt-3">
-                      <Button size="sm" variant="outline" className="text-xs" onClick={() => navigate(`/reschedule/${apt.id}`)}>
-                        Remarcar
-                      </Button>
-                      <Button size="sm" variant="outline" className="text-xs text-destructive" onClick={() => navigate(`/cancel/${apt.id}`)}>
-                        Cancelar
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+              ) : (
+                Object.entries(
+                  upcomingAppointments.reduce<Record<string, AppointmentRow[]>>((acc, a) => {
+                    (acc[a.company_id] ||= []).push(a);
+                    return acc;
+                  }, {})
+                ).map(([cid, list]) => (
+                  <div key={cid} className="space-y-2">
+                    <CompanyHeader company={companies[cid]} />
+                    {list.map(apt => (
+                      <Card key={apt.id}>
+                        <CardContent className="p-4">
+                          <div className="flex justify-between items-start gap-2">
+                            <div className="space-y-1 flex-1 min-w-0">
+                              <p className="font-medium text-sm">
+                                {format(parseISO(apt.start_time), "dd 'de' MMMM, HH:mm", { locale: ptBR })}
+                              </p>
+                              <p className="text-xs text-muted-foreground">
+                                {apt.appointment_services?.map(s => s.service?.name).filter(Boolean).join(', ')}
+                              </p>
+                              {apt.professional && (
+                                <p className="text-xs text-muted-foreground">Com: {apt.professional.full_name}</p>
+                              )}
+                            </div>
+                            <Badge className={statusColors[apt.status] || 'bg-muted'}>
+                              {statusLabels[apt.status] || apt.status}
+                            </Badge>
+                          </div>
+                          <div className="flex gap-2 mt-3">
+                            <Button size="sm" variant="outline" className="text-xs" onClick={() => navigate(`/reschedule/${apt.id}`)}>
+                              Remarcar
+                            </Button>
+                            <Button size="sm" variant="outline" className="text-xs text-destructive" onClick={() => navigate(`/cancel/${apt.id}`)}>
+                              Cancelar
+                            </Button>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                ))
+              )}
             </div>
 
             <div className="space-y-3">
@@ -636,22 +660,26 @@ const ClientPortal = () => {
               {pastAppointments.length === 0 ? (
                 <p className="text-sm text-muted-foreground text-center py-6">Nenhum agendamento anterior</p>
               ) : (
-                pastAppointments.slice(0, 30).map(apt => (
-                  <Card key={apt.id} className="opacity-90">
-                    <CardContent className="p-3 flex justify-between items-center gap-2">
-                      <div className="min-w-0">
-                        <p className="text-sm font-medium">
-                          {format(parseISO(apt.start_time), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
-                        </p>
-                        <p className="text-xs text-muted-foreground truncate">
-                          {apt.appointment_services?.map(s => s.service?.name).filter(Boolean).join(', ')}
-                        </p>
-                      </div>
-                      <div className="text-right shrink-0">
-                        <Badge className={`${statusColors[apt.status] || 'bg-muted'} text-xs`}>
-                          {statusLabels[apt.status] || apt.status}
-                        </Badge>
-                        <p className="text-xs mt-1">R$ {Number(apt.total_price).toFixed(2)}</p>
+                pastAppointments.slice(0, 50).map(apt => (
+                  <Card key={apt.id} className="opacity-95">
+                    <CardContent className="p-3">
+                      <div className="flex justify-between items-center gap-2">
+                        <div className="min-w-0 space-y-1">
+                          <CompanyHeader company={companies[apt.company_id]} />
+                          <p className="text-sm font-medium">
+                            {format(parseISO(apt.start_time), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                          </p>
+                          <p className="text-xs text-muted-foreground truncate">
+                            {apt.appointment_services?.map(s => s.service?.name).filter(Boolean).join(', ')}
+                            {apt.professional && ` · ${apt.professional.full_name}`}
+                          </p>
+                        </div>
+                        <div className="text-right shrink-0">
+                          <Badge className={`${statusColors[apt.status] || 'bg-muted'} text-xs`}>
+                            {statusLabels[apt.status] || apt.status}
+                          </Badge>
+                          <p className="text-xs mt-1">R$ {Number(apt.total_price).toFixed(2)}</p>
+                        </div>
                       </div>
                     </CardContent>
                   </Card>
@@ -660,46 +688,71 @@ const ClientPortal = () => {
             </div>
           </TabsContent>
 
-          {/* Cashback */}
-          {isCashbackActive && (
+          {/* ================= CASHBACK (per company) ================= */}
+          {anyCashback && (
             <TabsContent value="cashback" className="space-y-4 mt-4">
               <Card className="bg-green-500/5 border-green-500/20">
                 <CardContent className="p-6 text-center">
-                  <p className="text-sm text-muted-foreground">Cashback disponível</p>
-                  <p className="text-4xl font-bold text-green-600 mt-1">R$ {cashbackTotal.toFixed(2)}</p>
+                  <p className="text-sm text-muted-foreground">Cashback total disponível</p>
+                  <p className="text-4xl font-bold text-green-600 mt-1">R$ {totalCashback.toFixed(2)}</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Soma de {companiesWithCashback.length} {companiesWithCashback.length === 1 ? 'estabelecimento' : 'estabelecimentos'}
+                  </p>
                 </CardContent>
               </Card>
 
+              {/* Per-company balances */}
+              <div className="space-y-2">
+                <h3 className="text-sm font-semibold text-muted-foreground">Saldo por estabelecimento</h3>
+                {companiesWithCashback.map(co => (
+                  <Card key={co.id}>
+                    <CardContent className="p-3 flex items-center justify-between gap-2">
+                      <CompanyHeader company={co} size="md" />
+                      <div className="text-right shrink-0">
+                        <p className="text-lg font-bold text-green-600">
+                          R$ {(cashbackByCompany[co.id] || 0).toFixed(2)}
+                        </p>
+                        <p className="text-[10px] text-muted-foreground">disponível</p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+
+              {/* Full history with company labels */}
               <div className="space-y-2">
                 <h3 className="text-sm font-semibold text-muted-foreground">Histórico</h3>
-                {companyCashbacks.length === 0 ? (
+                {allCashbacks.length === 0 ? (
                   <Card>
                     <CardContent className="p-6 text-center text-sm text-muted-foreground">
                       Nenhum cashback registrado ainda
                     </CardContent>
                   </Card>
                 ) : (
-                  companyCashbacks.map(cb => {
+                  allCashbacks.map(cb => {
                     const daysLeft = differenceInDays(parseISO(cb.expires_at), new Date());
                     return (
                       <Card key={cb.id}>
-                        <CardContent className="p-3 flex justify-between items-center gap-2">
-                          <div className="min-w-0">
-                            <p className="text-sm font-medium">R$ {Number(cb.amount).toFixed(2)}</p>
-                            <p className="text-xs text-muted-foreground truncate">
-                              {cb.promotion?.title || 'Promoção'}
-                            </p>
-                          </div>
-                          <div className="text-right shrink-0">
-                            {cb.status === 'active' && daysLeft > 0 ? (
-                              <Badge className={daysLeft <= 10 ? 'bg-yellow-500/10 text-yellow-600' : 'bg-green-500/10 text-green-600'}>
-                                {daysLeft <= 10 ? `Expira em ${daysLeft}d` : `${daysLeft}d restantes`}
-                              </Badge>
-                            ) : cb.status === 'used' ? (
-                              <Badge className="bg-blue-500/10 text-blue-600">Usado</Badge>
-                            ) : (
-                              <Badge className="bg-muted text-muted-foreground">Expirado</Badge>
-                            )}
+                        <CardContent className="p-3">
+                          <div className="flex justify-between items-start gap-2">
+                            <div className="min-w-0 space-y-1">
+                              <CompanyHeader company={companies[cb.company_id]} />
+                              <p className="text-sm font-medium">+ R$ {Number(cb.amount).toFixed(2)}</p>
+                              <p className="text-xs text-muted-foreground truncate">
+                                {cb.promotion?.title || 'Promoção'}
+                              </p>
+                            </div>
+                            <div className="text-right shrink-0">
+                              {cb.status === 'active' && daysLeft > 0 ? (
+                                <Badge className={daysLeft <= 10 ? 'bg-yellow-500/10 text-yellow-600' : 'bg-green-500/10 text-green-600'}>
+                                  {daysLeft <= 10 ? `Expira em ${daysLeft}d` : `${daysLeft}d restantes`}
+                                </Badge>
+                              ) : cb.status === 'used' ? (
+                                <Badge className="bg-blue-500/10 text-blue-600">Usado</Badge>
+                              ) : (
+                                <Badge className="bg-muted text-muted-foreground">Expirado</Badge>
+                              )}
+                            </div>
                           </div>
                         </CardContent>
                       </Card>
@@ -710,58 +763,97 @@ const ClientPortal = () => {
             </TabsContent>
           )}
 
-          {/* Loyalty */}
-          {isLoyaltyActive && (
+          {/* ================= LOYALTY POINTS (per company) ================= */}
+          {anyLoyalty && (
             <TabsContent value="loyalty" className="space-y-4 mt-4">
               <Card className="bg-yellow-500/5 border-yellow-500/20">
                 <CardContent className="p-6 text-center">
-                  <p className="text-sm text-muted-foreground">Seus pontos</p>
-                  <p className="text-4xl font-bold text-yellow-600 mt-1">{loyaltyBalance}</p>
-                  {pointValue > 0 && (
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Equivalente a R$ {balanceEquivalent.toFixed(2)}
-                    </p>
-                  )}
+                  <p className="text-sm text-muted-foreground">Total de pontos acumulados</p>
+                  <p className="text-4xl font-bold text-yellow-600 mt-1">{totalPoints}</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Em {companiesWithLoyalty.length} {companiesWithLoyalty.length === 1 ? 'estabelecimento' : 'estabelecimentos'}
+                  </p>
                 </CardContent>
               </Card>
 
-              {nextReward && (
-                <Card>
-                  <CardContent className="p-4 space-y-2">
-                    <div className="flex justify-between text-sm">
-                      <span className="font-medium">Próxima: {nextReward.name}</span>
-                      <span className="text-muted-foreground">{loyaltyBalance}/{nextReward.points_required}</span>
-                    </div>
-                    <Progress value={(loyaltyBalance / nextReward.points_required) * 100} />
-                  </CardContent>
-                </Card>
-              )}
+              {companiesWithLoyalty.map(co => {
+                const balance = pointsByCompany[co.id] || 0;
+                const cfg = loyaltyConfigs[co.id];
+                const pointVal = cfg?.point_value || 0.05;
+                const companyRewards = rewards.filter(r => r.company_id === co.id);
+                const next = companyRewards
+                  .map(r => ({ ...r, diff: r.points_required - balance }))
+                  .filter(r => r.diff > 0)
+                  .sort((a, b) => a.diff - b.diff)[0];
+                return (
+                  <Card key={co.id}>
+                    <CardHeader className="pb-2">
+                      <div className="flex items-center justify-between gap-2">
+                        <CompanyHeader company={co} size="md" />
+                        <div className="text-right">
+                          <p className="text-xl font-bold text-yellow-600">{balance}</p>
+                          <p className="text-[10px] text-muted-foreground">pontos</p>
+                        </div>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="space-y-2">
+                      {pointVal > 0 && balance > 0 && (
+                        <p className="text-xs text-muted-foreground">
+                          Equivalente a R$ {(balance * pointVal).toFixed(2)}
+                        </p>
+                      )}
+                      {next ? (
+                        <>
+                          <div className="flex justify-between text-xs">
+                            <span className="font-medium truncate">Próxima: {next.name}</span>
+                            <span className="text-muted-foreground shrink-0">{balance}/{next.points_required}</span>
+                          </div>
+                          <Progress value={(balance / next.points_required) * 100} />
+                          <p className="text-xs text-muted-foreground">Faltam <strong>{next.diff}</strong> pontos</p>
+                        </>
+                      ) : (
+                        <p className="text-xs text-muted-foreground">Sem recompensas configuradas neste estabelecimento.</p>
+                      )}
+                      <Button size="sm" variant="outline" className="w-full mt-2" onClick={() => {
+                        setRewardsCompanyId(co.id);
+                        setActiveTab('rewards');
+                      }}>
+                        Ver recompensas <ChevronRight className="h-3 w-3 ml-1" />
+                      </Button>
+                    </CardContent>
+                  </Card>
+                );
+              })}
 
+              {/* Recent transactions with company tags */}
               <div className="space-y-2">
-                <h3 className="text-sm font-semibold text-muted-foreground">Movimentações</h3>
-                {companyLoyaltyTxs.length === 0 ? (
+                <h3 className="text-sm font-semibold text-muted-foreground">Movimentações recentes</h3>
+                {allLoyaltyTxs.length === 0 ? (
                   <Card>
                     <CardContent className="p-6 text-center text-sm text-muted-foreground">
                       Nenhuma movimentação ainda
                     </CardContent>
                   </Card>
                 ) : (
-                  companyLoyaltyTxs.map(tx => (
+                  allLoyaltyTxs.slice(0, 30).map(tx => (
                     <Card key={tx.id}>
-                      <CardContent className="p-3 flex justify-between items-center gap-2">
-                        <div className="min-w-0">
-                          <p className="text-sm font-medium">
-                            {tx.transaction_type === 'earn' ? '+' : '-'}{tx.points} pontos
-                          </p>
-                          <p className="text-xs text-muted-foreground truncate">
-                            {tx.description || (tx.transaction_type === 'earn' ? 'Serviço concluído' : 'Resgate')}
-                          </p>
-                        </div>
-                        <div className="text-right shrink-0">
-                          <p className="text-xs text-muted-foreground">
-                            {format(parseISO(tx.created_at), 'dd/MM/yy')}
-                          </p>
-                          <p className="text-xs">Saldo: {tx.balance_after}</p>
+                      <CardContent className="p-3">
+                        <div className="flex justify-between items-center gap-2">
+                          <div className="min-w-0 space-y-1">
+                            <CompanyHeader company={companies[tx.company_id]} />
+                            <p className="text-sm font-medium">
+                              {tx.transaction_type === 'earn' ? '+' : '-'}{tx.points} pontos
+                            </p>
+                            <p className="text-xs text-muted-foreground truncate">
+                              {tx.description || (tx.transaction_type === 'earn' ? 'Serviço concluído' : 'Resgate')}
+                            </p>
+                          </div>
+                          <div className="text-right shrink-0">
+                            <p className="text-xs text-muted-foreground">
+                              {format(parseISO(tx.created_at), 'dd/MM/yy')}
+                            </p>
+                            <p className="text-xs">Saldo: {tx.balance_after}</p>
+                          </div>
                         </div>
                       </CardContent>
                     </Card>
@@ -771,31 +863,61 @@ const ClientPortal = () => {
             </TabsContent>
           )}
 
-          {/* Rewards Store */}
-          {isLoyaltyActive && (
+          {/* ================= REWARDS STORE (user picks company first) ================= */}
+          {anyLoyalty && (
             <TabsContent value="rewards" className="space-y-4 mt-4">
-              <Card className="bg-primary/5 border-primary/20">
-                <CardContent className="p-3 flex items-center justify-between">
-                  <p className="text-sm">Seu saldo</p>
-                  <p className="text-lg font-bold text-primary">{loyaltyBalance} pontos</p>
-                </CardContent>
-              </Card>
+              {/* Company selector */}
+              <div>
+                <p className="text-xs font-semibold text-muted-foreground mb-2">
+                  Escolha o estabelecimento para ver as recompensas:
+                </p>
+                <div className="flex gap-2 overflow-x-auto pb-1">
+                  {companiesWithLoyalty.map(co => (
+                    <button
+                      key={co.id}
+                      onClick={() => setRewardsCompanyId(co.id)}
+                      className={`shrink-0 flex items-center gap-2 px-3 py-2 rounded-lg border transition-colors ${
+                        rewardsCompanyId === co.id
+                          ? 'bg-primary text-primary-foreground border-primary'
+                          : 'bg-card hover:bg-muted'
+                      }`}
+                    >
+                      {co.logo_url ? (
+                        <img src={co.logo_url} alt={co.name} className="h-5 w-5 rounded object-cover" />
+                      ) : (
+                        <Building2 className="h-4 w-4" />
+                      )}
+                      <span className="text-xs font-medium whitespace-nowrap">{co.name}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
 
-              {companyRewards.length === 0 ? (
+              {rewardsCompany && (
+                <Card className="bg-primary/5 border-primary/20">
+                  <CardContent className="p-3 flex items-center justify-between gap-2">
+                    <CompanyHeader company={rewardsCompany} />
+                    <p className="text-lg font-bold text-primary">{rewardsBalance} pts</p>
+                  </CardContent>
+                </Card>
+              )}
+
+              {rewardsList.length === 0 ? (
                 <Card>
                   <CardContent className="p-6 text-center space-y-2">
                     <Gift className="h-8 w-8 mx-auto text-muted-foreground/40" />
-                    <p className="text-sm text-muted-foreground">Nenhuma recompensa cadastrada</p>
+                    <p className="text-sm text-muted-foreground">
+                      Este estabelecimento ainda não possui recompensas cadastradas.
+                    </p>
                   </CardContent>
                 </Card>
               ) : (
                 <div className="grid sm:grid-cols-2 gap-3">
-                  {companyRewards.map(reward => {
-                    const canRedeem = loyaltyBalance >= reward.points_required;
-                    const partial = loyaltyBalance > 0 && loyaltyBalance < reward.points_required;
-                    const cashNeeded = partial ? (reward.points_required - loyaltyBalance) * pointValue : 0;
-                    const diff = reward.points_required - loyaltyBalance;
-
+                  {rewardsList.map(reward => {
+                    const canRedeem = rewardsBalance >= reward.points_required;
+                    const partial = rewardsBalance > 0 && rewardsBalance < reward.points_required;
+                    const cashNeeded = partial ? (reward.points_required - rewardsBalance) * rewardsPointValue : 0;
+                    const diff = reward.points_required - rewardsBalance;
                     return (
                       <Card key={reward.id} className={canRedeem ? 'border-green-500/30 bg-green-500/5' : ''}>
                         <CardContent className="p-4">
@@ -816,13 +938,9 @@ const ClientPortal = () => {
                               {canRedeem ? (
                                 <Badge className="bg-green-500/10 text-green-600 mt-1 text-xs">Disponível</Badge>
                               ) : partial ? (
-                                <p className="text-xs text-muted-foreground mt-1">
-                                  + R$ {cashNeeded.toFixed(2)}
-                                </p>
+                                <p className="text-xs text-muted-foreground mt-1">+ R$ {cashNeeded.toFixed(2)}</p>
                               ) : (
-                                <p className="text-xs text-muted-foreground mt-1">
-                                  Faltam {diff} pts
-                                </p>
+                                <p className="text-xs text-muted-foreground mt-1">Faltam {diff} pts</p>
                               )}
                             </div>
                           </div>
@@ -835,11 +953,14 @@ const ClientPortal = () => {
             </TabsContent>
           )}
 
-          {/* Profile */}
+          {/* ================= PROFILE ================= */}
           <TabsContent value="profile" className="space-y-4 mt-4">
             <Card>
               <CardHeader>
                 <CardTitle className="text-base">Dados pessoais</CardTitle>
+                <p className="text-xs text-muted-foreground">
+                  Estes dados são compartilhados com todos os estabelecimentos onde você é cliente.
+                </p>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
@@ -896,6 +1017,22 @@ const ClientPortal = () => {
                 <Button onClick={handleSaveProfile} disabled={savingProfile} className="w-full">
                   {savingProfile ? 'Salvando...' : 'Salvar alterações'}
                 </Button>
+              </CardContent>
+            </Card>
+
+            {/* List of linked companies */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Building2 className="h-4 w-4" /> Estabelecimentos vinculados
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                {Object.values(companies).map(co => (
+                  <div key={co.id} className="flex items-center justify-between gap-2 py-1">
+                    <CompanyHeader company={co} />
+                  </div>
+                ))}
               </CardContent>
             </Card>
 
@@ -968,7 +1105,7 @@ const ClientPortal = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Complete Profile Dialog (used by banner) */}
+      {/* Complete Profile Dialog */}
       <Dialog open={showCompleteProfile} onOpenChange={setShowCompleteProfile}>
         <DialogContent className="max-w-sm max-h-[90vh] overflow-y-auto">
           <DialogHeader>
