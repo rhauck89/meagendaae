@@ -97,7 +97,8 @@ const SettingsCompany = () => {
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>, mode: CropMode) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (!file.type.startsWith('image/')) { toast.error('Selecione uma imagem'); return; }
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
+    if (!allowedTypes.includes(file.type)) { toast.error('Formato não suportado. Use JPG, PNG ou WebP.'); return; }
     const maxMB = mode === 'cover' ? 10 : 5;
     if (file.size > maxMB * 1024 * 1024) { toast.error(`Imagem deve ter no máximo ${maxMB}MB`); return; }
     setCropMode(mode);
