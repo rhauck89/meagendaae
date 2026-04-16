@@ -628,7 +628,7 @@ const Team = () => {
             {createdCredentials ? (() => {
               const loginUrl = `${window.location.origin}/auth`;
               const fullMessage = `🔐 *Acesso ao sistema*\n\n📎 Link de login: ${loginUrl}\n📧 Email: ${createdCredentials.email}\n🔑 Senha temporária: ${createdCredentials.password}\n\n📌 Link de agendamento:\n${createdCredentials.link}\n\n⚠️ Troque sua senha após o primeiro login.`;
-              const whatsAppUrl = `https://wa.me/?text=${encodeURIComponent(fullMessage)}`;
+              const whatsAppUrl = buildWhatsAppUrl('', fullMessage);
               return (
               <div className="space-y-4">
                 <p className="text-sm text-muted-foreground">Envie esses dados para o profissional acessar o sistema:</p>
@@ -1182,7 +1182,7 @@ const Team = () => {
           {inviteCredentials && (() => {
             const loginUrl = `${window.location.origin}/auth`;
             const fullMessage = `🔐 *Acesso ao sistema*\n\n📎 Link de login: ${loginUrl}\n📧 Email: ${inviteCredentials.email}\n🔑 Senha temporária: ${inviteCredentials.password}\n\n⚠️ Troque sua senha após o primeiro login.`;
-            const whatsAppUrl = `https://wa.me/?text=${encodeURIComponent(fullMessage)}`;
+            const whatsAppUrl = buildWhatsAppUrl('', fullMessage);
             return (
             <div className="space-y-4">
               <p className="text-sm text-muted-foreground">

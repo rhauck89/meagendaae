@@ -655,7 +655,7 @@ export default function Promotions() {
       msg = msg.replace(/\{\{regras_cashback\}\}/g, promotion.cashback_rules_text || '');
     }
 
-    return `https://wa.me/${number}?text=${encodeURIComponent(msg)}`;
+    return buildWhatsAppUrl(number, msg);
   };
 
   const getFilterLabel = (f: string) => {

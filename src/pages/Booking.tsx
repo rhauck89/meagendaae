@@ -2147,7 +2147,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
               '',
               'Obrigado! 🙏',
             ].join('\n');
-            return `https://wa.me/${phone.startsWith('55') ? phone : '55' + phone}?text=${encodeURIComponent(msg)}`;
+            return buildWhatsAppUrl(phone.startsWith('55') ? phone : '55' + phone, msg);
           };
 
           const resetBooking = () => {
@@ -2343,7 +2343,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
       {/* Floating WhatsApp Button */}
       {companyWhatsapp && step !== 'success' && (
         <a
-          href={`https://wa.me/${companyWhatsapp.replace(/\D/g, '')}`}
+          href={buildWhatsAppUrl(companyWhatsapp.replace(/\D/g, ''))}
           target="_blank"
           rel="noopener noreferrer"
           className="fixed bottom-6 right-6 z-50 w-14 h-14 rounded-full flex items-center justify-center shadow-xl transition-transform hover:scale-110"
