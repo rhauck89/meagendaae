@@ -1185,6 +1185,23 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
         companyState: (company as any).state || null,
         companyPostalCode: (company as any).postal_code || null,
       });
+
+      // Save last booking for smart rebooking
+      try {
+        const lastBooking = {
+          serviceIds: selectedServices,
+          serviceNames: bookedServiceNames,
+          serviceDurations: selectedServices.map(sid => services.find(s => s.id === sid)?.duration_minutes || 0),
+          professionalId: selectedProfessional,
+          professionalName: professionalProfile?.full_name || '',
+          professionalAvatar: professionalProfile?.avatar_url || null,
+          totalPrice: finalPrice,
+          totalDuration,
+          bookedAt: new Date().toISOString(),
+        };
+        localStorage.setItem(`last_booking_${company.id}`, JSON.stringify(lastBooking));
+      } catch { /* non-critical */ }
+
       setStep('success');
     } catch (err: any) {
       toast.error(err.message || 'Erro ao agendar');
