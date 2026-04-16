@@ -144,12 +144,12 @@ const MyAppointments = () => {
         {appointments.length === 0 ? (
           <div className="text-center py-12 text-muted-foreground space-y-4">
             <Calendar className="h-12 w-12 mx-auto mb-3 opacity-40" />
-            <p className="font-semibold">Nenhum agendamento encontrado</p>
+            <p className="font-semibold text-foreground">Você ainda não possui agendamentos</p>
             <p className="text-sm">
-              Ainda não encontramos agendamentos vinculados à sua conta. Após realizar um agendamento, seus dados aparecerão aqui automaticamente.
+              Que tal agendar seu primeiro horário?
             </p>
-            <Button onClick={() => navigate('/')} variant="outline">
-              Explorar estabelecimentos
+            <Button onClick={() => navigate('/')}>
+              Agendar agora
             </Button>
           </div>
         ) : (
