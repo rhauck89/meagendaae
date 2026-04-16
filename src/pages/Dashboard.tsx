@@ -1112,11 +1112,17 @@ const Dashboard = () => {
 
       <ManualAppointmentDialog
         open={manualAppointmentOpen}
-        onOpenChange={setManualAppointmentOpen}
+        onOpenChange={(open) => {
+          setManualAppointmentOpen(open);
+          if (!open) setManualAppointmentPrefill({});
+        }}
         companyId={companyId!}
         userId={user?.id}
         isAdmin={isAdmin}
         profileId={profileId}
+        initialDate={manualAppointmentPrefill.date}
+        initialTime={manualAppointmentPrefill.time}
+        initialProfessionalId={manualAppointmentPrefill.professionalId}
         onCreated={() => {
           fetchAppointments();
           fetchUpcomingAppointments();
@@ -1534,6 +1540,10 @@ const Dashboard = () => {
                         setCompleteDialogOpen(true);
                       }
                     }}
+                    onEmptySlotClick={(time, professionalId) => {
+                      setManualAppointmentPrefill({ date: currentDate, time, professionalId });
+                      setManualAppointmentOpen(true);
+                    }}
                   />
                 )
               )}
@@ -1552,6 +1562,10 @@ const Dashboard = () => {
                       setCompleteTarget(apt);
                       setCompleteDialogOpen(true);
                     }
+                  }}
+                  onEmptySlotClick={(date, time) => {
+                    setManualAppointmentPrefill({ date, time });
+                    setManualAppointmentOpen(true);
                   }}
                 />
               )}
