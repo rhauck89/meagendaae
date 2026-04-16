@@ -179,9 +179,12 @@ const FinanceDashboard = () => {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-xl font-display font-bold">Dashboard Financeiro</h2>
-        <p className="text-sm text-muted-foreground">Visão geral das finanças da empresa</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-xl font-display font-bold">Dashboard Financeiro</h2>
+          <p className="text-sm text-muted-foreground">Visão geral das finanças da empresa</p>
+        </div>
+        <FinancialPrivacyToggle />
       </div>
 
       {/* Main KPIs */}
