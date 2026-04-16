@@ -1,9 +1,10 @@
 import { useState, useCallback } from 'react';
 import Cropper, { Area } from 'react-easy-crop';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
-import { ZoomIn, ZoomOut, Check, X } from 'lucide-react';
+import { ZoomIn, ZoomOut, Check, X, Loader2 } from 'lucide-react';
+import { toast } from 'sonner';
 
 export type CropMode = 'avatar' | 'cover';
 
@@ -15,9 +16,11 @@ interface ImageCropDialogProps {
   onConfirm: (croppedBlob: Blob) => void;
 }
 
-const CONFIG: Record<CropMode, { aspect: number; outputW: number; outputH: number; shape: 'round' | 'rect'; title: string }> = {
-  avatar: { aspect: 1, outputW: 512, outputH: 512, shape: 'round', title: 'Ajustar foto de perfil' },
-  cover:  { aspect: 3, outputW: 1200, outputH: 400, shape: 'rect', title: 'Ajustar foto de capa' },
+const MAX_BLOB_SIZE = 10 * 1024 * 1024; // 10MB
+
+const CONFIG: Record<CropMode, { aspect: number; outputW: number; outputH: number; shape: 'round' | 'rect'; title: string; description: string }> = {
+  avatar: { aspect: 1, outputW: 512, outputH: 512, shape: 'round', title: 'Ajustar foto de perfil', description: 'Ajuste sua foto e clique em "Confirmar foto" para salvar.' },
+  cover:  { aspect: 3, outputW: 1200, outputH: 400, shape: 'rect', title: 'Ajustar foto de capa', description: 'Posicione a imagem na área desejada e confirme.' },
 };
 
 function createCroppedImage(imageSrc: string, pixelCrop: Area, w: number, h: number): Promise<Blob> {
@@ -58,9 +61,13 @@ const ImageCropDialog = ({ open, imageSrc, mode, onClose, onConfirm }: ImageCrop
     setProcessing(true);
     try {
       const blob = await createCroppedImage(imageSrc, croppedArea, cfg.outputW, cfg.outputH);
+      if (blob.size > MAX_BLOB_SIZE) {
+        toast.error('Imagem resultante muito grande. Tente aproximar mais o corte.');
+        return;
+      }
       onConfirm(blob);
     } catch {
-      // handled by parent
+      toast.error('Erro ao processar imagem. Tente novamente.');
     } finally {
       setProcessing(false);
     }
@@ -69,10 +76,11 @@ const ImageCropDialog = ({ open, imageSrc, mode, onClose, onConfirm }: ImageCrop
   const aspectClass = mode === 'cover' ? 'aspect-[3/1]' : 'aspect-square';
 
   return (
-    <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="max-w-lg p-0 gap-0 overflow-hidden">
+    <Dialog open={open} onOpenChange={(v) => !v && !processing && onClose()}>
+      <DialogContent className="max-w-lg p-0 gap-0 overflow-hidden z-[60]">
         <DialogHeader className="p-4 pb-2">
           <DialogTitle>{cfg.title}</DialogTitle>
+          <DialogDescription className="text-xs">{cfg.description}</DialogDescription>
         </DialogHeader>
 
         <div className={`relative w-full ${aspectClass} bg-black`}>
@@ -88,7 +96,6 @@ const ImageCropDialog = ({ open, imageSrc, mode, onClose, onConfirm }: ImageCrop
             onCropComplete={onCropComplete}
           />
 
-          {/* Safe zone guide for cover */}
           {mode === 'cover' && (
             <div className="absolute inset-0 pointer-events-none flex items-center justify-center z-10">
               <div
@@ -115,12 +122,16 @@ const ImageCropDialog = ({ open, imageSrc, mode, onClose, onConfirm }: ImageCrop
           <ZoomIn className="h-4 w-4 text-muted-foreground shrink-0" />
         </div>
 
-        <DialogFooter className="p-4 pt-2 gap-2">
+        <DialogFooter className="p-4 pt-2 gap-2 relative z-20">
           <Button variant="outline" onClick={onClose} disabled={processing}>
             <X className="h-4 w-4 mr-1" /> Cancelar
           </Button>
           <Button onClick={handleConfirm} disabled={processing}>
-            <Check className="h-4 w-4 mr-1" /> {processing ? 'Processando...' : 'Confirmar'}
+            {processing ? (
+              <><Loader2 className="h-4 w-4 mr-1 animate-spin" /> Salvando imagem...</>
+            ) : (
+              <><Check className="h-4 w-4 mr-1" /> Confirmar foto</>
+            )}
           </Button>
         </DialogFooter>
       </DialogContent>

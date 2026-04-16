@@ -111,8 +111,9 @@ const ProfilePage = () => {
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>, mode: 'avatar' | 'cover' = 'avatar') => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (!file.type.startsWith('image/')) {
-      toast.error('Por favor, selecione uma imagem');
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
+    if (!allowedTypes.includes(file.type)) {
+      toast.error('Formato não suportado. Use JPG, PNG ou WebP.');
       return;
     }
     const maxMB = mode === 'cover' ? 5 : 10;
