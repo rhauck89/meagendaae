@@ -1035,13 +1035,13 @@ const ClientPortal = () => {
 
               {/* STORE */}
               <TabsContent value="store" className="space-y-4 mt-4">
-                {!anyLoyalty ? (
+                {!anyRewards ? (
                   <Card>
                     <CardContent className="p-8 text-center space-y-3">
                       <ShoppingBag className="h-12 w-12 mx-auto text-muted-foreground/40" />
                       <p className="font-semibold">Loja indisponível</p>
                       <p className="text-sm text-muted-foreground">
-                        Acumule pontos em algum estabelecimento para trocar por recompensas.
+                        Nenhum estabelecimento publicou recompensas no momento.
                       </p>
                     </CardContent>
                   </Card>
@@ -1052,7 +1052,7 @@ const ClientPortal = () => {
                         Escolha o estabelecimento:
                       </p>
                       <div className="flex gap-2 overflow-x-auto pb-1 -mx-4 px-4">
-                        {companiesWithLoyalty.map(co => (
+                        {companiesWithRewards.map(co => (
                           <button
                             key={co.id}
                             onClick={() => setRewardsCompanyId(co.id)}
