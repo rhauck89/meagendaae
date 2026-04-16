@@ -990,15 +990,24 @@ const Team = () => {
         </TabsList>
 
         <TabsContent value="active">
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-            {activeCollaborators.map((c) => renderCollaboratorCard(c, false))}
-            {activeCollaborators.length === 0 && (
-              <div className="col-span-full py-12 text-center text-muted-foreground">
-                <Users className="mx-auto mb-3 h-12 w-12 opacity-40" />
-                <p>Nenhum profissional ativo</p>
+          {activeCollaborators.length === 0 ? (
+            <div className="col-span-full py-16 text-center">
+              <div className="mx-auto w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mb-4">
+                <Users className="h-8 w-8 text-primary/60" />
               </div>
-            )}
-          </div>
+              <h3 className="text-lg font-semibold mb-1">Nenhum profissional cadastrado</h3>
+              <p className="text-sm text-muted-foreground mb-4 max-w-sm mx-auto">
+                Adicione um profissional para começar a agendar clientes
+              </p>
+              <Button onClick={() => setDialogOpen(true)}>
+                <Plus className="mr-2 h-4 w-4" /> Adicionar profissional
+              </Button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              {activeCollaborators.map((c) => renderCollaboratorCard(c, false))}
+            </div>
+          )}
         </TabsContent>
 
         <TabsContent value="disabled">
