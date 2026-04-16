@@ -1012,10 +1012,16 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
           full_name: clientForm.full_name, email: clientForm.email || '', whatsapp: clientForm.whatsapp || '',
           opt_in_whatsapp: optInWhatsapp,
         });
+        // Always save client_id for this company (needed for rebooking logic)
         localStorage.setItem(`client_id_${company.id}`, clientId);
+        // Data will be persisted/cleared on success screen based on user choice
         localStorage.setItem(`client_data_${company.id}`, clientDataJson);
         localStorage.setItem('meagendae_client_data', clientDataJson);
         setSavedClientId(clientId);
+        // Track booking count
+        const countKey = 'meagendae_booking_count';
+        const currentCount = parseInt(localStorage.getItem(countKey) || '0', 10);
+        localStorage.setItem(countKey, String(currentCount + 1));
       }
 
       const [h, m] = selectedTime.split(':').map(Number);
