@@ -1138,6 +1138,23 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
     );
   }
 
+  // ─── No Professionals State ───
+  if (noProfessionals) {
+    return (
+      <div className="min-h-screen flex items-center justify-center" style={{ background: T.bg, color: T.text }}>
+        <div className="flex flex-col items-center gap-4 text-center px-6 max-w-md">
+          <div className="w-16 h-16 rounded-full flex items-center justify-center" style={{ background: `${T.accent}20` }}>
+            <AlertTriangle style={{ color: T.accent }} className="h-8 w-8" />
+          </div>
+          <h2 className="text-xl font-bold">Agenda indisponível</h2>
+          <p className="text-sm" style={{ color: T.textSec }}>
+            Esta empresa ainda não possui profissionais disponíveis para agendamento. Tente novamente mais tarde.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   const Icon = isDark ? Scissors : Sparkles;
   const skipProfessionalStep = !!professionalSlug || professionals.length === 1;
   const displayLogoUrl = company.logo_url || companySettings?.logo_url;
