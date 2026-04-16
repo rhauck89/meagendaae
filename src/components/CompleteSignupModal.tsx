@@ -61,48 +61,21 @@ export const CompleteSignupModal = ({
     setWhatsapp(masked);
   };
 
-  const ensureClientRecord = async (userId: string, formattedPhone: string) => {
-    // 1. Try to link existing client records by phone/email
-    try {
-      await supabase.rpc('link_client_to_user', {
-        p_user_id: userId,
-        p_phone: formattedPhone || null,
-        p_email: email,
-      } as any);
-    } catch (e) {
-      console.warn('[CompleteSignup] link_client_to_user failed:', e);
-    }
+  const ensureClientRecord = async (formattedPhone: string) => {
+    // SECURITY DEFINER RPC: links existing records, then creates if missing.
+    const { data, error } = await supabase.rpc('complete_client_signup' as any, {
+      p_company_id: companyId,
+      p_name: fullName,
+      p_whatsapp: formattedPhone || null,
+      p_email: email,
+      p_birth_date: birthDate || null,
+    } as any);
 
-    // 2. Verify linkage exists for this company
-    const { data: existing } = await supabase
-      .from('clients')
-      .select('id')
-      .eq('user_id', userId)
-      .eq('company_id', companyId)
-      .maybeSingle();
-
-    if (existing) return existing.id;
-
-    // 3. Create new client record if none linked
-    const { data: created, error: insertError } = await supabase
-      .from('clients')
-      .insert({
-        company_id: companyId,
-        user_id: userId,
-        name: fullName,
-        whatsapp: formattedPhone || null,
-        email: email,
-        birth_date: birthDate || null,
-        registration_complete: true,
-      })
-      .select('id')
-      .single();
-
-    if (insertError) {
-      console.error('[CompleteSignup] client insert failed:', insertError);
+    if (error) {
+      console.error('[CompleteSignup] complete_client_signup RPC failed:', error);
       throw new Error('Não foi possível vincular sua conta. Tente novamente.');
     }
-    return created.id;
+    return data as string;
   };
 
   const handleSubmit = async () => {
