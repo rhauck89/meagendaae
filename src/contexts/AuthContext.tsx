@@ -86,13 +86,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           .eq('active', true)
           .limit(1);
         const hasCollabRecord = !!(collabData && collabData.length > 0);
+        console.log('[AuthContext] Collaborator check:', { profileId: profileRes.data?.id, collabData, hasCollabRecord, savedMode });
         setIsAlsoCollaborator(hasCollabRecord);
         
         // Only restore saved mode if user actually has dual roles
         if (hasCollabRecord && savedMode) {
+          console.log('[AuthContext] Restoring saved mode:', savedMode);
           setLoginModeState(savedMode);
         } else if (!hasCollabRecord) {
           // Single role admin — force admin mode
+          console.log('[AuthContext] Single role admin, forcing admin mode');
           setLoginModeState('admin');
         }
         // If hasCollabRecord && !savedMode → leave null so dialog shows

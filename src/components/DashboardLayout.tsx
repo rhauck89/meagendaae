@@ -73,8 +73,8 @@ const allProfessionalNavItems = [
 ];
 
 const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
-  const { profile, companyId, signOut, loading: authLoading, loginMode, setLoginMode, isAlsoCollaborator } = useAuth();
-  const { isAdmin: isAdminRole, isAdmin, isProfessionalMode } = useUserRole();
+  const { profile, companyId, signOut, loading: authLoading, loginMode, setLoginMode, isAlsoCollaborator, roles } = useAuth();
+  const { isAdmin: isAdminRole, isAdmin, isProfessionalMode, isProfessional } = useUserRole();
   const profPerms = useProfessionalPermissions();
   const brandInfo = useCompanyBrandInfo();
   const location = useLocation();
@@ -87,6 +87,9 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
   const pendingRequests = usePendingRequestCounts();
   const { data: platformMessages, dismiss: dismissMessage } = usePlatformMessages();
   const totalNotifications = (unreadTickets || 0) + (platformMessages?.length || 0);
+
+  // Debug logging for role detection
+  console.log('[DashboardLayout] Role debug:', { isAdminRole, isAdmin, isProfessional, isProfessionalMode, isAlsoCollaborator, loginMode, roles });
 
   // Determine if role selection dialog is needed
   const needsRoleSelection = isAdminRole && isAlsoCollaborator && !loginMode;
