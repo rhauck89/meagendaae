@@ -4,9 +4,12 @@ import { useUserRole } from '@/hooks/useUserRole';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import { CheckCircle2, Circle, Building2, Clock, Share2, Rocket, Users } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { CheckCircle2, Circle, Building2, Clock, Share2, Rocket, Users, Copy, MessageCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
+import { buildWhatsAppUrl } from '@/lib/whatsapp';
 
 interface ChecklistStep {
   key: string;
@@ -15,22 +18,23 @@ interface ChecklistStep {
   icon: any;
   route: string;
   cta?: string;
+  isShareStep?: boolean;
 }
 
 const adminSteps: ChecklistStep[] = [
   { key: 'company', label: 'Configure sua empresa', icon: Building2, route: '/dashboard/settings/company' },
   { key: 'hours', label: 'Configure os horários', icon: Clock, route: '/dashboard/settings/schedule' },
   { key: 'team', label: 'Cadastre sua equipe', description: 'Adicione profissionais para começar a receber agendamentos', icon: Users, route: '/dashboard/team', cta: 'Adicionar profissional' },
-  { key: 'share', label: 'Ative sua página pública', icon: Share2, route: '/dashboard/settings/general' },
+  { key: 'share', label: 'Divulgue sua agenda', description: 'Copie e compartilhe o link da sua página de agendamento', icon: Share2, route: '/dashboard/settings/general', isShareStep: true },
 ];
 
 const professionalSteps: ChecklistStep[] = [
   { key: 'schedule', label: 'Configure seus horários', icon: Clock, route: '/dashboard/services' },
-  { key: 'appointment', label: 'Realize seu primeiro atendimento', icon: Share2, route: '/dashboard' },
-  { key: 'share', label: 'Compartilhe seu link de agendamento', icon: Share2, route: '/dashboard/profile' },
+  { key: 'share', label: 'Divulgue sua agenda', description: 'Compartilhe seu link de agendamento', icon: Share2, route: '/dashboard/profile', isShareStep: true },
 ];
 
 const STORAGE_KEY = 'onboarding_checklist_completed';
+const SHARED_LINK_KEY = 'onboarding_shared_link';
 
 const OnboardingChecklist = () => {
   const { companyId } = useAuth();
@@ -40,6 +44,8 @@ const OnboardingChecklist = () => {
   const [loading, setLoading] = useState(true);
   const [dismissed, setDismissed] = useState(false);
   const [fadingOut, setFadingOut] = useState(false);
+  const [companySlug, setCompanySlug] = useState('');
+  const [expandedShare, setExpandedShare] = useState(false);
 
   const steps = isAdmin ? adminSteps : professionalSteps;
 
@@ -58,12 +64,16 @@ const OnboardingChecklist = () => {
     if (!companyId) return;
     const completed = new Set<string>();
 
+    // Fetch company slug
+    const { data: company } = await supabase
+      .from('companies')
+      .select('phone, address, whatsapp, slug')
+      .eq('id', companyId)
+      .single();
+
+    if (company?.slug) setCompanySlug(company.slug);
+
     if (isAdmin) {
-      const { data: company } = await supabase
-        .from('companies')
-        .select('phone, address, whatsapp')
-        .eq('id', companyId)
-        .single();
       if (company && (company.phone || company.address || company.whatsapp)) {
         completed.add('company');
       }
@@ -74,15 +84,14 @@ const OnboardingChecklist = () => {
         .eq('company_id', companyId);
       if (hoursCount && hoursCount > 0) completed.add('hours');
 
-      // Team: at least one collaborator besides the owner
       const { count: collabCount } = await supabase
         .from('collaborators')
         .select('id', { count: 'exact', head: true })
         .eq('company_id', companyId);
       if (collabCount && collabCount > 0) completed.add('team');
 
-      // Share: company has been configured enough
-      if (completed.has('company') && completed.has('hours') && completed.has('team')) {
+      // Share: based on localStorage flag
+      if (localStorage.getItem(SHARED_LINK_KEY) === 'true') {
         completed.add('share');
       }
     } else {
@@ -94,14 +103,9 @@ const OnboardingChecklist = () => {
           .eq('company_id', companyId);
         if (hoursCount && hoursCount > 0) completed.add('schedule');
 
-        const { count: apptCount } = await supabase
-          .from('appointments')
-          .select('id', { count: 'exact', head: true })
-          .eq('professional_id', profileId)
-          .eq('company_id', companyId);
-        if (apptCount && apptCount > 0) completed.add('appointment');
-
-        if (completed.has('appointment')) completed.add('share');
+        if (localStorage.getItem(SHARED_LINK_KEY) === 'true') {
+          completed.add('share');
+        }
       }
     }
 
@@ -115,6 +119,38 @@ const OnboardingChecklist = () => {
     }
 
     setLoading(false);
+  };
+
+  const markShareCompleted = () => {
+    localStorage.setItem(SHARED_LINK_KEY, 'true');
+    setCompletedSteps(prev => new Set([...prev, 'share']));
+    toast.success('Link copiado! Agora é só divulgar para seus clientes 🚀');
+
+    // Check if all done now
+    const newCompleted = new Set([...completedSteps, 'share']);
+    if (steps.every(s => newCompleted.has(s.key))) {
+      localStorage.setItem(STORAGE_KEY, 'true');
+      setFadingOut(true);
+      setTimeout(() => setDismissed(true), 300);
+    }
+  };
+
+  const getBookingUrl = () => {
+    return `${window.location.origin}/barbearia/${companySlug}`;
+  };
+
+  const handleCopyLink = () => {
+    const url = getBookingUrl();
+    navigator.clipboard.writeText(url);
+    markShareCompleted();
+  };
+
+  const handleShareWhatsApp = () => {
+    const url = getBookingUrl();
+    const message = `Agende seu horário comigo: ${url}`;
+    const whatsappUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(message)}`;
+    window.open(whatsappUrl, '_blank');
+    markShareCompleted();
   };
 
   if (loading || dismissed) return null;
@@ -154,30 +190,61 @@ const OnboardingChecklist = () => {
           {steps.map((step) => {
             const done = completedSteps.has(step.key);
             return (
-              <button
-                key={step.key}
-                onClick={() => !done && navigate(step.route)}
-                className={cn(
-                  'flex items-center gap-3 w-full px-3 py-2 rounded-lg text-sm transition-colors text-left',
-                  done
-                    ? 'text-muted-foreground'
-                    : 'hover:bg-muted cursor-pointer text-foreground'
-                )}
-                disabled={done}
-              >
-                {done ? (
-                  <CheckCircle2 className="h-4 w-4 text-success shrink-0" />
-                ) : (
-                  <Circle className="h-4 w-4 text-muted-foreground/50 shrink-0" />
-                )}
-                <step.icon className="h-4 w-4 shrink-0 text-muted-foreground" />
-                <div className="flex flex-col">
-                  <span className={cn(done && 'line-through')}>{step.label}</span>
-                  {!done && step.description && (
-                    <span className="text-xs text-muted-foreground">{step.description}</span>
+              <div key={step.key}>
+                <button
+                  onClick={() => {
+                    if (done) return;
+                    if (step.isShareStep && companySlug) {
+                      setExpandedShare(!expandedShare);
+                    } else {
+                      navigate(step.route);
+                    }
+                  }}
+                  className={cn(
+                    'flex items-center gap-3 w-full px-3 py-2 rounded-lg text-sm transition-colors text-left',
+                    done
+                      ? 'text-muted-foreground'
+                      : 'hover:bg-muted cursor-pointer text-foreground'
                   )}
-                </div>
-              </button>
+                  disabled={done}
+                >
+                  {done ? (
+                    <CheckCircle2 className="h-4 w-4 text-success shrink-0" />
+                  ) : (
+                    <Circle className="h-4 w-4 text-muted-foreground/50 shrink-0" />
+                  )}
+                  <step.icon className="h-4 w-4 shrink-0 text-muted-foreground" />
+                  <div className="flex flex-col">
+                    <span className={cn(done && 'line-through')}>{step.label}</span>
+                    {!done && step.description && (
+                      <span className="text-xs text-muted-foreground">{step.description}</span>
+                    )}
+                  </div>
+                </button>
+
+                {/* Inline share panel */}
+                {step.isShareStep && expandedShare && !done && companySlug && (
+                  <div className="ml-11 mt-1 mb-2 p-3 rounded-lg bg-muted/50 space-y-2 animate-fade-in">
+                    <input
+                      readOnly
+                      value={getBookingUrl()}
+                      onCopy={markShareCompleted}
+                      onFocus={markShareCompleted}
+                      className="w-full text-xs bg-background border rounded px-2 py-1.5 select-all"
+                    />
+                    <div className="flex gap-2">
+                      <Button size="sm" variant="default" className="gap-1.5 text-xs h-8" onClick={handleCopyLink}>
+                        <Copy className="h-3.5 w-3.5" />
+                        Copiar link
+                      </Button>
+                      <Button size="sm" variant="outline" className="gap-1.5 text-xs h-8" onClick={handleShareWhatsApp}>
+                        <MessageCircle className="h-3.5 w-3.5" />
+                        WhatsApp
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </div>
             );
           })}
         </div>
@@ -190,4 +257,5 @@ export default OnboardingChecklist;
 
 export const resetOnboardingChecklist = () => {
   localStorage.removeItem(STORAGE_KEY);
+  localStorage.removeItem(SHARED_LINK_KEY);
 };
