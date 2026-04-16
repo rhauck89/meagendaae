@@ -426,12 +426,13 @@ export default function BarbershopLanding({ routeBusinessType, customSlug }: Bar
         {/* Smart Rebooking Block — only for logged-in users with history */}
         {isLoggedIn && lastBooking && !rebookDismissed && (() => {
           const daysSince = Math.floor((Date.now() - new Date(lastBooking.bookedAt).getTime()) / (1000 * 60 * 60 * 24));
+          const formattedDate = format(new Date(lastBooking.bookedAt), "d 'de' MMMM 'de' yyyy", { locale: ptBR });
           return (
             <section className="rounded-2xl p-5 space-y-4" style={{ background: `${T.accent}10`, border: `1.5px solid ${T.accent}40` }}>
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <RotateCcw className="h-5 w-5" style={{ color: T.accent }} />
-                  <span className="font-bold text-base" style={{ color: T.text }}>Agendar novamente?</span>
+                  <span className="font-bold text-base" style={{ color: T.text }}>Seu último atendimento</span>
                 </div>
                 <button
                   onClick={handleDismissRebook}
@@ -460,8 +461,8 @@ export default function BarbershopLanding({ routeBusinessType, customSlug }: Bar
                   <p className="text-xs mt-0.5" style={{ color: T.textSec }}>
                     <Clock className="h-3 w-3 inline mr-1" />{lastBooking.totalDuration} min • com {lastBooking.professionalName}
                   </p>
-                  <p className="text-xs font-semibold mt-0.5" style={{ color: T.accent }}>
-                    R$ {lastBooking.totalPrice.toFixed(2)}
+                  <p className="text-xs mt-0.5" style={{ color: T.textSec }}>
+                    <Calendar className="h-3 w-3 inline mr-1" />{formattedDate}
                   </p>
                 </div>
               </div>
@@ -471,14 +472,14 @@ export default function BarbershopLanding({ routeBusinessType, customSlug }: Bar
                   className="w-full rounded-xl py-5 font-semibold text-base"
                   style={{ background: T.accent, color: '#000' }}
                 >
-                  <RotateCcw className="h-4 w-4 mr-2" /> Repetir agendamento
+                  <RotateCcw className="h-4 w-4 mr-2" /> Repetir atendimento
                 </Button>
                 <button
                   onClick={() => navigate(`/${bookingBasePath}/${slug}/agendar`)}
                   className="w-full py-2 text-sm font-medium rounded-xl hover:opacity-80"
                   style={{ color: T.textSec }}
                 >
-                  Escolher outro serviço
+                  Ver outros serviços
                 </button>
               </div>
             </section>
