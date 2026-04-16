@@ -353,7 +353,9 @@ const ClientPortal = () => {
       <header className="bg-card border-b sticky top-0 z-20 shadow-sm">
         <div className="max-w-3xl mx-auto px-4 pt-4 pb-3">
           <div className="flex items-center justify-between gap-3">
-            <PlatformLogo onDarkBackground={false} compact />
+            <div className="scale-125 origin-left">
+              <PlatformLogo onDarkBackground={false} compact />
+            </div>
             <div className="flex items-center gap-1">
               <Button variant="ghost" size="icon" aria-label="Notificações">
                 <Bell className="h-5 w-5" />
