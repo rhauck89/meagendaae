@@ -63,14 +63,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     console.log('[AuthContext] Profile response:', profileRes.data, profileRes.error);
     console.log('[AuthContext] user_roles response:', rolesRes.data, rolesRes.error);
 
+    let savedMode: LoginMode = null;
     if (profileRes.data) {
       setProfile(profileRes.data);
       setCompanyId(profileRes.data.company_id);
-      
-      // Restore saved login mode
-      if (profileRes.data.last_login_mode) {
-        setLoginModeState(profileRes.data.last_login_mode as LoginMode);
-      }
+      savedMode = profileRes.data.last_login_mode as LoginMode;
     }
 
     if (rolesRes.data) {
@@ -87,9 +84,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           .eq('profile_id', profileRes.data.id)
           .eq('active', true)
           .limit(1);
-        setIsAlsoCollaborator(!!(collabData && collabData.length > 0));
+        const hasCollabRecord = !!(collabData && collabData.length > 0);
+        setIsAlsoCollaborator(hasCollabRecord);
+        
+        // Only restore saved mode if user actually has dual roles
+        if (hasCollabRecord && savedMode) {
+          setLoginModeState(savedMode);
+        } else if (!hasCollabRecord) {
+          // Single role admin — force admin mode
+          setLoginModeState('admin');
+        }
+        // If hasCollabRecord && !savedMode → leave null so dialog shows
+      } else if (mappedRoles.includes('collaborator')) {
+        // Pure collaborator — force professional mode
+        setIsAlsoCollaborator(false);
+        setLoginModeState('professional');
       } else {
         setIsAlsoCollaborator(false);
+        if (isAdminRole) {
+          setLoginModeState('admin');
+        }
       }
     } else {
       console.warn('[AuthContext] No roles found in user_roles table for user:', userId);
