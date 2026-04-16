@@ -2344,22 +2344,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
             </div>
             <Button
               onClick={() => {
-                // Validate basic client fields before opening auth gate
-                if (!clientForm.full_name.trim() || !clientForm.whatsapp || !isValidWhatsApp(clientForm.whatsapp)) {
-                  toast.error('Informe seu nome e WhatsApp para continuar.');
-                  setStep('client');
-                  return;
-                }
-                if (!clientForm.email?.trim()) {
-                  toast.error('Email é obrigatório para criar sua conta.');
-                  setStep('client');
-                  return;
-                }
-                if (!isClientLoggedIn) {
-                  setAuthGateOpen(true);
-                } else {
-                  handleBook();
-                }
+                handleBook();
               }}
               className="w-full rounded-xl py-6 font-semibold text-base shadow-lg transition-all hover:scale-[1.01]"
               style={{ background: T.accent, color: '#000' }}
@@ -2370,21 +2355,9 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                   <div className="w-5 h-5 border-2 rounded-full animate-spin" style={{ borderColor: '#000 transparent transparent transparent' }} /> Agendando...
                 </div>
               ) : (
-                <><CheckCircle2 className="h-5 w-5 mr-2" /> {isClientLoggedIn ? 'Confirmar Agendamento' : 'Criar conta e confirmar'}</>
+                <><CheckCircle2 className="h-5 w-5 mr-2" /> Confirmar Agendamento</>
               )}
             </Button>
-
-            <BookingAuthGate
-              open={authGateOpen}
-              onOpenChange={setAuthGateOpen}
-              defaultName={clientForm.full_name}
-              defaultEmail={clientForm.email || ''}
-              defaultWhatsapp={clientForm.whatsapp ? formatWhatsApp(clientForm.whatsapp) : ''}
-              onAuthenticated={() => {
-                // After successful auth, proceed with booking
-                setTimeout(() => handleBook(), 100);
-              }}
-            />
           </div>
         )}
 
