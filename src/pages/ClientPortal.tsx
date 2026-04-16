@@ -184,7 +184,7 @@ const ClientPortal = () => {
     const clientIds = clientData.map(c => c.id);
     const { data: aptData } = await supabase
       .from('appointments')
-      .select('id, start_time, end_time, total_price, status, company_id, professional:profiles!appointments_professional_id_fkey(full_name), appointment_services(price, service:services(name))')
+      .select('id, start_time, end_time, total_price, status, company_id, professional:public_professionals!appointments_professional_id_fkey(name), appointment_services(price, service:services(name))')
       .in('client_id', clientIds)
       .order('start_time', { ascending: false }).limit(200);
     setAppointments((aptData || []) as any);
