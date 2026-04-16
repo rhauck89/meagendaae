@@ -28,7 +28,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { ManualAppointmentDialog } from '@/components/ManualAppointmentDialog';
 import { AgendaTimelineView } from '@/components/AgendaTimelineView';
 import { ResponsiveContainer, LineChart, Line } from 'recharts';
-import { useMobile } from '@/hooks/use-mobile';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 type ViewMode = 'day' | 'week' | 'month';
 type StatusTab = 'all' | 'confirmed' | 'completed' | 'cancelled' | 'rescheduled';
