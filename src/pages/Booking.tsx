@@ -950,26 +950,23 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
     const now = new Date();
     for (let i = 0; i < MAX_DAYS && totalSlotsFound < MAX_SLOTS; i++) {
       const day = addDays(startOfDay(new Date()), i);
-      const dateStr = format(day, 'yyyy-MM-dd');
-      const existingAppointments = await fetchBookingAppointments(day, selectedProfessional);
-      const { data: blockedData } = await supabase
-        .from('public_blocked_times' as any)
-        .select('block_date, start_time, end_time')
-        .eq('company_id', company.id)
-        .eq('professional_id', selectedProfessional)
-        .eq('block_date', dateStr);
-      let slots = calculateAvailableSlots({
-        date: day, totalDuration, businessHours, exceptions, existingAppointments,
-        slotInterval: fixedSlotInterval, bufferMinutes, bookingMode,
-        professionalHours: professionalHours.length > 0 ? professionalHours : undefined,
-        blockedTimes: ((blockedData || []) as unknown as BlockedTime[]),
+      // Unified availability service — same code path as the manual booking flow.
+      const result = await getAvailableSlots({
+        source: 'public',
+        companyId: company.id,
         professionalId: selectedProfessional,
+        date: day,
+        totalDuration,
+        filterPastForToday: true,
       });
-      slots = filterOverlappingSlots(slots, existingAppointments, totalDuration, bufferMinutes, bookingTimezone);
-      if (isToday(day)) {
-        const currentTime = format(now, 'HH:mm');
-        slots = slots.filter(s => s > currentTime);
-      }
+      // Safety net (no-op in normal cases — engine already handled buffer/conflicts)
+      const slots = filterOverlappingSlots(
+        result.slots,
+        result.existingAppointments,
+        totalDuration,
+        result.bufferMinutes,
+        bookingTimezone,
+      );
       if (slots.length > 0) {
         const remaining = MAX_SLOTS - totalSlotsFound;
         const daySlots = slots.slice(0, remaining);
