@@ -275,13 +275,14 @@ function calculateIntelligentSlots(
 
     while (current.getTime() + totalDuration * 60000 <= window.end.getTime()) {
       if (earliestSlotTime && current < earliestSlotTime) {
-        // Jump forward by 1 minute to find the exact earliest valid time
         current = addMinutes(current, 1);
         continue;
       }
 
-      slots.push(format(current, 'HH:mm'));
-      // Next slot starts after service duration + buffer
+      // Validate against full picture (closeTime + all blocked)
+      if (slotFitsService(current, totalDuration, bufferMinutes, closeTime, blocked)) {
+        slots.push(format(current, 'HH:mm'));
+      }
       current = addMinutes(current, totalDuration + bufferMinutes);
     }
   }
