@@ -1187,28 +1187,32 @@ const ClientPortal = () => {
 
                               {/* 2. PRODUTO */}
                               <div className="p-4 flex gap-4">
-                                {reward.image_url ? (
-                                  <img
-                                    src={reward.image_url}
-                                    alt={reward.name}
-                                    className="w-24 h-24 rounded-xl object-cover shrink-0 border shadow-sm"
-                                  />
-                                ) : (
-                                  <div className="w-24 h-24 rounded-xl bg-gradient-to-br from-primary/10 to-primary/5 border flex items-center justify-center shrink-0 shadow-sm">
+                                <div className="w-24 h-24 rounded-xl overflow-hidden border shadow-sm shrink-0 bg-gradient-to-br from-primary/10 to-primary/5 flex items-center justify-center">
+                                  {reward.image_url ? (
+                                    <img
+                                      src={reward.image_url}
+                                      alt={reward.name}
+                                      className="w-full h-full object-cover"
+                                      loading="lazy"
+                                    />
+                                  ) : (
                                     <Gift className="h-9 w-9 text-primary/70" />
-                                  </div>
-                                )}
+                                  )}
+                                </div>
                                 <div className="flex-1 min-w-0 flex flex-col">
-                                  <p className="font-semibold text-sm leading-tight text-foreground">{reward.name}</p>
+                                  <p className="font-semibold text-sm leading-tight text-foreground line-clamp-2">{reward.name}</p>
                                   {reward.description && (
                                     <p className="text-[11px] text-muted-foreground line-clamp-2 mt-1">{reward.description}</p>
                                   )}
-                                  {/* 3. PONTOS — badge visual em destaque, cor primária, fonte maior */}
-                                  <div className="mt-auto pt-2.5">
+                                  {/* 3. PONTOS — badge visual em destaque */}
+                                  <div className="mt-auto pt-2.5 flex items-center gap-2 flex-wrap">
                                     <div className="inline-flex items-baseline gap-1 bg-primary/10 text-primary rounded-full px-3 py-1 border border-primary/20">
                                       <span className="text-lg font-extrabold leading-none">{reward.points_required}</span>
                                       <span className="text-[10px] font-semibold uppercase tracking-wide">pts</span>
                                     </div>
+                                    <span className="text-[10px] text-muted-foreground">
+                                      Você tem <strong className="text-foreground">{rewardsBalance}</strong>
+                                    </span>
                                   </div>
                                 </div>
                               </div>
@@ -1225,6 +1229,11 @@ const ClientPortal = () => {
                                     <p className="text-[11px] text-muted-foreground">
                                       Faltam <span className="font-bold text-foreground">{diff}</span> pontos para resgatar
                                     </p>
+                                    {reward.extra_cost > 0 && (
+                                      <p className="text-[11px] text-muted-foreground">
+                                        Ou complete com <span className="font-semibold text-foreground">R$ {Number(reward.extra_cost).toFixed(2).replace('.', ',')}</span>
+                                      </p>
+                                    )}
                                   </div>
                                 )}
                               </div>
