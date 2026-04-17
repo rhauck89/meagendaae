@@ -1,10 +1,11 @@
 // Edge Function: monthly-report
-// Generates monthly report data for a company. Can be invoked manually
-// or scheduled later via pg_cron (day 1 at 08:00).
-//
-// Body: { company_id: string, month?: string (YYYY-MM, default = previous month), send_email?: boolean }
+// Generates monthly report data for a company.
 
-import { corsHeaders } from "@supabase/supabase-js/cors";
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+};
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
