@@ -1229,25 +1229,20 @@ const ClientPortal = () => {
                       const closest = sorted.filter(r => rewardsBalance < r.points_required);
 
                       const handleRedeem = async (reward: typeof rewardsList[number]) => {
-                        try {
-                          const clientRow = clients.find(c => c.company_id === reward.company_id);
-                          if (!clientRow) {
-                            toast.error('Você precisa ter um cadastro nesta empresa.');
-                            return;
-                          }
-                          // Transactional RPC: locks reward row, validates stock + points,
-                          // creates redemption and increments stock_reserved atomically.
-                          const { data, error } = await supabase.rpc('redeem_reward', {
-                            p_client_id: clientRow.id,
-                            p_company_id: reward.company_id,
-                            p_reward_id: reward.id,
-                          });
-                          if (error) throw error;
-                          const code = (data as any)?.code ?? '';
-                          toast.success(`Resgate criado! Código: ${code}. Apresente ao estabelecimento.`);
-                          window.location.reload();
-                        } catch (e: any) {
-                          toast.error(e?.message || 'Não foi possível criar o resgate.');
+                        // Reuse an existing pending+non-expired redemption for this reward, if any
+                        const existing = redemptions.find(r =>
+                          r.reward_id === reward.id &&
+                          r.status === 'pending' &&
+                          (Date.now() - new Date(r.created_at).getTime()) < 15 * 60_000
+                        );
+                        if (existing) {
+                          openRedemption(existing, reward.name);
+                          return;
+                        }
+                        const created = await createRedemption(reward);
+                        if (created) {
+                          openRedemption(created, reward.name);
+                          toast.success('Resgate criado! Apresente o QR Code.');
                         }
                       };
 
