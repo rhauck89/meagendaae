@@ -163,7 +163,7 @@ export function RewardQRScannerDialog({ open, onOpenChange, onConfirmed }: Props
 
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!v) handleClose(); else onOpenChange(true); }}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-md animate-scale-in">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <ScanLine className="h-5 w-5" />
@@ -177,10 +177,23 @@ export function RewardQRScannerDialog({ open, onOpenChange, onConfirmed }: Props
         <div className="space-y-4">
           {/* Scanner viewport — always mounted so the element exists for html5-qrcode */}
           <div className={phase === 'scanning' ? 'block' : 'hidden'}>
-            <div
-              id={SCANNER_ELEMENT_ID}
-              className="w-full overflow-hidden rounded-lg border bg-black aspect-square"
-            />
+            <div className="relative w-full aspect-square overflow-hidden rounded-lg border bg-black">
+              <div id={SCANNER_ELEMENT_ID} className="absolute inset-0" />
+              {/* Overlay com moldura */}
+              <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+                <div className="relative w-2/3 h-2/3 rounded-lg border-2 border-primary/80 shadow-[0_0_0_9999px_rgba(0,0,0,0.35)]">
+                  <span className="absolute -top-0.5 -left-0.5 h-5 w-5 border-t-4 border-l-4 border-primary rounded-tl-lg" />
+                  <span className="absolute -top-0.5 -right-0.5 h-5 w-5 border-t-4 border-r-4 border-primary rounded-tr-lg" />
+                  <span className="absolute -bottom-0.5 -left-0.5 h-5 w-5 border-b-4 border-l-4 border-primary rounded-bl-lg" />
+                  <span className="absolute -bottom-0.5 -right-0.5 h-5 w-5 border-b-4 border-r-4 border-primary rounded-br-lg" />
+                </div>
+              </div>
+              <div className="pointer-events-none absolute bottom-2 inset-x-0 text-center">
+                <span className="inline-block rounded-full bg-black/60 text-white text-[11px] px-3 py-1">
+                  Posicione o QR dentro da área
+                </span>
+              </div>
+            </div>
             <div className="mt-3 space-y-2">
               <p className="text-xs text-muted-foreground text-center">Ou insira o código manualmente:</p>
               <div className="flex gap-2">
