@@ -153,6 +153,17 @@
   overflow-x: hidden;
 }
 
+/* Proteção global de modais: nenhum filho ultrapassa o container */
+[role="dialog"] * {
+  max-width: 100%;
+}
+[role="dialog"] img,
+[role="dialog"] video,
+[role="dialog"] iframe {
+  max-width: 100%;
+  height: auto;
+}
+
 @media (max-width: 768px) {
   .container-dashboard,
   .page-container {
