@@ -48,6 +48,7 @@ interface LoyaltyTx {
 interface RewardItem {
   id: string; name: string; description: string | null; image_url: string | null;
   item_type: string; points_required: number; real_value: number; extra_cost: number; company_id: string;
+  stock_total: number | null; stock_available: number | null;
 }
 
 const statusLabels: Record<string, string> = {
