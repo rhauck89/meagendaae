@@ -243,11 +243,22 @@ const Auth = () => {
     </Card>
   );
 
+  const errorDialog = (
+    <AuthErrorDialog
+      open={errorModal.open}
+      onOpenChange={(open) => setErrorModal((s) => ({ ...s, open }))}
+      message={errorModal.message}
+      onAcknowledge={focusPasswordField}
+      onGeneratePassword={handleGenerate}
+    />
+  );
+
   if (isMobile) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-background p-4">
         {formContent}
         <PlatformFooter className="mt-6" />
+        {errorDialog}
       </div>
     );
   }
