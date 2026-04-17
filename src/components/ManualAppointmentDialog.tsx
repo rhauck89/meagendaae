@@ -129,30 +129,19 @@ export function ManualAppointmentDialog({
     setSlotsLoading(true);
     setSelectedSlot(null);
     try {
-      const dateStr = format(date, 'yyyy-MM-dd');
-      const [profHoursRes, bizHoursRes, blocksRes, exceptionsRes, companyRes, apptsRes] = await Promise.all([
-        supabase.from('professional_working_hours').select('*').eq('professional_id', selectedProfessional).eq('company_id', companyId),
-        supabase.from('business_hours').select('*').eq('company_id', companyId),
-        supabase.from('blocked_times').select('*').eq('professional_id', selectedProfessional).eq('block_date', dateStr),
-        supabase.from('business_exceptions').select('*').eq('company_id', companyId).eq('exception_date', dateStr),
-        supabase.from('companies').select('buffer_minutes').eq('id', companyId).single(),
-        supabase.from('appointments').select('id, start_time, end_time').eq('professional_id', selectedProfessional).eq('company_id', companyId).gte('start_time', `${dateStr}T00:00:00`).lt('start_time', `${dateStr}T23:59:59`).not('status', 'in', '("cancelled","no_show")'),
-      ]);
-
       const totalDuration = selectedServices.reduce((sum, sId) => {
         const svc = services.find(s => s.id === sId);
         return sum + (svc?.duration_minutes || 0);
       }, 0);
 
-      const slots = calculateAvailableSlots({
+      // Use the unified availability service so manual + public flows return
+      // identical slots for the same professional + date + service.
+      const { slots } = await getAvailableSlots({
+        source: 'manual',
+        companyId,
+        professionalId: selectedProfessional,
         date,
         totalDuration,
-        businessHours: bizHoursRes.data || [],
-        exceptions: exceptionsRes.data || [],
-        existingAppointments: apptsRes.data || [],
-        bufferMinutes: companyRes.data?.buffer_minutes || 0,
-        professionalHours: profHoursRes.data && profHoursRes.data.length > 0 ? profHoursRes.data : undefined,
-        blockedTimes: blocksRes.data || [],
       });
       setAvailableSlots(slots);
     } catch (err) {
