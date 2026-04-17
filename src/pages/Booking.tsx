@@ -16,6 +16,7 @@ import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { formatWhatsApp, displayWhatsApp, isValidWhatsApp, buildWhatsAppUrl } from '@/lib/whatsapp';
 import { calculateAvailableSlots, validateTimeSlot, type BusinessHours, type BusinessException, type ExistingAppointment, type BlockedTime, type BookingMode } from '@/lib/availability-engine';
+import { getAvailableSlots } from '@/lib/availability-service';
 import { PlatformBranding } from '@/components/PlatformBranding';
 import { CustomRequestForm } from '@/components/CustomRequestForm';
 import { getCompanyBranding, buildThemeFromBranding } from '@/hooks/useCompanyBranding';
