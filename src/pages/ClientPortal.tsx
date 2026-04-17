@@ -199,7 +199,7 @@ const ClientPortal = () => {
         // Loja: busca TODOS os itens ativos com info da empresa embutida (sem depender de vínculo client→company)
         supabase.from('loyalty_reward_items')
           .select(`
-            id, name, description, points_required, real_value, image_url, item_type, company_id,
+            id, name, description, points_required, real_value, extra_cost, image_url, item_type, company_id,
             company:companies!loyalty_reward_items_company_id_fkey(id, name, logo_url, slug)
           `)
           .eq('active', true),
