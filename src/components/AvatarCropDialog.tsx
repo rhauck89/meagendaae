@@ -1,11 +1,11 @@
 import { useState, useCallback, useEffect } from 'react';
 import Cropper, { Area } from 'react-easy-crop';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogBody, DialogFooter, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
+import { ModalLoadingOverlay } from '@/components/ui/modal-loading-overlay';
 import { ZoomIn, ZoomOut, Check, X, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { cn } from '@/lib/utils';
 
 interface AvatarCropDialogProps {
   open: boolean;
@@ -27,13 +27,11 @@ function createCroppedImage(imageSrc: string, pixelCrop: Area): Promise<Blob> {
       canvas.height = OUTPUT_SIZE;
       const ctx = canvas.getContext('2d');
       if (!ctx) return reject(new Error('Canvas context failed'));
-
       ctx.drawImage(
         image,
         pixelCrop.x, pixelCrop.y, pixelCrop.width, pixelCrop.height,
         0, 0, OUTPUT_SIZE, OUTPUT_SIZE,
       );
-
       canvas.toBlob(
         (blob) => (blob ? resolve(blob) : reject(new Error('Blob creation failed'))),
         'image/jpeg',
@@ -54,7 +52,6 @@ const AvatarCropDialog = ({ open, imageSrc, onClose, onConfirm }: AvatarCropDial
 
   useEffect(() => {
     if (open && imageSrc) {
-      console.log('[AvatarCropDialog] Opening with new image, isLoading: true');
       setImageLoading(true);
       setCrop({ x: 0, y: 0 });
       setZoom(1);
@@ -62,17 +59,8 @@ const AvatarCropDialog = ({ open, imageSrc, onClose, onConfirm }: AvatarCropDial
     }
   }, [open, imageSrc]);
 
-  useEffect(() => {
-    console.log('[AvatarCropDialog] loading image:', imageLoading, 'processing:', processing);
-  }, [imageLoading, processing]);
-
   const onCropComplete = useCallback((_: Area, croppedAreaPixels: Area) => {
     setCroppedArea(croppedAreaPixels);
-  }, []);
-
-  const handleMediaLoaded = useCallback(() => {
-    console.log('[AvatarCropDialog] Media loaded, isLoading: false');
-    setImageLoading(false);
   }, []);
 
   const handleConfirm = async () => {
@@ -96,18 +84,15 @@ const AvatarCropDialog = ({ open, imageSrc, onClose, onConfirm }: AvatarCropDial
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && !isBusy && onClose()}>
-      <DialogContent
-        className="max-w-md p-0 gap-0 overflow-hidden flex flex-col max-h-[90vh] sm:max-h-[90vh]"
-      >
-        <DialogHeader className="p-4 pb-2 shrink-0">
+      <DialogContent className="p-0">
+        <DialogHeader>
           <DialogTitle>Ajustar foto</DialogTitle>
           <DialogDescription className="text-xs">
             Ajuste sua foto e clique em "Confirmar foto" para salvar.
           </DialogDescription>
         </DialogHeader>
 
-        {/* Conteúdo scrollável (cropper + slider) */}
-        <div className="flex-1 overflow-y-auto min-h-0">
+        <DialogBody className="p-0">
           <div
             className="relative w-full bg-black"
             style={{ height: 'min(60vh, 400px)' }}
@@ -122,26 +107,8 @@ const AvatarCropDialog = ({ open, imageSrc, onClose, onConfirm }: AvatarCropDial
               onCropChange={setCrop}
               onZoomChange={setZoom}
               onCropComplete={onCropComplete}
-              onMediaLoaded={handleMediaLoaded}
+              onMediaLoaded={() => setImageLoading(false)}
             />
-
-            {/* Overlay de loading */}
-            <div
-              className={cn(
-                'absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 bg-black/70 backdrop-blur-sm transition-opacity duration-300',
-                isBusy ? 'opacity-100' : 'opacity-0 pointer-events-none',
-              )}
-              aria-hidden={!isBusy}
-              aria-live="polite"
-            >
-              <Loader2 className="h-10 w-10 text-white animate-spin" />
-              <p className="text-sm font-medium text-white">
-                {processing ? 'Salvando sua foto...' : 'Preparando sua foto...'}
-              </p>
-              <div className="w-32 h-1 rounded-full bg-white/20 overflow-hidden">
-                <div className="h-full w-1/2 bg-white/80 rounded-full animate-pulse" />
-              </div>
-            </div>
           </div>
 
           <div className="px-6 py-3 flex items-center gap-3">
@@ -157,23 +124,27 @@ const AvatarCropDialog = ({ open, imageSrc, onClose, onConfirm }: AvatarCropDial
             />
             <ZoomIn className="h-4 w-4 text-muted-foreground shrink-0" />
           </div>
-        </div>
+        </DialogBody>
 
-        {/* Footer sticky sempre visível */}
-        <div className="sticky bottom-0 shrink-0 border-t bg-background p-4 flex flex-col-reverse sm:flex-row sm:justify-end gap-2 z-20">
+        <DialogFooter>
           <Button variant="outline" onClick={onClose} disabled={isBusy}>
             <X className="h-4 w-4 mr-1" /> Cancelar
           </Button>
           <Button onClick={handleConfirm} disabled={isBusy || !croppedArea}>
             {processing ? (
-              <><Loader2 className="h-4 w-4 mr-1 animate-spin" /> Salvando imagem...</>
+              <><Loader2 className="h-4 w-4 mr-1 animate-spin" /> Salvando...</>
             ) : imageLoading ? (
               <><Loader2 className="h-4 w-4 mr-1 animate-spin" /> Preparando...</>
             ) : (
               <><Check className="h-4 w-4 mr-1" /> Confirmar foto</>
             )}
           </Button>
-        </div>
+        </DialogFooter>
+
+        <ModalLoadingOverlay
+          visible={isBusy}
+          message={processing ? 'Salvando sua foto...' : 'Preparando sua foto...'}
+        />
       </DialogContent>
     </Dialog>
   );
