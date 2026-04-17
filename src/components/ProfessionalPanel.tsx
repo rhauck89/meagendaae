@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogBody, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -201,11 +201,12 @@ const ProfessionalPanel = ({ collaborator, open, onOpenChange, onUpdated }: Prof
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle>Configurar Profissional: {collaborator?.profile?.full_name}</DialogTitle>
         </DialogHeader>
 
+        <DialogBody>
         <Tabs defaultValue="link" className="w-full">
           <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3">
             <TabsTrigger value="link">Link & Slug</TabsTrigger>
@@ -333,6 +334,7 @@ const ProfessionalPanel = ({ collaborator, open, onOpenChange, onUpdated }: Prof
             ))}
           </TabsContent>
         </Tabs>
+        </DialogBody>
       </DialogContent>
     </Dialog>
   );
