@@ -359,7 +359,7 @@ export function ManualAppointmentDialog({
 
   const renderStep4 = () => (
     <div className="space-y-4">
-      <div className="grid grid-cols-1 sm:grid-cols-[auto_1fr] gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-[auto_1fr] gap-4">
         <div>
           <Label className="mb-2 block">Data</Label>
           <Calendar
@@ -380,7 +380,7 @@ export function ManualAppointmentDialog({
           ) : availableSlots.length === 0 ? (
             <p className="text-sm text-muted-foreground">Nenhum horário disponível</p>
           ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-[280px] overflow-y-auto">
+            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-3 gap-2 max-h-[280px] overflow-y-auto pr-1">
               {availableSlots.map(slot => (
                 <Button
                   key={slot}
