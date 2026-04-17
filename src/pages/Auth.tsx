@@ -307,6 +307,7 @@ const Auth = () => {
         {formContent}
         <PlatformFooter className="mt-8" />
       </div>
+      {errorDialog}
     </div>
   );
 };
