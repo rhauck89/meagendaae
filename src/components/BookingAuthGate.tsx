@@ -38,6 +38,7 @@ export const BookingAuthGate = ({
   const [email, setEmail] = useState(defaultEmail);
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [errorModal, setErrorModal] = useState<{ open: boolean; message: string }>({ open: false, message: '' });
 
   const handleSubmit = async () => {
     const parsed = credentialsSchema.safeParse({
