@@ -5,3 +5,12 @@ verify_jwt = false
 
 [functions.monthly-report]
 verify_jwt = false
+
+[functions.automation-inactive-clients]
+verify_jwt = false
+
+[functions.automation-cashback-available]
+verify_jwt = false
+
+[functions.automation-monthly-report]
+verify_jwt = false
