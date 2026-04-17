@@ -1607,6 +1607,7 @@ export type Database = {
           logo_url: string | null
           primary_color: string
           secondary_color: string
+          theme_style: string | null
           timezone: string
           updated_at: string
           whatsapp_number: string | null
@@ -1620,6 +1621,7 @@ export type Database = {
           logo_url?: string | null
           primary_color?: string
           secondary_color?: string
+          theme_style?: string | null
           timezone?: string
           updated_at?: string
           whatsapp_number?: string | null
@@ -1633,6 +1635,7 @@ export type Database = {
           logo_url?: string | null
           primary_color?: string
           secondary_color?: string
+          theme_style?: string | null
           timezone?: string
           updated_at?: string
           whatsapp_number?: string | null
