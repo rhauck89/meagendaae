@@ -1,8 +1,9 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import Cropper, { Area } from 'react-easy-crop';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogBody, DialogFooter, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
+import { ModalLoadingOverlay } from '@/components/ui/modal-loading-overlay';
 import { ZoomIn, ZoomOut, Check, X, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -16,7 +17,7 @@ interface ImageCropDialogProps {
   onConfirm: (croppedBlob: Blob) => void;
 }
 
-const MAX_BLOB_SIZE = 10 * 1024 * 1024; // 10MB
+const MAX_BLOB_SIZE = 10 * 1024 * 1024;
 
 const CONFIG: Record<CropMode, { aspect: number; outputW: number; outputH: number; shape: 'round' | 'rect'; title: string; description: string }> = {
   avatar: { aspect: 1, outputW: 512, outputH: 512, shape: 'round', title: 'Ajustar foto de perfil', description: 'Ajuste sua foto e clique em "Confirmar foto" para salvar.' },
@@ -51,6 +52,16 @@ const ImageCropDialog = ({ open, imageSrc, mode, onClose, onConfirm }: ImageCrop
   const [zoom, setZoom] = useState(1);
   const [croppedArea, setCroppedArea] = useState<Area | null>(null);
   const [processing, setProcessing] = useState(false);
+  const [imageLoading, setImageLoading] = useState(true);
+
+  useEffect(() => {
+    if (open && imageSrc) {
+      setImageLoading(true);
+      setCrop({ x: 0, y: 0 });
+      setZoom(1);
+      setCroppedArea(null);
+    }
+  }, [open, imageSrc]);
 
   const onCropComplete = useCallback((_: Area, croppedAreaPixels: Area) => {
     setCroppedArea(croppedAreaPixels);
@@ -73,67 +84,81 @@ const ImageCropDialog = ({ open, imageSrc, mode, onClose, onConfirm }: ImageCrop
     }
   };
 
-  const aspectClass = mode === 'cover' ? 'aspect-[3/1]' : 'aspect-square';
+  const isBusy = imageLoading || processing;
 
   return (
-    <Dialog open={open} onOpenChange={(v) => !v && !processing && onClose()}>
-      <DialogContent className="max-w-lg p-0 gap-0 overflow-hidden z-[60]">
-        <DialogHeader className="p-4 pb-2">
+    <Dialog open={open} onOpenChange={(v) => !v && !isBusy && onClose()}>
+      <DialogContent className="p-0">
+        <DialogHeader>
           <DialogTitle>{cfg.title}</DialogTitle>
           <DialogDescription className="text-xs">{cfg.description}</DialogDescription>
         </DialogHeader>
 
-        <div className={`relative w-full ${aspectClass} bg-black`}>
-          <Cropper
-            image={imageSrc}
-            crop={crop}
-            zoom={zoom}
-            aspect={cfg.aspect}
-            cropShape={cfg.shape}
-            showGrid
-            onCropChange={setCrop}
-            onZoomChange={setZoom}
-            onCropComplete={onCropComplete}
-          />
+        <DialogBody className="p-0">
+          <div
+            className="relative w-full bg-black"
+            style={{ height: mode === 'cover' ? 'min(40vh, 280px)' : 'min(60vh, 400px)' }}
+          >
+            <Cropper
+              image={imageSrc}
+              crop={crop}
+              zoom={zoom}
+              aspect={cfg.aspect}
+              cropShape={cfg.shape}
+              showGrid
+              onCropChange={setCrop}
+              onZoomChange={setZoom}
+              onCropComplete={onCropComplete}
+              onMediaLoaded={() => setImageLoading(false)}
+            />
 
-          {mode === 'cover' && (
-            <div className="absolute inset-0 pointer-events-none flex items-center justify-center z-10">
-              <div
-                className="border-2 border-dashed border-white/40 rounded-md"
-                style={{ width: '60%', height: '70%' }}
-              />
-              <span className="absolute bottom-2 left-1/2 -translate-x-1/2 text-[10px] text-white/60 bg-black/40 px-2 py-0.5 rounded">
-                Área segura
-              </span>
-            </div>
-          )}
-        </div>
+            {mode === 'cover' && (
+              <div className="absolute inset-0 pointer-events-none flex items-center justify-center z-10">
+                <div
+                  className="border-2 border-dashed border-white/40 rounded-md"
+                  style={{ width: '60%', height: '70%' }}
+                />
+                <span className="absolute bottom-2 left-1/2 -translate-x-1/2 text-[10px] text-white/60 bg-black/40 px-2 py-0.5 rounded">
+                  Área segura
+                </span>
+              </div>
+            )}
+          </div>
 
-        <div className="px-6 py-3 flex items-center gap-3">
-          <ZoomOut className="h-4 w-4 text-muted-foreground shrink-0" />
-          <Slider
-            value={[zoom]}
-            min={1}
-            max={3}
-            step={0.05}
-            onValueChange={([v]) => setZoom(v)}
-            className="flex-1"
-          />
-          <ZoomIn className="h-4 w-4 text-muted-foreground shrink-0" />
-        </div>
+          <div className="px-6 py-3 flex items-center gap-3">
+            <ZoomOut className="h-4 w-4 text-muted-foreground shrink-0" />
+            <Slider
+              value={[zoom]}
+              min={1}
+              max={3}
+              step={0.05}
+              onValueChange={([v]) => setZoom(v)}
+              disabled={isBusy}
+              className="flex-1"
+            />
+            <ZoomIn className="h-4 w-4 text-muted-foreground shrink-0" />
+          </div>
+        </DialogBody>
 
-        <DialogFooter className="p-4 pt-2 gap-2 relative z-20">
-          <Button variant="outline" onClick={onClose} disabled={processing}>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose} disabled={isBusy}>
             <X className="h-4 w-4 mr-1" /> Cancelar
           </Button>
-          <Button onClick={handleConfirm} disabled={processing}>
+          <Button onClick={handleConfirm} disabled={isBusy || !croppedArea}>
             {processing ? (
-              <><Loader2 className="h-4 w-4 mr-1 animate-spin" /> Salvando imagem...</>
+              <><Loader2 className="h-4 w-4 mr-1 animate-spin" /> Salvando...</>
+            ) : imageLoading ? (
+              <><Loader2 className="h-4 w-4 mr-1 animate-spin" /> Preparando...</>
             ) : (
               <><Check className="h-4 w-4 mr-1" /> Confirmar foto</>
             )}
           </Button>
         </DialogFooter>
+
+        <ModalLoadingOverlay
+          visible={isBusy}
+          message={processing ? 'Salvando sua foto...' : 'Preparando sua foto...'}
+        />
       </DialogContent>
     </Dialog>
   );
