@@ -2191,6 +2191,7 @@ export type Database = {
           id: string
           items: Json
           redemption_code: string
+          reward_id: string | null
           status: string
           total_points: number
         }
@@ -2203,6 +2204,7 @@ export type Database = {
           id?: string
           items?: Json
           redemption_code: string
+          reward_id?: string | null
           status?: string
           total_points: number
         }
@@ -2215,6 +2217,7 @@ export type Database = {
           id?: string
           items?: Json
           redemption_code?: string
+          reward_id?: string | null
           status?: string
           total_points?: number
         }
@@ -2254,6 +2257,13 @@ export type Database = {
             referencedRelation: "public_company_view"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "loyalty_redemptions_reward_id_fkey"
+            columns: ["reward_id"]
+            isOneToOne: false
+            referencedRelation: "loyalty_reward_items"
+            referencedColumns: ["id"]
+          },
         ]
       }
       loyalty_reward_items: {
@@ -2269,6 +2279,9 @@ export type Database = {
           name: string
           points_required: number
           real_value: number
+          stock_available: number | null
+          stock_reserved: number
+          stock_total: number | null
           updated_at: string
         }
         Insert: {
@@ -2283,6 +2296,9 @@ export type Database = {
           name: string
           points_required?: number
           real_value?: number
+          stock_available?: number | null
+          stock_reserved?: number
+          stock_total?: number | null
           updated_at?: string
         }
         Update: {
@@ -2297,6 +2313,9 @@ export type Database = {
           name?: string
           points_required?: number
           real_value?: number
+          stock_available?: number | null
+          stock_reserved?: number
+          stock_total?: number | null
           updated_at?: string
         }
         Relationships: [

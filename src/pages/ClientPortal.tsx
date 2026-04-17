@@ -48,6 +48,7 @@ interface LoyaltyTx {
 interface RewardItem {
   id: string; name: string; description: string | null; image_url: string | null;
   item_type: string; points_required: number; real_value: number; extra_cost: number; company_id: string;
+  stock_total: number | null; stock_available: number | null;
 }
 
 const statusLabels: Record<string, string> = {
@@ -199,7 +200,7 @@ const ClientPortal = () => {
         // Loja: busca TODOS os itens ativos com info da empresa embutida (sem depender de vínculo client→company)
         supabase.from('loyalty_reward_items')
           .select(`
-            id, name, description, points_required, real_value, extra_cost, image_url, item_type, company_id,
+            id, name, description, points_required, real_value, extra_cost, image_url, item_type, company_id, stock_total, stock_available,
             company:companies!loyalty_reward_items_company_id_fkey(id, name, logo_url, slug)
           `)
           .eq('active', true),
@@ -1147,8 +1148,37 @@ const ClientPortal = () => {
                       const featured = sorted.filter(r => rewardsBalance >= r.points_required);
                       const closest = sorted.filter(r => rewardsBalance < r.points_required);
 
+                      const handleRedeem = async (reward: typeof rewardsList[number]) => {
+                        try {
+                          const clientRow = clients.find(c => c.company_id === reward.company_id);
+                          if (!clientRow) {
+                            toast.error('Você precisa ter um cadastro nesta empresa.');
+                            return;
+                          }
+                          const code = Math.random().toString(36).slice(2, 8).toUpperCase();
+                          const { error } = await supabase.from('loyalty_redemptions').insert({
+                            client_id: clientRow.id,
+                            company_id: reward.company_id,
+                            reward_id: reward.id,
+                            redemption_code: code,
+                            total_points: reward.points_required,
+                            status: 'pending',
+                            items: [{ reward_id: reward.id, name: reward.name, points: reward.points_required }],
+                          });
+                          if (error) throw error;
+                          toast.success(`Resgate criado! Código: ${code}. Apresente ao estabelecimento.`);
+                          window.location.reload();
+                        } catch (e: any) {
+                          toast.error(e?.message || 'Não foi possível criar o resgate.');
+                        }
+                      };
+
                       const renderCard = (reward: typeof rewardsList[number]) => {
-                        const canRedeem = rewardsBalance >= reward.points_required;
+                        const hasStockControl = reward.stock_total !== null;
+                        const stockLeft = reward.stock_available;
+                        const outOfStock = hasStockControl && (stockLeft ?? 0) <= 0;
+                        const hasPoints = rewardsBalance >= reward.points_required;
+                        const canRedeem = hasPoints && !outOfStock;
                         const diff = reward.points_required - rewardsBalance;
                         const progress = Math.min(100, (rewardsBalance / reward.points_required) * 100);
                         return (
@@ -1161,7 +1191,7 @@ const ClientPortal = () => {
                             }`}
                           >
                             <CardContent className="p-0">
-                              {/* 1. EMPRESA — topo do card, logo grande, destaque visual */}
+                              {/* 1. EMPRESA */}
                               <div className="flex items-center gap-3 px-4 py-3 bg-gradient-to-r from-primary/5 via-primary/[0.02] to-transparent border-b">
                                 <div className="relative shrink-0">
                                   {rewardsCompany?.logo_url ? (
@@ -1204,7 +1234,6 @@ const ClientPortal = () => {
                                   {reward.description && (
                                     <p className="text-[11px] text-muted-foreground line-clamp-2 mt-1">{reward.description}</p>
                                   )}
-                                  {/* 3. PONTOS — badge visual em destaque */}
                                   <div className="mt-auto pt-2.5 flex items-center gap-2 flex-wrap">
                                     <div className="inline-flex items-baseline gap-1 bg-primary/10 text-primary rounded-full px-3 py-1 border border-primary/20">
                                       <span className="text-lg font-extrabold leading-none">{reward.points_required}</span>
@@ -1217,9 +1246,9 @@ const ClientPortal = () => {
                                 </div>
                               </div>
 
-                              {/* Status / progresso */}
-                              <div className="px-4 pb-2">
-                                {canRedeem ? (
+                              {/* Status / progresso / estoque */}
+                              <div className="px-4 pb-2 space-y-1.5">
+                                {hasPoints ? (
                                   <Badge className="bg-green-500/15 text-green-700 hover:bg-green-500/20 text-[11px] border-0 font-semibold">
                                     ✓ Disponível para resgate
                                   </Badge>
@@ -1236,6 +1265,11 @@ const ClientPortal = () => {
                                     )}
                                   </div>
                                 )}
+                                {hasStockControl && (
+                                  <p className={`text-[11px] font-medium ${outOfStock ? 'text-destructive' : 'text-muted-foreground'}`}>
+                                    {outOfStock ? '⛔ Esgotado' : `📦 Restam ${stockLeft} unidade${stockLeft === 1 ? '' : 's'}`}
+                                  </p>
+                                )}
                               </div>
 
                               {/* 4. AÇÃO */}
@@ -1244,11 +1278,11 @@ const ClientPortal = () => {
                                   size="default"
                                   className="w-full h-12 text-sm font-semibold shadow-sm"
                                   disabled={!canRedeem}
-                                  onClick={() => toast.info('Apresente o código no estabelecimento para resgatar.')}
+                                  onClick={() => handleRedeem(reward)}
                                 >
-                                  {canRedeem ? '🎁 Resgatar agora' : 'Pontos insuficientes'}
+                                  {outOfStock ? 'Esgotado' : canRedeem ? '🎁 Resgatar agora' : 'Pontos insuficientes'}
                                 </Button>
-                                {!canRedeem && (
+                                {!hasPoints && !outOfStock && (
                                   <p className="text-[11px] text-center text-muted-foreground leading-relaxed">
                                     Agende mais um serviço para desbloquear ✨
                                   </p>
