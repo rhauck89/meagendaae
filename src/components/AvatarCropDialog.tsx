@@ -138,12 +138,14 @@ const AvatarCropDialog = ({ open, imageSrc, onClose, onConfirm }: AvatarCropDial
         </div>
 
         <DialogFooter className="p-4 pt-2 gap-2 relative z-20">
-          <Button variant="outline" onClick={onClose} disabled={processing}>
+          <Button variant="outline" onClick={onClose} disabled={isBusy}>
             <X className="h-4 w-4 mr-1" /> Cancelar
           </Button>
-          <Button onClick={handleConfirm} disabled={processing}>
+          <Button onClick={handleConfirm} disabled={isBusy || !croppedArea}>
             {processing ? (
               <><Loader2 className="h-4 w-4 mr-1 animate-spin" /> Salvando imagem...</>
+            ) : imageLoading ? (
+              <><Loader2 className="h-4 w-4 mr-1 animate-spin" /> Preparando...</>
             ) : (
               <><Check className="h-4 w-4 mr-1" /> Confirmar foto</>
             )}
