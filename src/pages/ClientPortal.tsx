@@ -395,7 +395,70 @@ const ClientPortal = () => {
   const anyLoyalty = companiesWithLoyalty.length > 0;
   const anyRewards = companiesWithRewards.length > 0;
 
-  const handleSaveProfile = async () => {
+  // ---------- Redemptions: refresh + create (transactional via RPC) ----------
+  const refreshRedemptions = async () => {
+    if (!clients.length) return;
+    const { data } = await supabase
+      .from('loyalty_redemptions')
+      .select('id, redemption_code, status, created_at, total_points, reward_id, company_id, client_id')
+      .in('client_id', clients.map(c => c.id))
+      .order('created_at', { ascending: false })
+      .limit(50);
+    setRedemptions((data || []) as Redemption[]);
+    return (data || []) as Redemption[];
+  };
+
+  const createRedemption = async (
+    reward: { id: string; company_id: string; name: string; points_required: number },
+  ): Promise<Redemption | null> => {
+    const clientRow = clients.find(c => c.company_id === reward.company_id);
+    if (!clientRow) {
+      toast.error('Você precisa ter um cadastro nesta empresa.');
+      return null;
+    }
+    const { data, error } = await supabase.rpc('redeem_reward', {
+      p_client_id: clientRow.id,
+      p_company_id: reward.company_id,
+      p_reward_id: reward.id,
+    });
+    if (error) {
+      toast.error(error.message || 'Não foi possível criar o resgate.');
+      return null;
+    }
+    const newId = (data as any)?.id as string | undefined;
+    const list = await refreshRedemptions();
+    const created = list?.find(r => r.id === newId) || null;
+    return created;
+  };
+
+  const openRedemption = (redemption: Redemption, rewardName?: string) => {
+    setActiveRedemption(redemption);
+    setActiveRedemptionRewardName(rewardName);
+    setShowRedemptionDialog(true);
+  };
+
+  const handleRegenerateActive = async () => {
+    if (!activeRedemption) return;
+    // Find the original reward to call RPC again
+    const reward = rewards.find(r => r.id === activeRedemption.reward_id);
+    if (!reward) {
+      toast.error('Recompensa não encontrada para regenerar.');
+      return;
+    }
+    setRegenerating(true);
+    try {
+      const created = await createRedemption(reward);
+      if (created) {
+        setActiveRedemption(created);
+        setActiveRedemptionRewardName(reward.name);
+        toast.success('Novo código gerado.');
+      }
+    } finally {
+      setRegenerating(false);
+    }
+  };
+
+
     if (!primaryClient) return;
     setSavingProfile(true);
     const updates: any = {
