@@ -95,6 +95,21 @@ const ClientAuth = () => {
     toast.success('Conta criada! Verifique seu email para confirmar.');
   };
 
+  const focusSignupPassword = () => {
+    setSignupPassword('');
+    setTimeout(() => {
+      const el = document.querySelector<HTMLInputElement>('input[autocomplete="new-password"]');
+      el?.focus();
+    }, 80);
+  };
+
+  const handleGenerate = () => {
+    const pwd = generateStrongPassword(16);
+    setSignupPassword(pwd);
+    try { navigator.clipboard.writeText(pwd); } catch {}
+    toast.success('Senha forte gerada e copiada 🔐');
+  };
+
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
       <div className="w-full max-w-sm space-y-6">
