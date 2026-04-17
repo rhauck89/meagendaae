@@ -78,7 +78,7 @@ const DialogHeader = ({ className, ...props }: React.HTMLAttributes<HTMLDivEleme
   <div
     data-dialog-header
     className={cn(
-      "shrink-0 flex flex-col space-y-1.5 text-center sm:text-left p-4 sm:p-6 border-b bg-background",
+      "shrink-0 flex flex-col space-y-1.5 text-center sm:text-left px-4 pt-4 pb-3 sm:px-6 sm:pt-5 sm:pb-3 border-b bg-background",
       className,
     )}
     {...props}
@@ -92,7 +92,10 @@ DialogHeader.displayName = "DialogHeader";
 const DialogBody = ({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
   <div
     data-dialog-body
-    className={cn("flex-1 min-h-0 overflow-y-auto overscroll-contain p-4 sm:p-6", className)}
+    className={cn(
+      "flex-1 min-h-0 overflow-y-auto overscroll-contain flex flex-col gap-3 sm:gap-4 px-4 py-4 sm:px-6 sm:py-4",
+      className,
+    )}
     {...props}
   />
 );
@@ -102,7 +105,7 @@ const DialogFooter = ({ className, ...props }: React.HTMLAttributes<HTMLDivEleme
   <div
     data-dialog-footer
     className={cn(
-      "shrink-0 flex flex-col-reverse sm:flex-row sm:justify-end gap-2 sm:gap-2 p-4 sm:p-6 border-t bg-background",
+      "shrink-0 flex flex-col-reverse sm:flex-row sm:justify-end gap-2 px-4 py-4 sm:px-6 sm:py-4 border-t bg-background",
       className,
     )}
     {...props}
