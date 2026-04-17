@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogBody, DialogFooter, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Calendar as CalendarIcon, CalendarCheck, ChevronLeft, ChevronRight, Clock, DollarSign, Users, UserCheck, UserMinus, AlertTriangle, Bell, MailCheck, Cake, Ban, Trash2, Timer, RefreshCw, AlertCircle, TrendingUp, BarChart3, XCircle, Percent, Receipt, Send, List, LayoutGrid } from 'lucide-react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
@@ -1822,19 +1822,26 @@ const Dashboard = () => {
               Selecione o tempo de atraso. Todos os agendamentos seguintes serão ajustados automaticamente.
             </DialogDescription>
           </DialogHeader>
-          <div className="grid grid-cols-2 gap-3 pt-2">
-            {[5, 10, 15, 20].map((min) => (
-              <Button
-                key={min}
-                variant="outline"
-                className="h-16 text-lg font-display"
-                disabled={delayLoading}
-                onClick={() => registerDelay(min)}
-              >
-                {min} min
-              </Button>
-            ))}
-          </div>
+          <DialogBody>
+            <div className="grid grid-cols-2 gap-3">
+              {[5, 10, 15, 20].map((min) => (
+                <Button
+                  key={min}
+                  variant="outline"
+                  className="h-16 text-lg font-display"
+                  disabled={delayLoading}
+                  onClick={() => registerDelay(min)}
+                >
+                  {min} min
+                </Button>
+              ))}
+            </div>
+          </DialogBody>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDelayDialogOpen(false)} disabled={delayLoading}>
+              Cancelar
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 
@@ -1997,7 +2004,7 @@ const Dashboard = () => {
       {/* Reschedule Dialog */}
       <Dialog open={rescheduleDialogOpen} onOpenChange={(open) => { setRescheduleDialogOpen(open); if (!open) { setRescheduleTarget(null); setRescheduleDate(undefined); setRescheduleSlots([]); setRescheduleSelectedSlot(null); } }}>
         {rescheduleDialogOpen && (
-        <DialogContent className="sm:max-w-[720px] max-h-[90vh]">
+        <DialogContent className="sm:max-w-[720px]">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <RefreshCw className="h-5 w-5" /> Reagendar
@@ -2012,58 +2019,62 @@ const Dashboard = () => {
               )}
             </DialogDescription>
           </DialogHeader>
-          <div className="grid grid-cols-1 sm:grid-cols-[320px_1fr] gap-6 pt-2">
-            {/* Left: Calendar */}
-            <div className="overflow-hidden">
-              <p className="text-sm font-medium mb-2">Selecione a nova data</p>
-              <DatePickerCalendar
-                mode="single"
-                selected={rescheduleDate}
-                onSelect={(date) => {
-                  if (date) {
-                    setRescheduleDate(date);
-                    fetchRescheduleSlots(date);
-                  }
-                }}
-                disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
-                className="rounded-md border pointer-events-auto"
-                locale={ptBR}
-              />
+          <DialogBody>
+            <div className="grid grid-cols-1 sm:grid-cols-[320px_1fr] gap-6">
+              {/* Left: Calendar */}
+              <div className="overflow-hidden">
+                <p className="text-sm font-medium mb-2">Selecione a nova data</p>
+                <DatePickerCalendar
+                  mode="single"
+                  selected={rescheduleDate}
+                  onSelect={(date) => {
+                    if (date) {
+                      setRescheduleDate(date);
+                      fetchRescheduleSlots(date);
+                    }
+                  }}
+                  disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
+                  className="rounded-md border pointer-events-auto"
+                  locale={ptBR}
+                />
+              </div>
+              {/* Right: Slots */}
+              <div className="flex flex-col">
+                <p className="text-sm font-medium mb-2">Horários disponíveis</p>
+                {!rescheduleDate ? (
+                  <p className="text-sm text-muted-foreground">Selecione uma data para ver os horários</p>
+                ) : rescheduleSlotsLoading ? (
+                  <p className="text-sm text-muted-foreground">Carregando...</p>
+                ) : rescheduleSlots.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">Nenhum horário disponível nesta data</p>
+                ) : (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-[280px] overflow-y-auto">
+                    {rescheduleSlots.map((slot) => (
+                      <Button
+                        key={slot}
+                        size="sm"
+                        variant={rescheduleSelectedSlot === slot ? 'default' : 'outline'}
+                        onClick={() => setRescheduleSelectedSlot(slot)}
+                      >
+                        {slot}
+                      </Button>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
-            {/* Right: Slots */}
-            <div className="flex flex-col">
-              <p className="text-sm font-medium mb-2">Horários disponíveis</p>
-              {!rescheduleDate ? (
-                <p className="text-sm text-muted-foreground">Selecione uma data para ver os horários</p>
-              ) : rescheduleSlotsLoading ? (
-                <p className="text-sm text-muted-foreground">Carregando...</p>
-              ) : rescheduleSlots.length === 0 ? (
-                <p className="text-sm text-muted-foreground">Nenhum horário disponível nesta data</p>
-              ) : (
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-[280px] overflow-y-auto">
-                  {rescheduleSlots.map((slot) => (
-                    <Button
-                      key={slot}
-                      size="sm"
-                      variant={rescheduleSelectedSlot === slot ? 'default' : 'outline'}
-                      onClick={() => setRescheduleSelectedSlot(slot)}
-                    >
-                      {slot}
-                    </Button>
-                  ))}
-                </div>
-              )}
-              {rescheduleSelectedSlot && (
-                <Button
-                  className="w-full mt-4"
-                  disabled={rescheduleLoading}
-                  onClick={confirmReschedule}
-                >
-                  {rescheduleLoading ? 'Reagendando...' : `Confirmar às ${rescheduleSelectedSlot}`}
-                </Button>
-              )}
-            </div>
-          </div>
+          </DialogBody>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRescheduleDialogOpen(false)} disabled={rescheduleLoading}>
+              Cancelar
+            </Button>
+            <Button
+              disabled={!rescheduleSelectedSlot || rescheduleLoading}
+              onClick={confirmReschedule}
+            >
+              {rescheduleLoading ? 'Reagendando...' : (rescheduleSelectedSlot ? `Confirmar às ${rescheduleSelectedSlot}` : 'Confirmar')}
+            </Button>
+          </DialogFooter>
         </DialogContent>
         )}
       </Dialog>
