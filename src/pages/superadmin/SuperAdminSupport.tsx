@@ -198,13 +198,36 @@ const SuperAdminSupport = () => {
     if (data) setMessages(data as Message[]);
   };
 
+  const resolveAttachmentUrl = async (stored: string): Promise<string> => {
+    if (!stored) return '';
+    let path = stored;
+    const m = stored.match(/\/storage\/v1\/object\/(?:public|sign)\/support-attachments\/(.+)$/);
+    if (m) path = m[1].split('?')[0];
+    try { path = decodeURIComponent(path); } catch {}
+    const { data, error } = await supabase.storage
+      .from('support-attachments')
+      .createSignedUrl(path, 3600);
+    if (error || !data) return '';
+    return data.signedUrl;
+  };
+
   const fetchAttachments = async (ticketId: string) => {
     const { data } = await supabase
       .from('support_attachments')
       .select('*')
       .eq('ticket_id', ticketId)
       .order('created_at', { ascending: true });
-    setAttachments((data as Attachment[]) || []);
+    if (!data) {
+      setAttachments([]);
+      return;
+    }
+    const withSigned = await Promise.all(
+      (data as Attachment[]).map(async (a) => ({
+        ...a,
+        file_url: await resolveAttachmentUrl(a.file_url),
+      }))
+    );
+    setAttachments(withSigned);
   };
 
   useEffect(() => {
