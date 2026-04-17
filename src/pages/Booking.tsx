@@ -866,63 +866,33 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
 
     const dateStr = format(date, 'yyyy-MM-dd');
     try {
-      const existingAppointments = await fetchBookingAppointments(date, selectedProfessional);
-      const [blockedTimesRes, eventSlotsRes] = await Promise.all([
-        supabase
-          .from('public_blocked_times' as any)
-          .select('block_date, start_time, end_time')
-          .eq('company_id', company.id)
-          .eq('professional_id', selectedProfessional)
-          .eq('block_date', dateStr),
-        (supabase as any)
-          .from('event_slots')
-          .select('slot_date, start_time, end_time')
-          .eq('professional_id', selectedProfessional)
-          .eq('slot_date', dateStr),
-      ]);
-
-      const blockedTimesData = blockedTimesRes.data;
-
-      // Convert event slots to blocked times format
-      const eventBlockedTimes: BlockedTime[] = ((eventSlotsRes.data || []) as any[]).map((es: any) => ({
-        block_date: es.slot_date,
-        start_time: es.start_time,
-        end_time: es.end_time,
-      }));
-
-      const allBlockedTimes: BlockedTime[] = [
-        ...((blockedTimesData || []) as unknown as BlockedTime[]),
-        ...eventBlockedTimes,
-      ];
-
-      if (requestId !== slotRequestRef.current) return;
-
-      setAppointmentsForSelectedDate(existingAppointments);
-      setAppointmentsLoaded(true);
-
-      const engineSlots = calculateAvailableSlots({
+      // Use the unified availability service so the public flow returns the
+      // exact same slots as the internal manual booking flow.
+      const result = await getAvailableSlots({
+        source: 'public',
+        companyId: company.id,
+        professionalId: selectedProfessional,
         date,
         totalDuration,
-        businessHours,
-        exceptions,
-        existingAppointments,
-        slotInterval: fixedSlotInterval,
-        bufferMinutes,
-        bookingMode,
-        professionalHours: professionalHours.length > 0 ? professionalHours : undefined,
-        blockedTimes: allBlockedTimes,
-        professionalId: selectedProfessional,
+        filterPastForToday: true,
       });
 
       if (requestId !== slotRequestRef.current) return;
-      setGeneratedSlots(engineSlots);
 
-      let filteredSlots = filterOverlappingSlots(engineSlots, existingAppointments, totalDuration, bufferMinutes, bookingTimezone);
+      setAppointmentsForSelectedDate(result.existingAppointments);
+      setAppointmentsLoaded(true);
+      setGeneratedSlots(result.slots);
 
-      if (isToday(date)) {
-        const currentTime = format(new Date(), 'HH:mm');
-        filteredSlots = filteredSlots.filter(s => s > currentTime);
-      }
+      // Safety net: re-filter against raw appointments using the booking timezone.
+      // The engine already accounts for everything, so this should be a no-op
+      // in practice but protects against any edge case.
+      const filteredSlots = filterOverlappingSlots(
+        result.slots,
+        result.existingAppointments,
+        totalDuration,
+        result.bufferMinutes,
+        bookingTimezone,
+      );
 
       if (requestId !== slotRequestRef.current) return;
       setAvailableSlots(filteredSlots);
