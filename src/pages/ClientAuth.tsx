@@ -79,7 +79,7 @@ const ClientAuth = () => {
     if (error) {
       setLoading(false);
       const { diagnoseAuthError } = await import('@/lib/auth-errors');
-      toast.error(diagnoseAuthError(error));
+      setErrorModal({ open: true, message: diagnoseAuthError(error) });
       return;
     }
 
