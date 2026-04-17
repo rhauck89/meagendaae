@@ -17,19 +17,22 @@ import {
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { formatWhatsApp, isValidWhatsApp } from '@/lib/whatsapp';
+import { ThemeSelector } from './ThemeSelector';
+import type { ThemeVariation } from '@/lib/theme-catalog';
 
 interface CompanySetupProps {
   onComplete: () => void;
 }
 
-type OnboardingStep = 'company' | 'hours' | 'branding' | 'done';
+type OnboardingStep = 'company' | 'hours' | 'branding' | 'theme' | 'done';
 
-const STEPS: OnboardingStep[] = ['company', 'hours', 'branding', 'done'];
+const STEPS: OnboardingStep[] = ['company', 'hours', 'branding', 'theme', 'done'];
 
 const stepMeta: Record<OnboardingStep, { icon: any; title: string; desc: string }> = {
   company: { icon: Building2, title: 'Seu negócio', desc: 'Tipo, nome e localização do seu estabelecimento' },
   hours: { icon: Clock, title: 'Horários', desc: 'Defina o funcionamento semanal' },
   branding: { icon: Palette, title: 'Identidade visual', desc: 'Logo do seu negócio (opcional)' },
+  theme: { icon: Palette, title: 'Tema da sua marca', desc: 'Escolha um estilo visual personalizado' },
   done: { icon: CheckCircle2, title: 'Tudo pronto!', desc: 'Compartilhe seu link de agendamento' },
 };
 
