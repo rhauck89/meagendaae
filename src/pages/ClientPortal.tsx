@@ -1441,7 +1441,7 @@ const ClientPortal = () => {
                                   {company?.name || ''} · {format(parseISO(r.created_at), "dd/MM/yy 'às' HH:mm", { locale: ptBR })}
                                 </p>
                                 <div className="mt-1 flex items-center gap-2">
-                                  <Badge variant="outline" className={`text-[10px] ${meta.cls}`}>{meta.label}</Badge>
+                                  <Badge variant="outline" className={`text-[10px] ${meta.cls}`}>{meta.icon} {meta.label}</Badge>
                                   <span className="text-[10px] font-mono text-muted-foreground">{r.redemption_code}</span>
                                 </div>
                               </div>
