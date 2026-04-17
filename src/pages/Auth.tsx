@@ -11,6 +11,7 @@ import { Link } from 'react-router-dom';
 import { usePlatformSettings } from '@/hooks/usePlatformSettings';
 import { PlatformFooter } from '@/components/PlatformFooter';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { PasswordInput } from '@/components/PasswordInput';
 
 const friendlyError = (msg: string): string => {
   if (msg.includes('Invalid login')) return 'Email ou senha incorretos.';
@@ -180,14 +181,14 @@ const Auth = () => {
             {errors.email && <p className="text-sm text-destructive">{errors.email}</p>}
           </div>
           <div className="space-y-2">
-            <Label htmlFor="password">Senha</Label>
-            <Input
+            <PasswordInput
               id="password"
-              type="password"
+              label="Senha"
               value={password}
-              onChange={(e) => { setPassword(e.target.value); setErrors((p) => ({ ...p, password: '' })); }}
-              placeholder="Mínimo 6 caracteres"
+              onChange={(v) => { setPassword(v); setErrors((p) => ({ ...p, password: '' })); }}
+              placeholder={isLogin ? 'Sua senha' : 'Mínimo 8 caracteres'}
               autoComplete={isLogin ? 'current-password' : 'new-password'}
+              showStrength={!isLogin}
             />
             {errors.password && <p className="text-sm text-destructive">{errors.password}</p>}
             {isLogin && (
