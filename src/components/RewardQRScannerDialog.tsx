@@ -212,9 +212,10 @@ export function RewardQRScannerDialog({ open, onOpenChange, onConfirmed }: Props
           </div>
 
           {phase === 'loading' && (
-            <div className="py-12 flex flex-col items-center gap-3">
+            <div className="py-12 flex flex-col items-center gap-3 animate-fade-in">
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
-              <p className="text-sm text-muted-foreground">Validando código...</p>
+              <p className="text-sm font-medium text-foreground">Validando resgate...</p>
+              <p className="text-xs text-muted-foreground">Aguarde enquanto verificamos o código</p>
             </div>
           )}
 
