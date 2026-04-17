@@ -98,17 +98,29 @@ const Auth = () => {
           }
         }
       } else {
-        const { error: authError } = await supabase.auth.signUp({
+        const { data: signUpData, error: authError } = await supabase.auth.signUp({
           email: email.trim(),
           password,
-          options: { data: { full_name: fullName.trim() } },
+          options: {
+            emailRedirectTo: `${window.location.origin}/`,
+            data: { full_name: fullName.trim() },
+          },
         });
-        if (authError) throw authError;
-        toast.success('Conta criada com sucesso!');
-        navigate('/dashboard');
+        if (authError) {
+          console.error('SIGNUP ERROR:', { message: authError.message, status: (authError as any).status, code: (authError as any).code });
+          throw authError;
+        }
+        if (!signUpData.session) {
+          toast.success('Conta criada! Verifique seu email para confirmar antes de entrar.');
+          setIsLogin(true);
+        } else {
+          toast.success('Conta criada com sucesso!');
+          navigate('/dashboard');
+        }
       }
     } catch (error: any) {
-      toast.error(friendlyError(error.message || ''));
+      const { diagnoseAuthError } = await import('@/lib/auth-errors');
+      toast.error(diagnoseAuthError(error));
     } finally {
       setLoading(false);
     }
