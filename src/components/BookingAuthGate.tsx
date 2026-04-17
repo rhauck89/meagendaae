@@ -7,7 +7,8 @@ import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { Sparkles } from 'lucide-react';
 import { z } from 'zod';
-import { PasswordInput } from '@/components/PasswordInput';
+import { PasswordInput, generateStrongPassword } from '@/components/PasswordInput';
+import { AuthErrorDialog } from '@/components/AuthErrorDialog';
 
 interface Props {
   open: boolean;
