@@ -165,6 +165,21 @@ export const BookingAuthGate = ({
           {loading ? 'Processando...' : 'Continuar e confirmar agendamento'}
         </Button>
       </DialogContent>
+      <AuthErrorDialog
+        open={errorModal.open}
+        onOpenChange={(open) => setErrorModal((s) => ({ ...s, open }))}
+        message={errorModal.message}
+        onAcknowledge={() => {
+          setPassword('');
+          setTimeout(() => document.getElementById('auth-gate-password')?.focus(), 80);
+        }}
+        onGeneratePassword={() => {
+          const pwd = generateStrongPassword(16);
+          setPassword(pwd);
+          try { navigator.clipboard.writeText(pwd); } catch {}
+          toast.success('Senha forte gerada e copiada 🔐');
+        }}
+      />
     </Dialog>
   );
 };
