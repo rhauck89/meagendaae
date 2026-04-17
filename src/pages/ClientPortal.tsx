@@ -1155,17 +1155,15 @@ const ClientPortal = () => {
                             toast.error('Você precisa ter um cadastro nesta empresa.');
                             return;
                           }
-                          const code = Math.random().toString(36).slice(2, 8).toUpperCase();
-                          const { error } = await supabase.from('loyalty_redemptions').insert({
-                            client_id: clientRow.id,
-                            company_id: reward.company_id,
-                            reward_id: reward.id,
-                            redemption_code: code,
-                            total_points: reward.points_required,
-                            status: 'pending',
-                            items: [{ reward_id: reward.id, name: reward.name, points: reward.points_required }],
+                          // Transactional RPC: locks reward row, validates stock + points,
+                          // creates redemption and increments stock_reserved atomically.
+                          const { data, error } = await supabase.rpc('redeem_reward', {
+                            p_client_id: clientRow.id,
+                            p_company_id: reward.company_id,
+                            p_reward_id: reward.id,
                           });
                           if (error) throw error;
+                          const code = (data as any)?.code ?? '';
                           toast.success(`Resgate criado! Código: ${code}. Apresente ao estabelecimento.`);
                           window.location.reload();
                         } catch (e: any) {
