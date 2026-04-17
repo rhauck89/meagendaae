@@ -214,6 +214,15 @@ const ClientPortal = () => {
           .eq('active', true),
       ]);
 
+      // Load redemptions (history + active QR codes) — separate so it can be refreshed independently
+      const { data: redemptionsData } = await supabase
+        .from('loyalty_redemptions')
+        .select('id, redemption_code, status, created_at, total_points, reward_id, company_id, client_id')
+        .in('client_id', clientData.map(c => c.id))
+        .order('created_at', { ascending: false })
+        .limit(50);
+      setRedemptions((redemptionsData || []) as Redemption[]);
+
       const companiesMap: Record<string, CompanyInfo> = {};
       if (companyRes.data) {
         companyRes.data.forEach((c: any) => { companiesMap[c.id] = { id: c.id, name: c.name, logo_url: c.logo_url, slug: c.slug }; });
