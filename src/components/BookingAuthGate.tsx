@@ -7,7 +7,8 @@ import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { Sparkles } from 'lucide-react';
 import { z } from 'zod';
-import { PasswordInput } from '@/components/PasswordInput';
+import { PasswordInput, generateStrongPassword } from '@/components/PasswordInput';
+import { AuthErrorDialog } from '@/components/AuthErrorDialog';
 
 interface Props {
   open: boolean;
@@ -37,6 +38,7 @@ export const BookingAuthGate = ({
   const [email, setEmail] = useState(defaultEmail);
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [errorModal, setErrorModal] = useState<{ open: boolean; message: string }>({ open: false, message: '' });
 
   const handleSubmit = async () => {
     const parsed = credentialsSchema.safeParse({
@@ -86,7 +88,7 @@ export const BookingAuthGate = ({
 
       if (signUpError) {
         const { diagnoseAuthError } = await import('@/lib/auth-errors');
-        toast.error(diagnoseAuthError(signUpError));
+        setErrorModal({ open: true, message: diagnoseAuthError(signUpError) });
         return;
       }
 
@@ -163,6 +165,21 @@ export const BookingAuthGate = ({
           {loading ? 'Processando...' : 'Continuar e confirmar agendamento'}
         </Button>
       </DialogContent>
+      <AuthErrorDialog
+        open={errorModal.open}
+        onOpenChange={(open) => setErrorModal((s) => ({ ...s, open }))}
+        message={errorModal.message}
+        onAcknowledge={() => {
+          setPassword('');
+          setTimeout(() => document.getElementById('auth-gate-password')?.focus(), 80);
+        }}
+        onGeneratePassword={() => {
+          const pwd = generateStrongPassword(16);
+          setPassword(pwd);
+          try { navigator.clipboard.writeText(pwd); } catch {}
+          toast.success('Senha forte gerada e copiada 🔐');
+        }}
+      />
     </Dialog>
   );
 };

@@ -11,7 +11,8 @@ import { Link } from 'react-router-dom';
 import { usePlatformSettings } from '@/hooks/usePlatformSettings';
 import { PlatformFooter } from '@/components/PlatformFooter';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { PasswordInput } from '@/components/PasswordInput';
+import { PasswordInput, generateStrongPassword } from '@/components/PasswordInput';
+import { AuthErrorDialog } from '@/components/AuthErrorDialog';
 
 const friendlyError = (msg: string): string => {
   if (msg.includes('Invalid login')) return 'Email ou senha incorretos.';
@@ -39,8 +40,10 @@ const Auth = () => {
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [errorModal, setErrorModal] = useState<{ open: boolean; message: string }>({ open: false, message: '' });
   const firstInputRef = useRef<HTMLInputElement>(null);
   const emailInputRef = useRef<HTMLInputElement>(null);
+  const passwordFieldRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     setTimeout(() => {
@@ -121,10 +124,34 @@ const Auth = () => {
       }
     } catch (error: any) {
       const { diagnoseAuthError } = await import('@/lib/auth-errors');
-      toast.error(diagnoseAuthError(error));
+      const friendly = diagnoseAuthError(error);
+      if (!isLogin) {
+        setErrorModal({ open: true, message: friendly });
+      } else {
+        toast.error(friendly);
+      }
     } finally {
       setLoading(false);
     }
+  };
+
+  const focusPasswordField = () => {
+    setPassword('');
+    setTimeout(() => {
+      const el = document.getElementById('password') as HTMLInputElement | null;
+      el?.focus();
+    }, 80);
+  };
+
+  const handleGenerate = () => {
+    const pwd = generateStrongPassword(16);
+    setPassword(pwd);
+    try { navigator.clipboard.writeText(pwd); } catch {}
+    toast.success('Senha forte gerada e copiada 🔐');
+    setTimeout(() => {
+      const el = document.getElementById('password') as HTMLInputElement | null;
+      el?.focus();
+    }, 80);
   };
 
   const logoUrl = platform?.logo_light || platform?.system_logo || platform?.logo_dark;
@@ -216,11 +243,22 @@ const Auth = () => {
     </Card>
   );
 
+  const errorDialog = (
+    <AuthErrorDialog
+      open={errorModal.open}
+      onOpenChange={(open) => setErrorModal((s) => ({ ...s, open }))}
+      message={errorModal.message}
+      onAcknowledge={focusPasswordField}
+      onGeneratePassword={handleGenerate}
+    />
+  );
+
   if (isMobile) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-background p-4">
         {formContent}
         <PlatformFooter className="mt-6" />
+        {errorDialog}
       </div>
     );
   }
@@ -269,6 +307,7 @@ const Auth = () => {
         {formContent}
         <PlatformFooter className="mt-8" />
       </div>
+      {errorDialog}
     </div>
   );
 };

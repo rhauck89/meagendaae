@@ -10,13 +10,15 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
 import { User, ArrowLeft } from 'lucide-react';
 import { formatWhatsApp, isValidWhatsApp } from '@/lib/whatsapp';
-import { PasswordInput } from '@/components/PasswordInput';
+import { PasswordInput, generateStrongPassword } from '@/components/PasswordInput';
+import { AuthErrorDialog } from '@/components/AuthErrorDialog';
 
 const ClientAuth = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
+  const [errorModal, setErrorModal] = useState<{ open: boolean; message: string }>({ open: false, message: '' });
 
   const defaultTab = searchParams.get('tab') === 'signup' ? 'signup' : 'login';
 
@@ -77,7 +79,7 @@ const ClientAuth = () => {
     if (error) {
       setLoading(false);
       const { diagnoseAuthError } = await import('@/lib/auth-errors');
-      toast.error(diagnoseAuthError(error));
+      setErrorModal({ open: true, message: diagnoseAuthError(error) });
       return;
     }
 
@@ -91,6 +93,21 @@ const ClientAuth = () => {
 
     setLoading(false);
     toast.success('Conta criada! Verifique seu email para confirmar.');
+  };
+
+  const focusSignupPassword = () => {
+    setSignupPassword('');
+    setTimeout(() => {
+      const el = document.querySelector<HTMLInputElement>('input[autocomplete="new-password"]');
+      el?.focus();
+    }, 80);
+  };
+
+  const handleGenerate = () => {
+    const pwd = generateStrongPassword(16);
+    setSignupPassword(pwd);
+    try { navigator.clipboard.writeText(pwd); } catch {}
+    toast.success('Senha forte gerada e copiada 🔐');
   };
 
   return (
@@ -186,6 +203,13 @@ const ClientAuth = () => {
           <ArrowLeft className="h-4 w-4 mr-2" /> Voltar ao início
         </Button>
       </div>
+      <AuthErrorDialog
+        open={errorModal.open}
+        onOpenChange={(open) => setErrorModal((s) => ({ ...s, open }))}
+        message={errorModal.message}
+        onAcknowledge={focusSignupPassword}
+        onGeneratePassword={handleGenerate}
+      />
     </div>
   );
 };
