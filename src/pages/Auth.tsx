@@ -11,7 +11,8 @@ import { Link } from 'react-router-dom';
 import { usePlatformSettings } from '@/hooks/usePlatformSettings';
 import { PlatformFooter } from '@/components/PlatformFooter';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { PasswordInput } from '@/components/PasswordInput';
+import { PasswordInput, generateStrongPassword } from '@/components/PasswordInput';
+import { AuthErrorDialog } from '@/components/AuthErrorDialog';
 
 const friendlyError = (msg: string): string => {
   if (msg.includes('Invalid login')) return 'Email ou senha incorretos.';
