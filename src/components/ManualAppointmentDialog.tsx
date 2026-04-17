@@ -12,7 +12,7 @@ import { format, addMinutes } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
 import { formatWhatsApp, isValidWhatsApp, openWhatsApp } from '@/lib/whatsapp';
-import { calculateAvailableSlots } from '@/lib/availability-engine';
+import { getAvailableSlots } from '@/lib/availability-service';
 import { Search, CalendarIcon, Clock, User, Scissors } from 'lucide-react';
 
 interface ManualAppointmentDialogProps {
