@@ -2394,6 +2394,7 @@ export type Database = {
           active: boolean
           automatic_messages: boolean
           created_at: string
+          custom_branding: boolean
           discount_coupons: boolean
           feature_financial_level: string
           feature_requests: boolean
@@ -2413,6 +2414,7 @@ export type Database = {
           active?: boolean
           automatic_messages?: boolean
           created_at?: string
+          custom_branding?: boolean
           discount_coupons?: boolean
           feature_financial_level?: string
           feature_requests?: boolean
@@ -2432,6 +2434,7 @@ export type Database = {
           active?: boolean
           automatic_messages?: boolean
           created_at?: string
+          custom_branding?: boolean
           discount_coupons?: boolean
           feature_financial_level?: string
           feature_requests?: boolean
