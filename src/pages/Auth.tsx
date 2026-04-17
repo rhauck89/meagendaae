@@ -124,10 +124,34 @@ const Auth = () => {
       }
     } catch (error: any) {
       const { diagnoseAuthError } = await import('@/lib/auth-errors');
-      toast.error(diagnoseAuthError(error));
+      const friendly = diagnoseAuthError(error);
+      if (!isLogin) {
+        setErrorModal({ open: true, message: friendly });
+      } else {
+        toast.error(friendly);
+      }
     } finally {
       setLoading(false);
     }
+  };
+
+  const focusPasswordField = () => {
+    setPassword('');
+    setTimeout(() => {
+      const el = document.getElementById('password') as HTMLInputElement | null;
+      el?.focus();
+    }, 80);
+  };
+
+  const handleGenerate = () => {
+    const pwd = generateStrongPassword(16);
+    setPassword(pwd);
+    try { navigator.clipboard.writeText(pwd); } catch {}
+    toast.success('Senha forte gerada e copiada 🔐');
+    setTimeout(() => {
+      const el = document.getElementById('password') as HTMLInputElement | null;
+      el?.focus();
+    }, 80);
   };
 
   const logoUrl = platform?.logo_light || platform?.system_logo || platform?.logo_dark;
