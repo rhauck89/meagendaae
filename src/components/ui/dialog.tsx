@@ -55,8 +55,8 @@ const DialogContent = React.forwardRef<
       className={cn(
         // Mobile: full-screen sheet (sem border-radius, ocupa tela toda)
         "fixed inset-0 sm:inset-auto sm:left-[50%] sm:top-[50%] z-50 flex flex-col",
-        // Largura padrão desktop = 640px; classes sm:max-w-* externas podem aumentar até calc(100vw-2rem)
-        "w-full sm:w-auto sm:min-w-[480px] sm:max-w-[calc(100vw-2rem)]",
+        // Default desktop: 640px. Classes externas (sm:max-w-*) podem ampliar; nunca ultrapassa viewport-2rem.
+        "w-full sm:w-[640px] sm:max-w-[calc(100vw-2rem)]",
         "sm:translate-x-[-50%] sm:translate-y-[-50%]",
         "h-[100dvh] sm:h-auto max-h-[100dvh] sm:max-h-[90vh]",
         "border-0 sm:border bg-background shadow-lg duration-200",
