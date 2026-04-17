@@ -108,10 +108,12 @@ async function fetchSlotInputs(
   const startISO = `${dateStr}T00:00:00`;
   const endISO = `${dateStr}T23:59:59`;
 
-  const businessHoursTable = source === 'public' ? 'public_business_hours' : 'business_hours';
-  const exceptionsTable = source === 'public' ? 'public_business_exceptions' : 'business_exceptions';
+  // business_hours / business_exceptions / appointments allow public SELECT via RLS,
+  // and blocked_times has a public_blocked_times view used for anonymous reads.
+  const businessHoursTable = 'business_hours';
+  const exceptionsTable = 'business_exceptions';
   const blockedTable = source === 'public' ? 'public_blocked_times' : 'blocked_times';
-  const apptsTable = source === 'public' ? 'public_appointments' : 'appointments';
+  const apptsTable = 'appointments';
 
   const [profHoursRes, bizHoursRes, exceptionsRes, blocksRes, apptsRes, eventSlotsRes] =
     await Promise.all([
