@@ -2168,7 +2168,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
               }}
               className="w-full rounded-xl py-6 font-semibold text-base shadow-lg transition-all hover:scale-[1.01]"
               style={{ background: T.accent, color: '#000' }}
-              disabled={authLoading || !clientForm.full_name.trim() || !clientForm.whatsapp || !isValidWhatsApp(clientForm.whatsapp) || !clientForm.email?.trim() || (!isClientLoggedIn && clientPassword.length < 6)}
+              disabled={authLoading || !clientForm.full_name.trim() || !clientForm.whatsapp || !isValidWhatsApp(clientForm.whatsapp) || !clientForm.email?.trim() || (!isClientLoggedIn && clientPassword.length < 8)}
             >
               {authLoading ? (
                 <div className="flex items-center gap-2">
