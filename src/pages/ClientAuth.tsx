@@ -91,6 +91,14 @@ const ClientAuth = () => {
       });
     }
 
+    // Welcome email — fire-and-forget
+    try {
+      const { sendWelcomeClientEmail } = await import('@/lib/email');
+      void sendWelcomeClientEmail({ email: signupEmail.trim(), name: signupName });
+    } catch (e) {
+      console.warn('[email] welcome client failed', e);
+    }
+
     setLoading(false);
     toast.success('Conta criada! Verifique seu email para confirmar.');
   };

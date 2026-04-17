@@ -2147,6 +2147,11 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                           p_phone: formattedPhone || null,
                           p_email: emailTrimmed,
                         } as any);
+                        // Welcome email — fire-and-forget
+                        try {
+                          const { sendWelcomeClientEmail } = await import('@/lib/email');
+                          void sendWelcomeClientEmail({ email: emailTrimmed, name: clientForm.full_name.trim() });
+                        } catch (e) { console.warn('[email] welcome client failed', e); }
                       }
                       toast.success('Conta criada!');
                     }

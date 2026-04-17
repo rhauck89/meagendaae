@@ -1,1 +1,7 @@
 project_id = "fbujndjmainizgmligxt"
+
+[functions.send-email]
+verify_jwt = false
+
+[functions.monthly-report]
+verify_jwt = false

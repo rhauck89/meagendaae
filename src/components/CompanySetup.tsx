@@ -180,6 +180,21 @@ const CompanySetup = ({ onComplete }: CompanySetupProps) => {
       setCompanyId(company.id);
       setCompanySlug(slug);
       toast.success('Empresa criada!');
+
+      // Welcome email — fire-and-forget, must not break the flow
+      try {
+        const { sendWelcomeCompanyEmail } = await import('@/lib/email');
+        if (user.email) {
+          void sendWelcomeCompanyEmail({
+            email: user.email,
+            name: (user.user_metadata as any)?.full_name || companyName.trim(),
+            companyName: companyName.trim(),
+          });
+        }
+      } catch (e) {
+        console.warn('[email] welcome company failed', e);
+      }
+
       setStep('hours');
     } catch (err: any) {
       toast.error('Erro ao criar empresa. Tente novamente.');
