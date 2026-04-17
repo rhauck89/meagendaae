@@ -61,9 +61,10 @@ const ClientAuth = () => {
     const formattedPhone = formatWhatsApp(signupPhone);
 
     const { data, error } = await supabase.auth.signUp({
-      email: signupEmail,
+      email: signupEmail.trim(),
       password: signupPassword,
       options: {
+        emailRedirectTo: `${window.location.origin}/`,
         data: {
           full_name: signupName,
           whatsapp: formattedPhone,
@@ -72,7 +73,12 @@ const ClientAuth = () => {
       },
     });
 
-    if (error) { setLoading(false); toast.error(error.message); return; }
+    if (error) {
+      setLoading(false);
+      const { diagnoseAuthError } = await import('@/lib/auth-errors');
+      toast.error(diagnoseAuthError(error));
+      return;
+    }
 
     // Link existing client records by phone
     if (data.user) {

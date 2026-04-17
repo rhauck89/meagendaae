@@ -84,12 +84,8 @@ export const BookingAuthGate = ({
       });
 
       if (signUpError) {
-        // If user already exists but the password didn't match
-        if (/already registered|already exists/i.test(signUpError.message)) {
-          toast.error('Já existe uma conta com este email. Verifique sua senha.');
-        } else {
-          toast.error(signUpError.message);
-        }
+        const { diagnoseAuthError } = await import('@/lib/auth-errors');
+        toast.error(diagnoseAuthError(signUpError));
         return;
       }
 
