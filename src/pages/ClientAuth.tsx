@@ -18,6 +18,7 @@ const ClientAuth = () => {
   const [searchParams] = useSearchParams();
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
+  const [errorModal, setErrorModal] = useState<{ open: boolean; message: string }>({ open: false, message: '' });
 
   const defaultTab = searchParams.get('tab') === 'signup' ? 'signup' : 'login';
 
