@@ -265,9 +265,9 @@ export function RewardQRScannerDialog({ open, onOpenChange, onConfirmed }: Props
           )}
 
           {phase === 'success' && (
-            <div className="py-8 flex flex-col items-center gap-3 text-center">
+            <div className="py-8 flex flex-col items-center gap-3 text-center animate-scale-in">
               <CheckCircle2 className="h-14 w-14 text-green-600" />
-              <p className="text-lg font-semibold">Resgate confirmado!</p>
+              <p className="text-lg font-semibold">Resgate confirmado com sucesso ✅</p>
               <p className="text-sm text-muted-foreground">Os pontos foram debitados e o estoque atualizado.</p>
               <div className="flex gap-2 w-full pt-2">
                 <Button variant="outline" className="flex-1" onClick={handleCancel}>
