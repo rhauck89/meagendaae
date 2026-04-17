@@ -1,10 +1,11 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import Cropper, { Area } from 'react-easy-crop';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { ZoomIn, ZoomOut, Check, X, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { cn } from '@/lib/utils';
 
 interface AvatarCropDialogProps {
   open: boolean;
@@ -49,6 +50,15 @@ const AvatarCropDialog = ({ open, imageSrc, onClose, onConfirm }: AvatarCropDial
   const [zoom, setZoom] = useState(1);
   const [croppedArea, setCroppedArea] = useState<Area | null>(null);
   const [processing, setProcessing] = useState(false);
+  const [imageLoading, setImageLoading] = useState(true);
+
+  useEffect(() => {
+    if (open && imageSrc) {
+      setImageLoading(true);
+      setCrop({ x: 0, y: 0 });
+      setZoom(1);
+    }
+  }, [open, imageSrc]);
 
   const onCropComplete = useCallback((_: Area, croppedAreaPixels: Area) => {
     setCroppedArea(croppedAreaPixels);
@@ -71,8 +81,10 @@ const AvatarCropDialog = ({ open, imageSrc, onClose, onConfirm }: AvatarCropDial
     }
   };
 
+  const isBusy = imageLoading || processing;
+
   return (
-    <Dialog open={open} onOpenChange={(v) => !v && !processing && onClose()}>
+    <Dialog open={open} onOpenChange={(v) => !v && !isBusy && onClose()}>
       <DialogContent className="max-w-md p-0 gap-0 overflow-hidden z-[60]">
         <DialogHeader className="p-4 pb-2">
           <DialogTitle>Ajustar foto</DialogTitle>
@@ -92,7 +104,24 @@ const AvatarCropDialog = ({ open, imageSrc, onClose, onConfirm }: AvatarCropDial
             onCropChange={setCrop}
             onZoomChange={setZoom}
             onCropComplete={onCropComplete}
+            onMediaLoaded={() => setImageLoading(false)}
           />
+          <div
+            className={cn(
+              'absolute inset-0 flex flex-col items-center justify-center gap-3 bg-black/70 backdrop-blur-sm transition-opacity duration-300',
+              isBusy ? 'opacity-100' : 'opacity-0 pointer-events-none',
+            )}
+            aria-hidden={!isBusy}
+            aria-live="polite"
+          >
+            <Loader2 className="h-8 w-8 text-white animate-spin" />
+            <p className="text-sm font-medium text-white">
+              {processing ? 'Salvando sua foto...' : 'Preparando sua foto...'}
+            </p>
+            <div className="w-32 h-1 rounded-full bg-white/20 overflow-hidden">
+              <div className="h-full w-1/2 bg-white/80 rounded-full animate-pulse" />
+            </div>
+          </div>
         </div>
 
         <div className="px-6 py-3 flex items-center gap-3">
