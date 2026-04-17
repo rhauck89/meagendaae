@@ -136,14 +136,23 @@ async function fetchSlotInputs(
         .eq('company_id', companyId)
         .eq('professional_id', professionalId)
         .eq('block_date', dateStr),
-      supabase
-        .from(apptsTable as any)
-        .select('start_time, end_time')
-        .eq('professional_id', professionalId)
-        .eq('company_id', companyId)
-        .gte('start_time', startISO)
-        .lt('start_time', endISO)
-        .not('status', 'in', '("cancelled","no_show")'),
+      // Public anonymous flow cannot SELECT appointments directly (RLS forbids).
+      // It must go through the SECURITY DEFINER RPC `get_booking_appointments`.
+      source === 'public'
+        ? supabase.rpc('get_booking_appointments' as any, {
+            p_company_id: companyId,
+            p_professional_id: professionalId,
+            p_selected_date: dateStr,
+            p_timezone: 'America/Sao_Paulo',
+          })
+        : supabase
+            .from(apptsTable as any)
+            .select('start_time, end_time')
+            .eq('professional_id', professionalId)
+            .eq('company_id', companyId)
+            .gte('start_time', startISO)
+            .lt('start_time', endISO)
+            .not('status', 'in', '("cancelled","no_show")'),
       // Event slots also block time on the professional's calendar
       supabase
         .from('event_slots' as any)
