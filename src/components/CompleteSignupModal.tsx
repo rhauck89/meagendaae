@@ -8,6 +8,7 @@ import { toast } from 'sonner';
 import { Lock, User, Mail, Phone, Cake, Sparkles, Loader2 } from 'lucide-react';
 import { z } from 'zod';
 import { formatWhatsApp } from '@/lib/whatsapp';
+import { PasswordInput } from '@/components/PasswordInput';
 
 interface CompleteSignupModalProps {
   open: boolean;
@@ -27,7 +28,7 @@ const signupSchema = z
     email: z.string().trim().email('Email inválido').max(255),
     whatsapp: z.string().trim().min(10, 'WhatsApp inválido').max(20),
     birthDate: z.string().optional().or(z.literal('')),
-    password: z.string().min(6, 'Senha deve ter no mínimo 6 caracteres').max(72),
+    password: z.string().min(8, 'Senha deve ter no mínimo 8 caracteres').max(72),
     confirmPassword: z.string(),
   })
   .refine((data) => data.password === data.confirmPassword, {
@@ -231,19 +232,14 @@ export const CompleteSignupModal = ({
             />
           </div>
 
-          <div className="space-y-1.5">
-            <Label htmlFor="cs-password" className="flex items-center gap-1 text-sm">
-              <Lock className="h-3 w-3" /> Senha
-            </Label>
-            <Input
-              id="cs-password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="Mínimo 6 caracteres"
-              autoComplete="new-password"
-            />
-          </div>
+          <PasswordInput
+            id="cs-password"
+            label="Senha"
+            value={password}
+            onChange={setPassword}
+            placeholder="Mínimo 8 caracteres"
+            autoComplete="new-password"
+          />
 
           <div className="space-y-1.5">
             <Label htmlFor="cs-confirm" className="flex items-center gap-1 text-sm">

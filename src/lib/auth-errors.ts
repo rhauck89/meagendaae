@@ -43,8 +43,8 @@ export function diagnoseAuthError(error: AuthErrorLike | null | undefined): stri
   }
 
   // Leaked password (HIBP)
-  if (/pwned|leaked|compromised|hibp/i.test(msg) || code === 'weak_password') {
-    return 'Esta senha é muito comum ou foi vazada em outros sites. Escolha uma senha mais forte.';
+  if (/pwned|leaked|compromised|hibp|known to be weak|easy to guess/i.test(msg) || code === 'weak_password') {
+    return 'Essa senha é muito comum e não é segura. Escolha uma senha mais forte para proteger sua conta.';
   }
 
   // Password too short / weak

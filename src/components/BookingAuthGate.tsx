@@ -5,8 +5,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
-import { Lock, Sparkles } from 'lucide-react';
+import { Sparkles } from 'lucide-react';
 import { z } from 'zod';
+import { PasswordInput } from '@/components/PasswordInput';
 
 interface Props {
   open: boolean;
@@ -21,7 +22,7 @@ interface Props {
 
 const credentialsSchema = z.object({
   email: z.string().trim().email('Email inválido').max(255),
-  password: z.string().min(6, 'A senha deve ter no mínimo 6 caracteres').max(72),
+  password: z.string().min(8, 'A senha deve ter no mínimo 8 caracteres').max(72),
   fullName: z.string().trim().min(1, 'Nome obrigatório').max(100),
 });
 
@@ -136,24 +137,21 @@ export const BookingAuthGate = ({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="auth-gate-password" className="flex items-center gap-1">
-              <Lock className="h-3 w-3" /> Senha
-            </Label>
-            <Input
-              id="auth-gate-password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="Mínimo 6 caracteres"
-              autoComplete="current-password"
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && !loading) handleSubmit();
-              }}
-            />
-            <p className="text-xs text-muted-foreground">
-              Se já tem conta, use sua senha. Caso contrário, criaremos a conta agora.
-            </p>
-          </div>
+          <PasswordInput
+            id="auth-gate-password"
+            label="Senha"
+            value={password}
+            onChange={setPassword}
+            placeholder="Mínimo 8 caracteres"
+            autoComplete="new-password"
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && !loading) handleSubmit();
+            }}
+          />
+          <p className="text-xs text-muted-foreground">
+            Se já tem conta, use sua senha. Caso contrário, criaremos a conta agora.
+          </p>
+        </div>
         </div>
 
         <Button

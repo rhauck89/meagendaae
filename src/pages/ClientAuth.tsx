@@ -10,6 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
 import { User, ArrowLeft } from 'lucide-react';
 import { formatWhatsApp, isValidWhatsApp } from '@/lib/whatsapp';
+import { PasswordInput } from '@/components/PasswordInput';
 
 const ClientAuth = () => {
   const navigate = useNavigate();
@@ -54,8 +55,8 @@ const ClientAuth = () => {
     if (!isValidWhatsApp(signupPhone)) {
       toast.error('Telefone inválido'); return;
     }
-    if (signupPassword.length < 6) {
-      toast.error('A senha deve ter no mínimo 6 caracteres'); return;
+    if (signupPassword.length < 8) {
+      toast.error('A senha deve ter no mínimo 8 caracteres'); return;
     }
     setLoading(true);
     const formattedPhone = formatWhatsApp(signupPhone);
@@ -123,15 +124,14 @@ const ClientAuth = () => {
                     placeholder="seu@email.com"
                   />
                 </div>
-                <div className="space-y-2">
-                  <Label>Senha</Label>
-                  <Input
-                    type="password"
-                    value={loginPassword}
-                    onChange={e => setLoginPassword(e.target.value)}
-                    placeholder="••••••"
-                  />
-                </div>
+                <PasswordInput
+                  label="Senha"
+                  value={loginPassword}
+                  onChange={setLoginPassword}
+                  placeholder="Sua senha"
+                  autoComplete="current-password"
+                  showStrength={false}
+                />
                 <Button className="w-full" onClick={handleLogin} disabled={loading}>
                   {loading ? 'Entrando...' : 'Entrar'}
                 </Button>
@@ -167,15 +167,13 @@ const ClientAuth = () => {
                     placeholder="seu@email.com"
                   />
                 </div>
-                <div className="space-y-2">
-                  <Label>Senha</Label>
-                  <Input
-                    type="password"
-                    value={signupPassword}
-                    onChange={e => setSignupPassword(e.target.value)}
-                    placeholder="Mínimo 6 caracteres"
-                  />
-                </div>
+                <PasswordInput
+                  label="Senha"
+                  value={signupPassword}
+                  onChange={setSignupPassword}
+                  placeholder="Mínimo 8 caracteres"
+                  autoComplete="new-password"
+                />
                 <Button className="w-full" onClick={handleSignup} disabled={loading}>
                   {loading ? 'Criando...' : 'Criar conta'}
                 </Button>

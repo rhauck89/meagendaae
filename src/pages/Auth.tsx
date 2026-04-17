@@ -11,12 +11,13 @@ import { Link } from 'react-router-dom';
 import { usePlatformSettings } from '@/hooks/usePlatformSettings';
 import { PlatformFooter } from '@/components/PlatformFooter';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { PasswordInput } from '@/components/PasswordInput';
 
 const friendlyError = (msg: string): string => {
   if (msg.includes('Invalid login')) return 'Email ou senha incorretos.';
   if (msg.includes('already registered')) return 'Este email já está cadastrado. Tente fazer login.';
   if (msg.includes('valid email')) return 'Insira um email válido.';
-  if (msg.includes('least 6')) return 'A senha deve ter no mínimo 6 caracteres.';
+  if (msg.includes('least 6') || msg.includes('least 8')) return 'A senha deve ter no mínimo 8 caracteres.';
   if (msg.includes('rate limit') || msg.includes('too many')) return 'Muitas tentativas. Aguarde um momento e tente novamente.';
   return 'Erro ao processar. Tente novamente.';
 };
@@ -59,8 +60,8 @@ const Auth = () => {
     if (!email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       newErrors.email = 'Insira um email válido.';
     }
-    if (password.length < 6) {
-      newErrors.password = 'A senha deve ter no mínimo 6 caracteres.';
+    if (!isLogin && password.length < 8) {
+      newErrors.password = 'A senha deve ter no mínimo 8 caracteres.';
     }
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -180,14 +181,14 @@ const Auth = () => {
             {errors.email && <p className="text-sm text-destructive">{errors.email}</p>}
           </div>
           <div className="space-y-2">
-            <Label htmlFor="password">Senha</Label>
-            <Input
+            <PasswordInput
               id="password"
-              type="password"
+              label="Senha"
               value={password}
-              onChange={(e) => { setPassword(e.target.value); setErrors((p) => ({ ...p, password: '' })); }}
-              placeholder="Mínimo 6 caracteres"
+              onChange={(v) => { setPassword(v); setErrors((p) => ({ ...p, password: '' })); }}
+              placeholder={isLogin ? 'Sua senha' : 'Mínimo 8 caracteres'}
               autoComplete={isLogin ? 'current-password' : 'new-password'}
+              showStrength={!isLogin}
             />
             {errors.password && <p className="text-sm text-destructive">{errors.password}</p>}
             {isLogin && (
