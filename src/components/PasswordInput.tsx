@@ -62,7 +62,7 @@ export function evaluatePasswordStrength(password: string): StrengthResult {
   return { score: finalScore, ...map[finalScore] };
 }
 
-function generateStrongPassword(length = 16): string {
+export function generateStrongPassword(length = 16): string {
   const lower = 'abcdefghijkmnopqrstuvwxyz';
   const upper = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
   const nums = '23456789';
