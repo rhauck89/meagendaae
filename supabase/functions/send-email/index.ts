@@ -10,12 +10,13 @@ const corsHeaders = {
 
 const GATEWAY_URL = "https://connector-gateway.lovable.dev/resend";
 
-const FROM_DEFAULT = "Agendaê <onboarding@resend.dev>";
-// Once your domain "agendae.com.br" is verified in Resend, set FROM_DOMAIN_VERIFIED=true
-// and the function will use "Agendaê <naoresponda@agendae.com.br>" automatically.
+// Default sender — uses verified domain by default. To fall back to Resend's
+// shared sandbox sender during testing, set AGENDAE_FROM_SANDBOX=true.
 const FROM_VERIFIED = "Agendaê <naoresponda@agendae.com.br>";
-const USE_VERIFIED_DOMAIN =
-  (Deno.env.get("AGENDAE_FROM_VERIFIED") ?? "false").toLowerCase() === "true";
+const FROM_SANDBOX = "Agendaê <onboarding@resend.dev>";
+const USE_SANDBOX =
+  (Deno.env.get("AGENDAE_FROM_SANDBOX") ?? "false").toLowerCase() === "true";
+const REPLY_TO_DEFAULT = "suporte@agendae.com.br";
 
 interface SendEmailBody {
   to: string | string[];
@@ -117,7 +118,8 @@ Deno.serve(async (req) => {
     });
   }
 
-  const from = parsed.from ?? (USE_VERIFIED_DOMAIN ? FROM_VERIFIED : FROM_DEFAULT);
+  const from = parsed.from ?? (USE_SANDBOX ? FROM_SANDBOX : FROM_VERIFIED);
+  const replyTo = parsed.reply_to ?? REPLY_TO_DEFAULT;
   const toArray = Array.isArray(parsed.to) ? parsed.to : [parsed.to];
 
   try {
@@ -133,7 +135,7 @@ Deno.serve(async (req) => {
         to: toArray,
         subject: parsed.subject,
         html: parsed.html,
-        ...(parsed.reply_to ? { reply_to: parsed.reply_to } : {}),
+        reply_to: replyTo,
       }),
     });
 
