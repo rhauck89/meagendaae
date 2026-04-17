@@ -554,7 +554,7 @@ const CompanySetup = ({ onComplete }: CompanySetupProps) => {
                   </Button>
                   <Button
                     variant="ghost"
-                    onClick={() => setStep('done')}
+                    onClick={() => setStep('theme')}
                     className="text-muted-foreground"
                   >
                     Pular
@@ -563,6 +563,110 @@ const CompanySetup = ({ onComplete }: CompanySetupProps) => {
                     {loading ? 'Salvando...' : 'Continuar'} <ChevronRight className="h-4 w-4 ml-1" />
                   </Button>
                 </div>
+              </>
+            )}
+
+            {/* ───── Step 4: Theme ───── */}
+            {step === 'theme' && (
+              <>
+                <div className="space-y-4">
+                  <p className="text-sm text-muted-foreground text-center">
+                    Escolha um tema visual personalizado para sua marca. Você poderá alterar a qualquer momento em <strong>Configurações &gt; Branding</strong>.
+                  </p>
+
+                  {selectedTheme ? (
+                    <div
+                      className="rounded-xl border-2 border-primary p-4 space-y-3"
+                      style={{ background: selectedTheme.background_color }}
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-bold" style={{ color: selectedTheme.primary_color }}>
+                          {selectedTheme.name}
+                        </span>
+                        <CheckCircle2 className="h-5 w-5" style={{ color: selectedTheme.primary_color }} />
+                      </div>
+                      <div className="flex gap-2">
+                        <div className="px-3 py-2 rounded-lg text-xs font-semibold text-white flex-1 text-center" style={{ background: selectedTheme.primary_color }}>
+                          Botão primário
+                        </div>
+                        <div className="px-3 py-2 rounded-lg text-xs font-semibold text-white flex-1 text-center" style={{ background: selectedTheme.secondary_color }}>
+                          Acento
+                        </div>
+                      </div>
+                      <Button variant="outline" size="sm" className="w-full" onClick={() => setThemeOpen(true)}>
+                        Alterar tema
+                      </Button>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => setThemeOpen(true)}
+                      className="w-full border-2 border-dashed rounded-xl p-6 text-center cursor-pointer hover:border-primary transition-colors space-y-2"
+                    >
+                      <Palette className="h-8 w-8 mx-auto text-muted-foreground" />
+                      <p className="text-sm font-medium">Escolher tema visual</p>
+                      <p className="text-xs text-muted-foreground">Selecione um estilo e veja variações prontas</p>
+                    </button>
+                  )}
+                </div>
+
+                <div className="flex gap-2">
+                  <Button variant="outline" onClick={() => setStep('branding')} className="flex-1">
+                    <ChevronLeft className="h-4 w-4 mr-1" /> Voltar
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    onClick={() => setStep('done')}
+                    className="text-muted-foreground"
+                    disabled={savingTheme}
+                  >
+                    Pular
+                  </Button>
+                  <Button
+                    className="flex-1"
+                    disabled={savingTheme}
+                    onClick={() => setStep('done')}
+                  >
+                    Continuar <ChevronRight className="h-4 w-4 ml-1" />
+                  </Button>
+                </div>
+
+                <ThemeSelector
+                  open={themeOpen}
+                  onOpenChange={setThemeOpen}
+                  initialVariationId={selectedTheme?.id}
+                  onSelect={async (variation) => {
+                    if (!companyId) return;
+                    setSavingTheme(true);
+                    try {
+                      const { data: existing } = await supabase
+                        .from('company_settings')
+                        .select('id')
+                        .eq('company_id', companyId)
+                        .maybeSingle();
+
+                      const payload = {
+                        primary_color: variation.primary_color,
+                        secondary_color: variation.secondary_color,
+                        background_color: variation.background_color,
+                        theme_style: variation.id,
+                      } as any;
+
+                      if (existing) {
+                        await supabase.from('company_settings').update(payload).eq('company_id', companyId);
+                      } else {
+                        await supabase.from('company_settings').insert({ company_id: companyId, ...payload });
+                      }
+                      setSelectedTheme(variation);
+                      toast.success('Tema aplicado!');
+                    } catch (err) {
+                      console.error('Theme save error:', err);
+                      toast.error('Erro ao aplicar tema.');
+                    } finally {
+                      setSavingTheme(false);
+                    }
+                  }}
+                />
               </>
             )}
 
