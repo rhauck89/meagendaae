@@ -1608,6 +1608,22 @@ const ClientPortal = () => {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Redemption QR Dialog */}
+      <RedemptionQRDialog
+        open={showRedemptionDialog}
+        onOpenChange={(v) => {
+          setShowRedemptionDialog(v);
+          if (!v) {
+            // Refresh on close to reflect any status change while open
+            refreshRedemptions();
+          }
+        }}
+        redemption={activeRedemption}
+        rewardName={activeRedemptionRewardName}
+        onRegenerate={handleRegenerateActive}
+        regenerating={regenerating}
+      />
     </div>
   );
 };
