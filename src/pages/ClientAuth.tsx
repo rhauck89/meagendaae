@@ -203,6 +203,13 @@ const ClientAuth = () => {
           <ArrowLeft className="h-4 w-4 mr-2" /> Voltar ao início
         </Button>
       </div>
+      <AuthErrorDialog
+        open={errorModal.open}
+        onOpenChange={(open) => setErrorModal((s) => ({ ...s, open }))}
+        message={errorModal.message}
+        onAcknowledge={focusSignupPassword}
+        onGeneratePassword={handleGenerate}
+      />
     </div>
   );
 };
