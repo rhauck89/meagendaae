@@ -1071,6 +1071,65 @@ export type Database = {
           },
         ]
       }
+      company_billing: {
+        Row: {
+          company_id: string
+          created_at: string
+          id: string
+          stripe_customer_id: string | null
+          stripe_subscription_id: string | null
+          subscription_status: Database["public"]["Enums"]["subscription_status"]
+          updated_at: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          id?: string
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          subscription_status?: Database["public"]["Enums"]["subscription_status"]
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          id?: string
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          subscription_status?: Database["public"]["Enums"]["subscription_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_billing_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: true
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_billing_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: true
+            referencedRelation: "companies_billing"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_billing_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: true
+            referencedRelation: "public_company"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_billing_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: true
+            referencedRelation: "public_company_view"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       company_domains: {
         Row: {
           company_id: string
