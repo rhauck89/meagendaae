@@ -116,6 +116,7 @@ const ClientPortal = () => {
   const [activeRedemptionRewardName, setActiveRedemptionRewardName] = useState<string | undefined>(undefined);
   const [showRedemptionDialog, setShowRedemptionDialog] = useState(false);
   const [regenerating, setRegenerating] = useState(false);
+  const [redeemingId, setRedeemingId] = useState<string | null>(null);
 
   // ---------- Cache (instant render + background revalidation) ----------
   const cacheKey = `client_portal_${user?.id || 'anon'}`;
@@ -1229,6 +1230,7 @@ const ClientPortal = () => {
                       const closest = sorted.filter(r => rewardsBalance < r.points_required);
 
                       const handleRedeem = async (reward: typeof rewardsList[number]) => {
+                        if (redeemingId) return; // proteção contra duplo clique
                         // Reuse an existing pending+non-expired redemption for this reward, if any
                         const existing = redemptions.find(r =>
                           r.reward_id === reward.id &&
@@ -1239,10 +1241,15 @@ const ClientPortal = () => {
                           openRedemption(existing, reward.name);
                           return;
                         }
-                        const created = await createRedemption(reward);
-                        if (created) {
-                          openRedemption(created, reward.name);
-                          toast.success('Resgate criado! Apresente o QR Code.');
+                        setRedeemingId(reward.id);
+                        try {
+                          const created = await createRedemption(reward);
+                          if (created) {
+                            openRedemption(created, reward.name);
+                            toast.success('Resgate criado! Apresente o QR Code.');
+                          }
+                        } finally {
+                          setRedeemingId(null);
                         }
                       };
 
@@ -1349,11 +1356,13 @@ const ClientPortal = () => {
                               <div className="px-4 pb-4 pt-2 space-y-2">
                                 <Button
                                   size="default"
-                                  className="w-full h-12 text-sm font-semibold shadow-sm"
-                                  disabled={!canRedeem}
+                                  className="w-full h-12 text-sm font-semibold shadow-sm transition-transform active:scale-[0.98]"
+                                  disabled={!canRedeem || redeemingId === reward.id}
                                   onClick={() => handleRedeem(reward)}
                                 >
-                                  {outOfStock ? 'Esgotado' : canRedeem ? '🎁 Resgatar agora' : 'Pontos insuficientes'}
+                                  {redeemingId === reward.id
+                                    ? (<><span className="mr-2 inline-block h-4 w-4 border-2 border-current border-t-transparent rounded-full animate-spin" />Gerando QR...</>)
+                                    : outOfStock ? 'Esgotado' : canRedeem ? '🎁 Resgatar agora' : 'Pontos insuficientes'}
                                 </Button>
                                 {!hasPoints && !outOfStock && (
                                   <p className="text-[11px] text-center text-muted-foreground leading-relaxed">
@@ -1401,18 +1410,20 @@ const ClientPortal = () => {
                       <span>🎟️</span> Meus resgates
                     </h3>
                     <div className="space-y-2">
-                      {redemptions.slice(0, 10).map(r => {
+                      {[...redemptions]
+                        .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+                        .slice(0, 10).map(r => {
                         const reward = rewards.find(rw => rw.id === r.reward_id);
                         const company = companies[r.company_id];
                         const ageMs = Date.now() - new Date(r.created_at).getTime();
                         const localExpired = r.status === 'pending' && ageMs >= 15 * 60_000;
                         const effectiveStatus = localExpired ? 'expired' : r.status;
-                        const statusMeta: Record<string, { label: string; cls: string }> = {
-                          pending:   { label: 'Pendente',   cls: 'bg-yellow-500/15 text-yellow-700 border-yellow-500/30' },
-                          confirmed: { label: 'Confirmado', cls: 'bg-green-500/15 text-green-700 border-green-500/30' },
-                          expired:   { label: 'Expirado',   cls: 'bg-amber-500/15 text-amber-700 border-amber-500/30' },
-                          canceled:  { label: 'Cancelado',  cls: 'bg-destructive/10 text-destructive border-destructive/30' },
-                          cancelled: { label: 'Cancelado',  cls: 'bg-destructive/10 text-destructive border-destructive/30' },
+                        const statusMeta: Record<string, { label: string; cls: string; icon: string }> = {
+                          pending:   { label: 'Pendente',   cls: 'bg-yellow-500/15 text-yellow-700 border-yellow-500/30', icon: '⏳' },
+                          confirmed: { label: 'Confirmado', cls: 'bg-green-500/15 text-green-700 border-green-500/30', icon: '✅' },
+                          expired:   { label: 'Expirado',   cls: 'bg-muted text-muted-foreground border-border', icon: '⚠️' },
+                          canceled:  { label: 'Cancelado',  cls: 'bg-destructive/10 text-destructive border-destructive/30', icon: '❌' },
+                          cancelled: { label: 'Cancelado',  cls: 'bg-destructive/10 text-destructive border-destructive/30', icon: '❌' },
                         };
                         const meta = statusMeta[effectiveStatus] || statusMeta.pending;
                         const canOpen = effectiveStatus === 'pending';
@@ -1430,7 +1441,7 @@ const ClientPortal = () => {
                                   {company?.name || ''} · {format(parseISO(r.created_at), "dd/MM/yy 'às' HH:mm", { locale: ptBR })}
                                 </p>
                                 <div className="mt-1 flex items-center gap-2">
-                                  <Badge variant="outline" className={`text-[10px] ${meta.cls}`}>{meta.label}</Badge>
+                                  <Badge variant="outline" className={`text-[10px] ${meta.cls}`}>{meta.icon} {meta.label}</Badge>
                                   <span className="text-[10px] font-mono text-muted-foreground">{r.redemption_code}</span>
                                 </div>
                               </div>
