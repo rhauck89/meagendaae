@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogBody, DialogFooter, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -97,11 +97,11 @@ export function BlockTimeDialog({ professionals, onCreated }: BlockTimeDialogPro
           Bloquear horário
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent>
         <DialogHeader>
           <DialogTitle>Bloquear horário</DialogTitle>
         </DialogHeader>
-        <div className="space-y-4 pt-2">
+        <DialogBody>
           {isAdmin && (
             <div className="space-y-2">
               <Label>Profissional</Label>
@@ -171,11 +171,15 @@ export function BlockTimeDialog({ professionals, onCreated }: BlockTimeDialogPro
               </SelectContent>
             </Select>
           </div>
-
-          <Button onClick={handleSubmit} disabled={loading} className="w-full">
+        </DialogBody>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setOpen(false)} disabled={loading}>
+            Cancelar
+          </Button>
+          <Button onClick={handleSubmit} disabled={loading}>
             {loading ? 'Bloqueando...' : 'Bloquear horário'}
           </Button>
-        </div>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );
