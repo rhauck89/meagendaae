@@ -62,9 +62,12 @@ const DialogContent = React.forwardRef<
         "border-0 sm:border bg-background shadow-lg duration-200",
         "data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 sm:data-[state=closed]:zoom-out-95 sm:data-[state=open]:zoom-in-95 sm:data-[state=closed]:slide-out-to-left-1/2 sm:data-[state=closed]:slide-out-to-top-[48%] sm:data-[state=open]:slide-in-from-left-1/2 sm:data-[state=open]:slide-in-from-top-[48%]",
         "rounded-none sm:rounded-2xl overflow-hidden",
-        // Fallback: modais legados sem DialogBody ganham scroll interno automático
+        // Fallback: modais legados sem DialogBody ganham scroll interno + padding automático
+        "[&>*:not([data-dialog-header]):not([data-dialog-footer]):not([data-dialog-body])]:flex-1",
+        "[&>*:not([data-dialog-header]):not([data-dialog-footer]):not([data-dialog-body])]:min-h-0",
         "[&>*:not([data-dialog-header]):not([data-dialog-footer]):not([data-dialog-body])]:overflow-y-auto",
         "[&>*:not([data-dialog-header]):not([data-dialog-footer]):not([data-dialog-body])]:px-4",
+        "[&>*:not([data-dialog-header]):not([data-dialog-footer]):not([data-dialog-body])]:py-4",
         "sm:[&>*:not([data-dialog-header]):not([data-dialog-footer]):not([data-dialog-body])]:px-6",
         className,
       )}
