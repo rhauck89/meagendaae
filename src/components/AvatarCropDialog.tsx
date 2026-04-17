@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
 import Cropper, { Area } from 'react-easy-crop';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { ZoomIn, ZoomOut, Check, X, Loader2 } from 'lucide-react';
@@ -54,14 +54,25 @@ const AvatarCropDialog = ({ open, imageSrc, onClose, onConfirm }: AvatarCropDial
 
   useEffect(() => {
     if (open && imageSrc) {
+      console.log('[AvatarCropDialog] Opening with new image, isLoading: true');
       setImageLoading(true);
       setCrop({ x: 0, y: 0 });
       setZoom(1);
+      setCroppedArea(null);
     }
   }, [open, imageSrc]);
 
+  useEffect(() => {
+    console.log('[AvatarCropDialog] loading image:', imageLoading, 'processing:', processing);
+  }, [imageLoading, processing]);
+
   const onCropComplete = useCallback((_: Area, croppedAreaPixels: Area) => {
     setCroppedArea(croppedAreaPixels);
+  }, []);
+
+  const handleMediaLoaded = useCallback(() => {
+    console.log('[AvatarCropDialog] Media loaded, isLoading: false');
+    setImageLoading(false);
   }, []);
 
   const handleConfirm = async () => {
@@ -85,59 +96,71 @@ const AvatarCropDialog = ({ open, imageSrc, onClose, onConfirm }: AvatarCropDial
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && !isBusy && onClose()}>
-      <DialogContent className="max-w-md p-0 gap-0 overflow-hidden z-[60]">
-        <DialogHeader className="p-4 pb-2">
+      <DialogContent
+        className="max-w-md p-0 gap-0 overflow-hidden flex flex-col max-h-[90vh] sm:max-h-[90vh]"
+      >
+        <DialogHeader className="p-4 pb-2 shrink-0">
           <DialogTitle>Ajustar foto</DialogTitle>
           <DialogDescription className="text-xs">
             Ajuste sua foto e clique em "Confirmar foto" para salvar.
           </DialogDescription>
         </DialogHeader>
 
-        <div className="relative w-full aspect-square bg-black">
-          <Cropper
-            image={imageSrc}
-            crop={crop}
-            zoom={zoom}
-            aspect={1}
-            cropShape="round"
-            showGrid={false}
-            onCropChange={setCrop}
-            onZoomChange={setZoom}
-            onCropComplete={onCropComplete}
-            onMediaLoaded={() => setImageLoading(false)}
-          />
+        {/* Conteúdo scrollável (cropper + slider) */}
+        <div className="flex-1 overflow-y-auto min-h-0">
           <div
-            className={cn(
-              'absolute inset-0 flex flex-col items-center justify-center gap-3 bg-black/70 backdrop-blur-sm transition-opacity duration-300',
-              isBusy ? 'opacity-100' : 'opacity-0 pointer-events-none',
-            )}
-            aria-hidden={!isBusy}
-            aria-live="polite"
+            className="relative w-full bg-black"
+            style={{ height: 'min(60vh, 400px)' }}
           >
-            <Loader2 className="h-8 w-8 text-white animate-spin" />
-            <p className="text-sm font-medium text-white">
-              {processing ? 'Salvando sua foto...' : 'Preparando sua foto...'}
-            </p>
-            <div className="w-32 h-1 rounded-full bg-white/20 overflow-hidden">
-              <div className="h-full w-1/2 bg-white/80 rounded-full animate-pulse" />
+            <Cropper
+              image={imageSrc}
+              crop={crop}
+              zoom={zoom}
+              aspect={1}
+              cropShape="round"
+              showGrid={false}
+              onCropChange={setCrop}
+              onZoomChange={setZoom}
+              onCropComplete={onCropComplete}
+              onMediaLoaded={handleMediaLoaded}
+            />
+
+            {/* Overlay de loading */}
+            <div
+              className={cn(
+                'absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 bg-black/70 backdrop-blur-sm transition-opacity duration-300',
+                isBusy ? 'opacity-100' : 'opacity-0 pointer-events-none',
+              )}
+              aria-hidden={!isBusy}
+              aria-live="polite"
+            >
+              <Loader2 className="h-10 w-10 text-white animate-spin" />
+              <p className="text-sm font-medium text-white">
+                {processing ? 'Salvando sua foto...' : 'Preparando sua foto...'}
+              </p>
+              <div className="w-32 h-1 rounded-full bg-white/20 overflow-hidden">
+                <div className="h-full w-1/2 bg-white/80 rounded-full animate-pulse" />
+              </div>
             </div>
+          </div>
+
+          <div className="px-6 py-3 flex items-center gap-3">
+            <ZoomOut className="h-4 w-4 text-muted-foreground shrink-0" />
+            <Slider
+              value={[zoom]}
+              min={1}
+              max={3}
+              step={0.05}
+              onValueChange={([v]) => setZoom(v)}
+              disabled={isBusy}
+              className="flex-1"
+            />
+            <ZoomIn className="h-4 w-4 text-muted-foreground shrink-0" />
           </div>
         </div>
 
-        <div className="px-6 py-3 flex items-center gap-3">
-          <ZoomOut className="h-4 w-4 text-muted-foreground shrink-0" />
-          <Slider
-            value={[zoom]}
-            min={1}
-            max={3}
-            step={0.05}
-            onValueChange={([v]) => setZoom(v)}
-            className="flex-1"
-          />
-          <ZoomIn className="h-4 w-4 text-muted-foreground shrink-0" />
-        </div>
-
-        <DialogFooter className="p-4 pt-2 gap-2 relative z-20">
+        {/* Footer sticky sempre visível */}
+        <div className="sticky bottom-0 shrink-0 border-t bg-background p-4 flex flex-col-reverse sm:flex-row sm:justify-end gap-2 z-20">
           <Button variant="outline" onClick={onClose} disabled={isBusy}>
             <X className="h-4 w-4 mr-1" /> Cancelar
           </Button>
@@ -150,7 +173,7 @@ const AvatarCropDialog = ({ open, imageSrc, onClose, onConfirm }: AvatarCropDial
               <><Check className="h-4 w-4 mr-1" /> Confirmar foto</>
             )}
           </Button>
-        </DialogFooter>
+        </div>
       </DialogContent>
     </Dialog>
   );
