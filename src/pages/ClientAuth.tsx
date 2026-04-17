@@ -10,7 +10,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
 import { User, ArrowLeft } from 'lucide-react';
 import { formatWhatsApp, isValidWhatsApp } from '@/lib/whatsapp';
-import { PasswordInput } from '@/components/PasswordInput';
+import { PasswordInput, generateStrongPassword } from '@/components/PasswordInput';
+import { AuthErrorDialog } from '@/components/AuthErrorDialog';
 
 const ClientAuth = () => {
   const navigate = useNavigate();
