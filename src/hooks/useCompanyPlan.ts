@@ -11,6 +11,7 @@ interface PlanFeatures {
   members_limit: number;
   feature_requests: boolean;
   feature_financial_level: string;
+  custom_branding: boolean;
 }
 
 interface CompanyPlanInfo {
@@ -38,6 +39,7 @@ const defaultFeatures: PlanFeatures = {
   members_limit: 1,
   feature_requests: false,
   feature_financial_level: 'none',
+  custom_branding: false,
 };
 
 export const useCompanyPlan = (): CompanyPlanInfo => {
@@ -111,6 +113,7 @@ export const useCompanyPlan = (): CompanyPlanInfo => {
             members_limit: plan.members_limit,
             feature_requests: p.feature_requests ?? false,
             feature_financial_level: p.feature_financial_level ?? 'none',
+            custom_branding: p.custom_branding ?? false,
           });
         }
       }
