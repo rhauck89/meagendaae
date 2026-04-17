@@ -4407,6 +4407,10 @@ export type Database = {
         Returns: string
       }
       expire_old_waitlist_entries: { Args: never; Returns: undefined }
+      expire_pending_redemptions: {
+        Args: { p_minutes?: number }
+        Returns: Json
+      }
       get_appointment_public: {
         Args: { p_appointment_id: string }
         Returns: Json
