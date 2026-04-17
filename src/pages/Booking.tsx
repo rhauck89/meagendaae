@@ -2054,8 +2054,8 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
               {!isClientLoggedIn && (
                 <div className="space-y-1.5">
                   <Label className="text-sm font-medium flex items-center gap-1.5" style={{ color: T.textSec }}>🔒 Senha *</Label>
-                  <Input type="password" value={clientPassword} onChange={(e) => setClientPassword(e.target.value)} placeholder="Mínimo 6 caracteres" autoComplete="new-password" className="rounded-xl h-12 text-base" style={{ background: T.card, border: `1px solid ${T.border}`, color: T.text }} />
-                  <p className="text-xs" style={{ color: T.textSec }}>Se já tem conta, use sua senha. Caso contrário, criaremos automaticamente.</p>
+                  <Input type="password" value={clientPassword} onChange={(e) => setClientPassword(e.target.value)} placeholder="Mínimo 8 caracteres" autoComplete="new-password" className="rounded-xl h-12 text-base" style={{ background: T.card, border: `1px solid ${T.border}`, color: T.text }} />
+                  <p className="text-xs" style={{ color: T.textSec }}>Use no mínimo 8 caracteres. Evite senhas comuns como 123456. Se já tem conta, use sua senha.</p>
                 </div>
               )}
               <div className="space-y-1.5">
@@ -2089,8 +2089,8 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
 
                 // ── Inline auth: sign in or sign up silently ──
                 if (!isClientLoggedIn) {
-                  if (!clientPassword || clientPassword.length < 6) {
-                    toast.error('A senha deve ter no mínimo 6 caracteres.');
+                  if (!clientPassword || clientPassword.length < 8) {
+                    toast.error('A senha deve ter no mínimo 8 caracteres.');
                     return;
                   }
                   setAuthLoading(true);
