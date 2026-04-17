@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogBody, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -449,7 +449,7 @@ export function ManualAppointmentDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-[700px]">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <CalendarIcon className="h-5 w-5" /> Agendar manualmente
@@ -459,20 +459,22 @@ export function ManualAppointmentDialog({
           </DialogDescription>
         </DialogHeader>
 
-        {/* Progress */}
-        <div className="flex gap-1 mb-2">
-          {Array.from({ length: totalSteps }).map((_, i) => (
-            <div key={i} className={`h-1 flex-1 rounded-full ${i < step ? 'bg-primary' : 'bg-muted'}`} />
-          ))}
-        </div>
+        <DialogBody>
+          {/* Progress */}
+          <div className="flex gap-1">
+            {Array.from({ length: totalSteps }).map((_, i) => (
+              <div key={i} className={`h-1 flex-1 rounded-full ${i < step ? 'bg-primary' : 'bg-muted'}`} />
+            ))}
+          </div>
 
-        {getEffectiveStep() === 1 && renderStep1()}
-        {getEffectiveStep() === 2 && renderStep2()}
-        {getEffectiveStep() === 3 && renderStep3()}
-        {getEffectiveStep() === 4 && renderStep4()}
-        {getEffectiveStep() === 5 && renderStep5()}
+          {getEffectiveStep() === 1 && renderStep1()}
+          {getEffectiveStep() === 2 && renderStep2()}
+          {getEffectiveStep() === 3 && renderStep3()}
+          {getEffectiveStep() === 4 && renderStep4()}
+          {getEffectiveStep() === 5 && renderStep5()}
+        </DialogBody>
 
-        <DialogFooter className="flex-row gap-2">
+        <DialogFooter>
           {step > 1 && (
             <Button variant="outline" onClick={() => setStep(s => s - 1)}>Voltar</Button>
           )}
