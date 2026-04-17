@@ -88,7 +88,7 @@ export const BookingAuthGate = ({
 
       if (signUpError) {
         const { diagnoseAuthError } = await import('@/lib/auth-errors');
-        toast.error(diagnoseAuthError(signUpError));
+        setErrorModal({ open: true, message: diagnoseAuthError(signUpError) });
         return;
       }
 
