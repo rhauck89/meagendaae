@@ -78,6 +78,11 @@ const CompanySetup = ({ onComplete }: CompanySetupProps) => {
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
 
+  // Step 4: Theme
+  const [themeOpen, setThemeOpen] = useState(false);
+  const [selectedTheme, setSelectedTheme] = useState<ThemeVariation | null>(null);
+  const [savingTheme, setSavingTheme] = useState(false);
+
   const currentStepIndex = STEPS.indexOf(step);
 
   // Load states
@@ -243,7 +248,7 @@ const CompanySetup = ({ onComplete }: CompanySetupProps) => {
       }
 
       toast.success('Identidade visual salva!');
-      setStep('done');
+      setStep('theme');
     } catch (err: any) {
       toast.error('Erro ao salvar branding. Tente novamente.');
       console.error('Branding save error:', err);
