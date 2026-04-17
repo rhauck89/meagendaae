@@ -312,22 +312,8 @@ function calculateHybridSlots(
       continue;
     }
 
-    const slotEnd = addMinutes(current, totalDuration);
-    const slotEndWithBuffer = addMinutes(current, totalDuration + bufferMinutes);
-
-    const hasConflict = blocked.some((b) => {
-      const bEndWithBuffer = addMinutes(b.end, bufferMinutes);
-      return current < bEndWithBuffer && slotEnd > b.start;
-    });
-
-    if (!hasConflict) {
-      // Also verify buffer after this slot doesn't overlap next blocked
-      const bufferConflict = blocked.some((b) => {
-        return slotEndWithBuffer > b.start && slotEnd <= b.start;
-      });
-      if (!bufferConflict) {
-        slots.push(format(current, 'HH:mm'));
-      }
+    if (slotFitsService(current, totalDuration, bufferMinutes, closeTime, blocked)) {
+      slots.push(format(current, 'HH:mm'));
     }
 
     current = addMinutes(current, slotInterval);
