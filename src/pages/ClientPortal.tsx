@@ -13,6 +13,7 @@ import { Label } from '@/components/ui/label';
 import { Progress } from '@/components/ui/progress';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { PlatformLogo } from '@/components/PlatformLogo';
+import { RedemptionQRDialog, type Redemption } from '@/components/RedemptionQRDialog';
 import {
   Calendar, DollarSign, Star, Gift, User, LogOut, CheckCircle2,
   Sparkles, Home, ShoppingBag, KeyRound, ArrowRight,
@@ -108,6 +109,13 @@ const ClientPortal = () => {
   const [companyLoyaltyActive, setCompanyLoyaltyActive] = useState<Record<string, boolean>>({});
 
   const [rewardsCompanyId, setRewardsCompanyId] = useState<string | null>(null);
+
+  // Redemptions (QR + history)
+  const [redemptions, setRedemptions] = useState<Redemption[]>([]);
+  const [activeRedemption, setActiveRedemption] = useState<Redemption | null>(null);
+  const [activeRedemptionRewardName, setActiveRedemptionRewardName] = useState<string | undefined>(undefined);
+  const [showRedemptionDialog, setShowRedemptionDialog] = useState(false);
+  const [regenerating, setRegenerating] = useState(false);
 
   // ---------- Cache (instant render + background revalidation) ----------
   const cacheKey = `client_portal_${user?.id || 'anon'}`;
@@ -205,6 +213,15 @@ const ClientPortal = () => {
           `)
           .eq('active', true),
       ]);
+
+      // Load redemptions (history + active QR codes) — separate so it can be refreshed independently
+      const { data: redemptionsData } = await supabase
+        .from('loyalty_redemptions')
+        .select('id, redemption_code, status, created_at, total_points, reward_id, company_id, client_id')
+        .in('client_id', clientData.map(c => c.id))
+        .order('created_at', { ascending: false })
+        .limit(50);
+      setRedemptions((redemptionsData || []) as Redemption[]);
 
       const companiesMap: Record<string, CompanyInfo> = {};
       if (companyRes.data) {
@@ -377,6 +394,69 @@ const ClientPortal = () => {
   const anyCashback = companiesWithCashback.length > 0;
   const anyLoyalty = companiesWithLoyalty.length > 0;
   const anyRewards = companiesWithRewards.length > 0;
+
+  // ---------- Redemptions: refresh + create (transactional via RPC) ----------
+  const refreshRedemptions = async () => {
+    if (!clients.length) return;
+    const { data } = await supabase
+      .from('loyalty_redemptions')
+      .select('id, redemption_code, status, created_at, total_points, reward_id, company_id, client_id')
+      .in('client_id', clients.map(c => c.id))
+      .order('created_at', { ascending: false })
+      .limit(50);
+    setRedemptions((data || []) as Redemption[]);
+    return (data || []) as Redemption[];
+  };
+
+  const createRedemption = async (
+    reward: { id: string; company_id: string; name: string; points_required: number },
+  ): Promise<Redemption | null> => {
+    const clientRow = clients.find(c => c.company_id === reward.company_id);
+    if (!clientRow) {
+      toast.error('Você precisa ter um cadastro nesta empresa.');
+      return null;
+    }
+    const { data, error } = await supabase.rpc('redeem_reward', {
+      p_client_id: clientRow.id,
+      p_company_id: reward.company_id,
+      p_reward_id: reward.id,
+    });
+    if (error) {
+      toast.error(error.message || 'Não foi possível criar o resgate.');
+      return null;
+    }
+    const newId = (data as any)?.id as string | undefined;
+    const list = await refreshRedemptions();
+    const created = list?.find(r => r.id === newId) || null;
+    return created;
+  };
+
+  const openRedemption = (redemption: Redemption, rewardName?: string) => {
+    setActiveRedemption(redemption);
+    setActiveRedemptionRewardName(rewardName);
+    setShowRedemptionDialog(true);
+  };
+
+  const handleRegenerateActive = async () => {
+    if (!activeRedemption) return;
+    // Find the original reward to call RPC again
+    const reward = rewards.find(r => r.id === activeRedemption.reward_id);
+    if (!reward) {
+      toast.error('Recompensa não encontrada para regenerar.');
+      return;
+    }
+    setRegenerating(true);
+    try {
+      const created = await createRedemption(reward);
+      if (created) {
+        setActiveRedemption(created);
+        setActiveRedemptionRewardName(reward.name);
+        toast.success('Novo código gerado.');
+      }
+    } finally {
+      setRegenerating(false);
+    }
+  };
 
   const handleSaveProfile = async () => {
     if (!primaryClient) return;
@@ -1149,25 +1229,20 @@ const ClientPortal = () => {
                       const closest = sorted.filter(r => rewardsBalance < r.points_required);
 
                       const handleRedeem = async (reward: typeof rewardsList[number]) => {
-                        try {
-                          const clientRow = clients.find(c => c.company_id === reward.company_id);
-                          if (!clientRow) {
-                            toast.error('Você precisa ter um cadastro nesta empresa.');
-                            return;
-                          }
-                          // Transactional RPC: locks reward row, validates stock + points,
-                          // creates redemption and increments stock_reserved atomically.
-                          const { data, error } = await supabase.rpc('redeem_reward', {
-                            p_client_id: clientRow.id,
-                            p_company_id: reward.company_id,
-                            p_reward_id: reward.id,
-                          });
-                          if (error) throw error;
-                          const code = (data as any)?.code ?? '';
-                          toast.success(`Resgate criado! Código: ${code}. Apresente ao estabelecimento.`);
-                          window.location.reload();
-                        } catch (e: any) {
-                          toast.error(e?.message || 'Não foi possível criar o resgate.');
+                        // Reuse an existing pending+non-expired redemption for this reward, if any
+                        const existing = redemptions.find(r =>
+                          r.reward_id === reward.id &&
+                          r.status === 'pending' &&
+                          (Date.now() - new Date(r.created_at).getTime()) < 15 * 60_000
+                        );
+                        if (existing) {
+                          openRedemption(existing, reward.name);
+                          return;
+                        }
+                        const created = await createRedemption(reward);
+                        if (created) {
+                          openRedemption(created, reward.name);
+                          toast.success('Resgate criado! Apresente o QR Code.');
                         }
                       };
 
@@ -1317,6 +1392,62 @@ const ClientPortal = () => {
                       );
                     })()}
                   </>
+                )}
+
+                {/* ============ MEUS RESGATES (histórico) ============ */}
+                {redemptions.length > 0 && (
+                  <div className="space-y-2 pt-2">
+                    <h3 className="text-sm font-semibold flex items-center gap-1.5">
+                      <span>🎟️</span> Meus resgates
+                    </h3>
+                    <div className="space-y-2">
+                      {redemptions.slice(0, 10).map(r => {
+                        const reward = rewards.find(rw => rw.id === r.reward_id);
+                        const company = companies[r.company_id];
+                        const ageMs = Date.now() - new Date(r.created_at).getTime();
+                        const localExpired = r.status === 'pending' && ageMs >= 15 * 60_000;
+                        const effectiveStatus = localExpired ? 'expired' : r.status;
+                        const statusMeta: Record<string, { label: string; cls: string }> = {
+                          pending:   { label: 'Pendente',   cls: 'bg-yellow-500/15 text-yellow-700 border-yellow-500/30' },
+                          confirmed: { label: 'Confirmado', cls: 'bg-green-500/15 text-green-700 border-green-500/30' },
+                          expired:   { label: 'Expirado',   cls: 'bg-amber-500/15 text-amber-700 border-amber-500/30' },
+                          canceled:  { label: 'Cancelado',  cls: 'bg-destructive/10 text-destructive border-destructive/30' },
+                          cancelled: { label: 'Cancelado',  cls: 'bg-destructive/10 text-destructive border-destructive/30' },
+                        };
+                        const meta = statusMeta[effectiveStatus] || statusMeta.pending;
+                        const canOpen = effectiveStatus === 'pending';
+                        return (
+                          <Card key={r.id} className={!canOpen ? 'opacity-80' : ''}>
+                            <CardContent className="p-3 flex items-center gap-3">
+                              <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                                <Gift className="h-5 w-5 text-primary" />
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <p className="text-sm font-medium truncate">
+                                  {reward?.name || 'Recompensa'}
+                                </p>
+                                <p className="text-[11px] text-muted-foreground truncate">
+                                  {company?.name || ''} · {format(parseISO(r.created_at), "dd/MM/yy 'às' HH:mm", { locale: ptBR })}
+                                </p>
+                                <div className="mt-1 flex items-center gap-2">
+                                  <Badge variant="outline" className={`text-[10px] ${meta.cls}`}>{meta.label}</Badge>
+                                  <span className="text-[10px] font-mono text-muted-foreground">{r.redemption_code}</span>
+                                </div>
+                              </div>
+                              <Button
+                                size="sm"
+                                variant={canOpen ? 'default' : 'outline'}
+                                onClick={() => openRedemption(r, reward?.name)}
+                                className="shrink-0"
+                              >
+                                {canOpen ? 'Ver QR' : 'Detalhes'}
+                              </Button>
+                            </CardContent>
+                          </Card>
+                        );
+                      })}
+                    </div>
+                  </div>
                 )}
               </TabsContent>
             </Tabs>
@@ -1477,6 +1608,22 @@ const ClientPortal = () => {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Redemption QR Dialog */}
+      <RedemptionQRDialog
+        open={showRedemptionDialog}
+        onOpenChange={(v) => {
+          setShowRedemptionDialog(v);
+          if (!v) {
+            // Refresh on close to reflect any status change while open
+            refreshRedemptions();
+          }
+        }}
+        redemption={activeRedemption}
+        rewardName={activeRedemptionRewardName}
+        onRegenerate={handleRegenerateActive}
+        regenerating={regenerating}
+      />
     </div>
   );
 };
