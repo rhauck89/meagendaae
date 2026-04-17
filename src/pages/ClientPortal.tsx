@@ -13,6 +13,7 @@ import { Label } from '@/components/ui/label';
 import { Progress } from '@/components/ui/progress';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { PlatformLogo } from '@/components/PlatformLogo';
+import { RedemptionQRDialog, type Redemption } from '@/components/RedemptionQRDialog';
 import {
   Calendar, DollarSign, Star, Gift, User, LogOut, CheckCircle2,
   Sparkles, Home, ShoppingBag, KeyRound, ArrowRight,
