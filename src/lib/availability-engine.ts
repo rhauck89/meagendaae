@@ -167,7 +167,63 @@ function buildFreeWindows(
 }
 
 /**
+ * Validate that a slot has enough room to fit the full service duration
+ * before hitting the next blocked interval, break, or close of business.
+ * This prevents showing slots that visually start free but cannot accommodate the service.
+ */
+function slotFitsService(
+  slotStart: Date,
+  totalDuration: number,
+  bufferMinutes: number,
+  closeTime: Date,
+  blocked: Array<{ start: Date; end: Date }>
+): boolean {
+  const slotEnd = addMinutes(slotStart, totalDuration);
+  const slotEndWithBuffer = addMinutes(slotStart, totalDuration + bufferMinutes);
+
+  // Hard ceiling: end of business hours
+  if (slotEnd.getTime() > closeTime.getTime()) {
+    if (typeof console !== 'undefined') {
+      console.log('[SLOT_VALIDATION]', {
+        slot: format(slotStart, 'HH:mm'),
+        service_duration: totalDuration,
+        isValid: false,
+        reason: 'exceeds_close_time',
+      });
+    }
+    return false;
+  }
+
+  // Check overlap with any blocked interval (lunch, appointments, manual blocks)
+  const hasConflict = blocked.some((b) => slotStart < b.end && slotEnd > b.start);
+  if (hasConflict) {
+    console.log('[SLOT_VALIDATION]', {
+      slot: format(slotStart, 'HH:mm'),
+      service_duration: totalDuration,
+      isValid: false,
+      reason: 'overlaps_blocked',
+    });
+    return false;
+  }
+
+  // Buffer after slot must not bleed into next blocked interval
+  const bufferConflict = blocked.some((b) => slotEndWithBuffer > b.start && slotEnd <= b.start);
+  if (bufferConflict) {
+    console.log('[SLOT_VALIDATION]', {
+      slot: format(slotStart, 'HH:mm'),
+      service_duration: totalDuration,
+      isValid: false,
+      reason: 'buffer_overlaps_next',
+    });
+    return false;
+  }
+
+  return true;
+}
+
+/**
  * FIXED GRID MODE: Slots at regular intervals regardless of service duration.
+ * Each slot is validated to ensure the full service fits before showing it.
  */
 function calculateFixedGridSlots(
   openTime: Date,
@@ -187,21 +243,7 @@ function calculateFixedGridSlots(
       continue;
     }
 
-    const slotEnd = addMinutes(current, totalDuration);
-
-    // Check conflict with blocked intervals (considering buffer around blocked)
-    const hasConflict = blocked.some((b) => {
-      const bStartWithBuffer = addMinutes(b.start, -bufferMinutes);
-      return current < b.end && slotEnd > b.start;
-    });
-
-    // Also check that buffer after this slot doesn't overlap next blocked
-    const slotEndWithBuffer = addMinutes(current, totalDuration + bufferMinutes);
-    const hasBufferConflict = blocked.some((b) => {
-      return current < addMinutes(b.end, bufferMinutes) && slotEndWithBuffer > b.start;
-    });
-
-    if (!hasConflict && !hasBufferConflict) {
+    if (slotFitsService(current, totalDuration, bufferMinutes, closeTime, blocked)) {
       slots.push(format(current, 'HH:mm'));
     }
 
