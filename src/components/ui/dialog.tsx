@@ -53,13 +53,18 @@ const DialogContent = React.forwardRef<
     <DialogPrimitive.Content
       ref={ref}
       className={cn(
-        "fixed left-[50%] top-[50%] z-50 flex flex-col w-[calc(100vw-2rem)] max-w-[520px] translate-x-[-50%] translate-y-[-50%]",
-        "border bg-background shadow-lg duration-200",
-        "data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%]",
-        "rounded-2xl overflow-hidden",
-        "max-h-[calc(100dvh-2rem)] sm:max-h-[90vh]",
-        // Fallback: para modais legados que colocam conteúdo direto sem DialogBody
+        // Mobile: full-screen sheet (sem border-radius, ocupa tela toda)
+        "fixed inset-0 sm:inset-auto sm:left-[50%] sm:top-[50%] z-50 flex flex-col",
+        "w-full sm:w-[min(640px,calc(100vw-2rem))] sm:max-w-[calc(100vw-2rem)]",
+        "sm:translate-x-[-50%] sm:translate-y-[-50%]",
+        "h-[100dvh] sm:h-auto max-h-[100dvh] sm:max-h-[90vh]",
+        "border-0 sm:border bg-background shadow-lg duration-200",
+        "data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 sm:data-[state=closed]:zoom-out-95 sm:data-[state=open]:zoom-in-95 sm:data-[state=closed]:slide-out-to-left-1/2 sm:data-[state=closed]:slide-out-to-top-[48%] sm:data-[state=open]:slide-in-from-left-1/2 sm:data-[state=open]:slide-in-from-top-[48%]",
+        "rounded-none sm:rounded-2xl overflow-hidden",
+        // Fallback: modais legados sem DialogBody ganham scroll interno automático
         "[&>*:not([data-dialog-header]):not([data-dialog-footer]):not([data-dialog-body])]:overflow-y-auto",
+        "[&>*:not([data-dialog-header]):not([data-dialog-footer]):not([data-dialog-body])]:px-4",
+        "sm:[&>*:not([data-dialog-header]):not([data-dialog-footer]):not([data-dialog-body])]:px-6",
         className,
       )}
       {...props}
