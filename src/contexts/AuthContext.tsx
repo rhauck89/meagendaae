@@ -53,15 +53,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const fetchUserData = async (userId: string) => {
-    console.log('[AuthContext] Fetching user data for userId:', userId);
-    
     const [profileRes, rolesRes] = await Promise.all([
       supabase.from('profiles').select('*').eq('user_id', userId).single(),
       supabase.from('user_roles').select('role').eq('user_id', userId),
     ]);
-
-    console.log('[AuthContext] Profile response:', profileRes.data, profileRes.error);
-    console.log('[AuthContext] user_roles response:', rolesRes.data, rolesRes.error);
 
     let savedMode: LoginMode = null;
     if (profileRes.data) {
@@ -72,8 +67,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     if (rolesRes.data) {
       const mappedRoles = rolesRes.data.map((r) => r.role);
-      console.log('[AuthContext] Mapped roles from user_roles table:', mappedRoles);
-      console.log('[AuthContext] Raw user_roles data:', JSON.stringify(rolesRes.data));
       setRoles(mappedRoles);
 
       // Check if admin user also has a collaborator record
@@ -86,16 +79,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           .eq('active', true)
           .limit(1);
         const hasCollabRecord = !!(collabData && collabData.length > 0);
-        console.log('[AuthContext] Collaborator check:', { profileId: profileRes.data?.id, collabData, hasCollabRecord, savedMode });
         setIsAlsoCollaborator(hasCollabRecord);
-        
+
         // Only restore saved mode if user actually has dual roles
         if (hasCollabRecord && savedMode) {
-          console.log('[AuthContext] Restoring saved mode:', savedMode);
           setLoginModeState(savedMode);
         } else if (!hasCollabRecord) {
           // Single role admin — force admin mode
-          console.log('[AuthContext] Single role admin, forcing admin mode');
           setLoginModeState('admin');
         }
         // If hasCollabRecord && !savedMode → leave null so dialog shows
@@ -109,8 +99,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setLoginModeState('admin');
         }
       }
-    } else {
-      console.warn('[AuthContext] No roles found in user_roles table for user:', userId);
     }
   };
 
