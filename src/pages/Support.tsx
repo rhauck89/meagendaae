@@ -142,13 +142,36 @@ const Support = () => {
     if (data) setMessages(data as Message[]);
   };
 
+  // Convert legacy full URLs to storage paths and resolve to short-lived signed URLs
+  const resolveAttachmentUrl = async (stored: string): Promise<string> => {
+    if (!stored) return '';
+    let path = stored;
+    // Strip legacy full public/sign URL prefix
+    const m = stored.match(/\/storage\/v1\/object\/(?:public|sign)\/support-attachments\/(.+)$/);
+    if (m) path = m[1].split('?')[0];
+    // Decode in case path has encoded chars
+    try { path = decodeURIComponent(path); } catch {}
+    const { data, error } = await supabase.storage
+      .from('support-attachments')
+      .createSignedUrl(path, 3600);
+    if (error || !data) return '';
+    return data.signedUrl;
+  };
+
   const fetchAttachments = async (ticketId: string) => {
     const { data } = await supabase
       .from('support_attachments')
       .select('*')
       .eq('ticket_id', ticketId)
       .order('created_at', { ascending: true });
-    if (data) setAttachments(data as Attachment[]);
+    if (!data) return;
+    const withSigned = await Promise.all(
+      (data as Attachment[]).map(async (a) => ({
+        ...a,
+        file_url: await resolveAttachmentUrl(a.file_url),
+      }))
+    );
+    setAttachments(withSigned);
   };
 
   useEffect(() => {
@@ -190,10 +213,10 @@ const Support = () => {
       const path = `${user!.id}/${ticketId}/${Date.now()}_${file.name}`;
       const { error: uploadError } = await supabase.storage.from('support-attachments').upload(path, file);
       if (uploadError) continue;
-      const { data: urlData } = supabase.storage.from('support-attachments').getPublicUrl(path);
+      // Store only the storage path; signed URLs are generated on read
       await supabase.from('support_attachments').insert({
         ticket_id: ticketId,
-        file_url: urlData.publicUrl,
+        file_url: path,
         file_name: file.name,
         file_size: file.size,
       } as any);
@@ -310,11 +333,11 @@ const Support = () => {
       setUploading(false);
       return;
     }
-    const { data: urlData } = supabase.storage.from('support-attachments').getPublicUrl(path);
 
+    // Store only the storage path; signed URLs are generated on read
     await supabase.from('support_attachments').insert({
       ticket_id: viewTicket.id,
-      file_url: urlData.publicUrl,
+      file_url: path,
       file_name: file.name,
       file_size: file.size,
     } as any);
