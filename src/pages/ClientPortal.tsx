@@ -458,7 +458,7 @@ const ClientPortal = () => {
     }
   };
 
-
+  const handleSaveProfile = async () => {
     if (!primaryClient) return;
     setSavingProfile(true);
     const updates: any = {
