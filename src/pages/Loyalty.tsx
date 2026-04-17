@@ -12,7 +12,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Textarea } from '@/components/ui/textarea';
-import { Star, Trophy, Gift, ArrowUpDown, Settings, Eye, Plus, Pencil, Trash2, AlertTriangle, CheckCircle, XCircle, Search, Upload, ImageIcon } from 'lucide-react';
+import { Star, Trophy, Gift, ArrowUpDown, Settings, Eye, Plus, Pencil, Trash2, AlertTriangle, CheckCircle, XCircle, Search, Upload, ImageIcon, ScanLine } from 'lucide-react';
+import { RewardQRScannerDialog } from '@/components/RewardQRScannerDialog';
 import { toast } from 'sonner';
 import { format, parseISO } from 'date-fns';
 import { cn } from '@/lib/utils';
@@ -58,6 +59,7 @@ const Loyalty = () => {
   // Redemptions
   const [redemptions, setRedemptions] = useState<any[]>([]);
   const [validateCode, setValidateCode] = useState('');
+  const [scannerOpen, setScannerOpen] = useState(false);
 
   // Overview stats
   const [stats, setStats] = useState({ totalIssued: 0, totalRedeemed: 0, totalActive: 0 });
@@ -411,12 +413,23 @@ const Loyalty = () => {
 
           {/* Validate redemption code */}
           <Card>
-            <CardHeader><CardTitle className="text-base">Validar código de resgate</CardTitle></CardHeader>
-            <CardContent className="flex gap-2">
-              <Input placeholder="Ex: FID-83921" value={validateCode} onChange={e => setValidateCode(e.target.value.toUpperCase())} className="max-w-xs" />
-              <Button onClick={handleValidateCode}>Validar</Button>
+            <CardHeader><CardTitle className="text-base">Validar resgate</CardTitle></CardHeader>
+            <CardContent className="flex flex-col sm:flex-row gap-2">
+              <Button onClick={() => setScannerOpen(true)} className="gap-2">
+                <ScanLine className="h-4 w-4" /> Escanear QR
+              </Button>
+              <div className="flex gap-2 flex-1">
+                <Input placeholder="Ou digite o código" value={validateCode} onChange={e => setValidateCode(e.target.value.toUpperCase())} className="max-w-xs" />
+                <Button variant="outline" onClick={handleValidateCode}>Validar</Button>
+              </div>
             </CardContent>
           </Card>
+
+          <RewardQRScannerDialog
+            open={scannerOpen}
+            onOpenChange={setScannerOpen}
+            onConfirmed={() => { fetchRedemptions(); fetchTransactions(); fetchStats(); fetchRewardItems(); }}
+          />
 
           {/* Pending redemptions */}
           {redemptions.filter((r: any) => r.status === 'pending').length > 0 && (

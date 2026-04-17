@@ -4378,6 +4378,7 @@ export type Database = {
         }
         Returns: string
       }
+      confirm_reward_redemption: { Args: { p_code: string }; Returns: Json }
       create_appointment: {
         Args: {
           p_client_id: string
@@ -4560,6 +4561,7 @@ export type Database = {
         Args: { _company_id: string }
         Returns: undefined
       }
+      validate_reward_redemption: { Args: { p_code: string }; Returns: Json }
     }
     Enums: {
       app_role: "super_admin" | "professional" | "collaborator" | "client"
