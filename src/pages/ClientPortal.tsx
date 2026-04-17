@@ -1393,6 +1393,62 @@ const ClientPortal = () => {
                     })()}
                   </>
                 )}
+
+                {/* ============ MEUS RESGATES (histórico) ============ */}
+                {redemptions.length > 0 && (
+                  <div className="space-y-2 pt-2">
+                    <h3 className="text-sm font-semibold flex items-center gap-1.5">
+                      <span>🎟️</span> Meus resgates
+                    </h3>
+                    <div className="space-y-2">
+                      {redemptions.slice(0, 10).map(r => {
+                        const reward = rewards.find(rw => rw.id === r.reward_id);
+                        const company = companies[r.company_id];
+                        const ageMs = Date.now() - new Date(r.created_at).getTime();
+                        const localExpired = r.status === 'pending' && ageMs >= 15 * 60_000;
+                        const effectiveStatus = localExpired ? 'expired' : r.status;
+                        const statusMeta: Record<string, { label: string; cls: string }> = {
+                          pending:   { label: 'Pendente',   cls: 'bg-yellow-500/15 text-yellow-700 border-yellow-500/30' },
+                          confirmed: { label: 'Confirmado', cls: 'bg-green-500/15 text-green-700 border-green-500/30' },
+                          expired:   { label: 'Expirado',   cls: 'bg-amber-500/15 text-amber-700 border-amber-500/30' },
+                          canceled:  { label: 'Cancelado',  cls: 'bg-destructive/10 text-destructive border-destructive/30' },
+                          cancelled: { label: 'Cancelado',  cls: 'bg-destructive/10 text-destructive border-destructive/30' },
+                        };
+                        const meta = statusMeta[effectiveStatus] || statusMeta.pending;
+                        const canOpen = effectiveStatus === 'pending';
+                        return (
+                          <Card key={r.id} className={!canOpen ? 'opacity-80' : ''}>
+                            <CardContent className="p-3 flex items-center gap-3">
+                              <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                                <Gift className="h-5 w-5 text-primary" />
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <p className="text-sm font-medium truncate">
+                                  {reward?.name || 'Recompensa'}
+                                </p>
+                                <p className="text-[11px] text-muted-foreground truncate">
+                                  {company?.name || ''} · {format(parseISO(r.created_at), "dd/MM/yy 'às' HH:mm", { locale: ptBR })}
+                                </p>
+                                <div className="mt-1 flex items-center gap-2">
+                                  <Badge variant="outline" className={`text-[10px] ${meta.cls}`}>{meta.label}</Badge>
+                                  <span className="text-[10px] font-mono text-muted-foreground">{r.redemption_code}</span>
+                                </div>
+                              </div>
+                              <Button
+                                size="sm"
+                                variant={canOpen ? 'default' : 'outline'}
+                                onClick={() => openRedemption(r, reward?.name)}
+                                className="shrink-0"
+                              >
+                                {canOpen ? 'Ver QR' : 'Detalhes'}
+                              </Button>
+                            </CardContent>
+                          </Card>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
               </TabsContent>
             </Tabs>
           </TabsContent>
