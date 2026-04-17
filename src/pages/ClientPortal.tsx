@@ -110,6 +110,13 @@ const ClientPortal = () => {
 
   const [rewardsCompanyId, setRewardsCompanyId] = useState<string | null>(null);
 
+  // Redemptions (QR + history)
+  const [redemptions, setRedemptions] = useState<Redemption[]>([]);
+  const [activeRedemption, setActiveRedemption] = useState<Redemption | null>(null);
+  const [activeRedemptionRewardName, setActiveRedemptionRewardName] = useState<string | undefined>(undefined);
+  const [showRedemptionDialog, setShowRedemptionDialog] = useState(false);
+  const [regenerating, setRegenerating] = useState(false);
+
   // ---------- Cache (instant render + background revalidation) ----------
   const cacheKey = `client_portal_${user?.id || 'anon'}`;
   const { read: readCache, write: writeCache } = useLocalCache<{
