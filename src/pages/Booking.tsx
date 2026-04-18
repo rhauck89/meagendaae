@@ -911,14 +911,15 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
   const fetchNextAvailableSlots = async () => {
     if (!company || !selectedProfessional || businessHours.length === 0 || totalDuration <= 0) {
       setNextSlots([]);
+      setSmartSuggestion(null);
       return;
     }
     setNextSlotsLoading(true);
     const results: { date: Date; slots: string[] }[] = [];
     let totalSlotsFound = 0;
+    let suggestion: { date: Date; slot: string; reason: 'tight-fit' | 'first-available' } | null = null;
     const MAX_SLOTS = 8;
     const MAX_DAYS = 7;
-    const now = new Date();
     for (let i = 0; i < MAX_DAYS && totalSlotsFound < MAX_SLOTS; i++) {
       const day = addDays(startOfDay(new Date()), i);
       // Unified availability service — same code path as the manual booking flow.
@@ -930,9 +931,18 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
         totalDuration,
         filterPastForToday: true,
       });
-      // Safety net (no-op in normal cases — engine already handled buffer/conflicts)
       console.log('[UI RECEIVED]', result.slots);
       if (result.slots.length > 0) {
+        // Smart suggestion: compute on the FIRST day that has slots, then keep it.
+        if (!suggestion) {
+          const pick = pickSmartSuggestion(
+            result.slots,
+            result.existingAppointments || [],
+            totalDuration,
+            company.timezone || 'America/Sao_Paulo',
+          );
+          if (pick) suggestion = { date: day, slot: pick.slot, reason: pick.reason };
+        }
         const remaining = MAX_SLOTS - totalSlotsFound;
         const daySlots = result.slots.slice(0, remaining);
         results.push({ date: day, slots: daySlots });
@@ -940,6 +950,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
       }
     }
     setNextSlots(results);
+    setSmartSuggestion(suggestion);
     setNextSlotsLoading(false);
   };
 
