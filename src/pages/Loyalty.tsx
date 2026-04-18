@@ -741,6 +741,26 @@ const Loyalty = () => {
                   <p className="text-xs text-muted-foreground">Informe o valor de mercado do item</p>
                 </div>
 
+                <div className="space-y-1">
+                  <Label>Quantidade disponível *</Label>
+                  <Input
+                    type="number"
+                    min={0}
+                    step={1}
+                    placeholder="Ex: 10"
+                    value={rewardStockTotal}
+                    onChange={e => {
+                      const v = e.target.value;
+                      if (v === '') { setRewardStockTotal(''); return; }
+                      const n = parseInt(v, 10);
+                      setRewardStockTotal(Number.isNaN(n) ? '' : Math.max(0, n));
+                    }}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Estoque inicial do item. Use 0 para deixar como esgotado.
+                  </p>
+                </div>
+
                 {/* Auto-calculated points display */}
                 {rewardRealValue > 0 && pointValue > 0 && (
                   <div className="p-3 rounded-lg bg-primary/10 border border-primary/20 space-y-1">
