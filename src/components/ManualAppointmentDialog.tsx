@@ -143,6 +143,7 @@ export function ManualAppointmentDialog({
         date,
         totalDuration,
       });
+      console.log('[UI BEFORE RENDER]', slots);
       setAvailableSlots(slots);
     } catch (err) {
       console.error('Failed to fetch slots:', err);

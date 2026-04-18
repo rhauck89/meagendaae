@@ -894,6 +894,8 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
         bookingTimezone,
       );
 
+      console.log('[UI BEFORE RENDER]', filteredSlots);
+
       if (requestId !== slotRequestRef.current) return;
       setAvailableSlots(filteredSlots);
     } catch (error) {
@@ -967,6 +969,8 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
         result.bufferMinutes,
         bookingTimezone,
       );
+
+      console.log('[UI BEFORE RENDER]', slots);
       if (slots.length > 0) {
         const remaining = MAX_SLOTS - totalSlotsFound;
         const daySlots = slots.slice(0, remaining);

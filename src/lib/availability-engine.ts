@@ -410,6 +410,8 @@ export function calculateAvailableSlots(params: AvailabilityParams): string[] {
     slots = calculateFixedGridSlots(openTime, closeTime, totalDuration, bufferMinutes, slotInterval, blocked, earliestSlotTime);
   }
 
+  console.log('[ENGINE]', slots);
+
   console.log('[AvailabilityEngine] Result', {
     professionalId: professionalId ?? 'N/A',
     date: dateStr,

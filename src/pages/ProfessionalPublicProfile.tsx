@@ -9,7 +9,8 @@ import { format, addDays, startOfDay, isToday, isTomorrow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { buildWhatsAppUrl } from '@/lib/whatsapp';
-import { calculateAvailableSlots, type BusinessHours, type BusinessException, type BlockedTime, type ExistingAppointment } from '@/lib/availability-engine';
+import { type ExistingAppointment } from '@/lib/availability-engine';
+import { getAvailableSlots } from '@/lib/availability-service';
 import { formatWhatsApp } from '@/lib/whatsapp';
 import { PlatformBranding } from '@/components/PlatformBranding';
 import { getCompanyBranding, buildThemeFromBranding, useApplyBranding } from '@/hooks/useCompanyBranding';
@@ -138,7 +139,7 @@ export default function ProfessionalPublicProfile() {
 
   const fetchNextSlots = async (comp: any, prof: any) => {
     setSlotsLoading(true);
-    const [hoursRes, exceptionsRes, companyRes, settingsRes, profHoursRes] = await Promise.all([
+    const [, , , settingsRes] = await Promise.all([
       supabase.from('business_hours').select('*').eq('company_id', comp.id),
       supabase.from('business_exceptions').select('*').eq('company_id', comp.id),
       supabase.from('public_company' as any).select('buffer_minutes').eq('id', comp.id).single(),
@@ -146,12 +147,7 @@ export default function ProfessionalPublicProfile() {
       supabase.from('professional_working_hours' as any).select('*').eq('professional_id', prof.id),
     ]);
 
-    const bh = (hoursRes.data || []) as BusinessHours[];
-    const exc = (exceptionsRes.data || []) as BusinessException[];
-    let buf = (companyRes.data as any)?.buffer_minutes || 0;
     const tz = (settingsRes.data as any)?.timezone || DEFAULT_TZ;
-    if ((settingsRes.data as any)?.booking_buffer_minutes > 0) buf = (settingsRes.data as any).booking_buffer_minutes;
-    const ph = ((profHoursRes.data as any[]) || []).length > 0 ? (profHoursRes.data as unknown as BusinessHours[]) : undefined;
 
     const avgDur = services.length > 0 ? Math.round(services.reduce((s, sv) => s + (sv.duration_minutes || 30), 0) / services.length) : 30;
 
@@ -159,12 +155,17 @@ export default function ProfessionalPublicProfile() {
     for (let i = 0; i < 14; i++) {
       const day = addDays(startOfDay(new Date()), i);
       const dateStr = format(day, 'yyyy-MM-dd');
-      const { data: aptData } = await (supabase as any).rpc('get_booking_appointments', { p_company_id: comp.id, p_professional_id: prof.id, p_selected_date: dateStr, p_timezone: tz });
-      const apts = ((aptData as ExistingAppointment[]) || []).map(a => ({ start_time: a.start_time, end_time: a.end_time }));
-      const { data: blockedData } = await supabase.from('public_blocked_times' as any).select('block_date, start_time, end_time').eq('company_id', comp.id).eq('professional_id', prof.id).eq('block_date', dateStr);
+      const result = await getAvailableSlots({
+        source: 'public',
+        companyId: comp.id,
+        professionalId: prof.id,
+        date: day,
+        totalDuration: avgDur,
+        filterPastForToday: false,
+      });
 
-      let slots = calculateAvailableSlots({ date: day, totalDuration: avgDur, businessHours: bh, exceptions: exc, existingAppointments: apts, slotInterval: 15, bufferMinutes: buf, professionalHours: ph, blockedTimes: ((blockedData || []) as unknown as BlockedTime[]), professionalId: prof.id });
-      slots = filterOverlapping(slots, apts, avgDur, buf, tz);
+      const apts = ((result.existingAppointments as ExistingAppointment[]) || []).map(a => ({ start_time: a.start_time, end_time: a.end_time }));
+      let slots = filterOverlapping(result.slots, apts, avgDur, result.bufferMinutes, tz);
       if (isToday(day)) { const ct = format(now, 'HH:mm'); slots = slots.filter(s => s > ct); }
 
       if (slots.length > 0) {
