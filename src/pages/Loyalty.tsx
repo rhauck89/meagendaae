@@ -684,81 +684,88 @@ const Loyalty = () => {
 
           {/* Reward dialog */}
           <Dialog open={rewardDialog} onOpenChange={setRewardDialog}>
-            <DialogContent className="max-w-md">
+            <DialogContent className="sm:max-w-[640px]">
               <DialogHeader>
                 <DialogTitle>{editingReward ? 'Editar item' : 'Novo item de resgate'}</DialogTitle>
                 <DialogDescription>Configure o item que os clientes poderão resgatar com pontos.</DialogDescription>
               </DialogHeader>
               <div className="space-y-4">
-                {/* Image upload */}
-                <div className="space-y-1">
-                  <Label>Imagem (formato recomendado)</Label>
-                  <input ref={fileInputRef} type="file" accept="image/*" onChange={handleImageSelect} className="hidden" />
-                  {rewardImagePreview ? (
-                    <div className="relative aspect-square w-full max-w-[220px] rounded-lg overflow-hidden bg-muted border cursor-pointer mx-auto" onClick={() => fileInputRef.current?.click()}>
-                      <img src={rewardImagePreview} alt="Preview" className="aspect-square w-full object-cover" />
-                      <div className="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
-                        <Upload className="h-6 w-6 text-white" />
+                <input ref={fileInputRef} type="file" accept="image/*" onChange={handleImageSelect} className="hidden" />
+
+                <div className="grid grid-cols-1 md:grid-cols-[180px_1fr] gap-4 md:gap-5">
+                  {/* Image column */}
+                  <div className="flex flex-col items-center md:items-start gap-1.5">
+                    {rewardImagePreview ? (
+                      <div
+                        className="group relative aspect-square w-[160px] md:w-[180px] rounded-lg overflow-hidden bg-muted border cursor-pointer"
+                        onClick={() => fileInputRef.current?.click()}
+                      >
+                        <img src={rewardImagePreview} alt="Preview" className="aspect-square w-full object-cover" />
+                        <div className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <Upload className="h-5 w-5 text-white" />
+                          <span className="text-xs font-medium text-white">Trocar imagem</span>
+                        </div>
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => fileInputRef.current?.click()}
+                        className="aspect-square w-[160px] md:w-[180px] rounded-lg border-2 border-dashed border-muted-foreground/30 flex flex-col items-center justify-center gap-1.5 hover:border-primary/50 hover:bg-muted/30 transition-colors"
+                      >
+                        <ImageIcon className="h-6 w-6 text-muted-foreground" />
+                        <span className="text-xs font-medium text-muted-foreground">+ Adicionar imagem</span>
+                      </button>
+                    )}
+                    <p className="text-[11px] text-muted-foreground w-[160px] md:w-[180px] text-center">
+                      1:1 recomendado (500x500px+)
+                    </p>
+                  </div>
+
+                  {/* Form column */}
+                  <div className="space-y-3 min-w-0">
+                    <div className="space-y-1">
+                      <Label>Nome</Label>
+                      <Input value={rewardName} onChange={e => setRewardName(e.target.value)} placeholder="Ex: Pomada Modeladora" />
+                    </div>
+                    <div className="space-y-1">
+                      <Label>Descrição</Label>
+                      <Input value={rewardDesc} onChange={e => setRewardDesc(e.target.value)} placeholder="Opcional" />
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-1">
+                        <Label>Tipo</Label>
+                        <Select value={rewardType} onValueChange={setRewardType}>
+                          <SelectTrigger><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="product">Produto</SelectItem>
+                            <SelectItem value="service">Serviço</SelectItem>
+                            <SelectItem value="discount">Desconto</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-1">
+                        <Label>Quantidade *</Label>
+                        <Input
+                          type="number"
+                          min={0}
+                          step={1}
+                          placeholder="Ex: 10"
+                          value={rewardStockTotal}
+                          onChange={e => {
+                            const v = e.target.value;
+                            if (v === '') { setRewardStockTotal(''); return; }
+                            const n = parseInt(v, 10);
+                            setRewardStockTotal(Number.isNaN(n) ? '' : Math.max(0, n));
+                          }}
+                        />
                       </div>
                     </div>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => fileInputRef.current?.click()}
-                      className="aspect-square w-full max-w-[220px] mx-auto rounded-lg border-2 border-dashed border-muted-foreground/30 flex flex-col items-center justify-center gap-1 hover:border-primary/50 transition-colors"
-                    >
-                      <ImageIcon className="h-6 w-6 text-muted-foreground" />
-                      <span className="text-xs text-muted-foreground">Clique para adicionar imagem</span>
-                    </button>
-                  )}
-                  <p className="text-[11px] text-muted-foreground text-center">
-                    Formato recomendado: quadrado (1:1) — 500x500px ou maior
-                  </p>
-                </div>
-
-                <div className="space-y-1">
-                  <Label>Nome</Label>
-                  <Input value={rewardName} onChange={e => setRewardName(e.target.value)} placeholder="Ex: Pomada Modeladora" />
-                </div>
-                <div className="space-y-1">
-                  <Label>Descrição</Label>
-                  <Input value={rewardDesc} onChange={e => setRewardDesc(e.target.value)} placeholder="Opcional" />
-                </div>
-                <div className="space-y-1">
-                  <Label>Tipo</Label>
-                  <Select value={rewardType} onValueChange={setRewardType}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="product">Produto</SelectItem>
-                      <SelectItem value="service">Serviço</SelectItem>
-                      <SelectItem value="discount">Desconto</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-1">
-                  <Label>Valor real do item (R$)</Label>
-                  <Input type="number" min={0} step={0.01} value={rewardRealValue} onChange={e => setRewardRealValue(parseFloat(e.target.value) || 0)} />
-                  <p className="text-xs text-muted-foreground">Informe o valor de mercado do item</p>
-                </div>
-
-                <div className="space-y-1">
-                  <Label>Quantidade disponível *</Label>
-                  <Input
-                    type="number"
-                    min={0}
-                    step={1}
-                    placeholder="Ex: 10"
-                    value={rewardStockTotal}
-                    onChange={e => {
-                      const v = e.target.value;
-                      if (v === '') { setRewardStockTotal(''); return; }
-                      const n = parseInt(v, 10);
-                      setRewardStockTotal(Number.isNaN(n) ? '' : Math.max(0, n));
-                    }}
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Estoque inicial do item. Use 0 para deixar como esgotado.
-                  </p>
+                    <div className="space-y-1">
+                      <Label>Valor real do item (R$)</Label>
+                      <Input type="number" min={0} step={0.01} value={rewardRealValue} onChange={e => setRewardRealValue(parseFloat(e.target.value) || 0)} />
+                      <p className="text-xs text-muted-foreground">Informe o valor de mercado do item</p>
+                    </div>
+                  </div>
                 </div>
 
                 {/* Auto-calculated points display */}
