@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useCompanyPlan } from '@/hooks/useCompanyPlan';
-import { AlertTriangle, Clock, Sparkles, Check, Crown, MessageCircle, Loader2, Zap } from 'lucide-react';
+import { AlertTriangle, Clock, Sparkles, Check, Crown, MessageCircle, Loader2, Zap, CalendarDays, Users, TrendingUp, ShieldCheck, Lock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useNavigate } from 'react-router-dom';
@@ -8,6 +8,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePaddleCheckout } from '@/hooks/usePaddleCheckout';
 import { openWhatsApp } from '@/lib/whatsapp';
+import { useTrialUsageStats } from '@/hooks/useTrialUsageStats';
 
 interface StudioPlan {
   id: string;
@@ -21,6 +22,8 @@ interface StudioPlan {
 
 // Configurable: support WhatsApp (international format, digits only)
 const SUPPORT_WHATSAPP = '5511999999999';
+// Social proof — total active professionals/companies on the platform
+const SOCIAL_PROOF_COUNT = 500;
 
 const STUDIO_BENEFITS = [
   'Agenda inteligente ilimitada',
@@ -32,11 +35,15 @@ const STUDIO_BENEFITS = [
   'Suporte prioritário',
 ];
 
+const formatBRL = (n: number) =>
+  n.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 2 });
+
 const TrialBanner = () => {
   const { trialActive, trialExpired, trialDaysLeft, loading } = useCompanyPlan();
   const { user } = useAuth();
   const navigate = useNavigate();
   const { openCheckout, loading: checkoutLoading } = usePaddleCheckout();
+  const usage = useTrialUsageStats();
   const [studio, setStudio] = useState<StudioPlan | null>(null);
   const [cycle, setCycle] = useState<'monthly' | 'yearly'>('yearly');
   const [submitting, setSubmitting] = useState(false);
@@ -83,6 +90,13 @@ const TrialBanner = () => {
     openWhatsApp(
       SUPPORT_WHATSAPP,
       'Olá! Meu período de teste expirou e gostaria de ajuda para escolher o melhor plano.'
+    );
+  };
+
+  const handleSupportBeforeSubscribe = () => {
+    openWhatsApp(
+      SUPPORT_WHATSAPP,
+      'Olá! Antes de assinar o Agendaê, gostaria de tirar algumas dúvidas. Pode me ajudar?'
     );
   };
 
