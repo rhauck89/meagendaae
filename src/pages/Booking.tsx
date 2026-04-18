@@ -813,22 +813,6 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
     );
   };
 
-  const fetchBookingAppointments = async (date: Date, professionalId: string) => {
-    if (!company) return [] as ExistingAppointment[];
-    const dateStr = format(date, 'yyyy-MM-dd');
-    const { data, error } = await (supabase as any).rpc('get_booking_appointments', {
-      p_company_id: company.id,
-      p_professional_id: professionalId,
-      p_selected_date: dateStr,
-      p_timezone: bookingTimezone,
-    });
-    if (error) throw error;
-    return ((data as ExistingAppointment[] | null) || []).map((a) => ({
-      start_time: a.start_time,
-      end_time: a.end_time,
-    }));
-  };
-
   const calculateSlots = async (date: Date) => {
     if (!company || !selectedProfessional || businessHours.length === 0 || totalDuration <= 0) {
       setAvailableSlots([]);
@@ -843,7 +827,6 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
     setAvailableSlots([]);
     setGeneratedSlots([]);
 
-    const dateStr = format(date, 'yyyy-MM-dd');
     try {
       // Use the unified availability service so the public flow returns the
       // exact same slots as the internal manual booking flow.
@@ -933,15 +916,9 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
       });
       console.log('[UI RECEIVED]', result.slots);
       if (result.slots.length > 0) {
-        // Smart suggestion: compute on the FIRST day that has slots, then keep it.
         if (!suggestion) {
-          const pick = pickSmartSuggestion(
-            result.slots,
-            result.existingAppointments || [],
-            totalDuration,
-            company.timezone || 'America/Sao_Paulo',
-          );
-          if (pick) suggestion = { date: day, slot: pick.slot, reason: pick.reason };
+          suggestion = { date: day, slot: result.slots[0], reason: 'first-available' };
+          console.log('[SUGGESTED_SLOT]', suggestion);
         }
         const remaining = MAX_SLOTS - totalSlotsFound;
         const daySlots = result.slots.slice(0, remaining);
