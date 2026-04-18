@@ -102,7 +102,7 @@ async function resolveBookingConfig(
     finalMode: bookingMode,
   });
 
-  console.log('[MODE FINAL]', bookingMode);
+  
 
   const configuredInterval = professional.grid_interval ?? company.fixed_slot_interval;
   const slotInterval = bookingMode === 'intelligent'
