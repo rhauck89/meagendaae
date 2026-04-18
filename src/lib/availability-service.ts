@@ -89,7 +89,10 @@ async function resolveBookingConfig(
   const professional = (professionalRes.data as any) || {};
 
   const bookingMode = (professional.booking_mode || company.booking_mode || 'hybrid') as BookingMode;
-  const slotInterval = professional.grid_interval ?? company.fixed_slot_interval ?? 15;
+  const configuredInterval = professional.grid_interval ?? company.fixed_slot_interval;
+  const slotInterval = bookingMode === 'intelligent'
+    ? 1
+    : Math.max(1, configuredInterval ?? 15);
   const bufferMinutes = professional.break_time ?? company.buffer_minutes ?? 0;
 
   return { bookingMode, slotInterval, bufferMinutes };
@@ -210,6 +213,12 @@ export async function getAvailableSlots(
     resolveBookingConfig(source, companyId, professionalId),
     fetchSlotInputs(source, companyId, professionalId, date),
   ]);
+
+  console.log('[SERVICE INPUT]', {
+    bookingMode: config.bookingMode,
+    slotInterval: config.slotInterval,
+    serviceDuration: totalDuration,
+  });
 
   let slots = calculateAvailableSlots({
     date,
