@@ -89,9 +89,18 @@ async function resolveBookingConfig(
   const professional = (professionalRes.data as any) || {};
 
   // Priority: professional override > company default > 'fixed_grid'
-  // Single source of truth — frontend MUST match what the RPC (create_appointment) reads from DB,
-  // otherwise the UI will show slots that the backend will reject with INVALID_TIME_SLOT.
-  const bookingMode = (professional?.booking_mode ?? company?.booking_mode ?? 'fixed_grid') as BookingMode;
+  const resolvedMode = (professional?.booking_mode ?? company?.booking_mode ?? 'fixed_grid') as BookingMode;
+
+  // ⚠️ TEMP FORCE OVERRIDE — requested by user to confirm no other source is injecting fixed_grid.
+  // Set FORCE_INTELLIGENT to false to restore DB-driven resolution.
+  const FORCE_INTELLIGENT = true;
+  const bookingMode: BookingMode = FORCE_INTELLIGENT ? 'intelligent' : resolvedMode;
+
+  const configuredInterval = professional.grid_interval ?? company.fixed_slot_interval;
+  const slotInterval = bookingMode === 'intelligent'
+    ? 1
+    : Math.max(1, configuredInterval ?? 15);
+  const bufferMinutes = professional.break_time ?? company.buffer_minutes ?? 0;
 
   console.log('[BOOKING MODE RESOLVED]', {
     source,
@@ -99,16 +108,11 @@ async function resolveBookingConfig(
     companyId,
     professionalMode: professional?.booking_mode ?? null,
     companyMode: company?.booking_mode ?? null,
+    resolvedMode,
+    forced: FORCE_INTELLIGENT,
     finalMode: bookingMode,
   });
-
-  
-
-  const configuredInterval = professional.grid_interval ?? company.fixed_slot_interval;
-  const slotInterval = bookingMode === 'intelligent'
-    ? 1
-    : Math.max(1, configuredInterval ?? 15);
-  const bufferMinutes = professional.break_time ?? company.buffer_minutes ?? 0;
+  console.log('[FINAL MODE]', bookingMode, 'slotInterval:', slotInterval);
 
   return { bookingMode, slotInterval, bufferMinutes };
 }
