@@ -15,7 +15,7 @@ import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { formatWhatsApp, displayWhatsApp, isValidWhatsApp, buildWhatsAppUrl } from '@/lib/whatsapp';
-import { calculateAvailableSlots, validateTimeSlot, type BusinessHours, type BusinessException, type ExistingAppointment, type BlockedTime, type BookingMode } from '@/lib/availability-engine';
+import { validateTimeSlot, type BusinessHours, type BusinessException, type ExistingAppointment, type BookingMode } from '@/lib/availability-engine';
 import { getAvailableSlots } from '@/lib/availability-service';
 import { PlatformBranding } from '@/components/PlatformBranding';
 import { CustomRequestForm } from '@/components/CustomRequestForm';
@@ -69,46 +69,6 @@ interface BookingPageProps {
 }
 
 const DEFAULT_BOOKING_TIMEZONE = 'America/Sao_Paulo';
-
-const timeStringToMinutes = (value: string) => {
-  const [hours, minutes] = value.split(':').map(Number);
-  return hours * 60 + minutes;
-};
-
-const getAppointmentMinutesInTimezone = (value: string, timezone: string) => {
-  const parts = new Intl.DateTimeFormat('en-GB', {
-    timeZone: timezone,
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: false,
-  }).formatToParts(new Date(value));
-
-  const hours = Number(parts.find((part) => part.type === 'hour')?.value ?? '0');
-  const minutes = Number(parts.find((part) => part.type === 'minute')?.value ?? '0');
-  return hours * 60 + minutes;
-};
-
-const filterOverlappingSlots = (
-  slots: string[],
-  appointments: ExistingAppointment[],
-  serviceDuration: number,
-  _bufferMinutes: number,
-  timezone: string,
-) => {
-  // The availability engine already handles buffer internally.
-  // This filter is a safety net — just verify no raw overlap with appointments.
-  return slots.filter((slot) => {
-    const slotStart = timeStringToMinutes(slot);
-    const slotEnd = slotStart + serviceDuration;
-
-    return !appointments.some((appointment) => {
-      const appointmentStart = getAppointmentMinutesInTimezone(appointment.start_time, timezone);
-      const appointmentEnd = getAppointmentMinutesInTimezone(appointment.end_time, timezone);
-
-      return appointmentStart < slotEnd && appointmentEnd > slotStart;
-    });
-  });
-};
 
 const formatSlotTime = (dateInput: string | Date) => {
   if (typeof dateInput === 'string' && /^\d{2}:\d{2}$/.test(dateInput)) {
