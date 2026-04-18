@@ -1041,6 +1041,19 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
         localStorage.setItem(countKey, String(currentCount + 1));
       }
 
+      if (!selectedSlotIsAvailable) {
+        setBookingError({
+          kind: 'invalid_slot',
+          title: 'Este horário não está mais disponível',
+          description: 'A agenda foi atualizada e o horário selecionado saiu da lista válida.',
+          hint: 'Escolha um dos horários disponíveis abaixo.',
+          suggestions: generatedSlots,
+        });
+        setStep('datetime');
+        setLoading(false);
+        return;
+      }
+
       const freshAvailability = await getAvailableSlots({
         source: 'public',
         companyId: company.id,
@@ -1240,10 +1253,24 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
       setStep('success');
     } catch (err: any) {
       const info = translateBookingError(err);
-      setBookingError(info);
-      // Conflict → user is on a stale slot list; refresh availability for the day
-      if (info.kind === 'conflict' || info.kind === 'invalid_slot') {
+      if ((info.kind === 'conflict' || info.kind === 'invalid_slot') && company && selectedDate && selectedProfessional) {
+        const freshAvailability = await getAvailableSlots({
+          source: 'public',
+          companyId: company.id,
+          professionalId: selectedProfessional,
+          date: selectedDate,
+          totalDuration,
+          filterPastForToday: true,
+        });
+
+        setAppointmentsForSelectedDate(freshAvailability.existingAppointments);
+        setAppointmentsLoaded(true);
+        setAvailableSlots(freshAvailability.slots);
+        setGeneratedSlots(freshAvailability.slots);
+        setBookingError({ ...info, suggestions: freshAvailability.slots });
         setStep('datetime');
+      } else {
+        setBookingError(info);
       }
     } finally {
       setLoading(false);
@@ -2579,7 +2606,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
         open={!!bookingError}
         onOpenChange={(o) => { if (!o) setBookingError(null); }}
         error={bookingError}
-        suggestions={availableSlots}
+        suggestions={bookingError?.suggestions ?? availableSlots}
         onPickSuggestion={(slot) => {
           setSelectedTime(slot);
           setBookingError(null);
