@@ -860,6 +860,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
       setAppointmentsLoaded(true);
       setGeneratedSlots(result.slots);
 
+      console.log('[SLOTS SOURCE]', 'booking-page', { mode: result.bookingMode, count: result.slots.length });
       console.log('[UI RECEIVED]', result.slots);
 
       if (requestId !== slotRequestRef.current) return;
