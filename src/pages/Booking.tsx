@@ -15,7 +15,7 @@ import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { formatWhatsApp, displayWhatsApp, isValidWhatsApp, buildWhatsAppUrl } from '@/lib/whatsapp';
-import { calculateAvailableSlots, validateTimeSlot, type BusinessHours, type BusinessException, type ExistingAppointment, type BlockedTime, type BookingMode } from '@/lib/availability-engine';
+import { validateTimeSlot, type BusinessHours, type BusinessException, type ExistingAppointment, type BookingMode } from '@/lib/availability-engine';
 import { getAvailableSlots } from '@/lib/availability-service';
 import { PlatformBranding } from '@/components/PlatformBranding';
 import { CustomRequestForm } from '@/components/CustomRequestForm';
@@ -69,46 +69,6 @@ interface BookingPageProps {
 }
 
 const DEFAULT_BOOKING_TIMEZONE = 'America/Sao_Paulo';
-
-const timeStringToMinutes = (value: string) => {
-  const [hours, minutes] = value.split(':').map(Number);
-  return hours * 60 + minutes;
-};
-
-const getAppointmentMinutesInTimezone = (value: string, timezone: string) => {
-  const parts = new Intl.DateTimeFormat('en-GB', {
-    timeZone: timezone,
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: false,
-  }).formatToParts(new Date(value));
-
-  const hours = Number(parts.find((part) => part.type === 'hour')?.value ?? '0');
-  const minutes = Number(parts.find((part) => part.type === 'minute')?.value ?? '0');
-  return hours * 60 + minutes;
-};
-
-const filterOverlappingSlots = (
-  slots: string[],
-  appointments: ExistingAppointment[],
-  serviceDuration: number,
-  _bufferMinutes: number,
-  timezone: string,
-) => {
-  // The availability engine already handles buffer internally.
-  // This filter is a safety net — just verify no raw overlap with appointments.
-  return slots.filter((slot) => {
-    const slotStart = timeStringToMinutes(slot);
-    const slotEnd = slotStart + serviceDuration;
-
-    return !appointments.some((appointment) => {
-      const appointmentStart = getAppointmentMinutesInTimezone(appointment.start_time, timezone);
-      const appointmentEnd = getAppointmentMinutesInTimezone(appointment.end_time, timezone);
-
-      return appointmentStart < slotEnd && appointmentEnd > slotStart;
-    });
-  });
-};
 
 const formatSlotTime = (dateInput: string | Date) => {
   if (typeof dateInput === 'string' && /^\d{2}:\d{2}$/.test(dateInput)) {
@@ -900,21 +860,10 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
       setAppointmentsLoaded(true);
       setGeneratedSlots(result.slots);
 
-      // Safety net: re-filter against raw appointments using the booking timezone.
-      // The engine already accounts for everything, so this should be a no-op
-      // in practice but protects against any edge case.
-      const filteredSlots = filterOverlappingSlots(
-        result.slots,
-        result.existingAppointments,
-        totalDuration,
-        result.bufferMinutes,
-        bookingTimezone,
-      );
-
-      console.log('[UI BEFORE RENDER]', filteredSlots);
+      console.log('[UI RECEIVED]', result.slots);
 
       if (requestId !== slotRequestRef.current) return;
-      setAvailableSlots(filteredSlots);
+      setAvailableSlots(result.slots);
     } catch (error) {
       console.error('[Booking] Failed to load appointments for slot calculation', error);
       setAppointmentsLoaded(true);
@@ -979,18 +928,10 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
         filterPastForToday: true,
       });
       // Safety net (no-op in normal cases — engine already handled buffer/conflicts)
-      const slots = filterOverlappingSlots(
-        result.slots,
-        result.existingAppointments,
-        totalDuration,
-        result.bufferMinutes,
-        bookingTimezone,
-      );
-
-      console.log('[UI BEFORE RENDER]', slots);
-      if (slots.length > 0) {
+      console.log('[UI RECEIVED]', result.slots);
+      if (result.slots.length > 0) {
         const remaining = MAX_SLOTS - totalSlotsFound;
-        const daySlots = slots.slice(0, remaining);
+        const daySlots = result.slots.slice(0, remaining);
         results.push({ date: day, slots: daySlots });
         totalSlotsFound += daySlots.length;
       }
@@ -1339,7 +1280,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
   };
   const currentStepIdx = stepList.indexOf(step);
 
-  console.log('[FINAL SLOTS UI]', availableSlots.map((slot) => formatSlotTime(slot)));
+  console.log('[UI RECEIVED]', availableSlots);
 
   const companySlugPath = company.business_type === 'esthetic' ? 'estetica' : 'barbearia';
   const companyPageUrl = `/${companySlugPath}/${company.slug}`;
