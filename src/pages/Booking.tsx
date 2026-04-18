@@ -185,6 +185,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
   const [waitlistForm, setWaitlistForm] = useState({ name: '', whatsapp: '', email: '' });
   const [nextSlots, setNextSlots] = useState<{ date: Date; slots: string[] }[]>([]);
   const [nextSlotsLoading, setNextSlotsLoading] = useState(false);
+  const [smartSuggestion, setSmartSuggestion] = useState<{ date: Date; slot: string; reason: 'tight-fit' | 'first-available' } | null>(null);
   const [quickSlotSelected, setQuickSlotSelected] = useState(false);
   const [cashbackCredits, setCashbackCredits] = useState<{ id: string; amount: number; expires_at: string }[]>([]);
   const [useCashback, setUseCashback] = useState(false);
