@@ -139,7 +139,7 @@ export default function ProfessionalPublicProfile() {
 
   const fetchNextSlots = async (comp: any, prof: any) => {
     setSlotsLoading(true);
-    const [hoursRes, exceptionsRes, companyRes, settingsRes, profHoursRes] = await Promise.all([
+    const [, , , settingsRes] = await Promise.all([
       supabase.from('business_hours').select('*').eq('company_id', comp.id),
       supabase.from('business_exceptions').select('*').eq('company_id', comp.id),
       supabase.from('public_company' as any).select('buffer_minutes').eq('id', comp.id).single(),
@@ -147,12 +147,7 @@ export default function ProfessionalPublicProfile() {
       supabase.from('professional_working_hours' as any).select('*').eq('professional_id', prof.id),
     ]);
 
-    const bh = (hoursRes.data || []) as BusinessHours[];
-    const exc = (exceptionsRes.data || []) as BusinessException[];
-    let buf = (companyRes.data as any)?.buffer_minutes || 0;
     const tz = (settingsRes.data as any)?.timezone || DEFAULT_TZ;
-    if ((settingsRes.data as any)?.booking_buffer_minutes > 0) buf = (settingsRes.data as any).booking_buffer_minutes;
-    const ph = ((profHoursRes.data as any[]) || []).length > 0 ? (profHoursRes.data as unknown as BusinessHours[]) : undefined;
 
     const avgDur = services.length > 0 ? Math.round(services.reduce((s, sv) => s + (sv.duration_minutes || 30), 0) / services.length) : 30;
 
