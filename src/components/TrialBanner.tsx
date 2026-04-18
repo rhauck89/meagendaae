@@ -34,7 +34,7 @@ const STUDIO_BENEFITS = [
 
 const TrialBanner = () => {
   const { trialActive, trialExpired, trialDaysLeft, loading } = useCompanyPlan();
-  const { user, companyId } = useAuth();
+  const { user } = useAuth();
   const navigate = useNavigate();
   const { openCheckout, loading: checkoutLoading } = usePaddleCheckout();
   const [studio, setStudio] = useState<StudioPlan | null>(null);
