@@ -279,11 +279,24 @@ function calculateIntelligentSlots(
   const slots: string[] = [];
 
   for (const window of freeWindows) {
+    // Skip windows that cannot fit the full service duration
+    const windowDurationMs = window.end.getTime() - window.start.getTime();
+    const requiredMs = totalDuration * 60000;
+    if (windowDurationMs < requiredMs) {
+      console.log('[INTELLIGENT MODE] window skipped — too small', {
+        windowStart: format(window.start, 'HH:mm'),
+        windowEnd: format(window.end, 'HH:mm'),
+        windowMinutes: Math.floor(windowDurationMs / 60000),
+        serviceDuration: totalDuration,
+      });
+      continue;
+    }
+
     // Continuous time: start exactly at window boundary, zero seconds/ms only.
     let current = new Date(window.start);
     current.setSeconds(0, 0);
 
-    while (current.getTime() + totalDuration * 60000 <= window.end.getTime()) {
+    while (current.getTime() + requiredMs <= window.end.getTime()) {
       if (earliestSlotTime && current < earliestSlotTime) {
         // Jump straight to earliest allowed time — no grid stepping.
         current = new Date(earliestSlotTime);
@@ -291,8 +304,14 @@ function calculateIntelligentSlots(
         continue;
       }
 
+      const slotEnd = addMinutes(current, totalDuration);
+
+      // Hard guard: slot end must not exceed the free window
+      if (slotEnd.getTime() > window.end.getTime()) {
+        break;
+      }
+
       if (slotFitsService(current, totalDuration, bufferMinutes, closeTime, blocked)) {
-        const slotEnd = addMinutes(current, totalDuration);
         console.log('[INTELLIGENT MODE]', {
           slotStart: format(current, 'HH:mm'),
           slotEnd: format(slotEnd, 'HH:mm'),
