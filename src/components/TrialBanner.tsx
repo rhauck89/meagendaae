@@ -68,11 +68,7 @@ const TrialBanner = () => {
     try {
       await openCheckout({
         priceId,
-        quantity: 1,
-        customerEmail: user?.email,
         customData: {
-          userId: user?.id || '',
-          companyId: companyId || '',
           planId: studio.id,
           billingCycle: cycle,
         },
