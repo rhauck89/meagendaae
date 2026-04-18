@@ -230,6 +230,8 @@ export async function getAvailableSlots(
     slots = slots.filter((s) => s > currentTime);
   }
 
+  console.log('[SERVICE]', slots);
+
   // Unified debug log so manual + public output can be diff-compared
   console.log('[SLOTS]', {
     source,
