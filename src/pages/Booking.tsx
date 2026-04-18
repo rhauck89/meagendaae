@@ -10,13 +10,14 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Calendar as CalendarPicker } from '@/components/ui/calendar';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Scissors, Sparkles, Clock, DollarSign, ChevronRight, ChevronLeft, CheckCircle2, Bell, Zap, CalendarPlus, MessageCircle, RotateCcw, Home, User, Phone, Mail, Cake, MapPin, Star, X, AlertTriangle, Calendar } from 'lucide-react';
-import { format, addMinutes, addDays, isToday, isTomorrow, startOfDay } from 'date-fns';
+import { format, addMinutes, addDays, isToday, isTomorrow, startOfDay, isSameDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { formatWhatsApp, displayWhatsApp, isValidWhatsApp, buildWhatsAppUrl } from '@/lib/whatsapp';
 import { validateTimeSlot, type BusinessHours, type BusinessException, type ExistingAppointment, type BookingMode } from '@/lib/availability-engine';
 import { getAvailableSlots } from '@/lib/availability-service';
+import { pickSmartSuggestion } from '@/lib/smart-slot-suggestion';
 import { PlatformBranding } from '@/components/PlatformBranding';
 import { CustomRequestForm } from '@/components/CustomRequestForm';
 import { getCompanyBranding, buildThemeFromBranding } from '@/hooks/useCompanyBranding';
@@ -185,6 +186,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
   const [waitlistForm, setWaitlistForm] = useState({ name: '', whatsapp: '', email: '' });
   const [nextSlots, setNextSlots] = useState<{ date: Date; slots: string[] }[]>([]);
   const [nextSlotsLoading, setNextSlotsLoading] = useState(false);
+  const [smartSuggestion, setSmartSuggestion] = useState<{ date: Date; slot: string; reason: 'tight-fit' | 'first-available' } | null>(null);
   const [quickSlotSelected, setQuickSlotSelected] = useState(false);
   const [cashbackCredits, setCashbackCredits] = useState<{ id: string; amount: number; expires_at: string }[]>([]);
   const [useCashback, setUseCashback] = useState(false);
@@ -909,14 +911,15 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
   const fetchNextAvailableSlots = async () => {
     if (!company || !selectedProfessional || businessHours.length === 0 || totalDuration <= 0) {
       setNextSlots([]);
+      setSmartSuggestion(null);
       return;
     }
     setNextSlotsLoading(true);
     const results: { date: Date; slots: string[] }[] = [];
     let totalSlotsFound = 0;
+    let suggestion: { date: Date; slot: string; reason: 'tight-fit' | 'first-available' } | null = null;
     const MAX_SLOTS = 8;
     const MAX_DAYS = 7;
-    const now = new Date();
     for (let i = 0; i < MAX_DAYS && totalSlotsFound < MAX_SLOTS; i++) {
       const day = addDays(startOfDay(new Date()), i);
       // Unified availability service — same code path as the manual booking flow.
@@ -928,9 +931,18 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
         totalDuration,
         filterPastForToday: true,
       });
-      // Safety net (no-op in normal cases — engine already handled buffer/conflicts)
       console.log('[UI RECEIVED]', result.slots);
       if (result.slots.length > 0) {
+        // Smart suggestion: compute on the FIRST day that has slots, then keep it.
+        if (!suggestion) {
+          const pick = pickSmartSuggestion(
+            result.slots,
+            result.existingAppointments || [],
+            totalDuration,
+            company.timezone || 'America/Sao_Paulo',
+          );
+          if (pick) suggestion = { date: day, slot: pick.slot, reason: pick.reason };
+        }
         const remaining = MAX_SLOTS - totalSlotsFound;
         const daySlots = result.slots.slice(0, remaining);
         results.push({ date: day, slots: daySlots });
@@ -938,6 +950,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
       }
     }
     setNextSlots(results);
+    setSmartSuggestion(suggestion);
     setNextSlotsLoading(false);
   };
 
@@ -1677,22 +1690,66 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
               </div>
             ) : (
               <>
-                {/* Quick slots */}
+                {/* Smart suggestion (best gap fit) */}
+                {smartSuggestion && (
+                  <div
+                    className="rounded-2xl p-5 space-y-3 animate-fade-in"
+                    style={{
+                      background: `linear-gradient(135deg, ${T.accent}18, ${T.card})`,
+                      border: `1px solid ${T.accent}55`,
+                      boxShadow: `0 8px 24px -12px ${T.accent}40`,
+                    }}
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: `${T.accent}30` }}>
+                          <Sparkles className="h-4 w-4" style={{ color: T.accent }} />
+                        </div>
+                        <p className="font-semibold text-sm">Sugestão ideal para você</p>
+                      </div>
+                      <span
+                        className="text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wide"
+                        style={{ background: T.accent, color: '#000' }}
+                      >
+                        Recomendado
+                      </span>
+                    </div>
+                    <button
+                      onClick={() => handleQuickSlot(smartSuggestion.date, smartSuggestion.slot)}
+                      className="w-full py-4 rounded-xl text-2xl font-bold transition-all duration-200 hover:scale-[1.02] active:scale-[0.99]"
+                      style={{ background: T.accent, color: '#000' }}
+                    >
+                      {formatSlotTime(smartSuggestion.slot)}
+                      <span className="block text-xs font-medium mt-1 opacity-80 capitalize">
+                        {isToday(smartSuggestion.date) ? 'Hoje' : isTomorrow(smartSuggestion.date) ? 'Amanhã' : format(smartSuggestion.date, "EEEE, dd/MM", { locale: ptBR })}
+                      </span>
+                    </button>
+                    <p className="text-xs text-center" style={{ color: T.textSec }}>
+                      {smartSuggestion.reason === 'tight-fit' ? '✨ Melhor encaixe na agenda' : 'Primeiro horário disponível'}
+                    </p>
+                  </div>
+                )}
+
+                {/* Other available slots */}
                 {nextSlots.length > 0 && (
                   <div className="rounded-2xl p-5 space-y-4" style={{ background: T.card, border: `1px solid ${T.border}` }}>
                     <div className="flex items-center gap-2">
                       <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: `${T.accent}20` }}>
                         <Zap className="h-4 w-4" style={{ color: T.accent }} />
                       </div>
-                      <p className="font-semibold text-sm">Próximos horários disponíveis</p>
+                      <p className="font-semibold text-sm">{smartSuggestion ? 'Outros horários disponíveis' : 'Próximos horários disponíveis'}</p>
                     </div>
                     {nextSlots.map(({ date, slots }) => {
                       const dayLabel = isToday(date) ? 'Hoje' : isTomorrow(date) ? 'Amanhã' : format(date, "EEEE, dd/MM", { locale: ptBR });
+                      const filtered = smartSuggestion && isSameDay(date, smartSuggestion.date)
+                        ? slots.filter((s) => s !== smartSuggestion.slot)
+                        : slots;
+                      if (filtered.length === 0) return null;
                       return (
                         <div key={date.toISOString()}>
                           <p className="text-xs font-medium mb-2 capitalize" style={{ color: T.textSec }}>{dayLabel}</p>
                           <div className="flex flex-wrap gap-2">
-                            {slots.map((slot) => (
+                            {filtered.map((slot) => (
                               <button
                                 key={`${date.toISOString()}-${slot}`}
                                 onClick={() => handleQuickSlot(date, slot)}
