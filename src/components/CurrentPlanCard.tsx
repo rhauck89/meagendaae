@@ -10,12 +10,13 @@ import {
 } from '@/components/ui/dialog';
 import {
   CreditCard, Clock, AlertTriangle, Check, ArrowUpRight, ArrowDownRight,
-  RefreshCw, XCircle, CalendarClock,
+  XCircle, CalendarClock, ExternalLink, Loader2, AlertOctagon,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { getPaddleEnvironment } from '@/lib/paddle';
 
 const featureLabels: Array<{ key: string; label: string }> = [
   { key: 'open_scheduling', label: 'Agendamento aberto' },
@@ -35,75 +36,92 @@ const featureLabels: Array<{ key: string; label: string }> = [
 const formatBRL = (n: number) => `R$${Number(n || 0).toFixed(2).replace('.', ',')}`;
 const formatDate = (iso: string | null) => iso ? format(new Date(iso), "dd 'de' MMMM 'de' yyyy", { locale: ptBR }) : '—';
 
+const statusConfig = (plan: ReturnType<typeof useCompanyPlan>) => {
+  const onTrial = plan.trialActive && !plan.trialExpired;
+  const s = plan.subscriptionStatus;
+  if (onTrial) return { label: 'Em teste grátis', cls: 'bg-warning/10 text-warning border-warning/30' };
+  if (s === 'active') return { label: 'Ativo', cls: 'bg-success/10 text-success border-success/30' };
+  if (s === 'past_due') return { label: 'Pagamento em atraso', cls: 'bg-warning/10 text-warning border-warning/30' };
+  if (s === 'unpaid') return { label: 'Pagamento pendente', cls: 'bg-destructive/10 text-destructive border-destructive/30' };
+  if (s === 'expired_trial' || plan.trialExpired) return { label: 'Trial expirado', cls: 'bg-destructive/10 text-destructive border-destructive/30' };
+  if (s === 'canceled' || s === 'cancelled') return { label: 'Cancelado', cls: 'bg-muted text-muted-foreground' };
+  if (s === 'trialing') return { label: 'Em teste', cls: 'bg-warning/10 text-warning border-warning/30' };
+  return { label: s || 'Sem plano', cls: 'bg-muted text-muted-foreground' };
+};
+
 const CurrentPlanCard = () => {
   const plan = useCompanyPlan();
   const { companyId } = useAuth();
   const navigate = useNavigate();
-  const [busy, setBusy] = useState(false);
-  const [confirmDialog, setConfirmDialog] = useState<null | 'cancelPending' | 'cancelSubscription' | 'switchCycle'>(null);
+  const [busy, setBusy] = useState<null | 'portal' | 'cancel' | 'cancelPending'>(null);
+  const [confirmDialog, setConfirmDialog] = useState<null | 'cancelPending' | 'cancelSubscription'>(null);
 
   if (plan.loading) {
     return (
-      <Card><CardContent className="p-8 text-center text-muted-foreground">Carregando...</CardContent></Card>
+      <Card><CardContent className="p-8 text-center text-muted-foreground">
+        <Loader2 className="h-5 w-5 animate-spin mx-auto" />
+      </CardContent></Card>
     );
   }
 
   const onTrial = plan.trialActive && !plan.trialExpired;
   const isActive = plan.subscriptionStatus === 'active';
+  const isPastDue = plan.subscriptionStatus === 'past_due';
+  const hasPaddleSub = isActive || isPastDue || plan.subscriptionStatus === 'canceled';
+  const env = getPaddleEnvironment();
 
   const cancelPendingChange = async () => {
     if (!companyId) return;
-    setBusy(true);
+    setBusy('cancelPending');
     const { error } = await supabase
       .from('companies')
       .update({ pending_plan_id: null, pending_billing_cycle: null, pending_change_at: null } as any)
       .eq('id', companyId);
-    setBusy(false);
+    setBusy(null);
     setConfirmDialog(null);
     if (error) toast.error('Erro ao cancelar mudança');
     else { toast.success('Mudança agendada cancelada'); plan.refresh(); }
   };
 
-  const switchBillingCycle = async () => {
-    if (!companyId || !isActive) return;
-    setBusy(true);
-    const newCycle = plan.billingCycle === 'yearly' ? 'monthly' : 'yearly';
-    const { error } = await supabase
-      .from('companies')
-      .update({ billing_cycle: newCycle } as any)
-      .eq('id', companyId);
-    setBusy(false);
-    setConfirmDialog(null);
-    if (error) toast.error('Erro ao trocar ciclo');
-    else { toast.success(`Cobrança alterada para ${newCycle === 'yearly' ? 'anual' : 'mensal'}`); plan.refresh(); }
+  const openCustomerPortal = async () => {
+    if (!companyId) return;
+    setBusy('portal');
+    try {
+      const { data, error } = await supabase.functions.invoke('customer-portal', {
+        body: { companyId, environment: env === 'live' ? 'live' : 'sandbox' },
+      });
+      if (error) throw error;
+      const url = data?.url;
+      if (!url) throw new Error('Portal indisponível');
+      window.open(url, '_blank', 'noopener');
+    } catch (e: any) {
+      console.error(e);
+      toast.error(e?.message || 'Não foi possível abrir o portal de cobrança');
+    } finally {
+      setBusy(null);
+    }
   };
 
   const cancelSubscription = async () => {
     if (!companyId) return;
-    setBusy(true);
-    const { error } = await supabase
-      .from('companies')
-      .update({
-        subscription_status: 'cancelled' as any,
-        pending_plan_id: null,
-        pending_billing_cycle: null,
-        pending_change_at: null,
-      } as any)
-      .eq('id', companyId);
-    setBusy(false);
-    setConfirmDialog(null);
-    if (error) toast.error('Erro ao cancelar assinatura');
-    else { toast.success('Assinatura cancelada'); plan.refresh(); }
+    setBusy('cancel');
+    try {
+      const { error } = await supabase.functions.invoke('cancel-subscription', {
+        body: { companyId, environment: env === 'live' ? 'live' : 'sandbox' },
+      });
+      if (error) throw error;
+      toast.success('Assinatura cancelada. Acesso mantido até o fim do período.');
+      await plan.refresh();
+      setConfirmDialog(null);
+    } catch (e: any) {
+      console.error(e);
+      toast.error(e?.message || 'Erro ao cancelar assinatura');
+    } finally {
+      setBusy(null);
+    }
   };
 
-  const statusBadge = (() => {
-    if (onTrial) return { label: 'Em teste grátis', cls: 'bg-warning/10 text-warning border-warning/30' };
-    if (isActive) return { label: 'Ativo', cls: 'bg-success/10 text-success border-success/30' };
-    if (plan.trialExpired) return { label: 'Trial expirado', cls: 'bg-destructive/10 text-destructive border-destructive/30' };
-    if (plan.subscriptionStatus === 'cancelled') return { label: 'Cancelado', cls: 'bg-muted text-muted-foreground' };
-    return { label: plan.subscriptionStatus || 'Sem plano', cls: 'bg-muted text-muted-foreground' };
-  })();
-
+  const status = statusConfig(plan);
   const currentPrice = plan.billingCycle === 'yearly' ? plan.yearlyPrice : plan.monthlyPrice;
 
   return (
@@ -133,7 +151,7 @@ const CurrentPlanCard = () => {
                 </p>
               )}
             </div>
-            <Badge variant="outline" className={statusBadge.cls}>{statusBadge.label}</Badge>
+            <Badge variant="outline" className={status.cls}>{status.label}</Badge>
           </div>
 
           {/* Trial banner */}
@@ -163,8 +181,18 @@ const CurrentPlanCard = () => {
             </div>
           )}
 
+          {isPastDue && (
+            <div className="flex items-start gap-2 p-3 rounded-lg bg-warning/10 border border-warning/30">
+              <AlertOctagon className="h-4 w-4 text-warning shrink-0 mt-0.5" />
+              <div className="text-sm flex-1">
+                <p className="font-medium text-warning">Pagamento em atraso</p>
+                <p className="text-muted-foreground">Atualize sua forma de pagamento no portal para evitar perda de acesso.</p>
+              </div>
+            </div>
+          )}
+
           {/* Billing info */}
-          {isActive && (
+          {(isActive || isPastDue) && (
             <div className="grid grid-cols-2 gap-3 text-sm">
               <div className="rounded-lg border p-3">
                 <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Próxima cobrança</p>
@@ -189,7 +217,7 @@ const CurrentPlanCard = () => {
                   {plan.pendingChangeAt ? ` em ${formatDate(plan.pendingChangeAt)}` : ''}.
                 </p>
               </div>
-              <Button variant="ghost" size="sm" onClick={() => setConfirmDialog('cancelPending')} disabled={busy}>
+              <Button variant="ghost" size="sm" onClick={() => setConfirmDialog('cancelPending')} disabled={!!busy}>
                 Cancelar
               </Button>
             </div>
@@ -222,21 +250,30 @@ const CurrentPlanCard = () => {
           {/* Actions */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-2 border-t">
             <Button onClick={() => navigate('/settings/plans')}>
-              <ArrowUpRight className="h-4 w-4 mr-1" /> Fazer upgrade
+              <ArrowUpRight className="h-4 w-4 mr-1" /> {hasPaddleSub ? 'Mudar de plano' : 'Escolher plano'}
             </Button>
-            <Button variant="outline" onClick={() => navigate('/settings/plans')}>
-              <ArrowDownRight className="h-4 w-4 mr-1" /> Mudar de plano
-            </Button>
-            {isActive && (
-              <>
-                <Button variant="outline" onClick={() => setConfirmDialog('switchCycle')} disabled={busy}>
-                  <RefreshCw className="h-4 w-4 mr-1" />
-                  {plan.billingCycle === 'yearly' ? 'Trocar para mensal' : 'Trocar para anual'}
-                </Button>
-                <Button variant="outline" className="text-destructive hover:text-destructive" onClick={() => setConfirmDialog('cancelSubscription')} disabled={busy}>
-                  <XCircle className="h-4 w-4 mr-1" /> Cancelar assinatura
-                </Button>
-              </>
+            {!hasPaddleSub && (
+              <Button variant="outline" onClick={() => navigate('/settings/plans')}>
+                <ArrowDownRight className="h-4 w-4 mr-1" /> Comparar planos
+              </Button>
+            )}
+            {hasPaddleSub && (
+              <Button variant="outline" onClick={openCustomerPortal} disabled={!!busy}>
+                {busy === 'portal'
+                  ? <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                  : <ExternalLink className="h-4 w-4 mr-1" />}
+                Gerenciar assinatura
+              </Button>
+            )}
+            {isActive && !plan.cancelAtPeriodEnd && (
+              <Button
+                variant="outline"
+                className="text-destructive hover:text-destructive sm:col-span-2"
+                onClick={() => setConfirmDialog('cancelSubscription')}
+                disabled={!!busy}
+              >
+                <XCircle className="h-4 w-4 mr-1" /> Cancelar assinatura
+              </Button>
             )}
           </div>
         </CardContent>
@@ -253,25 +290,10 @@ const CurrentPlanCard = () => {
           </DialogHeader>
           <DialogFooter>
             <Button variant="outline" onClick={() => setConfirmDialog(null)}>Voltar</Button>
-            <Button variant="destructive" onClick={cancelPendingChange} disabled={busy}>Cancelar mudança</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={confirmDialog === 'switchCycle'} onOpenChange={(o) => !o && setConfirmDialog(null)}>
-        <DialogContent className="max-w-sm">
-          <DialogHeader>
-            <DialogTitle>Trocar ciclo de cobrança?</DialogTitle>
-            <DialogDescription>
-              A próxima fatura será {plan.billingCycle === 'yearly' ? 'mensal' : 'anual'}
-              {plan.billingCycle === 'monthly' && plan.yearlyPrice > 0
-                ? ` (${formatBRL(plan.yearlyPrice)}/ano).`
-                : '.'}
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setConfirmDialog(null)}>Voltar</Button>
-            <Button onClick={switchBillingCycle} disabled={busy}>Confirmar</Button>
+            <Button variant="destructive" onClick={cancelPendingChange} disabled={!!busy}>
+              {busy === 'cancelPending' && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}
+              Cancelar mudança
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -281,12 +303,16 @@ const CurrentPlanCard = () => {
           <DialogHeader>
             <DialogTitle>Cancelar assinatura?</DialogTitle>
             <DialogDescription>
-              Você perderá acesso aos recursos pagos no fim do período atual. Esta ação pode ser revertida assinando novamente.
+              Você manterá acesso aos recursos pagos até <strong>{formatDate(plan.currentPeriodEnd)}</strong> (fim do período já pago).
+              Após essa data, sua conta entrará em modo somente-leitura. Você pode reativar a qualquer momento.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
             <Button variant="outline" onClick={() => setConfirmDialog(null)}>Voltar</Button>
-            <Button variant="destructive" onClick={cancelSubscription} disabled={busy}>Cancelar assinatura</Button>
+            <Button variant="destructive" onClick={cancelSubscription} disabled={!!busy}>
+              {busy === 'cancel' && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}
+              Cancelar assinatura
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

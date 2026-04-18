@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCompanyPlan } from '@/hooks/useCompanyPlan';
+import { usePaddleCheckout } from '@/hooks/usePaddleCheckout';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -8,7 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription,
 } from '@/components/ui/dialog';
-import { Check, X, CreditCard, ArrowLeft, Crown, Star, CalendarClock } from 'lucide-react';
+import { Check, X, CreditCard, ArrowLeft, Crown, Star, CalendarClock, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 import DashboardLayout from '@/components/DashboardLayout';
@@ -25,6 +26,8 @@ interface Plan {
   yearly_discount: number;
   members_limit: number;
   marketplace_priority: number;
+  paddle_monthly_price_id: string | null;
+  paddle_yearly_price_id: string | null;
   automatic_messages: boolean;
   open_scheduling: boolean;
   promotions: boolean;
@@ -83,6 +86,7 @@ const PlansPage = () => {
   const { companyId } = useAuth();
   const currentPlan = useCompanyPlan();
   const navigate = useNavigate();
+  const { openCheckout, loading: checkoutLoading } = usePaddleCheckout();
   const [plans, setPlans] = useState<Plan[]>([]);
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly'>('monthly');
   const [loading, setLoading] = useState(true);
@@ -110,8 +114,10 @@ const PlansPage = () => {
     return plans.find(p => p.id === currentPlan.planId)?.sort_order ?? -1;
   }, [plans, currentPlan.planId]);
 
+  const hasActivePaidSub = currentPlan.subscriptionStatus === 'active' && !!currentPlan.planId && !currentPlan.trialActive;
+
   const determineIntent = (plan: Plan): ChangeIntent => {
-    if (!currentPlan.planId) return { plan, cycle: billingCycle, type: 'subscribe' };
+    if (!hasActivePaidSub) return { plan, cycle: billingCycle, type: 'subscribe' };
     if (plan.id === currentPlan.planId) {
       return { plan, cycle: billingCycle, type: 'switch_cycle' };
     }
@@ -127,46 +133,52 @@ const PlansPage = () => {
     if (!intent || !companyId) return;
     setBusy(true);
 
-    if (intent.type === 'downgrade' && currentPlan.subscriptionStatus === 'active' && currentPlan.currentPeriodEnd) {
-      // Schedule for next billing period
-      const { error } = await supabase
-        .from('companies')
-        .update({
-          pending_plan_id: intent.plan.id,
-          pending_billing_cycle: intent.cycle,
-          pending_change_at: currentPlan.currentPeriodEnd,
-        } as any)
-        .eq('id', companyId);
-      setBusy(false);
+    try {
+      // Downgrade: schedule for end of current period (no payment needed)
+      if (intent.type === 'downgrade' && hasActivePaidSub && currentPlan.currentPeriodEnd) {
+        const { error } = await supabase
+          .from('companies')
+          .update({
+            pending_plan_id: intent.plan.id,
+            pending_billing_cycle: intent.cycle,
+            pending_change_at: currentPlan.currentPeriodEnd,
+          } as any)
+          .eq('id', companyId);
+        if (error) throw error;
+        toast.success(`Downgrade agendado para ${formatDate(currentPlan.currentPeriodEnd)}`);
+        await currentPlan.refresh();
+        setIntent(null);
+        return;
+      }
+
+      // Switch cycle while active: open checkout for the new cycle (Paddle handles proration)
+      // Upgrade or fresh subscribe: open Paddle checkout
+      const externalPriceId = intent.cycle === 'yearly'
+        ? intent.plan.paddle_yearly_price_id
+        : intent.plan.paddle_monthly_price_id;
+
+      if (!externalPriceId) {
+        toast.error('Plano sem preço configurado no Paddle. Contate o suporte.');
+        return;
+      }
+
+      await openCheckout({
+        priceId: externalPriceId,
+        successUrl: `${window.location.origin}/checkout/success`,
+        customData: {
+          intentType: intent.type,
+          planId: intent.plan.id,
+          cycle: intent.cycle,
+        },
+      });
+      // Checkout overlay opens; close our confirm dialog
       setIntent(null);
-      if (error) toast.error('Erro ao agendar mudança');
-      else { toast.success(`Downgrade agendado para ${formatDate(currentPlan.currentPeriodEnd)}`); currentPlan.refresh(); }
-      return;
+    } catch (e: any) {
+      console.error(e);
+      toast.error(e?.message || 'Erro ao processar mudança de plano');
+    } finally {
+      setBusy(false);
     }
-
-    // Immediate change (upgrade, switch_cycle, subscribe)
-    const periodEnd = new Date();
-    if (intent.cycle === 'yearly') periodEnd.setFullYear(periodEnd.getFullYear() + 1);
-    else periodEnd.setMonth(periodEnd.getMonth() + 1);
-
-    const { error } = await supabase
-      .from('companies')
-      .update({
-        plan_id: intent.plan.id,
-        billing_cycle: intent.cycle,
-        subscription_status: 'active' as any,
-        trial_active: false,
-        current_period_end: periodEnd.toISOString(),
-        pending_plan_id: null,
-        pending_billing_cycle: null,
-        pending_change_at: null,
-      } as any)
-      .eq('id', companyId);
-
-    setBusy(false);
-    setIntent(null);
-    if (error) toast.error('Erro ao alterar plano');
-    else { toast.success(`Plano alterado para ${intent.plan.name}`); currentPlan.refresh(); }
   };
 
   const planAccent = (plan: Plan) => {
@@ -185,11 +197,13 @@ const PlansPage = () => {
     return (
       <DashboardLayout>
         <div className="flex items-center justify-center py-12">
-          <p className="text-muted-foreground">Carregando...</p>
+          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
         </div>
       </DashboardLayout>
     );
   }
+
+  const working = busy || checkoutLoading;
 
   return (
     <DashboardLayout>
@@ -241,8 +255,9 @@ const PlansPage = () => {
             const price = billingCycle === 'yearly' ? plan.yearly_price : plan.monthly_price;
             const finLabel = financialLabels[plan.feature_financial_level] || 'Sem acesso';
             const intentForPlan = determineIntent(plan);
+            const sameCycle = isCurrent && billingCycle === currentPlan.billingCycle;
             const ctaLabel =
-              isCurrent && billingCycle === currentPlan.billingCycle ? 'Plano atual'
+              sameCycle ? 'Plano atual'
               : isCurrent ? `Trocar para ${billingCycle === 'yearly' ? 'anual' : 'mensal'}`
               : intentForPlan.type === 'subscribe' ? 'Assinar'
               : intentForPlan.type === 'upgrade' ? 'Fazer upgrade'
@@ -302,8 +317,8 @@ const PlansPage = () => {
                 <CardFooter>
                   <Button
                     className="w-full"
-                    variant={isCurrent && billingCycle === currentPlan.billingCycle ? 'outline' : 'default'}
-                    disabled={isCurrent && billingCycle === currentPlan.billingCycle}
+                    variant={sameCycle ? 'outline' : 'default'}
+                    disabled={sameCycle || working}
                     onClick={() => setIntent(intentForPlan)}
                   >
                     {ctaLabel}
@@ -316,7 +331,7 @@ const PlansPage = () => {
       </div>
 
       {/* Confirmation dialog */}
-      <Dialog open={!!intent} onOpenChange={(o) => !o && setIntent(null)}>
+      <Dialog open={!!intent} onOpenChange={(o) => !o && !working && setIntent(null)}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
             <DialogTitle>
@@ -325,23 +340,36 @@ const PlansPage = () => {
                 : intent?.type === 'switch_cycle' ? 'Trocar ciclo de cobrança?'
                 : 'Assinar plano?'}
             </DialogTitle>
-            <DialogDescription>
-              {intent && (
-                <>
-                  Plano <strong>{intent.plan.name}</strong> · {intent.cycle === 'yearly' ? 'Anual' : 'Mensal'} ·
-                  {' '}{formatBRL(intent.cycle === 'yearly' ? intent.plan.yearly_price : intent.plan.monthly_price)}
-                  {intent.cycle === 'yearly' ? '/ano' : '/mês'}
-                  {intent.type === 'upgrade' && ' · Liberação imediata.'}
-                  {intent.type === 'downgrade' && currentPlan.currentPeriodEnd &&
-                    ` · Mudança aplicada em ${formatDate(currentPlan.currentPeriodEnd)} (fim do ciclo atual).`}
-                  {intent.type === 'switch_cycle' && ' · Aplicado imediatamente.'}
-                </>
-              )}
+            <DialogDescription asChild>
+              <div className="space-y-2">
+                {intent && (
+                  <p>
+                    Plano <strong>{intent.plan.name}</strong> · {intent.cycle === 'yearly' ? 'Anual' : 'Mensal'} ·
+                    {' '}{formatBRL(intent.cycle === 'yearly' ? intent.plan.yearly_price : intent.plan.monthly_price)}
+                    {intent.cycle === 'yearly' ? '/ano' : '/mês'}
+                  </p>
+                )}
+                {intent?.type === 'upgrade' && (
+                  <p className="text-xs">Você será direcionado ao checkout. A liberação é imediata após o pagamento.</p>
+                )}
+                {intent?.type === 'downgrade' && currentPlan.currentPeriodEnd && (
+                  <p className="text-xs">Mudança aplicada automaticamente em {formatDate(currentPlan.currentPeriodEnd)} (fim do ciclo atual). Sem cobrança extra.</p>
+                )}
+                {intent?.type === 'switch_cycle' && (
+                  <p className="text-xs">Você será direcionado ao checkout para confirmar o novo ciclo. O Paddle aplica o ajuste proporcional.</p>
+                )}
+                {intent?.type === 'subscribe' && (
+                  <p className="text-xs">Você será direcionado ao checkout seguro do Paddle.</p>
+                )}
+              </div>
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIntent(null)} disabled={busy}>Voltar</Button>
-            <Button onClick={applyChange} disabled={busy}>Confirmar</Button>
+            <Button variant="outline" onClick={() => setIntent(null)} disabled={working}>Voltar</Button>
+            <Button onClick={applyChange} disabled={working}>
+              {working && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}
+              {intent?.type === 'downgrade' ? 'Agendar' : 'Continuar'}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
