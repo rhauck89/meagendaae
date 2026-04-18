@@ -110,6 +110,23 @@ const filterOverlappingSlots = (
   });
 };
 
+const formatSlotTime = (dateInput: string | Date) => {
+  if (typeof dateInput === 'string' && /^\d{2}:\d{2}$/.test(dateInput)) {
+    return dateInput;
+  }
+
+  const date = new Date(dateInput);
+
+  if (Number.isNaN(date.getTime())) {
+    return typeof dateInput === 'string' ? dateInput : '';
+  }
+
+  const hours = String(date.getHours()).padStart(2, '0');
+  const minutes = String(date.getMinutes()).padStart(2, '0');
+
+  return `${hours}:${minutes}`;
+};
+
 // ─── Premium Theme Tokens (defaults, overridden dynamically below) ───
 const DEFAULT_T = {
   bg: '#0B132B',
