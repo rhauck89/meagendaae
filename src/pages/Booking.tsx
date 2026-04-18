@@ -110,6 +110,23 @@ const filterOverlappingSlots = (
   });
 };
 
+const formatSlotTime = (dateInput: string | Date) => {
+  if (typeof dateInput === 'string' && /^\d{2}:\d{2}$/.test(dateInput)) {
+    return dateInput;
+  }
+
+  const date = new Date(dateInput);
+
+  if (Number.isNaN(date.getTime())) {
+    return typeof dateInput === 'string' ? dateInput : '';
+  }
+
+  const hours = String(date.getHours()).padStart(2, '0');
+  const minutes = String(date.getMinutes()).padStart(2, '0');
+
+  return `${hours}:${minutes}`;
+};
+
 // ─── Premium Theme Tokens (defaults, overridden dynamically below) ───
 const DEFAULT_T = {
   bg: '#0B132B',
@@ -1322,6 +1339,8 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
   };
   const currentStepIdx = stepList.indexOf(step);
 
+  console.log('[FINAL SLOTS UI]', availableSlots.map((slot) => formatSlotTime(slot)));
+
   const companySlugPath = company.business_type === 'esthetic' ? 'estetica' : 'barbearia';
   const companyPageUrl = `/${companySlugPath}/${company.slug}`;
   const displayCoverUrl = company.cover_url;
@@ -1740,7 +1759,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                                 onMouseEnter={(e) => { e.currentTarget.style.background = T.accent; e.currentTarget.style.color = '#000'; e.currentTarget.style.borderColor = T.accent; }}
                                 onMouseLeave={(e) => { e.currentTarget.style.background = T.cardHover; e.currentTarget.style.color = T.text; e.currentTarget.style.borderColor = T.border; }}
                               >
-                                {slot}
+                                {formatSlotTime(slot)}
                               </button>
                             ))}
                           </div>
@@ -1909,7 +1928,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                                 boxShadow: isSel ? `0 0 16px ${T.accent}30` : 'none',
                               }}
                             >
-                              {slot}
+                              {formatSlotTime(slot)}
                             </button>
                           );
                         })}
