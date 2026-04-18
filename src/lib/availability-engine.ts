@@ -374,7 +374,7 @@ export function calculateAvailableSlots(params: AvailabilityParams): string[] {
     businessHours,
     exceptions,
     existingAppointments,
-    slotInterval = 15,
+    slotInterval = 1,
     bufferMinutes = 0,
     professionalHours,
     blockedTimes = [],
@@ -395,19 +395,25 @@ export function calculateAvailableSlots(params: AvailabilityParams): string[] {
   const { hours, openTimeStr, closeTimeStr } = resolved;
   const openTime = parseTime(openTimeStr, date);
   const closeTime = parseTime(closeTimeStr, date);
+  const effectiveSlotInterval = bookingMode === 'intelligent' ? 1 : Math.max(1, slotInterval);
+
+  console.log('[ENGINE RECEIVED]', {
+    mode: bookingMode,
+    slotInterval: effectiveSlotInterval,
+  });
 
   // Build blocked intervals WITHOUT buffer (each mode handles buffer internally)
   const blocked = buildBlockedIntervals(date, dateStr, hours, existingAppointments, blockedTimes);
-  const earliestSlotTime = getEarliestSlotTime(date, bookingMode === 'intelligent' ? 1 : slotInterval);
+  const earliestSlotTime = getEarliestSlotTime(date, effectiveSlotInterval);
 
   let slots: string[];
 
   if (bookingMode === 'intelligent') {
     slots = calculateIntelligentSlots(openTime, closeTime, totalDuration, bufferMinutes, blocked, earliestSlotTime);
   } else if (bookingMode === 'hybrid') {
-    slots = calculateHybridSlots(openTime, closeTime, totalDuration, bufferMinutes, slotInterval, blocked, earliestSlotTime);
+    slots = calculateHybridSlots(openTime, closeTime, totalDuration, bufferMinutes, effectiveSlotInterval, blocked, earliestSlotTime);
   } else {
-    slots = calculateFixedGridSlots(openTime, closeTime, totalDuration, bufferMinutes, slotInterval, blocked, earliestSlotTime);
+    slots = calculateFixedGridSlots(openTime, closeTime, totalDuration, bufferMinutes, effectiveSlotInterval, blocked, earliestSlotTime);
   }
 
   console.log('[ENGINE]', slots);
@@ -418,7 +424,7 @@ export function calculateAvailableSlots(params: AvailabilityParams): string[] {
     bookingMode,
     totalDuration,
     bufferMinutes,
-    slotInterval,
+    slotInterval: effectiveSlotInterval,
     openTime: format(openTime, 'HH:mm'),
     closeTime: format(closeTime, 'HH:mm'),
     blockedIntervals: blocked.length,
