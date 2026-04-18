@@ -855,6 +855,7 @@ export type Database = {
           city: string | null
           cover_url: string | null
           created_at: string
+          current_period_end: string | null
           description: string | null
           district: string | null
           facebook: string | null
@@ -869,6 +870,9 @@ export type Database = {
           marketplace_active: boolean
           name: string
           owner_id: string | null
+          pending_billing_cycle: string | null
+          pending_change_at: string | null
+          pending_plan_id: string | null
           phone: string | null
           plan_id: string | null
           postal_code: string | null
@@ -888,6 +892,7 @@ export type Database = {
           timezone: string
           trial_active: boolean
           trial_end_date: string | null
+          trial_plan_id: string | null
           trial_start_date: string | null
           updated_at: string
           website: string | null
@@ -909,6 +914,7 @@ export type Database = {
           city?: string | null
           cover_url?: string | null
           created_at?: string
+          current_period_end?: string | null
           description?: string | null
           district?: string | null
           facebook?: string | null
@@ -923,6 +929,9 @@ export type Database = {
           marketplace_active?: boolean
           name: string
           owner_id?: string | null
+          pending_billing_cycle?: string | null
+          pending_change_at?: string | null
+          pending_plan_id?: string | null
           phone?: string | null
           plan_id?: string | null
           postal_code?: string | null
@@ -942,6 +951,7 @@ export type Database = {
           timezone?: string
           trial_active?: boolean
           trial_end_date?: string | null
+          trial_plan_id?: string | null
           trial_start_date?: string | null
           updated_at?: string
           website?: string | null
@@ -963,6 +973,7 @@ export type Database = {
           city?: string | null
           cover_url?: string | null
           created_at?: string
+          current_period_end?: string | null
           description?: string | null
           district?: string | null
           facebook?: string | null
@@ -977,6 +988,9 @@ export type Database = {
           marketplace_active?: boolean
           name?: string
           owner_id?: string | null
+          pending_billing_cycle?: string | null
+          pending_change_at?: string | null
+          pending_plan_id?: string | null
           phone?: string | null
           plan_id?: string | null
           postal_code?: string | null
@@ -996,6 +1010,7 @@ export type Database = {
           timezone?: string
           trial_active?: boolean
           trial_end_date?: string | null
+          trial_plan_id?: string | null
           trial_start_date?: string | null
           updated_at?: string
           website?: string | null
@@ -1003,8 +1018,22 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "companies_pending_plan_id_fkey"
+            columns: ["pending_plan_id"]
+            isOneToOne: false
+            referencedRelation: "plans"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "companies_plan_id_fkey"
             columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "plans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "companies_trial_plan_id_fkey"
+            columns: ["trial_plan_id"]
             isOneToOne: false
             referencedRelation: "plans"
             referencedColumns: ["id"]
@@ -1409,6 +1438,53 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "public_company_view"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      company_modules: {
+        Row: {
+          billing_cycle: string
+          company_id: string
+          created_at: string
+          ends_at: string | null
+          id: string
+          module_id: string
+          started_at: string
+          status: string
+          stripe_subscription_item_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          billing_cycle?: string
+          company_id: string
+          created_at?: string
+          ends_at?: string | null
+          id?: string
+          module_id: string
+          started_at?: string
+          status?: string
+          stripe_subscription_item_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          billing_cycle?: string
+          company_id?: string
+          created_at?: string
+          ends_at?: string | null
+          id?: string
+          module_id?: string
+          started_at?: string
+          status?: string
+          stripe_subscription_item_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_modules_module_id_fkey"
+            columns: ["module_id"]
+            isOneToOne: false
+            referencedRelation: "plan_modules"
             referencedColumns: ["id"]
           },
         ]
@@ -2408,63 +2484,165 @@ export type Database = {
           },
         ]
       }
+      plan_modules: {
+        Row: {
+          active: boolean
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          price_monthly: number
+          price_yearly: number
+          slug: string
+          sort_order: number
+          stripe_monthly_price_id: string | null
+          stripe_product_id: string | null
+          stripe_yearly_price_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          price_monthly?: number
+          price_yearly?: number
+          slug: string
+          sort_order?: number
+          stripe_monthly_price_id?: string | null
+          stripe_product_id?: string | null
+          stripe_yearly_price_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          price_monthly?: number
+          price_yearly?: number
+          slug?: string
+          sort_order?: number
+          stripe_monthly_price_id?: string | null
+          stripe_product_id?: string | null
+          stripe_yearly_price_id?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       plans: {
         Row: {
           active: boolean
+          advanced_reports: boolean
           automatic_messages: boolean
+          automation: boolean
+          badge: string | null
+          cashback: boolean
           created_at: string
           custom_branding: boolean
+          custom_colors: boolean
+          custom_domain: boolean
           discount_coupons: boolean
           feature_financial_level: string
           feature_requests: boolean
           id: string
+          loyalty: boolean
+          marketplace_priority: number
           members_limit: number
           monthly_price: number
+          monthly_reports: boolean
+          multi_location_ready: boolean
           name: string
+          open_agenda: boolean
           open_scheduling: boolean
+          premium_templates: boolean
           promotions: boolean
+          slug: string | null
           sort_order: number
+          stripe_monthly_price_id: string | null
+          stripe_product_id: string | null
+          stripe_yearly_price_id: string | null
+          support_priority: boolean
           updated_at: string
+          whatsapp_default: boolean
           whitelabel: boolean
           yearly_discount: number
           yearly_price: number
         }
         Insert: {
           active?: boolean
+          advanced_reports?: boolean
           automatic_messages?: boolean
+          automation?: boolean
+          badge?: string | null
+          cashback?: boolean
           created_at?: string
           custom_branding?: boolean
+          custom_colors?: boolean
+          custom_domain?: boolean
           discount_coupons?: boolean
           feature_financial_level?: string
           feature_requests?: boolean
           id?: string
+          loyalty?: boolean
+          marketplace_priority?: number
           members_limit?: number
           monthly_price?: number
+          monthly_reports?: boolean
+          multi_location_ready?: boolean
           name: string
+          open_agenda?: boolean
           open_scheduling?: boolean
+          premium_templates?: boolean
           promotions?: boolean
+          slug?: string | null
           sort_order?: number
+          stripe_monthly_price_id?: string | null
+          stripe_product_id?: string | null
+          stripe_yearly_price_id?: string | null
+          support_priority?: boolean
           updated_at?: string
+          whatsapp_default?: boolean
           whitelabel?: boolean
           yearly_discount?: number
           yearly_price?: number
         }
         Update: {
           active?: boolean
+          advanced_reports?: boolean
           automatic_messages?: boolean
+          automation?: boolean
+          badge?: string | null
+          cashback?: boolean
           created_at?: string
           custom_branding?: boolean
+          custom_colors?: boolean
+          custom_domain?: boolean
           discount_coupons?: boolean
           feature_financial_level?: string
           feature_requests?: boolean
           id?: string
+          loyalty?: boolean
+          marketplace_priority?: number
           members_limit?: number
           monthly_price?: number
+          monthly_reports?: boolean
+          multi_location_ready?: boolean
           name?: string
+          open_agenda?: boolean
           open_scheduling?: boolean
+          premium_templates?: boolean
           promotions?: boolean
+          slug?: string | null
           sort_order?: number
+          stripe_monthly_price_id?: string | null
+          stripe_product_id?: string | null
+          stripe_yearly_price_id?: string | null
+          support_priority?: boolean
           updated_at?: string
+          whatsapp_default?: boolean
           whitelabel?: boolean
           yearly_discount?: number
           yearly_price?: number
