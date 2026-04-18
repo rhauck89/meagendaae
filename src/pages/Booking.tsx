@@ -10,7 +10,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Calendar as CalendarPicker } from '@/components/ui/calendar';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Scissors, Sparkles, Clock, DollarSign, ChevronRight, ChevronLeft, CheckCircle2, Bell, Zap, CalendarPlus, MessageCircle, RotateCcw, Home, User, Phone, Mail, Cake, MapPin, Star, X, AlertTriangle, Calendar } from 'lucide-react';
-import { format, addMinutes, addDays, isToday, isTomorrow, startOfDay } from 'date-fns';
+import { format, addMinutes, addDays, isToday, isTomorrow, startOfDay, isSameDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
