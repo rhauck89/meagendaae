@@ -852,6 +852,7 @@ export type Database = {
           booking_mode: string
           buffer_minutes: number
           business_type: Database["public"]["Enums"]["business_type"]
+          cancel_at_period_end: boolean
           city: string | null
           cover_url: string | null
           created_at: string
@@ -862,6 +863,7 @@ export type Database = {
           fixed_slot_interval: number
           google_maps_url: string | null
           google_review_url: string | null
+          grace_period_until: string | null
           id: string
           instagram: string | null
           latitude: number | null
@@ -870,6 +872,8 @@ export type Database = {
           marketplace_active: boolean
           name: string
           owner_id: string | null
+          paddle_customer_id: string | null
+          paddle_subscription_id: string | null
           pending_billing_cycle: string | null
           pending_change_at: string | null
           pending_plan_id: string | null
@@ -911,6 +915,7 @@ export type Database = {
           booking_mode?: string
           buffer_minutes?: number
           business_type?: Database["public"]["Enums"]["business_type"]
+          cancel_at_period_end?: boolean
           city?: string | null
           cover_url?: string | null
           created_at?: string
@@ -921,6 +926,7 @@ export type Database = {
           fixed_slot_interval?: number
           google_maps_url?: string | null
           google_review_url?: string | null
+          grace_period_until?: string | null
           id?: string
           instagram?: string | null
           latitude?: number | null
@@ -929,6 +935,8 @@ export type Database = {
           marketplace_active?: boolean
           name: string
           owner_id?: string | null
+          paddle_customer_id?: string | null
+          paddle_subscription_id?: string | null
           pending_billing_cycle?: string | null
           pending_change_at?: string | null
           pending_plan_id?: string | null
@@ -970,6 +978,7 @@ export type Database = {
           booking_mode?: string
           buffer_minutes?: number
           business_type?: Database["public"]["Enums"]["business_type"]
+          cancel_at_period_end?: boolean
           city?: string | null
           cover_url?: string | null
           created_at?: string
@@ -980,6 +989,7 @@ export type Database = {
           fixed_slot_interval?: number
           google_maps_url?: string | null
           google_review_url?: string | null
+          grace_period_until?: string | null
           id?: string
           instagram?: string | null
           latitude?: number | null
@@ -988,6 +998,8 @@ export type Database = {
           marketplace_active?: boolean
           name?: string
           owner_id?: string | null
+          paddle_customer_id?: string | null
+          paddle_subscription_id?: string | null
           pending_billing_cycle?: string | null
           pending_change_at?: string | null
           pending_plan_id?: string | null
@@ -2557,6 +2569,9 @@ export type Database = {
           name: string
           open_agenda: boolean
           open_scheduling: boolean
+          paddle_monthly_price_id: string | null
+          paddle_product_id: string | null
+          paddle_yearly_price_id: string | null
           premium_templates: boolean
           promotions: boolean
           slug: string | null
@@ -2595,6 +2610,9 @@ export type Database = {
           name: string
           open_agenda?: boolean
           open_scheduling?: boolean
+          paddle_monthly_price_id?: string | null
+          paddle_product_id?: string | null
+          paddle_yearly_price_id?: string | null
           premium_templates?: boolean
           promotions?: boolean
           slug?: string | null
@@ -2633,6 +2651,9 @@ export type Database = {
           name?: string
           open_agenda?: boolean
           open_scheduling?: boolean
+          paddle_monthly_price_id?: string | null
+          paddle_product_id?: string | null
+          paddle_yearly_price_id?: string | null
           premium_templates?: boolean
           promotions?: boolean
           slug?: string | null
@@ -3501,6 +3522,74 @@ export type Database = {
           },
           {
             foreignKeyName: "services_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "public_company_view"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      subscription_events: {
+        Row: {
+          company_id: string | null
+          created_at: string
+          environment: string
+          event_type: string
+          id: string
+          paddle_customer_id: string | null
+          paddle_event_id: string | null
+          paddle_subscription_id: string | null
+          payload: Json | null
+          status: string | null
+        }
+        Insert: {
+          company_id?: string | null
+          created_at?: string
+          environment?: string
+          event_type: string
+          id?: string
+          paddle_customer_id?: string | null
+          paddle_event_id?: string | null
+          paddle_subscription_id?: string | null
+          payload?: Json | null
+          status?: string | null
+        }
+        Update: {
+          company_id?: string | null
+          created_at?: string
+          environment?: string
+          event_type?: string
+          id?: string
+          paddle_customer_id?: string | null
+          paddle_event_id?: string | null
+          paddle_subscription_id?: string | null
+          payload?: Json | null
+          status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subscription_events_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "subscription_events_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies_billing"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "subscription_events_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "public_company"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "subscription_events_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "public_company_view"
@@ -4514,6 +4603,7 @@ export type Database = {
       }
     }
     Functions: {
+      apply_pending_plan_changes: { Args: never; Returns: Json }
       book_event_slot:
         | {
             Args: {
@@ -4590,6 +4680,7 @@ export type Database = {
         Args: { p_minutes?: number }
         Returns: Json
       }
+      expire_trials_and_grace: { Args: never; Returns: Json }
       get_appointment_public: {
         Args: { p_appointment_id: string }
         Returns: Json
@@ -4660,6 +4751,8 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_company_active: { Args: { p_company_id: string }; Returns: boolean }
+      is_company_readonly: { Args: { p_company_id: string }; Returns: boolean }
       join_public_waitlist:
         | {
             Args: {
