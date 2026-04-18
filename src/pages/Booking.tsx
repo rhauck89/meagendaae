@@ -1339,6 +1339,8 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
   };
   const currentStepIdx = stepList.indexOf(step);
 
+  console.log('[FINAL SLOTS UI]', availableSlots.map((slot) => formatSlotTime(slot)));
+
   const companySlugPath = company.business_type === 'esthetic' ? 'estetica' : 'barbearia';
   const companyPageUrl = `/${companySlugPath}/${company.slug}`;
   const displayCoverUrl = company.cover_url;
@@ -1757,7 +1759,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                                 onMouseEnter={(e) => { e.currentTarget.style.background = T.accent; e.currentTarget.style.color = '#000'; e.currentTarget.style.borderColor = T.accent; }}
                                 onMouseLeave={(e) => { e.currentTarget.style.background = T.cardHover; e.currentTarget.style.color = T.text; e.currentTarget.style.borderColor = T.border; }}
                               >
-                                {slot}
+                                {formatSlotTime(slot)}
                               </button>
                             ))}
                           </div>
@@ -1926,7 +1928,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                                 boxShadow: isSel ? `0 0 16px ${T.accent}30` : 'none',
                               }}
                             >
-                              {slot}
+                              {formatSlotTime(slot)}
                             </button>
                           );
                         })}
