@@ -1041,28 +1041,42 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
         localStorage.setItem(countKey, String(currentCount + 1));
       }
 
+      const freshAvailability = await getAvailableSlots({
+        source: 'public',
+        companyId: company.id,
+        professionalId: selectedProfessional,
+        date: selectedDate,
+        totalDuration,
+        filterPastForToday: true,
+      });
+
+      setAppointmentsForSelectedDate(freshAvailability.existingAppointments);
+      setAppointmentsLoaded(true);
+      setAvailableSlots(freshAvailability.slots);
+      setGeneratedSlots(freshAvailability.slots);
+
+      console.log('[SELECTED_SLOT]', selectedTime);
+      console.log('[BOOKINGS_USED]', freshAvailability.existingAppointments);
+      console.log('[REAL_SLOTS]', freshAvailability.slots);
+
+      if (!freshAvailability.slots.includes(selectedTime)) {
+        setBookingError({
+          kind: 'conflict',
+          title: 'Este horário não está mais disponível',
+          description: 'Atualizamos a agenda com os horários realmente livres para você escolher novamente.',
+          hint: 'Selecione um dos horários atualizados abaixo.',
+          suggestions: freshAvailability.slots,
+        });
+        setStep('datetime');
+        setLoading(false);
+        return;
+      }
+
       const [h, m] = selectedTime.split(':').map(Number);
       const startTime = new Date(selectedDate);
       startTime.setHours(h, m, 0, 0);
       const endTime = addMinutes(startTime, totalDuration);
       if (!clientId) throw new Error('Cadastro do cliente falhou. Tente novamente.');
-
-      // Validate time slot is on the grid for fixed_grid mode
-      if (bookingMode === 'fixed_grid') {
-        const dayOfWeek = selectedDate.getDay();
-        const activeHours = professionalHours.length > 0 ? professionalHours : businessHours;
-        const dayHours = activeHours.find(bh => bh.day_of_week === dayOfWeek);
-        if (dayHours) {
-          const validation = validateTimeSlot(selectedTime, bookingMode, fixedSlotInterval, dayHours.open_time);
-          if (!validation.valid) {
-            console.error('[Booking] Invalid time slot:', validation.error);
-            toast.error('Horário inválido. Por favor, selecione um horário da grade disponível.');
-            setStep('datetime');
-            setLoading(false);
-            return;
-          }
-        }
-      }
 
       const appointmentPayload = {
         p_professional_id: selectedProfessional, p_client_id: clientId,
@@ -1084,7 +1098,13 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
         .limit(1);
 
       if (conflictingAppts && conflictingAppts.length > 0) {
-        toast.error('Esse horário acabou de ser reservado ou não comporta a duração do serviço selecionado. Por favor escolha outro horário disponível.');
+        setBookingError({
+          kind: 'conflict',
+          title: 'Este horário acabou de ser ocupado',
+          description: 'Outra reserva entrou antes da confirmação.',
+          hint: 'Escolha um dos horários reais atualizados abaixo.',
+          suggestions: freshAvailability.slots,
+        });
         setStep('datetime');
         if (selectedDate) calculateSlots(selectedDate);
         setLoading(false);
