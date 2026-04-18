@@ -46,6 +46,7 @@ interface CompanyPlanInfo {
   pendingPlanName: string | null;
   pendingBillingCycle: string | null;
   pendingChangeAt: string | null;
+  cancelAtPeriodEnd: boolean;
   features: PlanFeatures;
   loading: boolean;
   isFeatureEnabled: (feature: keyof PlanFeatures) => boolean;
@@ -120,6 +121,7 @@ export const useCompanyPlan = (): CompanyPlanInfo => {
   const [pendingPlanName, setPendingPlanName] = useState<string | null>(null);
   const [pendingBillingCycle, setPendingBillingCycle] = useState<string | null>(null);
   const [pendingChangeAt, setPendingChangeAt] = useState<string | null>(null);
+  const [cancelAtPeriodEnd, setCancelAtPeriodEnd] = useState(false);
   const [features, setFeatures] = useState<PlanFeatures>(defaultFeatures);
   const [loading, setLoading] = useState(true);
 
@@ -129,7 +131,7 @@ export const useCompanyPlan = (): CompanyPlanInfo => {
 
     const { data: company } = await supabase
       .from('companies')
-      .select('plan_id, subscription_status, trial_active, trial_end_date, billing_cycle, trial_plan_id, current_period_end, pending_plan_id, pending_billing_cycle, pending_change_at' as any)
+      .select('plan_id, subscription_status, trial_active, trial_end_date, billing_cycle, trial_plan_id, current_period_end, pending_plan_id, pending_billing_cycle, pending_change_at, cancel_at_period_end' as any)
       .eq('id', companyId)
       .single();
 
@@ -145,6 +147,7 @@ export const useCompanyPlan = (): CompanyPlanInfo => {
     setPendingPlanId(c.pending_plan_id ?? null);
     setPendingBillingCycle(c.pending_billing_cycle ?? null);
     setPendingChangeAt(c.pending_change_at ?? null);
+    setCancelAtPeriodEnd(!!c.cancel_at_period_end);
 
     let expired = false;
     if (c.trial_active && c.trial_end_date) {
@@ -228,6 +231,7 @@ export const useCompanyPlan = (): CompanyPlanInfo => {
     pendingPlanName,
     pendingBillingCycle,
     pendingChangeAt,
+    cancelAtPeriodEnd,
     features,
     loading,
     isFeatureEnabled,

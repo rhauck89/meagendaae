@@ -50,6 +50,9 @@ import SuperAdminMessages from "./pages/superadmin/SuperAdminMessages";
 import Support from "./pages/Support";
 import HelpCenter from "./pages/HelpCenter";
 import PlansPage from "./pages/PlansPage";
+import CheckoutSuccess from "./pages/CheckoutSuccess";
+import { PaymentTestModeBanner } from "./components/PaymentTestModeBanner";
+import { ReadOnlyBanner } from "./components/ReadOnlyGuard";
 import NotFound from "./pages/NotFound";
 import AppRedirect from "./pages/AppRedirect";
 import CompanySelector from "./pages/CompanySelector";
@@ -200,6 +203,7 @@ const PlatformRoutes = () => (
     <Route path="/dashboard/finance/payables" element={<DashboardRoute><FinancePayables /></DashboardRoute>} />
     <Route path="/dashboard/finance/receivables" element={<DashboardRoute><FinanceReceivables /></DashboardRoute>} />
     <Route path="/settings/plans" element={<ProtectedRoute><PlansPage /></ProtectedRoute>} />
+    <Route path="/checkout/success" element={<ProtectedRoute><CheckoutSuccess /></ProtectedRoute>} />
     <Route path="/:companySlug/evento/:eventSlug" element={<EventPublic />} />
     <Route path="/:companySlug/promo/:promoSlug" element={<PromotionPublic />} />
     <Route path="/evento/:eventSlug" element={<EventPublic />} />
@@ -223,6 +227,8 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <AuthProvider>
+            <PaymentTestModeBanner />
+            <ReadOnlyBanner />
             <AppRoutes />
           </AuthProvider>
         </BrowserRouter>
