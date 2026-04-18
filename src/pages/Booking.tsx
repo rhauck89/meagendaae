@@ -164,6 +164,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [availableSlots, setAvailableSlots] = useState<string[]>([]);
+  const [generatedSlots, setGeneratedSlots] = useState<string[]>([]);
   const [bookingError, setBookingError] = useState<BookingErrorInfo | null>(null);
   const [clientForm, setClientForm] = useState({ full_name: '', email: '', whatsapp: '', birth_date: '' });
   const [clientPassword, setClientPassword] = useState('');
@@ -204,6 +205,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
     totalPrice: number; totalDuration: number; bookedAt: string;
   } | null>(null);
   const [rebookDismissed, setRebookDismissed] = useState(false);
+  const selectedSlotIsAvailable = selectedTime ? generatedSlots.includes(selectedTime) : false;
   const [bookingResult, setBookingResult] = useState<{
     appointmentId: string;
     professionalName: string;
