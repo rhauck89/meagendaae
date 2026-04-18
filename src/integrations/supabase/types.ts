@@ -4754,7 +4754,16 @@ export type Database = {
       collaborator_type: "partner" | "commissioned" | "independent"
       commission_type: "percentage" | "fixed" | "none" | "own_revenue"
       event_status: "draft" | "published" | "cancelled" | "completed"
-      subscription_status: "active" | "inactive" | "blocked" | "trial"
+      subscription_status:
+        | "active"
+        | "inactive"
+        | "blocked"
+        | "trial"
+        | "past_due"
+        | "expired_trial"
+        | "unpaid"
+        | "trialing"
+        | "canceled"
       waiting_list_status:
         | "waiting"
         | "notified"
@@ -4911,7 +4920,17 @@ export const Constants = {
       collaborator_type: ["partner", "commissioned", "independent"],
       commission_type: ["percentage", "fixed", "none", "own_revenue"],
       event_status: ["draft", "published", "cancelled", "completed"],
-      subscription_status: ["active", "inactive", "blocked", "trial"],
+      subscription_status: [
+        "active",
+        "inactive",
+        "blocked",
+        "trial",
+        "past_due",
+        "expired_trial",
+        "unpaid",
+        "trialing",
+        "canceled",
+      ],
       waiting_list_status: [
         "waiting",
         "notified",
