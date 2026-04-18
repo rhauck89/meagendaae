@@ -14,3 +14,12 @@ verify_jwt = false
 
 [functions.automation-monthly-report]
 verify_jwt = false
+
+[functions.payments-webhook]
+verify_jwt = false
+
+[functions.get-paddle-price]
+verify_jwt = false
+
+[functions.apply-pending-plans]
+verify_jwt = false
