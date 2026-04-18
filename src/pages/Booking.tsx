@@ -164,6 +164,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [availableSlots, setAvailableSlots] = useState<string[]>([]);
+  const [generatedSlots, setGeneratedSlots] = useState<string[]>([]);
   const [bookingError, setBookingError] = useState<BookingErrorInfo | null>(null);
   const [clientForm, setClientForm] = useState({ full_name: '', email: '', whatsapp: '', birth_date: '' });
   const [clientPassword, setClientPassword] = useState('');
@@ -204,6 +205,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
     totalPrice: number; totalDuration: number; bookedAt: string;
   } | null>(null);
   const [rebookDismissed, setRebookDismissed] = useState(false);
+  const selectedSlotIsAvailable = selectedTime ? generatedSlots.includes(selectedTime) : false;
   const [bookingResult, setBookingResult] = useState<{
     appointmentId: string;
     professionalName: string;
@@ -811,22 +813,6 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
     );
   };
 
-  const fetchBookingAppointments = async (date: Date, professionalId: string) => {
-    if (!company) return [] as ExistingAppointment[];
-    const dateStr = format(date, 'yyyy-MM-dd');
-    const { data, error } = await (supabase as any).rpc('get_booking_appointments', {
-      p_company_id: company.id,
-      p_professional_id: professionalId,
-      p_selected_date: dateStr,
-      p_timezone: bookingTimezone,
-    });
-    if (error) throw error;
-    return ((data as ExistingAppointment[] | null) || []).map((a) => ({
-      start_time: a.start_time,
-      end_time: a.end_time,
-    }));
-  };
-
   const calculateSlots = async (date: Date) => {
     if (!company || !selectedProfessional || businessHours.length === 0 || totalDuration <= 0) {
       setAvailableSlots([]);
@@ -841,7 +827,6 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
     setAvailableSlots([]);
     setGeneratedSlots([]);
 
-    const dateStr = format(date, 'yyyy-MM-dd');
     try {
       // Use the unified availability service so the public flow returns the
       // exact same slots as the internal manual booking flow.
@@ -931,15 +916,9 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
       });
       console.log('[UI RECEIVED]', result.slots);
       if (result.slots.length > 0) {
-        // Smart suggestion: compute on the FIRST day that has slots, then keep it.
         if (!suggestion) {
-          const pick = pickSmartSuggestion(
-            result.slots,
-            result.existingAppointments || [],
-            totalDuration,
-            company.timezone || 'America/Sao_Paulo',
-          );
-          if (pick) suggestion = { date: day, slot: pick.slot, reason: pick.reason };
+          suggestion = { date: day, slot: result.slots[0], reason: 'first-available' };
+          console.log('[SUGGESTED_SLOT]', suggestion);
         }
         const remaining = MAX_SLOTS - totalSlotsFound;
         const daySlots = result.slots.slice(0, remaining);
@@ -1062,28 +1041,55 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
         localStorage.setItem(countKey, String(currentCount + 1));
       }
 
+      if (!selectedSlotIsAvailable) {
+        setBookingError({
+          kind: 'invalid_slot',
+          title: 'Este horário não está mais disponível',
+          description: 'A agenda foi atualizada e o horário selecionado saiu da lista válida.',
+          hint: 'Escolha um dos horários disponíveis abaixo.',
+          suggestions: generatedSlots,
+        });
+        setStep('datetime');
+        setLoading(false);
+        return;
+      }
+
+      const freshAvailability = await getAvailableSlots({
+        source: 'public',
+        companyId: company.id,
+        professionalId: selectedProfessional,
+        date: selectedDate,
+        totalDuration,
+        filterPastForToday: true,
+      });
+
+      setAppointmentsForSelectedDate(freshAvailability.existingAppointments);
+      setAppointmentsLoaded(true);
+      setAvailableSlots(freshAvailability.slots);
+      setGeneratedSlots(freshAvailability.slots);
+
+      console.log('[SELECTED_SLOT]', selectedTime);
+      console.log('[BOOKINGS_USED]', freshAvailability.existingAppointments);
+      console.log('[REAL_SLOTS]', freshAvailability.slots);
+
+      if (!freshAvailability.slots.includes(selectedTime)) {
+        setBookingError({
+          kind: 'conflict',
+          title: 'Este horário não está mais disponível',
+          description: 'Atualizamos a agenda com os horários realmente livres para você escolher novamente.',
+          hint: 'Selecione um dos horários atualizados abaixo.',
+          suggestions: freshAvailability.slots,
+        });
+        setStep('datetime');
+        setLoading(false);
+        return;
+      }
+
       const [h, m] = selectedTime.split(':').map(Number);
       const startTime = new Date(selectedDate);
       startTime.setHours(h, m, 0, 0);
       const endTime = addMinutes(startTime, totalDuration);
       if (!clientId) throw new Error('Cadastro do cliente falhou. Tente novamente.');
-
-      // Validate time slot is on the grid for fixed_grid mode
-      if (bookingMode === 'fixed_grid') {
-        const dayOfWeek = selectedDate.getDay();
-        const activeHours = professionalHours.length > 0 ? professionalHours : businessHours;
-        const dayHours = activeHours.find(bh => bh.day_of_week === dayOfWeek);
-        if (dayHours) {
-          const validation = validateTimeSlot(selectedTime, bookingMode, fixedSlotInterval, dayHours.open_time);
-          if (!validation.valid) {
-            console.error('[Booking] Invalid time slot:', validation.error);
-            toast.error('Horário inválido. Por favor, selecione um horário da grade disponível.');
-            setStep('datetime');
-            setLoading(false);
-            return;
-          }
-        }
-      }
 
       const appointmentPayload = {
         p_professional_id: selectedProfessional, p_client_id: clientId,
@@ -1105,7 +1111,13 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
         .limit(1);
 
       if (conflictingAppts && conflictingAppts.length > 0) {
-        toast.error('Esse horário acabou de ser reservado ou não comporta a duração do serviço selecionado. Por favor escolha outro horário disponível.');
+        setBookingError({
+          kind: 'conflict',
+          title: 'Este horário acabou de ser ocupado',
+          description: 'Outra reserva entrou antes da confirmação.',
+          hint: 'Escolha um dos horários reais atualizados abaixo.',
+          suggestions: freshAvailability.slots,
+        });
         setStep('datetime');
         if (selectedDate) calculateSlots(selectedDate);
         setLoading(false);
@@ -1241,10 +1253,24 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
       setStep('success');
     } catch (err: any) {
       const info = translateBookingError(err);
-      setBookingError(info);
-      // Conflict → user is on a stale slot list; refresh availability for the day
-      if (info.kind === 'conflict' || info.kind === 'invalid_slot') {
+      if ((info.kind === 'conflict' || info.kind === 'invalid_slot') && company && selectedDate && selectedProfessional) {
+        const freshAvailability = await getAvailableSlots({
+          source: 'public',
+          companyId: company.id,
+          professionalId: selectedProfessional,
+          date: selectedDate,
+          totalDuration,
+          filterPastForToday: true,
+        });
+
+        setAppointmentsForSelectedDate(freshAvailability.existingAppointments);
+        setAppointmentsLoaded(true);
+        setAvailableSlots(freshAvailability.slots);
+        setGeneratedSlots(freshAvailability.slots);
+        setBookingError({ ...info, suggestions: freshAvailability.slots });
         setStep('datetime');
+      } else {
+        setBookingError(info);
       }
     } finally {
       setLoading(false);
@@ -2580,7 +2606,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
         open={!!bookingError}
         onOpenChange={(o) => { if (!o) setBookingError(null); }}
         error={bookingError}
-        suggestions={availableSlots}
+        suggestions={bookingError?.suggestions ?? availableSlots}
         onPickSuggestion={(slot) => {
           setSelectedTime(slot);
           setBookingError(null);
