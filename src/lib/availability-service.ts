@@ -89,10 +89,9 @@ async function resolveBookingConfig(
   const professional = (professionalRes.data as any) || {};
 
   // Priority: professional override > company default > 'fixed_grid'
-  const resolvedBookingMode = (professional?.booking_mode ?? company?.booking_mode ?? 'fixed_grid') as BookingMode;
-
-  // TEMP validation override requested by user to confirm the public flow works end-to-end.
-  const bookingMode = 'intelligent' as BookingMode;
+  // Single source of truth — frontend MUST match what the RPC (create_appointment) reads from DB,
+  // otherwise the UI will show slots that the backend will reject with INVALID_TIME_SLOT.
+  const bookingMode = (professional?.booking_mode ?? company?.booking_mode ?? 'fixed_grid') as BookingMode;
 
   console.log('[BOOKING MODE RESOLVED]', {
     source,
@@ -100,7 +99,6 @@ async function resolveBookingConfig(
     companyId,
     professionalMode: professional?.booking_mode ?? null,
     companyMode: company?.booking_mode ?? null,
-    resolvedMode: resolvedBookingMode,
     finalMode: bookingMode,
   });
 
