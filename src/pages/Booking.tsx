@@ -1280,7 +1280,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
   };
   const currentStepIdx = stepList.indexOf(step);
 
-  console.log('[FINAL SLOTS UI]', availableSlots);
+  console.log('[UI RECEIVED]', availableSlots);
 
   const companySlugPath = company.business_type === 'esthetic' ? 'estetica' : 'barbearia';
   const companyPageUrl = `/${companySlugPath}/${company.slug}`;

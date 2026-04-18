@@ -253,6 +253,8 @@ export async function getAvailableSlots(
     slots,
   });
 
+  console.log('[SERVICE FINAL]', slots);
+
   return {
     slots,
     bookingMode: config.bookingMode,
