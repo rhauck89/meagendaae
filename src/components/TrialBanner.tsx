@@ -132,8 +132,15 @@ const TrialBanner = () => {
           <div className="grid gap-6 lg:grid-cols-[1.3fr_1fr] lg:items-center">
             {/* Left: pitch */}
             <div>
+              {!usage.loading && usage.daysUsed > 0 && (
+                <p className="mb-2 text-xs sm:text-sm font-medium text-primary/90 flex items-center gap-1.5">
+                  <CalendarDays className="h-3.5 w-3.5" />
+                  Você usou o Agendaê por <span className="font-bold">{usage.daysUsed} dia{usage.daysUsed !== 1 ? 's' : ''}</span>
+                </p>
+              )}
+
               <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
-                Não perca seus clientes.{' '}
+                Não perca tudo que você construiu.{' '}
                 <span className="bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
                   Continue crescendo com o Studio.
                 </span>
@@ -143,6 +150,44 @@ const TrialBanner = () => {
                 automações funcionando sem interrupção.
               </p>
 
+              {!usage.loading && (usage.appointmentsCount > 0 || usage.clientsCount > 0 || usage.totalRevenue > 0) && (
+                <div className="mt-4 rounded-xl border border-primary/20 bg-card/60 backdrop-blur p-4">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
+                    Resultados que você já gerou
+                  </p>
+                  <div className="grid grid-cols-3 gap-3">
+                    <div className="text-center">
+                      <div className="flex items-center justify-center gap-1 text-primary">
+                        <CalendarDays className="h-4 w-4" />
+                        <span className="text-xl sm:text-2xl font-bold">{usage.appointmentsCount}</span>
+                      </div>
+                      <p className="text-[11px] text-muted-foreground mt-0.5">Agendamentos</p>
+                    </div>
+                    <div className="text-center border-x border-border/50">
+                      <div className="flex items-center justify-center gap-1 text-primary">
+                        <Users className="h-4 w-4" />
+                        <span className="text-xl sm:text-2xl font-bold">{usage.clientsCount}</span>
+                      </div>
+                      <p className="text-[11px] text-muted-foreground mt-0.5">Clientes</p>
+                    </div>
+                    <div className="text-center">
+                      <div className="flex items-center justify-center gap-1 text-primary">
+                        <TrendingUp className="h-4 w-4" />
+                        <span className="text-sm sm:text-base font-bold">{formatBRL(usage.totalRevenue)}</span>
+                      </div>
+                      <p className="text-[11px] text-muted-foreground mt-0.5">Faturamento</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <div className="mt-4 flex items-start gap-2 rounded-lg border border-destructive/30 bg-destructive/5 p-3">
+                <Lock className="h-4 w-4 shrink-0 text-destructive mt-0.5" />
+                <p className="text-xs sm:text-sm text-foreground/90">
+                  <span className="font-semibold text-destructive">Seu acesso está limitado</span> até a ativação do plano. Novos agendamentos, edições e automações estão pausados.
+                </p>
+              </div>
+
               <ul className="mt-5 grid gap-2 sm:grid-cols-2">
                 {STUDIO_BENEFITS.map((b) => (
                   <li key={b} className="flex items-start gap-2 text-sm">
@@ -151,6 +196,28 @@ const TrialBanner = () => {
                   </li>
                 ))}
               </ul>
+
+              <div className="mt-5 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-muted-foreground">
+                <div className="flex items-center gap-1.5">
+                  <div className="flex -space-x-1.5">
+                    {[0, 1, 2, 3].map((i) => (
+                      <div
+                        key={i}
+                        className="h-6 w-6 rounded-full border-2 border-background bg-gradient-to-br from-primary/60 to-primary/30"
+                      />
+                    ))}
+                  </div>
+                  <span>
+                    Mais de <span className="font-semibold text-foreground">+{SOCIAL_PROOF_COUNT} profissionais</span> já usam o Agendaê
+                  </span>
+                </div>
+                <div className="flex items-center gap-1 text-primary">
+                  {'★★★★★'.split('').map((s, i) => (
+                    <span key={i} className="text-xs">{s}</span>
+                  ))}
+                  <span className="text-muted-foreground ml-1">4.9/5</span>
+                </div>
+              </div>
             </div>
 
             {/* Right: pricing card */}
