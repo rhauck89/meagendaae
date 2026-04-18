@@ -638,11 +638,13 @@ const Loyalty = () => {
                 return (
                   <Card key={item.id} className={cn(!item.active && 'opacity-50')}>
                     <CardContent className="pt-4 space-y-2">
-                      {item.image_url && (
-                        <div className="w-full h-32 rounded-lg overflow-hidden bg-muted mb-2">
-                          <img src={item.image_url} alt={item.name} className="w-full h-full object-cover" />
-                        </div>
-                      )}
+                      <div className="aspect-square w-full rounded-lg overflow-hidden bg-muted mb-2 flex items-center justify-center">
+                        {item.image_url ? (
+                          <img src={item.image_url} alt={item.name} className="aspect-square w-full object-cover" />
+                        ) : (
+                          <Gift className="h-10 w-10 text-muted-foreground/50" />
+                        )}
+                      </div>
                       <div className="flex items-start justify-between">
                         <div>
                           <p className="font-medium">{item.name}</p>
@@ -662,6 +664,16 @@ const Loyalty = () => {
                         {itemRealValue > 0 && (
                           <p className="text-xs text-muted-foreground">Valor do item: {formatCurrency(itemRealValue)}</p>
                         )}
+                        {item.stock_total !== null && item.stock_total !== undefined && (
+                          <p className={cn(
+                            'text-xs font-medium',
+                            (item.stock_available ?? 0) <= 0 ? 'text-destructive' : 'text-muted-foreground'
+                          )}>
+                            {(item.stock_available ?? 0) <= 0
+                              ? '⛔ Esgotado'
+                              : `📦 Disponível: ${item.stock_available} ${item.stock_available === 1 ? 'unidade' : 'unidades'}`}
+                          </p>
+                        )}
                       </div>
                     </CardContent>
                   </Card>
@@ -680,11 +692,11 @@ const Loyalty = () => {
               <div className="space-y-4">
                 {/* Image upload */}
                 <div className="space-y-1">
-                  <Label>Imagem</Label>
+                  <Label>Imagem (formato recomendado)</Label>
                   <input ref={fileInputRef} type="file" accept="image/*" onChange={handleImageSelect} className="hidden" />
                   {rewardImagePreview ? (
-                    <div className="relative w-full h-32 rounded-lg overflow-hidden bg-muted border cursor-pointer" onClick={() => fileInputRef.current?.click()}>
-                      <img src={rewardImagePreview} alt="Preview" className="w-full h-full object-cover" />
+                    <div className="relative aspect-square w-full max-w-[220px] rounded-lg overflow-hidden bg-muted border cursor-pointer mx-auto" onClick={() => fileInputRef.current?.click()}>
+                      <img src={rewardImagePreview} alt="Preview" className="aspect-square w-full object-cover" />
                       <div className="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
                         <Upload className="h-6 w-6 text-white" />
                       </div>
@@ -693,12 +705,15 @@ const Loyalty = () => {
                     <button
                       type="button"
                       onClick={() => fileInputRef.current?.click()}
-                      className="w-full h-24 rounded-lg border-2 border-dashed border-muted-foreground/30 flex flex-col items-center justify-center gap-1 hover:border-primary/50 transition-colors"
+                      className="aspect-square w-full max-w-[220px] mx-auto rounded-lg border-2 border-dashed border-muted-foreground/30 flex flex-col items-center justify-center gap-1 hover:border-primary/50 transition-colors"
                     >
                       <ImageIcon className="h-6 w-6 text-muted-foreground" />
                       <span className="text-xs text-muted-foreground">Clique para adicionar imagem</span>
                     </button>
                   )}
+                  <p className="text-[11px] text-muted-foreground text-center">
+                    Formato recomendado: quadrado (1:1) — 500x500px ou maior
+                  </p>
                 </div>
 
                 <div className="space-y-1">
