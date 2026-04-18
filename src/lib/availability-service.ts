@@ -22,7 +22,7 @@
  * Both flows are authenticated equally — manual uses the private tables, public uses
  * the public_* views. The computation engine is the same: calculateAvailableSlots().
  */
-import { format, isToday } from 'date-fns';
+import { addMinutes, format, isToday, parseISO } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
 import {
   calculateAvailableSlots,
@@ -51,6 +51,30 @@ export interface GetAvailableSlotsResult {
   slotInterval: number;
   bufferMinutes: number;
   existingAppointments: ExistingAppointment[];
+}
+
+function filterOverlappingGeneratedSlots(
+  date: Date,
+  slots: string[],
+  existingAppointments: ExistingAppointment[],
+  totalDuration: number,
+) {
+  if (slots.length === 0 || existingAppointments.length === 0 || totalDuration <= 0) {
+    return slots;
+  }
+
+  return slots.filter((slot) => {
+    const [hours, minutes] = slot.split(':').map(Number);
+    const slotStart = new Date(date);
+    slotStart.setHours(hours, minutes, 0, 0);
+    const slotEnd = addMinutes(slotStart, totalDuration);
+
+    return !existingAppointments.some((appointment) => {
+      const existingStart = parseISO(appointment.start_time);
+      const existingEnd = parseISO(appointment.end_time);
+      return slotStart < existingEnd && slotEnd > existingStart;
+    });
+  });
 }
 
 /**
@@ -253,11 +277,15 @@ export async function getAvailableSlots(
     professionalId,
   });
 
+  slots = filterOverlappingGeneratedSlots(date, slots, inputs.existingAppointments, totalDuration);
+
   if (filterPastForToday && isToday(date)) {
     const currentTime = format(new Date(), 'HH:mm');
     slots = slots.filter((s) => s > currentTime);
   }
 
+  console.log('[BOOKINGS_USED]', inputs.existingAppointments);
+  console.log('[REAL_SLOTS]', slots);
   console.log('[SERVICE]', slots);
 
   // Unified debug log so manual + public output can be diff-compared
