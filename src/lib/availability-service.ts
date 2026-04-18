@@ -88,7 +88,20 @@ async function resolveBookingConfig(
   const company = (companyRes.data as any) || {};
   const professional = (professionalRes.data as any) || {};
 
-  const bookingMode = (professional.booking_mode || company.booking_mode || 'hybrid') as BookingMode;
+  // Priority: professional override > company default > 'fixed_grid'
+  // Use ?? (nullish) NOT || so an explicit empty string would not silently fall through,
+  // and so 0/false-ish values can't poison the chain.
+  const bookingMode = (professional.booking_mode ?? company.booking_mode ?? 'fixed_grid') as BookingMode;
+
+  console.log('[BOOKING MODE RESOLVED]', {
+    source,
+    professionalId,
+    companyId,
+    professionalMode: professional.booking_mode ?? null,
+    companyMode: company.booking_mode ?? null,
+    finalMode: bookingMode,
+  });
+
   const configuredInterval = professional.grid_interval ?? company.fixed_slot_interval;
   const slotInterval = bookingMode === 'intelligent'
     ? 1
