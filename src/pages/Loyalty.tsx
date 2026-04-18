@@ -47,6 +47,7 @@ const Loyalty = () => {
   const [rewardDesc, setRewardDesc] = useState('');
   const [rewardType, setRewardType] = useState('service');
   const [rewardRealValue, setRewardRealValue] = useState(0);
+  const [rewardStockTotal, setRewardStockTotal] = useState<number | ''>('');
   const [rewardImageFile, setRewardImageFile] = useState<File | null>(null);
   const [rewardImagePreview, setRewardImagePreview] = useState<string | null>(null);
   const [uploadingImage, setUploadingImage] = useState(false);
@@ -242,6 +243,15 @@ const Loyalty = () => {
 
     const autoPoints = pointValue > 0 ? Math.ceil(rewardRealValue / pointValue) : 0;
 
+    // Validate stock: required, non-negative integer
+    const parsedStock = typeof rewardStockTotal === 'number'
+      ? rewardStockTotal
+      : parseInt(String(rewardStockTotal), 10);
+    if (Number.isNaN(parsedStock) || parsedStock < 0) {
+      toast.error('Informe a quantidade disponível (0 ou mais).');
+      return;
+    }
+
     const payload = {
       company_id: companyId,
       name: rewardName,
@@ -251,6 +261,7 @@ const Loyalty = () => {
       points_required: autoPoints,
       extra_cost: 0,
       image_url: imageUrl,
+      stock_total: parsedStock,
     };
 
     if (editingReward) {
@@ -270,6 +281,7 @@ const Loyalty = () => {
     setRewardDesc('');
     setRewardType('service');
     setRewardRealValue(0);
+    setRewardStockTotal('');
     setRewardImageFile(null);
     setRewardImagePreview(null);
   };
@@ -346,6 +358,7 @@ const Loyalty = () => {
     setRewardDesc(item.description || '');
     setRewardType(item.item_type);
     setRewardRealValue(Number(item.real_value) || 0);
+    setRewardStockTotal(item.stock_total ?? '');
     setRewardImageFile(null);
     setRewardImagePreview(item.image_url || null);
     setRewardDialog(true);
