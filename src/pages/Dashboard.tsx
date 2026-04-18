@@ -777,58 +777,30 @@ const Dashboard = () => {
     setRescheduleSelectedSlot(null);
     try {
       const dateStr = format(date, 'yyyy-MM-dd');
-      const { data: profHours } = await supabase
-        .from('professional_working_hours')
-        .select('*')
-        .eq('professional_id', rescheduleTarget.professional_id)
-        .eq('company_id', companyId);
-      const { data: bizHours } = await supabase
-        .from('business_hours')
-        .select('*')
-        .eq('company_id', companyId);
-      const { data: blocks } = await supabase
-        .from('blocked_times')
-        .select('*')
-        .eq('professional_id', rescheduleTarget.professional_id)
-        .eq('block_date', dateStr);
-      const { data: exceptions } = await supabase
-        .from('business_exceptions')
-        .select('*')
-        .eq('company_id', companyId)
-        .eq('exception_date', dateStr);
-      const { data: company } = await supabase
-        .from('companies')
-        .select('buffer_minutes')
-        .eq('id', companyId)
-        .single();
-
       const totalDuration = rescheduleTarget.appointment_services?.reduce(
         (sum: number, s: any) => sum + (s.duration_minutes || 0), 0
       ) || 30;
 
-      // Fetch all appointments for this date/professional, then exclude the one being rescheduled by ID
-      const { data: allAppts } = await supabase
-        .from('appointments')
-        .select('id, start_time, end_time')
-        .eq('professional_id', rescheduleTarget.professional_id)
-        .eq('company_id', companyId)
-        .gte('start_time', `${dateStr}T00:00:00`)
-        .lt('start_time', `${dateStr}T23:59:59`)
-        .not('status', 'in', '("cancelled","no_show")')
-        .neq('id', rescheduleTarget.id);
-
-      const { calculateAvailableSlots } = await import('@/lib/availability-engine');
-      const slots = calculateAvailableSlots({
+      // Single source of truth — uses the same engine + config resolution as Booking.tsx
+      // and ManualAppointmentDialog so reschedule slots match what the booking flow shows.
+      const { getAvailableSlots } = await import('@/lib/availability-service');
+      const { slots } = await getAvailableSlots({
+        source: 'manual',
+        companyId,
+        professionalId: rescheduleTarget.professional_id,
         date,
         totalDuration,
-        businessHours: bizHours || [],
-        exceptions: exceptions || [],
-        existingAppointments: allAppts || [],
-        bufferMinutes: company?.buffer_minutes || 0,
-        professionalHours: profHours && profHours.length > 0 ? profHours : undefined,
-        blockedTimes: blocks || [],
+        filterPastForToday: true,
       });
-      setRescheduleSlots(slots);
+
+      // Exclude the slot that belongs to the appointment being rescheduled itself,
+      // because the unified service includes it as an existing appointment.
+      const targetStart = new Date(rescheduleTarget.start_time);
+      const targetHHmm = `${String(targetStart.getHours()).padStart(2, '0')}:${String(targetStart.getMinutes()).padStart(2, '0')}`;
+      const filteredSlots = slots.filter((s) => s !== targetHHmm);
+
+      console.log('[SLOTS SOURCE]', 'dashboard-reschedule', { count: filteredSlots.length });
+      setRescheduleSlots(filteredSlots);
     } catch (err) {
       console.error('Failed to fetch reschedule slots:', err);
       toast.error('Erro ao buscar horários disponíveis');
