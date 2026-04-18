@@ -292,6 +292,25 @@ const TrialBanner = () => {
                 )}
               </Button>
 
+              {/* Secondary CTA: talk before subscribing */}
+              <Button
+                variant="outline"
+                size="lg"
+                className="w-full mt-2 gap-2 border-primary/30 hover:bg-primary/5"
+                onClick={handleSupportBeforeSubscribe}
+              >
+                <MessageCircle className="h-4 w-4 text-primary" />
+                Falar no WhatsApp antes de assinar
+              </Button>
+
+              {/* Guarantee block */}
+              <div className="mt-4 flex items-center justify-center gap-2 rounded-lg bg-primary/5 border border-primary/15 p-2.5">
+                <ShieldCheck className="h-4 w-4 text-primary shrink-0" />
+                <p className="text-xs text-foreground/90">
+                  <span className="font-semibold">Cancele quando quiser</span> · Sem fidelidade · Pagamento 100% seguro
+                </p>
+              </div>
+
               <div className="mt-3 flex items-center justify-between gap-2">
                 <Button
                   variant="ghost"
@@ -308,13 +327,9 @@ const TrialBanner = () => {
                   onClick={handleSupport}
                 >
                   <MessageCircle className="h-3.5 w-3.5" />
-                  Suporte WhatsApp
+                  Suporte
                 </Button>
               </div>
-
-              <p className="mt-3 text-center text-[11px] text-muted-foreground">
-                Cancele quando quiser · Pagamento 100% seguro
-              </p>
             </div>
           </div>
         </div>
