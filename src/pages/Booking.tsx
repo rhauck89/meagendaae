@@ -860,21 +860,10 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
       setAppointmentsLoaded(true);
       setGeneratedSlots(result.slots);
 
-      // Safety net: re-filter against raw appointments using the booking timezone.
-      // The engine already accounts for everything, so this should be a no-op
-      // in practice but protects against any edge case.
-      const filteredSlots = filterOverlappingSlots(
-        result.slots,
-        result.existingAppointments,
-        totalDuration,
-        result.bufferMinutes,
-        bookingTimezone,
-      );
-
-      console.log('[UI BEFORE RENDER]', filteredSlots);
+      console.log('[UI RECEIVED]', result.slots);
 
       if (requestId !== slotRequestRef.current) return;
-      setAvailableSlots(filteredSlots);
+      setAvailableSlots(result.slots);
     } catch (error) {
       console.error('[Booking] Failed to load appointments for slot calculation', error);
       setAppointmentsLoaded(true);
@@ -939,18 +928,10 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
         filterPastForToday: true,
       });
       // Safety net (no-op in normal cases — engine already handled buffer/conflicts)
-      const slots = filterOverlappingSlots(
-        result.slots,
-        result.existingAppointments,
-        totalDuration,
-        result.bufferMinutes,
-        bookingTimezone,
-      );
-
-      console.log('[UI BEFORE RENDER]', slots);
-      if (slots.length > 0) {
+      console.log('[UI RECEIVED]', result.slots);
+      if (result.slots.length > 0) {
         const remaining = MAX_SLOTS - totalSlotsFound;
-        const daySlots = slots.slice(0, remaining);
+        const daySlots = result.slots.slice(0, remaining);
         results.push({ date: day, slots: daySlots });
         totalSlotsFound += daySlots.length;
       }
@@ -1299,7 +1280,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
   };
   const currentStepIdx = stepList.indexOf(step);
 
-  console.log('[FINAL SLOTS UI]', availableSlots.map((slot) => formatSlotTime(slot)));
+  console.log('[FINAL SLOTS UI]', availableSlots);
 
   const companySlugPath = company.business_type === 'esthetic' ? 'estetica' : 'barbearia';
   const companyPageUrl = `/${companySlugPath}/${company.slug}`;
