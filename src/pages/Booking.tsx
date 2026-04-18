@@ -15,9 +15,8 @@ import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { formatWhatsApp, displayWhatsApp, isValidWhatsApp, buildWhatsAppUrl } from '@/lib/whatsapp';
-import { validateTimeSlot, type BusinessHours, type BusinessException, type ExistingAppointment, type BookingMode } from '@/lib/availability-engine';
+import { type BusinessHours, type BusinessException, type ExistingAppointment, type BookingMode } from '@/lib/availability-engine';
 import { getAvailableSlots } from '@/lib/availability-service';
-import { pickSmartSuggestion } from '@/lib/smart-slot-suggestion';
 import { PlatformBranding } from '@/components/PlatformBranding';
 import { CustomRequestForm } from '@/components/CustomRequestForm';
 import { getCompanyBranding, buildThemeFromBranding } from '@/hooks/useCompanyBranding';
@@ -166,7 +165,6 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [availableSlots, setAvailableSlots] = useState<string[]>([]);
   const [bookingError, setBookingError] = useState<BookingErrorInfo | null>(null);
-  const [generatedSlots, setGeneratedSlots] = useState<string[]>([]);
   const [clientForm, setClientForm] = useState({ full_name: '', email: '', whatsapp: '', birth_date: '' });
   const [clientPassword, setClientPassword] = useState('');
   const [authLoading, setAuthLoading] = useState(false);
