@@ -1,12 +1,17 @@
 import { useState } from "react";
 import { initializePaddle, getPaddlePriceId } from "@/lib/paddle";
 import { useAuth } from "@/contexts/AuthContext";
+import { toast } from "sonner";
 
 export function usePaddleCheckout() {
   const [loading, setLoading] = useState(false);
   const { user, companyId } = useAuth();
 
-  const openCheckout = async (opts: { priceId: string; successUrl?: string }) => {
+  const openCheckout = async (opts: {
+    priceId: string;
+    successUrl?: string;
+    customData?: Record<string, string>;
+  }) => {
     setLoading(true);
     try {
       await initializePaddle();
@@ -18,6 +23,7 @@ export function usePaddleCheckout() {
         customData: {
           userId: user?.id || "",
           companyId: companyId || "",
+          ...(opts.customData || {}),
         },
         settings: {
           displayMode: "overlay",
@@ -26,8 +32,14 @@ export function usePaddleCheckout() {
           variant: "one-page",
         },
       });
-    } finally {
+    } catch (e: any) {
+      console.error("Paddle checkout error:", e);
+      toast.error(e?.message || "Não foi possível abrir o checkout");
       setLoading(false);
+      throw e;
+    } finally {
+      // Paddle overlay opens async; release loading shortly after
+      setTimeout(() => setLoading(false), 1500);
     }
   };
 
