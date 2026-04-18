@@ -96,6 +96,7 @@ function buildBlockedIntervals(
 
 /**
  * Get the earliest allowed slot time if the date is today.
+ * When roundTo <= 1, no rounding is applied (continuous time — used by intelligent mode).
  */
 function getEarliestSlotTime(date: Date, roundTo: number): Date | null {
   const now = new Date();
@@ -104,6 +105,13 @@ function getEarliestSlotTime(date: Date, roundTo: number): Date | null {
     date.getDate() === now.getDate();
 
   if (!isToday) return null;
+
+  // Continuous time: no grid rounding, return current minute exactly.
+  if (roundTo <= 1) {
+    const earliest = new Date(date);
+    earliest.setHours(now.getHours(), now.getMinutes(), 0, 0);
+    return earliest;
+  }
 
   const nowMinutes = now.getHours() * 60 + now.getMinutes();
   const roundedMinutes = Math.ceil(nowMinutes / roundTo) * roundTo;
@@ -271,18 +279,29 @@ function calculateIntelligentSlots(
   const slots: string[] = [];
 
   for (const window of freeWindows) {
+    // Continuous time: start exactly at window boundary, zero seconds/ms only.
     let current = new Date(window.start);
+    current.setSeconds(0, 0);
 
     while (current.getTime() + totalDuration * 60000 <= window.end.getTime()) {
       if (earliestSlotTime && current < earliestSlotTime) {
-        current = addMinutes(current, 1);
+        // Jump straight to earliest allowed time — no grid stepping.
+        current = new Date(earliestSlotTime);
+        current.setSeconds(0, 0);
         continue;
       }
 
-      // Validate against full picture (closeTime + all blocked)
       if (slotFitsService(current, totalDuration, bufferMinutes, closeTime, blocked)) {
+        const slotEnd = addMinutes(current, totalDuration);
+        console.log('[INTELLIGENT MODE]', {
+          slotStart: format(current, 'HH:mm'),
+          slotEnd: format(slotEnd, 'HH:mm'),
+          duration: totalDuration,
+          buffer: bufferMinutes,
+        });
         slots.push(format(current, 'HH:mm'));
       }
+      // Continuous step: end of this slot + buffer = start of next, no grid snap.
       current = addMinutes(current, totalDuration + bufferMinutes);
     }
   }
