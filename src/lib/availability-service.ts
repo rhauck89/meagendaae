@@ -144,7 +144,11 @@ async function resolveBookingConfig(
     .filter((n) => Number.isFinite(n) && n > 0);
 
   const smallest = activeDurations.length > 0 ? Math.min(...activeDurations) : DEFAULT_BASE_SLOT_MINUTES;
-  const baseSlotMinutes = Math.max(MIN_BASE_SLOT_MINUTES, Math.floor(smallest));
+  // Agenda Inteligente V2 base step = menor_servico + intervalo_configurado.
+  // Ex: menor=23min, intervalo=5min → timeline 09:00, 09:28, 09:56...
+  // Ex: menor=23min, intervalo=0   → timeline 09:00, 09:23, 09:46...
+  const rawBase = Math.floor(smallest) + Math.max(0, Math.floor(bufferMinutes ?? 0));
+  const baseSlotMinutes = Math.max(MIN_BASE_SLOT_MINUTES, rawBase);
 
   // Engine version flag — V2 by default. V1 stays available as safety fallback.
   // Reading from a future `agenda_engine_version` company column would go here;
