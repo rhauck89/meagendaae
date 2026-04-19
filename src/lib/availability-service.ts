@@ -90,17 +90,16 @@ async function resolveBookingConfig(
   source: AvailabilitySource,
   companyId: string,
   professionalId: string,
-): Promise<{ bookingMode: BookingMode; slotInterval: number; bufferMinutes: number }> {
+): Promise<{ bookingMode: BookingMode; slotInterval: number; bufferMinutes: number; engineVersion: EngineVersion; baseSlotMinutes: number }> {
   const companyTable = source === 'public' ? 'public_company' : 'companies';
+  const servicesTable = source === 'public' ? 'public_services' : 'services';
 
-  const [companyRes, professionalRes] = await Promise.all([
+  const [companyRes, professionalRes, servicesRes] = await Promise.all([
     supabase
       .from(companyTable as any)
       .select('booking_mode, fixed_slot_interval, buffer_minutes')
       .eq('id', companyId)
       .maybeSingle(),
-    // collaborators table is RLS-protected for the company members; for public flow
-    // we read from public_professionals view which exposes the same effective fields.
     source === 'public'
       ? supabase
           .from('public_professionals' as any)
@@ -113,16 +112,19 @@ async function resolveBookingConfig(
           .eq('profile_id', professionalId)
           .eq('company_id', companyId)
           .maybeSingle(),
+    // Fetch active services to compute the smallest duration (Agenda V2 base slot).
+    supabase
+      .from(servicesTable as any)
+      .select('duration_minutes, active')
+      .eq('company_id', companyId),
   ]);
 
   const company = (companyRes.data as any) || {};
   const professional = (professionalRes.data as any) || {};
 
-  // Priority: professional override > company default > 'fixed_grid'
   const resolvedMode = (professional?.booking_mode ?? company?.booking_mode ?? 'fixed_grid') as BookingMode;
 
-  // ⚠️ TEMP FORCE OVERRIDE — requested by user to confirm no other source is injecting fixed_grid.
-  // Set FORCE_INTELLIGENT to false to restore DB-driven resolution.
+  // ⚠️ TEMP FORCE OVERRIDE — preserved from previous behavior.
   const FORCE_INTELLIGENT = true;
   const bookingMode: BookingMode = FORCE_INTELLIGENT ? 'intelligent' : resolvedMode;
 
@@ -132,19 +134,36 @@ async function resolveBookingConfig(
     : Math.max(1, configuredInterval ?? 15);
   const bufferMinutes = professional.break_time ?? company.buffer_minutes ?? 0;
 
+  // ===== Agenda Inteligente V2 =====
+  // Use smallest cataloged service duration as the base step of the timeline.
+  // Falls back to DEFAULT_BASE_SLOT_MINUTES if no services exist.
+  const allServices = (servicesRes.data as any[]) || [];
+  const activeDurations = allServices
+    .filter((s) => s?.active !== false)
+    .map((s) => Number(s?.duration_minutes))
+    .filter((n) => Number.isFinite(n) && n > 0);
+
+  const smallest = activeDurations.length > 0 ? Math.min(...activeDurations) : DEFAULT_BASE_SLOT_MINUTES;
+  const baseSlotMinutes = Math.max(MIN_BASE_SLOT_MINUTES, Math.floor(smallest));
+
+  // Engine version flag — V2 by default. V1 stays available as safety fallback.
+  // Reading from a future `agenda_engine_version` company column would go here;
+  // for now V2 is the global default and V1 is reachable via param override only.
+  const engineVersion: EngineVersion =
+    (company?.agenda_engine_version === 'v1' ? 'v1' : 'v2');
+
   console.log('[BOOKING MODE RESOLVED]', {
     source,
     professionalId,
     companyId,
-    professionalMode: professional?.booking_mode ?? null,
-    companyMode: company?.booking_mode ?? null,
     resolvedMode,
-    forced: FORCE_INTELLIGENT,
     finalMode: bookingMode,
+    engineVersion,
+    baseSlotMinutes,
+    serviceCount: activeDurations.length,
   });
-  console.log('[FINAL MODE]', bookingMode, 'slotInterval:', slotInterval);
 
-  return { bookingMode, slotInterval, bufferMinutes };
+  return { bookingMode, slotInterval, bufferMinutes, engineVersion, baseSlotMinutes };
 }
 
 /**
