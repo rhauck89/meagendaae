@@ -89,8 +89,47 @@ export function SwapAppointmentDialog({ open, onOpenChange, source, onSwapped }:
         toast.error('Erro ao carregar agendamentos');
         return;
       }
-      // Exclude promotion-locked ones (same restriction as reschedule)
-      setCandidates((data || []).filter((a: any) => !a.promotion_id));
+
+      const valid = (data || []).filter((a: any) => !a.promotion_id);
+
+      // Fetch ALL active appointments for both involved professionals to validate compatibility
+      const profIds = Array.from(new Set([source.professional_id, ...valid.map((c: any) => c.professional_id)]));
+      const { data: allActive } = await supabase
+        .from('appointments')
+        .select('id, professional_id, start_time, end_time, status')
+        .eq('company_id', companyId)
+        .in('status', ['pending', 'confirmed'])
+        .in('professional_id', profIds)
+        .gte('end_time', nowIso);
+
+      const others = (allActive || []) as any[];
+      const sourceStartMs = new Date(source.start_time).getTime();
+      const sourceEndMs = new Date(source.end_time).getTime();
+      const sourceDur = sourceEndMs - sourceStartMs;
+
+      const annotated = valid.map((c: any) => {
+        const cStart = new Date(c.start_time).getTime();
+        const cEnd = new Date(c.end_time).getTime();
+        const cDur = cEnd - cStart;
+
+        // After swap: source goes into c's slot (start=cStart, end=cStart+sourceDur, prof=c.prof)
+        // c goes into source's slot (start=sourceStart, end=sourceStart+cDur, prof=source.prof)
+        const newAStart = cStart, newAEnd = cStart + sourceDur, newAProf = c.professional_id;
+        const newBStart = sourceStartMs, newBEnd = sourceStartMs + cDur, newBProf = source.professional_id;
+
+        const conflicts = others.some((o) => {
+          if (o.id === source.id || o.id === c.id) return false;
+          const oStart = new Date(o.start_time).getTime();
+          const oEnd = new Date(o.end_time).getTime();
+          if (o.professional_id === newAProf && oStart < newAEnd && oEnd > newAStart) return true;
+          if (o.professional_id === newBProf && oStart < newBEnd && oEnd > newBStart) return true;
+          return false;
+        });
+
+        return { ...c, _compatible: !conflicts };
+      });
+
+      setCandidates(annotated);
     } finally {
       setLoading(false);
     }
@@ -235,13 +274,16 @@ export function SwapAppointmentDialog({ open, onOpenChange, source, onSwapped }:
                     const start = parseISO(apt.start_time);
                     const end = parseISO(apt.end_time);
                     const isSelected = selected?.id === apt.id;
+                    const isCompatible = apt._compatible !== false;
                     return (
                       <button
                         key={apt.id}
                         type="button"
-                        onClick={() => setSelected(apt)}
+                        disabled={!isCompatible}
+                        onClick={() => isCompatible && setSelected(apt)}
                         className={cn(
-                          'w-full text-left px-3 py-3 hover:bg-muted/50 transition-colors flex items-start gap-3',
+                          'w-full text-left px-3 py-3 transition-colors flex items-start gap-3',
+                          isCompatible ? 'hover:bg-muted/50' : 'opacity-60 cursor-not-allowed',
                           isSelected && 'bg-primary/5 hover:bg-primary/10'
                         )}
                       >
@@ -254,9 +296,16 @@ export function SwapAppointmentDialog({ open, onOpenChange, source, onSwapped }:
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center justify-between gap-2 flex-wrap">
                             <p className="font-semibold text-sm truncate">{apt.client_name || 'Cliente'}</p>
-                            <Badge variant="outline" className="text-[10px]">
-                              {format(start, "dd/MM", { locale: ptBR })} {format(start, 'HH:mm')}
-                            </Badge>
+                            <div className="flex items-center gap-1">
+                              {!isCompatible && (
+                                <Badge variant="outline" className="text-[10px] border-destructive/40 text-destructive">
+                                  Incompatível
+                                </Badge>
+                              )}
+                              <Badge variant="outline" className="text-[10px]">
+                                {format(start, "dd/MM", { locale: ptBR })} {format(start, 'HH:mm')}
+                              </Badge>
+                            </div>
                           </div>
                           <p className="text-xs text-muted-foreground mt-0.5 truncate">
                             {apt.professional?.full_name || 'Profissional'} · {format(start, 'HH:mm')}–{format(end, 'HH:mm')}
