@@ -257,7 +257,7 @@ const SettingsSchedule = () => {
           <div className="flex items-center justify-between p-3 rounded-lg border">
             <div className="space-y-0.5">
               <Label className="text-sm font-medium">Permitir alterar tipo de agenda</Label>
-              <p className="text-xs text-muted-foreground">Inteligente, Grade fixa ou Híbrido</p>
+              <p className="text-xs text-muted-foreground">Inteligente ou Grade fixa</p>
             </div>
             <Switch checked={profPermBookingMode} onCheckedChange={setProfPermBookingMode} />
           </div>
