@@ -274,13 +274,16 @@ export function SwapAppointmentDialog({ open, onOpenChange, source, onSwapped }:
                     const start = parseISO(apt.start_time);
                     const end = parseISO(apt.end_time);
                     const isSelected = selected?.id === apt.id;
+                    const isCompatible = apt._compatible !== false;
                     return (
                       <button
                         key={apt.id}
                         type="button"
-                        onClick={() => setSelected(apt)}
+                        disabled={!isCompatible}
+                        onClick={() => isCompatible && setSelected(apt)}
                         className={cn(
-                          'w-full text-left px-3 py-3 hover:bg-muted/50 transition-colors flex items-start gap-3',
+                          'w-full text-left px-3 py-3 transition-colors flex items-start gap-3',
+                          isCompatible ? 'hover:bg-muted/50' : 'opacity-60 cursor-not-allowed',
                           isSelected && 'bg-primary/5 hover:bg-primary/10'
                         )}
                       >
@@ -293,9 +296,16 @@ export function SwapAppointmentDialog({ open, onOpenChange, source, onSwapped }:
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center justify-between gap-2 flex-wrap">
                             <p className="font-semibold text-sm truncate">{apt.client_name || 'Cliente'}</p>
-                            <Badge variant="outline" className="text-[10px]">
-                              {format(start, "dd/MM", { locale: ptBR })} {format(start, 'HH:mm')}
-                            </Badge>
+                            <div className="flex items-center gap-1">
+                              {!isCompatible && (
+                                <Badge variant="outline" className="text-[10px] border-destructive/40 text-destructive">
+                                  Incompatível
+                                </Badge>
+                              )}
+                              <Badge variant="outline" className="text-[10px]">
+                                {format(start, "dd/MM", { locale: ptBR })} {format(start, 'HH:mm')}
+                              </Badge>
+                            </div>
                           </div>
                           <p className="text-xs text-muted-foreground mt-0.5 truncate">
                             {apt.professional?.full_name || 'Profissional'} · {format(start, 'HH:mm')}–{format(end, 'HH:mm')}
