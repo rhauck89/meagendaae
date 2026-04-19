@@ -24,7 +24,7 @@ interface SwapAppointmentDialogProps {
   onSwapped?: () => void;
 }
 
-const SWAPPABLE_STATUSES = ['pending', 'confirmed'];
+const SWAPPABLE_STATUSES = ['pending', 'confirmed'] as const;
 
 export function SwapAppointmentDialog({ open, onOpenChange, source, onSwapped }: SwapAppointmentDialogProps) {
   const { companyId } = useAuth();
