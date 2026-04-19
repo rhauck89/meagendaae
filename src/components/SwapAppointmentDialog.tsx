@@ -283,13 +283,12 @@ export function SwapAppointmentDialog({ open, onOpenChange, source, onSwapped }:
     setSuccessData(null);
   };
 
-  if (!source) return null;
-
-  const sourceStart = parseISO(source.start_time);
-  const sourceEnd = parseISO(source.end_time);
+  const sourceStart = source ? parseISO(source.start_time) : null;
+  const sourceEnd = source ? parseISO(source.end_time) : null;
 
   return (
     <>
+    {source && sourceStart && sourceEnd && (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl">
         <DialogHeader>
@@ -442,6 +441,7 @@ export function SwapAppointmentDialog({ open, onOpenChange, source, onSwapped }:
         </DialogFooter>
       </DialogContent>
     </Dialog>
+    )}
 
     {/* Post-swap notification modal — premium UX */}
     <Dialog open={successOpen} onOpenChange={(o) => { if (!o) handleSuccessClose(); else setSuccessOpen(o); }}>
