@@ -1147,6 +1147,19 @@ const Dashboard = () => {
         }}
       />
 
+      <SwapAppointmentDialog
+        open={swapDialogOpen}
+        onOpenChange={(open) => {
+          setSwapDialogOpen(open);
+          if (!open) setSwapTarget(null);
+        }}
+        source={swapTarget}
+        onSwapped={() => {
+          fetchAppointments();
+          fetchUpcomingAppointments();
+        }}
+      />
+
       {/* 1. Próximos atendimentos */}
       {renderUpcomingAppointments()}
 
