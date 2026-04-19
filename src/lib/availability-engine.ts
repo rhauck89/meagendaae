@@ -29,6 +29,8 @@ export interface BlockedTime {
   end_time: string;
 }
 
+export type EngineVersion = 'v1' | 'v2';
+
 export interface AvailabilityParams {
   date: Date;
   totalDuration: number;
@@ -41,6 +43,18 @@ export interface AvailabilityParams {
   blockedTimes?: BlockedTime[];
   professionalId?: string;
   bookingMode?: BookingMode;
+  /**
+   * Engine version. v2 uses base-slot stepping (smallest service duration in catalog)
+   * for the intelligent mode, exposing many more candidate times.
+   * Defaults to 'v2'. Set to 'v1' to fall back to legacy behavior.
+   */
+  engineVersion?: EngineVersion;
+  /**
+   * Base step (minutes) used by intelligent v2 to walk the timeline.
+   * Should be the smallest service duration in the company/professional catalog.
+   * Falls back to 10 if not provided.
+   */
+  baseSlotMinutes?: number;
 }
 
 export interface SlotSuggestion {
@@ -361,9 +375,60 @@ function calculateHybridSlots(
 }
 
 /**
+ * INTELLIGENT V2 — Base-slot timeline (Agenda Inteligente V2).
+ *
+ * Walks the working day in steps of `baseSlotMinutes` (the smallest service
+ * duration cadastrado pelo estabelecimento). For each candidate time, checks
+ * if the chosen service fully fits without overlapping blocked intervals,
+ * lunch, or close-of-business — including buffer.
+ *
+ * This exposes many more valid start times than v1, while still respecting
+ * every existing rule (gaps, lunch, manual blocks, buffer, business hours).
+ *
+ * Example: smallest service = 10min, customer picks a 25min service.
+ * Candidate slots: 09:00, 09:10, 09:20, 09:30, 09:40, ...
+ * Each is validated to ensure 25min fits before showing.
+ */
+function calculateIntelligentSlotsV2(
+  openTime: Date,
+  closeTime: Date,
+  totalDuration: number,
+  bufferMinutes: number,
+  baseSlotMinutes: number,
+  blocked: Array<{ start: Date; end: Date }>,
+  earliestSlotTime: Date | null,
+): string[] {
+  const slots: string[] = [];
+  const step = Math.max(1, Math.floor(baseSlotMinutes));
+  let current = new Date(openTime);
+  current.setSeconds(0, 0);
+
+  // Hard safety cap to avoid infinite loops on bad inputs (e.g. step=1 for 24h).
+  const maxIterations = Math.ceil(((closeTime.getTime() - openTime.getTime()) / 60000) / step) + 8;
+  let iterations = 0;
+
+  while (current.getTime() + totalDuration * 60000 <= closeTime.getTime() && iterations < maxIterations) {
+    iterations++;
+
+    if (earliestSlotTime && current < earliestSlotTime) {
+      current = addMinutes(current, step);
+      continue;
+    }
+
+    if (slotFitsService(current, totalDuration, bufferMinutes, closeTime, blocked)) {
+      slots.push(format(current, 'HH:mm'));
+    }
+
+    current = addMinutes(current, step);
+  }
+
+  return slots;
+}
+
+/**
  * Smart availability engine that calculates available time slots.
  * Supports three modes:
- * - intelligent: Dynamic gaps based on real service duration (recommended)
+ * - intelligent: Dynamic gaps based on real service duration (v1) OR base-slot timeline (v2, default)
  * - fixed_grid: Regular intervals (backward compatible)
  * - hybrid: Fixed grid with gap validation
  */
@@ -380,6 +445,8 @@ export function calculateAvailableSlots(params: AvailabilityParams): string[] {
     blockedTimes = [],
     professionalId,
     bookingMode = 'hybrid',
+    engineVersion = 'v2',
+    baseSlotMinutes,
   } = params;
 
   if (totalDuration <= 0) {
@@ -409,7 +476,17 @@ export function calculateAvailableSlots(params: AvailabilityParams): string[] {
   let slots: string[];
 
   if (bookingMode === 'intelligent') {
-    slots = calculateIntelligentSlots(openTime, closeTime, totalDuration, bufferMinutes, blocked, earliestSlotTime);
+    if (engineVersion === 'v2') {
+      const baseStep = Math.max(1, Math.floor(baseSlotMinutes ?? 10));
+      console.log('[ENGINE V2] intelligent base-slot stepping', {
+        baseStep,
+        totalDuration,
+        bufferMinutes,
+      });
+      slots = calculateIntelligentSlotsV2(openTime, closeTime, totalDuration, bufferMinutes, baseStep, blocked, earliestSlotTime);
+    } else {
+      slots = calculateIntelligentSlots(openTime, closeTime, totalDuration, bufferMinutes, blocked, earliestSlotTime);
+    }
   } else if (bookingMode === 'hybrid') {
     slots = calculateHybridSlots(openTime, closeTime, totalDuration, bufferMinutes, effectiveSlotInterval, blocked, earliestSlotTime);
   } else {
