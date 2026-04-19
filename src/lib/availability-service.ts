@@ -326,6 +326,16 @@ export async function getAvailableSlots(
     serviceDuration: totalDuration,
   });
 
+  console.log('[AGENDA_V2_DEBUG]', {
+    menorServico: config.smallestServiceMinutes,
+    intervalo: config.bufferMinutes,
+    slotBase: config.baseSlotMinutes,
+    serviceCount: config.serviceCount,
+    professionalId,
+    companyId,
+    date: format(date, 'yyyy-MM-dd'),
+  });
+
   let slots: string[] = [];
   try {
     slots = calculateAvailableSlots({
@@ -379,6 +389,11 @@ export async function getAvailableSlots(
     professional_id: professionalId,
     date: format(date, 'yyyy-MM-dd'),
     bookingMode: config.bookingMode,
+    menorServico: config.smallestServiceMinutes,
+    intervalo: config.bufferMinutes,
+    slotBase: config.baseSlotMinutes,
+    firstAvailable: slots[0] ?? null,
+    generatedSlots: slots,
     slotInterval: config.slotInterval,
     bufferMinutes: config.bufferMinutes,
     totalDuration,
