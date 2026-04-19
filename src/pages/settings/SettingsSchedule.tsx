@@ -37,7 +37,7 @@ const SettingsSchedule = () => {
     const { data } = await supabase.from('companies').select('buffer_minutes, booking_mode, fixed_slot_interval, allow_custom_requests, prof_perm_booking_mode, prof_perm_grid_interval').eq('id', companyId!).single();
     if (data) {
       setBufferMinutes((data as any).buffer_minutes ?? 0);
-      setBookingMode((data as any).booking_mode ?? 'fixed_grid');
+      setBookingMode((data as any).booking_mode ?? 'intelligent');
       setFixedSlotInterval((data as any).fixed_slot_interval ?? 15);
       setAllowCustomRequests((data as any).allow_custom_requests ?? false);
       setProfPermBookingMode((data as any).prof_perm_booking_mode ?? false);
@@ -203,25 +203,9 @@ const SettingsSchedule = () => {
                 </p>
               </div>
             </div>
-            <div className={`flex items-start gap-3 p-4 rounded-lg border transition-colors ${bookingMode === 'hybrid' ? 'border-primary bg-primary/5' : 'bg-card'}`}>
-              <RadioGroupItem value="hybrid" id="mode-hybrid" className="mt-1" />
-              <div className="space-y-1">
-                <Label htmlFor="mode-hybrid" className="font-medium cursor-pointer flex items-center gap-2">
-                  <Zap className="h-4 w-4 text-primary" />
-                  <Grid3X3 className="h-4 w-4 text-primary" />
-                  Modo Híbrido
-                </Label>
-                <p className="text-xs text-muted-foreground">
-                  Cada serviço pode escolher entre agendamento inteligente ou grade fixa individualmente.
-                </p>
-                <p className="text-xs text-muted-foreground italic">
-                  Ex: Corte → inteligente, Barba → grade fixa
-                </p>
-              </div>
-            </div>
           </RadioGroup>
 
-          {(bookingMode === 'fixed_grid' || bookingMode === 'hybrid') && (
+          {bookingMode === 'fixed_grid' && (
             <div className="pl-8 space-y-2">
               <Label className="text-xs">Intervalo da grade</Label>
               <Select value={String(fixedSlotInterval)} onValueChange={(v) => setFixedSlotInterval(Number(v))}>
@@ -229,7 +213,9 @@ const SettingsSchedule = () => {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="10">10 minutos</SelectItem>
                   <SelectItem value="15">15 minutos</SelectItem>
+                  <SelectItem value="20">20 minutos</SelectItem>
                   <SelectItem value="30">30 minutos</SelectItem>
                   <SelectItem value="45">45 minutos</SelectItem>
                   <SelectItem value="60">60 minutos</SelectItem>
@@ -271,7 +257,7 @@ const SettingsSchedule = () => {
           <div className="flex items-center justify-between p-3 rounded-lg border">
             <div className="space-y-0.5">
               <Label className="text-sm font-medium">Permitir alterar tipo de agenda</Label>
-              <p className="text-xs text-muted-foreground">Inteligente, Grade fixa ou Híbrido</p>
+              <p className="text-xs text-muted-foreground">Inteligente ou Grade fixa</p>
             </div>
             <Switch checked={profPermBookingMode} onCheckedChange={setProfPermBookingMode} />
           </div>

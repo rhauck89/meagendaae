@@ -1,0 +1,1 @@
+ALTER TABLE public.companies ALTER COLUMN booking_mode SET DEFAULT 'intelligent';
