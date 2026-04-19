@@ -172,10 +172,10 @@ export function SwapAppointmentDialog({ open, onOpenChange, source, onSwapped }:
   }, [source, selected]);
 
   const handleConfirm = async () => {
-    if (!source || !selected) return;
+    if (!source || !selected || !preview) return;
     setSubmitting(true);
     try {
-      const { data, error } = await supabase.rpc('swap_appointments' as any, {
+      const { error } = await supabase.rpc('swap_appointments' as any, {
         p_appointment_a: source.id,
         p_appointment_b: selected.id,
         p_reason: null,
@@ -188,10 +188,30 @@ export function SwapAppointmentDialog({ open, onOpenChange, source, onSwapped }:
 
       toast.success('Horários trocados com sucesso!');
       onSwapped?.();
-      // Offer to open WhatsApp for both clients (one at a time)
-      offerWhatsApp(source, preview!.newA);
-      offerWhatsApp(selected, preview!.newB);
+
+      // Prepare success modal data
+      setSuccessData({
+        a: {
+          name: source.client_name || 'Cliente',
+          whatsapp: source.client_whatsapp || null,
+          oldStart: parseISO(source.start_time),
+          newStart: preview.newA.start,
+          profName: preview.newA.profName || '',
+        },
+        b: {
+          name: selected.client_name || 'Cliente',
+          whatsapp: selected.client_whatsapp || null,
+          oldStart: parseISO(selected.start_time),
+          newStart: preview.newB.start,
+          profName: preview.newB.profName || '',
+        },
+      });
+      setNotifiedA(false);
+      setNotifiedB(false);
+      setMarkNotified(true);
       onOpenChange(false);
+      // Open success modal after the swap dialog finishes closing animation
+      setTimeout(() => setSuccessOpen(true), 150);
     } catch (err: any) {
       console.error('[SwapDialog] swap error', err);
       toast.error(err?.message || 'Erro ao trocar horários');
@@ -200,12 +220,11 @@ export function SwapAppointmentDialog({ open, onOpenChange, source, onSwapped }:
     }
   };
 
-  const offerWhatsApp = (apt: any, newTimes: { start: Date }) => {
-    if (!apt.client_whatsapp) return;
-    const dateStr = format(newTimes.start, "dd/MM/yyyy", { locale: ptBR });
-    const timeStr = format(newTimes.start, "HH:mm");
-    const greeting = apt.client_name ? `Olá ${apt.client_name.split(' ')[0]} 👋` : 'Olá 👋';
-    const message = [
+  const buildMessage = (clientName: string, newStart: Date) => {
+    const dateStr = format(newStart, "dd/MM/yyyy", { locale: ptBR });
+    const timeStr = format(newStart, "HH:mm");
+    const greeting = clientName ? `Olá ${clientName.split(' ')[0]} 👋` : 'Olá 👋';
+    return [
       greeting,
       '',
       'Seu horário foi atualizado com sucesso.',
@@ -216,8 +235,52 @@ export function SwapAppointmentDialog({ open, onOpenChange, source, onSwapped }:
       '',
       'Qualquer dúvida estamos à disposição!',
     ].filter(Boolean).join('\n');
-    // Defer slightly so popups don't fight the toast/close animation
-    setTimeout(() => openWhatsApp(apt.client_whatsapp, message), 200);
+  };
+
+  const notifyOne = (which: 'a' | 'b') => {
+    if (!successData) return;
+    const target = successData[which];
+    if (!target.whatsapp) {
+      toast.error('Cliente sem WhatsApp cadastrado');
+      return;
+    }
+    openWhatsApp(target.whatsapp, buildMessage(target.name, target.newStart));
+    if (which === 'a') setNotifiedA(true);
+    else setNotifiedB(true);
+  };
+
+  const notifyBoth = () => {
+    if (!successData) return;
+    const { a, b } = successData;
+    if (a.whatsapp) {
+      openWhatsApp(a.whatsapp, buildMessage(a.name, a.newStart));
+      setNotifiedA(true);
+    }
+    if (b.whatsapp) {
+      // Stagger to avoid popup blocker
+      setTimeout(() => {
+        openWhatsApp(b.whatsapp!, buildMessage(b.name, b.newStart));
+        setNotifiedB(true);
+      }, 800);
+    }
+  };
+
+  const handleSuccessClose = async () => {
+    // Optionally persist notification flag in swap log
+    if (markNotified && (notifiedA || notifiedB) && source && selected) {
+      try {
+        await supabase
+          .from('appointments_swap_logs' as any)
+          .update({ reason: `Clientes notificados via WhatsApp em ${new Date().toISOString()}` } as any)
+          .eq('appointment_a_id', source.id)
+          .eq('appointment_b_id', selected.id);
+      } catch (err) {
+        // Non-critical; swap log update is best-effort
+        console.warn('[SwapDialog] could not update notification flag', err);
+      }
+    }
+    setSuccessOpen(false);
+    setSuccessData(null);
   };
 
   if (!source) return null;
