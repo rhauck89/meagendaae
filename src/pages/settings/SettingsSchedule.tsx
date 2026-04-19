@@ -37,7 +37,7 @@ const SettingsSchedule = () => {
     const { data } = await supabase.from('companies').select('buffer_minutes, booking_mode, fixed_slot_interval, allow_custom_requests, prof_perm_booking_mode, prof_perm_grid_interval').eq('id', companyId!).single();
     if (data) {
       setBufferMinutes((data as any).buffer_minutes ?? 0);
-      setBookingMode((data as any).booking_mode ?? 'fixed_grid');
+      setBookingMode((data as any).booking_mode ?? 'intelligent');
       setFixedSlotInterval((data as any).fixed_slot_interval ?? 15);
       setAllowCustomRequests((data as any).allow_custom_requests ?? false);
       setProfPermBookingMode((data as any).prof_perm_booking_mode ?? false);
