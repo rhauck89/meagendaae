@@ -288,19 +288,41 @@ export async function getAvailableSlots(
     serviceDuration: totalDuration,
   });
 
-  let slots = calculateAvailableSlots({
-    date,
-    totalDuration,
-    businessHours: inputs.businessHours,
-    exceptions: inputs.exceptions,
-    existingAppointments: inputs.existingAppointments,
-    slotInterval: config.slotInterval,
-    bufferMinutes: config.bufferMinutes,
-    bookingMode: config.bookingMode,
-    professionalHours: inputs.professionalHours.length > 0 ? inputs.professionalHours : undefined,
-    blockedTimes: inputs.blockedTimes,
-    professionalId,
-  });
+  let slots: string[] = [];
+  try {
+    slots = calculateAvailableSlots({
+      date,
+      totalDuration,
+      businessHours: inputs.businessHours,
+      exceptions: inputs.exceptions,
+      existingAppointments: inputs.existingAppointments,
+      slotInterval: config.slotInterval,
+      bufferMinutes: config.bufferMinutes,
+      bookingMode: config.bookingMode,
+      professionalHours: inputs.professionalHours.length > 0 ? inputs.professionalHours : undefined,
+      blockedTimes: inputs.blockedTimes,
+      professionalId,
+      engineVersion: config.engineVersion,
+      baseSlotMinutes: config.baseSlotMinutes,
+    });
+  } catch (err) {
+    // Safety fallback: if V2 throws unexpectedly, retry with V1 so booking never breaks.
+    console.error('[AvailabilityService] V2 engine failed, falling back to V1', err);
+    slots = calculateAvailableSlots({
+      date,
+      totalDuration,
+      businessHours: inputs.businessHours,
+      exceptions: inputs.exceptions,
+      existingAppointments: inputs.existingAppointments,
+      slotInterval: config.slotInterval,
+      bufferMinutes: config.bufferMinutes,
+      bookingMode: config.bookingMode,
+      professionalHours: inputs.professionalHours.length > 0 ? inputs.professionalHours : undefined,
+      blockedTimes: inputs.blockedTimes,
+      professionalId,
+      engineVersion: 'v1',
+    });
+  }
 
   slots = filterOverlappingGeneratedSlots(date, slots, inputs.existingAppointments, totalDuration);
 
