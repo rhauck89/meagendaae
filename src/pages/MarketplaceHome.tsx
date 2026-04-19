@@ -1,536 +1,598 @@
+import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Separator } from '@/components/ui/separator';
 import { SEOHead } from '@/components/SEOHead';
-import { PlatformLogo } from '@/components/PlatformLogo';
-import { Reveal } from '@/components/landing/Reveal';
-import { AnimatedCounter } from '@/components/landing/AnimatedCounter';
-import heroBarber from '@/assets/hero-barber.jpg';
-import worriedOwner from '@/assets/worried-owner.jpg';
-import teamSalon from '@/assets/team-salon.jpg';
-import manicure from '@/assets/manicure.jpg';
-import happyClient from '@/assets/happy-client.jpg';
-import ownerFinance from '@/assets/owner-finance.jpg';
-import testimonial1 from '@/assets/testimonial-1.jpg';
-import testimonial2 from '@/assets/testimonial-2.jpg';
-import testimonial3 from '@/assets/testimonial-3.jpg';
+import { usePlatformSettings } from '@/hooks/usePlatformSettings';
+import { useGeolocation, calculateDistance, formatDistance } from '@/hooks/useGeolocation';
+import { getAvailableSlots } from '@/lib/availability-service';
 import {
-  ArrowRight,
-  Calendar,
-  Check,
-  Clock3,
-  Heart,
-  MapPin,
-  MessageCircle,
-  Scissors,
-  ShieldCheck,
-  Sparkles,
-  Star,
-  TrendingUp,
-  Users,
-  Wallet,
+  Scissors, ArrowRight, Star, MapPin, Search, Sparkles,
+  Calendar, Users, ChevronRight, Heart, Shield, Navigation, Loader2,
+  Zap, Clock, Filter, Crown,
 } from 'lucide-react';
 
-const proofStats = [
-  { value: 500, suffix: '+', label: 'profissionais usando hoje' },
-  { value: 15000, suffix: '+', label: 'agendamentos realizados' },
-  { value: 120, suffix: '+', label: 'cidades atendidas' },
+const categories = [
+  { slug: 'barbeiros', title: 'Barbeiros', description: 'Corte, barba e tratamentos masculinos', icon: Scissors, gradient: 'from-blue-500/10 to-blue-600/5', iconColor: 'text-blue-600', businessType: 'barbershop' },
+  { slug: 'esteticistas', title: 'Esteticistas', description: 'Tratamentos faciais e bem-estar', icon: Sparkles, gradient: 'from-pink-500/10 to-pink-600/5', iconColor: 'text-pink-600', businessType: 'aesthetics' },
+  { slug: 'salao-de-beleza', title: 'Salões de Beleza', description: 'Corte, coloração e tratamentos', icon: Heart, gradient: 'from-purple-500/10 to-purple-600/5', iconColor: 'text-purple-600', businessType: 'salon' },
+  { slug: 'clinica-estetica', title: 'Clínicas de Estética', description: 'Procedimentos estéticos avançados', icon: Shield, gradient: 'from-emerald-500/10 to-emerald-600/5', iconColor: 'text-emerald-600', businessType: 'clinic' },
 ];
 
-const painPoints = [
-  'Horários duplicados e confusos no WhatsApp',
-  'Clientes esquecem e deixam sua agenda vazia',
-  'Falta de controle financeiro e da equipe',
-  'Perda de tempo confirmando agendamentos manualmente',
-];
+interface MarketCompany {
+  id: string;
+  name: string;
+  slug: string;
+  logo_url: string | null;
+  city: string | null;
+  state: string | null;
+  average_rating: number | null;
+  review_count: number | null;
+  business_type: string;
+  latitude: number | null;
+  longitude: number | null;
+  distance?: number;
+  available_now?: boolean;
+}
 
-const featureBullets = [
-  'Agendamento online 24 horas por dia',
-  'Lembretes automáticos para reduzir faltas',
-  'Controle financeiro simples e visual',
-  'Página profissional para divulgar na bio',
-  'Gestão da equipe com visão de desempenho',
-  'Promoções e fidelidade para fazer o cliente voltar',
-];
+const StarRating = ({ rating, size = 14 }: { rating: number; size?: number }) => (
+  <div className="flex items-center gap-0.5">
+    {[1, 2, 3, 4, 5].map((s) => {
+      const fill = rating >= s ? 1 : rating >= s - 0.5 ? 0.5 : 0;
+      return (
+        <svg key={s} width={size} height={size} viewBox="0 0 24 24" fill="none">
+          <defs>
+            <linearGradient id={`home-star-${s}-${size}`}>
+              <stop offset={`${fill * 100}%`} stopColor="#FDBA2D" />
+              <stop offset={`${fill * 100}%`} stopColor="#D1D5DB" />
+            </linearGradient>
+          </defs>
+          <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" fill={`url(#home-star-${s}-${size})`} />
+        </svg>
+      );
+    })}
+  </div>
+);
 
-const plans = [
-  {
-    name: 'Solo',
-    price: 'R$49,90',
-    description: 'Perfeito para profissionais autônomos.',
-    features: ['1 profissional', 'Agenda online', 'Clientes ilimitados', 'Lembretes automáticos', 'Teste grátis 7 dias'],
-    featured: false,
-    cta: 'Começar grátis',
-  },
-  {
-    name: 'Studio',
-    price: 'R$69,90',
-    description: 'O mais vendido para crescer com organização.',
-    features: ['Até 3 profissionais', 'Financeiro completo', 'Promoções e fidelidade', 'WhatsApp automático', 'Teste grátis 7 dias'],
-    featured: true,
-    cta: 'Testar 7 dias grátis',
-  },
-  {
-    name: 'Elite',
-    price: 'R$89,90',
-    description: 'Para operações que querem escala e mais controle.',
-    features: ['Profissionais ilimitados', 'Domínio próprio', 'Prioridade no marketplace', 'Relatórios avançados', 'Teste grátis 7 dias'],
-    featured: false,
-    cta: 'Quero o Elite',
-  },
-];
-
-const testimonials = [
-  {
-    image: testimonial1,
-    name: 'Rafael Souza',
-    role: 'Barbeiro • São Paulo',
-    quote: 'Depois que comecei a usar o MeAgendaê, minha agenda parou de depender do WhatsApp e meu faturamento subiu.',
-  },
-  {
-    image: testimonial2,
-    name: 'Camila Ribeiro',
-    role: 'Cabeleireira • Rio de Janeiro',
-    quote: 'Hoje eu tenho controle da equipe, do financeiro e dos horários em um só lugar. Ficou muito mais profissional.',
-  },
-  {
-    image: testimonial3,
-    name: 'Aline Pereira',
-    role: 'Manicure • Belo Horizonte',
-    quote: 'Os clientes agendam sozinhos, recebem lembrete e voltam mais vezes. Virou outro negócio.',
-  },
-];
-
-const humanizedGallery = [
-  {
-    image: teamSalon,
-    title: 'Equipe que transmite confiança',
-    description: 'Mostre profissionalismo logo no primeiro contato.',
-  },
-  {
-    image: happyClient,
-    title: 'Experiência mais humana',
-    description: 'Seu cliente sente organização antes mesmo de chegar.',
-  },
-  {
-    image: manicure,
-    title: 'Rotina mais bonita e leve',
-    description: 'Agenda, atendimento e vendas com mais fluidez.',
-  },
-];
+const getProfileRoute = (company: MarketCompany) => {
+  const bt = company.business_type === 'barbershop' ? 'barbearia' : 'estetica';
+  return `/${bt}/${company.slug}`;
+};
 
 export default function MarketplaceHome() {
+  const platform = usePlatformSettings();
+  const headerLogo = platform?.logo_dark || platform?.system_logo || platform?.logo_light || null;
+  const geo = useGeolocation();
+
+  const [allCompanies, setAllCompanies] = useState<MarketCompany[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [availabilityLoading, setAvailabilityLoading] = useState(false);
+
+  // Filters
+  const [filterCategory, setFilterCategory] = useState<string>('all');
+  const [filterCity, setFilterCity] = useState<string>('');
+  const [filterRating, setFilterRating] = useState<string>('all');
+  const [filterDistance, setFilterDistance] = useState<string>('all');
+  const [whenWindow, setWhenWindow] = useState<string>('any'); // any | now | 2h | 6h | 24h
+
+  useEffect(() => {
+    loadCompanies();
+  }, []);
+
+  useEffect(() => {
+    if (geo.latitude && geo.longitude) {
+      setAllCompanies(prev =>
+        prev.map(c => ({
+          ...c,
+          distance:
+            c.latitude && c.longitude
+              ? calculateDistance(geo.latitude!, geo.longitude!, c.latitude, c.longitude)
+              : undefined,
+        })),
+      );
+    }
+  }, [geo.latitude, geo.longitude]);
+
+  const loadCompanies = async () => {
+    setLoading(true);
+    const { data } = await supabase
+      .from('public_company' as any)
+      .select('id, name, slug, logo_url, city, state, average_rating, review_count, business_type, latitude, longitude');
+    if (data) {
+      setAllCompanies(data as any);
+    }
+    setLoading(false);
+  };
+
+  // Compute availability when "when" window changes
+  useEffect(() => {
+    if (whenWindow === 'any' || allCompanies.length === 0) return;
+    checkAvailability();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [whenWindow, allCompanies.length]);
+
+  const checkAvailability = async () => {
+    setAvailabilityLoading(true);
+    const hours = whenWindow === 'now' ? 1 : whenWindow === '2h' ? 2 : whenWindow === '6h' ? 6 : 24;
+    const now = new Date();
+    const limit = new Date(now.getTime() + hours * 60 * 60 * 1000);
+
+    // Pick top 12 by rating to avoid overloading the engine
+    const candidates = [...allCompanies]
+      .sort((a, b) => (b.average_rating ?? 0) - (a.average_rating ?? 0))
+      .slice(0, 12);
+
+    // Get one professional per company (cheapest signal of availability)
+    const { data: profs } = await supabase
+      .from('public_professionals' as any)
+      .select('id, company_id')
+      .in('company_id', candidates.map(c => c.id));
+
+    const byCompany: Record<string, string> = {};
+    (profs as any[] ?? []).forEach(p => {
+      if (!byCompany[p.company_id]) byCompany[p.company_id] = p.id;
+    });
+
+    const results = await Promise.allSettled(
+      candidates.map(async c => {
+        const profId = byCompany[c.id];
+        if (!profId) return { id: c.id, available: false };
+        try {
+          const res = await getAvailableSlots({
+            source: 'public',
+            companyId: c.id,
+            professionalId: profId,
+            date: now,
+            totalDuration: 30,
+          });
+          const has = res.slots.some(slotStr => {
+            const [h, m] = slotStr.split(':').map(Number);
+            const slotDate = new Date(now);
+            slotDate.setHours(h, m, 0, 0);
+            return slotDate >= now && slotDate <= limit;
+          });
+          return { id: c.id, available: has };
+        } catch {
+          return { id: c.id, available: false };
+        }
+      }),
+    );
+
+    const availabilityMap: Record<string, boolean> = {};
+    results.forEach(r => {
+      if (r.status === 'fulfilled') availabilityMap[r.value.id] = r.value.available;
+    });
+
+    setAllCompanies(prev => prev.map(c => ({ ...c, available_now: availabilityMap[c.id] ?? false })));
+    setAvailabilityLoading(false);
+  };
+
+  // Filtered + sorted companies
+  const filtered = useMemo(() => {
+    return allCompanies.filter(c => {
+      if (filterCategory !== 'all') {
+        const cat = categories.find(x => x.slug === filterCategory);
+        if (cat && c.business_type !== cat.businessType) return false;
+      }
+      if (filterCity.trim() && !(c.city ?? '').toLowerCase().includes(filterCity.trim().toLowerCase())) return false;
+      if (filterRating !== 'all') {
+        const min = parseFloat(filterRating);
+        if ((c.average_rating ?? 0) < min) return false;
+      }
+      if (filterDistance !== 'all' && c.distance !== undefined) {
+        const max = parseFloat(filterDistance);
+        if (c.distance > max) return false;
+      }
+      return true;
+    });
+  }, [allCompanies, filterCategory, filterCity, filterRating, filterDistance]);
+
+  const availableNow = useMemo(() => {
+    if (whenWindow === 'any') return [];
+    return filtered
+      .filter(c => c.available_now)
+      .sort((a, b) => {
+        const r = (b.average_rating ?? 0) - (a.average_rating ?? 0);
+        if (r !== 0) return r;
+        return (a.distance ?? 999) - (b.distance ?? 999);
+      })
+      .slice(0, 8);
+  }, [filtered, whenWindow]);
+
+  // Tier classification (premium proxy = top-rated with reviews; mid = decent rating)
+  const tiered = useMemo(() => {
+    const featured: MarketCompany[] = [];
+    const recommended: MarketCompany[] = [];
+    const basic: MarketCompany[] = [];
+    [...filtered]
+      .sort((a, b) => (b.average_rating ?? 0) - (a.average_rating ?? 0))
+      .forEach(c => {
+        const rating = c.average_rating ?? 0;
+        const reviews = c.review_count ?? 0;
+        if (rating >= 4.5 && reviews >= 3 && featured.length < 5) featured.push(c);
+        else if (rating >= 4.0 && recommended.length < 9) recommended.push(c);
+        else basic.push(c);
+      });
+    return { featured, recommended, basic };
+  }, [filtered]);
+
+  const scrollToResults = () => {
+    document.getElementById('marketplace-results')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
   return (
-    <div className="min-h-screen bg-background overflow-x-hidden">
+    <div className="min-h-screen bg-white">
       <SEOHead
-        title="MeAgendaê — Agendamento online para barbeiros, salões e profissionais da beleza"
-        description="Teste grátis por 7 dias. Organize agenda, equipe e faturamento com uma landing premium focada em conversão para o MeAgendaê."
-        keywords="agendamento online, barbearia, salão de beleza, manicure, esteticista, sistema de agendamento"
+        title="Agendae — Agende com profissionais disponíveis perto de você"
+        description="Veja horários em tempo real e agende em segundos com barbeiros, esteticistas e salões avaliados perto de você."
+        keywords="barbeiro, esteticista, salão de beleza, agendamento online, horário disponível"
       />
 
-      <nav className="sticky top-0 z-50 border-b border-border/60 bg-background/85 backdrop-blur-xl">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-6">
-          <Link to="/" className="flex items-center gap-3">
-            <PlatformLogo compact className="shrink-0" onDarkBackground={false} />
-            <span className="font-display text-lg font-bold text-foreground">MeAgendaê</span>
+      {/* Navbar */}
+      <nav className="sticky top-0 z-50 bg-white/80 backdrop-blur-lg border-b border-[hsl(var(--border))]">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex items-center justify-between">
+          <Link to="/" className="flex items-center gap-2">
+            {headerLogo ? (
+              <img src={headerLogo} alt="Agendae" className="h-10 max-w-[160px] object-contain" />
+            ) : (
+              <div className="w-9 h-9 rounded-xl bg-[hsl(var(--primary))] flex items-center justify-center">
+                <Scissors className="h-5 w-5 text-white" />
+              </div>
+            )}
           </Link>
-
-          <div className="hidden items-center gap-8 text-sm font-medium text-muted-foreground md:flex">
-            <a href="#beneficios" className="transition-colors hover:text-foreground">Benefícios</a>
-            <a href="#planos" className="transition-colors hover:text-foreground">Planos</a>
-            <a href="#depoimentos" className="transition-colors hover:text-foreground">Depoimentos</a>
+          <div className="hidden md:flex items-center gap-6 text-sm font-medium text-[hsl(var(--muted-foreground))]">
+            <Link to="/barbeiros" className="hover:text-[hsl(var(--foreground))] transition-colors">Barbeiros</Link>
+            <Link to="/esteticistas" className="hover:text-[hsl(var(--foreground))] transition-colors">Esteticistas</Link>
+            <Link to="/salao-de-beleza" className="hover:text-[hsl(var(--foreground))] transition-colors">Salões</Link>
           </div>
-
           <div className="flex items-center gap-2">
-            <Link to="/auth" className="hidden sm:block">
-              <Button variant="ghost" size="sm">Entrar</Button>
-            </Link>
-            <Link to="/auth">
-              <Button size="sm" className="font-semibold shadow-lg shadow-accent/20">
-                Testar 7 dias grátis
+            <Link to="/auth"><Button variant="ghost" size="sm">Entrar</Button></Link>
+            <Link to="/profissionais">
+              <Button size="sm" className="bg-[hsl(var(--accent))] text-[hsl(var(--accent-foreground))] hover:bg-[hsl(var(--accent))]/90">
+                Sou profissional
               </Button>
             </Link>
           </div>
         </div>
       </nav>
 
-      <section className="relative overflow-hidden">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,hsl(var(--accent))/0.18,transparent_28%),radial-gradient(circle_at_top_left,hsl(var(--primary))/0.14,transparent_30%)]" />
-        <div className="relative mx-auto grid max-w-7xl gap-14 px-4 py-16 sm:px-6 lg:grid-cols-[1.05fr_0.95fr] lg:items-center lg:py-24">
-          <Reveal className="max-w-2xl">
-            <Badge className="mb-6 border border-accent/25 bg-accent/10 px-4 py-1.5 text-accent-foreground">
-              <Sparkles className="mr-1.5 h-3.5 w-3.5 text-accent" />
-              Teste grátis por 7 dias • sem cartão de crédito
-            </Badge>
+      {/* Hero */}
+      <section className="relative overflow-hidden bg-gradient-to-br from-[hsl(var(--primary))]/5 via-transparent to-[hsl(var(--accent))]/5">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 md:py-20 text-center">
+          <h1 className="text-4xl md:text-5xl lg:text-6xl font-display font-bold text-[hsl(var(--foreground))] leading-tight mb-6">
+            Agende agora com profissionais{' '}
+            <span className="text-[hsl(var(--accent))]">disponíveis perto de você</span>
+          </h1>
+          <p className="text-lg md:text-xl text-[hsl(var(--muted-foreground))] max-w-2xl mx-auto mb-8">
+            Veja horários em tempo real e agende em segundos.
+          </p>
+          <div className="flex flex-col sm:flex-row gap-3 justify-center">
+            <Button
+              size="lg"
+              onClick={scrollToResults}
+              className="w-full sm:w-auto text-base px-8 bg-[hsl(var(--primary))] text-[hsl(var(--primary-foreground))]"
+            >
+              <Search className="h-5 w-5 mr-2" />
+              Buscar profissionais
+            </Button>
+            <Button
+              size="lg"
+              variant="outline"
+              onClick={() => { setWhenWindow('now'); scrollToResults(); }}
+              className="w-full sm:w-auto text-base px-8"
+            >
+              <Zap className="h-5 w-5 mr-2 text-[hsl(var(--accent))]" />
+              Encontrar horário agora
+            </Button>
+          </div>
 
-            <h1 className="mb-6 font-display text-4xl font-bold leading-[1.02] tracking-tight text-foreground sm:text-5xl lg:text-6xl">
-              O jeito premium de <span className="text-accent">profissionalizar</span> sua agenda e vender mais.
-            </h1>
-
-            <p className="mb-8 max-w-xl text-lg leading-relaxed text-muted-foreground sm:text-xl">
-              Para barbeiros, barbearias, salões, manicures, esteticistas, lash designers e profissionais da beleza que querem organizar a rotina, ganhar tempo e fechar mais agendamentos.
-            </p>
-
-            <div className="mb-6 flex flex-col gap-3 sm:flex-row">
-              <Link to="/auth">
-                <Button size="lg" className="h-12 w-full px-8 text-base font-semibold shadow-xl shadow-accent/25 sm:w-auto">
-                  Criar conta grátis
-                  <ArrowRight className="ml-1 h-4 w-4" />
-                </Button>
-              </Link>
-              <Link to="/profissionais">
-                <Button size="lg" variant="outline" className="h-12 w-full border-2 px-8 text-base font-semibold sm:w-auto">
-                  Ver página profissional
-                </Button>
-              </Link>
+          {geo.permission === 'prompt' && !geo.latitude && (
+            <div className="mt-6">
+              <Button variant="ghost" size="sm" onClick={geo.requestLocation} disabled={geo.loading} className="gap-2">
+                {geo.loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Navigation className="h-4 w-4" />}
+                Usar minha localização
+              </Button>
             </div>
-
-            <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
-              <span className="inline-flex items-center gap-2"><ShieldCheck className="h-4 w-4 text-accent" /> Sem risco</span>
-              <span className="inline-flex items-center gap-2"><Heart className="h-4 w-4 text-accent" /> Cancele quando quiser</span>
-              <span className="inline-flex items-center gap-2"><Users className="h-4 w-4 text-accent" /> Profissionais da sua cidade já usam</span>
-            </div>
-          </Reveal>
-
-          <Reveal delay={120}>
-            <div className="relative mx-auto max-w-xl">
-              <div className="overflow-hidden rounded-[2rem] border border-border/70 bg-card shadow-[0_30px_90px_-30px_hsl(var(--primary)/0.45)]">
-                <img src={heroBarber} alt="Barbeiro brasileiro sorrindo segurando celular" className="h-[560px] w-full object-cover" />
-              </div>
-
-              <Card className="absolute -left-4 top-10 border-accent/20 bg-card/95 shadow-2xl backdrop-blur sm:-left-10">
-                <CardContent className="flex items-center gap-3 p-4 pt-4">
-                  <div className="rounded-xl bg-accent/10 p-2.5">
-                    <TrendingUp className="h-5 w-5 text-accent" />
-                  </div>
-                  <div>
-                    <p className="text-xs font-medium text-muted-foreground">Resultado gerado</p>
-                    <p className="font-display text-xl font-bold text-foreground">+32% faturamento</p>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="absolute -right-3 top-28 border-border/80 bg-card/95 shadow-2xl backdrop-blur sm:-right-8">
-                <CardContent className="flex items-center gap-3 p-4 pt-4">
-                  <div className="rounded-full bg-accent/12 p-2.5">
-                    <Calendar className="h-5 w-5 text-accent" />
-                  </div>
-                  <div>
-                    <p className="text-xs font-medium text-muted-foreground">Agora mesmo</p>
-                    <p className="font-semibold text-foreground">Novo agendamento confirmado</p>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="absolute bottom-8 left-8 border-border/80 bg-card/95 shadow-2xl backdrop-blur sm:left-12">
-                <CardContent className="flex items-center gap-3 p-4 pt-4">
-                  <div className="flex gap-1 text-accent">
-                    {Array.from({ length: 5 }).map((_, index) => (
-                      <Star key={index} className="h-4 w-4 fill-current" />
-                    ))}
-                  </div>
-                  <p className="font-semibold text-foreground">5 estrelas</p>
-                </CardContent>
-              </Card>
-            </div>
-          </Reveal>
+          )}
         </div>
       </section>
 
-      <section className="border-y border-border bg-secondary/35 py-12">
-        <div className="mx-auto grid max-w-7xl gap-8 px-4 text-center sm:px-6 md:grid-cols-3">
-          {proofStats.map((stat, index) => (
-            <Reveal key={stat.label} delay={index * 120}>
-              <div>
-                <div className="font-display text-4xl font-bold text-primary sm:text-5xl">
-                  <AnimatedCounter end={stat.value} suffix={stat.suffix} />
-                </div>
-                <p className="mt-2 text-sm font-medium text-muted-foreground">{stat.label}</p>
+      {/* Filter bar */}
+      <section id="marketplace-results" className="border-b border-[hsl(var(--border))] bg-[hsl(var(--muted))]/20 sticky top-[60px] z-40 backdrop-blur-md">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+          <div className="flex items-center gap-2 mb-3">
+            <Filter className="h-4 w-4 text-[hsl(var(--muted-foreground))]" />
+            <h3 className="text-sm font-semibold text-[hsl(var(--foreground))]">Encontre profissionais perto de você</h3>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
+            <Select value={filterCategory} onValueChange={setFilterCategory}>
+              <SelectTrigger className="h-9 text-sm"><SelectValue placeholder="Categoria" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todas categorias</SelectItem>
+                {categories.map(c => <SelectItem key={c.slug} value={c.slug}>{c.title}</SelectItem>)}
+              </SelectContent>
+            </Select>
+            <Input
+              placeholder="Cidade"
+              value={filterCity}
+              onChange={e => setFilterCity(e.target.value)}
+              className="h-9 text-sm"
+            />
+            <Select value={filterRating} onValueChange={setFilterRating}>
+              <SelectTrigger className="h-9 text-sm"><SelectValue placeholder="Avaliação" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Qualquer avaliação</SelectItem>
+                <SelectItem value="4.5">4,5+ estrelas</SelectItem>
+                <SelectItem value="4">4+ estrelas</SelectItem>
+                <SelectItem value="3">3+ estrelas</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={filterDistance} onValueChange={setFilterDistance} disabled={!geo.latitude}>
+              <SelectTrigger className="h-9 text-sm">
+                <SelectValue placeholder={geo.latitude ? 'Distância' : 'Sem localização'} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Qualquer distância</SelectItem>
+                <SelectItem value="2">Até 2 km</SelectItem>
+                <SelectItem value="5">Até 5 km</SelectItem>
+                <SelectItem value="10">Até 10 km</SelectItem>
+                <SelectItem value="20">Até 20 km</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={whenWindow} onValueChange={setWhenWindow}>
+              <SelectTrigger className="h-9 text-sm">
+                <Clock className="h-3.5 w-3.5 mr-1 text-[hsl(var(--accent))]" />
+                <SelectValue placeholder="Quando?" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="any">A qualquer momento</SelectItem>
+                <SelectItem value="now">Agora (até 1h)</SelectItem>
+                <SelectItem value="2h">Nas próximas 2h</SelectItem>
+                <SelectItem value="6h">Nas próximas 6h</SelectItem>
+                <SelectItem value="24h">Nas próximas 24h</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+      </section>
+
+      {loading && (
+        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 text-center">
+          <Loader2 className="h-8 w-8 animate-spin text-[hsl(var(--primary))] mx-auto mb-4" />
+          <p className="text-[hsl(var(--muted-foreground))]">Carregando profissionais...</p>
+        </section>
+      )}
+
+      {/* Available now section */}
+      {whenWindow !== 'any' && (
+        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="inline-flex items-center gap-2 bg-[hsl(var(--accent))]/10 text-[hsl(var(--accent))] px-4 py-1.5 rounded-full text-sm font-semibold">
+              <Zap className="h-4 w-4" />
+              Disponíveis agora
+            </div>
+            {availabilityLoading && <Loader2 className="h-4 w-4 animate-spin text-[hsl(var(--muted-foreground))]" />}
+          </div>
+          {availableNow.length === 0 && !availabilityLoading ? (
+            <Card className="p-8 text-center">
+              <Clock className="h-10 w-10 text-[hsl(var(--muted-foreground))]/40 mx-auto mb-3" />
+              <p className="text-[hsl(var(--muted-foreground))]">
+                Nenhum profissional disponível neste intervalo. Tente ampliar a janela de tempo.
+              </p>
+            </Card>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              {availableNow.map(c => (
+                <Link key={c.id} to={getProfileRoute(c)}>
+                  <Card className="overflow-hidden hover:shadow-xl transition-all hover:-translate-y-0.5 border-[hsl(var(--accent))]/30 cursor-pointer h-full">
+                    <CardContent className="p-4">
+                      <div className="flex items-start gap-3 mb-2">
+                        <div className="w-12 h-12 rounded-xl bg-[hsl(var(--muted))]/50 flex-shrink-0 overflow-hidden flex items-center justify-center">
+                          {c.logo_url ? <img src={c.logo_url} alt={c.name} className="w-full h-full object-contain" /> : <Scissors className="h-5 w-5 text-[hsl(var(--primary))]/40" />}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <h3 className="font-semibold text-sm text-[hsl(var(--foreground))] line-clamp-1">{c.name}</h3>
+                          {c.city && <p className="text-xs text-[hsl(var(--muted-foreground))] line-clamp-1">{c.city}</p>}
+                        </div>
+                      </div>
+                      <Badge variant="outline" className="bg-[hsl(var(--accent))]/10 text-[hsl(var(--accent))] border-[hsl(var(--accent))]/30 text-xs">
+                        <Zap className="h-3 w-3 mr-1" /> Horário livre
+                      </Badge>
+                    </CardContent>
+                  </Card>
+                </Link>
+              ))}
+            </div>
+          )}
+        </section>
+      )}
+
+      {/* Featured (premium proxy) */}
+      {!loading && tiered.featured.length > 0 && (
+        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <div className="inline-flex items-center gap-2 bg-amber-100 text-amber-800 px-3 py-1 rounded-full text-xs font-semibold mb-2">
+                <Crown className="h-3.5 w-3.5" />
+                Em destaque
               </div>
-            </Reveal>
+              <h2 className="text-2xl md:text-3xl font-display font-bold text-[hsl(var(--foreground))]">
+                Em destaque na sua região ⭐
+              </h2>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {tiered.featured.map(c => (
+              <Link key={c.id} to={getProfileRoute(c)}>
+                <Card className="overflow-hidden hover:shadow-xl transition-all hover:-translate-y-1 border-amber-200 group cursor-pointer h-full bg-gradient-to-br from-amber-50/50 to-transparent">
+                  <CardContent className="p-5">
+                    <div className="flex items-start gap-4">
+                      <div className="w-16 h-16 rounded-xl bg-white shadow-sm flex-shrink-0 overflow-hidden flex items-center justify-center ring-2 ring-amber-200">
+                        {c.logo_url ? <img src={c.logo_url} alt={c.name} className="w-full h-full object-contain" /> : <Scissors className="h-7 w-7 text-[hsl(var(--primary))]/40" />}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <h3 className="font-semibold text-[hsl(var(--foreground))] group-hover:text-[hsl(var(--primary))] transition-colors line-clamp-1">
+                          {c.name}
+                        </h3>
+                        {(c.city || c.state) && (
+                          <div className="flex items-center gap-1 mt-0.5 text-sm text-[hsl(var(--muted-foreground))]">
+                            <MapPin className="h-3 w-3 flex-shrink-0" />
+                            <span className="line-clamp-1">{[c.city, c.state].filter(Boolean).join(', ')}</span>
+                          </div>
+                        )}
+                        <div className="flex items-center gap-3 mt-2 flex-wrap">
+                          {c.average_rating ? (
+                            <div className="flex items-center gap-1">
+                              <StarRating rating={c.average_rating} size={12} />
+                              <span className="text-xs font-semibold">{c.average_rating.toFixed(1)}</span>
+                              {c.review_count ? <span className="text-xs text-[hsl(var(--muted-foreground))]">({c.review_count})</span> : null}
+                            </div>
+                          ) : null}
+                          {c.distance !== undefined && (
+                            <span className="text-xs text-[hsl(var(--accent))] font-medium">{formatDistance(c.distance)}</span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* Recommended (mid tier) */}
+      {!loading && tiered.recommended.length > 0 && (
+        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+          <h2 className="text-2xl font-display font-bold text-[hsl(var(--foreground))] mb-6">
+            Outros profissionais recomendados
+          </h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {tiered.recommended.map(c => (
+              <Link key={c.id} to={getProfileRoute(c)}>
+                <Card className="overflow-hidden hover:shadow-md transition-all hover:-translate-y-0.5 border-[hsl(var(--border))] group cursor-pointer h-full">
+                  <CardContent className="p-4">
+                    <div className="flex items-start gap-3">
+                      <div className="w-12 h-12 rounded-xl bg-[hsl(var(--muted))]/50 flex-shrink-0 overflow-hidden flex items-center justify-center">
+                        {c.logo_url ? <img src={c.logo_url} alt={c.name} className="w-full h-full object-contain" /> : <Scissors className="h-5 w-5 text-[hsl(var(--primary))]/40" />}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <h3 className="font-semibold text-sm text-[hsl(var(--foreground))] group-hover:text-[hsl(var(--primary))] transition-colors line-clamp-1">
+                          {c.name}
+                        </h3>
+                        {c.city && <p className="text-xs text-[hsl(var(--muted-foreground))] line-clamp-1 mt-0.5">{c.city}</p>}
+                        <div className="flex items-center gap-2 mt-1.5">
+                          {c.average_rating ? (
+                            <div className="flex items-center gap-1">
+                              <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
+                              <span className="text-xs font-medium">{c.average_rating.toFixed(1)}</span>
+                            </div>
+                          ) : null}
+                          {c.distance !== undefined && (
+                            <span className="text-xs text-[hsl(var(--muted-foreground))]">{formatDistance(c.distance)}</span>
+                          )}
+                        </div>
+                      </div>
+                      <ChevronRight className="h-4 w-4 text-[hsl(var(--muted-foreground))] flex-shrink-0" />
+                    </div>
+                  </CardContent>
+                </Card>
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* Basic grid */}
+      {!loading && tiered.basic.length > 0 && (
+        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+          <h2 className="text-xl font-display font-semibold text-[hsl(var(--foreground))] mb-6">
+            Mais profissionais
+          </h2>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
+            {tiered.basic.slice(0, 24).map(c => (
+              <Link key={c.id} to={getProfileRoute(c)}>
+                <Card className="hover:shadow-md transition-all border-[hsl(var(--border))] cursor-pointer h-full">
+                  <CardContent className="p-3 flex flex-col items-center text-center">
+                    <div className="w-12 h-12 rounded-xl bg-[hsl(var(--muted))]/50 overflow-hidden flex items-center justify-center mb-2">
+                      {c.logo_url ? <img src={c.logo_url} alt={c.name} className="w-full h-full object-contain" /> : <Scissors className="h-5 w-5 text-[hsl(var(--primary))]/40" />}
+                    </div>
+                    <p className="text-xs font-medium text-[hsl(var(--foreground))] line-clamp-2">{c.name}</p>
+                  </CardContent>
+                </Card>
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* Categories */}
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <h2 className="text-2xl font-display font-bold text-[hsl(var(--foreground))] text-center mb-8">
+          Explore por categoria
+        </h2>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          {categories.map(cat => (
+            <Link key={cat.slug} to={`/${cat.slug}`}>
+              <Card className="overflow-hidden hover:shadow-lg transition-all hover:-translate-y-1 border-[hsl(var(--border))] group cursor-pointer h-full">
+                <CardContent className="p-5 text-center">
+                  <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${cat.gradient} flex items-center justify-center mx-auto mb-3`}>
+                    <cat.icon className={`h-7 w-7 ${cat.iconColor}`} />
+                  </div>
+                  <h3 className="font-semibold text-[hsl(var(--foreground))] group-hover:text-[hsl(var(--primary))] transition-colors">{cat.title}</h3>
+                  <p className="text-xs text-[hsl(var(--muted-foreground))] mt-1">{cat.description}</p>
+                </CardContent>
+              </Card>
+            </Link>
           ))}
         </div>
       </section>
 
-      <section id="beneficios" className="py-20 lg:py-24">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6">
-          <Reveal className="mx-auto mb-12 max-w-3xl text-center">
-            <Badge className="mb-4 border border-primary/15 bg-primary/8 text-primary">Sessão humanizada</Badge>
-            <h2 className="font-display text-3xl font-bold text-foreground sm:text-4xl lg:text-5xl">
-              Tecnologia com cara de negócio real.
-            </h2>
-            <p className="mt-4 text-lg text-muted-foreground">
-              Uma experiência premium pensada para a rotina corrida de quem atende, vende, organiza equipe e quer crescer sem bagunça.
+      {/* CTA for professionals */}
+      <section className="bg-gradient-to-r from-[hsl(var(--primary))] to-[hsl(var(--primary))]/80 py-16 mt-8">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <Users className="h-10 w-10 text-white/80 mx-auto mb-4" />
+          <h2 className="text-2xl md:text-3xl font-display font-bold text-white mb-4">
+            Você é profissional de beleza?
+          </h2>
+          <p className="text-lg text-white/80 mb-8 max-w-xl mx-auto">
+            Crie seu perfil gratuito e receba agendamentos de novos clientes automaticamente.
+          </p>
+          <Link to="/profissionais">
+            <Button size="lg" className="bg-white text-[hsl(var(--primary))] hover:bg-white/90 shadow-lg text-base px-8">
+              Criar perfil profissional
+              <ArrowRight className="h-5 w-5 ml-2" />
+            </Button>
+          </Link>
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer className="border-t border-[hsl(var(--border))] py-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+            {headerLogo ? (
+              <img src={headerLogo} alt="Agendae" className="h-8 max-w-[120px] object-contain" />
+            ) : (
+              <div className="w-8 h-8 rounded-lg bg-[hsl(var(--primary))] flex items-center justify-center">
+                <Scissors className="h-4 w-4 text-white" />
+              </div>
+            )}
+            <div className="flex items-center gap-6 text-sm text-[hsl(var(--muted-foreground))]">
+              <Link to="/barbeiros" className="hover:text-[hsl(var(--foreground))]">Barbeiros</Link>
+              <Link to="/esteticistas" className="hover:text-[hsl(var(--foreground))]">Esteticistas</Link>
+              <Link to="/salao-de-beleza" className="hover:text-[hsl(var(--foreground))]">Salões</Link>
+              <Link to="/profissionais" className="hover:text-[hsl(var(--foreground))]">Para profissionais</Link>
+            </div>
+            <p className="text-xs text-[hsl(var(--muted-foreground))]">
+              © {new Date().getFullYear()} Agendae. Todos os direitos reservados.
             </p>
-          </Reveal>
-
-          <div className="grid gap-6 md:grid-cols-3">
-            {humanizedGallery.map((item, index) => (
-              <Reveal key={item.title} delay={index * 120}>
-                <Card className="overflow-hidden border-border/70 bg-card shadow-sm transition-all hover:-translate-y-1 hover:shadow-2xl">
-                  <img src={item.image} alt={item.title} className="h-72 w-full object-cover" />
-                  <CardContent className="p-6 pt-6">
-                    <h3 className="font-display text-xl font-bold text-foreground">{item.title}</h3>
-                    <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{item.description}</p>
-                  </CardContent>
-                </Card>
-              </Reveal>
-            ))}
           </div>
-        </div>
-      </section>
-
-      <section className="relative overflow-hidden bg-primary py-20 text-primary-foreground lg:py-24">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_right,hsl(var(--accent))/0.14,transparent_30%)]" />
-        <div className="relative mx-auto grid max-w-7xl gap-12 px-4 sm:px-6 lg:grid-cols-[1fr_0.95fr] lg:items-center">
-          <Reveal>
-            <Badge className="mb-5 border border-primary-foreground/10 bg-primary-foreground/10 text-primary-foreground">As dores da rotina</Badge>
-            <h2 className="mb-6 font-display text-3xl font-bold leading-tight sm:text-4xl lg:text-5xl">
-              Seu acesso ao crescimento fica travado quando a agenda vira bagunça.
-            </h2>
-            <p className="mb-8 max-w-xl text-lg text-primary-foreground/80">
-              O MeAgendaê organiza sua operação e tira o caos do dia a dia para você focar no atendimento, no faturamento e na experiência do cliente.
-            </p>
-
-            <div className="grid gap-3 sm:grid-cols-2">
-              {painPoints.map((pain) => (
-                <div key={pain} className="rounded-2xl border border-primary-foreground/10 bg-primary-foreground/6 px-4 py-4 backdrop-blur-sm">
-                  <div className="mb-2 inline-flex rounded-full bg-destructive/20 p-2 text-destructive-foreground">
-                    <Clock3 className="h-4 w-4" />
-                  </div>
-                  <p className="text-sm font-medium leading-relaxed">{pain}</p>
-                </div>
-              ))}
-            </div>
-          </Reveal>
-
-          <Reveal delay={160}>
-            <div className="overflow-hidden rounded-[2rem] border border-primary-foreground/10 shadow-[0_24px_80px_-24px_hsl(var(--accent)/0.55)]">
-              <img src={worriedOwner} alt="Profissional preocupado olhando agenda cheia" className="h-[520px] w-full object-cover" />
-            </div>
-          </Reveal>
-        </div>
-      </section>
-
-      <section className="py-20 lg:py-24">
-        <div className="mx-auto grid max-w-7xl gap-14 px-4 sm:px-6 lg:grid-cols-[0.95fr_1.05fr] lg:items-center">
-          <Reveal>
-            <div className="overflow-hidden rounded-[2rem] border border-border/70 bg-card shadow-2xl">
-              <img src={ownerFinance} alt="Profissional usando dashboard financeiro" className="h-[500px] w-full object-cover" />
-            </div>
-          </Reveal>
-
-          <Reveal delay={120}>
-            <Badge className="mb-4 border border-accent/25 bg-accent/10 text-accent-foreground">A solução premium</Badge>
-            <h2 className="mb-5 font-display text-3xl font-bold text-foreground sm:text-4xl lg:text-5xl">
-              Agenda, clientes, equipe e faturamento no mesmo lugar.
-            </h2>
-            <p className="mb-8 text-lg text-muted-foreground">
-              Tudo o que você precisa para organizar sua rotina, ganhar mais clientes e transformar atendimento em crescimento previsível.
-            </p>
-
-            <div className="grid gap-4 sm:grid-cols-2">
-              {featureBullets.map((item) => (
-                <div key={item} className="flex gap-3 rounded-2xl border border-border/70 bg-card px-4 py-4 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-lg">
-                  <div className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-accent text-accent-foreground">
-                    <Check className="h-3.5 w-3.5" strokeWidth={3} />
-                  </div>
-                  <span className="text-sm font-medium leading-relaxed text-foreground">{item}</span>
-                </div>
-              ))}
-            </div>
-          </Reveal>
-        </div>
-      </section>
-
-      <section className="bg-secondary/35 py-20 lg:py-24">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6">
-          <Reveal className="mb-12 text-center">
-            <Badge className="mb-4 border border-border bg-background text-foreground">Planos</Badge>
-            <h2 className="font-display text-3xl font-bold text-foreground sm:text-4xl lg:text-5xl">Escolha o plano ideal para crescer</h2>
-            <p className="mt-4 text-lg text-muted-foreground">Todos com teste grátis de 7 dias e sem cartão de crédito.</p>
-          </Reveal>
-
-          <div id="planos" className="grid gap-6 lg:grid-cols-3 lg:gap-5">
-            {plans.map((plan, index) => (
-              <Reveal key={plan.name} delay={index * 120}>
-                <Card className={plan.featured ? 'relative overflow-hidden border-accent bg-primary text-primary-foreground shadow-[0_28px_80px_-28px_hsl(var(--primary)/0.6)]' : 'border-border/70 bg-card shadow-sm'}>
-                  {plan.featured && (
-                    <div className="absolute inset-x-0 top-0 h-1 bg-accent" />
-                  )}
-                  <CardContent className="flex h-full flex-col p-7 pt-7">
-                    <div className="mb-5 flex items-center justify-between gap-3">
-                      <div>
-                        <h3 className="font-display text-2xl font-bold">{plan.name}</h3>
-                        <p className={plan.featured ? 'text-sm text-primary-foreground/75' : 'text-sm text-muted-foreground'}>{plan.description}</p>
-                      </div>
-                      {plan.featured && (
-                        <Badge className="border-0 bg-accent px-3 py-1 text-accent-foreground">Mais vendido</Badge>
-                      )}
-                    </div>
-
-                    <div className="mb-6 flex items-end gap-1">
-                      <span className="font-display text-4xl font-bold">{plan.price}</span>
-                      <span className={plan.featured ? 'text-sm text-primary-foreground/70' : 'text-sm text-muted-foreground'}>/mês</span>
-                    </div>
-
-                    <div className="mb-6 rounded-2xl border border-accent/20 bg-accent/10 px-4 py-3 text-sm font-medium text-accent-foreground">
-                      Teste grátis 7 dias
-                    </div>
-
-                    <div className="mb-8 space-y-3">
-                      {plan.features.map((feature) => (
-                        <div key={feature} className="flex items-start gap-3">
-                          <div className={plan.featured ? 'mt-0.5 rounded-full bg-accent/20 p-1 text-accent' : 'mt-0.5 rounded-full bg-accent/10 p-1 text-accent'}>
-                            <Check className="h-3.5 w-3.5" strokeWidth={3} />
-                          </div>
-                          <span className={plan.featured ? 'text-sm text-primary-foreground/88' : 'text-sm text-foreground'}>{feature}</span>
-                        </div>
-                      ))}
-                    </div>
-
-                    <Link to="/auth" className="mt-auto">
-                      <Button
-                        variant={plan.featured ? 'secondary' : 'outline'}
-                        className={plan.featured ? 'w-full font-semibold text-foreground' : 'w-full border-2 font-semibold'}
-                      >
-                        {plan.cta}
-                      </Button>
-                    </Link>
-                  </CardContent>
-                </Card>
-              </Reveal>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <section id="depoimentos" className="py-20 lg:py-24">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6">
-          <Reveal className="mb-12 text-center">
-            <Badge className="mb-4 border border-accent/25 bg-accent/10 text-accent-foreground">Prova social</Badge>
-            <h2 className="font-display text-3xl font-bold text-foreground sm:text-4xl lg:text-5xl">
-              Profissionais brasileiros que já usam e recomendam
-            </h2>
-          </Reveal>
-
-          <div className="grid gap-6 md:grid-cols-3">
-            {testimonials.map((testimonial, index) => (
-              <Reveal key={testimonial.name} delay={index * 120}>
-                <Card className="h-full border-border/70 bg-card shadow-sm transition-all hover:-translate-y-1 hover:shadow-xl">
-                  <CardContent className="flex h-full flex-col p-6 pt-6">
-                    <div className="mb-4 flex gap-1 text-accent">
-                      {Array.from({ length: 5 }).map((_, starIndex) => (
-                        <Star key={starIndex} className="h-4 w-4 fill-current" />
-                      ))}
-                    </div>
-
-                    <p className="mb-6 flex-1 text-sm leading-relaxed text-muted-foreground">“{testimonial.quote}”</p>
-
-                    <Separator className="mb-5" />
-
-                    <div className="flex items-center gap-3">
-                      <Avatar className="h-12 w-12 ring-2 ring-accent/15">
-                        <AvatarImage src={testimonial.image} alt={testimonial.name} className="object-cover" />
-                        <AvatarFallback>{testimonial.name[0]}</AvatarFallback>
-                      </Avatar>
-                      <div>
-                        <p className="text-sm font-bold text-foreground">{testimonial.name}</p>
-                        <p className="text-xs text-muted-foreground">{testimonial.role}</p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </Reveal>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <section className="bg-secondary/35 py-20 lg:py-24">
-        <div className="mx-auto grid max-w-7xl gap-12 px-4 sm:px-6 lg:grid-cols-[1fr_1fr] lg:items-center">
-          <Reveal>
-            <div className="overflow-hidden rounded-[2rem] border border-border/70 bg-card shadow-xl">
-              <img src={happyClient} alt="Profissional da beleza atendendo cliente satisfeita" className="h-[420px] w-full object-cover" />
-            </div>
-          </Reveal>
-          <Reveal delay={120}>
-            <Badge className="mb-4 border border-primary/20 bg-primary/8 text-primary">Conversão com confiança</Badge>
-            <h2 className="mb-5 font-display text-3xl font-bold text-foreground sm:text-4xl lg:text-5xl">
-              Mais organização, mais clientes e uma rotina que realmente flui.
-            </h2>
-            <p className="mb-8 text-lg text-muted-foreground">
-              O visitante entende rápido o valor, sente segurança e entra no teste grátis com muito menos fricção.
-            </p>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <Card className="border-border/70 bg-card shadow-sm">
-                <CardContent className="p-5 pt-5">
-                  <Wallet className="mb-3 h-6 w-6 text-accent" />
-                  <p className="font-semibold text-foreground">Ganhe mais clientes</p>
-                  <p className="mt-2 text-sm text-muted-foreground">Seu link profissional trabalha mesmo quando você está atendendo.</p>
-                </CardContent>
-              </Card>
-              <Card className="border-border/70 bg-card shadow-sm">
-                <CardContent className="p-5 pt-5">
-                  <MessageCircle className="mb-3 h-6 w-6 text-accent" />
-                  <p className="font-semibold text-foreground">Economize tempo</p>
-                  <p className="mt-2 text-sm text-muted-foreground">Menos mensagens repetidas. Mais foco em vender e atender bem.</p>
-                </CardContent>
-              </Card>
-            </div>
-          </Reveal>
-        </div>
-      </section>
-
-      <section className="px-4 py-12 sm:px-6 lg:py-20">
-        <div className="relative mx-auto max-w-7xl overflow-hidden rounded-[2rem] bg-gradient-to-br from-primary via-primary to-accent p-10 text-center text-primary-foreground shadow-[0_30px_100px_-30px_hsl(var(--primary)/0.7)] lg:p-16">
-          <div className="absolute -left-12 bottom-0 h-56 w-56 rounded-full bg-primary-foreground/10 blur-3xl" />
-          <div className="absolute right-0 top-0 h-72 w-72 rounded-full bg-accent/30 blur-3xl" />
-          <Reveal className="relative mx-auto max-w-3xl">
-            <h2 className="mb-4 font-display text-3xl font-bold leading-tight sm:text-4xl lg:text-5xl">
-              Comece hoje a profissionalizar seu negócio
-            </h2>
-            <p className="mb-8 text-lg text-primary-foreground/85">
-              Teste grátis por 7 dias, sem cartão de crédito, com uma experiência premium para organizar sua rotina e vender mais.
-            </p>
-            <Link to="/auth">
-              <Button size="lg" className="h-14 bg-accent px-8 text-base font-bold text-accent-foreground shadow-2xl shadow-accent/30">
-                Criar conta grátis
-                <ArrowRight className="ml-1 h-5 w-5" />
-              </Button>
-            </Link>
-            <div className="mt-6 flex flex-wrap items-center justify-center gap-4 text-sm text-primary-foreground/80">
-              <span>Mais de 500 profissionais já usam</span>
-              <span>•</span>
-              <span>Seu acesso será organizado desde o primeiro dia</span>
-              <span>•</span>
-              <span>Cancele quando quiser</span>
-            </div>
-          </Reveal>
-        </div>
-      </section>
-
-      <footer className="border-t border-border py-10">
-        <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-5 px-4 text-center sm:px-6 md:flex-row md:text-left">
-          <div className="flex items-center gap-3">
-            <PlatformLogo compact className="shrink-0" onDarkBackground={false} />
-            <div>
-              <p className="font-display font-bold text-foreground">MeAgendaê</p>
-              <p className="text-xs text-muted-foreground">Agendamento online para profissionais da beleza</p>
-            </div>
-          </div>
-
-          <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm text-muted-foreground">
-            <a href="#beneficios" className="transition-colors hover:text-foreground">Benefícios</a>
-            <a href="#planos" className="transition-colors hover:text-foreground">Planos</a>
-            <a href="#depoimentos" className="transition-colors hover:text-foreground">Depoimentos</a>
-            <Link to="/profissionais" className="transition-colors hover:text-foreground">Para profissionais</Link>
-          </div>
-
-          <p className="text-xs text-muted-foreground">© {new Date().getFullYear()} MeAgendaê</p>
         </div>
       </footer>
     </div>
