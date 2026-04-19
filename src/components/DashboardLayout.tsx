@@ -292,14 +292,13 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
         {/* Sidebar */}
         <aside className={cn(
           'fixed inset-y-0 left-0 z-50 bg-sidebar text-sidebar-foreground flex flex-col transition-all duration-250 ease-in-out',
-          'w-[80vw] max-w-[300px] lg:max-w-none',
+          'w-[80vw] max-w-[300px]',
           sidebarOpen ? 'translate-x-0' : '-translate-x-full',
-          `lg:translate-x-0 lg:${sidebarWidth}`,
+          'lg:translate-x-0 lg:max-w-none',
+          collapsed ? 'lg:w-[72px]' : 'lg:w-64',
           isProfessionalMode && 'sidebar-professional',
-        )}
-          style={{ width: undefined }}
-        >
-          <div className={cn('flex flex-col h-full', collapsed ? 'lg:w-[72px]' : 'lg:w-64')} style={{ transition: 'width 0.25s ease-in-out' }}>
+        )}>
+          <div className="flex flex-col h-full w-full">
           {/* Header */}
             <div className={cn('p-4 flex items-center', collapsed ? 'lg:justify-center lg:px-2' : 'gap-3 px-6')}>
               <div className="lg:hidden">
@@ -444,7 +443,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
         </aside>
 
         {/* Main content */}
-        <main className={cn('flex-1 flex flex-col min-h-screen transition-[margin] duration-250 ease-in-out', collapsed ? 'lg:ml-[72px]' : 'lg:ml-64')}>
+        <main className={cn('flex-1 flex flex-col min-h-screen min-w-0 w-full transition-[margin] duration-250 ease-in-out', collapsed ? 'lg:ml-[72px]' : 'lg:ml-64')}>
            <header className={cn(
               "h-16 border-b flex items-center px-4 lg:px-8 bg-card sticky top-0 z-50 shadow-[0_2px_8px_rgba(0,0,0,0.08)]",
               isProfessionalMode && "border-b-2 border-b-teal-500/40"
@@ -523,8 +522,8 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
               </PopoverContent>
             </Popover>
           </header>
-          <div className="flex-1 p-3 sm:p-4 lg:p-8 overflow-auto overflow-x-hidden w-full">
-            <div className="w-full max-w-[1400px] mx-auto">
+          <div className="flex-1 p-3 sm:p-4 lg:p-8 overflow-x-hidden overflow-y-auto w-full min-w-0">
+            <div className="w-full max-w-[1400px] mx-auto min-w-0">
               {platformMessages && platformMessages.length > 0 && (
                 <div className="mb-4 space-y-2">
                   {platformMessages.slice(0, 3).map((msg: any) => (
