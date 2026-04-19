@@ -47,6 +47,7 @@ const settingsSubItems = [
   { href: '/dashboard/settings/automation', icon: Zap, label: 'Automação' },
   { href: '/dashboard/settings/branding', icon: Palette, label: 'Branding' },
   { href: '/dashboard/settings/domain', icon: Globe, label: 'Domínio' },
+  { href: '/dashboard/settings/swap-history', icon: ArrowLeftRight, label: 'Trocas de Horário' },
   { href: '/dashboard/settings/plan', icon: CreditCard, label: 'Plano' },
 ];
 
