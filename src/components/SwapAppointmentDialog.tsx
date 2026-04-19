@@ -441,6 +441,7 @@ export function SwapAppointmentDialog({ open, onOpenChange, source, onSwapped }:
         </DialogFooter>
       </DialogContent>
     </Dialog>
+    )}
 
     {/* Post-swap notification modal — premium UX */}
     <Dialog open={successOpen} onOpenChange={(o) => { if (!o) handleSuccessClose(); else setSuccessOpen(o); }}>
