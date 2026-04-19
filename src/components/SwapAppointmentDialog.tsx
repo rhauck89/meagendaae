@@ -4,8 +4,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { ArrowLeftRight, Calendar as CalendarIcon, Clock, Search, AlertTriangle, Check, MessageCircle, User, Loader2 } from 'lucide-react';
+import { ArrowLeftRight, Calendar as CalendarIcon, Clock, Search, AlertTriangle, Check, MessageCircle, User, Loader2, CheckCircle2 } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { supabase } from '@/integrations/supabase/client';
@@ -35,6 +36,15 @@ export function SwapAppointmentDialog({ open, onOpenChange, source, onSwapped }:
   const [selected, setSelected] = useState<any | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [companyName, setCompanyName] = useState('');
+  // Post-swap notification modal state
+  const [successOpen, setSuccessOpen] = useState(false);
+  const [successData, setSuccessData] = useState<null | {
+    a: { name: string; whatsapp: string | null; oldStart: Date; newStart: Date; profName: string };
+    b: { name: string; whatsapp: string | null; oldStart: Date; newStart: Date; profName: string };
+  }>(null);
+  const [markNotified, setMarkNotified] = useState(true);
+  const [notifiedA, setNotifiedA] = useState(false);
+  const [notifiedB, setNotifiedB] = useState(false);
 
   useEffect(() => {
     if (!open) {
@@ -162,10 +172,10 @@ export function SwapAppointmentDialog({ open, onOpenChange, source, onSwapped }:
   }, [source, selected]);
 
   const handleConfirm = async () => {
-    if (!source || !selected) return;
+    if (!source || !selected || !preview) return;
     setSubmitting(true);
     try {
-      const { data, error } = await supabase.rpc('swap_appointments' as any, {
+      const { error } = await supabase.rpc('swap_appointments' as any, {
         p_appointment_a: source.id,
         p_appointment_b: selected.id,
         p_reason: null,
@@ -178,10 +188,30 @@ export function SwapAppointmentDialog({ open, onOpenChange, source, onSwapped }:
 
       toast.success('Horários trocados com sucesso!');
       onSwapped?.();
-      // Offer to open WhatsApp for both clients (one at a time)
-      offerWhatsApp(source, preview!.newA);
-      offerWhatsApp(selected, preview!.newB);
+
+      // Prepare success modal data
+      setSuccessData({
+        a: {
+          name: source.client_name || 'Cliente',
+          whatsapp: source.client_whatsapp || null,
+          oldStart: parseISO(source.start_time),
+          newStart: preview.newA.start,
+          profName: preview.newA.profName || '',
+        },
+        b: {
+          name: selected.client_name || 'Cliente',
+          whatsapp: selected.client_whatsapp || null,
+          oldStart: parseISO(selected.start_time),
+          newStart: preview.newB.start,
+          profName: preview.newB.profName || '',
+        },
+      });
+      setNotifiedA(false);
+      setNotifiedB(false);
+      setMarkNotified(true);
       onOpenChange(false);
+      // Open success modal after the swap dialog finishes closing animation
+      setTimeout(() => setSuccessOpen(true), 150);
     } catch (err: any) {
       console.error('[SwapDialog] swap error', err);
       toast.error(err?.message || 'Erro ao trocar horários');
@@ -190,12 +220,11 @@ export function SwapAppointmentDialog({ open, onOpenChange, source, onSwapped }:
     }
   };
 
-  const offerWhatsApp = (apt: any, newTimes: { start: Date }) => {
-    if (!apt.client_whatsapp) return;
-    const dateStr = format(newTimes.start, "dd/MM/yyyy", { locale: ptBR });
-    const timeStr = format(newTimes.start, "HH:mm");
-    const greeting = apt.client_name ? `Olá ${apt.client_name.split(' ')[0]} 👋` : 'Olá 👋';
-    const message = [
+  const buildMessage = (clientName: string, newStart: Date) => {
+    const dateStr = format(newStart, "dd/MM/yyyy", { locale: ptBR });
+    const timeStr = format(newStart, "HH:mm");
+    const greeting = clientName ? `Olá ${clientName.split(' ')[0]} 👋` : 'Olá 👋';
+    return [
       greeting,
       '',
       'Seu horário foi atualizado com sucesso.',
@@ -206,8 +235,52 @@ export function SwapAppointmentDialog({ open, onOpenChange, source, onSwapped }:
       '',
       'Qualquer dúvida estamos à disposição!',
     ].filter(Boolean).join('\n');
-    // Defer slightly so popups don't fight the toast/close animation
-    setTimeout(() => openWhatsApp(apt.client_whatsapp, message), 200);
+  };
+
+  const notifyOne = (which: 'a' | 'b') => {
+    if (!successData) return;
+    const target = successData[which];
+    if (!target.whatsapp) {
+      toast.error('Cliente sem WhatsApp cadastrado');
+      return;
+    }
+    openWhatsApp(target.whatsapp, buildMessage(target.name, target.newStart));
+    if (which === 'a') setNotifiedA(true);
+    else setNotifiedB(true);
+  };
+
+  const notifyBoth = () => {
+    if (!successData) return;
+    const { a, b } = successData;
+    if (a.whatsapp) {
+      openWhatsApp(a.whatsapp, buildMessage(a.name, a.newStart));
+      setNotifiedA(true);
+    }
+    if (b.whatsapp) {
+      // Stagger to avoid popup blocker
+      setTimeout(() => {
+        openWhatsApp(b.whatsapp!, buildMessage(b.name, b.newStart));
+        setNotifiedB(true);
+      }, 800);
+    }
+  };
+
+  const handleSuccessClose = async () => {
+    // Optionally persist notification flag in swap log
+    if (markNotified && (notifiedA || notifiedB) && source && selected) {
+      try {
+        await supabase
+          .from('appointments_swap_logs' as any)
+          .update({ reason: `Clientes notificados via WhatsApp em ${new Date().toISOString()}` } as any)
+          .eq('appointment_a_id', source.id)
+          .eq('appointment_b_id', selected.id);
+      } catch (err) {
+        // Non-critical; swap log update is best-effort
+        console.warn('[SwapDialog] could not update notification flag', err);
+      }
+    }
+    setSuccessOpen(false);
+    setSuccessData(null);
   };
 
   if (!source) return null;
@@ -216,6 +289,7 @@ export function SwapAppointmentDialog({ open, onOpenChange, source, onSwapped }:
   const sourceEnd = parseISO(source.end_time);
 
   return (
+    <>
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl">
         <DialogHeader>
@@ -347,7 +421,7 @@ export function SwapAppointmentDialog({ open, onOpenChange, source, onSwapped }:
               </div>
               {(source.client_whatsapp || selected.client_whatsapp) && (
                 <p className="text-[11px] text-muted-foreground flex items-center gap-1 pt-1 border-t border-primary/10">
-                  <MessageCircle className="h-3 w-3" /> Após confirmar, o WhatsApp abrirá para avisar cada cliente.
+                  <MessageCircle className="h-3 w-3" /> Após confirmar, você poderá avisar cada cliente individualmente.
                 </p>
               )}
             </div>
@@ -368,6 +442,95 @@ export function SwapAppointmentDialog({ open, onOpenChange, source, onSwapped }:
         </DialogFooter>
       </DialogContent>
     </Dialog>
+
+    {/* Post-swap notification modal — premium UX */}
+    <Dialog open={successOpen} onOpenChange={(o) => { if (!o) handleSuccessClose(); else setSuccessOpen(o); }}>
+      <DialogContent className="sm:max-w-[520px]">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <CheckCircle2 className="h-5 w-5 text-success" />
+            Horários trocados com sucesso
+          </DialogTitle>
+          <DialogDescription>
+            Avise os clientes sobre a alteração quando quiser.
+          </DialogDescription>
+        </DialogHeader>
+
+        {successData && (
+          <DialogBody className="space-y-3">
+            {/* Client A */}
+            <div className="rounded-lg border bg-muted/30 p-3">
+              <div className="flex items-center justify-between gap-2">
+                <p className="font-display font-bold truncate">{successData.a.name}</p>
+                {notifiedA && <Badge variant="outline" className="text-[10px] border-success/40 text-success"><Check className="h-3 w-3 mr-0.5" />Avisado</Badge>}
+              </div>
+              <div className="flex items-center gap-2 text-sm mt-1">
+                <span className="text-muted-foreground line-through">{format(successData.a.oldStart, "dd/MM HH:mm")}</span>
+                <ArrowLeftRight className="h-3.5 w-3.5 text-primary" />
+                <span className="font-semibold">{format(successData.a.newStart, "dd/MM HH:mm")}</span>
+              </div>
+              {successData.a.profName && (
+                <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1"><User className="h-3 w-3" />{successData.a.profName}</p>
+              )}
+            </div>
+
+            {/* Client B */}
+            <div className="rounded-lg border bg-muted/30 p-3">
+              <div className="flex items-center justify-between gap-2">
+                <p className="font-display font-bold truncate">{successData.b.name}</p>
+                {notifiedB && <Badge variant="outline" className="text-[10px] border-success/40 text-success"><Check className="h-3 w-3 mr-0.5" />Avisado</Badge>}
+              </div>
+              <div className="flex items-center gap-2 text-sm mt-1">
+                <span className="text-muted-foreground line-through">{format(successData.b.oldStart, "dd/MM HH:mm")}</span>
+                <ArrowLeftRight className="h-3.5 w-3.5 text-primary" />
+                <span className="font-semibold">{format(successData.b.newStart, "dd/MM HH:mm")}</span>
+              </div>
+              {successData.b.profName && (
+                <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1"><User className="h-3 w-3" />{successData.b.profName}</p>
+              )}
+            </div>
+
+            {/* Individual WhatsApp buttons */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
+              <Button
+                variant="outline"
+                onClick={() => notifyOne('a')}
+                disabled={!successData.a.whatsapp}
+                className="justify-start"
+              >
+                <MessageCircle className="h-4 w-4 mr-1" />
+                WhatsApp {successData.a.name.split(' ')[0]}
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => notifyOne('b')}
+                disabled={!successData.b.whatsapp}
+                className="justify-start"
+              >
+                <MessageCircle className="h-4 w-4 mr-1" />
+                WhatsApp {successData.b.name.split(' ')[0]}
+              </Button>
+            </div>
+
+            <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer pt-1">
+              <Checkbox checked={markNotified} onCheckedChange={(v) => setMarkNotified(!!v)} />
+              Marcar clientes como notificados no histórico
+            </label>
+          </DialogBody>
+        )}
+
+        <DialogFooter className="gap-2 sm:gap-2">
+          <Button variant="ghost" onClick={handleSuccessClose}>Fechar</Button>
+          <Button
+            onClick={notifyBoth}
+            disabled={!successData?.a.whatsapp && !successData?.b.whatsapp}
+          >
+            <MessageCircle className="h-4 w-4 mr-1" /> Avisar ambos
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+    </>
   );
 }
 
