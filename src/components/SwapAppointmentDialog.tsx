@@ -98,7 +98,7 @@ export function SwapAppointmentDialog({ open, onOpenChange, source, onSwapped }:
         .from('appointments')
         .select('id, professional_id, start_time, end_time, status')
         .eq('company_id', companyId)
-        .in('status', ['pending', 'confirmed', 'in_progress'])
+        .in('status', ['pending', 'confirmed'])
         .in('professional_id', profIds)
         .gte('end_time', nowIso);
 
