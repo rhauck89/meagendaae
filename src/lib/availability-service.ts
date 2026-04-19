@@ -31,7 +31,13 @@ import {
   type BusinessException,
   type ExistingAppointment,
   type BlockedTime,
+  type EngineVersion,
 } from './availability-engine';
+
+/** Default base step (min) for Agenda Inteligente V2 when no services exist yet. */
+const DEFAULT_BASE_SLOT_MINUTES = 10;
+/** Hard floor — even if a service has duration < this, the timeline never goes finer. */
+const MIN_BASE_SLOT_MINUTES = 5;
 
 export type AvailabilitySource = 'manual' | 'public';
 
