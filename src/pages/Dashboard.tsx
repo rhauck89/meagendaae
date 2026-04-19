@@ -14,7 +14,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogBody, DialogFooter, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { Calendar as CalendarIcon, CalendarCheck, ChevronLeft, ChevronRight, Clock, DollarSign, Users, UserCheck, UserMinus, AlertTriangle, Bell, MailCheck, Cake, Ban, Trash2, Timer, RefreshCw, AlertCircle, TrendingUp, BarChart3, XCircle, Percent, Receipt, Send, List, LayoutGrid } from 'lucide-react';
+import { Calendar as CalendarIcon, CalendarCheck, ChevronLeft, ChevronRight, Clock, DollarSign, Users, UserCheck, UserMinus, AlertTriangle, Bell, MailCheck, Cake, Ban, Trash2, Timer, RefreshCw, AlertCircle, TrendingUp, BarChart3, XCircle, Percent, Receipt, Send, List, LayoutGrid, ArrowLeftRight } from 'lucide-react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { BlockTimeDialog } from '@/components/BlockTimeDialog';
 import { Calendar as DatePickerCalendar } from '@/components/ui/calendar';
@@ -26,6 +26,7 @@ import { formatWhatsApp, openWhatsApp } from '@/lib/whatsapp';
 import { useNavigate as useRouterNavigate } from 'react-router-dom';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { ManualAppointmentDialog } from '@/components/ManualAppointmentDialog';
+import { SwapAppointmentDialog } from '@/components/SwapAppointmentDialog';
 import { AgendaTimelineView } from '@/components/AgendaTimelineView';
 import { AgendaWeekView } from '@/components/AgendaWeekView';
 import { AgendaMonthView } from '@/components/AgendaMonthView';
@@ -131,6 +132,8 @@ const Dashboard = () => {
   const [delayLoading, setDelayLoading] = useState(false);
   const [rescheduleTarget, setRescheduleTarget] = useState<any>(null);
   const [rescheduleDialogOpen, setRescheduleDialogOpen] = useState(false);
+  const [swapTarget, setSwapTarget] = useState<any>(null);
+  const [swapDialogOpen, setSwapDialogOpen] = useState(false);
   const [rescheduleDate, setRescheduleDate] = useState<Date | undefined>(undefined);
   const [rescheduleSlots, setRescheduleSlots] = useState<string[]>([]);
   const [rescheduleSlotsLoading, setRescheduleSlotsLoading] = useState(false);
@@ -896,6 +899,11 @@ const Dashboard = () => {
                 <RefreshCw className="h-3 w-3 mr-1" />Reagendar
               </Button>
             )}
+            {!apt.promotion_id && (
+              <Button size="sm" variant="outline" className="text-xs" onClick={() => { setSwapTarget(apt); setSwapDialogOpen(true); }}>
+                <ArrowLeftRight className="h-3 w-3 mr-1" />Trocar
+              </Button>
+            )}
             <Button size="sm" variant="ghost" className="text-destructive text-xs" onClick={() => { setCancelTarget(apt); setCancelDialogOpen(true); }}>Cancelar</Button>
           </>
         )}
@@ -1029,6 +1037,11 @@ const Dashboard = () => {
                       <RefreshCw className="h-3 w-3 mr-1" />Reagendar
                     </Button>
                   )}
+                  {!apt.promotion_id && (
+                    <Button size="sm" variant="outline" className="text-xs" onClick={() => { setSwapTarget(apt); setSwapDialogOpen(true); }}>
+                      <ArrowLeftRight className="h-3 w-3 mr-1" />Trocar
+                    </Button>
+                  )}
                   <Button size="sm" variant="ghost" className="text-destructive text-xs" onClick={() => { setCancelTarget(apt); setCancelDialogOpen(true); }}>
                     Cliente cancelou
                   </Button>
@@ -1131,6 +1144,19 @@ const Dashboard = () => {
           fetchAppointments();
           fetchUpcomingAppointments();
           fetchMonthlyStats();
+        }}
+      />
+
+      <SwapAppointmentDialog
+        open={swapDialogOpen}
+        onOpenChange={(open) => {
+          setSwapDialogOpen(open);
+          if (!open) setSwapTarget(null);
+        }}
+        source={swapTarget}
+        onSwapped={() => {
+          fetchAppointments();
+          fetchUpcomingAppointments();
         }}
       />
 
@@ -1749,6 +1775,16 @@ const Dashboard = () => {
                                     >
                                       <RefreshCw className="h-4 w-4 mr-1" />
                                       Reagendar
+                                    </Button>
+                                  )}
+                                  {!apt.promotion_id && (
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={() => { setSwapTarget(apt); setSwapDialogOpen(true); }}
+                                    >
+                                      <ArrowLeftRight className="h-4 w-4 mr-1" />
+                                      Trocar
                                     </Button>
                                   )}
                                   <Button

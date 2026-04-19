@@ -330,6 +330,78 @@ export type Database = {
           },
         ]
       }
+      appointments_swap_logs: {
+        Row: {
+          appointment_a_id: string
+          appointment_b_id: string
+          client_a_name: string | null
+          client_b_name: string | null
+          company_id: string
+          created_at: string
+          id: string
+          new_end_a: string
+          new_end_b: string
+          new_professional_a: string
+          new_professional_b: string
+          new_start_a: string
+          new_start_b: string
+          old_end_a: string
+          old_end_b: string
+          old_professional_a: string
+          old_professional_b: string
+          old_start_a: string
+          old_start_b: string
+          reason: string | null
+          swapped_by: string
+        }
+        Insert: {
+          appointment_a_id: string
+          appointment_b_id: string
+          client_a_name?: string | null
+          client_b_name?: string | null
+          company_id: string
+          created_at?: string
+          id?: string
+          new_end_a: string
+          new_end_b: string
+          new_professional_a: string
+          new_professional_b: string
+          new_start_a: string
+          new_start_b: string
+          old_end_a: string
+          old_end_b: string
+          old_professional_a: string
+          old_professional_b: string
+          old_start_a: string
+          old_start_b: string
+          reason?: string | null
+          swapped_by: string
+        }
+        Update: {
+          appointment_a_id?: string
+          appointment_b_id?: string
+          client_a_name?: string | null
+          client_b_name?: string | null
+          company_id?: string
+          created_at?: string
+          id?: string
+          new_end_a?: string
+          new_end_b?: string
+          new_professional_a?: string
+          new_professional_b?: string
+          new_start_a?: string
+          new_start_b?: string
+          old_end_a?: string
+          old_end_b?: string
+          old_professional_a?: string
+          old_professional_b?: string
+          old_start_a?: string
+          old_start_b?: string
+          reason?: string | null
+          swapped_by?: string
+        }
+        Relationships: []
+      }
       blocked_times: {
         Row: {
           block_date: string
@@ -4828,6 +4900,14 @@ export type Database = {
             }
             Returns: string
           }
+      swap_appointments: {
+        Args: {
+          p_appointment_a: string
+          p_appointment_b: string
+          p_reason?: string
+        }
+        Returns: Json
+      }
       switch_active_company: {
         Args: { _company_id: string }
         Returns: undefined
