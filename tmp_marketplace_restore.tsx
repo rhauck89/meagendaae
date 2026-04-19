@@ -122,7 +122,7 @@ const humanizedGallery = [
   },
 ];
 
-export default function LandingProfissionais() {
+export default function MarketplaceHome() {
   return (
     <div className="min-h-screen bg-background overflow-x-hidden">
       <SEOHead
