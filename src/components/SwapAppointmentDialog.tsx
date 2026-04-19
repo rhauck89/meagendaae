@@ -420,7 +420,7 @@ export function SwapAppointmentDialog({ open, onOpenChange, source, onSwapped }:
               </div>
               {(source.client_whatsapp || selected.client_whatsapp) && (
                 <p className="text-[11px] text-muted-foreground flex items-center gap-1 pt-1 border-t border-primary/10">
-                  <MessageCircle className="h-3 w-3" /> Após confirmar, o WhatsApp abrirá para avisar cada cliente.
+                  <MessageCircle className="h-3 w-3" /> Após confirmar, você poderá avisar cada cliente individualmente.
                 </p>
               )}
             </div>
@@ -441,6 +441,95 @@ export function SwapAppointmentDialog({ open, onOpenChange, source, onSwapped }:
         </DialogFooter>
       </DialogContent>
     </Dialog>
+
+    {/* Post-swap notification modal — premium UX */}
+    <Dialog open={successOpen} onOpenChange={(o) => { if (!o) handleSuccessClose(); else setSuccessOpen(o); }}>
+      <DialogContent className="sm:max-w-[520px]">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <CheckCircle2 className="h-5 w-5 text-success" />
+            Horários trocados com sucesso
+          </DialogTitle>
+          <DialogDescription>
+            Avise os clientes sobre a alteração quando quiser.
+          </DialogDescription>
+        </DialogHeader>
+
+        {successData && (
+          <DialogBody className="space-y-3">
+            {/* Client A */}
+            <div className="rounded-lg border bg-muted/30 p-3">
+              <div className="flex items-center justify-between gap-2">
+                <p className="font-display font-bold truncate">{successData.a.name}</p>
+                {notifiedA && <Badge variant="outline" className="text-[10px] border-success/40 text-success"><Check className="h-3 w-3 mr-0.5" />Avisado</Badge>}
+              </div>
+              <div className="flex items-center gap-2 text-sm mt-1">
+                <span className="text-muted-foreground line-through">{format(successData.a.oldStart, "dd/MM HH:mm")}</span>
+                <ArrowLeftRight className="h-3.5 w-3.5 text-primary" />
+                <span className="font-semibold">{format(successData.a.newStart, "dd/MM HH:mm")}</span>
+              </div>
+              {successData.a.profName && (
+                <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1"><User className="h-3 w-3" />{successData.a.profName}</p>
+              )}
+            </div>
+
+            {/* Client B */}
+            <div className="rounded-lg border bg-muted/30 p-3">
+              <div className="flex items-center justify-between gap-2">
+                <p className="font-display font-bold truncate">{successData.b.name}</p>
+                {notifiedB && <Badge variant="outline" className="text-[10px] border-success/40 text-success"><Check className="h-3 w-3 mr-0.5" />Avisado</Badge>}
+              </div>
+              <div className="flex items-center gap-2 text-sm mt-1">
+                <span className="text-muted-foreground line-through">{format(successData.b.oldStart, "dd/MM HH:mm")}</span>
+                <ArrowLeftRight className="h-3.5 w-3.5 text-primary" />
+                <span className="font-semibold">{format(successData.b.newStart, "dd/MM HH:mm")}</span>
+              </div>
+              {successData.b.profName && (
+                <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1"><User className="h-3 w-3" />{successData.b.profName}</p>
+              )}
+            </div>
+
+            {/* Individual WhatsApp buttons */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
+              <Button
+                variant="outline"
+                onClick={() => notifyOne('a')}
+                disabled={!successData.a.whatsapp}
+                className="justify-start"
+              >
+                <MessageCircle className="h-4 w-4 mr-1" />
+                WhatsApp {successData.a.name.split(' ')[0]}
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => notifyOne('b')}
+                disabled={!successData.b.whatsapp}
+                className="justify-start"
+              >
+                <MessageCircle className="h-4 w-4 mr-1" />
+                WhatsApp {successData.b.name.split(' ')[0]}
+              </Button>
+            </div>
+
+            <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer pt-1">
+              <Checkbox checked={markNotified} onCheckedChange={(v) => setMarkNotified(!!v)} />
+              Marcar clientes como notificados no histórico
+            </label>
+          </DialogBody>
+        )}
+
+        <DialogFooter className="gap-2 sm:gap-2">
+          <Button variant="ghost" onClick={handleSuccessClose}>Fechar</Button>
+          <Button
+            onClick={notifyBoth}
+            disabled={!successData?.a.whatsapp && !successData?.b.whatsapp}
+          >
+            <MessageCircle className="h-4 w-4 mr-1" /> Avisar ambos
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+    </>
   );
 }
 
