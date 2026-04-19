@@ -1,824 +1,538 @@
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Separator } from '@/components/ui/separator';
 import { SEOHead } from '@/components/SEOHead';
-import { usePlatformSettings } from '@/hooks/usePlatformSettings';
+import { PlatformLogo } from '@/components/PlatformLogo';
+import { Reveal } from '@/components/landing/Reveal';
+import { AnimatedCounter } from '@/components/landing/AnimatedCounter';
+import heroBarber from '@/assets/hero-barber.jpg';
+import worriedOwner from '@/assets/worried-owner.jpg';
+import teamSalon from '@/assets/team-salon.jpg';
+import manicure from '@/assets/manicure.jpg';
+import happyClient from '@/assets/happy-client.jpg';
+import ownerFinance from '@/assets/owner-finance.jpg';
+import testimonial1 from '@/assets/testimonial-1.jpg';
+import testimonial2 from '@/assets/testimonial-2.jpg';
+import testimonial3 from '@/assets/testimonial-3.jpg';
 import {
-  Calendar, Users, BarChart3, Globe, Zap, Clock, Star, Shield,
-  CheckCircle2, ArrowRight, Play, TrendingUp, UserCheck, Heart,
-  Smartphone, MessageSquare, Target, Gift, DollarSign, Search,
-  ChevronRight, Scissors, MapPin, BadgeCheck, Timer, RefreshCw,
-  CalendarDays, Megaphone, PieChart, UserPlus, Quote, ArrowRightLeft
+  ArrowRight,
+  Calendar,
+  Check,
+  Clock3,
+  Heart,
+  MapPin,
+  MessageCircle,
+  Scissors,
+  ShieldCheck,
+  Sparkles,
+  Star,
+  TrendingUp,
+  Users,
+  Wallet,
 } from 'lucide-react';
 
-const LandingProfissionais = () => {
-  const platform = usePlatformSettings();
-  const headerLogo = platform?.logo_dark || platform?.system_logo || platform?.logo_light || null;
+const proofStats = [
+  { value: 500, suffix: '+', label: 'profissionais usando hoje' },
+  { value: 15000, suffix: '+', label: 'agendamentos realizados' },
+  { value: 120, suffix: '+', label: 'cidades atendidas' },
+];
 
+const painPoints = [
+  'Horários duplicados e confusos no WhatsApp',
+  'Clientes esquecem e deixam sua agenda vazia',
+  'Falta de controle financeiro e da equipe',
+  'Perda de tempo confirmando agendamentos manualmente',
+];
+
+const featureBullets = [
+  'Agendamento online 24 horas por dia',
+  'Lembretes automáticos para reduzir faltas',
+  'Controle financeiro simples e visual',
+  'Página profissional para divulgar na bio',
+  'Gestão da equipe com visão de desempenho',
+  'Promoções e fidelidade para fazer o cliente voltar',
+];
+
+const plans = [
+  {
+    name: 'Solo',
+    price: 'R$49,90',
+    description: 'Perfeito para profissionais autônomos.',
+    features: ['1 profissional', 'Agenda online', 'Clientes ilimitados', 'Lembretes automáticos', 'Teste grátis 7 dias'],
+    featured: false,
+    cta: 'Começar grátis',
+  },
+  {
+    name: 'Studio',
+    price: 'R$69,90',
+    description: 'O mais vendido para crescer com organização.',
+    features: ['Até 3 profissionais', 'Financeiro completo', 'Promoções e fidelidade', 'WhatsApp automático', 'Teste grátis 7 dias'],
+    featured: true,
+    cta: 'Testar 7 dias grátis',
+  },
+  {
+    name: 'Elite',
+    price: 'R$89,90',
+    description: 'Para operações que querem escala e mais controle.',
+    features: ['Profissionais ilimitados', 'Domínio próprio', 'Prioridade no marketplace', 'Relatórios avançados', 'Teste grátis 7 dias'],
+    featured: false,
+    cta: 'Quero o Elite',
+  },
+];
+
+const testimonials = [
+  {
+    image: testimonial1,
+    name: 'Rafael Souza',
+    role: 'Barbeiro • São Paulo',
+    quote: 'Depois que comecei a usar o MeAgendaê, minha agenda parou de depender do WhatsApp e meu faturamento subiu.',
+  },
+  {
+    image: testimonial2,
+    name: 'Camila Ribeiro',
+    role: 'Cabeleireira • Rio de Janeiro',
+    quote: 'Hoje eu tenho controle da equipe, do financeiro e dos horários em um só lugar. Ficou muito mais profissional.',
+  },
+  {
+    image: testimonial3,
+    name: 'Aline Pereira',
+    role: 'Manicure • Belo Horizonte',
+    quote: 'Os clientes agendam sozinhos, recebem lembrete e voltam mais vezes. Virou outro negócio.',
+  },
+];
+
+const humanizedGallery = [
+  {
+    image: teamSalon,
+    title: 'Equipe que transmite confiança',
+    description: 'Mostre profissionalismo logo no primeiro contato.',
+  },
+  {
+    image: happyClient,
+    title: 'Experiência mais humana',
+    description: 'Seu cliente sente organização antes mesmo de chegar.',
+  },
+  {
+    image: manicure,
+    title: 'Rotina mais bonita e leve',
+    description: 'Agenda, atendimento e vendas com mais fluidez.',
+  },
+];
+
+export default function MarketplaceHome() {
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-background overflow-x-hidden">
       <SEOHead
-        title="MeAgendaê — Sistema de Agendamento para Profissionais de Beleza"
-        description="Organize sua agenda, gerencie equipe, receba clientes online e controle seu faturamento. Teste grátis por 7 dias."
-        keywords="agendamento online, barbearia, estética, gestão de salão, agenda profissional"
+        title="MeAgendaê — Agendamento online para barbeiros, salões e profissionais da beleza"
+        description="Teste grátis por 7 dias. Organize agenda, equipe e faturamento com uma landing premium focada em conversão para o MeAgendaê."
+        keywords="agendamento online, barbearia, salão de beleza, manicure, esteticista, sistema de agendamento"
       />
 
-      {/* ─── NAVBAR ─── */}
-      <nav className="sticky top-0 z-50 bg-white/80 backdrop-blur-lg border-b border-gray-100">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex items-center justify-between">
-          {headerLogo ? (
-            <img src={headerLogo} alt="MeAgendaê" className="h-10 max-w-[160px] object-contain" />
-          ) : (
-            <div className="w-9 h-9 rounded-xl bg-[hsl(var(--primary))] flex items-center justify-center">
-              <Scissors className="h-5 w-5 text-white" />
-            </div>
-          )}
-          <div className="hidden md:flex items-center gap-6 text-sm font-medium text-[hsl(var(--muted-foreground))]">
-            <a href="#funcionalidades" className="hover:text-[hsl(var(--foreground))] transition-colors">Funcionalidades</a>
-            <a href="#planos" className="hover:text-[hsl(var(--foreground))] transition-colors">Planos</a>
-            <a href="#depoimentos" className="hover:text-[hsl(var(--foreground))] transition-colors">Depoimentos</a>
+      <nav className="sticky top-0 z-50 border-b border-border/60 bg-background/85 backdrop-blur-xl">
+        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-6">
+          <Link to="/" className="flex items-center gap-3">
+            <PlatformLogo compact className="shrink-0" onDarkBackground={false} />
+            <span className="font-display text-lg font-bold text-foreground">MeAgendaê</span>
+          </Link>
+
+          <div className="hidden items-center gap-8 text-sm font-medium text-muted-foreground md:flex">
+            <a href="#beneficios" className="transition-colors hover:text-foreground">Benefícios</a>
+            <a href="#planos" className="transition-colors hover:text-foreground">Planos</a>
+            <a href="#depoimentos" className="transition-colors hover:text-foreground">Depoimentos</a>
           </div>
+
           <div className="flex items-center gap-2">
-            <Link to="/auth">
+            <Link to="/auth" className="hidden sm:block">
               <Button variant="ghost" size="sm">Entrar</Button>
             </Link>
             <Link to="/auth">
-              <Button size="sm" className="bg-[hsl(var(--accent))] text-[hsl(var(--accent-foreground))] hover:bg-[hsl(var(--accent))]/90">
-                Criar conta grátis
+              <Button size="sm" className="font-semibold shadow-lg shadow-accent/20">
+                Testar 7 dias grátis
               </Button>
             </Link>
           </div>
         </div>
       </nav>
 
-      {/* ─── HERO ─── */}
       <section className="relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-[hsl(var(--primary))]/3 via-transparent to-[hsl(var(--accent))]/5" />
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 md:py-24 relative">
-          <div className="grid lg:grid-cols-2 gap-12 items-center">
-            {/* Left */}
-            <div className="space-y-8">
-              <div className="inline-flex items-center gap-2 bg-[hsl(var(--accent))]/10 text-[hsl(var(--accent-foreground))] px-4 py-1.5 rounded-full text-sm font-medium">
-                <Zap className="h-4 w-4 text-[hsl(var(--accent))]" />
-                Novo: Agenda inteligente com reorganização automática
-              </div>
-              <h1 className="text-4xl md:text-5xl lg:text-[3.5rem] font-display font-bold leading-[1.1] text-[hsl(var(--foreground))]">
-                O sistema que organiza sua agenda, aumenta seus clientes e ajuda você a{' '}
-                <span className="text-[hsl(var(--accent))]">faturar mais</span>.
-              </h1>
-              <p className="text-lg md:text-xl text-[hsl(var(--muted-foreground))] leading-relaxed max-w-xl">
-                Pare de depender do WhatsApp para controlar horários. Com o MeAgendaê, seus clientes agendam online, sua agenda se organiza automaticamente e você acompanha o faturamento do seu negócio em tempo real.
-              </p>
-              <div className="flex flex-col sm:flex-row gap-4">
-                <Link to="/auth">
-                  <Button size="lg" className="w-full sm:w-auto text-base px-8 bg-[hsl(var(--accent))] text-[hsl(var(--accent-foreground))] hover:bg-[hsl(var(--accent))]/90 shadow-lg shadow-[hsl(var(--accent))]/25">
-                    Criar conta grátis
-                    <ArrowRight className="h-5 w-5 ml-1" />
-                  </Button>
-                </Link>
-                <Button size="lg" variant="outline" className="w-full sm:w-auto text-base px-8 border-[hsl(var(--border))]">
-                  <Play className="h-5 w-5 mr-2" />
-                  Assistir demonstração
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,hsl(var(--accent))/0.18,transparent_28%),radial-gradient(circle_at_top_left,hsl(var(--primary))/0.14,transparent_30%)]" />
+        <div className="relative mx-auto grid max-w-7xl gap-14 px-4 py-16 sm:px-6 lg:grid-cols-[1.05fr_0.95fr] lg:items-center lg:py-24">
+          <Reveal className="max-w-2xl">
+            <Badge className="mb-6 border border-accent/25 bg-accent/10 px-4 py-1.5 text-accent-foreground">
+              <Sparkles className="mr-1.5 h-3.5 w-3.5 text-accent" />
+              Teste grátis por 7 dias • sem cartão de crédito
+            </Badge>
+
+            <h1 className="mb-6 font-display text-4xl font-bold leading-[1.02] tracking-tight text-foreground sm:text-5xl lg:text-6xl">
+              O jeito premium de <span className="text-accent">profissionalizar</span> sua agenda e vender mais.
+            </h1>
+
+            <p className="mb-8 max-w-xl text-lg leading-relaxed text-muted-foreground sm:text-xl">
+              Para barbeiros, barbearias, salões, manicures, esteticistas, lash designers e profissionais da beleza que querem organizar a rotina, ganhar tempo e fechar mais agendamentos.
+            </p>
+
+            <div className="mb-6 flex flex-col gap-3 sm:flex-row">
+              <Link to="/auth">
+                <Button size="lg" className="h-12 w-full px-8 text-base font-semibold shadow-xl shadow-accent/25 sm:w-auto">
+                  Criar conta grátis
+                  <ArrowRight className="ml-1 h-4 w-4" />
                 </Button>
-              </div>
-              <p className="text-sm text-[hsl(var(--muted-foreground))]">
-                Teste grátis por 7 dias — sem cartão de crédito
-              </p>
+              </Link>
+              <Link to="/profissionais">
+                <Button size="lg" variant="outline" className="h-12 w-full border-2 px-8 text-base font-semibold sm:w-auto">
+                  Ver página profissional
+                </Button>
+              </Link>
             </div>
-            {/* Right — Mockup */}
-            <div className="relative">
-              <div className="bg-[hsl(var(--primary))]/5 rounded-3xl p-6 border border-[hsl(var(--border))]">
-                <div className="bg-white rounded-2xl shadow-2xl overflow-hidden border border-[hsl(var(--border))]">
-                  {/* Mock dashboard header */}
-                  <div className="bg-[hsl(var(--primary))] px-4 py-3 flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-full bg-white/30" />
-                    <div className="w-3 h-3 rounded-full bg-white/30" />
-                    <div className="w-3 h-3 rounded-full bg-white/30" />
-                    <div className="flex-1 mx-4 h-5 bg-white/10 rounded-full" />
-                  </div>
-                  <div className="p-6 space-y-4">
-                    {/* Mock stats */}
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                      {[
-                        { label: 'Receita', value: 'R$ 8.450', color: 'hsl(var(--accent))' },
-                        { label: 'Clientes', value: '142', color: 'hsl(var(--primary))' },
-                        { label: 'Agendamentos', value: '86', color: 'hsl(var(--warning))' },
-                      ].map((s, i) => (
-                        <div key={i} className="p-3 rounded-xl bg-[hsl(var(--secondary))] text-center">
-                          <p className="text-xs text-[hsl(var(--muted-foreground))]">{s.label}</p>
-                          <p className="text-lg font-bold text-[hsl(var(--foreground))]">{s.value}</p>
-                        </div>
-                      ))}
-                    </div>
-                    {/* Mock agenda */}
-                    <div className="space-y-2">
-                      {['09:00 — Corte Degradê', '10:00 — Barba Completa', '11:30 — Corte + Barba'].map((item, i) => (
-                        <div key={i} className="flex items-center gap-3 p-2.5 rounded-lg bg-[hsl(var(--secondary))]/50">
-                          <div className="w-2 h-2 rounded-full" style={{ backgroundColor: i === 0 ? 'hsl(var(--accent))' : i === 1 ? 'hsl(var(--primary))' : 'hsl(var(--warning))' }} />
-                          <span className="text-sm font-medium text-[hsl(var(--foreground))]">{item}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </div>
-              {/* Floating badges */}
-              <div className="absolute -top-4 -right-4 bg-white shadow-xl rounded-2xl p-3 border border-[hsl(var(--border))] hidden lg:flex items-center gap-2">
-                <div className="w-8 h-8 rounded-full bg-[hsl(var(--accent))]/10 flex items-center justify-center">
-                  <TrendingUp className="h-4 w-4 text-[hsl(var(--accent))]" />
-                </div>
-                <div>
-                  <p className="text-xs text-[hsl(var(--muted-foreground))]">Faturamento</p>
-                  <p className="text-sm font-bold text-[hsl(var(--accent))]">+32% este mês</p>
-                </div>
-              </div>
-              <div className="absolute -bottom-4 -left-4 bg-white shadow-xl rounded-2xl p-3 border border-[hsl(var(--border))] hidden lg:flex items-center gap-2">
-                <div className="w-8 h-8 rounded-full bg-[hsl(var(--primary))]/10 flex items-center justify-center">
-                  <UserCheck className="h-4 w-4 text-[hsl(var(--primary))]" />
-                </div>
-                <div>
-                  <p className="text-xs text-[hsl(var(--muted-foreground))]">Novo cliente</p>
-                  <p className="text-sm font-bold text-[hsl(var(--foreground))]">João agendou 10:30</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
 
-      {/* ─── TRUST BAR ─── */}
-      <section className="border-y border-[hsl(var(--border))] bg-[hsl(var(--secondary))]">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-8 text-center">
-            {[
-              { value: '500+', label: 'profissionais usando' },
-              { value: '15.000+', label: 'agendamentos realizados' },
-              { value: '120+', label: 'cidades atendidas' },
-            ].map((s, i) => (
-              <div key={i}>
-                <p className="text-2xl md:text-3xl font-display font-bold text-[hsl(var(--primary))]">{s.value}</p>
-                <p className="text-sm text-[hsl(var(--muted-foreground))] mt-1">{s.label}</p>
+            <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
+              <span className="inline-flex items-center gap-2"><ShieldCheck className="h-4 w-4 text-accent" /> Sem risco</span>
+              <span className="inline-flex items-center gap-2"><Heart className="h-4 w-4 text-accent" /> Cancele quando quiser</span>
+              <span className="inline-flex items-center gap-2"><Users className="h-4 w-4 text-accent" /> Profissionais da sua cidade já usam</span>
+            </div>
+          </Reveal>
+
+          <Reveal delay={120}>
+            <div className="relative mx-auto max-w-xl">
+              <div className="overflow-hidden rounded-[2rem] border border-border/70 bg-card shadow-[0_30px_90px_-30px_hsl(var(--primary)/0.45)]">
+                <img src={heroBarber} alt="Barbeiro brasileiro sorrindo segurando celular" className="h-[560px] w-full object-cover" />
               </div>
-            ))}
-          </div>
-        </div>
-      </section>
 
-      {/* ─── VIDEO ─── */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
-        <div className="text-center mb-10">
-          <h2 className="text-3xl md:text-4xl font-display font-bold text-[hsl(var(--foreground))]">
-            Veja como o MeAgendaê funciona na prática
-          </h2>
-        </div>
-        <div className="max-w-4xl mx-auto aspect-video bg-[hsl(var(--secondary))] rounded-2xl border border-[hsl(var(--border))] flex items-center justify-center">
-          <div className="text-center space-y-4">
-            <div className="w-20 h-20 rounded-full bg-[hsl(var(--accent))]/10 flex items-center justify-center mx-auto cursor-pointer hover:bg-[hsl(var(--accent))]/20 transition-colors">
-              <Play className="h-8 w-8 text-[hsl(var(--accent))] ml-1" />
-            </div>
-            <p className="text-[hsl(var(--muted-foreground))]">Vídeo demonstrativo em breve</p>
-          </div>
-        </div>
-      </section>
-
-      {/* ─── PROBLEM ─── */}
-      <section className="bg-[hsl(var(--primary))]">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
-          <div className="grid lg:grid-cols-2 gap-12 items-center">
-            <div>
-              <h2 className="text-3xl md:text-4xl font-display font-bold text-white leading-tight">
-                Se sua agenda depende do WhatsApp, você está{' '}
-                <span className="text-[hsl(var(--accent))]">perdendo dinheiro</span>.
-              </h2>
-              <p className="mt-4 text-white/70 text-lg">
-                Profissionais que usam apenas WhatsApp perdem em média 30% dos agendamentos por mês.
-              </p>
-            </div>
-            <div className="space-y-4">
-              {[
-                { icon: Clock, text: 'Horários duplicados e confusos' },
-                { icon: MessageSquare, text: 'Clientes esquecem do atendimento' },
-                { icon: Users, text: 'Dificuldade de organizar equipe' },
-                { icon: DollarSign, text: 'Falta de controle financeiro' },
-                { icon: RefreshCw, text: 'Clientes que nunca voltam' },
-              ].map((item, i) => (
-                <div key={i} className="flex items-center gap-4 bg-white/5 p-4 rounded-xl border border-white/10">
-                  <div className="w-10 h-10 rounded-lg bg-red-500/20 flex items-center justify-center flex-shrink-0">
-                    <item.icon className="h-5 w-5 text-red-400" />
+              <Card className="absolute -left-4 top-10 border-accent/20 bg-card/95 shadow-2xl backdrop-blur sm:-left-10">
+                <CardContent className="flex items-center gap-3 p-4 pt-4">
+                  <div className="rounded-xl bg-accent/10 p-2.5">
+                    <TrendingUp className="h-5 w-5 text-accent" />
                   </div>
-                  <p className="text-white font-medium">{item.text}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ─── FEATURES ANCHOR ─── */}
-      <div id="funcionalidades" />
-
-      {/* ─── AGENDA INTELIGENTE ─── */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
-        <div className="grid lg:grid-cols-2 gap-16 items-center">
-          <div className="space-y-6">
-            <div className="inline-flex items-center gap-2 bg-[hsl(var(--accent))]/10 text-[hsl(var(--accent-foreground))] px-3 py-1 rounded-full text-sm font-medium">
-              <Calendar className="h-4 w-4 text-[hsl(var(--accent))]" /> Agenda
-            </div>
-            <h2 className="text-3xl md:text-4xl font-display font-bold text-[hsl(var(--foreground))]">
-              Uma agenda que trabalha <span className="text-[hsl(var(--accent))]">por você</span>
-            </h2>
-            <div className="space-y-4">
-              {[
-                'Agendamento online 24 horas',
-                'Bloqueio automático de horários',
-                'Intervalo entre atendimentos configurável',
-                'Reagendamento e cancelamento pelo cliente',
-                'Cálculo automático de horários disponíveis',
-              ].map((item, i) => (
-                <div key={i} className="flex items-start gap-3">
-                  <CheckCircle2 className="h-5 w-5 text-[hsl(var(--accent))] mt-0.5 flex-shrink-0" />
-                  <p className="text-[hsl(var(--muted-foreground))]">{item}</p>
-                </div>
-              ))}
-            </div>
-            <div className="bg-[hsl(var(--accent))]/5 border border-[hsl(var(--accent))]/20 rounded-xl p-4">
-              <div className="flex items-start gap-3">
-                <Timer className="h-5 w-5 text-[hsl(var(--accent))] mt-0.5 flex-shrink-0" />
-                <div>
-                  <p className="font-semibold text-[hsl(var(--foreground))]">Reorganização automática de atrasos</p>
-                  <p className="text-sm text-[hsl(var(--muted-foreground))] mt-1">
-                    Se um atendimento atrasar 10 minutos, todos os próximos horários são reorganizados automaticamente.
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-          {/* Mock */}
-          <div className="bg-[hsl(var(--secondary))] rounded-2xl p-6 border border-[hsl(var(--border))]">
-            <div className="space-y-3">
-              {[
-                { time: '09:00', name: 'Carlos Silva', service: 'Corte Degradê', status: 'confirmed' },
-                { time: '09:45', name: 'Pedro Santos', service: 'Barba', status: 'confirmed' },
-                { time: '10:15', name: 'João Oliveira', service: 'Corte + Barba', status: 'pending' },
-                { time: '11:30', name: 'Lucas Mendes', service: 'Corte Social', status: 'confirmed' },
-              ].map((a, i) => (
-                <div key={i} className="bg-white rounded-xl p-4 flex items-center justify-between border border-[hsl(var(--border))]">
-                  <div className="flex items-center gap-3">
-                    <span className="text-sm font-mono font-bold text-[hsl(var(--primary))]">{a.time}</span>
-                    <div>
-                      <p className="font-medium text-sm text-[hsl(var(--foreground))]">{a.name}</p>
-                      <p className="text-xs text-[hsl(var(--muted-foreground))]">{a.service}</p>
-                    </div>
+                  <div>
+                    <p className="text-xs font-medium text-muted-foreground">Resultado gerado</p>
+                    <p className="font-display text-xl font-bold text-foreground">+32% faturamento</p>
                   </div>
-                  <span className={`text-xs px-2 py-1 rounded-full font-medium ${
-                    a.status === 'confirmed'
-                      ? 'bg-[hsl(var(--accent))]/10 text-[hsl(var(--accent-foreground))]'
-                      : 'bg-[hsl(var(--warning))]/10 text-[hsl(var(--warning))]'
-                  }`}>
-                    {a.status === 'confirmed' ? 'Confirmado' : 'Pendente'}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ─── TEAM MANAGEMENT ─── */}
-      <section className="bg-[hsl(var(--secondary))]">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
-          <div className="grid lg:grid-cols-2 gap-16 items-center">
-            <div className="order-2 lg:order-1">
-              <div className="bg-white rounded-2xl p-6 border border-[hsl(var(--border))] shadow-sm space-y-4">
-                {[
-                  { name: 'Rafael Costa', type: 'Sócio', revenue: 'R$ 4.200', pct: '50%' },
-                  { name: 'Bruno Alves', type: 'Comissionado', revenue: 'R$ 3.100', pct: '40%' },
-                  { name: 'Diego Lima', type: 'Independente', revenue: 'R$ 2.800', pct: '—' },
-                ].map((m, i) => (
-                  <div key={i} className="flex items-center justify-between p-3 rounded-xl bg-[hsl(var(--secondary))]/50">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-[hsl(var(--primary))]/10 flex items-center justify-center">
-                        <span className="text-sm font-bold text-[hsl(var(--primary))]">{m.name[0]}</span>
-                      </div>
-                      <div>
-                        <p className="font-medium text-sm text-[hsl(var(--foreground))]">{m.name}</p>
-                        <p className="text-xs text-[hsl(var(--muted-foreground))]">{m.type}</p>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-sm font-bold text-[hsl(var(--foreground))]">{m.revenue}</p>
-                      <p className="text-xs text-[hsl(var(--muted-foreground))]">Comissão: {m.pct}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-            <div className="order-1 lg:order-2 space-y-6">
-              <div className="inline-flex items-center gap-2 bg-[hsl(var(--primary))]/10 text-[hsl(var(--primary))] px-3 py-1 rounded-full text-sm font-medium">
-                <Users className="h-4 w-4" /> Equipe
-              </div>
-              <h2 className="text-3xl md:text-4xl font-display font-bold text-[hsl(var(--foreground))]">
-                Controle completo da sua <span className="text-[hsl(var(--accent))]">equipe</span>
-              </h2>
-              <p className="text-lg text-[hsl(var(--muted-foreground))]">
-                Gerencie sócios, comissionados e independentes em um só lugar. O sistema calcula automaticamente comissões, faturamento e lucro.
-              </p>
-              <div className="space-y-3">
-                {['Sócios com divisão de lucro', 'Comissionados com cálculo automático', 'Independentes (aluguel de cadeira)'].map((item, i) => (
-                  <div key={i} className="flex items-center gap-3">
-                    <CheckCircle2 className="h-5 w-5 text-[hsl(var(--accent))] flex-shrink-0" />
-                    <p className="text-[hsl(var(--muted-foreground))]">{item}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ─── BOOKING PAGE ─── */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
-        <div className="grid lg:grid-cols-2 gap-16 items-center">
-          <div className="space-y-6">
-            <div className="inline-flex items-center gap-2 bg-[hsl(var(--accent))]/10 text-[hsl(var(--accent-foreground))] px-3 py-1 rounded-full text-sm font-medium">
-              <Globe className="h-4 w-4 text-[hsl(var(--accent))]" /> Link de agendamento
-            </div>
-            <h2 className="text-3xl md:text-4xl font-display font-bold text-[hsl(var(--foreground))]">
-              Seu próprio link de <span className="text-[hsl(var(--accent))]">agendamento</span>
-            </h2>
-            <p className="text-lg text-[hsl(var(--muted-foreground))]">
-              Cada profissional ganha uma página pública personalizada para colocar na bio do Instagram.
-            </p>
-            <div className="space-y-3">
-              {[
-                { icon: Star, text: 'Avaliações de clientes' },
-                { icon: Gift, text: 'Promoções ativas' },
-                { icon: Calendar, text: 'Agenda aberta em tempo real' },
-                { icon: Smartphone, text: 'Redes sociais integradas' },
-                { icon: MapPin, text: 'Endereço no Google Maps' },
-              ].map((item, i) => (
-                <div key={i} className="flex items-center gap-3">
-                  <item.icon className="h-5 w-5 text-[hsl(var(--accent))] flex-shrink-0" />
-                  <p className="text-[hsl(var(--muted-foreground))]">{item.text}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-          {/* Mock phone */}
-          <div className="flex justify-center">
-            <div className="w-72 bg-[hsl(var(--foreground))] rounded-[2.5rem] p-3 shadow-2xl">
-              <div className="bg-white rounded-[2rem] overflow-hidden">
-                <div className="h-48 bg-gradient-to-br from-[hsl(var(--primary))] to-[hsl(var(--primary))]/80 flex items-end p-4">
-                  <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center">
-                      <Scissors className="h-6 w-6 text-white" />
-                    </div>
-                    <div>
-                      <p className="text-white font-bold">João Barber</p>
-                      <div className="flex gap-1">
-                        {[1,2,3,4,5].map(s => <Star key={s} className="h-3 w-3 text-yellow-400 fill-yellow-400" />)}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                <div className="p-4 space-y-3">
-                  <div className="p-3 rounded-xl bg-[hsl(var(--secondary))]">
-                    <p className="text-xs font-medium text-[hsl(var(--foreground))]">Corte Degradê</p>
-                    <p className="text-xs text-[hsl(var(--muted-foreground))]">45 min • R$ 35,00</p>
-                  </div>
-                  <div className="p-3 rounded-xl bg-[hsl(var(--secondary))]">
-                    <p className="text-xs font-medium text-[hsl(var(--foreground))]">Barba Completa</p>
-                    <p className="text-xs text-[hsl(var(--muted-foreground))]">30 min • R$ 25,00</p>
-                  </div>
-                  <Button size="sm" className="w-full bg-[hsl(var(--accent))] text-[hsl(var(--accent-foreground))] text-xs">
-                    Agendar horário
-                  </Button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ─── OPEN AGENDA ─── */}
-      <section className="bg-[hsl(var(--secondary))]">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 text-center">
-          <div className="inline-flex items-center gap-2 bg-[hsl(var(--primary))]/10 text-[hsl(var(--primary))] px-3 py-1 rounded-full text-sm font-medium mb-6">
-            <CalendarDays className="h-4 w-4" /> Agenda Aberta
-          </div>
-          <h2 className="text-3xl md:text-4xl font-display font-bold text-[hsl(var(--foreground))] mb-4">
-            Crie agendas especiais para datas de <span className="text-[hsl(var(--accent))]">grande demanda</span>
-          </h2>
-          <p className="text-lg text-[hsl(var(--muted-foreground))] max-w-2xl mx-auto mb-12">
-            Formaturas, casamentos, Natal, Dia das Mães — crie eventos com vagas limitadas e horários especiais.
-          </p>
-          <div className="grid sm:grid-cols-3 gap-6 max-w-3xl mx-auto">
-            {[
-              { icon: Target, title: 'Limite vagas', desc: 'Controle o número máximo de atendimentos' },
-              { icon: Clock, title: 'Horários flexíveis', desc: 'Defina horários específicos para o evento' },
-              { icon: Scissors, title: 'Serviços exclusivos', desc: 'Escolha quais serviços oferecer' },
-            ].map((f, i) => (
-              <Card key={i} className="border-[hsl(var(--border))] bg-white">
-                <CardContent className="p-6 text-center space-y-3">
-                  <div className="w-12 h-12 rounded-xl bg-[hsl(var(--accent))]/10 flex items-center justify-center mx-auto">
-                    <f.icon className="h-6 w-6 text-[hsl(var(--accent))]" />
-                  </div>
-                  <h3 className="font-display font-semibold text-[hsl(var(--foreground))]">{f.title}</h3>
-                  <p className="text-sm text-[hsl(var(--muted-foreground))]">{f.desc}</p>
                 </CardContent>
               </Card>
-            ))}
-          </div>
-        </div>
-      </section>
 
-      {/* ─── PROMOTIONS ─── */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
-        <div className="grid lg:grid-cols-2 gap-16 items-center">
-          <div className="order-2 lg:order-1">
-            <div className="bg-gradient-to-br from-[hsl(var(--accent))]/5 to-[hsl(var(--primary))]/5 rounded-2xl p-6 border border-[hsl(var(--border))] space-y-4">
-              {[
-                { target: 'Clientes inativos', count: '23 clientes', discount: '20% OFF' },
-                { target: 'Clientes recorrentes', count: '45 clientes', discount: '10% OFF' },
-                { target: 'Top gastadores', count: '12 clientes', discount: '15% OFF' },
-              ].map((p, i) => (
-                <div key={i} className="bg-white rounded-xl p-4 flex items-center justify-between border border-[hsl(var(--border))]">
-                  <div>
-                    <p className="font-medium text-sm text-[hsl(var(--foreground))]">{p.target}</p>
-                    <p className="text-xs text-[hsl(var(--muted-foreground))]">{p.count}</p>
-                  </div>
-                  <span className="text-sm font-bold text-[hsl(var(--accent))] bg-[hsl(var(--accent))]/10 px-3 py-1 rounded-full">{p.discount}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-          <div className="order-1 lg:order-2 space-y-6">
-            <div className="inline-flex items-center gap-2 bg-[hsl(var(--accent))]/10 text-[hsl(var(--accent-foreground))] px-3 py-1 rounded-full text-sm font-medium">
-              <Megaphone className="h-4 w-4 text-[hsl(var(--accent))]" /> Promoções
-            </div>
-            <h2 className="text-3xl md:text-4xl font-display font-bold text-[hsl(var(--foreground))]">
-              Preencha horários vazios com <span className="text-[hsl(var(--accent))]">promoções estratégicas</span>
-            </h2>
-            <p className="text-lg text-[hsl(var(--muted-foreground))]">
-              Envie promoções segmentadas para trazer clientes de volta e preencher sua agenda nos horários ociosos.
-            </p>
-          </div>
-        </div>
-      </section>
-
-      {/* ─── FINANCEIRO ─── */}
-      <section className="bg-[hsl(var(--primary))]">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
-          <div className="text-center mb-12">
-            <div className="inline-flex items-center gap-2 bg-white/10 text-white px-3 py-1 rounded-full text-sm font-medium mb-6">
-              <PieChart className="h-4 w-4" /> Financeiro
-            </div>
-            <h2 className="text-3xl md:text-4xl font-display font-bold text-white">
-              Controle o dinheiro do seu negócio
-            </h2>
-          </div>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {[
-              { icon: BarChart3, title: 'Dashboard financeiro', desc: 'Visão completa do faturamento em tempo real' },
-              { icon: TrendingUp, title: 'Controle de receitas', desc: 'Todas as entradas organizadas por período' },
-              { icon: DollarSign, title: 'Controle de despesas', desc: 'Registre e categorize todas as saídas' },
-              { icon: Users, title: 'Comissões automáticas', desc: 'Cálculo automático por profissional' },
-              { icon: PieChart, title: 'Relatórios detalhados', desc: 'Faturamento por serviço e profissional' },
-              { icon: Target, title: 'Contas a pagar/receber', desc: 'Controle completo de fluxo de caixa' },
-            ].map((f, i) => (
-              <div key={i} className="bg-white/5 border border-white/10 rounded-xl p-6 space-y-3">
-                <div className="w-10 h-10 rounded-lg bg-[hsl(var(--accent))]/20 flex items-center justify-center">
-                  <f.icon className="h-5 w-5 text-[hsl(var(--accent))]" />
-                </div>
-                <h3 className="font-display font-semibold text-white">{f.title}</h3>
-                <p className="text-sm text-white/60">{f.desc}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ─── CLIENT HISTORY ─── */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
-        <div className="grid lg:grid-cols-2 gap-16 items-center">
-          <div className="space-y-6">
-            <div className="inline-flex items-center gap-2 bg-[hsl(var(--primary))]/10 text-[hsl(var(--primary))] px-3 py-1 rounded-full text-sm font-medium">
-              <Heart className="h-4 w-4" /> Clientes
-            </div>
-            <h2 className="text-3xl md:text-4xl font-display font-bold text-[hsl(var(--foreground))]">
-              Conheça seus clientes <span className="text-[hsl(var(--accent))]">de verdade</span>
-            </h2>
-            <div className="space-y-3">
-              {[
-                'Cliente que mais gasta',
-                'Serviços favoritos de cada cliente',
-                'Profissional mais agendado',
-                'Aniversariantes do mês',
-              ].map((item, i) => (
-                <div key={i} className="flex items-center gap-3">
-                  <CheckCircle2 className="h-5 w-5 text-[hsl(var(--accent))] flex-shrink-0" />
-                  <p className="text-[hsl(var(--muted-foreground))]">{item}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-          <div className="bg-[hsl(var(--secondary))] rounded-2xl p-6 border border-[hsl(var(--border))] space-y-4">
-            {[
-              { name: 'Lucas Mendes', visits: '24 visitas', spent: 'R$ 2.160', tag: 'Top Cliente' },
-              { name: 'Pedro Santos', visits: '18 visitas', spent: 'R$ 1.440', tag: 'Fiel' },
-              { name: 'Carlos Silva', visits: '12 visitas', spent: 'R$ 960', tag: 'Aniversariante' },
-            ].map((c, i) => (
-              <div key={i} className="bg-white rounded-xl p-4 flex items-center justify-between border border-[hsl(var(--border))]">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-[hsl(var(--accent))]/10 flex items-center justify-center">
-                    <span className="text-sm font-bold text-[hsl(var(--accent))]">{c.name[0]}</span>
+              <Card className="absolute -right-3 top-28 border-border/80 bg-card/95 shadow-2xl backdrop-blur sm:-right-8">
+                <CardContent className="flex items-center gap-3 p-4 pt-4">
+                  <div className="rounded-full bg-accent/12 p-2.5">
+                    <Calendar className="h-5 w-5 text-accent" />
                   </div>
                   <div>
-                    <p className="font-medium text-sm text-[hsl(var(--foreground))]">{c.name}</p>
-                    <p className="text-xs text-[hsl(var(--muted-foreground))]">{c.visits} • {c.spent}</p>
+                    <p className="text-xs font-medium text-muted-foreground">Agora mesmo</p>
+                    <p className="font-semibold text-foreground">Novo agendamento confirmado</p>
                   </div>
-                </div>
-                <span className="text-xs px-2 py-1 rounded-full bg-[hsl(var(--accent))]/10 text-[hsl(var(--accent-foreground))] font-medium">{c.tag}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ─── MARKETPLACE ─── */}
-      <section className="bg-[hsl(var(--secondary))]">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 text-center">
-          <div className="inline-flex items-center gap-2 bg-[hsl(var(--accent))]/10 text-[hsl(var(--accent-foreground))] px-3 py-1 rounded-full text-sm font-medium mb-6">
-            <Search className="h-4 w-4 text-[hsl(var(--accent))]" /> Marketplace
-          </div>
-          <h2 className="text-3xl md:text-4xl font-display font-bold text-[hsl(var(--foreground))] mb-4">
-            Ganhe novos clientes <span className="text-[hsl(var(--accent))]">automaticamente</span>
-          </h2>
-          <p className="text-lg text-[hsl(var(--muted-foreground))] max-w-2xl mx-auto mb-12">
-            Seu perfil aparece no marketplace do MeAgendaê. Clientes da sua cidade encontram você e agendam diretamente.
-          </p>
-          <div className="grid sm:grid-cols-3 gap-6 max-w-3xl mx-auto">
-            {[
-              { icon: MapPin, title: 'Busca local', desc: 'Clientes encontram profissionais na sua cidade' },
-              { icon: Star, title: 'Avaliações', desc: 'Seus depoimentos atraem novos clientes' },
-              { icon: Calendar, title: 'Agendamento direto', desc: 'O cliente agenda sem precisar ligar' },
-            ].map((f, i) => (
-              <Card key={i} className="border-[hsl(var(--border))] bg-white">
-                <CardContent className="p-6 text-center space-y-3">
-                  <div className="w-12 h-12 rounded-xl bg-[hsl(var(--primary))]/10 flex items-center justify-center mx-auto">
-                    <f.icon className="h-6 w-6 text-[hsl(var(--primary))]" />
-                  </div>
-                  <h3 className="font-display font-semibold text-[hsl(var(--foreground))]">{f.title}</h3>
-                  <p className="text-sm text-[hsl(var(--muted-foreground))]">{f.desc}</p>
                 </CardContent>
               </Card>
-            ))}
-          </div>
+
+              <Card className="absolute bottom-8 left-8 border-border/80 bg-card/95 shadow-2xl backdrop-blur sm:left-12">
+                <CardContent className="flex items-center gap-3 p-4 pt-4">
+                  <div className="flex gap-1 text-accent">
+                    {Array.from({ length: 5 }).map((_, index) => (
+                      <Star key={index} className="h-4 w-4 fill-current" />
+                    ))}
+                  </div>
+                  <p className="font-semibold text-foreground">5 estrelas</p>
+                </CardContent>
+              </Card>
+            </div>
+          </Reveal>
         </div>
       </section>
 
-      {/* ─── TESTIMONIALS ─── */}
-      <section id="depoimentos" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
-        <div className="text-center mb-12">
-          <h2 className="text-3xl md:text-4xl font-display font-bold text-[hsl(var(--foreground))]">
-            O que dizem nossos <span className="text-[hsl(var(--accent))]">profissionais</span>
-          </h2>
-        </div>
-        <div className="grid md:grid-cols-3 gap-6">
-          {[
-            { name: 'Rafael Barber', role: 'Barbearia Style', text: 'Desde que comecei a usar o MeAgendaê, meu faturamento aumentou 40%. Meus clientes adoram agendar online.' },
-            { name: 'Ana Costa', role: 'Estética Ana Costa', text: 'Organizar a equipe era um pesadelo. Agora tudo é automático, comissões, relatórios, tudo no sistema.' },
-            { name: 'Marcos Silva', role: 'Barber House', text: 'O sistema de promoções é incrível. Preenchi todos os horários vazios da segunda-feira.' },
-          ].map((t, i) => (
-            <Card key={i} className="border-[hsl(var(--border))]">
-              <CardContent className="p-6 space-y-4">
-                <Quote className="h-8 w-8 text-[hsl(var(--accent))]/30" />
-                <p className="text-[hsl(var(--muted-foreground))] leading-relaxed">{t.text}</p>
-                <div className="flex items-center gap-3 pt-2">
-                  <div className="w-10 h-10 rounded-full bg-[hsl(var(--primary))]/10 flex items-center justify-center">
-                    <span className="text-sm font-bold text-[hsl(var(--primary))]">{t.name[0]}</span>
-                  </div>
-                  <div>
-                    <p className="font-medium text-sm text-[hsl(var(--foreground))]">{t.name}</p>
-                    <p className="text-xs text-[hsl(var(--muted-foreground))]">{t.role}</p>
-                  </div>
+      <section className="border-y border-border bg-secondary/35 py-12">
+        <div className="mx-auto grid max-w-7xl gap-8 px-4 text-center sm:px-6 md:grid-cols-3">
+          {proofStats.map((stat, index) => (
+            <Reveal key={stat.label} delay={index * 120}>
+              <div>
+                <div className="font-display text-4xl font-bold text-primary sm:text-5xl">
+                  <AnimatedCounter end={stat.value} suffix={stat.suffix} />
                 </div>
-              </CardContent>
-            </Card>
+                <p className="mt-2 text-sm font-medium text-muted-foreground">{stat.label}</p>
+              </div>
+            </Reveal>
           ))}
         </div>
       </section>
 
-      {/* ─── MIGRATION ─── */}
-      <section className="bg-[hsl(var(--secondary))]">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
-          <div className="max-w-3xl mx-auto text-center space-y-6">
-            <div className="w-16 h-16 rounded-2xl bg-[hsl(var(--accent))]/10 flex items-center justify-center mx-auto">
-              <ArrowRightLeft className="h-8 w-8 text-[hsl(var(--accent))]" />
-            </div>
-            <h2 className="text-3xl md:text-4xl font-display font-bold text-[hsl(var(--foreground))]">
-              Já usa outro sistema? <span className="text-[hsl(var(--accent))]">Temos uma condição especial para você.</span>
+      <section id="beneficios" className="py-20 lg:py-24">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6">
+          <Reveal className="mx-auto mb-12 max-w-3xl text-center">
+            <Badge className="mb-4 border border-primary/15 bg-primary/8 text-primary">Sessão humanizada</Badge>
+            <h2 className="font-display text-3xl font-bold text-foreground sm:text-4xl lg:text-5xl">
+              Tecnologia com cara de negócio real.
             </h2>
-            <p className="text-lg text-[hsl(var(--muted-foreground))] max-w-2xl mx-auto">
-              Se você já utiliza outro sistema de agendamento, oferecemos condições especiais para facilitar sua mudança para o MeAgendaê.
+            <p className="mt-4 text-lg text-muted-foreground">
+              Uma experiência premium pensada para a rotina corrida de quem atende, vende, organiza equipe e quer crescer sem bagunça.
             </p>
-            <p className="text-lg text-[hsl(var(--muted-foreground))] max-w-2xl mx-auto">
-              Você começa rapidamente e aproveita todos os recursos da plataforma.
-            </p>
+          </Reveal>
+
+          <div className="grid gap-6 md:grid-cols-3">
+            {humanizedGallery.map((item, index) => (
+              <Reveal key={item.title} delay={index * 120}>
+                <Card className="overflow-hidden border-border/70 bg-card shadow-sm transition-all hover:-translate-y-1 hover:shadow-2xl">
+                  <img src={item.image} alt={item.title} className="h-72 w-full object-cover" />
+                  <CardContent className="p-6 pt-6">
+                    <h3 className="font-display text-xl font-bold text-foreground">{item.title}</h3>
+                    <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{item.description}</p>
+                  </CardContent>
+                </Card>
+              </Reveal>
+            ))}
           </div>
         </div>
       </section>
 
-      {/* ─── PLANS ─── */}
-      <section id="planos" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
-        <div className="text-center mb-12">
-          <h2 className="text-3xl md:text-4xl font-display font-bold text-[hsl(var(--foreground))]">
-            Planos para todos os tamanhos de negócio
-          </h2>
-          <p className="text-lg text-[hsl(var(--muted-foreground))] mt-3">
-            Teste grátis por 7 dias — sem cartão de crédito
-          </p>
-          <p className="text-sm font-medium text-[hsl(var(--accent))] mt-4 inline-flex items-center gap-2 bg-[hsl(var(--accent))]/10 px-4 py-2 rounded-full">
-            <CheckCircle2 className="h-4 w-4" />
-            Todos os planos permitem agendamentos ilimitados.
-          </p>
-        </div>
-        <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
-          {/* Basic */}
-          <Card className="border-[hsl(var(--border))] relative">
-            <CardContent className="p-8 space-y-6">
-              <div>
-                <h3 className="font-display font-bold text-xl text-[hsl(var(--foreground))]">Básico</h3>
-                <p className="text-sm text-[hsl(var(--muted-foreground))] mt-1">Para profissionais autônomos</p>
-              </div>
-              <div>
-                <span className="text-4xl font-display font-bold text-[hsl(var(--foreground))]">R$ 35</span>
-                <span className="text-[hsl(var(--muted-foreground))]">/mês</span>
-              </div>
-              <div className="space-y-3">
-                {['Agenda online', 'Página de agendamento', 'Cadastro de serviços', 'Notificações para clientes', '1 membro incluído'].map((f, i) => (
-                  <div key={i} className="flex items-center gap-2 text-sm">
-                    <CheckCircle2 className="h-4 w-4 text-[hsl(var(--accent))] flex-shrink-0" />
-                    <span className="text-[hsl(var(--muted-foreground))]">{f}</span>
-                  </div>
-                ))}
-              </div>
-              <Link to="/auth" className="block">
-                <Button variant="outline" className="w-full border-[hsl(var(--border))]">Começar grátis</Button>
-              </Link>
-            </CardContent>
-          </Card>
-
-          {/* Pro */}
-          <Card className="border-[hsl(var(--accent))] border-2 relative shadow-lg shadow-[hsl(var(--accent))]/10">
-            <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-              <span className="bg-[hsl(var(--accent))] text-[hsl(var(--accent-foreground))] text-xs font-bold px-4 py-1 rounded-full">
-                MAIS ESCOLHIDO
-              </span>
-            </div>
-            <CardContent className="p-8 space-y-6">
-              <div>
-                <h3 className="font-display font-bold text-xl text-[hsl(var(--foreground))]">Profissional</h3>
-                <p className="text-sm text-[hsl(var(--muted-foreground))] mt-1">Para equipes em crescimento</p>
-              </div>
-              <div>
-                <span className="text-4xl font-display font-bold text-[hsl(var(--foreground))]">R$ 60</span>
-                <span className="text-[hsl(var(--muted-foreground))]">/mês</span>
-              </div>
-              <div className="space-y-3">
-                {['Tudo do Básico', 'Agenda aberta para eventos', 'Promoções inteligentes', 'Gestão de equipe', 'Relatórios financeiros'].map((f, i) => (
-                  <div key={i} className="flex items-center gap-2 text-sm">
-                    <CheckCircle2 className="h-4 w-4 text-[hsl(var(--accent))] flex-shrink-0" />
-                    <span className="text-[hsl(var(--muted-foreground))]">{f}</span>
-                  </div>
-                ))}
-              </div>
-              <div className="space-y-2 pt-2 border-t border-[hsl(var(--border))]">
-                <div className="flex items-center gap-2 text-sm">
-                  <Zap className="h-4 w-4 text-[hsl(var(--accent))] flex-shrink-0" />
-                  <span className="font-medium text-[hsl(var(--foreground))]">Membros ilimitados</span>
-                </div>
-                <div className="flex items-center gap-2 text-sm">
-                  <Zap className="h-4 w-4 text-[hsl(var(--accent))] flex-shrink-0" />
-                  <span className="font-medium text-[hsl(var(--foreground))]">Agendamentos ilimitados</span>
-                </div>
-                <div className="flex items-center gap-2 text-sm">
-                  <Zap className="h-4 w-4 text-[hsl(var(--accent))] flex-shrink-0" />
-                  <span className="font-medium text-[hsl(var(--foreground))]">Promoções ilimitadas</span>
-                </div>
-              </div>
-              <Link to="/auth" className="block">
-                <Button className="w-full bg-[hsl(var(--accent))] text-[hsl(var(--accent-foreground))] hover:bg-[hsl(var(--accent))]/90">Começar grátis</Button>
-              </Link>
-            </CardContent>
-          </Card>
-
-          {/* Premium */}
-          <Card className="border-[hsl(var(--border))] relative bg-[hsl(var(--primary))] text-white">
-            <CardContent className="p-8 space-y-6">
-              <div>
-                <h3 className="font-display font-bold text-xl text-white">Premium</h3>
-                <p className="text-sm text-white/60 mt-1">Gestão completa</p>
-              </div>
-              <div>
-                <span className="text-4xl font-display font-bold text-white">R$ 80</span>
-                <span className="text-white/60">/mês</span>
-              </div>
-              <div className="space-y-3">
-                {['Tudo do Profissional', 'Financeiro completo', 'Domínio próprio', 'White label', 'Automações avançadas'].map((f, i) => (
-                  <div key={i} className="flex items-center gap-2 text-sm">
-                    <CheckCircle2 className="h-4 w-4 text-[hsl(var(--accent))] flex-shrink-0" />
-                    <span className="text-white/80">{f}</span>
-                  </div>
-                ))}
-              </div>
-              <div className="space-y-2 pt-2 border-t border-white/10">
-                <div className="flex items-center gap-2 text-sm">
-                  <Zap className="h-4 w-4 text-[hsl(var(--accent))] flex-shrink-0" />
-                  <span className="font-medium text-white">Membros ilimitados</span>
-                </div>
-                <div className="flex items-center gap-2 text-sm">
-                  <Zap className="h-4 w-4 text-[hsl(var(--accent))] flex-shrink-0" />
-                  <span className="font-medium text-white">Agendamentos ilimitados</span>
-                </div>
-                <div className="flex items-center gap-2 text-sm">
-                  <Zap className="h-4 w-4 text-[hsl(var(--accent))] flex-shrink-0" />
-                  <span className="font-medium text-white">Promoções ilimitadas</span>
-                </div>
-              </div>
-              <Link to="/auth" className="block">
-                <Button variant="secondary" className="w-full">Começar grátis</Button>
-              </Link>
-            </CardContent>
-          </Card>
-        </div>
-      </section>
-
-      {/* ─── FINAL CTA ─── */}
-      <section className="bg-gradient-to-br from-[hsl(var(--primary))] to-[hsl(var(--primary))]/90">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 text-center">
-          <h2 className="text-3xl md:text-4xl font-display font-bold text-white mb-4">
-            Comece a organizar seu negócio <span className="text-[hsl(var(--accent))]">hoje</span>
-          </h2>
-          <p className="text-lg text-white/70 max-w-xl mx-auto mb-8">
-            Teste grátis por 7 dias e veja como o MeAgendaê pode transformar sua rotina.
-          </p>
-          <Link to="/auth">
-            <Button size="lg" className="text-base px-10 bg-[hsl(var(--accent))] text-[hsl(var(--accent-foreground))] hover:bg-[hsl(var(--accent))]/90 shadow-lg shadow-[hsl(var(--accent))]/25">
-              Criar conta grátis
-              <ArrowRight className="h-5 w-5 ml-2" />
-            </Button>
-          </Link>
-          <p className="text-sm text-white/50 mt-4">Sem cartão de crédito • Cancele quando quiser</p>
-        </div>
-      </section>
-
-      {/* ─── FOOTER ─── */}
-      <footer className="border-t border-[hsl(var(--border))] bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-          <div className="grid md:grid-cols-4 gap-8">
-            <div>
-              {headerLogo ? (
-                <img src={headerLogo} alt="MeAgendaê" className="h-10 max-w-[160px] object-contain" />
-              ) : (
-                <div className="w-8 h-8 rounded-lg bg-[hsl(var(--primary))] flex items-center justify-center">
-                  <Scissors className="h-4 w-4 text-white" />
-                </div>
-              )}
-            </div>
-            <div>
-              <h4 className="font-semibold text-sm text-[hsl(var(--foreground))] mb-3">Produto</h4>
-              <div className="space-y-2 text-sm text-[hsl(var(--muted-foreground))]">
-                <a href="#funcionalidades" className="block hover:text-[hsl(var(--foreground))]">Funcionalidades</a>
-                <a href="#planos" className="block hover:text-[hsl(var(--foreground))]">Planos</a>
-                <a href="#depoimentos" className="block hover:text-[hsl(var(--foreground))]">Depoimentos</a>
-              </div>
-            </div>
-            <div>
-              <h4 className="font-semibold text-sm text-[hsl(var(--foreground))] mb-3">Suporte</h4>
-              <div className="space-y-2 text-sm text-[hsl(var(--muted-foreground))]">
-                <p>Central de ajuda</p>
-                <p>Contato</p>
-                <p>Migração</p>
-              </div>
-            </div>
-            <div>
-              <h4 className="font-semibold text-sm text-[hsl(var(--foreground))] mb-3">Legal</h4>
-              <div className="space-y-2 text-sm text-[hsl(var(--muted-foreground))]">
-                <p>Termos de uso</p>
-                <p>Política de privacidade</p>
-              </div>
-            </div>
-          </div>
-          <div className="border-t border-[hsl(var(--border))] mt-8 pt-8 text-center">
-            <p className="text-sm text-[hsl(var(--muted-foreground))]">
-              © {new Date().getFullYear()} MeAgendaê. Todos os direitos reservados.
+      <section className="relative overflow-hidden bg-primary py-20 text-primary-foreground lg:py-24">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_right,hsl(var(--accent))/0.14,transparent_30%)]" />
+        <div className="relative mx-auto grid max-w-7xl gap-12 px-4 sm:px-6 lg:grid-cols-[1fr_0.95fr] lg:items-center">
+          <Reveal>
+            <Badge className="mb-5 border border-primary-foreground/10 bg-primary-foreground/10 text-primary-foreground">As dores da rotina</Badge>
+            <h2 className="mb-6 font-display text-3xl font-bold leading-tight sm:text-4xl lg:text-5xl">
+              Seu acesso ao crescimento fica travado quando a agenda vira bagunça.
+            </h2>
+            <p className="mb-8 max-w-xl text-lg text-primary-foreground/80">
+              O MeAgendaê organiza sua operação e tira o caos do dia a dia para você focar no atendimento, no faturamento e na experiência do cliente.
             </p>
+
+            <div className="grid gap-3 sm:grid-cols-2">
+              {painPoints.map((pain) => (
+                <div key={pain} className="rounded-2xl border border-primary-foreground/10 bg-primary-foreground/6 px-4 py-4 backdrop-blur-sm">
+                  <div className="mb-2 inline-flex rounded-full bg-destructive/20 p-2 text-destructive-foreground">
+                    <Clock3 className="h-4 w-4" />
+                  </div>
+                  <p className="text-sm font-medium leading-relaxed">{pain}</p>
+                </div>
+              ))}
+            </div>
+          </Reveal>
+
+          <Reveal delay={160}>
+            <div className="overflow-hidden rounded-[2rem] border border-primary-foreground/10 shadow-[0_24px_80px_-24px_hsl(var(--accent)/0.55)]">
+              <img src={worriedOwner} alt="Profissional preocupado olhando agenda cheia" className="h-[520px] w-full object-cover" />
+            </div>
+          </Reveal>
+        </div>
+      </section>
+
+      <section className="py-20 lg:py-24">
+        <div className="mx-auto grid max-w-7xl gap-14 px-4 sm:px-6 lg:grid-cols-[0.95fr_1.05fr] lg:items-center">
+          <Reveal>
+            <div className="overflow-hidden rounded-[2rem] border border-border/70 bg-card shadow-2xl">
+              <img src={ownerFinance} alt="Profissional usando dashboard financeiro" className="h-[500px] w-full object-cover" />
+            </div>
+          </Reveal>
+
+          <Reveal delay={120}>
+            <Badge className="mb-4 border border-accent/25 bg-accent/10 text-accent-foreground">A solução premium</Badge>
+            <h2 className="mb-5 font-display text-3xl font-bold text-foreground sm:text-4xl lg:text-5xl">
+              Agenda, clientes, equipe e faturamento no mesmo lugar.
+            </h2>
+            <p className="mb-8 text-lg text-muted-foreground">
+              Tudo o que você precisa para organizar sua rotina, ganhar mais clientes e transformar atendimento em crescimento previsível.
+            </p>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              {featureBullets.map((item) => (
+                <div key={item} className="flex gap-3 rounded-2xl border border-border/70 bg-card px-4 py-4 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-lg">
+                  <div className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-accent text-accent-foreground">
+                    <Check className="h-3.5 w-3.5" strokeWidth={3} />
+                  </div>
+                  <span className="text-sm font-medium leading-relaxed text-foreground">{item}</span>
+                </div>
+              ))}
+            </div>
+          </Reveal>
+        </div>
+      </section>
+
+      <section className="bg-secondary/35 py-20 lg:py-24">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6">
+          <Reveal className="mb-12 text-center">
+            <Badge className="mb-4 border border-border bg-background text-foreground">Planos</Badge>
+            <h2 className="font-display text-3xl font-bold text-foreground sm:text-4xl lg:text-5xl">Escolha o plano ideal para crescer</h2>
+            <p className="mt-4 text-lg text-muted-foreground">Todos com teste grátis de 7 dias e sem cartão de crédito.</p>
+          </Reveal>
+
+          <div id="planos" className="grid gap-6 lg:grid-cols-3 lg:gap-5">
+            {plans.map((plan, index) => (
+              <Reveal key={plan.name} delay={index * 120}>
+                <Card className={plan.featured ? 'relative overflow-hidden border-accent bg-primary text-primary-foreground shadow-[0_28px_80px_-28px_hsl(var(--primary)/0.6)]' : 'border-border/70 bg-card shadow-sm'}>
+                  {plan.featured && (
+                    <div className="absolute inset-x-0 top-0 h-1 bg-accent" />
+                  )}
+                  <CardContent className="flex h-full flex-col p-7 pt-7">
+                    <div className="mb-5 flex items-center justify-between gap-3">
+                      <div>
+                        <h3 className="font-display text-2xl font-bold">{plan.name}</h3>
+                        <p className={plan.featured ? 'text-sm text-primary-foreground/75' : 'text-sm text-muted-foreground'}>{plan.description}</p>
+                      </div>
+                      {plan.featured && (
+                        <Badge className="border-0 bg-accent px-3 py-1 text-accent-foreground">Mais vendido</Badge>
+                      )}
+                    </div>
+
+                    <div className="mb-6 flex items-end gap-1">
+                      <span className="font-display text-4xl font-bold">{plan.price}</span>
+                      <span className={plan.featured ? 'text-sm text-primary-foreground/70' : 'text-sm text-muted-foreground'}>/mês</span>
+                    </div>
+
+                    <div className="mb-6 rounded-2xl border border-accent/20 bg-accent/10 px-4 py-3 text-sm font-medium text-accent-foreground">
+                      Teste grátis 7 dias
+                    </div>
+
+                    <div className="mb-8 space-y-3">
+                      {plan.features.map((feature) => (
+                        <div key={feature} className="flex items-start gap-3">
+                          <div className={plan.featured ? 'mt-0.5 rounded-full bg-accent/20 p-1 text-accent' : 'mt-0.5 rounded-full bg-accent/10 p-1 text-accent'}>
+                            <Check className="h-3.5 w-3.5" strokeWidth={3} />
+                          </div>
+                          <span className={plan.featured ? 'text-sm text-primary-foreground/88' : 'text-sm text-foreground'}>{feature}</span>
+                        </div>
+                      ))}
+                    </div>
+
+                    <Link to="/auth" className="mt-auto">
+                      <Button
+                        variant={plan.featured ? 'secondary' : 'outline'}
+                        className={plan.featured ? 'w-full font-semibold text-foreground' : 'w-full border-2 font-semibold'}
+                      >
+                        {plan.cta}
+                      </Button>
+                    </Link>
+                  </CardContent>
+                </Card>
+              </Reveal>
+            ))}
           </div>
+        </div>
+      </section>
+
+      <section id="depoimentos" className="py-20 lg:py-24">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6">
+          <Reveal className="mb-12 text-center">
+            <Badge className="mb-4 border border-accent/25 bg-accent/10 text-accent-foreground">Prova social</Badge>
+            <h2 className="font-display text-3xl font-bold text-foreground sm:text-4xl lg:text-5xl">
+              Profissionais brasileiros que já usam e recomendam
+            </h2>
+          </Reveal>
+
+          <div className="grid gap-6 md:grid-cols-3">
+            {testimonials.map((testimonial, index) => (
+              <Reveal key={testimonial.name} delay={index * 120}>
+                <Card className="h-full border-border/70 bg-card shadow-sm transition-all hover:-translate-y-1 hover:shadow-xl">
+                  <CardContent className="flex h-full flex-col p-6 pt-6">
+                    <div className="mb-4 flex gap-1 text-accent">
+                      {Array.from({ length: 5 }).map((_, starIndex) => (
+                        <Star key={starIndex} className="h-4 w-4 fill-current" />
+                      ))}
+                    </div>
+
+                    <p className="mb-6 flex-1 text-sm leading-relaxed text-muted-foreground">“{testimonial.quote}”</p>
+
+                    <Separator className="mb-5" />
+
+                    <div className="flex items-center gap-3">
+                      <Avatar className="h-12 w-12 ring-2 ring-accent/15">
+                        <AvatarImage src={testimonial.image} alt={testimonial.name} className="object-cover" />
+                        <AvatarFallback>{testimonial.name[0]}</AvatarFallback>
+                      </Avatar>
+                      <div>
+                        <p className="text-sm font-bold text-foreground">{testimonial.name}</p>
+                        <p className="text-xs text-muted-foreground">{testimonial.role}</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </Reveal>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="bg-secondary/35 py-20 lg:py-24">
+        <div className="mx-auto grid max-w-7xl gap-12 px-4 sm:px-6 lg:grid-cols-[1fr_1fr] lg:items-center">
+          <Reveal>
+            <div className="overflow-hidden rounded-[2rem] border border-border/70 bg-card shadow-xl">
+              <img src={happyClient} alt="Profissional da beleza atendendo cliente satisfeita" className="h-[420px] w-full object-cover" />
+            </div>
+          </Reveal>
+          <Reveal delay={120}>
+            <Badge className="mb-4 border border-primary/20 bg-primary/8 text-primary">Conversão com confiança</Badge>
+            <h2 className="mb-5 font-display text-3xl font-bold text-foreground sm:text-4xl lg:text-5xl">
+              Mais organização, mais clientes e uma rotina que realmente flui.
+            </h2>
+            <p className="mb-8 text-lg text-muted-foreground">
+              O visitante entende rápido o valor, sente segurança e entra no teste grátis com muito menos fricção.
+            </p>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Card className="border-border/70 bg-card shadow-sm">
+                <CardContent className="p-5 pt-5">
+                  <Wallet className="mb-3 h-6 w-6 text-accent" />
+                  <p className="font-semibold text-foreground">Ganhe mais clientes</p>
+                  <p className="mt-2 text-sm text-muted-foreground">Seu link profissional trabalha mesmo quando você está atendendo.</p>
+                </CardContent>
+              </Card>
+              <Card className="border-border/70 bg-card shadow-sm">
+                <CardContent className="p-5 pt-5">
+                  <MessageCircle className="mb-3 h-6 w-6 text-accent" />
+                  <p className="font-semibold text-foreground">Economize tempo</p>
+                  <p className="mt-2 text-sm text-muted-foreground">Menos mensagens repetidas. Mais foco em vender e atender bem.</p>
+                </CardContent>
+              </Card>
+            </div>
+          </Reveal>
+        </div>
+      </section>
+
+      <section className="px-4 py-12 sm:px-6 lg:py-20">
+        <div className="relative mx-auto max-w-7xl overflow-hidden rounded-[2rem] bg-gradient-to-br from-primary via-primary to-accent p-10 text-center text-primary-foreground shadow-[0_30px_100px_-30px_hsl(var(--primary)/0.7)] lg:p-16">
+          <div className="absolute -left-12 bottom-0 h-56 w-56 rounded-full bg-primary-foreground/10 blur-3xl" />
+          <div className="absolute right-0 top-0 h-72 w-72 rounded-full bg-accent/30 blur-3xl" />
+          <Reveal className="relative mx-auto max-w-3xl">
+            <h2 className="mb-4 font-display text-3xl font-bold leading-tight sm:text-4xl lg:text-5xl">
+              Comece hoje a profissionalizar seu negócio
+            </h2>
+            <p className="mb-8 text-lg text-primary-foreground/85">
+              Teste grátis por 7 dias, sem cartão de crédito, com uma experiência premium para organizar sua rotina e vender mais.
+            </p>
+            <Link to="/auth">
+              <Button size="lg" className="h-14 bg-accent px-8 text-base font-bold text-accent-foreground shadow-2xl shadow-accent/30">
+                Criar conta grátis
+                <ArrowRight className="ml-1 h-5 w-5" />
+              </Button>
+            </Link>
+            <div className="mt-6 flex flex-wrap items-center justify-center gap-4 text-sm text-primary-foreground/80">
+              <span>Mais de 500 profissionais já usam</span>
+              <span>•</span>
+              <span>Seu acesso será organizado desde o primeiro dia</span>
+              <span>•</span>
+              <span>Cancele quando quiser</span>
+            </div>
+          </Reveal>
+        </div>
+      </section>
+
+      <footer className="border-t border-border py-10">
+        <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-5 px-4 text-center sm:px-6 md:flex-row md:text-left">
+          <div className="flex items-center gap-3">
+            <PlatformLogo compact className="shrink-0" onDarkBackground={false} />
+            <div>
+              <p className="font-display font-bold text-foreground">MeAgendaê</p>
+              <p className="text-xs text-muted-foreground">Agendamento online para profissionais da beleza</p>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm text-muted-foreground">
+            <a href="#beneficios" className="transition-colors hover:text-foreground">Benefícios</a>
+            <a href="#planos" className="transition-colors hover:text-foreground">Planos</a>
+            <a href="#depoimentos" className="transition-colors hover:text-foreground">Depoimentos</a>
+            <Link to="/profissionais" className="transition-colors hover:text-foreground">Para profissionais</Link>
+          </div>
+
+          <p className="text-xs text-muted-foreground">© {new Date().getFullYear()} MeAgendaê</p>
         </div>
       </footer>
     </div>
   );
-};
-
-export default LandingProfissionais;
+}
