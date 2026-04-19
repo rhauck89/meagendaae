@@ -68,6 +68,7 @@ import SettingsAutomation from "./pages/settings/SettingsAutomation";
 import SettingsBranding from "./pages/settings/SettingsBranding";
 import SettingsDomain from "./pages/settings/SettingsDomain";
 import SettingsPlan from "./pages/settings/SettingsPlan";
+import SettingsSwapHistory from "./pages/settings/SettingsSwapHistory";
 
 // Finance sub-pages
 import FinanceDashboard from "./pages/finance/FinanceDashboard";
@@ -192,6 +193,7 @@ const PlatformRoutes = () => (
     <Route path="/dashboard/settings/branding" element={<DashboardRoute><SettingsBranding /></DashboardRoute>} />
     <Route path="/dashboard/settings/domain" element={<DashboardRoute><SettingsDomain /></DashboardRoute>} />
     <Route path="/dashboard/settings/plan" element={<DashboardRoute><SettingsPlan /></DashboardRoute>} />
+    <Route path="/dashboard/settings/swap-history" element={<DashboardRoute><SettingsSwapHistory /></DashboardRoute>} />
     {/* Finance sub-routes */}
     <Route path="/dashboard/finance" element={<DashboardRoute><FinanceDashboard /></DashboardRoute>} />
     <Route path="/dashboard/finance/transactions" element={<DashboardRoute><FinanceTransactions /></DashboardRoute>} />
