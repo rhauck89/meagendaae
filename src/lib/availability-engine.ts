@@ -398,28 +398,35 @@ function calculateIntelligentSlotsV2(
   blocked: Array<{ start: Date; end: Date }>,
   earliestSlotTime: Date | null,
 ): string[] {
+  const freeWindows = buildFreeWindows(openTime, closeTime, blocked, bufferMinutes);
   const slots: string[] = [];
   const step = Math.max(1, Math.floor(baseSlotMinutes));
-  let current = new Date(openTime);
-  current.setSeconds(0, 0);
+  const requiredMs = totalDuration * 60000;
 
-  // Hard safety cap to avoid infinite loops on bad inputs (e.g. step=1 for 24h).
-  const maxIterations = Math.ceil(((closeTime.getTime() - openTime.getTime()) / 60000) / step) + 8;
-  let iterations = 0;
+  for (const window of freeWindows) {
+    const windowDurationMs = window.end.getTime() - window.start.getTime();
+    if (windowDurationMs < requiredMs) continue;
 
-  while (current.getTime() + totalDuration * 60000 <= closeTime.getTime() && iterations < maxIterations) {
-    iterations++;
+    let current = new Date(window.start);
+    current.setSeconds(0, 0);
 
     if (earliestSlotTime && current < earliestSlotTime) {
+      current = new Date(earliestSlotTime);
+      current.setSeconds(0, 0);
+    }
+
+    const maxIterations = Math.ceil(windowDurationMs / (step * 60000)) + 2;
+    let iterations = 0;
+
+    while (current.getTime() + requiredMs <= window.end.getTime() && iterations < maxIterations) {
+      iterations++;
+
+      if (slotFitsService(current, totalDuration, bufferMinutes, closeTime, blocked)) {
+        slots.push(format(current, 'HH:mm'));
+      }
+
       current = addMinutes(current, step);
-      continue;
     }
-
-    if (slotFitsService(current, totalDuration, bufferMinutes, closeTime, blocked)) {
-      slots.push(format(current, 'HH:mm'));
-    }
-
-    current = addMinutes(current, step);
   }
 
   return slots;
