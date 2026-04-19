@@ -476,7 +476,17 @@ export function calculateAvailableSlots(params: AvailabilityParams): string[] {
   let slots: string[];
 
   if (bookingMode === 'intelligent') {
-    slots = calculateIntelligentSlots(openTime, closeTime, totalDuration, bufferMinutes, blocked, earliestSlotTime);
+    if (engineVersion === 'v2') {
+      const baseStep = Math.max(1, Math.floor(baseSlotMinutes ?? 10));
+      console.log('[ENGINE V2] intelligent base-slot stepping', {
+        baseStep,
+        totalDuration,
+        bufferMinutes,
+      });
+      slots = calculateIntelligentSlotsV2(openTime, closeTime, totalDuration, bufferMinutes, baseStep, blocked, earliestSlotTime);
+    } else {
+      slots = calculateIntelligentSlots(openTime, closeTime, totalDuration, bufferMinutes, blocked, earliestSlotTime);
+    }
   } else if (bookingMode === 'hybrid') {
     slots = calculateHybridSlots(openTime, closeTime, totalDuration, bufferMinutes, effectiveSlotInterval, blocked, earliestSlotTime);
   } else {
