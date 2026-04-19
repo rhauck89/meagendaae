@@ -1400,7 +1400,7 @@ const Dashboard = () => {
           <CardTitle className="text-lg font-display flex items-center gap-2 mb-3">
             <CalendarIcon className="h-5 w-5" /> Calendário de Agendamentos
           </CardTitle>
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex flex-wrap items-center justify-between gap-3 min-w-0">
             <div className="flex items-center gap-2">
               <Button variant="outline" size="icon" onClick={() => navigate(-1)}>
                 <ChevronLeft className="h-4 w-4" />
@@ -1420,7 +1420,7 @@ const Dashboard = () => {
             </div>
             {isAdmin && (
               <Select value={filterProfessional} onValueChange={setFilterProfessional}>
-                <SelectTrigger className="w-[180px]">
+                <SelectTrigger className="w-full sm:w-[180px] max-w-full">
                   <SelectValue placeholder="Profissional" />
                 </SelectTrigger>
                 <SelectContent>
