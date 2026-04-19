@@ -36,6 +36,15 @@ export function SwapAppointmentDialog({ open, onOpenChange, source, onSwapped }:
   const [selected, setSelected] = useState<any | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [companyName, setCompanyName] = useState('');
+  // Post-swap notification modal state
+  const [successOpen, setSuccessOpen] = useState(false);
+  const [successData, setSuccessData] = useState<null | {
+    a: { name: string; whatsapp: string | null; oldStart: Date; newStart: Date; profName: string };
+    b: { name: string; whatsapp: string | null; oldStart: Date; newStart: Date; profName: string };
+  }>(null);
+  const [markNotified, setMarkNotified] = useState(true);
+  const [notifiedA, setNotifiedA] = useState(false);
+  const [notifiedB, setNotifiedB] = useState(false);
 
   useEffect(() => {
     if (!open) {
