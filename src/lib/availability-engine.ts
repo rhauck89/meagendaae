@@ -29,6 +29,8 @@ export interface BlockedTime {
   end_time: string;
 }
 
+export type EngineVersion = 'v1' | 'v2';
+
 export interface AvailabilityParams {
   date: Date;
   totalDuration: number;
@@ -41,6 +43,18 @@ export interface AvailabilityParams {
   blockedTimes?: BlockedTime[];
   professionalId?: string;
   bookingMode?: BookingMode;
+  /**
+   * Engine version. v2 uses base-slot stepping (smallest service duration in catalog)
+   * for the intelligent mode, exposing many more candidate times.
+   * Defaults to 'v2'. Set to 'v1' to fall back to legacy behavior.
+   */
+  engineVersion?: EngineVersion;
+  /**
+   * Base step (minutes) used by intelligent v2 to walk the timeline.
+   * Should be the smallest service duration in the company/professional catalog.
+   * Falls back to 10 if not provided.
+   */
+  baseSlotMinutes?: number;
 }
 
 export interface SlotSuggestion {
