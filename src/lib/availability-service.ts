@@ -83,6 +83,57 @@ function filterOverlappingGeneratedSlots(
   });
 }
 
+function getBaseSlotMinutes(serviceDurations: number[], intervalMinutes: number) {
+  const smallestServiceMinutes = serviceDurations.length > 0
+    ? Math.min(...serviceDurations)
+    : DEFAULT_BASE_SLOT_MINUTES;
+
+  return {
+    smallestServiceMinutes,
+    slotBaseMinutes: Math.max(
+      MIN_BASE_SLOT_MINUTES,
+      Math.floor(smallestServiceMinutes) + Math.max(0, Math.floor(intervalMinutes ?? 0)),
+    ),
+  };
+}
+
+async function getScopedActiveServiceDurations(
+  source: AvailabilitySource,
+  companyId: string,
+  professionalId: string,
+) {
+  const servicesTable = source === 'public' ? 'public_services' : 'services';
+  const servicesSelect = source === 'public' ? 'id, duration_minutes' : 'id, duration_minutes, active';
+
+  const [serviceLinksRes, servicesRes] = await Promise.all([
+    supabase
+      .from('service_professionals' as any)
+      .select('service_id')
+      .eq('professional_id', professionalId),
+    supabase
+      .from(servicesTable as any)
+      .select(servicesSelect)
+      .eq('company_id', companyId),
+  ]);
+
+  const linkedServiceIds = new Set(
+    (((serviceLinksRes.data as any[]) || []).map((link) => link?.service_id).filter(Boolean)) as string[],
+  );
+
+  const allServices = ((servicesRes.data as any[]) || []).filter((service) => {
+    if (source === 'public') return true;
+    return service?.active !== false;
+  });
+
+  const scopedServices = linkedServiceIds.size > 0
+    ? allServices.filter((service) => linkedServiceIds.has(service.id))
+    : allServices;
+
+  return scopedServices
+    .map((service) => Number(service?.duration_minutes))
+    .filter((duration) => Number.isFinite(duration) && duration > 0);
+}
+
 /**
  * Resolve effective booking config: professional override wins over company default.
  */
@@ -90,11 +141,10 @@ async function resolveBookingConfig(
   source: AvailabilitySource,
   companyId: string,
   professionalId: string,
-): Promise<{ bookingMode: BookingMode; slotInterval: number; bufferMinutes: number; engineVersion: EngineVersion; baseSlotMinutes: number }> {
+): Promise<{ bookingMode: BookingMode; slotInterval: number; bufferMinutes: number; engineVersion: EngineVersion; baseSlotMinutes: number; smallestServiceMinutes: number; serviceCount: number }> {
   const companyTable = source === 'public' ? 'public_company' : 'companies';
-  const servicesTable = source === 'public' ? 'public_services' : 'services';
 
-  const [companyRes, professionalRes, servicesRes] = await Promise.all([
+  const [companyRes, professionalRes, activeDurations] = await Promise.all([
     supabase
       .from(companyTable as any)
       .select('booking_mode, fixed_slot_interval, buffer_minutes')
@@ -112,11 +162,7 @@ async function resolveBookingConfig(
           .eq('profile_id', professionalId)
           .eq('company_id', companyId)
           .maybeSingle(),
-    // Fetch active services to compute the smallest duration (Agenda V2 base slot).
-    supabase
-      .from(servicesTable as any)
-      .select('duration_minutes, active')
-      .eq('company_id', companyId),
+    getScopedActiveServiceDurations(source, companyId, professionalId),
   ]);
 
   const company = (companyRes.data as any) || {};
@@ -134,21 +180,7 @@ async function resolveBookingConfig(
     : Math.max(1, configuredInterval ?? 15);
   const bufferMinutes = professional.break_time ?? company.buffer_minutes ?? 0;
 
-  // ===== Agenda Inteligente V2 =====
-  // Use smallest cataloged service duration as the base step of the timeline.
-  // Falls back to DEFAULT_BASE_SLOT_MINUTES if no services exist.
-  const allServices = (servicesRes.data as any[]) || [];
-  const activeDurations = allServices
-    .filter((s) => s?.active !== false)
-    .map((s) => Number(s?.duration_minutes))
-    .filter((n) => Number.isFinite(n) && n > 0);
-
-  const smallest = activeDurations.length > 0 ? Math.min(...activeDurations) : DEFAULT_BASE_SLOT_MINUTES;
-  // Agenda Inteligente V2 base step = menor_servico + intervalo_configurado.
-  // Ex: menor=23min, intervalo=5min → timeline 09:00, 09:28, 09:56...
-  // Ex: menor=23min, intervalo=0   → timeline 09:00, 09:23, 09:46...
-  const rawBase = Math.floor(smallest) + Math.max(0, Math.floor(bufferMinutes ?? 0));
-  const baseSlotMinutes = Math.max(MIN_BASE_SLOT_MINUTES, rawBase);
+  const { smallestServiceMinutes, slotBaseMinutes: baseSlotMinutes } = getBaseSlotMinutes(activeDurations, bufferMinutes);
 
   // Engine version flag — V2 by default. V1 stays available as safety fallback.
   // Reading from a future `agenda_engine_version` company column would go here;
@@ -163,11 +195,13 @@ async function resolveBookingConfig(
     resolvedMode,
     finalMode: bookingMode,
     engineVersion,
+    smallestServiceMinutes,
+    intervalo: bufferMinutes,
     baseSlotMinutes,
     serviceCount: activeDurations.length,
   });
 
-  return { bookingMode, slotInterval, bufferMinutes, engineVersion, baseSlotMinutes };
+  return { bookingMode, slotInterval, bufferMinutes, engineVersion, baseSlotMinutes, smallestServiceMinutes, serviceCount: activeDurations.length };
 }
 
 /**
