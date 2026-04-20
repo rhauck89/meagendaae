@@ -975,30 +975,40 @@ const Team = () => {
                             <p className="text-sm">Modo: <span className="font-medium">{bookingModeLabel((company as any)?.booking_mode || 'fixed_grid')}</span></p>
                           </div>
                         )}
-                        {(company as any)?.prof_perm_grid_interval ? (
-                          (form.booking_mode === 'fixed_grid' || form.booking_mode === 'hybrid') && (
-                            <div className="space-y-2">
-                              <Label>Intervalo da grade (minutos)</Label>
-                              <Select value={String(form.grid_interval)} onValueChange={(v) => setForm({ ...form, grid_interval: Number(v) })}>
-                                <SelectTrigger><SelectValue /></SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="15">15 minutos</SelectItem>
-                                  <SelectItem value="30">30 minutos</SelectItem>
-                                  <SelectItem value="45">45 minutos</SelectItem>
-                                  <SelectItem value="60">60 minutos</SelectItem>
-                                </SelectContent>
-                              </Select>
+                        {(() => {
+                          const effectiveMode = (company as any)?.prof_perm_booking_mode
+                            ? form.booking_mode
+                            : ((company as any)?.booking_mode || 'fixed_grid');
+                          const showsGrid = effectiveMode === 'fixed_grid' || effectiveMode === 'hybrid';
+                          if ((company as any)?.prof_perm_grid_interval) {
+                            return showsGrid ? (
+                              <div className="space-y-2">
+                                <Label>Intervalo da grade (minutos)</Label>
+                                <Select value={String(form.grid_interval)} onValueChange={(v) => setForm({ ...form, grid_interval: Number(v) })}>
+                                  <SelectTrigger><SelectValue /></SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="15">15 minutos</SelectItem>
+                                    <SelectItem value="30">30 minutos</SelectItem>
+                                    <SelectItem value="45">45 minutos</SelectItem>
+                                    <SelectItem value="60">60 minutos</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                            ) : null;
+                          }
+                          return (
+                            <div className="p-3 rounded-lg bg-muted/50 border space-y-1">
+                              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                <Lock className="h-3 w-3" /> Gerenciado pelo administrador
+                              </div>
+                              {showsGrid ? (
+                                <p className="text-sm">Grade da agenda: <span className="font-medium">{(company as any)?.fixed_slot_interval || 15} min</span></p>
+                              ) : (
+                                <p className="text-sm">Horários dinâmicos por serviço</p>
+                              )}
                             </div>
-                          )
-                        ) : (
-                          <div className="p-3 rounded-lg bg-muted/50 border space-y-1">
-                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                              <Lock className="h-3 w-3" /> Gerenciado pelo administrador
-                            </div>
-                            <p className="text-sm">Grade da agenda: <span className="font-medium">{(company as any)?.fixed_slot_interval || 15} min</span></p>
-                            <p className="text-xs text-muted-foreground">Intervalo entre clientes: {form.break_time || 0} min</p>
-                          </div>
-                        )}
+                          );
+                        })()}
                       </>
                     )}
 
@@ -1394,10 +1404,14 @@ const Team = () => {
                   </div>
                 )}
 
-                {/* Grid Interval */}
-                {(editForm.booking_mode === 'fixed_grid' || editForm.booking_mode === 'hybrid' || (company as any)?.booking_mode === 'fixed_grid' || (company as any)?.booking_mode === 'hybrid') && (
-                  <>
-                    {(company as any)?.prof_perm_grid_interval ? (
+                {/* Grid Interval / Mode display */}
+                {(() => {
+                  const effectiveMode = (company as any)?.prof_perm_booking_mode
+                    ? editForm.booking_mode
+                    : ((company as any)?.booking_mode || 'fixed_grid');
+                  const showsGrid = effectiveMode === 'fixed_grid' || effectiveMode === 'hybrid';
+                  if ((company as any)?.prof_perm_grid_interval) {
+                    return showsGrid ? (
                       <div className="space-y-2">
                         <Label>Intervalo da grade</Label>
                         <Select
@@ -1414,20 +1428,27 @@ const Team = () => {
                         </Select>
                       </div>
                     ) : (
-                      <div className="p-3 rounded-lg bg-muted/50 border space-y-1">
-                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                          <Lock className="h-3 w-3" /> Gerenciado pelo administrador
-                        </div>
+                      <div className="p-3 rounded-lg bg-muted/50 border">
+                        <p className="text-sm">Horários dinâmicos por serviço</p>
+                        <p className="text-xs text-muted-foreground">A grade não se aplica no modo Inteligente.</p>
+                      </div>
+                    );
+                  }
+                  return (
+                    <div className="p-3 rounded-lg bg-muted/50 border space-y-1">
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <Lock className="h-3 w-3" /> Gerenciado pelo administrador
+                      </div>
+                      {showsGrid ? (
                         <p className="text-sm">
                           Grade da agenda: <span className="font-medium">{(company as any)?.fixed_slot_interval || 15} min</span>
                         </p>
-                        <p className="text-xs text-muted-foreground">
-                          Intervalo entre clientes: {editForm.break_time || 0} min
-                        </p>
-                      </div>
-                    )}
-                  </>
-                )}
+                      ) : (
+                        <p className="text-sm">Horários dinâmicos por serviço</p>
+                      )}
+                    </div>
+                  );
+                })()}
 
                 <div className="space-y-2">
                   <Label>Intervalo entre clientes (minutos)</Label>
