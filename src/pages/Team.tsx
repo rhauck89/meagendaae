@@ -1302,7 +1302,7 @@ const Team = () => {
 
           <Tabs defaultValue="personal" className="flex-1 flex flex-col overflow-hidden">
             <div className="px-6 pt-4 border-b">
-              <TabsList className="w-full grid grid-cols-2 sm:grid-cols-4 h-auto bg-transparent p-0 gap-1">
+              <TabsList className="w-full grid grid-cols-3 sm:grid-cols-6 h-auto bg-transparent p-0 gap-1">
                 <TabsTrigger value="personal" className="data-[state=active]:bg-muted text-xs sm:text-sm">
                   Pessoal
                 </TabsTrigger>
@@ -1314,6 +1314,12 @@ const Team = () => {
                 </TabsTrigger>
                 <TabsTrigger value="schedule" className="data-[state=active]:bg-muted text-xs sm:text-sm">
                   Agenda
+                </TabsTrigger>
+                <TabsTrigger value="services" className="data-[state=active]:bg-muted text-xs sm:text-sm">
+                  Serviços
+                </TabsTrigger>
+                <TabsTrigger value="public" className="data-[state=active]:bg-muted text-xs sm:text-sm">
+                  Página
                 </TabsTrigger>
               </TabsList>
             </div>
