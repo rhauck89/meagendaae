@@ -1616,15 +1616,6 @@ const Team = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Professional Panel */}
-      {selectedCollaborator && (
-        <ProfessionalPanel
-          collaborator={selectedCollaborator}
-          open={panelOpen}
-          onOpenChange={setPanelOpen}
-          onUpdated={refreshTeam}
-        />
-      )}
     </div>
   );
 };
