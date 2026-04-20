@@ -41,6 +41,11 @@ const Team = () => {
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<any>(null);
   const [editForm, setEditForm] = useState({ name: '', email: '', collaborator_type: 'commissioned' as string, commission_type: 'percentage' as string, commission_value: '' as string | number, booking_mode: 'hybrid' as string, grid_interval: 15 as number, break_time: 0 as number });
+  // Edit dialog: services & public page (single source of truth)
+  const [editAssignedServiceIds, setEditAssignedServiceIds] = useState<string[]>([]);
+  const [editServiceSearch, setEditServiceSearch] = useState('');
+  const [editSlug, setEditSlug] = useState('');
+  const [editSlugDirty, setEditSlugDirty] = useState(false);
 
   // Disable/Delete confirm state
   const [disableDialogOpen, setDisableDialogOpen] = useState(false);
