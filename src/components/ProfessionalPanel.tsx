@@ -255,25 +255,35 @@ const ProfessionalPanel = ({ collaborator, open, onOpenChange, onUpdated }: Prof
 
         <DialogBody className="space-y-6">
           {/* ========== SEÇÃO 1: HERDAR DA EMPRESA ========== */}
+          {(() => {
+            const canCustomize = canEditMode || canEditInterval;
+            const lockedByCompany = !canCustomize;
+            return (
           <section className="rounded-lg border bg-card p-4 space-y-4">
             <div className="flex items-start justify-between gap-4">
               <div className="flex items-start gap-3">
                 <div className="rounded-md bg-primary/10 p-2">
-                  <Building2 className="h-4 w-4 text-primary" />
+                  {lockedByCompany ? <Lock className="h-4 w-4 text-primary" /> : <Building2 className="h-4 w-4 text-primary" />}
                 </div>
                 <div>
-                  <Label className="text-sm font-semibold">Herdar configurações da empresa</Label>
+                  <Label className="text-sm font-semibold">
+                    {lockedByCompany ? '🔒 Gerenciado pela empresa' : 'Herdar configurações da empresa'}
+                  </Label>
                   <p className="text-xs text-muted-foreground mt-0.5">
-                    {inheriting
+                    {lockedByCompany
+                      ? 'A empresa não permite personalização individual. Para liberar, ajuste em Configurações → Agenda.'
+                      : inheriting
                       ? 'Este profissional segue os horários e modo de agenda padrões.'
                       : 'Personalização ativa — horários e modo independentes.'}
                   </p>
                 </div>
               </div>
-              <Switch checked={inheriting} disabled={savingInherit} onCheckedChange={handleToggleInherit} />
+              {!lockedByCompany && (
+                <Switch checked={inheriting} disabled={savingInherit} onCheckedChange={handleToggleInherit} />
+              )}
             </div>
 
-            {inheriting ? (
+            {(inheriting || lockedByCompany) ? (
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
                 <div className="rounded-md bg-muted/50 p-3">
                   <p className="text-xs text-muted-foreground flex items-center gap-1"><Clock className="h-3 w-3" /> Horário</p>
@@ -366,6 +376,8 @@ const ProfessionalPanel = ({ collaborator, open, onOpenChange, onUpdated }: Prof
               </div>
             )}
           </section>
+            );
+          })()}
 
           {/* ========== SEÇÃO 2: SERVIÇOS ATENDIDOS ========== */}
           <section className="rounded-lg border bg-card p-4 space-y-3">
