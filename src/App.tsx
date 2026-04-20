@@ -53,6 +53,10 @@ import PlansPage from "./pages/PlansPage";
 import CheckoutSuccess from "./pages/CheckoutSuccess";
 import { PaymentTestModeBanner } from "./components/PaymentTestModeBanner";
 import { ReadOnlyBanner } from "./components/ReadOnlyGuard";
+import { AppErrorBoundary } from "./components/AppErrorBoundary";
+import { installGlobalErrorHandlers } from "./lib/error-handler";
+
+installGlobalErrorHandlers();
 import NotFound from "./pages/NotFound";
 import AppRedirect from "./pages/AppRedirect";
 import CompanySelector from "./pages/CompanySelector";
@@ -222,21 +226,23 @@ const AppRoutes = () => {
 };
 
 const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <FinancialPrivacyProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <AuthProvider>
-            <PaymentTestModeBanner />
-            <ReadOnlyBanner />
-            <AppRoutes />
-          </AuthProvider>
-        </BrowserRouter>
-      </FinancialPrivacyProvider>
-    </TooltipProvider>
-  </QueryClientProvider>
+  <AppErrorBoundary>
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <FinancialPrivacyProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <AuthProvider>
+              <PaymentTestModeBanner />
+              <ReadOnlyBanner />
+              <AppRoutes />
+            </AuthProvider>
+          </BrowserRouter>
+        </FinancialPrivacyProvider>
+      </TooltipProvider>
+    </QueryClientProvider>
+  </AppErrorBoundary>
 );
 
 export default App;
