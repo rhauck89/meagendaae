@@ -10,8 +10,22 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Calendar as CalendarPicker } from '@/components/ui/calendar';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Scissors, Sparkles, Clock, DollarSign, ChevronRight, ChevronLeft, CheckCircle2, Bell, Zap, CalendarPlus, MessageCircle, RotateCcw, Home, User, Phone, Mail, Cake, MapPin, Star, X, AlertTriangle, Calendar } from 'lucide-react';
-import { format, addMinutes, addDays, isToday, isTomorrow, startOfDay, isSameDay } from 'date-fns';
-import { fromZonedTime } from 'date-fns-tz';
+import { format, addMinutes, addDays, startOfDay, isSameDay } from 'date-fns';
+import { fromZonedTime, toZonedTime } from 'date-fns-tz';
+
+// TZ-aware Hoje/Amanhã helpers — compare dates in America/Sao_Paulo, not the
+// browser's local zone. Without this, a user in another timezone (or whose
+// device clock is shifted near midnight) sees "Amanhã" for what is actually
+// "Hoje" in São Paulo (and vice-versa).
+const tzYmd = (d: Date, tz: string) =>
+  format(toZonedTime(d, tz), 'yyyy-MM-dd');
+const isTodayTz = (d: Date, tz = 'America/Sao_Paulo') =>
+  tzYmd(d, tz) === tzYmd(new Date(), tz);
+const isTomorrowTz = (d: Date, tz = 'America/Sao_Paulo') => {
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  return tzYmd(d, tz) === tzYmd(tomorrow, tz);
+};
 import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -1697,7 +1711,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                     </div>
                     <div>
                       <p className="font-semibold text-lg capitalize">
-                        {isToday(selectedDate) ? 'Hoje' : isTomorrow(selectedDate) ? 'Amanhã' : format(selectedDate, "EEEE", { locale: ptBR })}
+                        {isTodayTz(selectedDate) ? 'Hoje' : isTomorrowTz(selectedDate) ? 'Amanhã' : format(selectedDate, "EEEE", { locale: ptBR })}
                         {' • '}
                         {format(selectedDate, "dd/MM", { locale: ptBR })}
                       </p>
@@ -1758,7 +1772,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                     >
                       {formatSlotTime(smartSuggestion.slot)}
                       <span className="block text-xs font-medium mt-1 opacity-80 capitalize">
-                        {isToday(smartSuggestion.date) ? 'Hoje' : isTomorrow(smartSuggestion.date) ? 'Amanhã' : format(smartSuggestion.date, "EEEE, dd/MM", { locale: ptBR })}
+                        {isTodayTz(smartSuggestion.date) ? 'Hoje' : isTomorrowTz(smartSuggestion.date) ? 'Amanhã' : format(smartSuggestion.date, "EEEE, dd/MM", { locale: ptBR })}
                       </span>
                     </button>
                     <p className="text-xs text-center" style={{ color: T.textSec }}>
@@ -1777,7 +1791,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                       <p className="font-semibold text-sm">{smartSuggestion ? 'Outros horários disponíveis' : 'Próximos horários disponíveis'}</p>
                     </div>
                     {nextSlots.map(({ date, slots }) => {
-                      const dayLabel = isToday(date) ? 'Hoje' : isTomorrow(date) ? 'Amanhã' : format(date, "EEEE, dd/MM", { locale: ptBR });
+                      const dayLabel = isTodayTz(date) ? 'Hoje' : isTomorrowTz(date) ? 'Amanhã' : format(date, "EEEE, dd/MM", { locale: ptBR });
                       const filtered = smartSuggestion && isSameDay(date, smartSuggestion.date)
                         ? slots.filter((s) => s !== smartSuggestion.slot)
                         : slots;
