@@ -29,8 +29,6 @@ const Team = () => {
   const queryClient = useQueryClient();
   const { refresh } = useRefreshData();
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [panelOpen, setPanelOpen] = useState(false);
-  const [selectedCollaborator, setSelectedCollaborator] = useState<any>(null);
   const [createdCredentials, setCreatedCredentials] = useState<{ email: string; password: string; link: string } | null>(null);
   const [inviteCredentials, setInviteCredentials] = useState<{ email: string; password: string } | null>(null);
   const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
