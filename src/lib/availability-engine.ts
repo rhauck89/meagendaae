@@ -116,8 +116,12 @@ function buildBlockedIntervals(
   }
 
   for (const apt of existingAppointments) {
-    const aptStart = parseISO(apt.start_time);
-    const aptEnd = parseISO(apt.end_time);
+    // Convert DB UTC ISO → company wall-clock so it aligns with parseTime()
+    // (which produces a local-time Date via setHours). Without this conversion,
+    // a UTC runtime sees no overlap between booked 09:00 BRT and a generated
+    // 09:00 slot and renders busy times as available.
+    const aptStart = toCompanyWallClock(apt.start_time);
+    const aptEnd = toCompanyWallClock(apt.end_time);
     blocked.push({ start: aptStart, end: aptEnd });
   }
 
