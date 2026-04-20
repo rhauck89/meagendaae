@@ -1030,7 +1030,24 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
       } as any);
       if (clientError) {
         console.error('[Booking] Client creation error:', clientError);
-        throw clientError;
+        const msg = String(clientError.message || '');
+        if (/idx_clients_user_company|duplicate key|unique constraint/i.test(msg)) {
+          toast.info('Já encontramos seu cadastro, continuando...');
+          // Retry once — the RPC is now race-safe and should resolve to existing record.
+          const retry = await supabase.rpc('create_client', {
+            p_name: clientForm.full_name, p_whatsapp: formattedWhatsapp || '',
+            p_email: clientForm.email || '', p_company_id: company.id,
+            p_birth_date: clientForm.birth_date || null,
+          } as any);
+          if (retry.error || !retry.data) {
+            toast.error('Não foi possível concluir o cadastro. Tente novamente.');
+            setLoading(false);
+            return;
+          }
+          (clientIdFromRpc as any) = retry.data;
+        } else {
+          throw clientError;
+        }
       }
       const clientId = clientIdFromRpc;
       console.log('[Booking] Client ID:', clientId);
