@@ -995,15 +995,26 @@ const Team = () => {
                             <div className="flex items-center gap-2 text-xs text-muted-foreground">
                               <Lock className="h-3 w-3" /> Gerenciado pelo administrador
                             </div>
-                            <p className="text-sm">Intervalo: <span className="font-medium">{(company as any)?.fixed_slot_interval || 15} minutos</span></p>
+                            <p className="text-sm">Grade da agenda: <span className="font-medium">{(company as any)?.fixed_slot_interval || 15} min</span></p>
+                            <p className="text-xs text-muted-foreground">Intervalo entre clientes: {form.break_time || 0} min</p>
                           </div>
                         )}
                       </>
                     )}
 
                     <div className="space-y-2">
-                      <Label>Intervalo entre atendimentos (minutos)</Label>
-                      <Input type="number" min={0} max={60} value={form.break_time} onChange={(e) => setForm({ ...form, break_time: Number(e.target.value) || 0 })} placeholder="Ex: 5" />
+                      <Label>Intervalo entre clientes (minutos)</Label>
+                      <Select value={String(form.break_time)} onValueChange={(v) => setForm({ ...form, break_time: Number(v) })}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="0">Sem intervalo</SelectItem>
+                          <SelectItem value="5">5 minutos</SelectItem>
+                          <SelectItem value="10">10 minutos</SelectItem>
+                          <SelectItem value="15">15 minutos</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <p className="text-xs text-muted-foreground">Tempo de respiro entre um atendimento e outro.</p>
+                    </div>
                     </div>
                     <div className="flex gap-2">
                       <Button variant="outline" className="flex-1" onClick={() => setWizardStep(2)}>
@@ -1409,7 +1420,10 @@ const Team = () => {
                           <Lock className="h-3 w-3" /> Gerenciado pelo administrador
                         </div>
                         <p className="text-sm">
-                          Intervalo: <span className="font-medium">{(company as any)?.fixed_slot_interval || 15} minutos</span>
+                          Grade da agenda: <span className="font-medium">{(company as any)?.fixed_slot_interval || 15} min</span>
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          Intervalo entre clientes: {editForm.break_time || 0} min
                         </p>
                       </div>
                     )}
@@ -1417,17 +1431,21 @@ const Team = () => {
                 )}
 
                 <div className="space-y-2">
-                  <Label>Intervalo entre atendimentos (min)</Label>
-                  <Input
-                    type="number"
-                    min={0}
-                    max={60}
-                    value={editForm.break_time}
-                    onChange={(e) => setEditForm({ ...editForm, break_time: Number(e.target.value) || 0 })}
-                    placeholder="Ex: 5"
-                  />
+                  <Label>Intervalo entre clientes (minutos)</Label>
+                  <Select
+                    value={String(editForm.break_time)}
+                    onValueChange={(v) => setEditForm({ ...editForm, break_time: Number(v) })}
+                  >
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="0">Sem intervalo</SelectItem>
+                      <SelectItem value="5">5 minutos</SelectItem>
+                      <SelectItem value="10">10 minutos</SelectItem>
+                      <SelectItem value="15">15 minutos</SelectItem>
+                    </SelectContent>
+                  </Select>
                   <p className="text-xs text-muted-foreground">
-                    Tempo de respiro entre um atendimento e outro.
+                    Tempo de respiro entre um atendimento e outro (não altera a grade da agenda).
                   </p>
                 </div>
               </TabsContent>
