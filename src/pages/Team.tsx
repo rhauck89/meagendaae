@@ -12,7 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { Plus, Users, Percent, DollarSign, Settings, Copy, ExternalLink, Mail, KeyRound, MessageCircle, Pencil, UserX, UserCheck, Trash2, CalendarOff, ChevronLeft, ChevronRight, Check, Clock, Wallet, Crown, Lock, MoreVertical, Calendar as CalendarIcon } from 'lucide-react';
+import { Plus, Users, Percent, DollarSign, Settings, Copy, ExternalLink, Mail, KeyRound, MessageCircle, Pencil, UserX, UserCheck, Trash2, CalendarOff, ChevronLeft, ChevronRight, Check, Clock, Wallet, Crown, Lock, MoreVertical, Calendar as CalendarIcon, Search, X } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { buildWhatsAppUrl } from '@/lib/whatsapp';
@@ -37,6 +37,8 @@ const Team = () => {
   const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
   const [loadingAction, setLoadingAction] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState('active');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [roleFilter, setRoleFilter] = useState<string>('all');
 
   // Edit modal state
   const [editDialogOpen, setEditDialogOpen] = useState(false);
@@ -125,6 +127,67 @@ const Team = () => {
 
   const activeCollaborators = collaborators.filter((c) => c.active !== false);
   const disabledCollaborators = collaborators.filter((c) => c.active === false);
+
+  // Aggregated appointments query — fetch today's appointments for all professionals at once
+  const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
+  const todayEnd = new Date(); todayEnd.setHours(23, 59, 59, 999);
+  const professionalIds = collaborators.map((c) => c.profile_id).filter(Boolean);
+
+  const { data: appointmentsAgg = {} } = useQuery({
+    queryKey: ['team-appointments-agg', companyId, professionalIds.join(',')],
+    enabled: Boolean(companyId) && professionalIds.length > 0,
+    queryFn: async () => {
+      const nowIso = new Date().toISOString();
+      const { data, error } = await supabase
+        .from('appointments')
+        .select('id, professional_id, start_time, end_time, status')
+        .eq('company_id', companyId!)
+        .in('professional_id', professionalIds)
+        .gte('start_time', todayStart.toISOString())
+        .lte('start_time', todayEnd.toISOString())
+        .in('status', ['pending', 'confirmed'] as any)
+        .order('start_time');
+      if (error) throw error;
+      const map: Record<string, { todayCount: number; next: string | null }> = {};
+      for (const a of data ?? []) {
+        const pid = (a as any).professional_id as string;
+        if (!pid) continue;
+        if (!map[pid]) map[pid] = { todayCount: 0, next: null };
+        map[pid].todayCount += 1;
+        if (!map[pid].next && (a as any).start_time >= nowIso) {
+          map[pid].next = (a as any).start_time;
+        }
+      }
+      return map;
+    },
+    staleTime: 60_000,
+  });
+
+  // Available role titles for filter
+  const availableRoles = Array.from(
+    new Set(
+      collaborators
+        .map((c) => (c.profile as any)?.role_title)
+        .filter((r): r is string => Boolean(r) && r.trim().length > 0)
+    )
+  ).sort();
+
+  const matchesFilters = (c: any) => {
+    if (searchQuery.trim()) {
+      const q = searchQuery.trim().toLowerCase();
+      const name = (c.profile?.full_name || '').toLowerCase();
+      const email = (c.profile?.email || '').toLowerCase();
+      if (!name.includes(q) && !email.includes(q)) return false;
+    }
+    if (roleFilter !== 'all') {
+      const role = (c.profile as any)?.role_title || '';
+      if (role !== roleFilter) return false;
+    }
+    return true;
+  };
+
+  const filteredActive = activeCollaborators.filter(matchesFilters);
+  const filteredDisabled = disabledCollaborators.filter(matchesFilters);
 
   const resetForm = () => {
     setForm({
@@ -473,6 +536,11 @@ const Team = () => {
     const hasAccess = (collaborator as any).has_system_access !== false;
     const isAbsent = !isDisabled && isCurrentlyAbsent(collaborator);
     const isOwner = collaborator.profile?.user_id === company?.owner_id;
+    const agg = (appointmentsAgg as any)[collaborator.profile_id] as { todayCount: number; next: string | null } | undefined;
+    const todayCount = agg?.todayCount ?? 0;
+    const nextTime = agg?.next
+      ? new Date(agg.next).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+      : null;
     return (
       <Card key={collaborator.id} className={isDisabled ? 'opacity-60' : ''}>
         <CardContent className="p-5 space-y-4">
@@ -487,13 +555,33 @@ const Team = () => {
             <div className="flex-1 min-w-0">
               <p className="font-semibold truncate">{collaborator.profile?.full_name}</p>
               <p className="text-sm text-muted-foreground truncate">
-                {collaborator.profile?.role_title || (isOwner ? 'Administrador' : 'Profissional')}
+                {(collaborator.profile as any)?.role_title || (isOwner ? 'Administrador' : 'Profissional')}
               </p>
               {collaborator.profile?.email && (
                 <p className="text-xs text-muted-foreground truncate mt-0.5">{collaborator.profile.email}</p>
               )}
             </div>
           </div>
+
+          {/* Indicators row — só para ativos e não ausentes */}
+          {!isDisabled && !isAbsent && (
+            <div className="grid grid-cols-2 gap-2">
+              <div className="rounded-md border bg-muted/30 px-3 py-2">
+                <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Hoje</p>
+                <p className="text-sm font-semibold flex items-center gap-1">
+                  <CalendarIcon className="h-3.5 w-3.5 text-primary" />
+                  {todayCount} {todayCount === 1 ? 'atendimento' : 'atendimentos'}
+                </p>
+              </div>
+              <div className="rounded-md border bg-muted/30 px-3 py-2">
+                <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Próximo</p>
+                <p className="text-sm font-semibold flex items-center gap-1">
+                  <Clock className="h-3.5 w-3.5 text-primary" />
+                  {nextTime || '—'}
+                </p>
+              </div>
+            </div>
+          )}
 
           {/* Tags */}
           <div className="flex flex-wrap items-center gap-1.5">
@@ -511,7 +599,11 @@ const Team = () => {
               {collaborator.commission_type === 'fixed' && <><DollarSign className="h-3 w-3" /> {paymentLabel(collaborator.commission_type, collaborator.commission_value)}</>}
               {collaborator.commission_type === 'none' && paymentLabel(collaborator.commission_type, collaborator.commission_value)}
             </Badge>
-            {!hasAccess && <Badge variant="outline" className="text-xs">Sem acesso</Badge>}
+            {!hasAccess && (
+              <Badge variant="outline" className="flex items-center gap-1 text-xs">
+                <Lock className="h-3 w-3" /> Sem acesso
+              </Badge>
+            )}
             {isDisabled && <Badge variant="destructive">Desabilitado</Badge>}
             {isAbsent && (
               <Badge variant="secondary" className="flex items-center gap-1 bg-amber-100 text-amber-800 border-amber-300">
@@ -1024,10 +1116,48 @@ const Team = () => {
         </Dialog>
       </div>
 
+      {/* Search & filters */}
+      {collaborators.length > 0 && (
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+          <div className="relative flex-1">
+            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Buscar por nome ou email"
+              className="pl-9 pr-9"
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery('')}
+                className="absolute right-2 top-2 rounded-md p-0.5 text-muted-foreground hover:bg-muted"
+                aria-label="Limpar busca"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            )}
+          </div>
+          {availableRoles.length > 0 && (
+            <Select value={roleFilter} onValueChange={setRoleFilter}>
+              <SelectTrigger className="sm:w-[200px]">
+                <SelectValue placeholder="Todos os cargos" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos os cargos</SelectItem>
+                {availableRoles.map((r) => (
+                  <SelectItem key={r} value={r}>{r}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+        </div>
+      )}
+
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList>
-          <TabsTrigger value="active">Ativos ({activeCollaborators.length})</TabsTrigger>
-          <TabsTrigger value="disabled">Desabilitados ({disabledCollaborators.length})</TabsTrigger>
+          <TabsTrigger value="active">Ativos ({filteredActive.length})</TabsTrigger>
+          <TabsTrigger value="disabled">Desabilitados ({filteredDisabled.length})</TabsTrigger>
         </TabsList>
 
         <TabsContent value="active">
@@ -1044,20 +1174,33 @@ const Team = () => {
                 <Plus className="mr-2 h-4 w-4" /> Adicionar profissional
               </Button>
             </div>
+          ) : filteredActive.length === 0 ? (
+            <div className="py-12 text-center text-muted-foreground">
+              <Search className="mx-auto mb-3 h-10 w-10 opacity-40" />
+              <p className="text-sm">Nenhum profissional encontrado com os filtros atuais.</p>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="mt-2"
+                onClick={() => { setSearchQuery(''); setRoleFilter('all'); }}
+              >
+                Limpar filtros
+              </Button>
+            </div>
           ) : (
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              {activeCollaborators.map((c) => renderCollaboratorCard(c, false))}
+              {filteredActive.map((c) => renderCollaboratorCard(c, false))}
             </div>
           )}
         </TabsContent>
 
         <TabsContent value="disabled">
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-            {disabledCollaborators.map((c) => renderCollaboratorCard(c, true))}
-            {disabledCollaborators.length === 0 && (
+            {filteredDisabled.map((c) => renderCollaboratorCard(c, true))}
+            {filteredDisabled.length === 0 && (
               <div className="col-span-full py-12 text-center text-muted-foreground">
                 <Users className="mx-auto mb-3 h-12 w-12 opacity-40" />
-                <p>Nenhum profissional desabilitado</p>
+                <p>{disabledCollaborators.length === 0 ? 'Nenhum profissional desabilitado' : 'Nenhum resultado para os filtros atuais'}</p>
               </div>
             )}
           </div>
