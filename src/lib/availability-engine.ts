@@ -1,6 +1,29 @@
 import { addMinutes, format, parseISO } from 'date-fns';
+import { toZonedTime } from 'date-fns-tz';
 
 export type BookingMode = 'intelligent' | 'fixed_grid' | 'hybrid';
+
+/**
+ * Default timezone used to interpret appointment timestamps as wall-clock time.
+ * The engine generates slots in local wall-clock (e.g. "09:00"), so existing
+ * appointments — which arrive as UTC ISO strings — must be converted to the
+ * SAME wall-clock frame before any overlap check. Otherwise a browser/server
+ * running in UTC will see "09:00 UTC slot" vs "12:00 UTC appointment" and
+ * (incorrectly) decide there is no conflict, leaking booked slots into the
+ * public list.
+ */
+const COMPANY_TZ = 'America/Sao_Paulo';
+
+/**
+ * Convert an ISO timestamp from the database into a Date whose getHours()/getMinutes()
+ * return the wall-clock time in the company's timezone.
+ *
+ * Example: '2026-04-20T12:00:00Z' (= 09:00 BRT) → Date with hours=9, minutes=0
+ *   regardless of the runtime's local timezone.
+ */
+function toCompanyWallClock(iso: string): Date {
+  return toZonedTime(parseISO(iso), COMPANY_TZ);
+}
 
 export interface BusinessHours {
   day_of_week: number;
@@ -93,8 +116,12 @@ function buildBlockedIntervals(
   }
 
   for (const apt of existingAppointments) {
-    const aptStart = parseISO(apt.start_time);
-    const aptEnd = parseISO(apt.end_time);
+    // Convert DB UTC ISO → company wall-clock so it aligns with parseTime()
+    // (which produces a local-time Date via setHours). Without this conversion,
+    // a UTC runtime sees no overlap between booked 09:00 BRT and a generated
+    // 09:00 slot and renders busy times as available.
+    const aptStart = toCompanyWallClock(apt.start_time);
+    const aptEnd = toCompanyWallClock(apt.end_time);
     blocked.push({ start: aptStart, end: aptEnd });
   }
 

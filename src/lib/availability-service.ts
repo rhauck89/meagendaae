@@ -23,6 +23,10 @@
  * the public_* views. The computation engine is the same: calculateAvailableSlots().
  */
 import { addMinutes, format, isToday, parseISO } from 'date-fns';
+import { toZonedTime } from 'date-fns-tz';
+
+/** Company-fixed timezone — must match availability-engine.ts COMPANY_TZ. */
+const COMPANY_TZ = 'America/Sao_Paulo';
 import { supabase } from '@/integrations/supabase/client';
 import {
   calculateAvailableSlots,
@@ -69,18 +73,37 @@ function filterOverlappingGeneratedSlots(
     return slots;
   }
 
-  return slots.filter((slot) => {
+  // Pre-convert all bookings to wall-clock in the company's timezone so they
+  // share the same frame of reference as the generated slots ("09:00", "09:53"...).
+  // Mixing parseISO (timezone-aware) with setHours (local) was causing busy slots
+  // to silently pass the overlap check on UTC runtimes.
+  const bookingRanges = existingAppointments.map((appointment) => ({
+    start: toZonedTime(parseISO(appointment.start_time), COMPANY_TZ),
+    end: toZonedTime(parseISO(appointment.end_time), COMPANY_TZ),
+  }));
+
+  const filtered = slots.filter((slot) => {
     const [hours, minutes] = slot.split(':').map(Number);
     const slotStart = new Date(date);
     slotStart.setHours(hours, minutes, 0, 0);
     const slotEnd = addMinutes(slotStart, totalDuration);
 
-    return !existingAppointments.some((appointment) => {
-      const existingStart = parseISO(appointment.start_time);
-      const existingEnd = parseISO(appointment.end_time);
-      return slotStart < existingEnd && slotEnd > existingStart;
-    });
+    const conflict = bookingRanges.some((range) => slotStart < range.end && slotEnd > range.start);
+    return !conflict;
   });
+
+  if (filtered.length !== slots.length) {
+    console.log('[FILTER_OVERLAP]', {
+      removed: slots.filter((s) => !filtered.includes(s)),
+      kept: filtered,
+      bookings: bookingRanges.map((r) => ({
+        start: format(r.start, 'HH:mm'),
+        end: format(r.end, 'HH:mm'),
+      })),
+    });
+  }
+
+  return filtered;
 }
 
 function getBaseSlotMinutes(serviceDurations: number[], intervalMinutes: number) {
