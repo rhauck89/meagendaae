@@ -167,7 +167,7 @@ const Team = () => {
   const availableRoles = Array.from(
     new Set(
       collaborators
-        .map((c) => c.profile?.role_title)
+        .map((c) => (c.profile as any)?.role_title)
         .filter((r): r is string => Boolean(r) && r.trim().length > 0)
     )
   ).sort();
@@ -180,7 +180,7 @@ const Team = () => {
       if (!name.includes(q) && !email.includes(q)) return false;
     }
     if (roleFilter !== 'all') {
-      const role = c.profile?.role_title || '';
+      const role = (c.profile as any)?.role_title || '';
       if (role !== roleFilter) return false;
     }
     return true;
