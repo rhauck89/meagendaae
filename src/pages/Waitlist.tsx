@@ -12,6 +12,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Clock, CalendarPlus, Users, Loader2, AlertCircle, CheckCircle2, Bell, XCircle } from 'lucide-react';
 import { format, parseISO, addMinutes, isBefore, startOfDay } from 'date-fns';
+import { fromZonedTime } from 'date-fns-tz';
 import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
 import { calculateAvailableSlots } from '@/lib/availability-engine';
@@ -233,7 +234,7 @@ const Waitlist = () => {
     try {
       const totalDuration = getTotalDuration(bookingTarget.service_ids);
       const dateStr = format(selectedDate, 'yyyy-MM-dd');
-      const startTime = new Date(`${dateStr}T${selectedSlot}:00`);
+      const startTime = fromZonedTime(`${dateStr} ${selectedSlot}:00`, 'America/Sao_Paulo');
       const endTime = addMinutes(startTime, totalDuration);
 
       const { data: clientId, error: clientErr } = await supabase.rpc('create_client', {
