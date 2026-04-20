@@ -188,6 +188,8 @@ const Team = () => {
 
   const filteredActive = activeCollaborators.filter(matchesFilters);
   const filteredDisabled = disabledCollaborators.filter(matchesFilters);
+
+  const resetForm = () => {
     setForm({
       name: '',
       email: '',
