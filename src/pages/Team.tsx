@@ -18,7 +18,6 @@ import { toast } from 'sonner';
 import { buildWhatsAppUrl } from '@/lib/whatsapp';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Switch } from '@/components/ui/switch';
-import { Checkbox } from '@/components/ui/checkbox';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { commissionLabel } from '@/lib/financial-engine';
 
