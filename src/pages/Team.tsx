@@ -1116,10 +1116,48 @@ const Team = () => {
         </Dialog>
       </div>
 
+      {/* Search & filters */}
+      {collaborators.length > 0 && (
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+          <div className="relative flex-1">
+            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Buscar por nome ou email"
+              className="pl-9 pr-9"
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery('')}
+                className="absolute right-2 top-2 rounded-md p-0.5 text-muted-foreground hover:bg-muted"
+                aria-label="Limpar busca"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            )}
+          </div>
+          {availableRoles.length > 0 && (
+            <Select value={roleFilter} onValueChange={setRoleFilter}>
+              <SelectTrigger className="sm:w-[200px]">
+                <SelectValue placeholder="Todos os cargos" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos os cargos</SelectItem>
+                {availableRoles.map((r) => (
+                  <SelectItem key={r} value={r}>{r}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+        </div>
+      )}
+
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList>
-          <TabsTrigger value="active">Ativos ({activeCollaborators.length})</TabsTrigger>
-          <TabsTrigger value="disabled">Desabilitados ({disabledCollaborators.length})</TabsTrigger>
+          <TabsTrigger value="active">Ativos ({filteredActive.length})</TabsTrigger>
+          <TabsTrigger value="disabled">Desabilitados ({filteredDisabled.length})</TabsTrigger>
         </TabsList>
 
         <TabsContent value="active">
@@ -1136,20 +1174,33 @@ const Team = () => {
                 <Plus className="mr-2 h-4 w-4" /> Adicionar profissional
               </Button>
             </div>
+          ) : filteredActive.length === 0 ? (
+            <div className="py-12 text-center text-muted-foreground">
+              <Search className="mx-auto mb-3 h-10 w-10 opacity-40" />
+              <p className="text-sm">Nenhum profissional encontrado com os filtros atuais.</p>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="mt-2"
+                onClick={() => { setSearchQuery(''); setRoleFilter('all'); }}
+              >
+                Limpar filtros
+              </Button>
+            </div>
           ) : (
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              {activeCollaborators.map((c) => renderCollaboratorCard(c, false))}
+              {filteredActive.map((c) => renderCollaboratorCard(c, false))}
             </div>
           )}
         </TabsContent>
 
         <TabsContent value="disabled">
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-            {disabledCollaborators.map((c) => renderCollaboratorCard(c, true))}
-            {disabledCollaborators.length === 0 && (
+            {filteredDisabled.map((c) => renderCollaboratorCard(c, true))}
+            {filteredDisabled.length === 0 && (
               <div className="col-span-full py-12 text-center text-muted-foreground">
                 <Users className="mx-auto mb-3 h-12 w-12 opacity-40" />
-                <p>Nenhum profissional desabilitado</p>
+                <p>{disabledCollaborators.length === 0 ? 'Nenhum profissional desabilitado' : 'Nenhum resultado para os filtros atuais'}</p>
               </div>
             )}
           </div>
