@@ -4785,6 +4785,7 @@ export type Database = {
         }[]
       }
       get_my_company_id: { Args: never; Returns: string }
+      get_my_profile_id: { Args: never; Returns: string }
       get_professional_ratings: {
         Args: { p_company_id: string }
         Returns: {
@@ -4824,6 +4825,10 @@ export type Database = {
         Returns: boolean
       }
       is_company_active: { Args: { p_company_id: string }; Returns: boolean }
+      is_company_admin: {
+        Args: { _company_id: string; _user_id: string }
+        Returns: boolean
+      }
       is_company_readonly: { Args: { p_company_id: string }; Returns: boolean }
       join_public_waitlist:
         | {
