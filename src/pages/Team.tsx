@@ -542,13 +542,13 @@ const Team = () => {
       ? new Date(agg.next).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
       : null;
     return (
-      <Card key={collaborator.id} className={isDisabled ? 'opacity-60' : ''}>
-        <CardContent className="p-5 space-y-4">
+      <Card key={collaborator.id} className={`transition-shadow hover:shadow-md ${isDisabled ? 'opacity-60' : ''}`}>
+        <CardContent className="p-4 sm:p-5 space-y-3 sm:space-y-4">
           {/* Header: avatar + name + role */}
-          <div className="flex items-start gap-4">
-            <Avatar className="h-14 w-14 shrink-0">
+          <div className="flex items-start gap-3 sm:gap-4">
+            <Avatar className="h-12 w-12 sm:h-14 sm:w-14 shrink-0 ring-2 ring-primary/10">
               <AvatarImage src={collaborator.profile?.avatar_url || undefined} alt={collaborator.profile?.full_name || ''} />
-              <AvatarFallback className="bg-primary/10 text-primary font-bold text-lg">
+              <AvatarFallback className="bg-primary/10 text-primary font-bold text-base sm:text-lg">
                 {collaborator.profile?.full_name?.charAt(0)?.toUpperCase() || '?'}
               </AvatarFallback>
             </Avatar>
@@ -707,10 +707,10 @@ const Team = () => {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-xl font-display font-bold">Equipe</h2>
+    <div className="space-y-4 sm:space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div className="min-w-0">
+          <h2 className="text-xl sm:text-2xl font-display font-bold">Equipe</h2>
           <p className="text-sm text-muted-foreground">Gerencie profissionais do seu estabelecimento</p>
         </div>
         <Dialog
@@ -721,7 +721,7 @@ const Team = () => {
           }}
         >
           <DialogTrigger asChild>
-            <Button>
+            <Button className="w-full sm:w-auto">
               <Plus className="mr-2 h-4 w-4" /> Adicionar Profissional
             </Button>
           </DialogTrigger>
@@ -1155,9 +1155,9 @@ const Team = () => {
       )}
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList>
-          <TabsTrigger value="active">Ativos ({filteredActive.length})</TabsTrigger>
-          <TabsTrigger value="disabled">Desabilitados ({filteredDisabled.length})</TabsTrigger>
+        <TabsList className="w-full grid grid-cols-2 sm:inline-flex sm:w-auto">
+          <TabsTrigger value="active" className="text-xs sm:text-sm">Ativos ({filteredActive.length})</TabsTrigger>
+          <TabsTrigger value="disabled" className="text-xs sm:text-sm">Desabilitados ({filteredDisabled.length})</TabsTrigger>
         </TabsList>
 
         <TabsContent value="active">
@@ -1188,14 +1188,14 @@ const Team = () => {
               </Button>
             </div>
           ) : (
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <div className="grid grid-cols-1 gap-3 sm:gap-4 md:grid-cols-2 xl:grid-cols-3">
               {filteredActive.map((c) => renderCollaboratorCard(c, false))}
             </div>
           )}
         </TabsContent>
 
         <TabsContent value="disabled">
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <div className="grid grid-cols-1 gap-3 sm:gap-4 md:grid-cols-2 xl:grid-cols-3">
             {filteredDisabled.map((c) => renderCollaboratorCard(c, true))}
             {filteredDisabled.length === 0 && (
               <div className="col-span-full py-12 text-center text-muted-foreground">
@@ -1209,17 +1209,17 @@ const Team = () => {
 
       {/* Edit Professional Dialog */}
       <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
-        <DialogContent className="max-w-2xl max-h-[92vh] overflow-hidden flex flex-col p-0 gap-0">
-          <DialogHeader className="px-6 pt-6 pb-4 border-b">
+        <DialogContent className="max-w-2xl w-[calc(100vw-1rem)] sm:w-full max-h-[95vh] sm:max-h-[92vh] overflow-hidden flex flex-col p-0 gap-0">
+          <DialogHeader className="px-4 sm:px-6 pt-4 sm:pt-6 pb-3 sm:pb-4 border-b">
             <div className="flex items-center gap-3">
-              <Avatar className="h-12 w-12">
+              <Avatar className="h-11 w-11 sm:h-12 sm:w-12 shrink-0 ring-2 ring-primary/10">
                 <AvatarImage src={editTarget?.profile?.avatar_url || ''} alt={editForm.name} />
                 <AvatarFallback className="bg-primary/10 text-primary font-semibold">
                   {(editForm.name || '?').slice(0, 2).toUpperCase()}
                 </AvatarFallback>
               </Avatar>
-              <div className="flex-1 min-w-0">
-                <DialogTitle className="text-lg leading-tight truncate">
+              <div className="flex-1 min-w-0 text-left">
+                <DialogTitle className="text-base sm:text-lg leading-tight truncate">
                   {editForm.name || 'Editar Profissional'}
                 </DialogTitle>
                 <p className="text-xs text-muted-foreground truncate">{editForm.email || 'Sem e-mail'}</p>
@@ -1434,7 +1434,7 @@ const Team = () => {
             </div>
           </Tabs>
 
-          <div className="flex flex-col-reverse sm:flex-row gap-2 px-6 py-4 border-t bg-muted/30">
+          <div className="flex flex-col-reverse sm:flex-row gap-2 px-4 sm:px-6 py-3 sm:py-4 border-t bg-muted/30 sticky bottom-0">
             <Button variant="outline" className="flex-1" onClick={() => setEditDialogOpen(false)}>
               Cancelar
             </Button>
