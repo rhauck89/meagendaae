@@ -328,168 +328,22 @@ function emitSlotsForWindow(
 }
 
 /**
- * INTELLIGENT MODE: Slots are calculated dynamically based on real free gaps.
- * Slots start at exact gap boundaries — no fixed grid.
- * Example: if a 20min service ends at 11:20 with 5min buffer,
- * next slot starts at 11:25, not 11:30.
- */
-function calculateIntelligentSlots(
-  openTime: Date,
-  closeTime: Date,
-  totalDuration: number,
-  bufferMinutes: number,
-  blocked: Array<{ start: Date; end: Date }>,
-  earliestSlotTime: Date | null
-): string[] {
-  const freeWindows = buildFreeWindows(openTime, closeTime, blocked, bufferMinutes);
-  const slots: string[] = [];
-
-  for (const window of freeWindows) {
-    // Skip windows that cannot fit the full service duration
-    const windowDurationMs = window.end.getTime() - window.start.getTime();
-    const requiredMs = totalDuration * 60000;
-    if (windowDurationMs < requiredMs) {
-      console.log('[INTELLIGENT MODE] window skipped — too small', {
-        windowStart: format(window.start, 'HH:mm'),
-        windowEnd: format(window.end, 'HH:mm'),
-        windowMinutes: Math.floor(windowDurationMs / 60000),
-        serviceDuration: totalDuration,
-      });
-      continue;
-    }
-
-    // Continuous time: start exactly at window boundary, zero seconds/ms only.
-    let current = new Date(window.start);
-    current.setSeconds(0, 0);
-
-    while (current.getTime() + requiredMs <= window.end.getTime()) {
-      if (earliestSlotTime && current < earliestSlotTime) {
-        // Jump straight to earliest allowed time — no grid stepping.
-        current = new Date(earliestSlotTime);
-        current.setSeconds(0, 0);
-        continue;
-      }
-
-      const slotEnd = addMinutes(current, totalDuration);
-
-      // Hard guard: slot end must not exceed the free window
-      if (slotEnd.getTime() > window.end.getTime()) {
-        break;
-      }
-
-      if (slotFitsService(current, totalDuration, bufferMinutes, closeTime, blocked)) {
-        console.log('[INTELLIGENT MODE]', {
-          slotStart: format(current, 'HH:mm'),
-          slotEnd: format(slotEnd, 'HH:mm'),
-          duration: totalDuration,
-          buffer: bufferMinutes,
-        });
-        slots.push(format(current, 'HH:mm'));
-      }
-      // Continuous step: end of this slot + buffer = start of next, no grid snap.
-      current = addMinutes(current, totalDuration + bufferMinutes);
-    }
-  }
-
-  return slots;
-}
-
-/**
- * HYBRID MODE: Uses fixed grid intervals but validates each slot
- * can actually fit the service duration without overlapping blocked intervals.
- */
-function calculateHybridSlots(
-  openTime: Date,
-  closeTime: Date,
-  totalDuration: number,
-  bufferMinutes: number,
-  slotInterval: number,
-  blocked: Array<{ start: Date; end: Date }>,
-  earliestSlotTime: Date | null
-): string[] {
-  const slots: string[] = [];
-  let current = new Date(openTime);
-
-  while (current.getTime() + totalDuration * 60000 <= closeTime.getTime()) {
-    if (earliestSlotTime && current < earliestSlotTime) {
-      current = addMinutes(current, slotInterval);
-      continue;
-    }
-
-    if (slotFitsService(current, totalDuration, bufferMinutes, closeTime, blocked)) {
-      slots.push(format(current, 'HH:mm'));
-    }
-
-    current = addMinutes(current, slotInterval);
-  }
-
-  return slots;
-}
-
-/**
- * INTELLIGENT V2 — Base-slot timeline (Agenda Inteligente V2).
- *
- * Walks the working day in steps of `baseSlotMinutes` (the smallest service
- * duration cadastrado pelo estabelecimento). For each candidate time, checks
- * if the chosen service fully fits without overlapping blocked intervals,
- * lunch, or close-of-business — including buffer.
- *
- * This exposes many more valid start times than v1, while still respecting
- * every existing rule (gaps, lunch, manual blocks, buffer, business hours).
- *
- * Example: smallest service = 10min, customer picks a 25min service.
- * Candidate slots: 09:00, 09:10, 09:20, 09:30, 09:40, ...
- * Each is validated to ensure 25min fits before showing.
- */
-function calculateIntelligentSlotsV2(
-  openTime: Date,
-  closeTime: Date,
-  totalDuration: number,
-  bufferMinutes: number,
-  baseSlotMinutes: number,
-  blocked: Array<{ start: Date; end: Date }>,
-  earliestSlotTime: Date | null,
-): string[] {
-  const freeWindows = buildFreeWindows(openTime, closeTime, blocked, bufferMinutes);
-  const slots: string[] = [];
-  const step = Math.max(1, Math.floor(baseSlotMinutes));
-  const requiredMs = totalDuration * 60000;
-
-  for (const window of freeWindows) {
-    const windowDurationMs = window.end.getTime() - window.start.getTime();
-    if (windowDurationMs < requiredMs) continue;
-
-    let current = new Date(window.start);
-    current.setSeconds(0, 0);
-
-    if (earliestSlotTime && current < earliestSlotTime) {
-      current = new Date(earliestSlotTime);
-      current.setSeconds(0, 0);
-    }
-
-    const maxIterations = Math.ceil(windowDurationMs / (step * 60000)) + 2;
-    let iterations = 0;
-
-    while (current.getTime() + requiredMs <= window.end.getTime() && iterations < maxIterations) {
-      iterations++;
-
-      if (slotFitsService(current, totalDuration, bufferMinutes, closeTime, blocked)) {
-        slots.push(format(current, 'HH:mm'));
-      }
-
-      current = addMinutes(current, step);
-    }
-  }
-
-  return slots;
-}
-
-/**
  * Smart availability engine that calculates available time slots.
- * Supports three modes:
- * - intelligent: Dynamic gaps based on real service duration (v1) OR base-slot timeline (v2, default)
- * - fixed_grid: Regular intervals (backward compatible)
- * - hybrid: Fixed grid with gap validation
+ *
+ * Pipeline (single source of truth):
+ *   occupiedRanges  → buildBlockedIntervals (sorted + merged + tz-normalized)
+ *   freeRanges      → buildFreeWindows      (subtract occupied + buffer margin)
+ *   candidateSlots  → emitSlotsForWindow    (step inside each free range)
+ *   finalSlots      → slotFitsService       (defense-in-depth overlap guard)
+ *
+ * Three booking modes only differ on the STEP and grid alignment:
+ *   - fixed_grid : step = slotInterval, aligned to openTime
+ *   - hybrid     : step = slotInterval, aligned to openTime
+ *   - intelligent: step = baseSlotMinutes (V2) or service duration+buffer (V1),
+ *                   not aligned (slots start at gap boundaries)
+ *
+ * Occupied slots can NEVER be returned — by construction a slot starting on or
+ * inside a busy range is excluded by buildFreeWindows itself.
  */
 export function calculateAvailableSlots(params: AvailabilityParams): string[] {
   const {
@@ -523,36 +377,49 @@ export function calculateAvailableSlots(params: AvailabilityParams): string[] {
   const closeTime = parseTime(closeTimeStr, date);
   const effectiveSlotInterval = bookingMode === 'intelligent' ? 1 : Math.max(1, slotInterval);
 
-  console.log('[ENGINE RECEIVED]', {
-    mode: bookingMode,
-    slotInterval: effectiveSlotInterval,
-  });
+  // ── PIPELINE STEP 1: occupied ranges (sorted + merged in company tz) ──
+  const occupied = buildBlockedIntervals(date, dateStr, hours, existingAppointments, blockedTimes);
 
-  // Build blocked intervals WITHOUT buffer (each mode handles buffer internally)
-  const blocked = buildBlockedIntervals(date, dateStr, hours, existingAppointments, blockedTimes);
-  const earliestSlotTime = getEarliestSlotTime(date, effectiveSlotInterval);
+  // ── PIPELINE STEP 2: free ranges (occupied + buffer subtracted from open hours) ──
+  const freeWindows = buildFreeWindows(openTime, closeTime, occupied, bufferMinutes);
 
-  let slots: string[];
-
+  // Resolve the cadence used to walk each free window.
+  let step: number;
+  let alignToGrid: { openTime: Date; interval: number } | null;
   if (bookingMode === 'intelligent') {
-    if (engineVersion === 'v2') {
-      const baseStep = Math.max(1, Math.floor(baseSlotMinutes ?? 10));
-      console.log('[ENGINE V2] intelligent base-slot stepping', {
-        baseStep,
-        totalDuration,
-        bufferMinutes,
-      });
-      slots = calculateIntelligentSlotsV2(openTime, closeTime, totalDuration, bufferMinutes, baseStep, blocked, earliestSlotTime);
-    } else {
-      slots = calculateIntelligentSlots(openTime, closeTime, totalDuration, bufferMinutes, blocked, earliestSlotTime);
-    }
-  } else if (bookingMode === 'hybrid') {
-    slots = calculateHybridSlots(openTime, closeTime, totalDuration, bufferMinutes, effectiveSlotInterval, blocked, earliestSlotTime);
+    step = engineVersion === 'v2'
+      ? Math.max(1, Math.floor(baseSlotMinutes ?? 10))
+      : Math.max(1, totalDuration + Math.max(0, bufferMinutes));
+    alignToGrid = null;
   } else {
-    slots = calculateFixedGridSlots(openTime, closeTime, totalDuration, bufferMinutes, effectiveSlotInterval, blocked, earliestSlotTime);
+    step = effectiveSlotInterval;
+    alignToGrid = { openTime, interval: effectiveSlotInterval };
   }
 
-  console.log('[ENGINE]', slots);
+  const earliestSlotTime = getEarliestSlotTime(date, alignToGrid ? effectiveSlotInterval : 1);
+
+  // ── PIPELINE STEP 3 + 4: candidate slots → final overlap guard ──
+  const slots: string[] = [];
+  for (const window of freeWindows) {
+    const winSlots = emitSlotsForWindow(
+      window, step, totalDuration, bufferMinutes, closeTime, occupied, earliestSlotTime, alignToGrid,
+    );
+    slots.push(...winSlots);
+  }
+
+  console.log('[ENGINE_PIPELINE]', {
+    professionalId: professionalId ?? 'N/A',
+    date: dateStr,
+    mode: bookingMode,
+    engineVersion,
+    step,
+    open: format(openTime, 'HH:mm'),
+    close: format(closeTime, 'HH:mm'),
+    occupiedRanges: occupied.map((r) => `${format(r.start, 'HH:mm')}-${format(r.end, 'HH:mm')}`),
+    freeRanges: freeWindows.map((r) => `${format(r.start, 'HH:mm')}-${format(r.end, 'HH:mm')}`),
+    candidateSlotsBefore: slots.length, // candidates already validated, kept for legacy debug
+    candidateSlotsAfter: slots,
+  });
 
   console.log('[AvailabilityEngine] Result', {
     professionalId: professionalId ?? 'N/A',
@@ -563,7 +430,7 @@ export function calculateAvailableSlots(params: AvailabilityParams): string[] {
     slotInterval: effectiveSlotInterval,
     openTime: format(openTime, 'HH:mm'),
     closeTime: format(closeTime, 'HH:mm'),
-    blockedIntervals: blocked.length,
+    blockedIntervals: occupied.length,
     slotsFound: slots.length,
   });
 
