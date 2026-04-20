@@ -249,90 +249,82 @@ function buildFreeWindows(
 }
 
 /**
- * Validate that a slot has enough room to fit the full service duration
- * before hitting the next blocked interval, break, or close of business.
- * This prevents showing slots that visually start free but cannot accommodate the service.
+ * Final guard: confirm a candidate slot fits the service inside [openTime, closeTime]
+ * AND does not overlap any occupied range. Free windows already exclude blocked
+ * intervals, so this is a defense-in-depth check (catches buffer rounding edges).
  */
 function slotFitsService(
   slotStart: Date,
   totalDuration: number,
   bufferMinutes: number,
   closeTime: Date,
-  blocked: Array<{ start: Date; end: Date }>
+  occupied: Array<{ start: Date; end: Date }>,
 ): boolean {
   const slotEnd = addMinutes(slotStart, totalDuration);
-  const slotEndWithBuffer = addMinutes(slotStart, totalDuration + bufferMinutes);
-
-  // Hard ceiling: end of business hours
   if (slotEnd.getTime() > closeTime.getTime()) {
-    if (typeof console !== 'undefined') {
-      console.log('[SLOT_VALIDATION]', {
-        slot: format(slotStart, 'HH:mm'),
-        service_duration: totalDuration,
-        isValid: false,
-        reason: 'exceeds_close_time',
-      });
-    }
     return false;
   }
+  const slotEndWithBuffer = bufferMinutes > 0 ? addMinutes(slotEnd, bufferMinutes) : slotEnd;
+  const slotStartWithBuffer = bufferMinutes > 0 ? addMinutes(slotStart, -bufferMinutes) : slotStart;
 
-  // Check overlap with any blocked interval (lunch, appointments, manual blocks)
-  const hasConflict = blocked.some((b) => slotStart < b.end && slotEnd > b.start);
-  if (hasConflict) {
-    console.log('[SLOT_VALIDATION]', {
-      slot: format(slotStart, 'HH:mm'),
-      service_duration: totalDuration,
-      isValid: false,
-      reason: 'overlaps_blocked',
-    });
-    return false;
-  }
-
-  // Buffer after slot must not bleed into next blocked interval
-  const bufferConflict = blocked.some((b) => slotEndWithBuffer > b.start && slotEnd <= b.start);
-  if (bufferConflict) {
-    console.log('[SLOT_VALIDATION]', {
-      slot: format(slotStart, 'HH:mm'),
-      service_duration: totalDuration,
-      isValid: false,
-      reason: 'buffer_overlaps_next',
-    });
-    return false;
-  }
-
-  return true;
+  return !occupied.some((b) => slotStartWithBuffer < b.end && slotEndWithBuffer > b.start);
 }
 
 /**
- * FIXED GRID MODE: Slots at regular intervals regardless of service duration.
- * Each slot is validated to ensure the full service fits before showing it.
+ * Walk a single FREE WINDOW and emit candidate slots stepping by `step` minutes.
+ * Each candidate must (a) fit the service duration before the window ends and
+ * (b) survive the final overlap guard. This is the SHARED inner loop used by
+ * every booking mode so the pipeline (occupied → free → candidate → final)
+ * is identical regardless of grid/intelligent.
  */
-function calculateFixedGridSlots(
-  openTime: Date,
-  closeTime: Date,
+function emitSlotsForWindow(
+  window: { start: Date; end: Date },
+  step: number,
   totalDuration: number,
   bufferMinutes: number,
-  slotInterval: number,
-  blocked: Array<{ start: Date; end: Date }>,
-  earliestSlotTime: Date | null
+  closeTime: Date,
+  occupied: Array<{ start: Date; end: Date }>,
+  earliestSlotTime: Date | null,
+  alignToGrid: { openTime: Date; interval: number } | null,
 ): string[] {
-  const slots: string[] = [];
-  let current = new Date(openTime);
+  const out: string[] = [];
+  const requiredMs = totalDuration * 60_000;
+  if (window.end.getTime() - window.start.getTime() < requiredMs) return out;
 
-  while (current.getTime() + totalDuration * 60000 <= closeTime.getTime()) {
-    if (earliestSlotTime && current < earliestSlotTime) {
-      current = addMinutes(current, slotInterval);
-      continue;
-    }
+  let current = new Date(window.start);
+  current.setSeconds(0, 0);
 
-    if (slotFitsService(current, totalDuration, bufferMinutes, closeTime, blocked)) {
-      slots.push(format(current, 'HH:mm'));
-    }
-
-    current = addMinutes(current, slotInterval);
+  // Snap the cursor to the configured grid (fixed_grid / hybrid only). For
+  // intelligent mode `alignToGrid` is null and the cursor stays on the gap edge.
+  if (alignToGrid) {
+    const baseMin = alignToGrid.openTime.getHours() * 60 + alignToGrid.openTime.getMinutes();
+    const curMin = current.getHours() * 60 + current.getMinutes();
+    const offset = ((curMin - baseMin) % alignToGrid.interval + alignToGrid.interval) % alignToGrid.interval;
+    if (offset !== 0) current = addMinutes(current, alignToGrid.interval - offset);
   }
 
-  return slots;
+  if (earliestSlotTime && current < earliestSlotTime) {
+    current = new Date(earliestSlotTime);
+    current.setSeconds(0, 0);
+    if (alignToGrid) {
+      const baseMin = alignToGrid.openTime.getHours() * 60 + alignToGrid.openTime.getMinutes();
+      const curMin = current.getHours() * 60 + current.getMinutes();
+      const offset = ((curMin - baseMin) % alignToGrid.interval + alignToGrid.interval) % alignToGrid.interval;
+      if (offset !== 0) current = addMinutes(current, alignToGrid.interval - offset);
+    }
+  }
+
+  const safety = Math.ceil((window.end.getTime() - window.start.getTime()) / (Math.max(1, step) * 60_000)) + 4;
+  let iter = 0;
+
+  while (iter++ < safety && current.getTime() + requiredMs <= window.end.getTime()) {
+    if (slotFitsService(current, totalDuration, bufferMinutes, closeTime, occupied)) {
+      out.push(format(current, 'HH:mm'));
+    }
+    current = addMinutes(current, Math.max(1, step));
+  }
+
+  return out;
 }
 
 /**
