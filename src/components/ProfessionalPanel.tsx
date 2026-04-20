@@ -281,11 +281,11 @@ const ProfessionalPanel = ({ collaborator, open, onOpenChange, onUpdated }: Prof
                 </div>
                 <div className="rounded-md bg-muted/50 p-3">
                   <p className="text-xs text-muted-foreground">Modo de agenda</p>
-                  <p className="text-sm font-medium mt-1">{bookingModeLabel(company?.booking_mode || 'hybrid')}</p>
+                  <p className="text-sm font-medium mt-1">{bookingModeLabel(companyBookingMode)}</p>
                 </div>
                 <div className="rounded-md bg-muted/50 p-3">
                   <p className="text-xs text-muted-foreground">Intervalo</p>
-                  <p className="text-sm font-medium mt-1">{company?.fixed_slot_interval || 15} min</p>
+                  <p className="text-sm font-medium mt-1">{intervalLabel(companyInterval)}</p>
                 </div>
               </div>
             ) : (
@@ -298,7 +298,7 @@ const ProfessionalPanel = ({ collaborator, open, onOpenChange, onUpdated }: Prof
                       <Select value={collabBookingMode} onValueChange={(v) => updateBookingConfig('booking_mode', v)}>
                         <SelectTrigger><SelectValue /></SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="smart">Inteligente</SelectItem>
+                          <SelectItem value="intelligent">Inteligente</SelectItem>
                           <SelectItem value="fixed_grid">Grade fixa</SelectItem>
                           <SelectItem value="hybrid">Híbrido</SelectItem>
                         </SelectContent>
@@ -306,7 +306,8 @@ const ProfessionalPanel = ({ collaborator, open, onOpenChange, onUpdated }: Prof
                     ) : (
                       <div className="flex items-center gap-2 rounded-md border bg-muted/40 px-3 py-2 text-sm">
                         <Lock className="h-3 w-3 text-muted-foreground" />
-                        {bookingModeLabel(collabBookingMode)}
+                        <span>{bookingModeLabel(collabBookingMode)}</span>
+                        <span className="ml-auto text-xs text-muted-foreground">Herdado</span>
                       </div>
                     )}
                   </div>
@@ -316,6 +317,7 @@ const ProfessionalPanel = ({ collaborator, open, onOpenChange, onUpdated }: Prof
                       <Select value={String(collabGridInterval)} onValueChange={(v) => updateBookingConfig('grid_interval', Number(v))}>
                         <SelectTrigger><SelectValue /></SelectTrigger>
                         <SelectContent>
+                          <SelectItem value="0">Sem intervalo</SelectItem>
                           <SelectItem value="10">10 minutos</SelectItem>
                           <SelectItem value="15">15 minutos</SelectItem>
                           <SelectItem value="20">20 minutos</SelectItem>
@@ -326,7 +328,8 @@ const ProfessionalPanel = ({ collaborator, open, onOpenChange, onUpdated }: Prof
                     ) : (
                       <div className="flex items-center gap-2 rounded-md border bg-muted/40 px-3 py-2 text-sm">
                         <Lock className="h-3 w-3 text-muted-foreground" />
-                        {collabGridInterval} min
+                        <span>{intervalLabel(collabGridInterval)}</span>
+                        <span className="ml-auto text-xs text-muted-foreground">Herdado</span>
                       </div>
                     )}
                   </div>
