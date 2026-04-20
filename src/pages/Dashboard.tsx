@@ -1177,7 +1177,7 @@ const Dashboard = () => {
           </div>
           <FinancialPrivacyToggle />
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+        <div className="metrics-grid">
         <Card>
           <CardContent className="p-4 flex items-center gap-2">
             <div className="w-10 h-10 rounded-xl bg-success/10 flex items-center justify-center shrink-0">
@@ -1279,7 +1279,7 @@ const Dashboard = () => {
       {/* 4. Resumo do Mês */}
       <div>
         <h3 className="text-lg font-display font-semibold mb-3">📈 Resumo do Mês</h3>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+        <div className="metrics-grid">
           <Card>
             <CardContent className="p-4 space-y-1">
               <div className="flex items-center gap-2">
