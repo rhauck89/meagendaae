@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { supabase } from '@/integrations/supabase/client';
 import { format, addMinutes } from 'date-fns';
+import { fromZonedTime } from 'date-fns-tz';
 import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
 import { formatWhatsApp, isValidWhatsApp, openWhatsApp } from '@/lib/whatsapp';
@@ -40,6 +41,13 @@ export function ManualAppointmentDialog({
   initialTime,
   initialProfessionalId,
 }: ManualAppointmentDialogProps) {
+  const buildUtcRange = (date: Date, time: string, durationMinutes: number, timezone = 'America/Sao_Paulo') => {
+    const [hours, minutes] = time.split(':').map(Number);
+    const wallClock = `${format(date, 'yyyy-MM-dd')} ${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:00`;
+    const start = fromZonedTime(wallClock, timezone);
+    const end = addMinutes(start, durationMinutes);
+    return { start, end };
+  };
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
 
@@ -178,12 +186,9 @@ export function ManualAppointmentDialog({
 
     setLoading(true);
     try {
-      const [h, m] = selectedSlot.split(':').map(Number);
-      const startDate = new Date(selectedDate);
-      startDate.setHours(h, m, 0, 0);
-      const endDate = addMinutes(startDate, totalDuration);
-      const startTime = startDate.toISOString();
-      const endTime = endDate.toISOString();
+      const { start, end } = buildUtcRange(selectedDate, selectedSlot, totalDuration);
+      const startTime = start.toISOString();
+      const endTime = end.toISOString();
 
       // Last-second availability check
       const { data: conflicts } = await supabase
