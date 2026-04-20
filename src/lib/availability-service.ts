@@ -63,47 +63,41 @@ export interface GetAvailableSlotsResult {
   existingAppointments: ExistingAppointment[];
 }
 
-function filterOverlappingGeneratedSlots(
+/**
+ * Defense-in-depth post-filter. The engine pipeline already removes occupied
+ * slots via the free-window construction; this guard runs on the final list
+ * to catch any race condition between engine output and rendering. Kept tiny
+ * on purpose — never used as the primary filter.
+ */
+function assertNoOverlap(
   date: Date,
   slots: string[],
   existingAppointments: ExistingAppointment[],
   totalDuration: number,
 ) {
-  if (slots.length === 0 || existingAppointments.length === 0 || totalDuration <= 0) {
-    return slots;
-  }
+  if (slots.length === 0 || existingAppointments.length === 0 || totalDuration <= 0) return slots;
 
-  // Pre-convert all bookings to wall-clock in the company's timezone so they
-  // share the same frame of reference as the generated slots ("09:00", "09:53"...).
-  // Mixing parseISO (timezone-aware) with setHours (local) was causing busy slots
-  // to silently pass the overlap check on UTC runtimes.
-  const bookingRanges = existingAppointments.map((appointment) => ({
-    start: toZonedTime(parseISO(appointment.start_time), COMPANY_TZ),
-    end: toZonedTime(parseISO(appointment.end_time), COMPANY_TZ),
+  const ranges = existingAppointments.map((a) => ({
+    start: toZonedTime(parseISO(a.start_time), COMPANY_TZ),
+    end: toZonedTime(parseISO(a.end_time), COMPANY_TZ),
   }));
 
-  const filtered = slots.filter((slot) => {
-    const [hours, minutes] = slot.split(':').map(Number);
-    const slotStart = new Date(date);
-    slotStart.setHours(hours, minutes, 0, 0);
-    const slotEnd = addMinutes(slotStart, totalDuration);
-
-    const conflict = bookingRanges.some((range) => slotStart < range.end && slotEnd > range.start);
-    return !conflict;
+  const kept = slots.filter((slot) => {
+    const [h, m] = slot.split(':').map(Number);
+    const start = new Date(date);
+    start.setHours(h, m, 0, 0);
+    const end = addMinutes(start, totalDuration);
+    return !ranges.some((r) => start < r.end && end > r.start);
   });
 
-  if (filtered.length !== slots.length) {
-    console.log('[FILTER_OVERLAP]', {
-      removed: slots.filter((s) => !filtered.includes(s)),
-      kept: filtered,
-      bookings: bookingRanges.map((r) => ({
-        start: format(r.start, 'HH:mm'),
-        end: format(r.end, 'HH:mm'),
-      })),
+  if (kept.length !== slots.length) {
+    console.warn('[FILTER_OVERLAP_GUARD] engine leaked occupied slot(s)', {
+      removed: slots.filter((s) => !kept.includes(s)),
+      bookings: ranges.map((r) => `${format(r.start, 'HH:mm')}-${format(r.end, 'HH:mm')}`),
     });
   }
 
-  return filtered;
+  return kept;
 }
 
 function getBaseSlotMinutes(serviceDurations: number[], intervalMinutes: number) {
@@ -395,7 +389,7 @@ export async function getAvailableSlots(
     });
   }
 
-  slots = filterOverlappingGeneratedSlots(date, slots, inputs.existingAppointments, totalDuration);
+  slots = assertNoOverlap(date, slots, inputs.existingAppointments, totalDuration);
 
   if (filterPastForToday && isToday(date)) {
     const currentTime = format(new Date(), 'HH:mm');

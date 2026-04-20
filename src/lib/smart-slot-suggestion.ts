@@ -47,6 +47,12 @@ export function pickSmartSuggestion(
   timezone: string = DEFAULT_TZ,
 ): SmartSuggestion | null {
   if (!slots || slots.length === 0) return null;
+
+  // INVARIANT: `slots` MUST already be the engine's final list (free-window
+  // pipeline output). This function only RANKS them — it never validates
+  // availability. If the caller passes an unfiltered list, occupied slots
+  // would surface as "Sugestão ideal", which is exactly the regression we
+  // just fixed in availability-engine.ts.
   if (serviceDuration <= 0) {
     return { slot: slots[0], leftoverMinutes: Infinity, reason: 'first-available' };
   }

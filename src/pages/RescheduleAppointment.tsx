@@ -131,18 +131,22 @@ const RescheduleAppointment = () => {
     const apts = (aptData || []) as ExistingAppointment[];
     setExistingAppointments(apts);
 
+    // Pass the real bookings into the engine so the SAME free-window pipeline
+    // used by the public booking flow filters them out — but exclude the
+    // appointment being rescheduled from the occupied list (otherwise the user
+    // would see no slots around their own current time).
+    const apptsForEngine = apts.filter((a) => (a as any).id !== appointmentId);
     const rawSlots = calculateAvailableSlots({
       date: selectedDate,
       totalDuration,
       businessHours,
       exceptions,
-      existingAppointments: [],
+      existingAppointments: apptsForEngine,
       bufferMinutes,
       professionalHours: professionalHours.length > 0 ? professionalHours : undefined,
       blockedTimes: [],
     });
-    const filtered = filterOverlappingSlots(rawSlots, apts, totalDuration, bufferMinutes, DEFAULT_TZ, appointmentId!);
-    setAvailableSlots(filtered);
+    setAvailableSlots(rawSlots);
     setSlotsLoading(false);
   };
 
