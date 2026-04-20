@@ -11,6 +11,7 @@ import { Calendar as CalendarPicker } from '@/components/ui/calendar';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Scissors, Sparkles, Clock, DollarSign, ChevronRight, ChevronLeft, CheckCircle2, Bell, Zap, CalendarPlus, MessageCircle, RotateCcw, Home, User, Phone, Mail, Cake, MapPin, Star, X, AlertTriangle, Calendar } from 'lucide-react';
 import { format, addMinutes, addDays, isToday, isTomorrow, startOfDay, isSameDay } from 'date-fns';
+import { fromZonedTime } from 'date-fns-tz';
 import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -85,6 +86,16 @@ const formatSlotTime = (dateInput: string | Date) => {
   const minutes = String(date.getMinutes()).padStart(2, '0');
 
   return `${hours}:${minutes}`;
+};
+
+const buildBookingUtcRange = (date: Date, time: string, durationMinutes: number, timezone: string) => {
+  const [hours, minutes] = time.split(':').map(Number);
+  const localDate = format(date, 'yyyy-MM-dd');
+  const wallClock = `${localDate} ${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:00`;
+  const start = fromZonedTime(wallClock, timezone);
+  const end = addMinutes(start, durationMinutes);
+
+  return { start, end };
 };
 
 // ─── Premium Theme Tokens (defaults, overridden dynamically below) ───
