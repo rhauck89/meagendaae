@@ -283,7 +283,7 @@ const ProfessionalPanel = ({ collaborator, open, onOpenChange, onUpdated }: Prof
               )}
             </div>
 
-            {inheriting ? (
+            {(inheriting || lockedByCompany) ? (
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
                 <div className="rounded-md bg-muted/50 p-3">
                   <p className="text-xs text-muted-foreground flex items-center gap-1"><Clock className="h-3 w-3" /> Horário</p>
