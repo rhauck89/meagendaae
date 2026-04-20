@@ -97,8 +97,10 @@ function parseTime(t: string, baseDate: Date): Date {
 }
 
 /**
- * Build the list of blocked intervals from lunch, existing appointments, and manual blocks.
- * NOTE: Buffer is NOT added here — each mode handles buffer in its own slot logic.
+ * Build the list of OCCUPIED intervals from lunch, existing appointments, and manual blocks.
+ * Returns a sorted, MERGED list of [start, end) ranges in company wall-clock time.
+ * Buffer is intentionally NOT added here — `buildFreeWindows` applies it as a margin
+ * around each occupied range so consecutive bookings don't collapse into a single block.
  */
 function buildBlockedIntervals(
   date: Date,
@@ -107,12 +109,12 @@ function buildBlockedIntervals(
   existingAppointments: ExistingAppointment[],
   blockedTimes: BlockedTime[],
 ): Array<{ start: Date; end: Date }> {
-  const blocked: Array<{ start: Date; end: Date }> = [];
+  const occupied: Array<{ start: Date; end: Date }> = [];
 
   const lunchStart = hours.lunch_start ? parseTime(hours.lunch_start, date) : null;
   const lunchEnd = hours.lunch_end ? parseTime(hours.lunch_end, date) : null;
   if (lunchStart && lunchEnd) {
-    blocked.push({ start: lunchStart, end: lunchEnd });
+    occupied.push({ start: lunchStart, end: lunchEnd });
   }
 
   for (const apt of existingAppointments) {
@@ -122,17 +124,33 @@ function buildBlockedIntervals(
     // 09:00 slot and renders busy times as available.
     const aptStart = toCompanyWallClock(apt.start_time);
     const aptEnd = toCompanyWallClock(apt.end_time);
-    blocked.push({ start: aptStart, end: aptEnd });
+    if (aptEnd > aptStart) occupied.push({ start: aptStart, end: aptEnd });
   }
 
   for (const bt of blockedTimes) {
     if (bt.block_date === dateStr) {
-      blocked.push({ start: parseTime(bt.start_time, date), end: parseTime(bt.end_time, date) });
+      const s = parseTime(bt.start_time, date);
+      const e = parseTime(bt.end_time, date);
+      if (e > s) occupied.push({ start: s, end: e });
     }
   }
 
-  blocked.sort((a, b) => a.start.getTime() - b.start.getTime());
-  return blocked;
+  occupied.sort((a, b) => a.start.getTime() - b.start.getTime());
+
+  // Merge overlapping / touching ranges so the free-window algorithm can't
+  // emit a phantom gap between two adjacent bookings (e.g. 09:23-09:53
+  // arriving after 09:00-09:23). Touching ranges (b.start === prev.end) are
+  // also merged to prevent zero-width slots.
+  const merged: Array<{ start: Date; end: Date }> = [];
+  for (const range of occupied) {
+    const prev = merged[merged.length - 1];
+    if (prev && range.start.getTime() <= prev.end.getTime()) {
+      if (range.end.getTime() > prev.end.getTime()) prev.end = new Date(range.end);
+    } else {
+      merged.push({ start: new Date(range.start), end: new Date(range.end) });
+    }
+  }
+  return merged;
 }
 
 /**
@@ -187,29 +205,44 @@ function resolveWorkingHours(
 }
 
 /**
- * Build free windows by subtracting blocked intervals (with buffer) from [openTime, closeTime].
+ * Subtract OCCUPIED ranges (plus a buffer margin) from [openTime, closeTime] and
+ * return the contiguous FREE WINDOWS where new bookings can possibly start.
+ *
+ * The buffer is added on BOTH sides of each occupied range so the engine never
+ * leaks slots that would touch a busy interval (e.g. starting 1 min before or
+ * ending 1 min into another appointment). Windows narrower than 1 minute are
+ * discarded.
  */
 function buildFreeWindows(
   openTime: Date,
   closeTime: Date,
-  blocked: Array<{ start: Date; end: Date }>,
+  occupied: Array<{ start: Date; end: Date }>,
   bufferMinutes: number
 ): Array<{ start: Date; end: Date }> {
   const freeWindows: Array<{ start: Date; end: Date }> = [];
-  let windowStart = new Date(openTime);
+  let cursor = new Date(openTime);
+  const buffer = Math.max(0, bufferMinutes);
 
-  for (const b of blocked) {
-    if (b.start > windowStart && b.start < closeTime) {
-      freeWindows.push({ start: new Date(windowStart), end: new Date(b.start) });
+  for (const range of occupied) {
+    const blockedStart = buffer > 0 ? addMinutes(range.start, -buffer) : range.start;
+    const blockedEnd = buffer > 0 ? addMinutes(range.end, buffer) : range.end;
+
+    // Range starts after the cursor → emit the gap before it.
+    if (blockedStart.getTime() > cursor.getTime() && cursor.getTime() < closeTime.getTime()) {
+      const end = blockedStart.getTime() < closeTime.getTime() ? blockedStart : closeTime;
+      if (end.getTime() - cursor.getTime() >= 60_000) {
+        freeWindows.push({ start: new Date(cursor), end: new Date(end) });
+      }
     }
-    // After each blocked interval, add buffer before next available slot
-    const endWithBuffer = addMinutes(b.end, bufferMinutes);
-    if (endWithBuffer > windowStart) {
-      windowStart = new Date(endWithBuffer);
+
+    if (blockedEnd.getTime() > cursor.getTime()) {
+      cursor = new Date(blockedEnd);
     }
   }
-  if (windowStart < closeTime) {
-    freeWindows.push({ start: new Date(windowStart), end: new Date(closeTime) });
+
+  if (cursor.getTime() < closeTime.getTime() &&
+      closeTime.getTime() - cursor.getTime() >= 60_000) {
+    freeWindows.push({ start: new Date(cursor), end: new Date(closeTime) });
   }
 
   return freeWindows;
