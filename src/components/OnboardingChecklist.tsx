@@ -5,7 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
-import { CheckCircle2, Circle, Building2, Clock, Share2, Rocket, Users, Copy, MessageCircle } from 'lucide-react';
+import { CheckCircle2, Circle, Building2, Clock, Share2, Rocket, Users, Copy, MessageCircle, Scissors } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -23,6 +23,7 @@ interface ChecklistStep {
 
 const adminSteps: ChecklistStep[] = [
   { key: 'company', label: 'Configure sua empresa', icon: Building2, route: '/dashboard/settings/company' },
+  { key: 'services', label: 'Cadastre seus serviços', description: 'Crie os serviços que sua equipe poderá oferecer', icon: Scissors, route: '/dashboard/services' },
   { key: 'hours', label: 'Configure os horários', icon: Clock, route: '/dashboard/settings/schedule' },
   { key: 'team', label: 'Cadastre sua equipe', description: 'Adicione profissionais para começar a receber agendamentos', icon: Users, route: '/dashboard/team', cta: 'Adicionar profissional' },
   { key: 'share', label: 'Divulgue sua agenda', description: 'Copie e compartilhe o link da sua página de agendamento', icon: Share2, route: '/dashboard/settings/general', isShareStep: true },
@@ -83,6 +84,13 @@ const OnboardingChecklist = () => {
         .select('id', { count: 'exact', head: true })
         .eq('company_id', companyId);
       if (hoursCount && hoursCount > 0) completed.add('hours');
+
+      const { count: servicesCount } = await supabase
+        .from('services')
+        .select('id', { count: 'exact', head: true })
+        .eq('company_id', companyId)
+        .eq('active', true);
+      if (servicesCount && servicesCount > 0) completed.add('services');
 
       const { count: collabCount } = await supabase
         .from('collaborators')
