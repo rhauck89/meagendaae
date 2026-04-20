@@ -240,8 +240,11 @@ const ProfessionalPanel = ({ collaborator, open, onOpenChange, onUpdated }: Prof
 
   const canEditMode = !!company?.prof_perm_booking_mode;
   const canEditInterval = !!company?.prof_perm_grid_interval;
-  const collabBookingMode = (collaborator as any)?.booking_mode || company?.booking_mode || 'hybrid';
-  const collabGridInterval = (collaborator as any)?.grid_interval || company?.fixed_slot_interval || 15;
+  const companyBookingMode = company?.booking_mode ?? 'hybrid';
+  const companyInterval = company?.fixed_slot_interval ?? 0;
+  // Use ?? to avoid masking valid 0 values with ||
+  const collabBookingMode = (collaborator as any)?.booking_mode ?? companyBookingMode;
+  const collabGridInterval = (collaborator as any)?.grid_interval ?? companyInterval;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
