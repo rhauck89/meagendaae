@@ -1023,17 +1023,17 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
     try {
       const formattedWhatsapp = clientForm.whatsapp ? formatWhatsApp(clientForm.whatsapp) : null;
       console.log('[Booking] Creating client:', { name: clientForm.full_name, company_id: company.id });
-      const { data: clientIdFromRpc, error: clientError } = await supabase.rpc('create_client', {
+      let clientIdFromRpc: string | null = null;
+      const firstAttempt = await supabase.rpc('create_client', {
         p_name: clientForm.full_name, p_whatsapp: formattedWhatsapp || '',
         p_email: clientForm.email || '', p_company_id: company.id,
         p_birth_date: clientForm.birth_date || null,
       } as any);
-      if (clientError) {
-        console.error('[Booking] Client creation error:', clientError);
-        const msg = String(clientError.message || '');
+      if (firstAttempt.error) {
+        console.error('[Booking] Client creation error:', firstAttempt.error);
+        const msg = String(firstAttempt.error.message || '');
         if (/idx_clients_user_company|duplicate key|unique constraint/i.test(msg)) {
           toast.info('Já encontramos seu cadastro, continuando...');
-          // Retry once — the RPC is now race-safe and should resolve to existing record.
           const retry = await supabase.rpc('create_client', {
             p_name: clientForm.full_name, p_whatsapp: formattedWhatsapp || '',
             p_email: clientForm.email || '', p_company_id: company.id,
@@ -1044,10 +1044,12 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
             setLoading(false);
             return;
           }
-          (clientIdFromRpc as any) = retry.data;
+          clientIdFromRpc = retry.data as string;
         } else {
-          throw clientError;
+          throw firstAttempt.error;
         }
+      } else {
+        clientIdFromRpc = (firstAttempt.data as string) ?? null;
       }
       const clientId = clientIdFromRpc;
       console.log('[Booking] Client ID:', clientId);
