@@ -1528,6 +1528,145 @@ const Team = () => {
                   </p>
                 </div>
               </TabsContent>
+
+              {/* SECTION 5: Services */}
+              <TabsContent value="services" className="mt-0 space-y-4">
+                <div className="flex items-center gap-3">
+                  <div className="rounded-md bg-primary/10 p-2 shrink-0">
+                    <Briefcase className="h-4 w-4 text-primary" />
+                  </div>
+                  <div className="min-w-0">
+                    <Label className="text-sm font-semibold">Serviços atendidos</Label>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      {editAssignedServiceIds.length} de {companyServices.length} serviços vinculados
+                    </p>
+                  </div>
+                </div>
+
+                <div className="relative">
+                  <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Buscar serviço..."
+                    value={editServiceSearch}
+                    onChange={(e) => setEditServiceSearch(e.target.value)}
+                    className="pl-9 pr-8 h-9"
+                  />
+                  {editServiceSearch && (
+                    <button
+                      type="button"
+                      onClick={() => setEditServiceSearch('')}
+                      className="absolute right-2.5 top-2.5 text-muted-foreground hover:text-foreground"
+                      aria-label="Limpar busca"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  )}
+                </div>
+
+                <div className="max-h-[360px] overflow-y-auto space-y-2 pr-1">
+                  {(() => {
+                    const q = editServiceSearch.trim().toLowerCase();
+                    const filtered = q
+                      ? companyServices.filter((s: any) => (s.name || '').toLowerCase().includes(q))
+                      : companyServices;
+                    if (filtered.length === 0) {
+                      return (
+                        <p className="text-sm text-muted-foreground text-center py-6">
+                          {companyServices.length === 0
+                            ? 'Nenhum serviço cadastrado. Crie serviços primeiro em Serviços.'
+                            : 'Nenhum serviço encontrado.'}
+                        </p>
+                      );
+                    }
+                    return filtered.map((svc: any) => {
+                      const isAssigned = editAssignedServiceIds.includes(svc.id);
+                      return (
+                        <label
+                          key={svc.id}
+                          className="flex items-center gap-3 p-3 rounded-lg bg-muted/40 border cursor-pointer hover:bg-muted/60"
+                        >
+                          <Checkbox
+                            checked={isAssigned}
+                            onCheckedChange={(checked) => toggleEditService(svc.id, !!checked)}
+                          />
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium text-sm truncate">{svc.name}</p>
+                            <p className="text-xs text-muted-foreground">
+                              R$ {Number(svc.price).toFixed(2)} • {svc.duration_minutes} min
+                            </p>
+                          </div>
+                        </label>
+                      );
+                    });
+                  })()}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Apenas serviços marcados aparecem na agenda e na página pública deste profissional.
+                </p>
+              </TabsContent>
+
+              {/* SECTION 6: Public page */}
+              <TabsContent value="public" className="mt-0 space-y-4">
+                <div className="flex items-center gap-3">
+                  <div className="rounded-md bg-primary/10 p-2 shrink-0">
+                    <Globe className="h-4 w-4 text-primary" />
+                  </div>
+                  <div className="min-w-0">
+                    <Label className="text-sm font-semibold">Página pública</Label>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      Link exclusivo para agendamentos deste profissional.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-xs">Identificador (slug)</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      value={editSlug}
+                      onChange={(e) => { setEditSlug(e.target.value); setEditSlugDirty(true); }}
+                      placeholder="ex: joao"
+                      className="h-9"
+                    />
+                    <Button size="sm" onClick={saveEditSlug} disabled={!editSlugDirty}>
+                      Salvar
+                    </Button>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Use apenas letras minúsculas, números e hifens.
+                  </p>
+                </div>
+
+                {editPublicLink && (
+                  <div className="space-y-2">
+                    <Label className="text-xs flex items-center gap-1">
+                      <Link2 className="h-3 w-3" /> Link de agendamento
+                    </Label>
+                    <div className="flex items-center gap-2">
+                      <Input value={editPublicLink} readOnly className="bg-muted text-sm h-9" />
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="h-9 w-9 shrink-0"
+                        onClick={() => { navigator.clipboard.writeText(editPublicLink); toast.success('Link copiado!'); }}
+                        aria-label="Copiar link"
+                      >
+                        <Copy className="h-4 w-4" />
+                      </Button>
+                      <Button variant="outline" size="icon" className="h-9 w-9 shrink-0" asChild aria-label="Abrir link">
+                        <a href={editPublicLink} target="_blank" rel="noopener noreferrer">
+                          <ExternalLink className="h-4 w-4" />
+                        </a>
+                      </Button>
+                    </div>
+                    {editSlugDirty && (
+                      <p className="text-xs text-amber-600">
+                        Salve o identificador para atualizar o link.
+                      </p>
+                    )}
+                  </div>
+                )}
+              </TabsContent>
             </div>
           </Tabs>
 
