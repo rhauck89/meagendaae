@@ -14,14 +14,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { PasswordInput, generateStrongPassword } from '@/components/PasswordInput';
 import { AuthErrorDialog } from '@/components/AuthErrorDialog';
 
-const friendlyError = (msg: string): string => {
-  if (msg.includes('Invalid login')) return 'Email ou senha incorretos.';
-  if (msg.includes('already registered')) return 'Este email já está cadastrado. Tente fazer login.';
-  if (msg.includes('valid email')) return 'Insira um email válido.';
-  if (msg.includes('least 6') || msg.includes('least 8')) return 'A senha deve ter no mínimo 8 caracteres.';
-  if (msg.includes('rate limit') || msg.includes('too many')) return 'Muitas tentativas. Aguarde um momento e tente novamente.';
-  return 'Erro ao processar. Tente novamente.';
-};
+// Friendly error mapping is centralized in src/lib/auth-errors.ts (diagnoseAuthError)
 
 const benefits = [
   { icon: Calendar, text: 'Agenda inteligente' },
