@@ -23,6 +23,10 @@
  * the public_* views. The computation engine is the same: calculateAvailableSlots().
  */
 import { addMinutes, format, isToday, parseISO } from 'date-fns';
+import { toZonedTime } from 'date-fns-tz';
+
+/** Company-fixed timezone — must match availability-engine.ts COMPANY_TZ. */
+const COMPANY_TZ = 'America/Sao_Paulo';
 import { supabase } from '@/integrations/supabase/client';
 import {
   calculateAvailableSlots,
