@@ -12,13 +12,12 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { Plus, Users, Percent, DollarSign, Settings, Copy, ExternalLink, Mail, KeyRound, MessageCircle, Pencil, UserX, UserCheck, Trash2, CalendarOff, ChevronLeft, ChevronRight, Check, Clock, Wallet, Crown, Lock, MoreVertical, Calendar as CalendarIcon, Search, X } from 'lucide-react';
+import { Plus, Users, Percent, DollarSign, Settings, Copy, ExternalLink, Mail, KeyRound, MessageCircle, Pencil, UserX, UserCheck, Trash2, CalendarOff, ChevronLeft, ChevronRight, Check, Clock, Wallet, Crown, Lock, MoreVertical, Calendar as CalendarIcon, Search, X, Briefcase, Globe, Link2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { buildWhatsAppUrl } from '@/lib/whatsapp';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Switch } from '@/components/ui/switch';
-import ProfessionalPanel from '@/components/ProfessionalPanel';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { commissionLabel } from '@/lib/financial-engine';
 
@@ -30,8 +29,6 @@ const Team = () => {
   const queryClient = useQueryClient();
   const { refresh } = useRefreshData();
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [panelOpen, setPanelOpen] = useState(false);
-  const [selectedCollaborator, setSelectedCollaborator] = useState<any>(null);
   const [createdCredentials, setCreatedCredentials] = useState<{ email: string; password: string; link: string } | null>(null);
   const [inviteCredentials, setInviteCredentials] = useState<{ email: string; password: string } | null>(null);
   const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
@@ -44,6 +41,11 @@ const Team = () => {
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<any>(null);
   const [editForm, setEditForm] = useState({ name: '', email: '', collaborator_type: 'commissioned' as string, commission_type: 'percentage' as string, commission_value: '' as string | number, booking_mode: 'hybrid' as string, grid_interval: 15 as number, break_time: 0 as number });
+  // Edit dialog: services & public page (single source of truth)
+  const [editAssignedServiceIds, setEditAssignedServiceIds] = useState<string[]>([]);
+  const [editServiceSearch, setEditServiceSearch] = useState('');
+  const [editSlug, setEditSlug] = useState('');
+  const [editSlugDirty, setEditSlugDirty] = useState(false);
 
   // Disable/Delete confirm state
   const [disableDialogOpen, setDisableDialogOpen] = useState(false);
@@ -342,7 +344,7 @@ const Team = () => {
     }
   };
 
-  const openEditDialog = (collaborator: any) => {
+  const openEditDialog = async (collaborator: any) => {
     setEditTarget(collaborator);
     setEditForm({
       name: collaborator.profile?.full_name || '',
@@ -354,8 +356,67 @@ const Team = () => {
       grid_interval: (collaborator as any).grid_interval || 15,
       break_time: (collaborator as any).break_time || 0,
     });
+    setEditServiceSearch('');
+    setEditSlugDirty(false);
+    setEditSlug(collaborator.slug || generateSlug(collaborator.profile?.full_name || ''));
+    setEditAssignedServiceIds([]);
     setEditDialogOpen(true);
+    // Load assigned services for this professional
+    try {
+      const { data } = await supabase
+        .from('service_professionals')
+        .select('service_id')
+        .eq('professional_id', collaborator.profile_id);
+      setEditAssignedServiceIds((data || []).map((r: any) => r.service_id));
+    } catch {
+      // silent — fallback to empty
+    }
   };
+
+  const toggleEditService = async (serviceId: string, checked: boolean) => {
+    if (!editTarget) return;
+    const profileId = editTarget.profile_id;
+    try {
+      if (checked) {
+        await supabase.from('service_professionals').insert({
+          service_id: serviceId,
+          professional_id: profileId,
+          company_id: companyId,
+        } as any);
+        setEditAssignedServiceIds((prev) => [...prev, serviceId]);
+      } else {
+        await supabase
+          .from('service_professionals')
+          .delete()
+          .eq('service_id', serviceId)
+          .eq('professional_id', profileId);
+        setEditAssignedServiceIds((prev) => prev.filter((id) => id !== serviceId));
+      }
+    } catch (e: any) {
+      toast.error('Erro ao atualizar serviço');
+    }
+  };
+
+  const saveEditSlug = async () => {
+    if (!editTarget) return;
+    const cleanSlug = editSlug.trim().toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').replace(/(^-|-$)/g, '');
+    if (!cleanSlug) return toast.error('Identificador inválido');
+    try {
+      await supabase.from('collaborators').update({ slug: cleanSlug } as any).eq('id', editTarget.id);
+      setEditSlug(cleanSlug);
+      setEditSlugDirty(false);
+      toast.success('Link atualizado');
+      await refreshTeam();
+    } catch (e: any) {
+      toast.error('Erro ao salvar identificador');
+    }
+  };
+
+  const editPublicLink = (() => {
+    if (!editTarget || !company || !editSlug) return '';
+    const prefix = company.business_type === 'esthetic' ? 'estetica' : 'barbearia';
+    return `${window.location.origin}/${prefix}/${company.slug}/${editSlug}`;
+  })();
 
   const handleSaveEdit = async () => {
     if (!editTarget) return;
@@ -626,14 +687,6 @@ const Team = () => {
             <div className="flex items-center gap-2">
               <Button variant="outline" size="sm" className="flex-1" onClick={() => openEditDialog(collaborator)}>
                 <Pencil className="mr-1.5 h-3.5 w-3.5" /> Editar
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                className="flex-1"
-                onClick={() => { setSelectedCollaborator(collaborator); setPanelOpen(true); }}
-              >
-                <CalendarIcon className="mr-1.5 h-3.5 w-3.5" /> Agenda
               </Button>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -1249,7 +1302,7 @@ const Team = () => {
 
           <Tabs defaultValue="personal" className="flex-1 flex flex-col overflow-hidden">
             <div className="px-6 pt-4 border-b">
-              <TabsList className="w-full grid grid-cols-2 sm:grid-cols-4 h-auto bg-transparent p-0 gap-1">
+              <TabsList className="w-full grid grid-cols-3 sm:grid-cols-6 h-auto bg-transparent p-0 gap-1">
                 <TabsTrigger value="personal" className="data-[state=active]:bg-muted text-xs sm:text-sm">
                   Pessoal
                 </TabsTrigger>
@@ -1261,6 +1314,12 @@ const Team = () => {
                 </TabsTrigger>
                 <TabsTrigger value="schedule" className="data-[state=active]:bg-muted text-xs sm:text-sm">
                   Agenda
+                </TabsTrigger>
+                <TabsTrigger value="services" className="data-[state=active]:bg-muted text-xs sm:text-sm">
+                  Serviços
+                </TabsTrigger>
+                <TabsTrigger value="public" className="data-[state=active]:bg-muted text-xs sm:text-sm">
+                  Página
                 </TabsTrigger>
               </TabsList>
             </div>
@@ -1469,6 +1528,145 @@ const Team = () => {
                   </p>
                 </div>
               </TabsContent>
+
+              {/* SECTION 5: Services */}
+              <TabsContent value="services" className="mt-0 space-y-4">
+                <div className="flex items-center gap-3">
+                  <div className="rounded-md bg-primary/10 p-2 shrink-0">
+                    <Briefcase className="h-4 w-4 text-primary" />
+                  </div>
+                  <div className="min-w-0">
+                    <Label className="text-sm font-semibold">Serviços atendidos</Label>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      {editAssignedServiceIds.length} de {companyServices.length} serviços vinculados
+                    </p>
+                  </div>
+                </div>
+
+                <div className="relative">
+                  <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Buscar serviço..."
+                    value={editServiceSearch}
+                    onChange={(e) => setEditServiceSearch(e.target.value)}
+                    className="pl-9 pr-8 h-9"
+                  />
+                  {editServiceSearch && (
+                    <button
+                      type="button"
+                      onClick={() => setEditServiceSearch('')}
+                      className="absolute right-2.5 top-2.5 text-muted-foreground hover:text-foreground"
+                      aria-label="Limpar busca"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  )}
+                </div>
+
+                <div className="max-h-[360px] overflow-y-auto space-y-2 pr-1">
+                  {(() => {
+                    const q = editServiceSearch.trim().toLowerCase();
+                    const filtered = q
+                      ? companyServices.filter((s: any) => (s.name || '').toLowerCase().includes(q))
+                      : companyServices;
+                    if (filtered.length === 0) {
+                      return (
+                        <p className="text-sm text-muted-foreground text-center py-6">
+                          {companyServices.length === 0
+                            ? 'Nenhum serviço cadastrado. Crie serviços primeiro em Serviços.'
+                            : 'Nenhum serviço encontrado.'}
+                        </p>
+                      );
+                    }
+                    return filtered.map((svc: any) => {
+                      const isAssigned = editAssignedServiceIds.includes(svc.id);
+                      return (
+                        <label
+                          key={svc.id}
+                          className="flex items-center gap-3 p-3 rounded-lg bg-muted/40 border cursor-pointer hover:bg-muted/60"
+                        >
+                          <Checkbox
+                            checked={isAssigned}
+                            onCheckedChange={(checked) => toggleEditService(svc.id, !!checked)}
+                          />
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium text-sm truncate">{svc.name}</p>
+                            <p className="text-xs text-muted-foreground">
+                              R$ {Number(svc.price).toFixed(2)} • {svc.duration_minutes} min
+                            </p>
+                          </div>
+                        </label>
+                      );
+                    });
+                  })()}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Apenas serviços marcados aparecem na agenda e na página pública deste profissional.
+                </p>
+              </TabsContent>
+
+              {/* SECTION 6: Public page */}
+              <TabsContent value="public" className="mt-0 space-y-4">
+                <div className="flex items-center gap-3">
+                  <div className="rounded-md bg-primary/10 p-2 shrink-0">
+                    <Globe className="h-4 w-4 text-primary" />
+                  </div>
+                  <div className="min-w-0">
+                    <Label className="text-sm font-semibold">Página pública</Label>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      Link exclusivo para agendamentos deste profissional.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-xs">Identificador (slug)</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      value={editSlug}
+                      onChange={(e) => { setEditSlug(e.target.value); setEditSlugDirty(true); }}
+                      placeholder="ex: joao"
+                      className="h-9"
+                    />
+                    <Button size="sm" onClick={saveEditSlug} disabled={!editSlugDirty}>
+                      Salvar
+                    </Button>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Use apenas letras minúsculas, números e hifens.
+                  </p>
+                </div>
+
+                {editPublicLink && (
+                  <div className="space-y-2">
+                    <Label className="text-xs flex items-center gap-1">
+                      <Link2 className="h-3 w-3" /> Link de agendamento
+                    </Label>
+                    <div className="flex items-center gap-2">
+                      <Input value={editPublicLink} readOnly className="bg-muted text-sm h-9" />
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="h-9 w-9 shrink-0"
+                        onClick={() => { navigator.clipboard.writeText(editPublicLink); toast.success('Link copiado!'); }}
+                        aria-label="Copiar link"
+                      >
+                        <Copy className="h-4 w-4" />
+                      </Button>
+                      <Button variant="outline" size="icon" className="h-9 w-9 shrink-0" asChild aria-label="Abrir link">
+                        <a href={editPublicLink} target="_blank" rel="noopener noreferrer">
+                          <ExternalLink className="h-4 w-4" />
+                        </a>
+                      </Button>
+                    </div>
+                    {editSlugDirty && (
+                      <p className="text-xs text-amber-600">
+                        Salve o identificador para atualizar o link.
+                      </p>
+                    )}
+                  </div>
+                )}
+              </TabsContent>
             </div>
           </Tabs>
 
@@ -1627,15 +1825,6 @@ const Team = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Professional Panel */}
-      {selectedCollaborator && (
-        <ProfessionalPanel
-          collaborator={selectedCollaborator}
-          open={panelOpen}
-          onOpenChange={setPanelOpen}
-          onUpdated={refreshTeam}
-        />
-      )}
     </div>
   );
 };
