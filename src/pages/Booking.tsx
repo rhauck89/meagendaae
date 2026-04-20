@@ -10,8 +10,22 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Calendar as CalendarPicker } from '@/components/ui/calendar';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Scissors, Sparkles, Clock, DollarSign, ChevronRight, ChevronLeft, CheckCircle2, Bell, Zap, CalendarPlus, MessageCircle, RotateCcw, Home, User, Phone, Mail, Cake, MapPin, Star, X, AlertTriangle, Calendar } from 'lucide-react';
-import { format, addMinutes, addDays, isToday, isTomorrow, startOfDay, isSameDay } from 'date-fns';
-import { fromZonedTime } from 'date-fns-tz';
+import { format, addMinutes, addDays, startOfDay, isSameDay } from 'date-fns';
+import { fromZonedTime, toZonedTime } from 'date-fns-tz';
+
+// TZ-aware Hoje/Amanhã helpers — compare dates in America/Sao_Paulo, not the
+// browser's local zone. Without this, a user in another timezone (or whose
+// device clock is shifted near midnight) sees "Amanhã" for what is actually
+// "Hoje" in São Paulo (and vice-versa).
+const tzYmd = (d: Date, tz: string) =>
+  format(toZonedTime(d, tz), 'yyyy-MM-dd');
+const isTodayTz = (d: Date, tz = 'America/Sao_Paulo') =>
+  tzYmd(d, tz) === tzYmd(new Date(), tz);
+const isTomorrowTz = (d: Date, tz = 'America/Sao_Paulo') => {
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  return tzYmd(d, tz) === tzYmd(tomorrow, tz);
+};
 import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
