@@ -61,7 +61,7 @@ const ProfessionalPanel = ({ collaborator, open, onOpenChange, onUpdated }: Prof
       supabase.from('services').select('*').eq('company_id', companyId!).eq('active', true).order('name'),
       supabase.from('service_professionals').select('*').eq('professional_id', profileId),
       supabase.from('professional_working_hours' as any).select('*').eq('professional_id', profileId).order('day_of_week'),
-      supabase.from('companies').select('slug, business_type, booking_mode, fixed_slot_interval, prof_perm_booking_mode, prof_perm_grid_interval').eq('id', companyId!).single(),
+      supabase.from('companies').select('slug, business_type, booking_mode, fixed_slot_interval, buffer_minutes, prof_perm_booking_mode, prof_perm_grid_interval').eq('id', companyId!).single(),
     ]);
 
     if (servicesRes.data) setServices(servicesRes.data);
