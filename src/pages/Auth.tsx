@@ -45,6 +45,23 @@ const Auth = () => {
   const emailInputRef = useRef<HTMLInputElement>(null);
   const passwordFieldRef = useRef<HTMLInputElement>(null);
 
+  // Clear any corrupted/stale auth tokens when /auth is opened.
+  // Fixes "Invalid Refresh Token" loops where a stale localStorage token
+  // poisons subsequent signInWithPassword attempts.
+  useEffect(() => {
+    (async () => {
+      try {
+        const { data, error } = await supabase.auth.getSession();
+        if (error || !data.session) {
+          // No valid session — purge any leftover token to avoid corruption
+          await supabase.auth.signOut().catch(() => {});
+        }
+      } catch {
+        await supabase.auth.signOut().catch(() => {});
+      }
+    })();
+  }, []);
+
   useEffect(() => {
     setTimeout(() => {
       if (!isLogin && firstInputRef.current) {
@@ -76,8 +93,18 @@ const Auth = () => {
     setLoading(true);
     try {
       if (isLogin) {
-        const { data, error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
-        if (error) throw error;
+        const { data, error } = await supabase.auth.signInWithPassword({ email: email.trim().toLowerCase(), password });
+        if (error) {
+          // Real error visible in dev console for debugging (status + code)
+          // eslint-disable-next-line no-console
+          console.error('[LOGIN ERROR]', {
+            message: error.message,
+            status: (error as any).status,
+            code: (error as any).code,
+            name: error.name,
+          });
+          throw error;
+        }
         const { data: rolesData } = await supabase
           .from('user_roles')
           .select('role')

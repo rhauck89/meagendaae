@@ -67,9 +67,19 @@ export function diagnoseAuthError(error: AuthErrorLike | null | undefined): stri
     return 'Muitas tentativas. Aguarde alguns minutos antes de tentar novamente.';
   }
 
+  // Email not confirmed
+  if (/email not confirmed|not confirmed|confirm your email/i.test(msg) || code === 'email_not_confirmed') {
+    return 'Confirme seu email antes de entrar. Verifique sua caixa de entrada (e a pasta de spam).';
+  }
+
+  // User not found
+  if (/user not found|no user/i.test(msg) || code === 'user_not_found') {
+    return 'Não encontramos uma conta com esse email. Verifique o endereço ou crie uma conta.';
+  }
+
   // Invalid credentials (login)
-  if (/invalid login|invalid credentials|invalid grant/i.test(msg)) {
-    return 'Email ou senha incorretos.';
+  if (/invalid login|invalid credentials|invalid grant/i.test(msg) || code === 'invalid_credentials') {
+    return 'Email ou senha incorretos. Se esqueceu sua senha, use "Esqueceu sua senha?" para redefinir.';
   }
 
   // 422 generic — most likely email already registered or password rejected
