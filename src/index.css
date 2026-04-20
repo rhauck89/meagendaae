@@ -145,6 +145,29 @@
   .responsive-select-trigger {
     @apply w-full sm:w-[150px];
   }
+  /* Auto-fit metrics grid: cards never get squeezed; reflow to 2/3 cols automatically */
+  .metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: clamp(0.75rem, 1vw, 1rem);
+  }
+  .metric-label {
+    font-size: clamp(0.8125rem, 0.9vw, 0.95rem);
+    color: hsl(var(--muted-foreground));
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .metric-value {
+    font-size: clamp(1.25rem, 1.6vw, 1.875rem);
+    font-weight: 600;
+    line-height: 1.15;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
 }
 
 #root {
