@@ -1185,7 +1185,7 @@ const Dashboard = () => {
             </div>
             <div className="min-w-0">
               <p className="text-sm text-muted-foreground">Receita estimada</p>
-              <p className="text-2xl font-semibold whitespace-nowrap">{formatCurrency(stats.revenue)}</p>
+              <p className="metric-value">{formatCurrency(stats.revenue)}</p>
             </div>
           </CardContent>
         </Card>
@@ -1196,7 +1196,7 @@ const Dashboard = () => {
             </div>
             <div className="min-w-0">
               <p className="text-sm text-muted-foreground">Receita realizada</p>
-              <p className="text-2xl font-semibold whitespace-nowrap">{formatCurrency(stats.revenueCompleted)}</p>
+              <p className="metric-value">{formatCurrency(stats.revenueCompleted)}</p>
               {currentDate > new Date() && (
                 <p className="text-xs text-muted-foreground">(Ainda não realizado)</p>
               )}
@@ -1210,7 +1210,7 @@ const Dashboard = () => {
             </div>
             <div className="min-w-0">
               <p className="text-sm text-muted-foreground">Atendimentos</p>
-              <p className="text-2xl font-semibold">{stats.clients}</p>
+              <p className="metric-value">{stats.clients}</p>
             </div>
           </CardContent>
         </Card>
@@ -1229,7 +1229,7 @@ const Dashboard = () => {
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm text-muted-foreground">Aguardando vaga</p>
-                  <p className="text-2xl font-semibold">{waitlistCount}</p>
+                  <p className="metric-value">{waitlistCount}</p>
                   {hasOpenSlot && (
                     <p className="text-xs font-semibold text-warning">⚡ Vaga disponível</p>
                   )}
@@ -1269,7 +1269,7 @@ const Dashboard = () => {
             </div>
             <div className="min-w-0">
               <p className="text-sm text-muted-foreground">Lembretes enviados</p>
-              <p className="text-2xl font-semibold">{reminderCount}</p>
+              <p className="metric-value">{reminderCount}</p>
             </div>
           </CardContent>
         </Card>
@@ -1288,7 +1288,7 @@ const Dashboard = () => {
                 </div>
                 <p className="text-sm text-muted-foreground">Receita estimada</p>
               </div>
-              <p className="text-2xl font-semibold whitespace-nowrap">{formatCurrency(monthlyStats.revenue)}</p>
+              <p className="metric-value">{formatCurrency(monthlyStats.revenue)}</p>
               {dailyTrends.length > 0 && (
                 <div className="h-6 w-full opacity-70">
                   <ResponsiveContainer width="100%" height="100%">
@@ -1306,7 +1306,7 @@ const Dashboard = () => {
                 </div>
                 <p className="text-sm text-muted-foreground">Receita realizada</p>
               </div>
-              <p className="text-2xl font-semibold whitespace-nowrap">{formatCurrency(monthlyStats.revenueCompleted)}</p>
+              <p className="metric-value">{formatCurrency(monthlyStats.revenueCompleted)}</p>
               {dailyTrends.length > 0 && (
                 <div className="h-6 w-full opacity-70">
                   <ResponsiveContainer width="100%" height="100%">
@@ -1324,7 +1324,7 @@ const Dashboard = () => {
                 </div>
                 <p className="text-sm text-muted-foreground">Agendamentos feitos</p>
               </div>
-              <p className="text-2xl font-semibold">{monthlyStats.completedAppointments}</p>
+              <p className="metric-value">{monthlyStats.completedAppointments}</p>
               {dailyTrends.length > 0 && (
                 <div className="h-6 w-full opacity-70">
                   <ResponsiveContainer width="100%" height="100%">
@@ -1342,7 +1342,7 @@ const Dashboard = () => {
                 </div>
                 <p className="text-sm text-muted-foreground">Cancelamentos</p>
               </div>
-              <p className="text-2xl font-semibold">{monthlyStats.cancellations}</p>
+              <p className="metric-value">{monthlyStats.cancellations}</p>
               {dailyTrends.length > 0 && (
                 <div className="h-6 w-full opacity-70">
                   <ResponsiveContainer width="100%" height="100%">
@@ -1360,7 +1360,7 @@ const Dashboard = () => {
                 </div>
                 <p className="text-sm text-muted-foreground">Taxa de ocupação</p>
               </div>
-              <p className="text-2xl font-semibold">{monthlyStats.occupancyRate}%</p>
+              <p className="metric-value">{monthlyStats.occupancyRate}%</p>
               {dailyTrends.length > 0 && (
                 <div className="h-6 w-full opacity-70">
                   <ResponsiveContainer width="100%" height="100%">
@@ -1378,7 +1378,7 @@ const Dashboard = () => {
                 </div>
                 <p className="text-sm text-muted-foreground">Ticket médio</p>
               </div>
-              <p className="text-2xl font-semibold whitespace-nowrap">{formatCurrency(monthlyStats.avgTicket)}</p>
+              <p className="metric-value">{formatCurrency(monthlyStats.avgTicket)}</p>
               {dailyTrends.length > 0 && (
                 <div className="h-6 w-full opacity-70">
                   <ResponsiveContainer width="100%" height="100%">
