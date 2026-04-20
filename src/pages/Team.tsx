@@ -11,7 +11,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Plus, Users, Percent, DollarSign, Settings, Copy, ExternalLink, Mail, KeyRound, MessageCircle, Pencil, UserX, UserCheck, Trash2, CalendarOff, ChevronLeft, ChevronRight, Check, Clock, Wallet, Crown, Lock } from 'lucide-react';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { Plus, Users, Percent, DollarSign, Settings, Copy, ExternalLink, Mail, KeyRound, MessageCircle, Pencil, UserX, UserCheck, Trash2, CalendarOff, ChevronLeft, ChevronRight, Check, Clock, Wallet, Crown, Lock, MoreVertical, Calendar as CalendarIcon } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { buildWhatsAppUrl } from '@/lib/whatsapp';
@@ -469,29 +470,30 @@ const Team = () => {
   const renderCollaboratorCard = (collaborator: any, isDisabled: boolean) => {
     const profileLink = getCollaboratorProfileLink(collaborator);
     const hasAccess = (collaborator as any).has_system_access !== false;
+    const isAbsent = !isDisabled && isCurrentlyAbsent(collaborator);
+    const isOwner = collaborator.profile?.user_id === company?.owner_id;
     return (
       <Card key={collaborator.id} className={isDisabled ? 'opacity-60' : ''}>
-        <CardContent className="p-5 space-y-3">
-          <div className="flex items-center gap-4">
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 font-bold text-primary shrink-0">
+        <CardContent className="p-5 space-y-4">
+          {/* Header: avatar + name + role */}
+          <div className="flex items-start gap-4">
+            <div className="flex h-14 w-14 items-center justify-center rounded-full bg-primary/10 font-bold text-primary text-lg shrink-0">
               {collaborator.profile?.full_name?.charAt(0)?.toUpperCase() || '?'}
             </div>
             <div className="flex-1 min-w-0">
-              <p className="font-semibold">{collaborator.profile?.full_name}</p>
-              <p className="text-sm text-muted-foreground">{collaborator.profile?.email}</p>
+              <p className="font-semibold truncate">{collaborator.profile?.full_name}</p>
+              <p className="text-sm text-muted-foreground truncate">
+                {collaborator.profile?.role_title || (isOwner ? 'Administrador' : 'Profissional')}
+              </p>
+              {collaborator.profile?.email && (
+                <p className="text-xs text-muted-foreground truncate mt-0.5">{collaborator.profile.email}</p>
+              )}
             </div>
-            {!isDisabled && (
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => { setSelectedCollaborator(collaborator); setPanelOpen(true); }}
-              >
-                <Settings className="h-4 w-4" />
-              </Button>
-            )}
           </div>
-          <div className="flex flex-wrap items-center gap-2">
-            {collaborator.profile?.user_id === company?.owner_id && (
+
+          {/* Tags */}
+          <div className="flex flex-wrap items-center gap-1.5">
+            {isOwner && (
               <Badge className="flex items-center gap-1 bg-amber-100 text-amber-800 border-amber-300">
                 <Crown className="h-3 w-3" /> Administrador
               </Badge>
@@ -507,13 +509,14 @@ const Team = () => {
             </Badge>
             {!hasAccess && <Badge variant="outline" className="text-xs">Sem acesso</Badge>}
             {isDisabled && <Badge variant="destructive">Desabilitado</Badge>}
-            {!isDisabled && isCurrentlyAbsent(collaborator) && (
+            {isAbsent && (
               <Badge variant="secondary" className="flex items-center gap-1 bg-amber-100 text-amber-800 border-amber-300">
                 <CalendarOff className="h-3 w-3" /> {absenceTypeLabel((collaborator as any).absence_type)} até {(collaborator as any).absence_end}
               </Badge>
             )}
           </div>
 
+          {/* Actions */}
           {isDisabled ? (
             <div className="flex items-center gap-2">
               <Button variant="outline" size="sm" className="flex-1" onClick={() => handleEnable(collaborator)}>
@@ -524,77 +527,77 @@ const Team = () => {
               </Button>
             </div>
           ) : (
-            <>
-              <div className="flex items-center gap-2">
-                <Button variant="outline" size="sm" className="flex-1" onClick={() => openEditDialog(collaborator)}>
-                  <Pencil className="mr-1.5 h-3.5 w-3.5" /> Editar
-                </Button>
-                <Button variant="outline" size="sm" className="flex-1" onClick={() => { setDisableTarget(collaborator); setDisableDialogOpen(true); }}>
-                  <UserX className="mr-1.5 h-3.5 w-3.5" /> Desabilitar
-                </Button>
-              </div>
-
-              <div className="flex items-center gap-2">
-                {isCurrentlyAbsent(collaborator) ? (
-                  <Button variant="outline" size="sm" className="flex-1" onClick={() => handleRemoveAbsence(collaborator)}>
-                    <CalendarOff className="mr-1.5 h-3.5 w-3.5" /> Remover ausência
+            <div className="flex items-center gap-2">
+              <Button variant="outline" size="sm" className="flex-1" onClick={() => openEditDialog(collaborator)}>
+                <Pencil className="mr-1.5 h-3.5 w-3.5" /> Editar
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="flex-1"
+                onClick={() => { setSelectedCollaborator(collaborator); setPanelOpen(true); }}
+              >
+                <CalendarIcon className="mr-1.5 h-3.5 w-3.5" /> Agenda
+              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm" className="px-2.5" aria-label="Mais opções">
+                    <MoreVertical className="h-4 w-4" />
                   </Button>
-                ) : (
-                  <Button variant="outline" size="sm" className="flex-1" onClick={() => openAbsenceDialog(collaborator)}>
-                    <CalendarOff className="mr-1.5 h-3.5 w-3.5" /> Definir ausência
-                  </Button>
-                )}
-              </div>
-
-              {hasAccess && (
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="flex-1"
-                    disabled={loadingAction === `invite-${collaborator.id}`}
-                    onClick={() => handleSendInvite(collaborator)}
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  {hasAccess && (
+                    <>
+                      <DropdownMenuLabel>Acesso</DropdownMenuLabel>
+                      <DropdownMenuItem
+                        disabled={loadingAction === `invite-${collaborator.id}`}
+                        onClick={() => handleSendInvite(collaborator)}
+                      >
+                        <Mail className="mr-2 h-4 w-4" />
+                        {loadingAction === `invite-${collaborator.id}` ? 'Gerando...' : 'Enviar convite'}
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        disabled={loadingAction === `reset-${collaborator.id}`}
+                        onClick={() => handleResetPassword(collaborator)}
+                      >
+                        <KeyRound className="mr-2 h-4 w-4" />
+                        {loadingAction === `reset-${collaborator.id}` ? 'Enviando...' : 'Resetar senha'}
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                    </>
+                  )}
+                  {profileLink && (
+                    <>
+                      <DropdownMenuLabel>Página pública</DropdownMenuLabel>
+                      <DropdownMenuItem onClick={() => window.open(profileLink, '_blank')}>
+                        <ExternalLink className="mr-2 h-4 w-4" /> Abrir página
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => { navigator.clipboard.writeText(profileLink); toast.success('Link copiado!'); }}>
+                        <Copy className="mr-2 h-4 w-4" /> Copiar link
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                    </>
+                  )}
+                  <DropdownMenuLabel>Ausência</DropdownMenuLabel>
+                  {isAbsent ? (
+                    <DropdownMenuItem onClick={() => handleRemoveAbsence(collaborator)}>
+                      <CalendarOff className="mr-2 h-4 w-4" /> Remover ausência
+                    </DropdownMenuItem>
+                  ) : (
+                    <DropdownMenuItem onClick={() => openAbsenceDialog(collaborator)}>
+                      <CalendarOff className="mr-2 h-4 w-4" /> Definir ausência
+                    </DropdownMenuItem>
+                  )}
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    className="text-destructive focus:text-destructive"
+                    onClick={() => { setDisableTarget(collaborator); setDisableDialogOpen(true); }}
                   >
-                    <Mail className="mr-1.5 h-3.5 w-3.5" />
-                    {loadingAction === `invite-${collaborator.id}` ? 'Gerando...' : 'Enviar convite'}
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="flex-1"
-                    disabled={loadingAction === `reset-${collaborator.id}`}
-                    onClick={() => handleResetPassword(collaborator)}
-                  >
-                    <KeyRound className="mr-1.5 h-3.5 w-3.5" />
-                    {loadingAction === `reset-${collaborator.id}` ? 'Enviando...' : 'Resetar senha'}
-                  </Button>
-                </div>
-              )}
-
-              {profileLink && (
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="flex-[7]"
-                    onClick={() => window.open(profileLink, '_blank')}
-                  >
-                    <ExternalLink className="mr-1.5 h-3.5 w-3.5" /> Ver página pública
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="flex-[3]"
-                    onClick={() => {
-                      navigator.clipboard.writeText(profileLink);
-                      toast.success('Link do profissional copiado');
-                    }}
-                  >
-                    <Copy className="h-3.5 w-3.5" />
-                  </Button>
-                </div>
-              )}
-            </>
+                    <UserX className="mr-2 h-4 w-4" /> Desabilitar profissional
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
           )}
         </CardContent>
       </Card>
