@@ -19,6 +19,7 @@ import { buildWhatsAppUrl } from '@/lib/whatsapp';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Switch } from '@/components/ui/switch';
 import ProfessionalPanel from '@/components/ProfessionalPanel';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { commissionLabel } from '@/lib/financial-engine';
 
 const ROLE_TITLES = ['Barbeiro', 'Cabeleireira', 'Esteticista', 'Manicure', 'Recepcionista'];
@@ -477,9 +478,12 @@ const Team = () => {
         <CardContent className="p-5 space-y-4">
           {/* Header: avatar + name + role */}
           <div className="flex items-start gap-4">
-            <div className="flex h-14 w-14 items-center justify-center rounded-full bg-primary/10 font-bold text-primary text-lg shrink-0">
-              {collaborator.profile?.full_name?.charAt(0)?.toUpperCase() || '?'}
-            </div>
+            <Avatar className="h-14 w-14 shrink-0">
+              <AvatarImage src={collaborator.profile?.avatar_url || undefined} alt={collaborator.profile?.full_name || ''} />
+              <AvatarFallback className="bg-primary/10 text-primary font-bold text-lg">
+                {collaborator.profile?.full_name?.charAt(0)?.toUpperCase() || '?'}
+              </AvatarFallback>
+            </Avatar>
             <div className="flex-1 min-w-0">
               <p className="font-semibold truncate">{collaborator.profile?.full_name}</p>
               <p className="text-sm text-muted-foreground truncate">
