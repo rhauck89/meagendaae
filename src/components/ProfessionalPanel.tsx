@@ -376,6 +376,8 @@ const ProfessionalPanel = ({ collaborator, open, onOpenChange, onUpdated }: Prof
               </div>
             )}
           </section>
+            );
+          })()}
 
           {/* ========== SEÇÃO 2: SERVIÇOS ATENDIDOS ========== */}
           <section className="rounded-lg border bg-card p-4 space-y-3">
