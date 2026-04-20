@@ -1015,7 +1015,6 @@ const Team = () => {
                       </Select>
                       <p className="text-xs text-muted-foreground">Tempo de respiro entre um atendimento e outro.</p>
                     </div>
-                    </div>
                     <div className="flex gap-2">
                       <Button variant="outline" className="flex-1" onClick={() => setWizardStep(2)}>
                         <ChevronLeft className="mr-2 h-4 w-4" /> Voltar
