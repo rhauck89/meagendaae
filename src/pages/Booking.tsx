@@ -1711,7 +1711,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                     </div>
                     <div>
                       <p className="font-semibold text-lg capitalize">
-                        {isToday(selectedDate) ? 'Hoje' : isTomorrow(selectedDate) ? 'Amanhã' : format(selectedDate, "EEEE", { locale: ptBR })}
+                        {isTodayTz(selectedDate) ? 'Hoje' : isTomorrowTz(selectedDate) ? 'Amanhã' : format(selectedDate, "EEEE", { locale: ptBR })}
                         {' • '}
                         {format(selectedDate, "dd/MM", { locale: ptBR })}
                       </p>
@@ -1772,7 +1772,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                     >
                       {formatSlotTime(smartSuggestion.slot)}
                       <span className="block text-xs font-medium mt-1 opacity-80 capitalize">
-                        {isToday(smartSuggestion.date) ? 'Hoje' : isTomorrow(smartSuggestion.date) ? 'Amanhã' : format(smartSuggestion.date, "EEEE, dd/MM", { locale: ptBR })}
+                        {isTodayTz(smartSuggestion.date) ? 'Hoje' : isTomorrowTz(smartSuggestion.date) ? 'Amanhã' : format(smartSuggestion.date, "EEEE, dd/MM", { locale: ptBR })}
                       </span>
                     </button>
                     <p className="text-xs text-center" style={{ color: T.textSec }}>
@@ -1791,7 +1791,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                       <p className="font-semibold text-sm">{smartSuggestion ? 'Outros horários disponíveis' : 'Próximos horários disponíveis'}</p>
                     </div>
                     {nextSlots.map(({ date, slots }) => {
-                      const dayLabel = isToday(date) ? 'Hoje' : isTomorrow(date) ? 'Amanhã' : format(date, "EEEE, dd/MM", { locale: ptBR });
+                      const dayLabel = isTodayTz(date) ? 'Hoje' : isTomorrowTz(date) ? 'Amanhã' : format(date, "EEEE, dd/MM", { locale: ptBR });
                       const filtered = smartSuggestion && isSameDay(date, smartSuggestion.date)
                         ? slots.filter((s) => s !== smartSuggestion.slot)
                         : slots;
