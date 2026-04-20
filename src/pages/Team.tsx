@@ -707,10 +707,10 @@ const Team = () => {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-xl font-display font-bold">Equipe</h2>
+    <div className="space-y-4 sm:space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div className="min-w-0">
+          <h2 className="text-xl sm:text-2xl font-display font-bold">Equipe</h2>
           <p className="text-sm text-muted-foreground">Gerencie profissionais do seu estabelecimento</p>
         </div>
         <Dialog
