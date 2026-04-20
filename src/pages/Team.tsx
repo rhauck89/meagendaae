@@ -624,14 +624,6 @@ const Team = () => {
               <Button variant="outline" size="sm" className="flex-1" onClick={() => openEditDialog(collaborator)}>
                 <Pencil className="mr-1.5 h-3.5 w-3.5" /> Editar
               </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                className="flex-1"
-                onClick={() => { setSelectedCollaborator(collaborator); setPanelOpen(true); }}
-              >
-                <CalendarIcon className="mr-1.5 h-3.5 w-3.5" /> Agenda
-              </Button>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="outline" size="sm" className="px-2.5" aria-label="Mais opções">
