@@ -128,7 +128,66 @@ const Team = () => {
   const activeCollaborators = collaborators.filter((c) => c.active !== false);
   const disabledCollaborators = collaborators.filter((c) => c.active === false);
 
-  const resetForm = () => {
+  // Aggregated appointments query — fetch today's appointments for all professionals at once
+  const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
+  const todayEnd = new Date(); todayEnd.setHours(23, 59, 59, 999);
+  const professionalIds = collaborators.map((c) => c.profile_id).filter(Boolean);
+
+  const { data: appointmentsAgg = {} } = useQuery({
+    queryKey: ['team-appointments-agg', companyId, professionalIds.join(',')],
+    enabled: Boolean(companyId) && professionalIds.length > 0,
+    queryFn: async () => {
+      const nowIso = new Date().toISOString();
+      const { data, error } = await supabase
+        .from('appointments')
+        .select('id, professional_id, start_time, end_time, status')
+        .eq('company_id', companyId!)
+        .in('professional_id', professionalIds)
+        .gte('start_time', todayStart.toISOString())
+        .lte('start_time', todayEnd.toISOString())
+        .in('status', ['pending', 'confirmed'] as any)
+        .order('start_time');
+      if (error) throw error;
+      const map: Record<string, { todayCount: number; next: string | null }> = {};
+      for (const a of data ?? []) {
+        const pid = (a as any).professional_id as string;
+        if (!pid) continue;
+        if (!map[pid]) map[pid] = { todayCount: 0, next: null };
+        map[pid].todayCount += 1;
+        if (!map[pid].next && (a as any).start_time >= nowIso) {
+          map[pid].next = (a as any).start_time;
+        }
+      }
+      return map;
+    },
+    staleTime: 60_000,
+  });
+
+  // Available role titles for filter
+  const availableRoles = Array.from(
+    new Set(
+      collaborators
+        .map((c) => c.profile?.role_title)
+        .filter((r): r is string => Boolean(r) && r.trim().length > 0)
+    )
+  ).sort();
+
+  const matchesFilters = (c: any) => {
+    if (searchQuery.trim()) {
+      const q = searchQuery.trim().toLowerCase();
+      const name = (c.profile?.full_name || '').toLowerCase();
+      const email = (c.profile?.email || '').toLowerCase();
+      if (!name.includes(q) && !email.includes(q)) return false;
+    }
+    if (roleFilter !== 'all') {
+      const role = c.profile?.role_title || '';
+      if (role !== roleFilter) return false;
+    }
+    return true;
+  };
+
+  const filteredActive = activeCollaborators.filter(matchesFilters);
+  const filteredDisabled = disabledCollaborators.filter(matchesFilters);
     setForm({
       name: '',
       email: '',
