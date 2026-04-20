@@ -1209,121 +1209,238 @@ const Team = () => {
 
       {/* Edit Professional Dialog */}
       <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
-        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Editar Profissional</DialogTitle>
+        <DialogContent className="max-w-2xl max-h-[92vh] overflow-hidden flex flex-col p-0 gap-0">
+          <DialogHeader className="px-6 pt-6 pb-4 border-b">
+            <div className="flex items-center gap-3">
+              <Avatar className="h-12 w-12">
+                <AvatarImage src={editTarget?.profile?.avatar_url || ''} alt={editForm.name} />
+                <AvatarFallback className="bg-primary/10 text-primary font-semibold">
+                  {(editForm.name || '?').slice(0, 2).toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
+              <div className="flex-1 min-w-0">
+                <DialogTitle className="text-lg leading-tight truncate">
+                  {editForm.name || 'Editar Profissional'}
+                </DialogTitle>
+                <p className="text-xs text-muted-foreground truncate">{editForm.email || 'Sem e-mail'}</p>
+              </div>
+            </div>
           </DialogHeader>
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label>Nome</Label>
-              <Input value={editForm.name} onChange={(e) => setEditForm({ ...editForm, name: e.target.value })} />
-            </div>
-            <div className="space-y-2">
-              <Label>Email</Label>
-              <Input type="email" value={editForm.email} onChange={(e) => setEditForm({ ...editForm, email: e.target.value })} />
-            </div>
-            <div className="space-y-2">
-              <Label>Tipo</Label>
-              <Select value={editForm.collaborator_type} onValueChange={(v) => setEditForm({ ...editForm, collaborator_type: v })}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="partner">Sócio</SelectItem>
-                  <SelectItem value="commissioned">Comissionado</SelectItem>
-                  <SelectItem value="independent">Independente</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label>Forma de comissão</Label>
-              <Select value={editForm.commission_type} onValueChange={(v) => setEditForm({ ...editForm, commission_type: v })}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="own_revenue">Receita própria</SelectItem>
-                  <SelectItem value="percentage">Percentual</SelectItem>
-                  <SelectItem value="fixed">Valor fixo</SelectItem>
-                  <SelectItem value="none">Sem comissão</SelectItem>
-                </SelectContent>
-              </Select>
-              {editForm.commission_type === 'own_revenue' && (
-                <p className="text-xs text-muted-foreground">100% da receita pertence ao profissional.</p>
-              )}
-            </div>
-            {editForm.commission_type === 'percentage' && (
-              <div className="space-y-2">
-                <Label>Comissão (%)</Label>
-                <Input type="number" value={editForm.commission_value} onChange={(e) => setEditForm({ ...editForm, commission_value: e.target.value })} placeholder="Ex: 10" />
-              </div>
-            )}
-            {editForm.commission_type === 'fixed' && (
-              <div className="space-y-2">
-                <Label>Valor por serviço (R$)</Label>
-                <Input type="number" step="0.01" value={editForm.commission_value} onChange={(e) => setEditForm({ ...editForm, commission_value: e.target.value })} placeholder="Ex: 25.00" />
-              </div>
-            )}
 
-            {/* Scheduling Configuration */}
-            <div className="border-t pt-4 space-y-3">
-              <Label className="font-semibold text-sm">Configuração de Agenda</Label>
-              
-              {/* Booking Mode */}
-              {(company as any)?.prof_perm_booking_mode ? (
+          <Tabs defaultValue="personal" className="flex-1 flex flex-col overflow-hidden">
+            <div className="px-6 pt-4 border-b">
+              <TabsList className="w-full grid grid-cols-2 sm:grid-cols-4 h-auto bg-transparent p-0 gap-1">
+                <TabsTrigger value="personal" className="data-[state=active]:bg-muted text-xs sm:text-sm">
+                  Pessoal
+                </TabsTrigger>
+                <TabsTrigger value="role" className="data-[state=active]:bg-muted text-xs sm:text-sm">
+                  Cargo
+                </TabsTrigger>
+                <TabsTrigger value="commission" className="data-[state=active]:bg-muted text-xs sm:text-sm">
+                  Comissão
+                </TabsTrigger>
+                <TabsTrigger value="schedule" className="data-[state=active]:bg-muted text-xs sm:text-sm">
+                  Agenda
+                </TabsTrigger>
+              </TabsList>
+            </div>
+
+            <div className="flex-1 overflow-y-auto px-6 py-5">
+              {/* SECTION 1: Personal data */}
+              <TabsContent value="personal" className="mt-0 space-y-4">
                 <div className="space-y-2">
-                  <Label className="text-xs text-muted-foreground">Modo de agendamento</Label>
-                  <Select value={editForm.booking_mode} onValueChange={(v) => setEditForm({ ...editForm, booking_mode: v })}>
+                  <Label>Nome completo</Label>
+                  <Input
+                    value={editForm.name}
+                    onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                    placeholder="Nome do profissional"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>E-mail</Label>
+                  <Input
+                    type="email"
+                    value={editForm.email}
+                    onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
+                    placeholder="email@exemplo.com"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Usado para login no sistema (quando o acesso estiver habilitado).
+                  </p>
+                </div>
+              </TabsContent>
+
+              {/* SECTION 2: Role & access */}
+              <TabsContent value="role" className="mt-0 space-y-4">
+                <div className="space-y-2">
+                  <Label>Tipo de vínculo</Label>
+                  <Select
+                    value={editForm.collaborator_type}
+                    onValueChange={(v) => setEditForm({ ...editForm, collaborator_type: v })}
+                  >
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="intelligent">Inteligente</SelectItem>
-                      <SelectItem value="fixed_grid">Grade fixa</SelectItem>
-                      <SelectItem value="hybrid">Híbrida (recomendado)</SelectItem>
+                      <SelectItem value="partner">Sócio</SelectItem>
+                      <SelectItem value="commissioned">Comissionado</SelectItem>
+                      <SelectItem value="independent">Independente</SelectItem>
                     </SelectContent>
                   </Select>
+                  <p className="text-xs text-muted-foreground">
+                    Define como o profissional se relaciona financeiramente com a empresa.
+                  </p>
                 </div>
-              ) : (
-                <div className="p-3 rounded-lg bg-muted/50 border space-y-1">
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                    <Lock className="h-3 w-3" /> Gerenciado pelo administrador
+
+                <div className="rounded-lg border bg-muted/30 p-4 space-y-1">
+                  <div className="flex items-center gap-2 text-sm font-medium">
+                    {editTarget?.has_system_access ? (
+                      <><UserCheck className="h-4 w-4 text-emerald-600" /> Acesso ao sistema ativo</>
+                    ) : (
+                      <><Lock className="h-4 w-4 text-muted-foreground" /> Sem acesso ao sistema</>
+                    )}
                   </div>
-                  <p className="text-sm">Modo: <span className="font-medium">{bookingModeLabel((company as any)?.booking_mode || 'fixed_grid')}</span></p>
+                  <p className="text-xs text-muted-foreground">
+                    {editTarget?.has_system_access
+                      ? 'Este profissional pode entrar no painel com seu e-mail.'
+                      : 'Este profissional não tem login. Use as ações do card para conceder acesso.'}
+                  </p>
                 </div>
-              )}
+              </TabsContent>
 
-              {/* Grid Interval */}
-              {(editForm.booking_mode === 'fixed_grid' || editForm.booking_mode === 'hybrid' || (company as any)?.booking_mode === 'fixed_grid' || (company as any)?.booking_mode === 'hybrid') && (
-                <>
-                  {(company as any)?.prof_perm_grid_interval ? (
-                    <div className="space-y-2">
-                      <Label className="text-xs text-muted-foreground">Intervalo da grade (minutos)</Label>
-                      <Select value={String(editForm.grid_interval)} onValueChange={(v) => setEditForm({ ...editForm, grid_interval: Number(v) })}>
-                        <SelectTrigger><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="15">15 minutos</SelectItem>
-                          <SelectItem value="30">30 minutos</SelectItem>
-                          <SelectItem value="45">45 minutos</SelectItem>
-                          <SelectItem value="60">60 minutos</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  ) : (
-                    <div className="p-3 rounded-lg bg-muted/50 border space-y-1">
-                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                        <Lock className="h-3 w-3" /> Gerenciado pelo administrador
-                      </div>
-                      <p className="text-sm">Intervalo: <span className="font-medium">{(company as any)?.fixed_slot_interval || 15} minutos</span></p>
-                    </div>
+              {/* SECTION 3: Commission */}
+              <TabsContent value="commission" className="mt-0 space-y-4">
+                <div className="space-y-2">
+                  <Label>Forma de comissão</Label>
+                  <Select
+                    value={editForm.commission_type}
+                    onValueChange={(v) => setEditForm({ ...editForm, commission_type: v })}
+                  >
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="own_revenue">Receita própria</SelectItem>
+                      <SelectItem value="percentage">Percentual</SelectItem>
+                      <SelectItem value="fixed">Valor fixo</SelectItem>
+                      <SelectItem value="none">Sem comissão</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  {editForm.commission_type === 'own_revenue' && (
+                    <p className="text-xs text-muted-foreground">100% da receita pertence ao profissional.</p>
                   )}
-                </>
-              )}
+                  {editForm.commission_type === 'none' && (
+                    <p className="text-xs text-muted-foreground">Nenhum valor é creditado ao profissional.</p>
+                  )}
+                </div>
 
-              <div className="space-y-2">
-                <Label className="text-xs text-muted-foreground">Intervalo entre atendimentos (minutos)</Label>
-                <Input type="number" min={0} max={60} value={editForm.break_time} onChange={(e) => setEditForm({ ...editForm, break_time: Number(e.target.value) || 0 })} placeholder="Ex: 5" />
-              </div>
-            </div>
+                {editForm.commission_type === 'percentage' && (
+                  <div className="space-y-2">
+                    <Label>Comissão (%)</Label>
+                    <Input
+                      type="number"
+                      value={editForm.commission_value}
+                      onChange={(e) => setEditForm({ ...editForm, commission_value: e.target.value })}
+                      placeholder="Ex: 10"
+                    />
+                  </div>
+                )}
+                {editForm.commission_type === 'fixed' && (
+                  <div className="space-y-2">
+                    <Label>Valor por serviço (R$)</Label>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      value={editForm.commission_value}
+                      onChange={(e) => setEditForm({ ...editForm, commission_value: e.target.value })}
+                      placeholder="Ex: 25.00"
+                    />
+                  </div>
+                )}
+              </TabsContent>
 
-            <div className="flex gap-2">
-              <Button variant="outline" className="flex-1" onClick={() => setEditDialogOpen(false)}>Cancelar</Button>
-              <Button className="flex-1" onClick={handleSaveEdit}>Salvar</Button>
+              {/* SECTION 4: Schedule */}
+              <TabsContent value="schedule" className="mt-0 space-y-4">
+                {/* Booking Mode */}
+                {(company as any)?.prof_perm_booking_mode ? (
+                  <div className="space-y-2">
+                    <Label>Modo de agendamento</Label>
+                    <Select
+                      value={editForm.booking_mode}
+                      onValueChange={(v) => setEditForm({ ...editForm, booking_mode: v })}
+                    >
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="intelligent">Inteligente</SelectItem>
+                        <SelectItem value="fixed_grid">Grade fixa</SelectItem>
+                        <SelectItem value="hybrid">Híbrida (recomendado)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                ) : (
+                  <div className="p-3 rounded-lg bg-muted/50 border space-y-1">
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <Lock className="h-3 w-3" /> Gerenciado pelo administrador
+                    </div>
+                    <p className="text-sm">
+                      Modo: <span className="font-medium">{bookingModeLabel((company as any)?.booking_mode || 'fixed_grid')}</span>
+                    </p>
+                  </div>
+                )}
+
+                {/* Grid Interval */}
+                {(editForm.booking_mode === 'fixed_grid' || editForm.booking_mode === 'hybrid' || (company as any)?.booking_mode === 'fixed_grid' || (company as any)?.booking_mode === 'hybrid') && (
+                  <>
+                    {(company as any)?.prof_perm_grid_interval ? (
+                      <div className="space-y-2">
+                        <Label>Intervalo da grade</Label>
+                        <Select
+                          value={String(editForm.grid_interval)}
+                          onValueChange={(v) => setEditForm({ ...editForm, grid_interval: Number(v) })}
+                        >
+                          <SelectTrigger><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="15">15 minutos</SelectItem>
+                            <SelectItem value="30">30 minutos</SelectItem>
+                            <SelectItem value="45">45 minutos</SelectItem>
+                            <SelectItem value="60">60 minutos</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    ) : (
+                      <div className="p-3 rounded-lg bg-muted/50 border space-y-1">
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                          <Lock className="h-3 w-3" /> Gerenciado pelo administrador
+                        </div>
+                        <p className="text-sm">
+                          Intervalo: <span className="font-medium">{(company as any)?.fixed_slot_interval || 15} minutos</span>
+                        </p>
+                      </div>
+                    )}
+                  </>
+                )}
+
+                <div className="space-y-2">
+                  <Label>Intervalo entre atendimentos (min)</Label>
+                  <Input
+                    type="number"
+                    min={0}
+                    max={60}
+                    value={editForm.break_time}
+                    onChange={(e) => setEditForm({ ...editForm, break_time: Number(e.target.value) || 0 })}
+                    placeholder="Ex: 5"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Tempo de respiro entre um atendimento e outro.
+                  </p>
+                </div>
+              </TabsContent>
             </div>
+          </Tabs>
+
+          <div className="flex flex-col-reverse sm:flex-row gap-2 px-6 py-4 border-t bg-muted/30">
+            <Button variant="outline" className="flex-1" onClick={() => setEditDialogOpen(false)}>
+              Cancelar
+            </Button>
+            <Button className="flex-1" onClick={handleSaveEdit}>
+              Salvar alterações
+            </Button>
           </div>
         </DialogContent>
       </Dialog>
