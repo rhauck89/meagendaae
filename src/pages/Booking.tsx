@@ -1096,10 +1096,12 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
         return;
       }
 
-      const [h, m] = selectedTime.split(':').map(Number);
-      const startTime = new Date(selectedDate);
-      startTime.setHours(h, m, 0, 0);
-      const endTime = addMinutes(startTime, totalDuration);
+      const { start: startTime, end: endTime } = buildBookingUtcRange(
+        selectedDate,
+        selectedTime,
+        totalDuration,
+        bookingTimezone,
+      );
       if (!clientId) throw new Error('Cadastro do cliente falhou. Tente novamente.');
 
       const appointmentPayload = {
@@ -1256,7 +1258,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
           professionalAvatar: professionalProfile?.avatar_url || null,
           totalPrice: finalPrice,
           totalDuration,
-          bookedAt: new Date().toISOString(),
+           bookedAt: new Date().toISOString(),
         };
         localStorage.setItem(`last_booking_${company.id}`, JSON.stringify(lastBooking));
       } catch { /* non-critical */ }
