@@ -344,7 +344,7 @@ const Team = () => {
     }
   };
 
-  const openEditDialog = (collaborator: any) => {
+  const openEditDialog = async (collaborator: any) => {
     setEditTarget(collaborator);
     setEditForm({
       name: collaborator.profile?.full_name || '',
@@ -356,8 +356,67 @@ const Team = () => {
       grid_interval: (collaborator as any).grid_interval || 15,
       break_time: (collaborator as any).break_time || 0,
     });
+    setEditServiceSearch('');
+    setEditSlugDirty(false);
+    setEditSlug(collaborator.slug || generateSlug(collaborator.profile?.full_name || ''));
+    setEditAssignedServiceIds([]);
     setEditDialogOpen(true);
+    // Load assigned services for this professional
+    try {
+      const { data } = await supabase
+        .from('service_professionals')
+        .select('service_id')
+        .eq('professional_id', collaborator.profile_id);
+      setEditAssignedServiceIds((data || []).map((r: any) => r.service_id));
+    } catch {
+      // silent — fallback to empty
+    }
   };
+
+  const toggleEditService = async (serviceId: string, checked: boolean) => {
+    if (!editTarget) return;
+    const profileId = editTarget.profile_id;
+    try {
+      if (checked) {
+        await supabase.from('service_professionals').insert({
+          service_id: serviceId,
+          professional_id: profileId,
+          company_id: companyId,
+        } as any);
+        setEditAssignedServiceIds((prev) => [...prev, serviceId]);
+      } else {
+        await supabase
+          .from('service_professionals')
+          .delete()
+          .eq('service_id', serviceId)
+          .eq('professional_id', profileId);
+        setEditAssignedServiceIds((prev) => prev.filter((id) => id !== serviceId));
+      }
+    } catch (e: any) {
+      toast.error('Erro ao atualizar serviço');
+    }
+  };
+
+  const saveEditSlug = async () => {
+    if (!editTarget) return;
+    const cleanSlug = editSlug.trim().toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').replace(/(^-|-$)/g, '');
+    if (!cleanSlug) return toast.error('Identificador inválido');
+    try {
+      await supabase.from('collaborators').update({ slug: cleanSlug } as any).eq('id', editTarget.id);
+      setEditSlug(cleanSlug);
+      setEditSlugDirty(false);
+      toast.success('Link atualizado');
+      await refreshTeam();
+    } catch (e: any) {
+      toast.error('Erro ao salvar identificador');
+    }
+  };
+
+  const editPublicLink = (() => {
+    if (!editTarget || !company || !editSlug) return '';
+    const prefix = company.business_type === 'esthetic' ? 'estetica' : 'barbearia';
+    return `${window.location.origin}/${prefix}/${company.slug}/${editSlug}`;
+  })();
 
   const handleSaveEdit = async () => {
     if (!editTarget) return;
