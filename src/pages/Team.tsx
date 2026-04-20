@@ -536,6 +536,11 @@ const Team = () => {
     const hasAccess = (collaborator as any).has_system_access !== false;
     const isAbsent = !isDisabled && isCurrentlyAbsent(collaborator);
     const isOwner = collaborator.profile?.user_id === company?.owner_id;
+    const agg = (appointmentsAgg as any)[collaborator.profile_id] as { todayCount: number; next: string | null } | undefined;
+    const todayCount = agg?.todayCount ?? 0;
+    const nextTime = agg?.next
+      ? new Date(agg.next).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+      : null;
     return (
       <Card key={collaborator.id} className={isDisabled ? 'opacity-60' : ''}>
         <CardContent className="p-5 space-y-4">
@@ -550,13 +555,33 @@ const Team = () => {
             <div className="flex-1 min-w-0">
               <p className="font-semibold truncate">{collaborator.profile?.full_name}</p>
               <p className="text-sm text-muted-foreground truncate">
-                {collaborator.profile?.role_title || (isOwner ? 'Administrador' : 'Profissional')}
+                {(collaborator.profile as any)?.role_title || (isOwner ? 'Administrador' : 'Profissional')}
               </p>
               {collaborator.profile?.email && (
                 <p className="text-xs text-muted-foreground truncate mt-0.5">{collaborator.profile.email}</p>
               )}
             </div>
           </div>
+
+          {/* Indicators row — só para ativos e não ausentes */}
+          {!isDisabled && !isAbsent && (
+            <div className="grid grid-cols-2 gap-2">
+              <div className="rounded-md border bg-muted/30 px-3 py-2">
+                <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Hoje</p>
+                <p className="text-sm font-semibold flex items-center gap-1">
+                  <CalendarIcon className="h-3.5 w-3.5 text-primary" />
+                  {todayCount} {todayCount === 1 ? 'atendimento' : 'atendimentos'}
+                </p>
+              </div>
+              <div className="rounded-md border bg-muted/30 px-3 py-2">
+                <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Próximo</p>
+                <p className="text-sm font-semibold flex items-center gap-1">
+                  <Clock className="h-3.5 w-3.5 text-primary" />
+                  {nextTime || '—'}
+                </p>
+              </div>
+            </div>
+          )}
 
           {/* Tags */}
           <div className="flex flex-wrap items-center gap-1.5">
@@ -574,7 +599,11 @@ const Team = () => {
               {collaborator.commission_type === 'fixed' && <><DollarSign className="h-3 w-3" /> {paymentLabel(collaborator.commission_type, collaborator.commission_value)}</>}
               {collaborator.commission_type === 'none' && paymentLabel(collaborator.commission_type, collaborator.commission_value)}
             </Badge>
-            {!hasAccess && <Badge variant="outline" className="text-xs">Sem acesso</Badge>}
+            {!hasAccess && (
+              <Badge variant="outline" className="flex items-center gap-1 text-xs">
+                <Lock className="h-3 w-3" /> Sem acesso
+              </Badge>
+            )}
             {isDisabled && <Badge variant="destructive">Desabilitado</Badge>}
             {isAbsent && (
               <Badge variant="secondary" className="flex items-center gap-1 bg-amber-100 text-amber-800 border-amber-300">
