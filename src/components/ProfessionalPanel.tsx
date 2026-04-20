@@ -14,11 +14,17 @@ import { Copy, Link2, Search, X, Building2, Clock, Briefcase, Globe, ExternalLin
 
 const dayNames = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
 
-const bookingModeLabel = (mode: string) => {
-  if (mode === 'smart') return 'Inteligente';
+const bookingModeLabel = (mode?: string | null) => {
+  if (mode === 'smart' || mode === 'intelligent') return 'Inteligente';
   if (mode === 'fixed_grid') return 'Grade fixa';
   if (mode === 'hybrid') return 'Híbrido';
-  return mode;
+  return mode || '—';
+};
+
+const intervalLabel = (minutes?: number | null) => {
+  if (minutes === null || minutes === undefined) return '—';
+  if (Number(minutes) === 0) return 'Sem intervalo';
+  return `${minutes} min`;
 };
 
 interface ProfessionalPanelProps {
