@@ -228,9 +228,6 @@ const Team = () => {
       email: '',
       whatsapp: '',
       role_title: 'Barbeiro',
-      collaborator_type: 'commissioned',
-      payment_type: 'percentage',
-      commission_value: '',
       booking_mode: 'hybrid',
       grid_interval: 15,
       break_time: 0,
@@ -239,6 +236,15 @@ const Team = () => {
       is_admin_self: false,
       use_company_banner: true,
       schedule_from_company: true,
+    });
+    setWizardBM({
+      business_model: 'employee',
+      commission_type: 'percentage',
+      commission_value: 0,
+      partner_revenue_mode: null,
+      partner_equity_percent: 0,
+      rent_amount: 0,
+      rent_cycle: 'monthly',
     });
     setCreatedCredentials(null);
     setWizardStep(1);
