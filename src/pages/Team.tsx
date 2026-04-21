@@ -1360,8 +1360,22 @@ const Team = () => {
                         <div className="flex justify-between"><span className="text-muted-foreground">Vínculo</span><span className="font-medium text-primary">Administrador</span></div>
                       )}
                       {form.whatsapp && <div className="flex justify-between"><span className="text-muted-foreground">WhatsApp</span><span className="font-medium">{form.whatsapp}</span></div>}
-                      <div className="flex justify-between"><span className="text-muted-foreground">Tipo</span><span className="font-medium">{form.collaborator_type === 'partner' ? 'Sócio' : form.collaborator_type === 'independent' ? 'Independente' : 'Comissionado'}</span></div>
-                      <div className="flex justify-between"><span className="text-muted-foreground">Pagamento</span><span className="font-medium">{paymentLabel(form.payment_type, Number(form.commission_value) || 0)}</span></div>
+                      <div className="flex justify-between"><span className="text-muted-foreground">Modelo Comercial</span><span className="font-medium">{BUSINESS_MODEL_LABELS[wizardBM.business_model]}</span></div>
+                      {wizardBM.business_model === 'partner_commission' && Number(wizardBM.commission_value) > 0 && (
+                        <div className="flex justify-between"><span className="text-muted-foreground">% profissional</span><span className="font-medium">{wizardBM.commission_value}%</span></div>
+                      )}
+                      {wizardBM.business_model === 'employee' && wizardBM.commission_type !== 'none' && (
+                        <div className="flex justify-between"><span className="text-muted-foreground">Remuneração</span><span className="font-medium">{wizardBM.commission_type === 'percentage' ? `${wizardBM.commission_value}%` : `R$ ${Number(wizardBM.commission_value).toFixed(2)}/serviço`}</span></div>
+                      )}
+                      {wizardBM.business_model === 'chair_rental' && (
+                        <div className="flex justify-between"><span className="text-muted-foreground">Aluguel</span><span className="font-medium">R$ {Number(wizardBM.rent_amount).toFixed(2)} ({RENT_CYCLE_LABELS[wizardBM.rent_cycle || 'monthly']})</span></div>
+                      )}
+                      {wizardBM.business_model === 'operating_partner' && wizardBM.partner_revenue_mode && (
+                        <div className="flex justify-between"><span className="text-muted-foreground">Receita</span><span className="font-medium">{PARTNER_REVENUE_MODE_LABELS[wizardBM.partner_revenue_mode]}</span></div>
+                      )}
+                      {wizardBM.business_model === 'investor_partner' && Number(wizardBM.partner_equity_percent) > 0 && (
+                        <div className="flex justify-between"><span className="text-muted-foreground">Participação</span><span className="font-medium">{wizardBM.partner_equity_percent}%</span></div>
+                      )}
                       <div className="flex justify-between"><span className="text-muted-foreground">Acesso</span><span className="font-medium">{form.has_system_access ? (form.is_admin_self ? 'Admin vinculado' : 'Com login') : 'Sem acesso'}</span></div>
                       <div className="flex justify-between"><span className="text-muted-foreground">Agenda</span><span className="font-medium">{form.schedule_from_company ? 'Padrão da empresa' : bookingModeLabel(form.booking_mode)}</span></div>
                       <div className="flex justify-between"><span className="text-muted-foreground">Capa</span><span className="font-medium">{form.use_company_banner ? 'Da empresa' : 'Personalizada'}</span></div>
