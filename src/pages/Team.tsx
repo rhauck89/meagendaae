@@ -54,6 +54,16 @@ const Team = () => {
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<any>(null);
   const [editForm, setEditForm] = useState({ name: '', email: '', collaborator_type: 'commissioned' as string, commission_type: 'percentage' as string, commission_value: '' as string | number, booking_mode: 'hybrid' as string, grid_interval: 15 as number, break_time: 0 as number });
+  // New unified business model form
+  const [editBM, setEditBM] = useState<BusinessModelForm>({
+    business_model: 'employee',
+    commission_type: 'percentage',
+    commission_value: 0,
+    partner_revenue_mode: null,
+    partner_equity_percent: 0,
+    rent_amount: 0,
+    rent_cycle: 'monthly',
+  });
   // Edit dialog: services & public page (single source of truth)
   const [editAssignedServiceIds, setEditAssignedServiceIds] = useState<string[]>([]);
   const [editServiceSearch, setEditServiceSearch] = useState('');
@@ -344,7 +354,8 @@ const Team = () => {
     try {
       const response = await supabase.functions.invoke('invite-team-member', {
         body: { action: 'reset_password', email, user_id: userId },
-      });
+    });
+    setEditBM(formFromCollaborator(collaborator));
 
       if (response.error) throw new Error(response.error.message);
       if (!response.data?.success) throw new Error(response.data?.error || 'Erro ao resetar senha');
@@ -441,11 +452,18 @@ const Team = () => {
         .update({ full_name: editForm.name.trim(), email: editForm.email.trim() })
         .eq('id', editTarget.profile_id);
 
-      const commissionType = editForm.commission_type as 'percentage' | 'fixed' | 'none' | 'own_revenue';
+      // Derive legacy fields from the unified business model so the
+      // financial engine and reports keep working unchanged.
+      const legacy = deriveLegacyFields(editBM);
       const updateData: any = {
-        collaborator_type: editForm.collaborator_type as any,
-        commission_type: commissionType as any,
-        commission_value: commissionType === 'none' || commissionType === 'own_revenue' ? 0 : (Number(editForm.commission_value) || 0),
+        business_model: editBM.business_model,
+        partner_revenue_mode: editBM.partner_revenue_mode,
+        partner_equity_percent: editBM.partner_equity_percent || 0,
+        rent_amount: editBM.rent_amount || 0,
+        rent_cycle: editBM.rent_cycle,
+        collaborator_type: legacy.collaborator_type as any,
+        commission_type: legacy.commission_type as any,
+        commission_value: legacy.commission_value,
         break_time: editForm.break_time,
       };
       // Only allow booking_mode change if permitted
