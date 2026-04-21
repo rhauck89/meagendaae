@@ -20,6 +20,19 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Switch } from '@/components/ui/switch';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { commissionLabel } from '@/lib/financial-engine';
+import {
+  BUSINESS_MODEL_LABELS,
+  BUSINESS_MODEL_DESCRIPTIONS,
+  RENT_CYCLE_LABELS,
+  PARTNER_REVENUE_MODE_LABELS,
+  deriveLegacyFields,
+  formFromCollaborator,
+  modelBadgeLabel,
+  type BusinessModel,
+  type BusinessModelForm,
+  type PartnerRevenueMode,
+  type RentCycle,
+} from '@/lib/business-model';
 
 const ROLE_TITLES = ['Barbeiro', 'Cabeleireira', 'Esteticista', 'Manicure', 'Recepcionista'];
 const WIZARD_STEPS = 5;
