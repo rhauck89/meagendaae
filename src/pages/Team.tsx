@@ -20,6 +20,19 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Switch } from '@/components/ui/switch';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { commissionLabel } from '@/lib/financial-engine';
+import {
+  BUSINESS_MODEL_LABELS,
+  BUSINESS_MODEL_DESCRIPTIONS,
+  RENT_CYCLE_LABELS,
+  PARTNER_REVENUE_MODE_LABELS,
+  deriveLegacyFields,
+  formFromCollaborator,
+  modelBadgeLabel,
+  type BusinessModel,
+  type BusinessModelForm,
+  type PartnerRevenueMode,
+  type RentCycle,
+} from '@/lib/business-model';
 
 const ROLE_TITLES = ['Barbeiro', 'Cabeleireira', 'Esteticista', 'Manicure', 'Recepcionista'];
 const WIZARD_STEPS = 5;
@@ -41,6 +54,16 @@ const Team = () => {
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<any>(null);
   const [editForm, setEditForm] = useState({ name: '', email: '', collaborator_type: 'commissioned' as string, commission_type: 'percentage' as string, commission_value: '' as string | number, booking_mode: 'hybrid' as string, grid_interval: 15 as number, break_time: 0 as number });
+  // New unified business model form
+  const [editBM, setEditBM] = useState<BusinessModelForm>({
+    business_model: 'employee',
+    commission_type: 'percentage',
+    commission_value: 0,
+    partner_revenue_mode: null,
+    partner_equity_percent: 0,
+    rent_amount: 0,
+    rent_cycle: 'monthly',
+  });
   // Edit dialog: services & public page (single source of truth)
   const [editAssignedServiceIds, setEditAssignedServiceIds] = useState<string[]>([]);
   const [editServiceSearch, setEditServiceSearch] = useState('');
@@ -331,7 +354,8 @@ const Team = () => {
     try {
       const response = await supabase.functions.invoke('invite-team-member', {
         body: { action: 'reset_password', email, user_id: userId },
-      });
+    });
+    setEditBM(formFromCollaborator(collaborator));
 
       if (response.error) throw new Error(response.error.message);
       if (!response.data?.success) throw new Error(response.data?.error || 'Erro ao resetar senha');
@@ -428,11 +452,18 @@ const Team = () => {
         .update({ full_name: editForm.name.trim(), email: editForm.email.trim() })
         .eq('id', editTarget.profile_id);
 
-      const commissionType = editForm.commission_type as 'percentage' | 'fixed' | 'none' | 'own_revenue';
+      // Derive legacy fields from the unified business model so the
+      // financial engine and reports keep working unchanged.
+      const legacy = deriveLegacyFields(editBM);
       const updateData: any = {
-        collaborator_type: editForm.collaborator_type as any,
-        commission_type: commissionType as any,
-        commission_value: commissionType === 'none' || commissionType === 'own_revenue' ? 0 : (Number(editForm.commission_value) || 0),
+        business_model: editBM.business_model,
+        partner_revenue_mode: editBM.partner_revenue_mode,
+        partner_equity_percent: editBM.partner_equity_percent || 0,
+        rent_amount: editBM.rent_amount || 0,
+        rent_cycle: editBM.rent_cycle,
+        collaborator_type: legacy.collaborator_type as any,
+        commission_type: legacy.commission_type as any,
+        commission_value: legacy.commission_value,
         break_time: editForm.break_time,
       };
       // Only allow booking_mode change if permitted
@@ -651,14 +682,8 @@ const Team = () => {
                 <Crown className="h-3 w-3" /> Administrador
               </Badge>
             )}
-            <Badge variant="outline">
-              {collaborator.collaborator_type === 'partner' ? 'Sócio' : collaborator.collaborator_type === 'independent' ? 'Independente' : 'Comissionado'}
-            </Badge>
-            <Badge variant="secondary" className="flex items-center gap-1">
-              {collaborator.commission_type === 'own_revenue' && <><Wallet className="h-3 w-3" /> Receita própria</>}
-              {collaborator.commission_type === 'percentage' && <><Percent className="h-3 w-3" /> {paymentLabel(collaborator.commission_type, collaborator.commission_value)}</>}
-              {collaborator.commission_type === 'fixed' && <><DollarSign className="h-3 w-3" /> {paymentLabel(collaborator.commission_type, collaborator.commission_value)}</>}
-              {collaborator.commission_type === 'none' && paymentLabel(collaborator.commission_type, collaborator.commission_value)}
+            <Badge variant="outline" className="flex items-center gap-1">
+              <Briefcase className="h-3 w-3" /> {modelBadgeLabel(collaborator)}
             </Badge>
             {!hasAccess && (
               <Badge variant="outline" className="flex items-center gap-1 text-xs">
@@ -1302,15 +1327,12 @@ const Team = () => {
 
           <Tabs defaultValue="personal" className="flex-1 flex flex-col overflow-hidden">
             <div className="px-6 pt-4 border-b">
-              <TabsList className="w-full grid grid-cols-3 sm:grid-cols-6 h-auto bg-transparent p-0 gap-1">
+              <TabsList className="w-full grid grid-cols-3 sm:grid-cols-5 h-auto bg-transparent p-0 gap-1">
                 <TabsTrigger value="personal" className="data-[state=active]:bg-muted text-xs sm:text-sm">
                   Pessoal
                 </TabsTrigger>
-                <TabsTrigger value="role" className="data-[state=active]:bg-muted text-xs sm:text-sm">
-                  Cargo
-                </TabsTrigger>
-                <TabsTrigger value="commission" className="data-[state=active]:bg-muted text-xs sm:text-sm">
-                  Comissão
+                <TabsTrigger value="model" className="data-[state=active]:bg-muted text-xs sm:text-sm">
+                  Modelo Comercial
                 </TabsTrigger>
                 <TabsTrigger value="schedule" className="data-[state=active]:bg-muted text-xs sm:text-sm">
                   Agenda
@@ -1349,27 +1371,191 @@ const Team = () => {
                 </div>
               </TabsContent>
 
-              {/* SECTION 2: Role & access */}
-              <TabsContent value="role" className="mt-0 space-y-4">
+              {/* SECTION 2: Modelo Comercial (unificado) */}
+              <TabsContent value="model" className="mt-0 space-y-5">
                 <div className="space-y-2">
-                  <Label>Tipo de vínculo</Label>
+                  <Label>Tipo de relação com a empresa</Label>
                   <Select
-                    value={editForm.collaborator_type}
-                    onValueChange={(v) => setEditForm({ ...editForm, collaborator_type: v })}
+                    value={editBM.business_model}
+                    onValueChange={(v) => setEditBM({ ...editBM, business_model: v as BusinessModel })}
                   >
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="partner">Sócio</SelectItem>
-                      <SelectItem value="commissioned">Comissionado</SelectItem>
-                      <SelectItem value="independent">Independente</SelectItem>
+                      {(Object.keys(BUSINESS_MODEL_LABELS) as BusinessModel[]).map((bm) => (
+                        <SelectItem key={bm} value={bm}>{BUSINESS_MODEL_LABELS[bm]}</SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
-                  <p className="text-xs text-muted-foreground">
-                    Define como o profissional se relaciona financeiramente com a empresa.
-                  </p>
+                  <div className="rounded-lg border bg-muted/30 p-3 text-xs text-muted-foreground">
+                    {BUSINESS_MODEL_DESCRIPTIONS[editBM.business_model]}
+                  </div>
                 </div>
 
-                <div className="rounded-lg border bg-muted/30 p-4 space-y-1">
+                {/* Funcionário */}
+                {editBM.business_model === 'employee' && (
+                  <div className="space-y-3 rounded-lg border p-4">
+                    <Label className="text-sm font-medium">Como ele é remunerado?</Label>
+                    <Select
+                      value={editBM.commission_type}
+                      onValueChange={(v) => setEditBM({ ...editBM, commission_type: v as any })}
+                    >
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">Salário fixo (controlado fora do sistema)</SelectItem>
+                        <SelectItem value="percentage">Comissão %</SelectItem>
+                        <SelectItem value="fixed">Valor fixo por serviço</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    {editBM.commission_type === 'percentage' && (
+                      <div className="space-y-2">
+                        <Label className="text-xs">Comissão do profissional (%)</Label>
+                        <Input
+                          type="number"
+                          value={editBM.commission_value || ''}
+                          onChange={(e) => setEditBM({ ...editBM, commission_value: Number(e.target.value) || 0 })}
+                          placeholder="Ex: 30"
+                        />
+                      </div>
+                    )}
+                    {editBM.commission_type === 'fixed' && (
+                      <div className="space-y-2">
+                        <Label className="text-xs">Valor por serviço (R$)</Label>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          value={editBM.commission_value || ''}
+                          onChange={(e) => setEditBM({ ...editBM, commission_value: Number(e.target.value) || 0 })}
+                          placeholder="Ex: 25.00"
+                        />
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Parceiro com comissão */}
+                {editBM.business_model === 'partner_commission' && (
+                  <div className="space-y-3 rounded-lg border p-4">
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium">% do profissional</Label>
+                      <Input
+                        type="number"
+                        value={editBM.commission_value || ''}
+                        onChange={(e) => setEditBM({ ...editBM, commission_value: Number(e.target.value) || 0 })}
+                        placeholder="Ex: 60"
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        A empresa fica com {Math.max(0, 100 - (Number(editBM.commission_value) || 0))}% de cada atendimento.
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Aluguel de cadeira */}
+                {editBM.business_model === 'chair_rental' && (
+                  <div className="space-y-3 rounded-lg border p-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div className="space-y-2">
+                        <Label className="text-sm font-medium">Periodicidade</Label>
+                        <Select
+                          value={editBM.rent_cycle || 'monthly'}
+                          onValueChange={(v) => setEditBM({ ...editBM, rent_cycle: v as RentCycle })}
+                        >
+                          <SelectTrigger><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            {(Object.keys(RENT_CYCLE_LABELS) as RentCycle[]).map((c) => (
+                              <SelectItem key={c} value={c}>{RENT_CYCLE_LABELS[c]}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="text-sm font-medium">Valor do aluguel (R$)</Label>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          value={editBM.rent_amount || ''}
+                          onChange={(e) => setEditBM({ ...editBM, rent_amount: Number(e.target.value) || 0 })}
+                          placeholder="Ex: 800.00"
+                        />
+                      </div>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      A receita dos serviços fica 100% com o profissional. O aluguel deve ser lançado manualmente em Contas a Receber.
+                    </p>
+                  </div>
+                )}
+
+                {/* Sócio Investidor */}
+                {editBM.business_model === 'investor_partner' && (
+                  <div className="space-y-3 rounded-lg border p-4">
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium">% de participação societária</Label>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        value={editBM.partner_equity_percent || ''}
+                        onChange={(e) => setEditBM({ ...editBM, partner_equity_percent: Number(e.target.value) || 0 })}
+                        placeholder="Ex: 25"
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {/* Sócio Operacional */}
+                {editBM.business_model === 'operating_partner' && (
+                  <div className="space-y-3 rounded-lg border p-4">
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium">Receita dos atendimentos</Label>
+                      <Select
+                        value={editBM.partner_revenue_mode || 'individual'}
+                        onValueChange={(v) => setEditBM({ ...editBM, partner_revenue_mode: v as PartnerRevenueMode })}
+                      >
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          {(Object.keys(PARTNER_REVENUE_MODE_LABELS) as PartnerRevenueMode[]).map((m) => (
+                            <SelectItem key={m} value={m}>{PARTNER_REVENUE_MODE_LABELS[m]}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    {editBM.partner_revenue_mode === 'percent_to_company' && (
+                      <div className="space-y-2">
+                        <Label className="text-xs">% que fica com o sócio</Label>
+                        <Input
+                          type="number"
+                          value={editBM.commission_value || ''}
+                          onChange={(e) => setEditBM({ ...editBM, commission_value: Number(e.target.value) || 0 })}
+                          placeholder="Ex: 70"
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          A empresa fica com {Math.max(0, 100 - (Number(editBM.commission_value) || 0))}% de cada atendimento.
+                        </p>
+                      </div>
+                    )}
+                    <div className="space-y-2">
+                      <Label className="text-xs">% societário (opcional)</Label>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        value={editBM.partner_equity_percent || ''}
+                        onChange={(e) => setEditBM({ ...editBM, partner_equity_percent: Number(e.target.value) || 0 })}
+                        placeholder="Ex: 50"
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Usado para divisão futura do lucro da empresa (relatório).
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Externo */}
+                {editBM.business_model === 'external' && (
+                  <div className="rounded-lg border bg-muted/30 p-4 text-sm text-muted-foreground">
+                    Este profissional usa apenas a agenda. Nenhum campo financeiro é necessário.
+                  </div>
+                )}
+
+                <div className="rounded-lg border bg-muted/30 p-3 space-y-1">
                   <div className="flex items-center gap-2 text-sm font-medium">
                     {editTarget?.has_system_access ? (
                       <><UserCheck className="h-4 w-4 text-emerald-600" /> Acesso ao sistema ativo</>
@@ -1383,55 +1569,6 @@ const Team = () => {
                       : 'Este profissional não tem login. Use as ações do card para conceder acesso.'}
                   </p>
                 </div>
-              </TabsContent>
-
-              {/* SECTION 3: Commission */}
-              <TabsContent value="commission" className="mt-0 space-y-4">
-                <div className="space-y-2">
-                  <Label>Forma de comissão</Label>
-                  <Select
-                    value={editForm.commission_type}
-                    onValueChange={(v) => setEditForm({ ...editForm, commission_type: v })}
-                  >
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="own_revenue">Receita própria</SelectItem>
-                      <SelectItem value="percentage">Percentual</SelectItem>
-                      <SelectItem value="fixed">Valor fixo</SelectItem>
-                      <SelectItem value="none">Sem comissão</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  {editForm.commission_type === 'own_revenue' && (
-                    <p className="text-xs text-muted-foreground">100% da receita pertence ao profissional.</p>
-                  )}
-                  {editForm.commission_type === 'none' && (
-                    <p className="text-xs text-muted-foreground">Nenhum valor é creditado ao profissional.</p>
-                  )}
-                </div>
-
-                {editForm.commission_type === 'percentage' && (
-                  <div className="space-y-2">
-                    <Label>Comissão (%)</Label>
-                    <Input
-                      type="number"
-                      value={editForm.commission_value}
-                      onChange={(e) => setEditForm({ ...editForm, commission_value: e.target.value })}
-                      placeholder="Ex: 10"
-                    />
-                  </div>
-                )}
-                {editForm.commission_type === 'fixed' && (
-                  <div className="space-y-2">
-                    <Label>Valor por serviço (R$)</Label>
-                    <Input
-                      type="number"
-                      step="0.01"
-                      value={editForm.commission_value}
-                      onChange={(e) => setEditForm({ ...editForm, commission_value: e.target.value })}
-                      placeholder="Ex: 25.00"
-                    />
-                  </div>
-                )}
               </TabsContent>
 
               {/* SECTION 4: Schedule */}

@@ -812,6 +812,7 @@ export type Database = {
           active: boolean
           booking_mode: string
           break_time: number
+          business_model: string | null
           collaborator_type: Database["public"]["Enums"]["collaborator_type"]
           commission_percent: number | null
           commission_type: Database["public"]["Enums"]["commission_type"]
@@ -821,7 +822,11 @@ export type Database = {
           grid_interval: number
           has_system_access: boolean
           id: string
+          partner_equity_percent: number
+          partner_revenue_mode: string | null
           profile_id: string
+          rent_amount: number
+          rent_cycle: string | null
           slug: string | null
           use_company_banner: boolean
         }
@@ -832,6 +837,7 @@ export type Database = {
           active?: boolean
           booking_mode?: string
           break_time?: number
+          business_model?: string | null
           collaborator_type: Database["public"]["Enums"]["collaborator_type"]
           commission_percent?: number | null
           commission_type?: Database["public"]["Enums"]["commission_type"]
@@ -841,7 +847,11 @@ export type Database = {
           grid_interval?: number
           has_system_access?: boolean
           id?: string
+          partner_equity_percent?: number
+          partner_revenue_mode?: string | null
           profile_id: string
+          rent_amount?: number
+          rent_cycle?: string | null
           slug?: string | null
           use_company_banner?: boolean
         }
@@ -852,6 +862,7 @@ export type Database = {
           active?: boolean
           booking_mode?: string
           break_time?: number
+          business_model?: string | null
           collaborator_type?: Database["public"]["Enums"]["collaborator_type"]
           commission_percent?: number | null
           commission_type?: Database["public"]["Enums"]["commission_type"]
@@ -861,7 +872,11 @@ export type Database = {
           grid_interval?: number
           has_system_access?: boolean
           id?: string
+          partner_equity_percent?: number
+          partner_revenue_mode?: string | null
           profile_id?: string
+          rent_amount?: number
+          rent_cycle?: string | null
           slug?: string | null
           use_company_banner?: boolean
         }
