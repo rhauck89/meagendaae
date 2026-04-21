@@ -85,14 +85,22 @@ const Team = () => {
   // Wizard step state
   const [wizardStep, setWizardStep] = useState(1);
 
+  // Unified business model form for the create wizard
+  const [wizardBM, setWizardBM] = useState<BusinessModelForm>({
+    business_model: 'employee',
+    commission_type: 'percentage',
+    commission_value: 0,
+    partner_revenue_mode: null,
+    partner_equity_percent: 0,
+    rent_amount: 0,
+    rent_cycle: 'monthly',
+  });
+
   const [form, setForm] = useState({
     name: '',
     email: '',
     whatsapp: '',
     role_title: 'Barbeiro',
-    collaborator_type: 'commissioned' as 'partner' | 'commissioned' | 'independent',
-    payment_type: 'percentage' as 'percentage' | 'fixed' | 'none' | 'own_revenue',
-    commission_value: '' as string | number,
     booking_mode: 'hybrid' as string,
     grid_interval: 15 as number,
     break_time: 0 as number,
@@ -220,9 +228,6 @@ const Team = () => {
       email: '',
       whatsapp: '',
       role_title: 'Barbeiro',
-      collaborator_type: 'commissioned',
-      payment_type: 'percentage',
-      commission_value: '',
       booking_mode: 'hybrid',
       grid_interval: 15,
       break_time: 0,
@@ -231,6 +236,15 @@ const Team = () => {
       is_admin_self: false,
       use_company_banner: true,
       schedule_from_company: true,
+    });
+    setWizardBM({
+      business_model: 'employee',
+      commission_type: 'percentage',
+      commission_value: 0,
+      partner_revenue_mode: null,
+      partner_equity_percent: 0,
+      rent_amount: 0,
+      rent_cycle: 'monthly',
     });
     setCreatedCredentials(null);
     setWizardStep(1);
@@ -269,15 +283,26 @@ const Team = () => {
       const bookingMode = form.schedule_from_company ? (company?.booking_mode || 'hybrid') : form.booking_mode;
       const gridInterval = form.schedule_from_company ? (company?.fixed_slot_interval || 15) : form.grid_interval;
 
+      // Derive legacy fields from the new unified business model so the
+      // existing financial engine and edge function keep working unchanged.
+      const legacy = deriveLegacyFields(wizardBM);
+      const paymentType = legacy.commission_type; // 'percentage' | 'fixed' | 'none' | 'own_revenue'
+
       const response = await supabase.functions.invoke('create-collaborator', {
         body: {
           name: form.name.trim(),
           email: form.is_admin_self ? (user?.email || '') : form.email.trim(),
           whatsapp: form.whatsapp.trim() || null,
           company_id: companyId,
-          collaborator_type: form.collaborator_type,
-          payment_type: form.payment_type,
-          commission_value: form.payment_type === 'none' || form.payment_type === 'own_revenue' ? 0 : (Number(form.commission_value) || 0),
+          collaborator_type: legacy.collaborator_type,
+          payment_type: paymentType,
+          commission_value: legacy.commission_value,
+          // New unified business model fields (forwarded so DB stores the user's choice)
+          business_model: wizardBM.business_model,
+          partner_revenue_mode: wizardBM.partner_revenue_mode,
+          partner_equity_percent: wizardBM.partner_equity_percent || 0,
+          rent_amount: wizardBM.rent_amount || 0,
+          rent_cycle: wizardBM.rent_cycle,
           role: 'collaborator',
           role_title: form.role_title,
           slug: professionalSlug,
@@ -884,42 +909,186 @@ const Team = () => {
                         </SelectContent>
                       </Select>
                     </div>
+                    {/* Modelo Comercial (unificado) — mesma lógica e visual da tela de edição */}
                     <div className="space-y-2">
-                      <Label>Tipo</Label>
-                      <Select value={form.collaborator_type} onValueChange={(value) => setForm({ ...form, collaborator_type: value as any })}>
+                      <Label>💰 Modelo Comercial</Label>
+                      <Select
+                        value={wizardBM.business_model}
+                        onValueChange={(v) => setWizardBM({ ...wizardBM, business_model: v as BusinessModel })}
+                      >
                         <SelectTrigger><SelectValue /></SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="partner">Sócio</SelectItem>
-                          <SelectItem value="commissioned">Comissionado</SelectItem>
-                          <SelectItem value="independent">Independente</SelectItem>
+                          {(Object.keys(BUSINESS_MODEL_LABELS) as BusinessModel[]).map((bm) => (
+                            <SelectItem key={bm} value={bm}>{BUSINESS_MODEL_LABELS[bm]}</SelectItem>
+                          ))}
                         </SelectContent>
                       </Select>
+                      <div className="rounded-lg border bg-muted/30 p-3 text-xs text-muted-foreground">
+                        {BUSINESS_MODEL_DESCRIPTIONS[wizardBM.business_model]}
+                      </div>
                     </div>
-                    <div className="space-y-2">
-                      <Label>Forma de pagamento</Label>
-                      <Select value={form.payment_type} onValueChange={(value) => setForm({ ...form, payment_type: value as any })}>
-                        <SelectTrigger><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="own_revenue">Receita própria</SelectItem>
-                          <SelectItem value="percentage">Percentual</SelectItem>
-                          <SelectItem value="fixed">Valor fixo</SelectItem>
-                          <SelectItem value="none">Sem comissão</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      {form.payment_type === 'own_revenue' && (
-                        <p className="text-xs text-muted-foreground">100% da receita pertence ao profissional. Não entra no faturamento da empresa.</p>
-                      )}
-                    </div>
-                    {form.payment_type === 'percentage' && (
-                      <div className="space-y-2">
-                        <Label>Comissão (%)</Label>
-                        <Input type="number" value={form.commission_value} onChange={(e) => setForm({ ...form, commission_value: e.target.value })} placeholder="Ex: 10" />
+
+                    {/* Funcionário */}
+                    {wizardBM.business_model === 'employee' && (
+                      <div className="space-y-3 rounded-lg border p-4">
+                        <Label className="text-sm font-medium">Como ele é remunerado?</Label>
+                        <Select
+                          value={wizardBM.commission_type}
+                          onValueChange={(v) => setWizardBM({ ...wizardBM, commission_type: v as any })}
+                        >
+                          <SelectTrigger><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="none">Salário fixo (controlado fora do sistema)</SelectItem>
+                            <SelectItem value="percentage">Comissão %</SelectItem>
+                            <SelectItem value="fixed">Valor fixo por serviço</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        {wizardBM.commission_type === 'percentage' && (
+                          <div className="space-y-2">
+                            <Label className="text-xs">Comissão do profissional (%)</Label>
+                            <Input
+                              type="number"
+                              value={wizardBM.commission_value || ''}
+                              onChange={(e) => setWizardBM({ ...wizardBM, commission_value: Number(e.target.value) || 0 })}
+                              placeholder="Ex: 30"
+                            />
+                          </div>
+                        )}
+                        {wizardBM.commission_type === 'fixed' && (
+                          <div className="space-y-2">
+                            <Label className="text-xs">Valor por serviço (R$)</Label>
+                            <Input
+                              type="number"
+                              step="0.01"
+                              value={wizardBM.commission_value || ''}
+                              onChange={(e) => setWizardBM({ ...wizardBM, commission_value: Number(e.target.value) || 0 })}
+                              placeholder="Ex: 25.00"
+                            />
+                          </div>
+                        )}
                       </div>
                     )}
-                    {form.payment_type === 'fixed' && (
-                      <div className="space-y-2">
-                        <Label>Valor por serviço (R$)</Label>
-                        <Input type="number" step="0.01" value={form.commission_value} onChange={(e) => setForm({ ...form, commission_value: e.target.value })} placeholder="Ex: 25.00" />
+
+                    {/* Parceiro com comissão */}
+                    {wizardBM.business_model === 'partner_commission' && (
+                      <div className="space-y-3 rounded-lg border p-4">
+                        <div className="space-y-2">
+                          <Label className="text-sm font-medium">% do profissional</Label>
+                          <Input
+                            type="number"
+                            value={wizardBM.commission_value || ''}
+                            onChange={(e) => setWizardBM({ ...wizardBM, commission_value: Number(e.target.value) || 0 })}
+                            placeholder="Ex: 60"
+                          />
+                          <p className="text-xs text-muted-foreground">
+                            A empresa fica com {Math.max(0, 100 - (Number(wizardBM.commission_value) || 0))}% de cada atendimento.
+                          </p>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Aluguel de cadeira */}
+                    {wizardBM.business_model === 'chair_rental' && (
+                      <div className="space-y-3 rounded-lg border p-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          <div className="space-y-2">
+                            <Label className="text-sm font-medium">Periodicidade</Label>
+                            <Select
+                              value={wizardBM.rent_cycle || 'monthly'}
+                              onValueChange={(v) => setWizardBM({ ...wizardBM, rent_cycle: v as RentCycle })}
+                            >
+                              <SelectTrigger><SelectValue /></SelectTrigger>
+                              <SelectContent>
+                                {(Object.keys(RENT_CYCLE_LABELS) as RentCycle[]).map((c) => (
+                                  <SelectItem key={c} value={c}>{RENT_CYCLE_LABELS[c]}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="space-y-2">
+                            <Label className="text-sm font-medium">Valor do aluguel (R$)</Label>
+                            <Input
+                              type="number"
+                              step="0.01"
+                              value={wizardBM.rent_amount || ''}
+                              onChange={(e) => setWizardBM({ ...wizardBM, rent_amount: Number(e.target.value) || 0 })}
+                              placeholder="Ex: 800.00"
+                            />
+                          </div>
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          A receita dos serviços fica 100% com o profissional. O aluguel deve ser lançado manualmente em Contas a Receber.
+                        </p>
+                      </div>
+                    )}
+
+                    {/* Sócio Investidor */}
+                    {wizardBM.business_model === 'investor_partner' && (
+                      <div className="space-y-3 rounded-lg border p-4">
+                        <div className="space-y-2">
+                          <Label className="text-sm font-medium">% de participação societária</Label>
+                          <Input
+                            type="number"
+                            step="0.01"
+                            value={wizardBM.partner_equity_percent || ''}
+                            onChange={(e) => setWizardBM({ ...wizardBM, partner_equity_percent: Number(e.target.value) || 0 })}
+                            placeholder="Ex: 25"
+                          />
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Sócio Operacional */}
+                    {wizardBM.business_model === 'operating_partner' && (
+                      <div className="space-y-3 rounded-lg border p-4">
+                        <div className="space-y-2">
+                          <Label className="text-sm font-medium">Receita dos atendimentos</Label>
+                          <Select
+                            value={wizardBM.partner_revenue_mode || 'individual'}
+                            onValueChange={(v) => setWizardBM({ ...wizardBM, partner_revenue_mode: v as PartnerRevenueMode })}
+                          >
+                            <SelectTrigger><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                              {(Object.keys(PARTNER_REVENUE_MODE_LABELS) as PartnerRevenueMode[]).map((m) => (
+                                <SelectItem key={m} value={m}>{PARTNER_REVENUE_MODE_LABELS[m]}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        {wizardBM.partner_revenue_mode === 'percent_to_company' && (
+                          <div className="space-y-2">
+                            <Label className="text-xs">% que fica com o sócio</Label>
+                            <Input
+                              type="number"
+                              value={wizardBM.commission_value || ''}
+                              onChange={(e) => setWizardBM({ ...wizardBM, commission_value: Number(e.target.value) || 0 })}
+                              placeholder="Ex: 70"
+                            />
+                            <p className="text-xs text-muted-foreground">
+                              A empresa fica com {Math.max(0, 100 - (Number(wizardBM.commission_value) || 0))}% de cada atendimento.
+                            </p>
+                          </div>
+                        )}
+                        <div className="space-y-2">
+                          <Label className="text-xs">% societário (opcional)</Label>
+                          <Input
+                            type="number"
+                            step="0.01"
+                            value={wizardBM.partner_equity_percent || ''}
+                            onChange={(e) => setWizardBM({ ...wizardBM, partner_equity_percent: Number(e.target.value) || 0 })}
+                            placeholder="Ex: 50"
+                          />
+                          <p className="text-xs text-muted-foreground">
+                            Usado para divisão futura do lucro da empresa (relatório).
+                          </p>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Externo */}
+                    {wizardBM.business_model === 'external' && (
+                      <div className="rounded-lg border bg-muted/30 p-4 text-sm text-muted-foreground">
+                        Este profissional usa apenas a agenda. Nenhum campo financeiro é necessário.
                       </div>
                     )}
                     <Button className="w-full" onClick={() => {
@@ -1191,8 +1360,22 @@ const Team = () => {
                         <div className="flex justify-between"><span className="text-muted-foreground">Vínculo</span><span className="font-medium text-primary">Administrador</span></div>
                       )}
                       {form.whatsapp && <div className="flex justify-between"><span className="text-muted-foreground">WhatsApp</span><span className="font-medium">{form.whatsapp}</span></div>}
-                      <div className="flex justify-between"><span className="text-muted-foreground">Tipo</span><span className="font-medium">{form.collaborator_type === 'partner' ? 'Sócio' : form.collaborator_type === 'independent' ? 'Independente' : 'Comissionado'}</span></div>
-                      <div className="flex justify-between"><span className="text-muted-foreground">Pagamento</span><span className="font-medium">{paymentLabel(form.payment_type, Number(form.commission_value) || 0)}</span></div>
+                      <div className="flex justify-between"><span className="text-muted-foreground">Modelo Comercial</span><span className="font-medium">{BUSINESS_MODEL_LABELS[wizardBM.business_model]}</span></div>
+                      {wizardBM.business_model === 'partner_commission' && Number(wizardBM.commission_value) > 0 && (
+                        <div className="flex justify-between"><span className="text-muted-foreground">% profissional</span><span className="font-medium">{wizardBM.commission_value}%</span></div>
+                      )}
+                      {wizardBM.business_model === 'employee' && wizardBM.commission_type !== 'none' && (
+                        <div className="flex justify-between"><span className="text-muted-foreground">Remuneração</span><span className="font-medium">{wizardBM.commission_type === 'percentage' ? `${wizardBM.commission_value}%` : `R$ ${Number(wizardBM.commission_value).toFixed(2)}/serviço`}</span></div>
+                      )}
+                      {wizardBM.business_model === 'chair_rental' && (
+                        <div className="flex justify-between"><span className="text-muted-foreground">Aluguel</span><span className="font-medium">R$ {Number(wizardBM.rent_amount).toFixed(2)} ({RENT_CYCLE_LABELS[wizardBM.rent_cycle || 'monthly']})</span></div>
+                      )}
+                      {wizardBM.business_model === 'operating_partner' && wizardBM.partner_revenue_mode && (
+                        <div className="flex justify-between"><span className="text-muted-foreground">Receita</span><span className="font-medium">{PARTNER_REVENUE_MODE_LABELS[wizardBM.partner_revenue_mode]}</span></div>
+                      )}
+                      {wizardBM.business_model === 'investor_partner' && Number(wizardBM.partner_equity_percent) > 0 && (
+                        <div className="flex justify-between"><span className="text-muted-foreground">Participação</span><span className="font-medium">{wizardBM.partner_equity_percent}%</span></div>
+                      )}
                       <div className="flex justify-between"><span className="text-muted-foreground">Acesso</span><span className="font-medium">{form.has_system_access ? (form.is_admin_self ? 'Admin vinculado' : 'Com login') : 'Sem acesso'}</span></div>
                       <div className="flex justify-between"><span className="text-muted-foreground">Agenda</span><span className="font-medium">{form.schedule_from_company ? 'Padrão da empresa' : bookingModeLabel(form.booking_mode)}</span></div>
                       <div className="flex justify-between"><span className="text-muted-foreground">Capa</span><span className="font-medium">{form.use_company_banner ? 'Da empresa' : 'Personalizada'}</span></div>

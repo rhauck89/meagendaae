@@ -280,6 +280,18 @@ Deno.serve(async (req) => {
       const rawBreakTime = Number(body.break_time);
       const breakTime = Number.isFinite(rawBreakTime) && rawBreakTime >= 0 && rawBreakTime <= 60 ? rawBreakTime : 0;
 
+      // New unified business-model fields (validated)
+      const allowedBusinessModels = ["employee", "partner_commission", "chair_rental", "investor_partner", "operating_partner", "external"];
+      const businessModel = allowedBusinessModels.includes(body.business_model) ? body.business_model : null;
+      const allowedRentCycles = ["daily", "weekly", "monthly"];
+      const rentCycle = allowedRentCycles.includes(body.rent_cycle) ? body.rent_cycle : null;
+      const allowedRevenueModes = ["individual", "shared", "percent_to_company"];
+      const partnerRevenueMode = allowedRevenueModes.includes(body.partner_revenue_mode) ? body.partner_revenue_mode : null;
+      const rawRentAmount = Number(body.rent_amount);
+      const rentAmount = Number.isFinite(rawRentAmount) && rawRentAmount >= 0 ? rawRentAmount : 0;
+      const rawEquity = Number(body.partner_equity_percent);
+      const partnerEquityPercent = Number.isFinite(rawEquity) && rawEquity >= 0 && rawEquity <= 100 ? rawEquity : 0;
+
       const { error: collaboratorError } = await supabaseAdmin.from("collaborators").insert({
         company_id: companyId,
         profile_id: profileId,
@@ -293,6 +305,11 @@ Deno.serve(async (req) => {
         break_time: breakTime,
         has_system_access: hasSystemAccess,
         use_company_banner: useCompanyBanner,
+        business_model: businessModel,
+        rent_cycle: rentCycle,
+        rent_amount: rentAmount,
+        partner_revenue_mode: partnerRevenueMode,
+        partner_equity_percent: partnerEquityPercent,
       });
 
       if (collaboratorError) {
