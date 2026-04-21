@@ -85,14 +85,22 @@ const Team = () => {
   // Wizard step state
   const [wizardStep, setWizardStep] = useState(1);
 
+  // Unified business model form for the create wizard
+  const [wizardBM, setWizardBM] = useState<BusinessModelForm>({
+    business_model: 'employee',
+    commission_type: 'percentage',
+    commission_value: 0,
+    partner_revenue_mode: null,
+    partner_equity_percent: 0,
+    rent_amount: 0,
+    rent_cycle: 'monthly',
+  });
+
   const [form, setForm] = useState({
     name: '',
     email: '',
     whatsapp: '',
     role_title: 'Barbeiro',
-    collaborator_type: 'commissioned' as 'partner' | 'commissioned' | 'independent',
-    payment_type: 'percentage' as 'percentage' | 'fixed' | 'none' | 'own_revenue',
-    commission_value: '' as string | number,
     booking_mode: 'hybrid' as string,
     grid_interval: 15 as number,
     break_time: 0 as number,
