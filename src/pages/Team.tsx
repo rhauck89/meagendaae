@@ -283,15 +283,26 @@ const Team = () => {
       const bookingMode = form.schedule_from_company ? (company?.booking_mode || 'hybrid') : form.booking_mode;
       const gridInterval = form.schedule_from_company ? (company?.fixed_slot_interval || 15) : form.grid_interval;
 
+      // Derive legacy fields from the new unified business model so the
+      // existing financial engine and edge function keep working unchanged.
+      const legacy = deriveLegacyFields(wizardBM);
+      const paymentType = legacy.commission_type; // 'percentage' | 'fixed' | 'none' | 'own_revenue'
+
       const response = await supabase.functions.invoke('create-collaborator', {
         body: {
           name: form.name.trim(),
           email: form.is_admin_self ? (user?.email || '') : form.email.trim(),
           whatsapp: form.whatsapp.trim() || null,
           company_id: companyId,
-          collaborator_type: form.collaborator_type,
-          payment_type: form.payment_type,
-          commission_value: form.payment_type === 'none' || form.payment_type === 'own_revenue' ? 0 : (Number(form.commission_value) || 0),
+          collaborator_type: legacy.collaborator_type,
+          payment_type: paymentType,
+          commission_value: legacy.commission_value,
+          // New unified business model fields (forwarded so DB stores the user's choice)
+          business_model: wizardBM.business_model,
+          partner_revenue_mode: wizardBM.partner_revenue_mode,
+          partner_equity_percent: wizardBM.partner_equity_percent || 0,
+          rent_amount: wizardBM.rent_amount || 0,
+          rent_cycle: wizardBM.rent_cycle,
           role: 'collaborator',
           role_title: form.role_title,
           slug: professionalSlug,
