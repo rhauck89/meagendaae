@@ -534,7 +534,7 @@ const Clients = () => {
                         size="icon"
                         variant="ghost"
                         className="h-7 w-7 text-green-600"
-                        onClick={() => openWhatsApp(c.whatsapp!)}
+                        onClick={() => openWhatsApp(c.whatsapp!, { source: 'clients' })}
                       >
                         <MessageCircle className="h-3.5 w-3.5" />
                       </Button>
@@ -665,7 +665,7 @@ const Clients = () => {
                                 className="text-green-600"
                                 onClick={e => {
                                   e.stopPropagation();
-                                  openWhatsApp(client.whatsapp!);
+                                  openWhatsApp(client.whatsapp!, { source: 'clients' });
                                 }}
                               >
                                 <MessageCircle className="h-4 w-4" />
@@ -710,7 +710,7 @@ const Clients = () => {
                             className="h-7 w-7 text-green-600"
                             onClick={e => {
                               e.stopPropagation();
-                              openWhatsApp(client.whatsapp!);
+                              openWhatsApp(client.whatsapp!, { source: 'clients' });
                             }}
                           >
                             <MessageCircle className="h-3.5 w-3.5" />
@@ -975,7 +975,7 @@ const ClientProfile = ({ client, companyId, profileMap, onBack }: ClientProfileP
             <Button
               size="sm"
               className="bg-green-600 hover:bg-green-700 gap-2"
-              onClick={() => openWhatsApp(client.whatsapp!)}
+              onClick={() => openWhatsApp(client.whatsapp!, { source: 'clients' })}
             >
               <MessageCircle className="h-4 w-4" /> <span className="hidden sm:inline">WhatsApp</span>
             </Button>

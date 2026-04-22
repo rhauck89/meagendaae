@@ -752,7 +752,7 @@ const Dashboard = () => {
             `⚠️ Aviso de atraso\n\nOlá ${a.client_name || 'Cliente'}! 👋\n\nHouve um pequeno atraso no atendimento anterior.\n\nSeu horário foi ajustado para:\n🕐 ${a.new_start} - ${a.new_end}\n\nObrigado pela compreensão!`
           );
           const phone = formatWhatsApp(a.client_whatsapp);
-          openWhatsApp(phone, `⚠️ Aviso de atraso\n\nOlá ${a.client_name || 'Cliente'}! 👋\n\nHouve um pequeno atraso no atendimento anterior.\n\nSeu horário foi ajustado para:\n🕐 ${a.new_start} - ${a.new_end}\n\nObrigado pela compreensão!`);
+          openWhatsApp(phone, { source: 'dashboard', message: `⚠️ Aviso de atraso\n\nOlá ${a.client_name || 'Cliente'}! 👋\n\nHouve um pequeno atraso no atendimento anterior.\n\nSeu horário foi ajustado para:\n🕐 ${a.new_start} - ${a.new_end}\n\nObrigado pela compreensão!` });
         }
       }
 
@@ -838,7 +838,7 @@ const Dashboard = () => {
       toast.success('Agendamento reagendado com sucesso');
       const clientWhatsapp = rescheduleTarget.client_whatsapp;
       if (clientWhatsapp) {
-        openWhatsApp(clientWhatsapp, `📋 Seu horário foi atualizado.\n\n📅 ${format(rescheduleDate, "dd 'de' MMMM, yyyy", { locale: ptBR })}\n⏰ ${rescheduleSelectedSlot}\n\nSe precisar alterar novamente, utilize o link enviado anteriormente.`);
+        openWhatsApp(clientWhatsapp, { source: 'dashboard', message: `📋 Seu horário foi atualizado.\n\n📅 ${format(rescheduleDate, "dd 'de' MMMM, yyyy", { locale: ptBR })}\n⏰ ${rescheduleSelectedSlot}\n\nSe precisar alterar novamente, utilize o link enviado anteriormente.` });
       }
       fetchAppointments();
     } catch {
