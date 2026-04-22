@@ -17,6 +17,7 @@ import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
 import { calculateAvailableSlots } from '@/lib/availability-engine';
 import { formatWhatsApp, openWhatsApp } from '@/lib/whatsapp';
+import { sendAppointmentCreatedWebhook } from '@/lib/automations';
 
 type StatusTab = 'active' | 'notified' | 'expired' | 'converted' | 'all';
 
@@ -277,6 +278,23 @@ const Waitlist = () => {
       }
 
       toast.success('Agendamento criado com sucesso!');
+
+      // Fire Make automation webhook — non-blocking
+      try {
+        sendAppointmentCreatedWebhook({
+          appointment_id: String(appointmentId),
+          company_id: companyId,
+          client_name: bookingTarget.client_name,
+          client_phone: bookingTarget.client_whatsapp || null,
+          professional_name: '',
+          service_name: '',
+          service_price: 0,
+          appointment_date: format(selectedDate, 'yyyy-MM-dd'),
+          appointment_time: selectedSlot,
+          datetime_iso: startTime.toISOString(),
+          origin: 'waitlist',
+        });
+      } catch { /* silent */ }
 
       if (bookingTarget.client_whatsapp) {
         const msg = encodeURIComponent(

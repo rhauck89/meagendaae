@@ -14,6 +14,7 @@ import { Clock, Check, X, MessageCircle, ArrowRight, Inbox } from 'lucide-react'
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { displayWhatsApp, formatWhatsApp, openWhatsApp } from '@/lib/whatsapp';
+import { sendAppointmentCreatedWebhook } from '@/lib/automations';
 
 const statusLabels: Record<string, { label: string; color: string }> = {
   pending: { label: 'Pendente', color: 'bg-yellow-100 text-yellow-800' },

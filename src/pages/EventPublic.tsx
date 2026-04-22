@@ -13,6 +13,7 @@ import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { formatWhatsApp } from '@/lib/whatsapp';
+import { sendAppointmentCreatedWebhook } from '@/lib/automations';
 import { SEOHead } from '@/components/SEOHead';
 
 type Event = {
@@ -222,6 +223,28 @@ const EventPublic = () => {
       if (error) throw error;
       setBookingSuccess(true);
       toast.success('Agendamento confirmado! 🎉');
+
+      // Fire Make automation webhook — non-blocking
+      try {
+        const serviceNames = selectedServices
+          .map((svcId) => services.find((s) => s.id === svcId)?.name)
+          .filter(Boolean)
+          .join(', ');
+        sendAppointmentCreatedWebhook({
+          appointment_id: typeof data === 'string' ? data : (data as any)?.appointment_id || '',
+          company_id: event?.company_id || '',
+          client_name: clientName.trim(),
+          client_phone: formatWhatsApp(clientWhatsapp.trim()),
+          professional_name: selectedSlot.professional_name || '',
+          service_name: serviceNames,
+          service_price: Number(totalPrice),
+          appointment_date: selectedSlot.slot_date,
+          appointment_time: String(selectedSlot.start_time).slice(0, 5),
+          datetime_iso: new Date(`${selectedSlot.slot_date}T${selectedSlot.start_time}`).toISOString(),
+          origin: 'open',
+        });
+      } catch { /* silent */ }
+
       // Refresh slots
       loadEvent();
     } catch (err: any) {
