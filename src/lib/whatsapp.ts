@@ -163,6 +163,9 @@ export function openWhatsApp(phone: string, messageOrOptions?: string | OpenWhat
   const opts: OpenWhatsAppOptions =
     typeof messageOrOptions === 'string' ? { message: messageOrOptions } : (messageOrOptions || {});
 
+  // `source` is the new canonical field; fall back to the legacy `origin` if present.
+  const source = opts.source || opts.origin || 'unknown';
+
   // Lazy import to avoid circular deps and keep tree-shakeable in non-UI contexts.
   const showToast = (type: 'error', text: string) => {
     try {
@@ -177,7 +180,7 @@ export function openWhatsApp(phone: string, messageOrOptions?: string | OpenWhat
   if (!phone || !String(phone).trim()) {
     showToast('error', 'Cliente sem WhatsApp cadastrado.');
     if (typeof console !== 'undefined') {
-      console.warn('[WHATSAPP] empty phone', { origin: opts.origin });
+      console.warn('[WHATSAPP] empty phone', { source });
     }
     return;
   }
@@ -186,7 +189,7 @@ export function openWhatsApp(phone: string, messageOrOptions?: string | OpenWhat
   if (!isValidWhatsApp(digits)) {
     showToast('error', 'Número de WhatsApp inválido.');
     if (typeof console !== 'undefined') {
-      console.warn('[WHATSAPP] invalid phone', { phone, digits, origin: opts.origin });
+      console.warn('[WHATSAPP] invalid phone', { phone, digits, source });
     }
     return;
   }
@@ -194,9 +197,11 @@ export function openWhatsApp(phone: string, messageOrOptions?: string | OpenWhat
   const url = buildWhatsAppUrl(digits, opts.message);
   const device = isMobileDevice() ? 'mobile' : 'desktop';
 
+  // Record the click for internal metrics.
+  bumpMetric(source);
+
   if (typeof console !== 'undefined') {
-    // Compact debug breadcrumb — useful when users report broken links.
-    console.info(`[WHATSAPP] device=${device} phone=${digits} target=wa.me origin=${opts.origin || 'unknown'}`);
+    console.info(`[WHATSAPP] device=${device} phone=${digits} target=wa.me source=${source}`);
   }
 
   if (typeof window !== 'undefined') {
