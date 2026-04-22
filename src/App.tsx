@@ -85,6 +85,7 @@ import FinanceReports from "./pages/finance/FinanceReports";
 import FinancePayables from "./pages/finance/FinancePayables";
 import FinanceReceivables from "./pages/finance/FinanceReceivables";
 import ProfessionalFinance from "./pages/ProfessionalFinance";
+import WhatsAppCenter from "./pages/WhatsAppCenter";
 
 const queryClient = new QueryClient();
 
@@ -187,6 +188,7 @@ const PlatformRoutes = () => (
     <Route path="/dashboard/loyalty" element={<DashboardRoute><Loyalty /></DashboardRoute>} />
     <Route path="/dashboard/support" element={<DashboardRoute><Support /></DashboardRoute>} />
     <Route path="/dashboard/solicitacoes" element={<DashboardRoute><AppointmentRequests /></DashboardRoute>} />
+    <Route path="/dashboard/whatsapp" element={<DashboardRoute><WhatsAppCenter /></DashboardRoute>} />
     <Route path="/dashboard/help" element={<DashboardRoute><HelpCenter /></DashboardRoute>} />
     {/* Settings sub-routes */}
     <Route path="/dashboard/settings" element={<Navigate to="/dashboard/settings/general" replace />} />
