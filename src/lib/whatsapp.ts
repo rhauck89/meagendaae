@@ -71,10 +71,84 @@ export function buildWhatsAppUrl(phone: string, message?: string): string {
   return `${base}?text=${encodeURIComponent(message)}`;
 }
 
+/**
+ * Known source modules for click metrics. Add new ones here as the system grows.
+ * Free-form strings are still accepted to avoid blocking new call sites.
+ */
+export type WhatsAppSource =
+  | 'dashboard'
+  | 'clients'
+  | 'public-booking'
+  | 'appointment-requests'
+  | 'manual-appointment'
+  | 'swap-appointment'
+  | 'trial-banner'
+  | 'onboarding'
+  | 'custom-request'
+  | 'team'
+  | 'promotions'
+  | 'loyalty'
+  | 'finance'
+  | 'unknown'
+  | (string & {});
+
 interface OpenWhatsAppOptions {
   message?: string;
-  /** Shown in console logs to help trace which screen triggered the open. */
+  /**
+   * Module/screen that triggered the open. Used for internal click metrics
+   * (how many WhatsApp clicks per area of the app) and debug logs.
+   * Prefer one of the values in `WhatsAppSource`.
+   */
+  source?: WhatsAppSource;
+  /** @deprecated Use `source` instead. Kept for backwards compatibility. */
   origin?: string;
+}
+
+/**
+ * In-memory click counters per source. Useful for quick inspection in dev tools:
+ *   window.__waMetrics  // { dashboard: 3, clients: 7, ... }
+ *
+ * Persisted lightly to localStorage so counts survive page reloads.
+ */
+const METRICS_KEY = 'wa_click_metrics_v1';
+
+function bumpMetric(source: string) {
+  if (typeof window === 'undefined') return;
+  try {
+    const raw = window.localStorage.getItem(METRICS_KEY);
+    const data: Record<string, number> = raw ? JSON.parse(raw) : {};
+    data[source] = (data[source] || 0) + 1;
+    window.localStorage.setItem(METRICS_KEY, JSON.stringify(data));
+    // Expose live counter on window for quick inspection.
+    (window as unknown as { __waMetrics?: Record<string, number> }).__waMetrics = data;
+    // Custom event so other modules (analytics, dashboards) can subscribe.
+    window.dispatchEvent(new CustomEvent('whatsapp:click', { detail: { source, total: data[source] } }));
+  } catch {
+    // localStorage may be unavailable (private mode, SSR) — silently ignore.
+  }
+}
+
+/**
+ * Read current per-source click counts. Safe to call from anywhere.
+ */
+export function getWhatsAppMetrics(): Record<string, number> {
+  if (typeof window === 'undefined') return {};
+  try {
+    const raw = window.localStorage.getItem(METRICS_KEY);
+    return raw ? JSON.parse(raw) : {};
+  } catch {
+    return {};
+  }
+}
+
+/** Reset all stored counts (e.g. for QA). */
+export function resetWhatsAppMetrics(): void {
+  if (typeof window === 'undefined') return;
+  try {
+    window.localStorage.removeItem(METRICS_KEY);
+  } catch {
+    // ignore
+  }
 }
 
 /**
@@ -88,6 +162,9 @@ interface OpenWhatsAppOptions {
 export function openWhatsApp(phone: string, messageOrOptions?: string | OpenWhatsAppOptions): void {
   const opts: OpenWhatsAppOptions =
     typeof messageOrOptions === 'string' ? { message: messageOrOptions } : (messageOrOptions || {});
+
+  // `source` is the new canonical field; fall back to the legacy `origin` if present.
+  const source = opts.source || opts.origin || 'unknown';
 
   // Lazy import to avoid circular deps and keep tree-shakeable in non-UI contexts.
   const showToast = (type: 'error', text: string) => {
@@ -103,7 +180,7 @@ export function openWhatsApp(phone: string, messageOrOptions?: string | OpenWhat
   if (!phone || !String(phone).trim()) {
     showToast('error', 'Cliente sem WhatsApp cadastrado.');
     if (typeof console !== 'undefined') {
-      console.warn('[WHATSAPP] empty phone', { origin: opts.origin });
+      console.warn('[WHATSAPP] empty phone', { source });
     }
     return;
   }
@@ -112,7 +189,7 @@ export function openWhatsApp(phone: string, messageOrOptions?: string | OpenWhat
   if (!isValidWhatsApp(digits)) {
     showToast('error', 'Número de WhatsApp inválido.');
     if (typeof console !== 'undefined') {
-      console.warn('[WHATSAPP] invalid phone', { phone, digits, origin: opts.origin });
+      console.warn('[WHATSAPP] invalid phone', { phone, digits, source });
     }
     return;
   }
@@ -120,9 +197,11 @@ export function openWhatsApp(phone: string, messageOrOptions?: string | OpenWhat
   const url = buildWhatsAppUrl(digits, opts.message);
   const device = isMobileDevice() ? 'mobile' : 'desktop';
 
+  // Record the click for internal metrics.
+  bumpMetric(source);
+
   if (typeof console !== 'undefined') {
-    // Compact debug breadcrumb — useful when users report broken links.
-    console.info(`[WHATSAPP] device=${device} phone=${digits} target=wa.me origin=${opts.origin || 'unknown'}`);
+    console.info(`[WHATSAPP] device=${device} phone=${digits} target=wa.me source=${source}`);
   }
 
   if (typeof window !== 'undefined') {
