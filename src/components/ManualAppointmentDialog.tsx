@@ -247,12 +247,28 @@ export function ManualAppointmentDialog({
       }
 
       // Send WhatsApp if requested
+      const profName = professionals.find(p => p.profile_id === selectedProfessional)?.profile?.full_name || 'Profissional';
+      const serviceNames = selectedServices.map(sId => services.find(s => s.id === sId)?.name).filter(Boolean).join(', ');
+      const dateFormatted = format(selectedDate, "dd 'de' MMMM, yyyy", { locale: ptBR });
+
       if (sendWhatsApp && selectedClient.whatsapp) {
-        const profName = professionals.find(p => p.profile_id === selectedProfessional)?.profile?.full_name || 'Profissional';
-        const serviceNames = selectedServices.map(sId => services.find(s => s.id === sId)?.name).filter(Boolean).join(', ');
-        const dateFormatted = format(selectedDate, "dd 'de' MMMM, yyyy", { locale: ptBR });
         openWhatsApp(selectedClient.whatsapp, { source: 'manual-appointment', message: `Olá ${selectedClient.name}! 👋\n\nSeu horário foi agendado com sucesso! ✅\n\n✂️ Serviço: ${serviceNames}\n👤 Profissional: ${profName}\n📅 Data: ${dateFormatted}\n🕐 Horário: ${selectedSlot}\n\nNos vemos em breve!` });
       }
+
+      // Fire automation webhook (Make) — non-blocking
+      sendAppointmentCreatedWebhook({
+        appointment_id: newAppt?.id || '',
+        company_id: companyId,
+        client_name: selectedClient.name,
+        client_phone: selectedClient.whatsapp || null,
+        professional_name: profName,
+        service_name: serviceNames,
+        service_price: totalPrice,
+        appointment_date: format(selectedDate, 'yyyy-MM-dd'),
+        appointment_time: selectedSlot,
+        datetime_iso: startTime,
+        origin: 'dashboard',
+      });
 
       toast.success('Agendamento criado com sucesso!');
       onCreated();
