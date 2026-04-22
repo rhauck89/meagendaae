@@ -156,8 +156,10 @@ const OnboardingChecklist = () => {
   const handleShareWhatsApp = () => {
     const url = getBookingUrl();
     const message = `Agende seu horário comigo: ${url}`;
-    const whatsappUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(message)}`;
-    window.open(whatsappUrl, '_blank');
+    // No phone → opens WhatsApp's share/contact picker on every platform.
+    const shareUrl = buildWhatsAppUrl('', message);
+    const win = window.open(shareUrl, '_blank', 'noopener,noreferrer');
+    if (!win) window.location.href = shareUrl;
     markShareCompleted();
   };
 
