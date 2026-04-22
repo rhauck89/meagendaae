@@ -23,3 +23,6 @@ verify_jwt = false
 
 [functions.apply-pending-plans]
 verify_jwt = false
+
+[functions.automations-api]
+verify_jwt = false
