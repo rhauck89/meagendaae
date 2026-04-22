@@ -153,7 +153,7 @@ function OverviewTab({ loading, instance, logs, metrics }: { loading: boolean; i
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-        <StatCard icon={instance?.status === 'connected' ? <CheckCircle2 className="h-5 w-5 text-green-500" /> : <AlertCircle className="h-5 w-5 text-muted-foreground" />} label="Status" value={statusInfo.label} />
+        <StatCard icon={instance?.status === 'connected' ? <CheckCircle2 className="h-5 w-5 text-primary" /> : <AlertCircle className="h-5 w-5 text-muted-foreground" />} label="Status" value={statusInfo.label} />
         <StatCard icon={<Send className="h-5 w-5 text-primary" />} label="Hoje" value={sentToday.toString()} />
         <StatCard icon={<TrendingUp className="h-5 w-5 text-primary" />} label="Este mês" value={sentMonth.toString()} />
         <StatCard icon={<CheckCircle2 className="h-5 w-5 text-primary" />} label="Taxa entrega" value={`${replyRate}%`} />
@@ -538,15 +538,15 @@ function TemplateEditor({ companyId, template, onClose, onSaved }: {
   const insertVar = (v: string) => setBody(b => b + v);
 
   const preview = body
-    .replaceAll('{{nome}}', 'João Silva')
-    .replaceAll('{{empresa}}', 'Sua Empresa')
-    .replaceAll('{{servico}}', 'Corte de cabelo')
-    .replaceAll('{{profissional}}', 'Carlos')
-    .replaceAll('{{data}}', '15/05')
-    .replaceAll('{{hora}}', '14:00')
-    .replaceAll('{{link_agendamento}}', 'https://...')
-    .replaceAll('{{pontos}}', '120')
-    .replaceAll('{{cashback}}', 'R$ 25,00');
+    .replace(/\{\{nome\}\}/g, 'João Silva')
+    .replace(/\{\{empresa\}\}/g, 'Sua Empresa')
+    .replace(/\{\{servico\}\}/g, 'Corte de cabelo')
+    .replace(/\{\{profissional\}\}/g, 'Carlos')
+    .replace(/\{\{data\}\}/g, '15/05')
+    .replace(/\{\{hora\}\}/g, '14:00')
+    .replace(/\{\{link_agendamento\}\}/g, 'https://...')
+    .replace(/\{\{pontos\}\}/g, '120')
+    .replace(/\{\{cashback\}\}/g, 'R$ 25,00');
 
   const save = async () => {
     if (!name.trim() || !body.trim()) { toast.error('Nome e mensagem obrigatórios'); return; }
