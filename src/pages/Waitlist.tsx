@@ -278,6 +278,23 @@ const Waitlist = () => {
 
       toast.success('Agendamento criado com sucesso!');
 
+      // Fire Make automation webhook — non-blocking
+      try {
+        sendAppointmentCreatedWebhook({
+          appointment_id: String(appointmentId),
+          company_id: companyId,
+          client_name: bookingTarget.client_name,
+          client_phone: bookingTarget.client_whatsapp || null,
+          professional_name: '',
+          service_name: '',
+          service_price: 0,
+          appointment_date: format(selectedDate, 'yyyy-MM-dd'),
+          appointment_time: selectedSlot,
+          datetime_iso: startTime.toISOString(),
+          origin: 'waitlist',
+        });
+      } catch { /* silent */ }
+
       if (bookingTarget.client_whatsapp) {
         const msg = encodeURIComponent(
           `\u2705 Seu hor\u00e1rio foi confirmado!\n\n\uD83D\uDCC5 ${format(selectedDate, "dd 'de' MMMM, yyyy", { locale: ptBR })}\n\u23F0 ${selectedSlot}\n\nObrigado pela paci\u00eancia!`

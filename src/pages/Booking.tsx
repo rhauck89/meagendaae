@@ -12,6 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Scissors, Sparkles, Clock, DollarSign, ChevronRight, ChevronLeft, CheckCircle2, Bell, Zap, CalendarPlus, MessageCircle, RotateCcw, Home, User, Phone, Mail, Cake, MapPin, Star, X, AlertTriangle, Calendar } from 'lucide-react';
 import { format, addMinutes, addDays, startOfDay, isSameDay } from 'date-fns';
 import { fromZonedTime, toZonedTime } from 'date-fns-tz';
+import { sendAppointmentCreatedWebhook } from '@/lib/automations';
 
 // TZ-aware Hoje/Amanhã helpers — compare dates in America/Sao_Paulo, not the
 // browser's local zone. Without this, a user in another timezone (or whose
@@ -1245,6 +1246,25 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
           fetch(config.url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(createdPayload) }).catch(() => {});
         }
       } catch (webhookErr) { /* non-critical */ }
+
+      // Fire Make automation webhook (public flow) — non-blocking
+      try {
+        const professionalProfile = professionals.find((p) => p.id === selectedProfessional);
+        const serviceNames = selectedServices.map((sid) => services.find((s) => s.id === sid)?.name).filter(Boolean).join(', ');
+        sendAppointmentCreatedWebhook({
+          appointment_id: String(appointmentId),
+          company_id: company.id,
+          client_name: clientForm.full_name,
+          client_phone: formattedWhatsapp || null,
+          professional_name: professionalProfile?.full_name || '',
+          service_name: serviceNames,
+          service_price: Number(totalPrice),
+          appointment_date: format(startTime, 'yyyy-MM-dd'),
+          appointment_time: format(startTime, 'HH:mm'),
+          datetime_iso: startTime.toISOString(),
+          origin: 'public',
+        });
+      } catch { /* silent */ }
 
       // Send push notification to professional
       try {
