@@ -81,16 +81,17 @@ export function CustomRequestForm({ open, onOpenChange, companyId, services, pro
   useEffect(() => {
     if (submitted && whatsAppUrl) {
       const timer = setTimeout(() => {
-        window.open(whatsAppUrl, '_blank');
+        const win = window.open(whatsAppUrl, '_blank', 'noopener,noreferrer');
+        if (!win) window.location.href = whatsAppUrl;
       }, 1000);
       return () => clearTimeout(timer);
     }
   }, [submitted, whatsAppUrl]);
 
   const openWhatsApp = () => {
-    if (whatsAppUrl) {
-      window.open(whatsAppUrl, '_blank');
-    }
+    if (!whatsAppUrl) return;
+    const win = window.open(whatsAppUrl, '_blank', 'noopener,noreferrer');
+    if (!win) window.location.href = whatsAppUrl;
   };
 
   const handleSubmit = async () => {
