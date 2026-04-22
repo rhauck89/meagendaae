@@ -4345,6 +4345,260 @@ export type Database = {
           },
         ]
       }
+      whatsapp_automations: {
+        Row: {
+          company_id: string
+          config: Json
+          created_at: string
+          daily_limit: number
+          delay_minutes: number
+          description: string | null
+          enabled: boolean
+          exclude_blocked: boolean
+          id: string
+          name: string
+          send_window_end: string
+          send_window_start: string
+          template_id: string | null
+          trigger: Database["public"]["Enums"]["whatsapp_automation_trigger"]
+          updated_at: string
+          weekdays: number[]
+        }
+        Insert: {
+          company_id: string
+          config?: Json
+          created_at?: string
+          daily_limit?: number
+          delay_minutes?: number
+          description?: string | null
+          enabled?: boolean
+          exclude_blocked?: boolean
+          id?: string
+          name: string
+          send_window_end?: string
+          send_window_start?: string
+          template_id?: string | null
+          trigger: Database["public"]["Enums"]["whatsapp_automation_trigger"]
+          updated_at?: string
+          weekdays?: number[]
+        }
+        Update: {
+          company_id?: string
+          config?: Json
+          created_at?: string
+          daily_limit?: number
+          delay_minutes?: number
+          description?: string | null
+          enabled?: boolean
+          exclude_blocked?: boolean
+          id?: string
+          name?: string
+          send_window_end?: string
+          send_window_start?: string
+          template_id?: string | null
+          trigger?: Database["public"]["Enums"]["whatsapp_automation_trigger"]
+          updated_at?: string
+          weekdays?: number[]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_automations_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      whatsapp_instances: {
+        Row: {
+          company_id: string
+          connected_at: string | null
+          created_at: string
+          id: string
+          instance_id: string | null
+          last_seen_at: string | null
+          metadata: Json
+          phone: string | null
+          qr_code: string | null
+          session_name: string | null
+          status: Database["public"]["Enums"]["whatsapp_status"]
+          updated_at: string
+        }
+        Insert: {
+          company_id: string
+          connected_at?: string | null
+          created_at?: string
+          id?: string
+          instance_id?: string | null
+          last_seen_at?: string | null
+          metadata?: Json
+          phone?: string | null
+          qr_code?: string | null
+          session_name?: string | null
+          status?: Database["public"]["Enums"]["whatsapp_status"]
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string
+          connected_at?: string | null
+          created_at?: string
+          id?: string
+          instance_id?: string | null
+          last_seen_at?: string | null
+          metadata?: Json
+          phone?: string | null
+          qr_code?: string | null
+          session_name?: string | null
+          status?: Database["public"]["Enums"]["whatsapp_status"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      whatsapp_logs: {
+        Row: {
+          automation_id: string | null
+          body: string
+          client_id: string | null
+          client_name: string | null
+          company_id: string
+          created_at: string
+          delivered_at: string | null
+          error_message: string | null
+          id: string
+          message_type: string
+          phone: string
+          read_at: string | null
+          source: string | null
+          status: Database["public"]["Enums"]["whatsapp_message_status"]
+          template_id: string | null
+        }
+        Insert: {
+          automation_id?: string | null
+          body: string
+          client_id?: string | null
+          client_name?: string | null
+          company_id: string
+          created_at?: string
+          delivered_at?: string | null
+          error_message?: string | null
+          id?: string
+          message_type?: string
+          phone: string
+          read_at?: string | null
+          source?: string | null
+          status?: Database["public"]["Enums"]["whatsapp_message_status"]
+          template_id?: string | null
+        }
+        Update: {
+          automation_id?: string | null
+          body?: string
+          client_id?: string | null
+          client_name?: string | null
+          company_id?: string
+          created_at?: string
+          delivered_at?: string | null
+          error_message?: string | null
+          id?: string
+          message_type?: string
+          phone?: string
+          read_at?: string | null
+          source?: string | null
+          status?: Database["public"]["Enums"]["whatsapp_message_status"]
+          template_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_logs_automation_id_fkey"
+            columns: ["automation_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_automations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_logs_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      whatsapp_metrics: {
+        Row: {
+          company_id: string
+          created_at: string
+          delivered_count: number
+          failed_count: number
+          id: string
+          metric_date: string
+          read_count: number
+          reply_count: number
+          sent_count: number
+          updated_at: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          delivered_count?: number
+          failed_count?: number
+          id?: string
+          metric_date: string
+          read_count?: number
+          reply_count?: number
+          sent_count?: number
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          delivered_count?: number
+          failed_count?: number
+          id?: string
+          metric_date?: string
+          read_count?: number
+          reply_count?: number
+          sent_count?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      whatsapp_templates: {
+        Row: {
+          body: string
+          category: string
+          company_id: string
+          created_at: string
+          id: string
+          is_system: boolean
+          name: string
+          updated_at: string
+          variables: string[]
+        }
+        Insert: {
+          body: string
+          category?: string
+          company_id: string
+          created_at?: string
+          id?: string
+          is_system?: boolean
+          name: string
+          updated_at?: string
+          variables?: string[]
+        }
+        Update: {
+          body?: string
+          category?: string
+          company_id?: string
+          created_at?: string
+          id?: string
+          is_system?: boolean
+          name?: string
+          updated_at?: string
+          variables?: string[]
+        }
+        Relationships: []
+      }
     }
     Views: {
       companies_billing: {
@@ -4973,6 +5227,23 @@ export type Database = {
         | "appointment_reminder_24h"
         | "appointment_reminder_3h"
         | "review_request"
+      whatsapp_automation_trigger:
+        | "appointment_confirmed"
+        | "appointment_reminder"
+        | "post_service_review"
+        | "inactive_client"
+        | "birthday"
+        | "appointment_cancelled"
+        | "appointment_rescheduled"
+        | "loyalty_cashback"
+        | "waitlist_slot_open"
+      whatsapp_message_status:
+        | "pending"
+        | "sent"
+        | "delivered"
+        | "read"
+        | "failed"
+      whatsapp_status: "disconnected" | "connecting" | "connected" | "error"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -5142,6 +5413,25 @@ export const Constants = {
         "appointment_reminder_3h",
         "review_request",
       ],
+      whatsapp_automation_trigger: [
+        "appointment_confirmed",
+        "appointment_reminder",
+        "post_service_review",
+        "inactive_client",
+        "birthday",
+        "appointment_cancelled",
+        "appointment_rescheduled",
+        "loyalty_cashback",
+        "waitlist_slot_open",
+      ],
+      whatsapp_message_status: [
+        "pending",
+        "sent",
+        "delivered",
+        "read",
+        "failed",
+      ],
+      whatsapp_status: ["disconnected", "connecting", "connected", "error"],
     },
   },
 } as const
