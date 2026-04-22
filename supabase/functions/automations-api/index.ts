@@ -210,6 +210,14 @@ async function handleAppointments7Days() {
     .map(mapAppointment);
 }
 
+const APP_BASE_URL = (Deno.env.get('APP_BASE_URL') ?? 'https://meagendae.com.br').replace(/\/$/, '');
+
+function buildBookingUrl(companySlug: string | null, professionalSlug?: string | null): string | null {
+  if (!companySlug) return null;
+  const base = `${APP_BASE_URL}/${companySlug}`;
+  return professionalSlug ? `${base}/${professionalSlug}` : base;
+}
+
 async function handleInactive20Days() {
   // Clients whose latest appointment is older than 20 days (and no future appt).
   const cutoffIso = new Date(
@@ -222,7 +230,7 @@ async function handleInactive20Days() {
       `
       id, company_id, name, whatsapp,
       appointments:appointments!appointments_client_id_fkey (
-        start_time, status
+        start_time, status, professional_id
       )
     `
     )
@@ -232,15 +240,22 @@ async function handleInactive20Days() {
   if (error) throw error;
 
   const nowIso = new Date().toISOString();
-  const result: Array<Record<string, unknown>> = [];
 
-  for (const c of (data ?? []) as Array<{
+  type ClientRow = {
     id: string;
     company_id: string;
     name: string;
     whatsapp: string | null;
-    appointments: Array<{ start_time: string; status: string }> | null;
-  }>) {
+    appointments: Array<{ start_time: string; status: string; professional_id: string | null }> | null;
+  };
+
+  const candidates: Array<{
+    client: ClientRow;
+    lastVisit: string;
+    lastProfessionalId: string | null;
+  }> = [];
+
+  for (const c of (data ?? []) as ClientRow[]) {
     if (!c.whatsapp || c.whatsapp.trim() === '') continue;
     const appts = c.appointments ?? [];
     if (appts.length === 0) continue;
@@ -253,25 +268,75 @@ async function handleInactive20Days() {
     const hasFuture = validAppts.some((a) => a.start_time > nowIso);
     if (hasFuture) continue;
 
-    const lastVisit = validAppts
-      .map((a) => a.start_time)
-      .sort()
-      .pop();
-    if (!lastVisit || lastVisit > cutoffIso) continue;
+    const sorted = [...validAppts].sort((a, b) =>
+      a.start_time < b.start_time ? 1 : -1
+    );
+    const last = sorted[0];
+    if (!last || last.start_time > cutoffIso) continue;
 
-    result.push({
-      client_id: c.id,
-      company_id: c.company_id,
-      client_name: c.name,
-      client_phone: c.whatsapp,
+    candidates.push({
+      client: c,
+      lastVisit: last.start_time,
+      lastProfessionalId: last.professional_id ?? null,
+    });
+  }
+
+  if (candidates.length === 0) return [];
+
+  // Batch-fetch company slugs
+  const companyIds = [...new Set(candidates.map((c) => c.client.company_id))];
+  const { data: companies } = await admin
+    .from('companies')
+    .select('id, slug')
+    .in('id', companyIds);
+  const companySlugMap = new Map<string, string | null>();
+  for (const co of (companies ?? []) as Array<{ id: string; slug: string | null }>) {
+    companySlugMap.set(co.id, co.slug);
+  }
+
+  // Batch-fetch professional slugs (collaborators.slug per profile_id)
+  const proIds = [
+    ...new Set(
+      candidates
+        .map((c) => c.lastProfessionalId)
+        .filter((p): p is string => !!p)
+    ),
+  ];
+  const proSlugMap = new Map<string, string | null>();
+  if (proIds.length > 0) {
+    const { data: collabs } = await admin
+      .from('collaborators')
+      .select('profile_id, slug, company_id')
+      .in('profile_id', proIds);
+    for (const col of (collabs ?? []) as Array<{
+      profile_id: string;
+      slug: string | null;
+      company_id: string;
+    }>) {
+      // key by profile+company to avoid cross-tenant collisions
+      proSlugMap.set(`${col.company_id}:${col.profile_id}`, col.slug);
+    }
+  }
+
+  return candidates.map(({ client, lastVisit, lastProfessionalId }) => {
+    const companySlug = companySlugMap.get(client.company_id) ?? null;
+    const proSlug = lastProfessionalId
+      ? proSlugMap.get(`${client.company_id}:${lastProfessionalId}`) ?? null
+      : null;
+    return {
+      client_id: client.id,
+      company_id: client.company_id,
+      client_name: client.name,
+      client_phone: client.whatsapp,
       last_visit: lastVisit,
       days_since_visit: Math.floor(
         (Date.now() - new Date(lastVisit).getTime()) / (24 * 60 * 60 * 1000)
       ),
-    });
-  }
-
-  return result;
+      company_slug: companySlug,
+      professional_slug: proSlug,
+      booking_url: buildBookingUrl(companySlug, proSlug),
+    };
+  });
 }
 
 Deno.serve(async (req) => {
