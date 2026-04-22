@@ -13,6 +13,7 @@ import { fromZonedTime } from 'date-fns-tz';
 import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
 import { formatWhatsApp, isValidWhatsApp, openWhatsApp } from '@/lib/whatsapp';
+import { sendAppointmentCreatedWebhook } from '@/lib/automations';
 import { getAvailableSlots } from '@/lib/availability-service';
 import { Search, CalendarIcon, Clock, User, Scissors } from 'lucide-react';
 
