@@ -31,7 +31,8 @@ export async function getInstance(companyId: string): Promise<WhatsAppInstance |
 async function upsertInstance(companyId: string, patch: Partial<WhatsAppInstance>) {
   const { data, error } = await supabase
     .from('whatsapp_instances')
-    .upsert([{ company_id: companyId, ...patch }], { onConflict: 'company_id' })
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    .upsert([{ company_id: companyId, ...patch }] as any, { onConflict: 'company_id' })
     .select()
     .single();
   if (error) throw error;
@@ -122,7 +123,8 @@ export async function upsertAutomation(
 ): Promise<WhatsAppAutomation> {
   const { data, error } = await supabase
     .from('whatsapp_automations')
-    .upsert([{ company_id: companyId, ...automation }], { onConflict: 'company_id,trigger' })
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    .upsert([{ company_id: companyId, ...automation }] as any, { onConflict: 'company_id,trigger' })
     .select()
     .single();
   if (error) throw error;
