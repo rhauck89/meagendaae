@@ -7,7 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { formatWhatsApp, buildWhatsAppUrl } from '@/lib/whatsapp';
+import { formatWhatsApp, buildWhatsAppUrl, trackWhatsAppClick } from '@/lib/whatsapp';
 import { Clock, Send, CheckCircle2, MessageCircle } from 'lucide-react';
 
 
@@ -90,6 +90,7 @@ export function CustomRequestForm({ open, onOpenChange, companyId, services, pro
 
   const openWhatsApp = () => {
     if (!whatsAppUrl) return;
+    trackWhatsAppClick('custom-request');
     const win = window.open(whatsAppUrl, '_blank', 'noopener,noreferrer');
     if (!win) window.location.href = whatsAppUrl;
   };

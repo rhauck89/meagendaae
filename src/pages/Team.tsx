@@ -15,7 +15,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
 import { Plus, Users, Percent, DollarSign, Settings, Copy, ExternalLink, Mail, KeyRound, MessageCircle, Pencil, UserX, UserCheck, Trash2, CalendarOff, ChevronLeft, ChevronRight, Check, Clock, Wallet, Crown, Lock, MoreVertical, Calendar as CalendarIcon, Search, X, Briefcase, Globe, Link2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
-import { buildWhatsAppUrl } from '@/lib/whatsapp';
+import { buildWhatsAppUrl, trackWhatsAppClick } from '@/lib/whatsapp';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Switch } from '@/components/ui/switch';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
@@ -866,7 +866,7 @@ const Team = () => {
                     <Copy className="mr-2 h-4 w-4" /> Copiar acesso
                   </Button>
                   <Button className="flex-1 bg-green-600 hover:bg-green-700 text-white" asChild>
-                    <a href={whatsAppUrl} target="_blank" rel="noopener noreferrer">
+                    <a href={whatsAppUrl} onClick={() => trackWhatsAppClick('team-invite')} target="_blank" rel="noopener noreferrer">
                       <MessageCircle className="mr-2 h-4 w-4" /> Enviar via WhatsApp
                     </a>
                   </Button>
@@ -2096,7 +2096,7 @@ const Team = () => {
                   <Copy className="mr-2 h-4 w-4" /> Copiar acesso
                 </Button>
                 <Button className="flex-1 bg-green-600 hover:bg-green-700 text-white" asChild>
-                  <a href={whatsAppUrl} target="_blank" rel="noopener noreferrer">
+                  <a href={whatsAppUrl} onClick={() => trackWhatsAppClick('team-invite')} target="_blank" rel="noopener noreferrer">
                     <MessageCircle className="mr-2 h-4 w-4" /> Enviar via WhatsApp
                   </a>
                 </Button>

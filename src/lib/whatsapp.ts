@@ -152,6 +152,19 @@ export function resetWhatsAppMetrics(): void {
 }
 
 /**
+ * Track a WhatsApp click for `<a href="wa.me/...">` anchors that don't go through
+ * `openWhatsApp`. Wire on the link's `onClick`:
+ *
+ *   <a href={buildWhatsAppUrl(...)} onClick={() => trackWhatsAppClick('public-profile')} ... />
+ */
+export function trackWhatsAppClick(source: WhatsAppSource): void {
+  bumpMetric(source);
+  if (typeof console !== 'undefined') {
+    console.info(`[WHATSAPP] anchor-click source=${source}`);
+  }
+}
+
+/**
  * Open WhatsApp using the universal `wa.me` link.
  *
  * Validates the phone, shows a toast if invalid/empty, logs to console for

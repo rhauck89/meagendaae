@@ -21,7 +21,7 @@ import { toast } from '@/hooks/use-toast';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Plus, MessageCircle, Send, Users, Tag, Megaphone, Copy, BarChart3, Eye, TrendingUp, MousePointerClick, CalendarCheck, ChevronLeft, ChevronRight, Check, Clock, Flame, Timer } from 'lucide-react';
-import { formatWhatsApp, displayWhatsApp, buildWhatsAppUrl } from '@/lib/whatsapp';
+import { formatWhatsApp, displayWhatsApp, buildWhatsAppUrl, trackWhatsAppClick } from '@/lib/whatsapp';
 
 interface Promotion {
   id: string;
@@ -653,6 +653,7 @@ export default function Promotions() {
       msg = msg.replace(/\{\{regras_cashback\}\}/g, promotion.cashback_rules_text || '');
     }
 
+    trackWhatsAppClick('promotions');
     return buildWhatsAppUrl(number, msg);
   };
 

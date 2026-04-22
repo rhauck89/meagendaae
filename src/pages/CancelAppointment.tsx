@@ -159,7 +159,7 @@ const CancelAppointment = () => {
               <Button
                 onClick={() => {
                   const phone = companyPhone.replace(/\D/g, '');
-                  openWhatsApp(phone.startsWith('55') ? phone : '55' + phone);
+                  openWhatsApp(phone.startsWith('55') ? phone : '55' + phone, { source: 'cancel-appointment' });
                 }}
                 className="w-full rounded-xl py-5 font-semibold"
                 style={{ background: '#25D366', color: '#fff' }}
@@ -201,7 +201,7 @@ const CancelAppointment = () => {
                 const dateStr = format(parseISO(appointment.start_time), "dd/MM/yyyy");
                 const timeStr = format(parseISO(appointment.start_time), 'HH:mm');
                 const msg = `Olá!\n\nUm cliente cancelou um horário.\n\nCliente: ${clientName}\n\nServiço: ${services}\n\nData:\n${dateStr} às ${timeStr}`;
-                openWhatsApp(phone, msg);
+                openWhatsApp(phone, { source: 'cancel-appointment', message: msg });
               }}
               className="w-full rounded-xl py-5 font-semibold"
               style={{ background: '#25D366', color: '#fff' }}

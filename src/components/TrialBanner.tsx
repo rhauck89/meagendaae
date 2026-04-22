@@ -87,17 +87,17 @@ const TrialBanner = () => {
   };
 
   const handleSupport = () => {
-    openWhatsApp(
-      SUPPORT_WHATSAPP,
-      'Olá! Meu período de teste expirou e gostaria de ajuda para escolher o melhor plano.'
-    );
+    openWhatsApp(SUPPORT_WHATSAPP, {
+      source: 'trial-banner',
+      message: 'Olá! Meu período de teste expirou e gostaria de ajuda para escolher o melhor plano.',
+    });
   };
 
   const handleSupportBeforeSubscribe = () => {
-    openWhatsApp(
-      SUPPORT_WHATSAPP,
-      'Olá! Antes de assinar o Agendaê, gostaria de tirar algumas dúvidas. Pode me ajudar?'
-    );
+    openWhatsApp(SUPPORT_WHATSAPP, {
+      source: 'trial-banner',
+      message: 'Olá! Antes de assinar o Agendaê, gostaria de tirar algumas dúvidas. Pode me ajudar?',
+    });
   };
 
   if (loading) return null;

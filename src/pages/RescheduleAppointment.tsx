@@ -395,7 +395,7 @@ const RescheduleAppointment = () => {
                 const oldTime = format(parseISO(appointment.start_time), 'HH:mm');
                 const newDate = selectedDate ? format(selectedDate, "dd/MM/yyyy") : '';
                 const msg = `Olá! 👋\n\nUm cliente reagendou um horário.\n\nCliente: ${clientName}\n\nServiço: ${services}\n\nReagendado de:\n${oldDate} às ${oldTime}\n\nPara:\n*${newDate} às ${selectedTime}*`;
-                openWhatsApp(phone, msg);
+                openWhatsApp(phone, { source: 'reschedule-appointment', message: msg });
               }}
               className="w-full rounded-xl py-5 font-semibold"
               style={{ background: '#25D366', color: '#fff' }}

@@ -244,7 +244,7 @@ export function SwapAppointmentDialog({ open, onOpenChange, source, onSwapped }:
       toast.error('Cliente sem WhatsApp cadastrado');
       return;
     }
-    openWhatsApp(target.whatsapp, buildMessage(target.name, target.newStart));
+    openWhatsApp(target.whatsapp, { source: 'swap-dialog', message: buildMessage(target.name, target.newStart) });
     if (which === 'a') setNotifiedA(true);
     else setNotifiedB(true);
   };
@@ -253,13 +253,13 @@ export function SwapAppointmentDialog({ open, onOpenChange, source, onSwapped }:
     if (!successData) return;
     const { a, b } = successData;
     if (a.whatsapp) {
-      openWhatsApp(a.whatsapp, buildMessage(a.name, a.newStart));
+      openWhatsApp(a.whatsapp, { source: 'swap-dialog', message: buildMessage(a.name, a.newStart) });
       setNotifiedA(true);
     }
     if (b.whatsapp) {
       // Stagger to avoid popup blocker
       setTimeout(() => {
-        openWhatsApp(b.whatsapp!, buildMessage(b.name, b.newStart));
+        openWhatsApp(b.whatsapp!, { source: 'swap-dialog', message: buildMessage(b.name, b.newStart) });
         setNotifiedB(true);
       }, 800);
     }
