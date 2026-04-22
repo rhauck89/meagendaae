@@ -7,6 +7,11 @@
  *   /appointments-7days      → confirmed appointments next 7 days
  *   /inactive-clients-20days → clients with no appointment in last 20 days
  *
+ * Every record now also returns:
+ *   - company_name, company_slug
+ *   - professional_name, professional_slug
+ *   - booking_url, booking_url_type ("professional" | "company" | null)
+ *
  * Security:
  *   - Shared secret via query string (?token=AGENDAE123)
  *   - Service role used internally to bypass RLS (read-only aggregations)
@@ -23,6 +28,7 @@ const corsHeaders = {
 };
 
 const AUTOMATIONS_TOKEN = 'AGENDAE123';
+const APP_BASE_URL = (Deno.env.get('APP_BASE_URL') ?? 'https://meagendae.com.br').replace(/\/$/, '');
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -45,14 +51,13 @@ function unauthorized() {
 /** YYYY-MM-DD in America/Sao_Paulo (offset days from "today") */
 function brDateOffset(daysOffset: number): string {
   const now = new Date();
-  // Convert to São Paulo time using Intl
   const fmt = new Intl.DateTimeFormat('en-CA', {
     timeZone: 'America/Sao_Paulo',
     year: 'numeric',
     month: '2-digit',
     day: '2-digit',
   });
-  const todayStr = fmt.format(now); // YYYY-MM-DD
+  const todayStr = fmt.format(now);
   const [y, m, d] = todayStr.split('-').map(Number);
   const base = new Date(Date.UTC(y, m - 1, d));
   base.setUTCDate(base.getUTCDate() + daysOffset);
@@ -64,8 +69,6 @@ function brDateOffset(daysOffset: number): string {
 
 /** Build a UTC ISO range that covers a São Paulo calendar day */
 function brDayRangeUtc(dateYmd: string): { startIso: string; endIso: string } {
-  // São Paulo is UTC-3 (no DST since 2019). We treat the day [00:00, 24:00) BRT
-  // as [03:00 UTC of same day, 03:00 UTC of next day).
   const [y, m, d] = dateYmd.split('-').map(Number);
   const startIso = new Date(Date.UTC(y, m - 1, d, 3, 0, 0)).toISOString();
   const endIso = new Date(Date.UTC(y, m - 1, d + 1, 3, 0, 0)).toISOString();
@@ -90,6 +93,29 @@ function formatDateBR(iso: string): string {
   }).format(new Date(iso));
 }
 
+/**
+ * Build booking_url + booking_url_type given the slugs and whether the
+ * professional has a usable public page (active collaborator with slug).
+ */
+function buildBookingUrl(
+  companySlug: string | null,
+  professionalSlug: string | null,
+): { booking_url: string | null; booking_url_type: 'professional' | 'company' | null } {
+  if (!companySlug) {
+    return { booking_url: null, booking_url_type: null };
+  }
+  if (professionalSlug && professionalSlug.trim() !== '') {
+    return {
+      booking_url: `${APP_BASE_URL}/${companySlug}/${professionalSlug}`,
+      booking_url_type: 'professional',
+    };
+  }
+  return {
+    booking_url: `${APP_BASE_URL}/${companySlug}`,
+    booking_url_type: 'company',
+  };
+}
+
 interface AppointmentRow {
   id: string;
   company_id: string;
@@ -108,11 +134,93 @@ interface AppointmentRow {
   }> | null;
 }
 
+/**
+ * Bulk-load company + professional metadata for a set of appointment-like rows.
+ * Returns helpers to look up names/slugs without N+1 queries.
+ *
+ * Tables used (existing):
+ *   - companies(id, name, slug)
+ *   - profiles(id, full_name)
+ *   - collaborators(profile_id, company_id, slug, active)
+ *
+ * A professional is considered to have a public page only when there is an
+ * ACTIVE collaborator row for (profile_id, company_id) AND it has a non-empty slug.
+ */
+async function loadCompanyAndProfessionalMeta(
+  pairs: Array<{ company_id: string; professional_id: string | null }>,
+) {
+  const companyIds = [...new Set(pairs.map((p) => p.company_id).filter(Boolean))];
+  const proIds = [
+    ...new Set(
+      pairs
+        .map((p) => p.professional_id)
+        .filter((p): p is string => !!p),
+    ),
+  ];
+
+  const companyMap = new Map<string, { name: string | null; slug: string | null }>();
+  if (companyIds.length > 0) {
+    const { data: companies } = await admin
+      .from('companies')
+      .select('id, name, slug')
+      .in('id', companyIds);
+    for (const c of (companies ?? []) as Array<{
+      id: string;
+      name: string | null;
+      slug: string | null;
+    }>) {
+      companyMap.set(c.id, { name: c.name, slug: c.slug });
+    }
+  }
+
+  const profileMap = new Map<string, { full_name: string | null }>();
+  if (proIds.length > 0) {
+    const { data: profiles } = await admin
+      .from('profiles')
+      .select('id, full_name')
+      .in('id', proIds);
+    for (const p of (profiles ?? []) as Array<{ id: string; full_name: string | null }>) {
+      profileMap.set(p.id, { full_name: p.full_name });
+    }
+  }
+
+  // Key collaborator slug by `${company_id}:${profile_id}` to avoid cross-tenant collisions.
+  // Only consider ACTIVE collaborators with a non-empty slug as "public page enabled".
+  const collabSlugMap = new Map<string, string | null>();
+  if (proIds.length > 0 && companyIds.length > 0) {
+    const { data: collabs } = await admin
+      .from('collaborators')
+      .select('profile_id, company_id, slug, active')
+      .in('profile_id', proIds)
+      .in('company_id', companyIds)
+      .eq('active', true);
+    for (const col of (collabs ?? []) as Array<{
+      profile_id: string;
+      company_id: string;
+      slug: string | null;
+      active: boolean;
+    }>) {
+      const slug = col.slug && col.slug.trim() !== '' ? col.slug : null;
+      collabSlugMap.set(`${col.company_id}:${col.profile_id}`, slug);
+    }
+  }
+
+  return {
+    getCompany: (companyId: string) => companyMap.get(companyId) ?? { name: null, slug: null },
+    getProfessionalName: (professionalId: string | null) =>
+      professionalId ? profileMap.get(professionalId)?.full_name ?? null : null,
+    getProfessionalSlug: (companyId: string, professionalId: string | null) => {
+      if (!professionalId) return null;
+      return collabSlugMap.get(`${companyId}:${professionalId}`) ?? null;
+    },
+  };
+}
+
 async function fetchAppointmentsForDay(dateYmd: string, onlyFuture: boolean) {
   const { startIso, endIso } = brDayRangeUtc(dateYmd);
   const nowIso = new Date().toISOString();
 
-  let query = admin
+  const { data, error } = await admin
     .from('appointments')
     .select(
       `
@@ -129,57 +237,73 @@ async function fetchAppointmentsForDay(dateYmd: string, onlyFuture: boolean) {
       clients:client_id ( name, whatsapp ),
       profiles:professional_id ( full_name ),
       appointment_services ( services:service_id ( name ) )
-    `
+    `,
     )
     .gte('start_time', onlyFuture && startIso < nowIso ? nowIso : startIso)
     .lt('start_time', endIso)
     .in('status', ['confirmed', 'pending'])
     .order('start_time', { ascending: true });
 
-  const { data, error } = await query;
   if (error) throw error;
   return (data ?? []) as unknown as AppointmentRow[];
 }
 
-function mapAppointment(row: AppointmentRow) {
-  const clientName = row.clients?.name ?? row.client_name ?? null;
-  const clientPhone = row.clients?.whatsapp ?? row.client_whatsapp ?? null;
-  const professionalName = row.profiles?.full_name ?? null;
-  const serviceName =
-    row.appointment_services
-      ?.map((s) => s.services?.name)
-      .filter(Boolean)
-      .join(', ') || null;
+async function mapAppointmentsWithUrls(rows: AppointmentRow[]) {
+  const meta = await loadCompanyAndProfessionalMeta(
+    rows.map((r) => ({ company_id: r.company_id, professional_id: r.professional_id })),
+  );
 
-  return {
-    appointment_id: row.id,
-    company_id: row.company_id,
-    client_name: clientName,
-    client_phone: clientPhone,
-    professional_name: professionalName,
-    service_name: serviceName,
-    service_price: row.total_price,
-    appointment_date: formatDateBR(row.start_time),
-    appointment_time: formatTimeBR(row.start_time),
-    datetime_iso: row.start_time,
-    status: row.status,
-  };
+  return rows.map((row) => {
+    const clientName = row.clients?.name ?? row.client_name ?? null;
+    const clientPhone = row.clients?.whatsapp ?? row.client_whatsapp ?? null;
+    const company = meta.getCompany(row.company_id);
+    const professionalName =
+      row.profiles?.full_name ?? meta.getProfessionalName(row.professional_id) ?? null;
+    const professionalSlug = meta.getProfessionalSlug(row.company_id, row.professional_id);
+    const serviceName =
+      row.appointment_services
+        ?.map((s) => s.services?.name)
+        .filter(Boolean)
+        .join(', ') || null;
+
+    const url = buildBookingUrl(company.slug, professionalSlug);
+
+    return {
+      appointment_id: row.id,
+      company_id: row.company_id,
+      client_name: clientName,
+      client_phone: clientPhone,
+      professional_name: professionalName,
+      service_name: serviceName,
+      service_price: row.total_price,
+      appointment_date: formatDateBR(row.start_time),
+      appointment_time: formatTimeBR(row.start_time),
+      datetime_iso: row.start_time,
+      status: row.status,
+      // New SaaS multi-tenant URL fields
+      company_name: company.name,
+      company_slug: company.slug,
+      professional_slug: professionalSlug,
+      booking_url: url.booking_url,
+      booking_url_type: url.booking_url_type,
+    };
+  });
 }
 
 async function handleAppointmentsTomorrow() {
   const date = brDateOffset(1);
-  const rows = await fetchAppointmentsForDay(date, false);
-  return rows
-    .filter((r) => (r.clients?.whatsapp ?? r.client_whatsapp ?? '').trim() !== '')
-    .map(mapAppointment);
+  const rows = (await fetchAppointmentsForDay(date, false)).filter(
+    (r) => (r.clients?.whatsapp ?? r.client_whatsapp ?? '').trim() !== '',
+  );
+  return mapAppointmentsWithUrls(rows);
 }
 
 async function handleAppointmentsToday() {
   const date = brDateOffset(0);
-  const rows = await fetchAppointmentsForDay(date, true);
-  return rows
-    .filter((r) => (r.clients?.whatsapp ?? r.client_whatsapp ?? '').trim() !== '')
-    .map(mapAppointment);
+  const rows = (await fetchAppointmentsForDay(date, true)).filter(
+    (r) => (r.clients?.whatsapp ?? r.client_whatsapp ?? '').trim() !== '',
+  );
+  return mapAppointmentsWithUrls(rows);
 }
 
 async function handleAppointments7Days() {
@@ -197,7 +321,7 @@ async function handleAppointments7Days() {
       clients:client_id ( name, whatsapp ),
       profiles:professional_id ( full_name ),
       appointment_services ( services:service_id ( name ) )
-    `
+    `,
     )
     .gte('start_time', startIso)
     .lt('start_time', endIso)
@@ -205,24 +329,15 @@ async function handleAppointments7Days() {
     .order('start_time', { ascending: true });
 
   if (error) throw error;
-  return ((data ?? []) as unknown as AppointmentRow[])
-    .filter((r) => (r.clients?.whatsapp ?? r.client_whatsapp ?? '').trim() !== '')
-    .map(mapAppointment);
-}
-
-const APP_BASE_URL = (Deno.env.get('APP_BASE_URL') ?? 'https://meagendae.com.br').replace(/\/$/, '');
-
-function buildBookingUrl(companySlug: string | null, professionalSlug?: string | null): string | null {
-  if (!companySlug) return null;
-  const base = `${APP_BASE_URL}/${companySlug}`;
-  return professionalSlug ? `${base}/${professionalSlug}` : base;
+  const rows = ((data ?? []) as unknown as AppointmentRow[]).filter(
+    (r) => (r.clients?.whatsapp ?? r.client_whatsapp ?? '').trim() !== '',
+  );
+  return mapAppointmentsWithUrls(rows);
 }
 
 async function handleInactive20Days() {
   // Clients whose latest appointment is older than 20 days (and no future appt).
-  const cutoffIso = new Date(
-    Date.now() - 20 * 24 * 60 * 60 * 1000
-  ).toISOString();
+  const cutoffIso = new Date(Date.now() - 20 * 24 * 60 * 60 * 1000).toISOString();
 
   const { data, error } = await admin
     .from('clients')
@@ -232,7 +347,7 @@ async function handleInactive20Days() {
       appointments:appointments!appointments_client_id_fkey (
         start_time, status, professional_id
       )
-    `
+    `,
     )
     .not('whatsapp', 'is', null)
     .eq('is_blocked', false);
@@ -246,7 +361,11 @@ async function handleInactive20Days() {
     company_id: string;
     name: string;
     whatsapp: string | null;
-    appointments: Array<{ start_time: string; status: string; professional_id: string | null }> | null;
+    appointments: Array<{
+      start_time: string;
+      status: string;
+      professional_id: string | null;
+    }> | null;
   };
 
   const candidates: Array<{
@@ -261,7 +380,7 @@ async function handleInactive20Days() {
     if (appts.length === 0) continue;
 
     const validAppts = appts.filter(
-      (a) => a.status !== 'cancelled' && a.status !== 'no_show'
+      (a) => a.status !== 'cancelled' && a.status !== 'no_show',
     );
     if (validAppts.length === 0) continue;
 
@@ -269,7 +388,7 @@ async function handleInactive20Days() {
     if (hasFuture) continue;
 
     const sorted = [...validAppts].sort((a, b) =>
-      a.start_time < b.start_time ? 1 : -1
+      a.start_time < b.start_time ? 1 : -1,
     );
     const last = sorted[0];
     if (!last || last.start_time > cutoffIso) continue;
@@ -283,46 +402,22 @@ async function handleInactive20Days() {
 
   if (candidates.length === 0) return [];
 
-  // Batch-fetch company slugs
-  const companyIds = [...new Set(candidates.map((c) => c.client.company_id))];
-  const { data: companies } = await admin
-    .from('companies')
-    .select('id, slug')
-    .in('id', companyIds);
-  const companySlugMap = new Map<string, string | null>();
-  for (const co of (companies ?? []) as Array<{ id: string; slug: string | null }>) {
-    companySlugMap.set(co.id, co.slug);
-  }
-
-  // Batch-fetch professional slugs (collaborators.slug per profile_id)
-  const proIds = [
-    ...new Set(
-      candidates
-        .map((c) => c.lastProfessionalId)
-        .filter((p): p is string => !!p)
-    ),
-  ];
-  const proSlugMap = new Map<string, string | null>();
-  if (proIds.length > 0) {
-    const { data: collabs } = await admin
-      .from('collaborators')
-      .select('profile_id, slug, company_id')
-      .in('profile_id', proIds);
-    for (const col of (collabs ?? []) as Array<{
-      profile_id: string;
-      slug: string | null;
-      company_id: string;
-    }>) {
-      // key by profile+company to avoid cross-tenant collisions
-      proSlugMap.set(`${col.company_id}:${col.profile_id}`, col.slug);
-    }
-  }
+  const meta = await loadCompanyAndProfessionalMeta(
+    candidates.map((c) => ({
+      company_id: c.client.company_id,
+      professional_id: c.lastProfessionalId,
+    })),
+  );
 
   return candidates.map(({ client, lastVisit, lastProfessionalId }) => {
-    const companySlug = companySlugMap.get(client.company_id) ?? null;
-    const proSlug = lastProfessionalId
-      ? proSlugMap.get(`${client.company_id}:${lastProfessionalId}`) ?? null
-      : null;
+    const company = meta.getCompany(client.company_id);
+    const professionalName = meta.getProfessionalName(lastProfessionalId);
+    const professionalSlug = meta.getProfessionalSlug(
+      client.company_id,
+      lastProfessionalId,
+    );
+    const url = buildBookingUrl(company.slug, professionalSlug);
+
     return {
       client_id: client.id,
       company_id: client.company_id,
@@ -330,11 +425,15 @@ async function handleInactive20Days() {
       client_phone: client.whatsapp,
       last_visit: lastVisit,
       days_since_visit: Math.floor(
-        (Date.now() - new Date(lastVisit).getTime()) / (24 * 60 * 60 * 1000)
+        (Date.now() - new Date(lastVisit).getTime()) / (24 * 60 * 60 * 1000),
       ),
-      company_slug: companySlug,
-      professional_slug: proSlug,
-      booking_url: buildBookingUrl(companySlug, proSlug),
+      // New SaaS multi-tenant URL fields
+      company_name: company.name,
+      company_slug: company.slug,
+      professional_name: professionalName,
+      professional_slug: professionalSlug,
+      booking_url: url.booking_url,
+      booking_url_type: url.booking_url_type,
     };
   });
 }
@@ -355,7 +454,6 @@ Deno.serve(async (req) => {
       return unauthorized();
     }
 
-    // Last path segment determines route (works behind /functions/v1/automations-api/<route>)
     const segments = url.pathname.split('/').filter(Boolean);
     const route = segments[segments.length - 1] || '';
 
@@ -384,7 +482,7 @@ Deno.serve(async (req) => {
               'inactive-clients-20days',
             ],
           },
-          404
+          404,
         );
     }
 
