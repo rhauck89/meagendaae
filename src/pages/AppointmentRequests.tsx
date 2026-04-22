@@ -148,7 +148,7 @@ const AppointmentRequests = () => {
 
       // 5. Open WhatsApp to notify client
       const message = `Olá ${request.client_name}! Seu horário solicitado para ${format(new Date(request.requested_date + 'T12:00:00'), "dd/MM/yyyy", { locale: ptBR })} às ${request.requested_time.slice(0, 5)} foi *aceito*. Estamos aguardando você!`;
-      openWhatsApp(request.client_whatsapp, message);
+      openWhatsApp(request.client_whatsapp, { source: 'appointment-requests', message });
 
       fetchRequests();
     } catch (err) {
@@ -174,7 +174,7 @@ const AppointmentRequests = () => {
         .eq('id', selectedRequest.id);
 
       const message = `Olá ${selectedRequest.client_name}! Não temos disponibilidade no horário solicitado, mas gostaríamos de sugerir: *${format(new Date(suggestedDate + 'T12:00:00'), "dd/MM/yyyy", { locale: ptBR })} às ${suggestedTime}*. Pode ser?`;
-      openWhatsApp(selectedRequest.client_whatsapp, message);
+      openWhatsApp(selectedRequest.client_whatsapp, { source: 'appointment-requests', message });
 
       toast.success('Sugestão enviada');
       setSuggestDialogOpen(false);
@@ -201,7 +201,7 @@ const AppointmentRequests = () => {
         .eq('id', selectedRequest.id);
 
       const message = `Olá ${selectedRequest.client_name}! Infelizmente não conseguimos atender sua solicitação de horário.${rejectionReason ? ` Motivo: ${rejectionReason}` : ''} Por favor, tente agendar em outro horário pelo nosso link.`;
-      openWhatsApp(selectedRequest.client_whatsapp, message);
+      openWhatsApp(selectedRequest.client_whatsapp, { source: 'appointment-requests', message });
 
       toast.success('Solicitação recusada');
       setRejectDialogOpen(false);

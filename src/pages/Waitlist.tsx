@@ -282,7 +282,7 @@ const Waitlist = () => {
         const msg = encodeURIComponent(
           `\u2705 Seu hor\u00e1rio foi confirmado!\n\n\uD83D\uDCC5 ${format(selectedDate, "dd 'de' MMMM, yyyy", { locale: ptBR })}\n\u23F0 ${selectedSlot}\n\nObrigado pela paci\u00eancia!`
         );
-        openWhatsApp(bookingTarget.client_whatsapp, `✅ Seu horário foi confirmado!\n\n📅 ${format(selectedDate, "dd 'de' MMMM, yyyy", { locale: ptBR })}\n⏰ ${selectedSlot}\n\nObrigado pela paciência!`);
+        openWhatsApp(bookingTarget.client_whatsapp, { source: 'waitlist', message: `✅ Seu horário foi confirmado!\n\n📅 ${format(selectedDate, "dd 'de' MMMM, yyyy", { locale: ptBR })}\n⏰ ${selectedSlot}\n\nObrigado pela paciência!` });
       }
 
       setBookingOpen(false);
@@ -396,7 +396,7 @@ const Waitlist = () => {
                             size="sm"
                             variant="outline"
                             onClick={() => {
-                              openWhatsApp(entry.client_whatsapp, `Olá ${entry.client_name}! 👋\n\nVimos que você está na nossa lista de espera.\n\nTemos novidades sobre disponibilidade! Gostaria de agendar?\n\nAguardamos seu retorno!`);
+                              openWhatsApp(entry.client_whatsapp, { source: 'waitlist', message: `Olá ${entry.client_name}! 👋\n\nVimos que você está na nossa lista de espera.\n\nTemos novidades sobre disponibilidade! Gostaria de agendar?\n\nAguardamos seu retorno!` });
                             }}
                           >
                             📲 WhatsApp
