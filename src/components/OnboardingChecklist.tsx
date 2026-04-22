@@ -9,7 +9,7 @@ import { CheckCircle2, Circle, Building2, Clock, Share2, Rocket, Users, Copy, Me
 import { useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
-import { buildWhatsAppUrl } from '@/lib/whatsapp';
+import { buildWhatsAppUrl, trackWhatsAppClick } from '@/lib/whatsapp';
 
 interface ChecklistStep {
   key: string;
@@ -158,6 +158,7 @@ const OnboardingChecklist = () => {
     const message = `Agende seu horário comigo: ${url}`;
     // No phone → opens WhatsApp's share/contact picker on every platform.
     const shareUrl = buildWhatsAppUrl('', message);
+    trackWhatsAppClick('onboarding');
     const win = window.open(shareUrl, '_blank', 'noopener,noreferrer');
     if (!win) window.location.href = shareUrl;
     markShareCompleted();

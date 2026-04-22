@@ -29,7 +29,7 @@ const isTomorrowTz = (d: Date, tz = 'America/Sao_Paulo') => {
 import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
-import { formatWhatsApp, displayWhatsApp, isValidWhatsApp, buildWhatsAppUrl } from '@/lib/whatsapp';
+import { formatWhatsApp, displayWhatsApp, isValidWhatsApp, buildWhatsAppUrl, trackWhatsAppClick } from '@/lib/whatsapp';
 import { type BusinessHours, type BusinessException, type ExistingAppointment, type BookingMode } from '@/lib/availability-engine';
 import { getAvailableSlots } from '@/lib/availability-service';
 import { PlatformBranding } from '@/components/PlatformBranding';
@@ -2453,6 +2453,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
               '',
               'Obrigado! 🙏',
             ].join('\n');
+            trackWhatsAppClick('booking-success');
             return buildWhatsAppUrl(phone.startsWith('55') ? phone : '55' + phone, msg);
           };
 
@@ -2669,6 +2670,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
       {companyWhatsapp && step !== 'success' && (
         <a
           href={buildWhatsAppUrl(companyWhatsapp.replace(/\D/g, ''))}
+          onClick={() => trackWhatsAppClick('public-booking')}
           target="_blank"
           rel="noopener noreferrer"
           className="fixed bottom-6 right-6 z-50 w-14 h-14 rounded-full flex items-center justify-center shadow-xl transition-transform hover:scale-110"
