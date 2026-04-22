@@ -34,6 +34,7 @@ const adminNavItems = [
   { href: '/dashboard/services', icon: Scissors, label: 'Serviços' },
   { href: '/dashboard/team', icon: Users, label: 'Equipe' },
   { href: '/dashboard/clients', icon: UserCheck, label: 'Clientes' },
+  { href: '/dashboard/whatsapp', icon: MessageSquare, label: 'WhatsApp Center' },
   { href: '/dashboard/events', icon: PartyPopper, label: 'Agenda Aberta' },
   { href: '/dashboard/promotions', icon: Megaphone, label: 'Promoções' },
   { href: '/dashboard/loyalty', icon: Star, label: 'Fidelidade' },
