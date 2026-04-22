@@ -866,7 +866,7 @@ const Team = () => {
                     <Copy className="mr-2 h-4 w-4" /> Copiar acesso
                   </Button>
                   <Button className="flex-1 bg-green-600 hover:bg-green-700 text-white" asChild>
-                    <a href={whatsAppUrl} target="_blank" rel="noopener noreferrer">
+                    <a href={whatsAppUrl} onClick={() => trackWhatsAppClick('team-invite')} target="_blank" rel="noopener noreferrer">
                       <MessageCircle className="mr-2 h-4 w-4" /> Enviar via WhatsApp
                     </a>
                   </Button>
@@ -2096,7 +2096,7 @@ const Team = () => {
                   <Copy className="mr-2 h-4 w-4" /> Copiar acesso
                 </Button>
                 <Button className="flex-1 bg-green-600 hover:bg-green-700 text-white" asChild>
-                  <a href={whatsAppUrl} target="_blank" rel="noopener noreferrer">
+                  <a href={whatsAppUrl} onClick={() => trackWhatsAppClick('team-invite')} target="_blank" rel="noopener noreferrer">
                     <MessageCircle className="mr-2 h-4 w-4" /> Enviar via WhatsApp
                   </a>
                 </Button>
