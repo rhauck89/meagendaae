@@ -1923,7 +1923,7 @@ const Dashboard = () => {
                   variant="outline"
                   className="h-16 text-lg font-display"
                   disabled={delayLoading}
-                  onClick={() => registerDelay(min)}
+                  onClick={() => handleDelayChoice(min)}
                 >
                   {min} min
                 </Button>
@@ -1931,12 +1931,50 @@ const Dashboard = () => {
             </div>
           </DialogBody>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDelayDialogOpen(false)} disabled={delayLoading}>
+            <Button variant="outline" onClick={() => { setDelayDialogOpen(false); setDelayTargetApt(null); }} disabled={delayLoading}>
               Cancelar
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Lunch-aware confirmation dialog */}
+      <AlertDialog open={delayLunchDialogOpen} onOpenChange={setDelayLunchDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <Timer className="h-5 w-5" /> Atraso antes do almoço
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Este atraso ocorre antes do horário de almoço configurado.
+              Os horários após o almoço também serão afetados?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex-col sm:flex-row gap-2">
+            <Button
+              variant="outline"
+              disabled={delayLoading}
+              onClick={() => {
+                if (delayPendingMinutes != null) {
+                  void executeDelay(delayPendingMinutes, delayLunchStartIso);
+                }
+              }}
+            >
+              Não, compensar no almoço
+            </Button>
+            <Button
+              disabled={delayLoading}
+              onClick={() => {
+                if (delayPendingMinutes != null) {
+                  void executeDelay(delayPendingMinutes, null);
+                }
+              }}
+            >
+              Sim, propagar tudo
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Cancel Confirmation Dialog */}
       <AlertDialog open={cancelDialogOpen} onOpenChange={setCancelDialogOpen}>
