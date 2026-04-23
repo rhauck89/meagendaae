@@ -72,12 +72,17 @@ const ReviewPage = () => {
 
   const fetchAppointment = async () => {
     try {
-      // Use SECURITY DEFINER RPC so anonymous review links work regardless of RLS
+      // Use SECURITY DEFINER RPC so anonymous review links work regardless of RLS / auth state
       const { data, error } = await supabase.rpc('get_appointment_public', {
         p_appointment_id: appointmentId!,
       });
 
-      if (error || !data) {
+      if (error) {
+        console.error('[ReviewPage] RPC get_appointment_public error:', error);
+      }
+
+      if (!data) {
+        console.warn('[ReviewPage] No appointment returned for id:', appointmentId);
         setAppointment(null);
         setLoading(false);
         return;
@@ -86,14 +91,19 @@ const ReviewPage = () => {
       setAppointment(data);
       setGoogleReviewUrl((data as any).company?.google_review_url || null);
 
-      const { data: existingReview } = await supabase
-        .from('reviews')
-        .select('id')
-        .eq('appointment_id', appointmentId!)
-        .maybeSingle();
-
-      if (existingReview) setAlreadyReviewed(true);
-    } catch {
+      // Best-effort: check existing review, but never fail the page if this errors
+      try {
+        const { data: existingReview } = await supabase
+          .from('reviews')
+          .select('id')
+          .eq('appointment_id', appointmentId!)
+          .maybeSingle();
+        if (existingReview) setAlreadyReviewed(true);
+      } catch (innerErr) {
+        console.warn('[ReviewPage] Existing-review lookup failed (non-fatal):', innerErr);
+      }
+    } catch (err) {
+      console.error('[ReviewPage] Unexpected error loading appointment:', err);
       setAppointment(null);
     } finally {
       setLoading(false);
