@@ -6,6 +6,7 @@
  *   /appointments-today      → confirmed appointments for today (future)
  *   /appointments-7days      → confirmed appointments next 7 days
  *   /inactive-clients-20days → clients with no appointment in last 20 days
+ *   /reviews-followup        → completed appointments 1-10min ago, not yet sent
  *
  * Every record now also returns:
  *   - company_name, company_slug
