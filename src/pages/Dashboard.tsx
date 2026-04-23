@@ -975,7 +975,7 @@ const Dashboard = () => {
         )}
         {(apt.status === 'pending' || apt.status === 'confirmed') && (
           <>
-            <Button size="sm" variant="outline" className="text-xs" onClick={() => { setDelayTargetId(apt.id); setDelayDialogOpen(true); }}>
+            <Button size="sm" variant="outline" className="text-xs" onClick={() => { setDelayTargetId(apt.id); setDelayTargetApt(apt); setDelayDialogOpen(true); }}>
               <Timer className="h-3 w-3 mr-1" />Atraso
             </Button>
             {!apt.promotion_id && (
