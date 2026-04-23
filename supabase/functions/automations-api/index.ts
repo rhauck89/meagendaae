@@ -558,7 +558,8 @@ async function handleReviewsFollowup() {
     const professionalName =
       row.profiles?.full_name ?? meta.getProfessionalName(row.professional_id) ?? null;
     const professionalSlug = meta.getProfessionalSlug(row.company_id, row.professional_id);
-    const url = buildBookingUrl(company.slug, professionalSlug);
+    const url = buildBookingUrl(company.slug, professionalSlug, company.business_type);
+    const mgmt = buildAppointmentManagementUrls(row.id);
 
     // Existing review page is shared (single route), keyed by appointment id.
     const reviewUrl = `${APP_BASE_URL}/review/${row.id}`;
@@ -573,12 +574,17 @@ async function handleReviewsFollowup() {
       professional_slug: professionalSlug,
       company_name: company.name,
       company_slug: company.slug,
+      business_type: company.business_type,
+      route_prefix: url.route_prefix,
       appointment_date: formatDateBR(row.start_time),
       appointment_time: formatTimeBR(row.start_time),
+      review_url: reviewUrl,
       review_professional_url: reviewUrl,
       review_company_url: reviewUrl,
       booking_url: url.booking_url,
       booking_url_type: url.booking_url_type,
+      cancel_url: mgmt.cancel_url,
+      reschedule_url: mgmt.reschedule_url,
     };
   });
 }
