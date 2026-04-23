@@ -1033,7 +1033,8 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
       if (firstAttempt.error) {
         console.error('[Booking] Client creation error:', firstAttempt.error);
         const msg = String(firstAttempt.error.message || '');
-        if (/idx_clients_user_company|duplicate key|unique constraint/i.test(msg)) {
+        if (/duplicate key|unique constraint|idx_clients_user_company|conflict|409/i.test(msg)) {
+          // Should be rare now (RPC is get-or-create), but retry once just in case.
           toast.info('Já encontramos seu cadastro, continuando...');
           const retry = await supabase.rpc('create_client', {
             p_name: clientForm.full_name, p_whatsapp: formattedWhatsapp || '',
@@ -1041,13 +1042,15 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
             p_birth_date: clientForm.birth_date || null,
           } as any);
           if (retry.error || !retry.data) {
-            toast.error('Não foi possível concluir o cadastro. Tente novamente.');
+            toast.error('Não foi possível identificar seu cadastro. Tente novamente em instantes.');
             setLoading(false);
             return;
           }
           clientIdFromRpc = retry.data as string;
         } else {
-          throw firstAttempt.error;
+          toast.error('Não foi possível salvar seus dados. Verifique o WhatsApp e e-mail informados e tente novamente.');
+          setLoading(false);
+          return;
         }
       } else {
         clientIdFromRpc = (firstAttempt.data as string) ?? null;
