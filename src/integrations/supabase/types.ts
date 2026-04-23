@@ -3377,6 +3377,7 @@ export type Database = {
       reviews: {
         Row: {
           appointment_id: string | null
+          barbershop_comment: string | null
           barbershop_rating: number | null
           client_id: string | null
           comment: string | null
@@ -3388,6 +3389,7 @@ export type Database = {
         }
         Insert: {
           appointment_id?: string | null
+          barbershop_comment?: string | null
           barbershop_rating?: number | null
           client_id?: string | null
           comment?: string | null
@@ -3399,6 +3401,7 @@ export type Database = {
         }
         Update: {
           appointment_id?: string | null
+          barbershop_comment?: string | null
           barbershop_rating?: number | null
           client_id?: string | null
           comment?: string | null
@@ -5168,6 +5171,16 @@ export type Database = {
         | {
             Args: {
               p_appointment_id: string
+              p_barbershop_rating?: number
+              p_comment?: string
+              p_rating: number
+            }
+            Returns: string
+          }
+        | {
+            Args: {
+              p_appointment_id: string
+              p_barbershop_comment?: string
               p_barbershop_rating?: number
               p_comment?: string
               p_rating: number

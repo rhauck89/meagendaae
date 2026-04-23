@@ -94,10 +94,42 @@ export default function ProfessionalPublicProfile() {
     }
 
     // Reviews - fetch all for count, display limited
-    const { data: allReviewsData } = await supabase.from('reviews').select('rating, comment, created_at').eq('professional_id', prof.id).order('created_at', { ascending: false });
+    const { data: allReviewsData } = await supabase
+      .from('reviews')
+      .select('rating, comment, barbershop_rating, barbershop_comment, created_at, appointment_id')
+      .eq('professional_id', prof.id)
+      .order('created_at', { ascending: false });
     if (allReviewsData) {
-      setReviews(allReviewsData);
-      setTotalReviews(allReviewsData.length);
+      // Enrich with client display name (masked)
+      const apptIds = allReviewsData.map((r: any) => r.appointment_id).filter(Boolean);
+      let clientNames: Record<string, string> = {};
+      if (apptIds.length > 0) {
+        const { data: appts } = await supabase
+          .from('appointments')
+          .select('id, client_name, client_id')
+          .in('id', apptIds);
+        const clientIds = (appts || []).filter((a: any) => a.client_id).map((a: any) => a.client_id);
+        let cnameMap: Record<string, string> = {};
+        if (clientIds.length > 0) {
+          const { data: clients } = await supabase.from('clients').select('id, name').in('id', clientIds);
+          (clients || []).forEach((c: any) => { cnameMap[c.id] = c.name; });
+        }
+        (appts || []).forEach((a: any) => {
+          const n = a.client_name || cnameMap[a.client_id];
+          if (n) {
+            const parts = n.trim().split(/\s+/);
+            const first = parts[0] || '';
+            const lastInitial = parts.length > 1 ? ` ${parts[parts.length - 1].charAt(0).toUpperCase()}.` : '';
+            clientNames[a.id] = `${first}${lastInitial}`;
+          }
+        });
+      }
+      const enriched = allReviewsData.map((r: any) => ({
+        ...r,
+        client_display_name: r.appointment_id ? clientNames[r.appointment_id] || null : null,
+      }));
+      setReviews(enriched);
+      setTotalReviews(enriched.length);
     }
 
     // Completed appointments count
@@ -477,30 +509,56 @@ export default function ProfessionalPublicProfile() {
               Avaliações ({totalReviews})
             </h3>
             <div className="flex flex-col gap-3">
-              {displayedReviews.map((rev, i) => (
-                <div
-                  key={i}
-                  className="p-3 rounded-xl border"
-                  style={{
-                    background: T.card,
-                    borderColor: T.border,
-                  }}
-                >
-                  <div className="flex items-center gap-1 mb-1">
-                    {[1, 2, 3, 4, 5].map(s => (
-                      <Star key={s} className={cn("w-3 h-3", s <= rev.rating ? "fill-yellow-400 text-yellow-400" : "text-gray-600")} />
-                    ))}
-                    <span className="text-xs ml-2" style={{ color: T.textSec }}>
-                      {format(new Date(rev.created_at), 'dd/MM/yyyy')}
-                    </span>
+              {displayedReviews.map((rev, i) => {
+                const hasCompanyBlock = !!(rev.barbershop_rating || rev.barbershop_comment);
+                return (
+                  <div
+                    key={i}
+                    className="p-3 rounded-xl border space-y-2"
+                    style={{ background: T.card, borderColor: T.border }}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-semibold" style={{ color: T.text }}>
+                        {rev.client_display_name || 'Cliente'}
+                      </span>
+                      <span className="text-[10px]" style={{ color: T.textSec }}>
+                        {format(new Date(rev.created_at), 'dd/MM/yyyy')}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-0.5">
+                      {[1, 2, 3, 4, 5].map(s => (
+                        <Star key={s} className={cn("w-3 h-3", s <= rev.rating ? "fill-yellow-400 text-yellow-400" : "text-gray-600")} />
+                      ))}
+                    </div>
+                    {rev.comment && (
+                      <p className="text-xs leading-relaxed" style={{ color: T.textSec }}>
+                        "{rev.comment}"
+                      </p>
+                    )}
+                    {hasCompanyBlock && (
+                      <div className="pt-2" style={{ borderTop: `1px dashed ${T.border}` }}>
+                        <div className="flex items-center gap-2 flex-wrap mb-1">
+                          <span className="text-[9px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded-full" style={{ background: `${T.accent}20`, color: T.accent }}>
+                            Experiência geral
+                          </span>
+                          {rev.barbershop_rating && (
+                            <div className="flex items-center gap-0.5">
+                              {[1, 2, 3, 4, 5].map(s => (
+                                <Star key={s} className={cn("w-3 h-3", s <= rev.barbershop_rating ? "fill-yellow-400 text-yellow-400" : "text-gray-600")} />
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                        {rev.barbershop_comment && (
+                          <p className="text-xs leading-relaxed" style={{ color: T.textSec }}>
+                            "{rev.barbershop_comment}"
+                          </p>
+                        )}
+                      </div>
+                    )}
                   </div>
-                  {rev.comment && (
-                    <p className="text-xs leading-relaxed" style={{ color: T.textSec }}>
-                      "{rev.comment}"
-                    </p>
-                  )}
-                </div>
-              ))}
+                );
+              })}
             </div>
             {totalReviews > 3 && !showAllReviews && (
               <button
