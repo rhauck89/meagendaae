@@ -94,10 +94,42 @@ export default function ProfessionalPublicProfile() {
     }
 
     // Reviews - fetch all for count, display limited
-    const { data: allReviewsData } = await supabase.from('reviews').select('rating, comment, created_at').eq('professional_id', prof.id).order('created_at', { ascending: false });
+    const { data: allReviewsData } = await supabase
+      .from('reviews')
+      .select('rating, comment, barbershop_rating, barbershop_comment, created_at, appointment_id')
+      .eq('professional_id', prof.id)
+      .order('created_at', { ascending: false });
     if (allReviewsData) {
-      setReviews(allReviewsData);
-      setTotalReviews(allReviewsData.length);
+      // Enrich with client display name (masked)
+      const apptIds = allReviewsData.map((r: any) => r.appointment_id).filter(Boolean);
+      let clientNames: Record<string, string> = {};
+      if (apptIds.length > 0) {
+        const { data: appts } = await supabase
+          .from('appointments')
+          .select('id, client_name, client_id')
+          .in('id', apptIds);
+        const clientIds = (appts || []).filter((a: any) => a.client_id).map((a: any) => a.client_id);
+        let cnameMap: Record<string, string> = {};
+        if (clientIds.length > 0) {
+          const { data: clients } = await supabase.from('clients').select('id, name').in('id', clientIds);
+          (clients || []).forEach((c: any) => { cnameMap[c.id] = c.name; });
+        }
+        (appts || []).forEach((a: any) => {
+          const n = a.client_name || cnameMap[a.client_id];
+          if (n) {
+            const parts = n.trim().split(/\s+/);
+            const first = parts[0] || '';
+            const lastInitial = parts.length > 1 ? ` ${parts[parts.length - 1].charAt(0).toUpperCase()}.` : '';
+            clientNames[a.id] = `${first}${lastInitial}`;
+          }
+        });
+      }
+      const enriched = allReviewsData.map((r: any) => ({
+        ...r,
+        client_display_name: r.appointment_id ? clientNames[r.appointment_id] || null : null,
+      }));
+      setReviews(enriched);
+      setTotalReviews(enriched.length);
     }
 
     // Completed appointments count
