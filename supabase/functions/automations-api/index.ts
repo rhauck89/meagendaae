@@ -456,7 +456,7 @@ async function handleInactive20Days() {
       client.company_id,
       lastProfessionalId,
     );
-    const url = buildBookingUrl(company.slug, professionalSlug);
+    const url = buildBookingUrl(company.slug, professionalSlug, company.business_type);
 
     return {
       client_id: client.id,
@@ -467,9 +467,11 @@ async function handleInactive20Days() {
       days_since_visit: Math.floor(
         (Date.now() - new Date(lastVisit).getTime()) / (24 * 60 * 60 * 1000),
       ),
-      // New SaaS multi-tenant URL fields
+      // SaaS multi-tenant URL fields
       company_name: company.name,
       company_slug: company.slug,
+      business_type: company.business_type,
+      route_prefix: url.route_prefix,
       professional_name: professionalName,
       professional_slug: professionalSlug,
       booking_url: url.booking_url,
