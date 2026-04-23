@@ -121,6 +121,11 @@ const Dashboard = () => {
   const [collaboratorsList, setCollaboratorsList] = useState<any[]>([]);
   const [delayDialogOpen, setDelayDialogOpen] = useState(false);
   const [delayTargetId, setDelayTargetId] = useState<string | null>(null);
+  const [delayTargetApt, setDelayTargetApt] = useState<any>(null);
+  // Lunch-aware delay confirmation
+  const [delayLunchDialogOpen, setDelayLunchDialogOpen] = useState(false);
+  const [delayPendingMinutes, setDelayPendingMinutes] = useState<number | null>(null);
+  const [delayLunchStartIso, setDelayLunchStartIso] = useState<string | null>(null);
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
   const [cancelTarget, setCancelTarget] = useState<any>(null);
   const [completeDialogOpen, setCompleteDialogOpen] = useState(false);
@@ -728,14 +733,67 @@ const Dashboard = () => {
     fetchUpcomingAppointments();
   };
 
-  const registerDelay = async (minutes: number) => {
+  /**
+   * Entry point — called when the user picks a delay duration.
+   * Decides whether to show the lunch-compensation modal or proceed directly.
+   */
+  const handleDelayChoice = async (minutes: number) => {
+    if (!delayTargetId || !delayTargetApt) {
+      // Fallback — proceed without lunch logic
+      void executeDelay(minutes, null);
+      return;
+    }
+
+    try {
+      const aptStart = parseISO(delayTargetApt.start_time);
+      const dow = aptStart.getDay(); // 0 (Sun) – 6 (Sat)
+      const yyyyMmDd = format(aptStart, 'yyyy-MM-dd');
+
+      // Fetch business hours row for that company / day-of-week
+      const { data: bh } = await supabase
+        .from('business_hours')
+        .select('lunch_start, lunch_end, is_closed')
+        .eq('company_id', delayTargetApt.company_id)
+        .eq('day_of_week', dow)
+        .maybeSingle();
+
+      const lunchStart = bh?.lunch_start as string | null | undefined;
+
+      if (lunchStart && !bh?.is_closed) {
+        // Build full ISO of lunch start in local TZ
+        const lunchStartIso = `${yyyyMmDd}T${lunchStart}`;
+        const lunchStartDate = new Date(lunchStartIso);
+
+        // Only ask if appointment STARTS before lunch begins
+        if (aptStart < lunchStartDate) {
+          setDelayPendingMinutes(minutes);
+          setDelayLunchStartIso(lunchStartDate.toISOString());
+          setDelayDialogOpen(false);
+          setDelayLunchDialogOpen(true);
+          return;
+        }
+      }
+    } catch (err) {
+      console.warn('[Dashboard] lunch check failed, proceeding default:', err);
+    }
+
+    // No lunch-related decision needed — propagate everything
+    void executeDelay(minutes, null);
+  };
+
+  /**
+   * Calls the register_delay RPC and dispatches the rescheduled webhook.
+   * No WhatsApp tabs are opened — Make.com is the sole notification channel.
+   */
+  const executeDelay = async (minutes: number, stopBeforeIso: string | null) => {
     if (!delayTargetId) return;
     setDelayLoading(true);
     try {
       const { data, error } = await supabase.rpc('register_delay', {
         p_appointment_id: delayTargetId,
         p_delay_minutes: minutes,
-      });
+        p_stop_before: stopBeforeIso,
+      } as any);
 
       if (error) {
         toast.error(error.message || 'Erro ao registrar atraso');
@@ -750,16 +808,13 @@ const Dashboard = () => {
         `Atraso de ${minutes} min registrado. ${affected.length} agendamento(s) reajustado(s).`
       );
 
-      // Build origin (window.location) for reschedule URLs
       const origin = typeof window !== 'undefined' ? window.location.origin : '';
-
-      // Fire reschedule webhooks (non-blocking) + open WhatsApp for each affected client
       const { sendAppointmentRescheduledWebhook } = await import('@/lib/automations');
 
+      // Fire reschedule webhooks (non-blocking) — NO WhatsApp tabs.
       for (const a of affected) {
         const rescheduleUrl = a.id ? `${origin}/reschedule/${a.id}` : null;
 
-        // Fire-and-forget automation webhook
         sendAppointmentRescheduledWebhook({
           appointment_id: a.id,
           company_id: companyId || '',
@@ -772,36 +827,26 @@ const Dashboard = () => {
           appointment_time: a.new_time ?? null,
           datetime_iso: a.new_start_iso ?? null,
           origin: 'dashboard',
-          // Custom delay fields
           old_time: a.old_time ?? null,
           new_time: a.new_time ?? null,
           delay_minutes: minutes,
           delay_source_appointment_id: sourceAppointmentId,
           reschedule_url: rescheduleUrl,
-        });
-
-        // WhatsApp notification (manual click — keeps user-controlled flow)
-        if (a.client_whatsapp) {
-          const message =
-            `⚠️ Aviso de atraso\n\n` +
-            `Olá ${a.client_name || 'Cliente'}! 👋\n\n` +
-            `Houve um pequeno ajuste na agenda. ` +
-            `Seu horário foi alterado de ${a.old_time} para ${a.new_time}.\n\n` +
-            (rescheduleUrl ? `Caso prefira reagendar: ${rescheduleUrl}\n\n` : '') +
-            `Obrigado pela compreensão!`;
-          const phone = formatWhatsApp(a.client_whatsapp);
-          openWhatsApp(phone, { source: 'dashboard', message });
-        }
+        } as any);
       }
 
       fetchAppointments();
     } catch (err) {
-      console.error('[Dashboard] registerDelay error:', err);
+      console.error('[Dashboard] executeDelay error:', err);
       toast.error('Erro ao registrar atraso');
     } finally {
       setDelayLoading(false);
       setDelayDialogOpen(false);
+      setDelayLunchDialogOpen(false);
       setDelayTargetId(null);
+      setDelayTargetApt(null);
+      setDelayPendingMinutes(null);
+      setDelayLunchStartIso(null);
     }
   };
 
@@ -930,7 +975,7 @@ const Dashboard = () => {
         )}
         {(apt.status === 'pending' || apt.status === 'confirmed') && (
           <>
-            <Button size="sm" variant="outline" className="text-xs" onClick={() => { setDelayTargetId(apt.id); setDelayDialogOpen(true); }}>
+            <Button size="sm" variant="outline" className="text-xs" onClick={() => { setDelayTargetId(apt.id); setDelayTargetApt(apt); setDelayDialogOpen(true); }}>
               <Timer className="h-3 w-3 mr-1" />Atraso
             </Button>
             {!apt.promotion_id && (
@@ -1800,6 +1845,7 @@ const Dashboard = () => {
                                     variant="outline"
                                     onClick={() => {
                                       setDelayTargetId(apt.id);
+                                      setDelayTargetApt(apt);
                                       setDelayDialogOpen(true);
                                     }}
                                   >
@@ -1877,7 +1923,7 @@ const Dashboard = () => {
                   variant="outline"
                   className="h-16 text-lg font-display"
                   disabled={delayLoading}
-                  onClick={() => registerDelay(min)}
+                  onClick={() => handleDelayChoice(min)}
                 >
                   {min} min
                 </Button>
@@ -1885,12 +1931,50 @@ const Dashboard = () => {
             </div>
           </DialogBody>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDelayDialogOpen(false)} disabled={delayLoading}>
+            <Button variant="outline" onClick={() => { setDelayDialogOpen(false); setDelayTargetApt(null); }} disabled={delayLoading}>
               Cancelar
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Lunch-aware confirmation dialog */}
+      <AlertDialog open={delayLunchDialogOpen} onOpenChange={setDelayLunchDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <Timer className="h-5 w-5" /> Atraso antes do almoço
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Este atraso ocorre antes do horário de almoço configurado.
+              Os horários após o almoço também serão afetados?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex-col sm:flex-row gap-2">
+            <Button
+              variant="outline"
+              disabled={delayLoading}
+              onClick={() => {
+                if (delayPendingMinutes != null) {
+                  void executeDelay(delayPendingMinutes, delayLunchStartIso);
+                }
+              }}
+            >
+              Não, compensar no almoço
+            </Button>
+            <Button
+              disabled={delayLoading}
+              onClick={() => {
+                if (delayPendingMinutes != null) {
+                  void executeDelay(delayPendingMinutes, null);
+                }
+              }}
+            >
+              Sim, propagar tudo
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Cancel Confirmation Dialog */}
       <AlertDialog open={cancelDialogOpen} onOpenChange={setCancelDialogOpen}>

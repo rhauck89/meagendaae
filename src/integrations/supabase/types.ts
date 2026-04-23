@@ -5156,10 +5156,19 @@ export type Database = {
         Args: { p_client_id: string; p_company_id: string; p_reward_id: string }
         Returns: Json
       }
-      register_delay: {
-        Args: { p_appointment_id: string; p_delay_minutes: number }
-        Returns: Json
-      }
+      register_delay:
+        | {
+            Args: { p_appointment_id: string; p_delay_minutes: number }
+            Returns: Json
+          }
+        | {
+            Args: {
+              p_appointment_id: string
+              p_delay_minutes: number
+              p_stop_before?: string
+            }
+            Returns: Json
+          }
       reschedule_appointment: {
         Args: {
           p_appointment_id: string
