@@ -72,16 +72,10 @@ const ReviewPage = () => {
 
   const fetchAppointment = async () => {
     try {
-      const { data, error } = await supabase
-        .from('appointments')
-        .select(`
-          *,
-          professional:profiles!appointments_professional_id_fkey(full_name, avatar_url),
-          company:companies(name, logo_url, google_review_url),
-          appointment_services(*, service:services(name))
-        `)
-        .eq('id', appointmentId!)
-        .single();
+      // Use SECURITY DEFINER RPC so anonymous review links work regardless of RLS
+      const { data, error } = await supabase.rpc('get_appointment_public', {
+        p_appointment_id: appointmentId!,
+      });
 
       if (error || !data) {
         setAppointment(null);
