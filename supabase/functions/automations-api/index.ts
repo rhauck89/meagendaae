@@ -453,14 +453,19 @@ async function handleInactive20Days() {
 async function handleReviewsFollowup() {
   const now = Date.now();
   // Completed window: between 10 minutes ago and 1 minute ago
-  const windowStart = new Date(now - 10 * 60 * 1000).toISOString();
-  const windowEnd = new Date(now - 1 * 60 * 1000).toISOString();
+  // Prefer completed_at (real conclusion timestamp); fallback to end_time.
+  const windowStartMs = now - 10 * 60 * 1000;
+  const windowEndMs = now - 1 * 60 * 1000;
+  const windowStart = new Date(windowStartMs).toISOString();
+  const windowEnd = new Date(windowEndMs).toISOString();
 
+  // Fetch any completed appointment whose completed_at OR end_time falls in window.
+  // We OR over both columns at the DB level, then refine the effective timestamp in code.
   const { data, error } = await admin
     .from('appointments')
     .select(
       `
-      id, company_id, start_time, end_time, status, updated_at,
+      id, company_id, start_time, end_time, completed_at, status, updated_at,
       client_id, client_name, client_whatsapp, professional_id, total_price,
       clients:client_id ( name, whatsapp ),
       profiles:professional_id ( full_name ),
@@ -468,15 +473,21 @@ async function handleReviewsFollowup() {
     `,
     )
     .eq('status', 'completed')
-    .gte('end_time', windowStart)
-    .lte('end_time', windowEnd)
-    .order('end_time', { ascending: false });
+    .or(
+      `and(completed_at.gte.${windowStart},completed_at.lte.${windowEnd}),` +
+        `and(completed_at.is.null,end_time.gte.${windowStart},end_time.lte.${windowEnd})`,
+    )
+    .order('completed_at', { ascending: false, nullsFirst: false });
 
   if (error) throw error;
 
-  const rows = ((data ?? []) as unknown as AppointmentRow[]).filter(
-    (r) => (r.clients?.whatsapp ?? r.client_whatsapp ?? '').trim() !== '',
-  );
+  const rows = ((data ?? []) as unknown as (AppointmentRow & { completed_at?: string | null })[])
+    .filter((r) => (r.clients?.whatsapp ?? r.client_whatsapp ?? '').trim() !== '')
+    .filter((r) => {
+      // Effective completion timestamp with fallback
+      const effectiveMs = new Date(r.completed_at ?? r.end_time).getTime();
+      return effectiveMs >= windowStartMs && effectiveMs <= windowEndMs;
+    });
 
   if (rows.length === 0) return [];
 
