@@ -301,7 +301,8 @@ async function mapAppointmentsWithUrls(rows: AppointmentRow[]) {
         .filter(Boolean)
         .join(', ') || null;
 
-    const url = buildBookingUrl(company.slug, professionalSlug);
+    const url = buildBookingUrl(company.slug, professionalSlug, company.business_type);
+    const mgmt = buildAppointmentManagementUrls(row.id);
 
     return {
       appointment_id: row.id,
@@ -315,12 +316,16 @@ async function mapAppointmentsWithUrls(rows: AppointmentRow[]) {
       appointment_time: formatTimeBR(row.start_time),
       datetime_iso: row.start_time,
       status: row.status,
-      // New SaaS multi-tenant URL fields
+      // SaaS multi-tenant URL fields
       company_name: company.name,
       company_slug: company.slug,
       professional_slug: professionalSlug,
+      business_type: company.business_type,
+      route_prefix: url.route_prefix,
       booking_url: url.booking_url,
       booking_url_type: url.booking_url_type,
+      cancel_url: mgmt.cancel_url,
+      reschedule_url: mgmt.reschedule_url,
     };
   });
 }
