@@ -95,25 +95,54 @@ function formatDateBR(iso: string): string {
 }
 
 /**
- * Build booking_url + booking_url_type given the slugs and whether the
- * professional has a usable public page (active collaborator with slug).
+ * Map a company business_type to the public route prefix used on the platform domain.
+ * Routes registered in src/App.tsx (PlatformRoutes):
+ *   - /barbearia/:slug        (barbershop)
+ *   - /estetica/:slug         (esthetic / aesthetics / salons)
+ *   - /barbearia/:slug/:professionalSlug
+ *   - /estetica/:slug/:professionalSlug
+ */
+function routePrefixFor(businessType: string | null | undefined): 'barbearia' | 'estetica' {
+  return businessType === 'esthetic' ? 'estetica' : 'barbearia';
+}
+
+/**
+ * Build booking_url + booking_url_type given the slugs and the company's business_type.
+ * URLs always use the platform's canonical public routes so they resolve on
+ * meagendae.com.br without depending on subdomain/custom-domain configuration.
  */
 function buildBookingUrl(
   companySlug: string | null,
   professionalSlug: string | null,
-): { booking_url: string | null; booking_url_type: 'professional' | 'company' | null } {
+  businessType: string | null | undefined,
+): {
+  booking_url: string | null;
+  booking_url_type: 'professional' | 'company' | null;
+  route_prefix: 'barbearia' | 'estetica' | null;
+} {
   if (!companySlug) {
-    return { booking_url: null, booking_url_type: null };
+    return { booking_url: null, booking_url_type: null, route_prefix: null };
   }
+  const prefix = routePrefixFor(businessType);
   if (professionalSlug && professionalSlug.trim() !== '') {
     return {
-      booking_url: `${APP_BASE_URL}/${companySlug}/${professionalSlug}`,
+      booking_url: `${APP_BASE_URL}/${prefix}/${companySlug}/${professionalSlug}`,
       booking_url_type: 'professional',
+      route_prefix: prefix,
     };
   }
   return {
-    booking_url: `${APP_BASE_URL}/${companySlug}`,
+    booking_url: `${APP_BASE_URL}/${prefix}/${companySlug}`,
     booking_url_type: 'company',
+    route_prefix: prefix,
+  };
+}
+
+/** Cancel/reschedule pages are global (keyed by appointment id). */
+function buildAppointmentManagementUrls(appointmentId: string) {
+  return {
+    cancel_url: `${APP_BASE_URL}/cancel/${appointmentId}`,
+    reschedule_url: `${APP_BASE_URL}/reschedule/${appointmentId}`,
   };
 }
 
