@@ -1845,6 +1845,7 @@ const Dashboard = () => {
                                     variant="outline"
                                     onClick={() => {
                                       setDelayTargetId(apt.id);
+                                      setDelayTargetApt(apt);
                                       setDelayDialogOpen(true);
                                     }}
                                   >
