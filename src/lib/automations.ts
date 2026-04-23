@@ -12,6 +12,9 @@
 const MAKE_WEBHOOK_URL =
   'https://hook.us2.make.com/pd4ugdx38at1mvzfvhs13um0bxy3axd3';
 
+const MAKE_WEBHOOK_URL_RESCHEDULED =
+  'https://hook.us2.make.com/j79bi13udqwnxm7xp27z89nmj1yswdyk';
+
 const WEBHOOK_TIMEOUT_MS = 5000;
 
 export type AppointmentOrigin =
@@ -49,7 +52,8 @@ export interface AppointmentWebhookData {
  * Generic dispatcher (fire-and-forget, never throws).
  */
 async function dispatchWebhook(
-  payload: Record<string, unknown>
+  payload: Record<string, unknown>,
+  url: string = MAKE_WEBHOOK_URL
 ): Promise<void> {
   try {
     const controller = new AbortController();
@@ -58,7 +62,7 @@ async function dispatchWebhook(
       WEBHOOK_TIMEOUT_MS
     );
 
-    const response = await fetch(MAKE_WEBHOOK_URL, {
+    const response = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
@@ -118,11 +122,14 @@ export function sendAppointmentCancelledWebhook(
 export function sendAppointmentRescheduledWebhook(
   data: AppointmentWebhookData
 ): void {
-  void dispatchWebhook({
-    event: 'appointment_rescheduled' as const,
-    created_at: new Date().toISOString(),
-    ...data,
-  });
+  void dispatchWebhook(
+    {
+      event: 'appointment_rescheduled' as const,
+      created_at: new Date().toISOString(),
+      ...data,
+    },
+    MAKE_WEBHOOK_URL_RESCHEDULED
+  );
 }
 
 export function sendAppointmentCompletedWebhook(
