@@ -677,6 +677,9 @@ Deno.serve(async (req) => {
       case 'appointments-7days':
         payload = await handleAppointments7Days();
         break;
+      case 'appointments-2hours':
+        payload = await handleAppointments2Hours();
+        break;
       case 'inactive-clients-20days':
         payload = await handleInactive20Days();
         break;
@@ -691,6 +694,7 @@ Deno.serve(async (req) => {
               'appointments-tomorrow',
               'appointments-today',
               'appointments-7days',
+              'appointments-2hours',
               'inactive-clients-20days',
               'reviews-followup',
             ],
