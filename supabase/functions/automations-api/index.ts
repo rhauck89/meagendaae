@@ -375,6 +375,64 @@ async function handleAppointments7Days() {
   return mapAppointmentsWithUrls(rows);
 }
 
+/**
+ * CENÁRIO — Lembrete 2h antes do agendamento
+ *
+ * Returns confirmed/pending appointments starting between now+1h45 and now+2h15
+ * (a ±15min window around the 2h mark), with valid phone, not yet flagged
+ * as sent in whatsapp_logs (source = 'reminder-2hours:<appointment_id>').
+ */
+async function handleAppointments2Hours() {
+  const now = Date.now();
+  const windowStartMs = now + 1 * 60 * 60 * 1000 + 45 * 60 * 1000; // +1h45
+  const windowEndMs = now + 2 * 60 * 60 * 1000 + 15 * 60 * 1000; // +2h15
+  const windowStart = new Date(windowStartMs).toISOString();
+  const windowEnd = new Date(windowEndMs).toISOString();
+
+  const { data, error } = await admin
+    .from('appointments')
+    .select(
+      `
+      id, company_id, start_time, end_time, status,
+      client_name, client_whatsapp, client_id, professional_id, total_price,
+      clients:client_id ( name, whatsapp ),
+      profiles:professional_id ( full_name ),
+      appointment_services ( services:service_id ( name ) )
+    `,
+    )
+    .gte('start_time', windowStart)
+    .lte('start_time', windowEnd)
+    .in('status', ['confirmed', 'pending'])
+    .order('start_time', { ascending: true });
+
+  if (error) throw error;
+
+  const rows = ((data ?? []) as unknown as AppointmentRow[]).filter(
+    (r) => (r.clients?.whatsapp ?? r.client_whatsapp ?? '').trim() !== '',
+  );
+
+  if (rows.length === 0) return [];
+
+  // Anti-duplicate: drop appointments already logged with reminder-2hours source
+  const ids = rows.map((r) => r.id);
+  const sourceMarkers = ids.map((id) => `reminder-2hours:${id}`);
+  const { data: existingLogs } = await admin
+    .from('whatsapp_logs')
+    .select('source')
+    .in('source', sourceMarkers);
+
+  const sentIds = new Set(
+    (existingLogs ?? [])
+      .map((l: { source: string | null }) => l.source?.split(':')[1])
+      .filter(Boolean),
+  );
+
+  const pending = rows.filter((r) => !sentIds.has(r.id));
+  if (pending.length === 0) return [];
+
+  return mapAppointmentsWithUrls(pending);
+}
+
 async function handleInactive20Days() {
   // Clients whose latest appointment is older than 20 days (and no future appt).
   const cutoffIso = new Date(Date.now() - 20 * 24 * 60 * 60 * 1000).toISOString();
