@@ -198,6 +198,7 @@ export type Database = {
           client_name: string | null
           client_whatsapp: string | null
           company_id: string
+          completed_at: string | null
           created_at: string
           delay_minutes: number | null
           end_time: string
@@ -217,6 +218,7 @@ export type Database = {
           client_name?: string | null
           client_whatsapp?: string | null
           company_id: string
+          completed_at?: string | null
           created_at?: string
           delay_minutes?: number | null
           end_time: string
@@ -236,6 +238,7 @@ export type Database = {
           client_name?: string | null
           client_whatsapp?: string | null
           company_id?: string
+          completed_at?: string | null
           created_at?: string
           delay_minutes?: number | null
           end_time?: string
