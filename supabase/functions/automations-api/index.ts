@@ -95,25 +95,54 @@ function formatDateBR(iso: string): string {
 }
 
 /**
- * Build booking_url + booking_url_type given the slugs and whether the
- * professional has a usable public page (active collaborator with slug).
+ * Map a company business_type to the public route prefix used on the platform domain.
+ * Routes registered in src/App.tsx (PlatformRoutes):
+ *   - /barbearia/:slug        (barbershop)
+ *   - /estetica/:slug         (esthetic / aesthetics / salons)
+ *   - /barbearia/:slug/:professionalSlug
+ *   - /estetica/:slug/:professionalSlug
+ */
+function routePrefixFor(businessType: string | null | undefined): 'barbearia' | 'estetica' {
+  return businessType === 'esthetic' ? 'estetica' : 'barbearia';
+}
+
+/**
+ * Build booking_url + booking_url_type given the slugs and the company's business_type.
+ * URLs always use the platform's canonical public routes so they resolve on
+ * meagendae.com.br without depending on subdomain/custom-domain configuration.
  */
 function buildBookingUrl(
   companySlug: string | null,
   professionalSlug: string | null,
-): { booking_url: string | null; booking_url_type: 'professional' | 'company' | null } {
+  businessType: string | null | undefined,
+): {
+  booking_url: string | null;
+  booking_url_type: 'professional' | 'company' | null;
+  route_prefix: 'barbearia' | 'estetica' | null;
+} {
   if (!companySlug) {
-    return { booking_url: null, booking_url_type: null };
+    return { booking_url: null, booking_url_type: null, route_prefix: null };
   }
+  const prefix = routePrefixFor(businessType);
   if (professionalSlug && professionalSlug.trim() !== '') {
     return {
-      booking_url: `${APP_BASE_URL}/${companySlug}/${professionalSlug}`,
+      booking_url: `${APP_BASE_URL}/${prefix}/${companySlug}/${professionalSlug}`,
       booking_url_type: 'professional',
+      route_prefix: prefix,
     };
   }
   return {
-    booking_url: `${APP_BASE_URL}/${companySlug}`,
+    booking_url: `${APP_BASE_URL}/${prefix}/${companySlug}`,
     booking_url_type: 'company',
+    route_prefix: prefix,
+  };
+}
+
+/** Cancel/reschedule pages are global (keyed by appointment id). */
+function buildAppointmentManagementUrls(appointmentId: string) {
+  return {
+    cancel_url: `${APP_BASE_URL}/cancel/${appointmentId}`,
+    reschedule_url: `${APP_BASE_URL}/reschedule/${appointmentId}`,
   };
 }
 
@@ -159,18 +188,22 @@ async function loadCompanyAndProfessionalMeta(
     ),
   ];
 
-  const companyMap = new Map<string, { name: string | null; slug: string | null }>();
+  const companyMap = new Map<
+    string,
+    { name: string | null; slug: string | null; business_type: string | null }
+  >();
   if (companyIds.length > 0) {
     const { data: companies } = await admin
       .from('companies')
-      .select('id, name, slug')
+      .select('id, name, slug, business_type')
       .in('id', companyIds);
     for (const c of (companies ?? []) as Array<{
       id: string;
       name: string | null;
       slug: string | null;
+      business_type: string | null;
     }>) {
-      companyMap.set(c.id, { name: c.name, slug: c.slug });
+      companyMap.set(c.id, { name: c.name, slug: c.slug, business_type: c.business_type });
     }
   }
 
@@ -207,7 +240,8 @@ async function loadCompanyAndProfessionalMeta(
   }
 
   return {
-    getCompany: (companyId: string) => companyMap.get(companyId) ?? { name: null, slug: null },
+    getCompany: (companyId: string) =>
+      companyMap.get(companyId) ?? { name: null, slug: null, business_type: null },
     getProfessionalName: (professionalId: string | null) =>
       professionalId ? profileMap.get(professionalId)?.full_name ?? null : null,
     getProfessionalSlug: (companyId: string, professionalId: string | null) => {
@@ -267,7 +301,8 @@ async function mapAppointmentsWithUrls(rows: AppointmentRow[]) {
         .filter(Boolean)
         .join(', ') || null;
 
-    const url = buildBookingUrl(company.slug, professionalSlug);
+    const url = buildBookingUrl(company.slug, professionalSlug, company.business_type);
+    const mgmt = buildAppointmentManagementUrls(row.id);
 
     return {
       appointment_id: row.id,
@@ -281,12 +316,16 @@ async function mapAppointmentsWithUrls(rows: AppointmentRow[]) {
       appointment_time: formatTimeBR(row.start_time),
       datetime_iso: row.start_time,
       status: row.status,
-      // New SaaS multi-tenant URL fields
+      // SaaS multi-tenant URL fields
       company_name: company.name,
       company_slug: company.slug,
       professional_slug: professionalSlug,
+      business_type: company.business_type,
+      route_prefix: url.route_prefix,
       booking_url: url.booking_url,
       booking_url_type: url.booking_url_type,
+      cancel_url: mgmt.cancel_url,
+      reschedule_url: mgmt.reschedule_url,
     };
   });
 }
@@ -417,7 +456,7 @@ async function handleInactive20Days() {
       client.company_id,
       lastProfessionalId,
     );
-    const url = buildBookingUrl(company.slug, professionalSlug);
+    const url = buildBookingUrl(company.slug, professionalSlug, company.business_type);
 
     return {
       client_id: client.id,
@@ -428,9 +467,11 @@ async function handleInactive20Days() {
       days_since_visit: Math.floor(
         (Date.now() - new Date(lastVisit).getTime()) / (24 * 60 * 60 * 1000),
       ),
-      // New SaaS multi-tenant URL fields
+      // SaaS multi-tenant URL fields
       company_name: company.name,
       company_slug: company.slug,
+      business_type: company.business_type,
+      route_prefix: url.route_prefix,
       professional_name: professionalName,
       professional_slug: professionalSlug,
       booking_url: url.booking_url,
@@ -517,7 +558,8 @@ async function handleReviewsFollowup() {
     const professionalName =
       row.profiles?.full_name ?? meta.getProfessionalName(row.professional_id) ?? null;
     const professionalSlug = meta.getProfessionalSlug(row.company_id, row.professional_id);
-    const url = buildBookingUrl(company.slug, professionalSlug);
+    const url = buildBookingUrl(company.slug, professionalSlug, company.business_type);
+    const mgmt = buildAppointmentManagementUrls(row.id);
 
     // Existing review page is shared (single route), keyed by appointment id.
     const reviewUrl = `${APP_BASE_URL}/review/${row.id}`;
@@ -532,12 +574,17 @@ async function handleReviewsFollowup() {
       professional_slug: professionalSlug,
       company_name: company.name,
       company_slug: company.slug,
+      business_type: company.business_type,
+      route_prefix: url.route_prefix,
       appointment_date: formatDateBR(row.start_time),
       appointment_time: formatTimeBR(row.start_time),
+      review_url: reviewUrl,
       review_professional_url: reviewUrl,
       review_company_url: reviewUrl,
       booking_url: url.booking_url,
       booking_url_type: url.booking_url_type,
+      cancel_url: mgmt.cancel_url,
+      reschedule_url: mgmt.reschedule_url,
     };
   });
 }
