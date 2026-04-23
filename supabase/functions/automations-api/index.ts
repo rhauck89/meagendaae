@@ -188,18 +188,22 @@ async function loadCompanyAndProfessionalMeta(
     ),
   ];
 
-  const companyMap = new Map<string, { name: string | null; slug: string | null }>();
+  const companyMap = new Map<
+    string,
+    { name: string | null; slug: string | null; business_type: string | null }
+  >();
   if (companyIds.length > 0) {
     const { data: companies } = await admin
       .from('companies')
-      .select('id, name, slug')
+      .select('id, name, slug, business_type')
       .in('id', companyIds);
     for (const c of (companies ?? []) as Array<{
       id: string;
       name: string | null;
       slug: string | null;
+      business_type: string | null;
     }>) {
-      companyMap.set(c.id, { name: c.name, slug: c.slug });
+      companyMap.set(c.id, { name: c.name, slug: c.slug, business_type: c.business_type });
     }
   }
 
@@ -236,7 +240,8 @@ async function loadCompanyAndProfessionalMeta(
   }
 
   return {
-    getCompany: (companyId: string) => companyMap.get(companyId) ?? { name: null, slug: null },
+    getCompany: (companyId: string) =>
+      companyMap.get(companyId) ?? { name: null, slug: null, business_type: null },
     getProfessionalName: (professionalId: string | null) =>
       professionalId ? profileMap.get(professionalId)?.full_name ?? null : null,
     getProfessionalSlug: (companyId: string, professionalId: string | null) => {
