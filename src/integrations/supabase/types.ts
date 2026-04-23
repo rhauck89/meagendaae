@@ -200,7 +200,9 @@ export type Database = {
           company_id: string
           completed_at: string | null
           created_at: string
+          delay_applied_at: string | null
           delay_minutes: number | null
+          delay_source_appointment_id: string | null
           end_time: string
           event_id: string | null
           id: string
@@ -220,7 +222,9 @@ export type Database = {
           company_id: string
           completed_at?: string | null
           created_at?: string
+          delay_applied_at?: string | null
           delay_minutes?: number | null
+          delay_source_appointment_id?: string | null
           end_time: string
           event_id?: string | null
           id?: string
@@ -240,7 +244,9 @@ export type Database = {
           company_id?: string
           completed_at?: string | null
           created_at?: string
+          delay_applied_at?: string | null
           delay_minutes?: number | null
+          delay_source_appointment_id?: string | null
           end_time?: string
           event_id?: string | null
           id?: string
