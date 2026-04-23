@@ -733,14 +733,67 @@ const Dashboard = () => {
     fetchUpcomingAppointments();
   };
 
-  const registerDelay = async (minutes: number) => {
+  /**
+   * Entry point — called when the user picks a delay duration.
+   * Decides whether to show the lunch-compensation modal or proceed directly.
+   */
+  const handleDelayChoice = async (minutes: number) => {
+    if (!delayTargetId || !delayTargetApt) {
+      // Fallback — proceed without lunch logic
+      void executeDelay(minutes, null);
+      return;
+    }
+
+    try {
+      const aptStart = parseISO(delayTargetApt.start_time);
+      const dow = aptStart.getDay(); // 0 (Sun) – 6 (Sat)
+      const yyyyMmDd = format(aptStart, 'yyyy-MM-dd');
+
+      // Fetch business hours row for that company / day-of-week
+      const { data: bh } = await supabase
+        .from('business_hours')
+        .select('lunch_start, lunch_end, is_closed')
+        .eq('company_id', delayTargetApt.company_id)
+        .eq('day_of_week', dow)
+        .maybeSingle();
+
+      const lunchStart = bh?.lunch_start as string | null | undefined;
+
+      if (lunchStart && !bh?.is_closed) {
+        // Build full ISO of lunch start in local TZ
+        const lunchStartIso = `${yyyyMmDd}T${lunchStart}`;
+        const lunchStartDate = new Date(lunchStartIso);
+
+        // Only ask if appointment STARTS before lunch begins
+        if (aptStart < lunchStartDate) {
+          setDelayPendingMinutes(minutes);
+          setDelayLunchStartIso(lunchStartDate.toISOString());
+          setDelayDialogOpen(false);
+          setDelayLunchDialogOpen(true);
+          return;
+        }
+      }
+    } catch (err) {
+      console.warn('[Dashboard] lunch check failed, proceeding default:', err);
+    }
+
+    // No lunch-related decision needed — propagate everything
+    void executeDelay(minutes, null);
+  };
+
+  /**
+   * Calls the register_delay RPC and dispatches the rescheduled webhook.
+   * No WhatsApp tabs are opened — Make.com is the sole notification channel.
+   */
+  const executeDelay = async (minutes: number, stopBeforeIso: string | null) => {
     if (!delayTargetId) return;
     setDelayLoading(true);
     try {
       const { data, error } = await supabase.rpc('register_delay', {
         p_appointment_id: delayTargetId,
         p_delay_minutes: minutes,
-      });
+        p_stop_before: stopBeforeIso,
+      } as any);
 
       if (error) {
         toast.error(error.message || 'Erro ao registrar atraso');
@@ -755,16 +808,13 @@ const Dashboard = () => {
         `Atraso de ${minutes} min registrado. ${affected.length} agendamento(s) reajustado(s).`
       );
 
-      // Build origin (window.location) for reschedule URLs
       const origin = typeof window !== 'undefined' ? window.location.origin : '';
-
-      // Fire reschedule webhooks (non-blocking) + open WhatsApp for each affected client
       const { sendAppointmentRescheduledWebhook } = await import('@/lib/automations');
 
+      // Fire reschedule webhooks (non-blocking) — NO WhatsApp tabs.
       for (const a of affected) {
         const rescheduleUrl = a.id ? `${origin}/reschedule/${a.id}` : null;
 
-        // Fire-and-forget automation webhook
         sendAppointmentRescheduledWebhook({
           appointment_id: a.id,
           company_id: companyId || '',
@@ -777,36 +827,26 @@ const Dashboard = () => {
           appointment_time: a.new_time ?? null,
           datetime_iso: a.new_start_iso ?? null,
           origin: 'dashboard',
-          // Custom delay fields
           old_time: a.old_time ?? null,
           new_time: a.new_time ?? null,
           delay_minutes: minutes,
           delay_source_appointment_id: sourceAppointmentId,
           reschedule_url: rescheduleUrl,
-        });
-
-        // WhatsApp notification (manual click — keeps user-controlled flow)
-        if (a.client_whatsapp) {
-          const message =
-            `⚠️ Aviso de atraso\n\n` +
-            `Olá ${a.client_name || 'Cliente'}! 👋\n\n` +
-            `Houve um pequeno ajuste na agenda. ` +
-            `Seu horário foi alterado de ${a.old_time} para ${a.new_time}.\n\n` +
-            (rescheduleUrl ? `Caso prefira reagendar: ${rescheduleUrl}\n\n` : '') +
-            `Obrigado pela compreensão!`;
-          const phone = formatWhatsApp(a.client_whatsapp);
-          openWhatsApp(phone, { source: 'dashboard', message });
-        }
+        } as any);
       }
 
       fetchAppointments();
     } catch (err) {
-      console.error('[Dashboard] registerDelay error:', err);
+      console.error('[Dashboard] executeDelay error:', err);
       toast.error('Erro ao registrar atraso');
     } finally {
       setDelayLoading(false);
       setDelayDialogOpen(false);
+      setDelayLunchDialogOpen(false);
       setDelayTargetId(null);
+      setDelayTargetApt(null);
+      setDelayPendingMinutes(null);
+      setDelayLunchStartIso(null);
     }
   };
 
