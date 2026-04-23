@@ -742,22 +742,61 @@ const Dashboard = () => {
         return;
       }
 
-      toast.success(`Atraso de ${minutes} min registrado com sucesso`);
+      const result = (data as any) || {};
+      const affected: any[] = result.affected || [];
+      const sourceAppointmentId = delayTargetId;
 
-      // Send WhatsApp notifications to affected clients
-      const affected = (data as any[]) || [];
+      toast.success(
+        `Atraso de ${minutes} min registrado. ${affected.length} agendamento(s) reajustado(s).`
+      );
+
+      // Build origin (window.location) for reschedule URLs
+      const origin = typeof window !== 'undefined' ? window.location.origin : '';
+
+      // Fire reschedule webhooks (non-blocking) + open WhatsApp for each affected client
+      const { sendAppointmentRescheduledWebhook } = await import('@/lib/automations');
+
       for (const a of affected) {
+        const rescheduleUrl = a.id ? `${origin}/reschedule/${a.id}` : null;
+
+        // Fire-and-forget automation webhook
+        sendAppointmentRescheduledWebhook({
+          appointment_id: a.id,
+          company_id: companyId || '',
+          client_name: a.client_name ?? null,
+          client_phone: a.client_whatsapp ?? null,
+          professional_name: a.professional_name ?? null,
+          appointment_date: a.new_start_iso
+            ? format(parseISO(a.new_start_iso), 'yyyy-MM-dd')
+            : null,
+          appointment_time: a.new_time ?? null,
+          datetime_iso: a.new_start_iso ?? null,
+          origin: 'dashboard',
+          // Custom delay fields
+          old_time: a.old_time ?? null,
+          new_time: a.new_time ?? null,
+          delay_minutes: minutes,
+          delay_source_appointment_id: sourceAppointmentId,
+          reschedule_url: rescheduleUrl,
+        });
+
+        // WhatsApp notification (manual click — keeps user-controlled flow)
         if (a.client_whatsapp) {
-          const msg = encodeURIComponent(
-            `⚠️ Aviso de atraso\n\nOlá ${a.client_name || 'Cliente'}! 👋\n\nHouve um pequeno atraso no atendimento anterior.\n\nSeu horário foi ajustado para:\n🕐 ${a.new_start} - ${a.new_end}\n\nObrigado pela compreensão!`
-          );
+          const message =
+            `⚠️ Aviso de atraso\n\n` +
+            `Olá ${a.client_name || 'Cliente'}! 👋\n\n` +
+            `Houve um pequeno ajuste na agenda. ` +
+            `Seu horário foi alterado de ${a.old_time} para ${a.new_time}.\n\n` +
+            (rescheduleUrl ? `Caso prefira reagendar: ${rescheduleUrl}\n\n` : '') +
+            `Obrigado pela compreensão!`;
           const phone = formatWhatsApp(a.client_whatsapp);
-          openWhatsApp(phone, { source: 'dashboard', message: `⚠️ Aviso de atraso\n\nOlá ${a.client_name || 'Cliente'}! 👋\n\nHouve um pequeno atraso no atendimento anterior.\n\nSeu horário foi ajustado para:\n🕐 ${a.new_start} - ${a.new_end}\n\nObrigado pela compreensão!` });
+          openWhatsApp(phone, { source: 'dashboard', message });
         }
       }
 
       fetchAppointments();
     } catch (err) {
+      console.error('[Dashboard] registerDelay error:', err);
       toast.error('Erro ao registrar atraso');
     } finally {
       setDelayLoading(false);
