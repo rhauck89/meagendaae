@@ -436,10 +436,99 @@ async function handleInactive20Days() {
       booking_url: url.booking_url,
       booking_url_type: url.booking_url_type,
     };
-  });
 }
 
-Deno.serve(async (req) => {
+/**
+ * CENÁRIO 4 — Pós-atendimento + avaliação automática
+ *
+ * Returns appointments completed between 1 and 10 minutes ago, with valid phone,
+ * not yet flagged as sent in whatsapp_logs (source LIKE 'reviews-followup:<id>').
+ *
+ * Review URL strategy:
+ *   - Existing public route: /review/:appointmentId  (handles both pro + company rating)
+ *   - We expose it as both `review_professional_url` and `review_company_url`
+ *     so Make scenarios can reference either field without breaking.
+ */
+async function handleReviewsFollowup() {
+  const now = Date.now();
+  // Completed window: between 10 minutes ago and 1 minute ago
+  const windowStart = new Date(now - 10 * 60 * 1000).toISOString();
+  const windowEnd = new Date(now - 1 * 60 * 1000).toISOString();
+
+  const { data, error } = await admin
+    .from('appointments')
+    .select(
+      `
+      id, company_id, start_time, end_time, status, updated_at,
+      client_id, client_name, client_whatsapp, professional_id, total_price,
+      clients:client_id ( name, whatsapp ),
+      profiles:professional_id ( full_name ),
+      appointment_services ( services:service_id ( name ) )
+    `,
+    )
+    .eq('status', 'completed')
+    .gte('end_time', windowStart)
+    .lte('end_time', windowEnd)
+    .order('end_time', { ascending: false });
+
+  if (error) throw error;
+
+  const rows = ((data ?? []) as unknown as AppointmentRow[]).filter(
+    (r) => (r.clients?.whatsapp ?? r.client_whatsapp ?? '').trim() !== '',
+  );
+
+  if (rows.length === 0) return [];
+
+  // Anti-duplicate: drop appointments already logged with reviews-followup source
+  const ids = rows.map((r) => r.id);
+  const sourceMarkers = ids.map((id) => `reviews-followup:${id}`);
+  const { data: existingLogs } = await admin
+    .from('whatsapp_logs')
+    .select('source')
+    .in('source', sourceMarkers);
+
+  const sentIds = new Set(
+    (existingLogs ?? [])
+      .map((l: { source: string | null }) => l.source?.split(':')[1])
+      .filter(Boolean),
+  );
+
+  const pending = rows.filter((r) => !sentIds.has(r.id));
+  if (pending.length === 0) return [];
+
+  const meta = await loadCompanyAndProfessionalMeta(
+    pending.map((r) => ({ company_id: r.company_id, professional_id: r.professional_id })),
+  );
+
+  return pending.map((row) => {
+    const company = meta.getCompany(row.company_id);
+    const professionalName =
+      row.profiles?.full_name ?? meta.getProfessionalName(row.professional_id) ?? null;
+    const professionalSlug = meta.getProfessionalSlug(row.company_id, row.professional_id);
+    const url = buildBookingUrl(company.slug, professionalSlug);
+
+    // Existing review page is shared (single route), keyed by appointment id.
+    const reviewUrl = `${APP_BASE_URL}/review/${row.id}`;
+
+    return {
+      appointment_id: row.id,
+      company_id: row.company_id,
+      client_id: row.client_id,
+      client_name: row.clients?.name ?? row.client_name ?? null,
+      client_phone: row.clients?.whatsapp ?? row.client_whatsapp ?? null,
+      professional_name: professionalName,
+      professional_slug: professionalSlug,
+      company_name: company.name,
+      company_slug: company.slug,
+      appointment_date: formatDateBR(row.start_time),
+      appointment_time: formatTimeBR(row.start_time),
+      review_professional_url: reviewUrl,
+      review_company_url: reviewUrl,
+      booking_url: url.booking_url,
+      booking_url_type: url.booking_url_type,
+    };
+  });
+}
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
