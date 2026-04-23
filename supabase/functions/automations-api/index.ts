@@ -436,6 +436,7 @@ async function handleInactive20Days() {
       booking_url: url.booking_url,
       booking_url_type: url.booking_url_type,
     };
+  });
 }
 
 /**
@@ -561,6 +562,9 @@ async function handleReviewsFollowup() {
       case 'inactive-clients-20days':
         payload = await handleInactive20Days();
         break;
+      case 'reviews-followup':
+        payload = await handleReviewsFollowup();
+        break;
       default:
         return json(
           {
@@ -570,6 +574,7 @@ async function handleReviewsFollowup() {
               'appointments-today',
               'appointments-7days',
               'inactive-clients-20days',
+              'reviews-followup',
             ],
           },
           404,
