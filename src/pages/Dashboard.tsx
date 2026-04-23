@@ -121,6 +121,11 @@ const Dashboard = () => {
   const [collaboratorsList, setCollaboratorsList] = useState<any[]>([]);
   const [delayDialogOpen, setDelayDialogOpen] = useState(false);
   const [delayTargetId, setDelayTargetId] = useState<string | null>(null);
+  const [delayTargetApt, setDelayTargetApt] = useState<any>(null);
+  // Lunch-aware delay confirmation
+  const [delayLunchDialogOpen, setDelayLunchDialogOpen] = useState(false);
+  const [delayPendingMinutes, setDelayPendingMinutes] = useState<number | null>(null);
+  const [delayLunchStartIso, setDelayLunchStartIso] = useState<string | null>(null);
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
   const [cancelTarget, setCancelTarget] = useState<any>(null);
   const [completeDialogOpen, setCompleteDialogOpen] = useState(false);
