@@ -1110,10 +1110,8 @@ export default function Promotions() {
     return (
     <div className="space-y-4">
       {/* Cashback moved to Loyalty module */}
-      <div className="rounded-md border border-amber-500/30 bg-amber-500/5 p-3 text-xs text-muted-foreground">
-        💡 <strong>Cashback agora vive em Fidelidade.</strong> Esta tela é só para promoções tradicionais (desconto imediato).{' '}
-        <a href="/dashboard/loyalty" className="underline text-amber-600 dark:text-amber-400 font-medium">Ir para Cashback →</a>
-      </div>
+      {/* Cashback notice removed as requested */}
+
 
       <div>
         <Label>Título *</Label>
