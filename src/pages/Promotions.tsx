@@ -205,10 +205,11 @@ export default function Promotions() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedPromotion, setSelectedPromotion] = useState<Promotion | null>(null);
   const [isEditing, setIsEditing] = useState(false);
+  const [creationMode, setCreationMode] = useState<'choice' | 'manual' | 'smart' | null>(null);
+  const [smartMode, setSmartMode] = useState<'manual' | 'smart'>('manual');
+  const [sourceInsight, setSourceInsight] = useState<string | null>(null);
   const [clientsDialogOpen, setClientsDialogOpen] = useState(false);
-  const [metricsDialogOpen, setMetricsDialogOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState('active');
-  const [highlightedPromoId, setHighlightedPromoId] = useState<string | null>(null);
+...
   const [now, setNow] = useState(new Date());
 
   // Wizard step
