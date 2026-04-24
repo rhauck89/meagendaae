@@ -947,6 +947,11 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
             date: day,
             totalDuration,
             filterPastForToday: true,
+            prefetchData: {
+              businessHours,
+              professionalHours,
+              exceptions,
+            }
           }).then(res => ({ date: day, slots: res.slots }))
         )
       );
