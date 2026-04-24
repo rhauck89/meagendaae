@@ -728,7 +728,8 @@ const Loyalty = () => {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {rewardItems.map((item: any) => {
                 const itemRealValue = Number(item.real_value) || 0;
-                const itemPoints = Number(item.points_required) || 0;
+                // Calculate dynamically to ensure instant UI update when pointValue settings change
+                const itemPoints = pointValue > 0 ? Math.ceil(itemRealValue / pointValue) : (Number(item.points_required) || 0);
                 return (
                   <Card key={item.id} className={cn(!item.active && 'opacity-50')}>
                     <CardContent className="pt-4 space-y-2">
