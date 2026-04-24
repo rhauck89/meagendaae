@@ -35,7 +35,7 @@ interface ClientRecord {
 interface CompanyInfo { id: string; name: string; logo_url: string | null; slug?: string | null; }
 interface AppointmentRow {
   id: string; start_time: string; end_time: string; total_price: number;
-  status: string; company_id: string;
+  status: string; company_id: string; promotion_id: string | null;
   company: { id: string; name: string; logo_url: string | null; slug: string | null } | null;
   professional: { id: string; full_name: string; avatar_url: string | null } | null;
   appointment_services: { service: { name: string } | null; price: number }[];
@@ -271,7 +271,7 @@ const ClientPortal = () => {
       const { data: aptData, error: aptErr } = await supabase
         .from('appointments')
         .select(`
-          id, start_time, end_time, total_price, status, company_id,
+          id, start_time, end_time, total_price, status, company_id, promotion_id,
           company:companies!appointments_company_id_fkey(id, name, logo_url, slug),
           professional:profiles!appointments_professional_id_fkey(id, full_name, avatar_url),
           appointment_services(price, service:services(id, name))
@@ -872,9 +872,11 @@ const ClientPortal = () => {
                                   </p>
                                 </div>
                                 <div className="flex gap-2">
-                                  <Button size="sm" onClick={() => navigate(`/reschedule/${apt.id}`)}>
-                                    Remarcar
-                                  </Button>
+                                  {!apt.promotion_id && (
+                                    <Button size="sm" onClick={() => navigate(`/reschedule/${apt.id}`)}>
+                                      Remarcar
+                                    </Button>
+                                  )}
                                   <Button size="sm" variant="outline" className="text-destructive border-destructive/30 hover:bg-destructive/10 hover:text-destructive" onClick={() => navigate(`/cancel/${apt.id}`)}>
                                     Cancelar
                                   </Button>

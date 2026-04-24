@@ -14,6 +14,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogBody, DialogFooter, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { isPromoActive } from '@/lib/promotion-period';
 import { Calendar as CalendarIcon, CalendarCheck, ChevronLeft, ChevronRight, Clock, DollarSign, Users, UserCheck, UserMinus, AlertTriangle, Bell, MailCheck, Cake, Ban, Trash2, Timer, RefreshCw, AlertCircle, TrendingUp, BarChart3, XCircle, Percent, Receipt, Send, List, LayoutGrid, ArrowLeftRight } from 'lucide-react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { BlockTimeDialog } from '@/components/BlockTimeDialog';
@@ -27,6 +28,7 @@ import { useNavigate as useRouterNavigate } from 'react-router-dom';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { ManualAppointmentDialog } from '@/components/ManualAppointmentDialog';
 import { SwapAppointmentDialog } from '@/components/SwapAppointmentDialog';
+import { AdjustAppointmentDialog } from '@/components/AdjustAppointmentDialog';
 import { AgendaTimelineView } from '@/components/AgendaTimelineView';
 import { AgendaWeekView } from '@/components/AgendaWeekView';
 import { AgendaMonthView } from '@/components/AgendaMonthView';
@@ -137,13 +139,17 @@ const Dashboard = () => {
   const [delayLoading, setDelayLoading] = useState(false);
   const [rescheduleTarget, setRescheduleTarget] = useState<any>(null);
   const [rescheduleDialogOpen, setRescheduleDialogOpen] = useState(false);
-  const [swapTarget, setSwapTarget] = useState<any>(null);
-  const [swapDialogOpen, setSwapDialogOpen] = useState(false);
+  const [adjustTarget, setAdjustTarget] = useState<any>(null);
+  const [adjustDialogOpen, setAdjustDialogOpen] = useState(false);
+  const [rescheduleMode, setRescheduleMode] = useState<'time' | 'professional' | 'both'>('time');
+  const [rescheduleProfessionalId, setRescheduleProfessionalId] = useState<string | null>(null);
   const [rescheduleDate, setRescheduleDate] = useState<Date | undefined>(undefined);
   const [rescheduleSlots, setRescheduleSlots] = useState<string[]>([]);
   const [rescheduleSlotsLoading, setRescheduleSlotsLoading] = useState(false);
   const [rescheduleSelectedSlot, setRescheduleSelectedSlot] = useState<string | null>(null);
   const [rescheduleLoading, setRescheduleLoading] = useState(false);
+  const [priceCheckOpen, setPriceCheckOpen] = useState(false);
+  const [priceCheckData, setPriceCheckData] = useState<any>(null);
   const routerNavigate = useRouterNavigate();
   const [waitlistClients, setWaitlistClients] = useState<string[]>([]);
   const [companySlug, setCompanySlug] = useState('');
@@ -850,15 +856,29 @@ const Dashboard = () => {
     }
   };
 
+  const handleAdjustment = (apt: any, type: 'reschedule' | 'professional' | 'both' | 'normal') => {
+    if (type === 'normal') return;
+    setRescheduleMode(type === 'reschedule' ? 'time' : type === 'professional' ? 'professional' : 'both');
+    setRescheduleProfessionalId(apt.professional_id);
+    openRescheduleDialog(apt);
+  };
+
   const openRescheduleDialog = (apt: any) => {
     setRescheduleTarget(apt);
-    setRescheduleDate(undefined);
-    setRescheduleSlots([]);
-    setRescheduleSelectedSlot(null);
+    if (rescheduleMode === 'professional') {
+      const dt = parseISO(apt.start_time);
+      setRescheduleDate(dt);
+      setRescheduleSelectedSlot(format(dt, 'HH:mm'));
+      fetchRescheduleSlots(dt, apt.professional_id);
+    } else {
+      setRescheduleDate(undefined);
+      setRescheduleSlots([]);
+      setRescheduleSelectedSlot(null);
+    }
     setRescheduleDialogOpen(true);
   };
 
-  const fetchRescheduleSlots = async (date: Date) => {
+  const fetchRescheduleSlots = async (date: Date, professionalId?: string) => {
     if (!rescheduleTarget || !companyId) return;
     setRescheduleSlotsLoading(true);
     setRescheduleSelectedSlot(null);
@@ -868,13 +888,13 @@ const Dashboard = () => {
         (sum: number, s: any) => sum + (s.duration_minutes || 0), 0
       ) || 30;
 
-      // Single source of truth — uses the same engine + config resolution as Booking.tsx
-      // and ManualAppointmentDialog so reschedule slots match what the booking flow shows.
+      const profId = professionalId || rescheduleProfessionalId || rescheduleTarget.professional_id;
+
       const { getAvailableSlots } = await import('@/lib/availability-service');
       const { slots } = await getAvailableSlots({
         source: 'manual',
         companyId,
-        professionalId: rescheduleTarget.professional_id,
+        professionalId: profId,
         date,
         totalDuration,
         filterPastForToday: true,
@@ -898,23 +918,78 @@ const Dashboard = () => {
 
   const confirmReschedule = async () => {
     if (!rescheduleTarget || !rescheduleSelectedSlot || !rescheduleDate) return;
+
+    const profId = rescheduleProfessionalId || rescheduleTarget.professional_id;
+
+    // Check if moving outside promo window
+    if (rescheduleTarget.promotion_id) {
+      const { data: promo } = await supabase
+        .from('promotions')
+        .select('*')
+        .eq('id', rescheduleTarget.promotion_id)
+        .maybeSingle();
+
+      if (promo) {
+        const [rh, rm] = rescheduleSelectedSlot.split(':').map(Number);
+        const startDt = new Date(rescheduleDate);
+        startDt.setHours(rh, rm, 0, 0);
+
+        if (!isPromoActive(promo, startDt)) {
+          setPriceCheckData({
+            promo,
+            newStart: startDt,
+            newProfessionalId: profId
+          });
+          setPriceCheckOpen(true);
+          return;
+        }
+      }
+    }
+
+    executeReschedule(rescheduleTarget, rescheduleDate, rescheduleSelectedSlot, profId);
+  };
+
+  const executeReschedule = async (apt: any, date: Date, time: string, profId: string, keepPromoPrice = true) => {
     setRescheduleLoading(true);
     try {
-      const totalDuration = rescheduleTarget.appointment_services?.reduce(
+      const totalDuration = apt.appointment_services?.reduce(
         (sum: number, s: any) => sum + (s.duration_minutes || 0), 0
       ) || 30;
-      const [rh, rm] = rescheduleSelectedSlot.split(':').map(Number);
-      const startDt = new Date(rescheduleDate);
+      const [rh, rm] = time.split(':').map(Number);
+      const startDt = new Date(date);
       startDt.setHours(rh, rm, 0, 0);
       const endDt = addMinutes(startDt, totalDuration);
       const newStart = startDt.toISOString();
       const newEnd = endDt.toISOString();
 
+      // Check if we need to update price
+      let newPrice = apt.total_price;
+      if (!keepPromoPrice && apt.promotion_id) {
+        const { data: promo } = await supabase.from('promotions').select('original_price').eq('id', apt.promotion_id).maybeSingle();
+        if (promo?.original_price) {
+          newPrice = promo.original_price;
+        }
+      }
+
       const { error } = await supabase.rpc('reschedule_appointment', {
-        p_appointment_id: rescheduleTarget.id,
+        p_appointment_id: apt.id,
         p_new_start: newStart,
         p_new_end: newEnd,
       });
+
+      if (error) {
+        toast.error(error.message || 'Erro ao reagendar');
+        return;
+      }
+
+      // If price changed or professional changed, update the appointment record
+      if (newPrice !== apt.total_price || profId !== apt.professional_id) {
+        await supabase.from('appointments').update({
+          total_price: newPrice,
+          professional_id: profId,
+          notes: (apt.notes || '') + (newPrice !== apt.total_price ? `\n[Preço atualizado para R$ ${newPrice}]` : '')
+        } as any).eq('id', apt.id);
+      }
       if (error) {
         toast.error(error.message || 'Erro ao reagendar');
         return;
@@ -983,11 +1058,9 @@ const Dashboard = () => {
                 <RefreshCw className="h-3 w-3 mr-1" />Reagendar
               </Button>
             )}
-            {!apt.promotion_id && (
-              <Button size="sm" variant="outline" className="text-xs" onClick={() => { setSwapTarget(apt); setSwapDialogOpen(true); }}>
-                <ArrowLeftRight className="h-3 w-3 mr-1" />Trocar
-              </Button>
-            )}
+            <Button size="sm" variant="outline" className="text-xs" onClick={() => { setAdjustTarget(apt); setAdjustDialogOpen(true); }}>
+              <ArrowLeftRight className="h-3 w-3 mr-1" />Ajustar
+            </Button>
             <Button size="sm" variant="ghost" className="text-destructive text-xs" onClick={() => { setCancelTarget(apt); setCancelDialogOpen(true); }}>Cancelar</Button>
           </>
         )}
@@ -1121,11 +1194,9 @@ const Dashboard = () => {
                       <RefreshCw className="h-3 w-3 mr-1" />Reagendar
                     </Button>
                   )}
-                  {!apt.promotion_id && (
-                    <Button size="sm" variant="outline" className="text-xs" onClick={() => { setSwapTarget(apt); setSwapDialogOpen(true); }}>
-                      <ArrowLeftRight className="h-3 w-3 mr-1" />Trocar
-                    </Button>
-                  )}
+                  <Button size="sm" variant="outline" className="text-xs" onClick={() => { setAdjustTarget(apt); setAdjustDialogOpen(true); }}>
+                    <ArrowLeftRight className="h-3 w-3 mr-1" />Ajustar
+                  </Button>
                   <Button size="sm" variant="ghost" className="text-destructive text-xs" onClick={() => { setCancelTarget(apt); setCancelDialogOpen(true); }}>
                     Cliente cancelou
                   </Button>
@@ -1231,16 +1302,18 @@ const Dashboard = () => {
         }}
       />
 
-      <SwapAppointmentDialog
-        open={swapDialogOpen}
+      <AdjustAppointmentDialog
+        open={adjustDialogOpen}
         onOpenChange={(open) => {
-          setSwapDialogOpen(open);
-          if (!open) setSwapTarget(null);
+          setAdjustDialogOpen(open);
+          if (!open) setAdjustTarget(null);
         }}
-        source={swapTarget}
-        onSwapped={() => {
+        appointment={adjustTarget}
+        onAdjust={(type) => handleAdjustment(adjustTarget, type)}
+        onConverted={() => {
           fetchAppointments();
           fetchUpcomingAppointments();
+          fetchMonthlyStats();
         }}
       />
 
@@ -1862,16 +1935,14 @@ const Dashboard = () => {
                                       Reagendar
                                     </Button>
                                   )}
-                                  {!apt.promotion_id && (
-                                    <Button
-                                      size="sm"
-                                      variant="outline"
-                                      onClick={() => { setSwapTarget(apt); setSwapDialogOpen(true); }}
-                                    >
-                                      <ArrowLeftRight className="h-4 w-4 mr-1" />
-                                      Trocar
-                                    </Button>
-                                  )}
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => { setAdjustTarget(apt); setAdjustDialogOpen(true); }}
+                                  >
+                                    <ArrowLeftRight className="h-4 w-4 mr-1" />
+                                    Ajustar
+                                  </Button>
                                   <Button
                                     size="sm"
                                     variant="ghost"
@@ -2132,8 +2203,43 @@ const Dashboard = () => {
         </DialogContent>
       </Dialog>
 
+      {/* Price Confirmation Dialog */}
+      <AlertDialog open={priceCheckOpen} onOpenChange={setPriceCheckOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-amber-500" />
+              Fora do horário promocional
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Este novo horário está fora da janela da promoção <strong>{priceCheckData?.promo?.title}</strong>.
+              Como deseja proceder com o preço?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex-col sm:flex-row gap-2">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setPriceCheckOpen(false);
+                executeReschedule(rescheduleTarget, rescheduleDate!, rescheduleSelectedSlot!, priceCheckData.newProfessionalId, true);
+              }}
+            >
+              Manter preço promocional
+            </Button>
+            <AlertDialogAction
+              onClick={() => {
+                setPriceCheckOpen(false);
+                executeReschedule(rescheduleTarget, rescheduleDate!, rescheduleSelectedSlot!, priceCheckData.newProfessionalId, false);
+              }}
+            >
+              Cobrar preço normal (R$ {priceCheckData?.promo?.original_price})
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       {/* Reschedule Dialog */}
-      <Dialog open={rescheduleDialogOpen} onOpenChange={(open) => { setRescheduleDialogOpen(open); if (!open) { setRescheduleTarget(null); setRescheduleDate(undefined); setRescheduleSlots([]); setRescheduleSelectedSlot(null); } }}>
+      <Dialog open={rescheduleDialogOpen} onOpenChange={(open) => { setRescheduleDialogOpen(open); if (!open) { setRescheduleTarget(null); setRescheduleDate(undefined); setRescheduleSlots([]); setRescheduleSelectedSlot(null); setRescheduleMode('time'); setRescheduleProfessionalId(null); } }}>
         {rescheduleDialogOpen && (
         <DialogContent className="sm:max-w-[720px]">
           <DialogHeader>
@@ -2150,7 +2256,28 @@ const Dashboard = () => {
               )}
             </DialogDescription>
           </DialogHeader>
-          <DialogBody>
+          <DialogBody className="space-y-6">
+            {(rescheduleMode === 'professional' || rescheduleMode === 'both') && (
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Profissional</label>
+                <div className="flex gap-2 flex-wrap">
+                  {collaboratorsList.map(c => (
+                    <Button
+                      key={c.profile_id}
+                      variant={rescheduleProfessionalId === c.profile_id || (!rescheduleProfessionalId && rescheduleTarget?.professional_id === c.profile_id) ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => {
+                        setRescheduleProfessionalId(c.profile_id);
+                        if (rescheduleDate) fetchRescheduleSlots(rescheduleDate, c.profile_id);
+                      }}
+                      className="text-xs"
+                    >
+                      {c.profile?.full_name}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+            )}
             <div className="grid grid-cols-1 sm:grid-cols-[320px_1fr] gap-6">
               {/* Left: Calendar */}
               <div className="overflow-hidden">
