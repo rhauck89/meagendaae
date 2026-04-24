@@ -271,7 +271,7 @@ async function fetchSlotInputs(
   const apptsTable = 'appointments';
 
   // Only fetch what isn't already provided
-  const fetchTasks: Promise<any>[] = [];
+  const fetchTasks: any[] = [];
   
   // Index 0: Professional working hours
   if (prefetchData?.professionalHours) {
@@ -294,8 +294,6 @@ async function fetchSlotInputs(
   }
 
   // Index 2: Exceptions
-  // Note: Exceptions are usually date-specific, so if prefetchData.exceptions has all exceptions for the company,
-  // we can filter it here. If it's already filtered for the date, even better.
   if (prefetchData?.exceptions) {
     const dailyExceptions = prefetchData.exceptions.filter(e => e.exception_date === dateStr);
     fetchTasks.push(Promise.resolve({ data: dailyExceptions }));
