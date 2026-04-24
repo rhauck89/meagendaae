@@ -112,37 +112,146 @@ export function UnifiedAppointmentCard({
     currency: 'BRL'
   }).format(Number(apt.total_price));
 
-  // --- COMPACT VARIANT (Timeline/Small Lists) ---
+  // --- COMPACT VARIANT (Used in "Next Appointments" and summaries) ---
   if (variant === 'compact') {
     return (
       <motion.div
         whileHover={{ scale: 1.01 }}
         whileTap={{ scale: 0.99 }}
         className={cn(
-          "flex items-center gap-3 p-3 rounded-xl border transition-all cursor-pointer",
+          "relative flex flex-col gap-2 p-3 rounded-xl border transition-all cursor-pointer shadow-sm",
           statusCardStyles[displayStatus] || 'bg-card',
           isHighlighted && 'ring-2 ring-primary shadow-lg',
+          "group overflow-hidden",
           className
         )}
         onClick={() => onClick?.(apt)}
       >
-        <div className="text-center min-w-[50px] border-r pr-3">
-          <p className="text-sm font-bold leading-tight">{format(startTime, 'HH:mm')}</p>
-          <p className="text-[10px] text-muted-foreground">{format(startTime, 'dd/MM')}</p>
+        {/* Left Indicator Stripe */}
+        <div className={cn(
+          "absolute left-0 top-0 bottom-0 w-1",
+          statusColors[displayStatus] || 'bg-muted'
+        )} />
+
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="text-center min-w-[50px] border-r pr-3">
+              <p className="text-sm font-bold leading-tight">{format(startTime, 'HH:mm')}</p>
+              <p className="text-[10px] text-muted-foreground">{format(startTime, 'dd/MM')}</p>
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-bold truncate leading-tight">{clientName}</p>
+              <p className="text-[10px] text-muted-foreground truncate font-medium">
+                {formatServicesWithDuration(apt.appointment_services)}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            {/* Inline Delay Badge */}
+            {(apt.delay_minutes > 0 || displayStatus === 'late') && (
+              <Badge variant="outline" className="text-[9px] h-4 px-1 bg-warning/10 text-warning border-warning/20 font-bold whitespace-nowrap animate-pulse">
+                ⏱️ {apt.delay_minutes > 0 ? `+${apt.delay_minutes}m` : 'ATRASADO'}
+              </Badge>
+            )}
+            
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full hover:bg-background/80 border border-border/10">
+                  <MoreHorizontal className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-52 p-2 rounded-xl shadow-xl border-border/40">
+                <DropdownMenuItem 
+                  className="gap-2 p-2.5 cursor-pointer rounded-lg text-xs"
+                  onClick={(e) => { e.stopPropagation(); onWhatsApp?.(apt); }}
+                >
+                  <MessageSquare className="h-3.5 w-3.5 text-green-600" /> WhatsApp
+                </DropdownMenuItem>
+                
+                <DropdownMenuItem 
+                  className="gap-2 p-2.5 cursor-pointer rounded-lg text-xs"
+                  onClick={(e) => { e.stopPropagation(); onRegisterDelay?.(apt); }}
+                >
+                  <Timer className="h-3.5 w-3.5 text-warning" /> Registrar Atraso
+                </DropdownMenuItem>
+                
+                {!apt.promotion_id && (
+                  <DropdownMenuItem 
+                    className="gap-2 p-2.5 cursor-pointer rounded-lg text-xs"
+                    onClick={(e) => { e.stopPropagation(); onReschedule?.(apt); }}
+                  >
+                    <RefreshCw className="h-3.5 w-3.5 text-blue-500" /> Reagendar
+                  </DropdownMenuItem>
+                )}
+
+                <DropdownMenuItem 
+                  className="gap-2 p-2.5 cursor-pointer rounded-lg text-xs font-medium"
+                  onClick={(e) => { e.stopPropagation(); onAdjust?.(apt); }}
+                >
+                  <ArrowLeftRight className="h-3.5 w-3.5 text-purple-500" /> Ajustar (IA)
+                </DropdownMenuItem>
+
+                <DropdownMenuSeparator />
+                
+                <DropdownMenuItem 
+                  className="gap-2 p-2.5 cursor-pointer rounded-lg text-xs text-destructive focus:bg-destructive/10 focus:text-destructive"
+                  onClick={(e) => { e.stopPropagation(); onCancel?.(apt); }}
+                >
+                  <XCircle className="h-3.5 w-3.5" /> Cancelar
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         </div>
-        <div className="flex-1 min-w-0">
-          <p className="text-sm font-semibold truncate leading-tight">{clientName}</p>
-          <p className="text-xs text-muted-foreground truncate">
-            {formatServicesWithDuration(apt.appointment_services)}
-          </p>
-        </div>
-        <div className="flex flex-col items-end gap-1">
-          <span className="text-sm font-bold">{formattedPrice}</span>
-          {apt.delay_minutes > 0 && (
-            <Badge variant="outline" className="text-[9px] h-4 px-1 bg-warning/10 text-warning border-warning/20">
-              +{apt.delay_minutes}m
-            </Badge>
-          )}
+
+        {/* Action Button for Compact Variant */}
+        <div className="pt-1 flex items-center justify-between gap-2" onClick={(e) => e.stopPropagation()}>
+          <span className="text-xs font-bold text-foreground/80">{formattedPrice}</span>
+          
+          <div className="flex-1 flex justify-end">
+            {isPast && displayStatus !== 'completed' && displayStatus !== 'cancelled' ? (
+              <Button
+                size="sm"
+                className="h-8 rounded-lg bg-success hover:bg-success/90 text-white font-bold text-[10px] px-3 shadow-sm active:scale-[0.98]"
+                onClick={() => onComplete?.(apt)}
+              >
+                <CheckCircle2 className="mr-1.5 h-3 w-3" />
+                Concluir Atendimento
+              </Button>
+            ) : displayStatus === 'completed' ? (
+              <Badge variant="outline" className="h-6 bg-success/10 text-success border-success/20 font-bold uppercase tracking-wider text-[8px] px-2">
+                Concluído
+              </Badge>
+            ) : displayStatus === 'confirmed' || displayStatus === 'pending' || displayStatus === 'in_progress' || displayStatus === 'late' ? (
+              <div className="flex gap-2 w-full justify-end">
+                {displayStatus === 'pending' && !isPast ? (
+                  <Button 
+                    size="sm"
+                    className="h-8 rounded-lg font-bold text-[10px] px-3 shadow-sm active:scale-[0.98]"
+                    onClick={() => onUpdateStatus?.(apt.id, 'confirmed')}
+                  >
+                    Confirmar
+                  </Button>
+                ) : (
+                  <div className="h-8 flex items-center gap-1.5 rounded-lg bg-primary/10 text-primary border border-primary/20 font-bold uppercase tracking-wider text-[8px] px-2.5">
+                    <CalendarCheck className="h-3 w-3" />
+                    {isPast ? 'Passado' : 'Confirmado'}
+                  </div>
+                )}
+                
+                {(isNow || (isPast && displayStatus !== 'completed')) && (
+                  <Button
+                    size="sm"
+                    className="h-8 rounded-lg bg-success hover:bg-success/90 text-white font-bold text-[10px] px-3 shadow-sm active:scale-[0.98]"
+                    onClick={() => onComplete?.(apt)}
+                  >
+                    Concluir
+                  </Button>
+                )}
+              </div>
+            ) : null}
+          </div>
         </div>
       </motion.div>
     );
