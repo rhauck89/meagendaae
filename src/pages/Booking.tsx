@@ -13,8 +13,7 @@ import { Scissors, Sparkles, Clock, DollarSign, ChevronRight, ChevronLeft, Check
 import { format, addMinutes, addDays, startOfDay, isSameDay } from 'date-fns';
 import { fromZonedTime, toZonedTime } from 'date-fns-tz';
 import { sendAppointmentCreatedWebhook } from '@/lib/automations';
-import { isPromoActive, getPromoStatus } from '@/lib/promotion-period';
-import { toast } from 'sonner';
+import { isPromoActive } from '@/lib/promotion-period';
 
 // TZ-aware Hoje/Amanhã helpers — compare dates in America/Sao_Paulo, not the
 // browser's local zone. Without this, a user in another timezone (or whose
