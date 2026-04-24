@@ -238,13 +238,40 @@ const Loyalty = () => {
       specific_professional_ids: specificProfessionalIds,
     };
 
-    if (config) {
-      await supabase.from('loyalty_config' as any).update(payload as any).eq('id', (config as any).id);
-    } else {
-      await supabase.from('loyalty_config' as any).insert(payload as any);
+    try {
+      if (config) {
+        await supabase.from('loyalty_config' as any).update(payload as any).eq('id', (config as any).id);
+      } else {
+        await supabase.from('loyalty_config' as any).insert(payload as any);
+      }
+
+      // Recalculate points for all rewards based on the new pointValue
+      if (pointValue > 0) {
+        const { data: items } = await supabase
+          .from('loyalty_reward_items' as any)
+          .select('id, real_value')
+          .eq('company_id', companyId);
+
+        if (items && items.length > 0) {
+          const updates = items.map((item: any) => ({
+            id: item.id,
+            company_id: companyId,
+            points_required: Math.ceil((Number(item.real_value) || 0) / pointValue)
+          }));
+          
+          await supabase.from('loyalty_reward_items' as any).upsert(updates);
+        }
+      }
+
+      toast.success('Configurações salvas!');
+      // Update local state by refetching
+      await fetchConfig();
+      await fetchRewardItems();
+      await fetchStats();
+    } catch (error) {
+      console.error('Error saving config:', error);
+      toast.error('Erro ao salvar configurações');
     }
-    toast.success('Configurações salvas!');
-    fetchConfig();
   };
 
   const uploadRewardImage = async (file: File): Promise<string | null> => {
@@ -701,7 +728,8 @@ const Loyalty = () => {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {rewardItems.map((item: any) => {
                 const itemRealValue = Number(item.real_value) || 0;
-                const itemPoints = Number(item.points_required) || 0;
+                // Calculate dynamically to ensure instant UI update when pointValue settings change
+                const itemPoints = pointValue > 0 ? Math.ceil(itemRealValue / pointValue) : (Number(item.points_required) || 0);
                 return (
                   <Card key={item.id} className={cn(!item.active && 'opacity-50')}>
                     <CardContent className="pt-4 space-y-2">
