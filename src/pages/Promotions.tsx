@@ -1360,6 +1360,9 @@ export default function Promotions() {
                                   <><Play className="h-4 w-4 mr-2" />Ativar</>
                                 )}
                               </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleEndNow(promo)}>
+                                <X className="h-4 w-4 mr-2" />Encerrar agora
+                              </DropdownMenuItem>
                               <DropdownMenuSeparator />
                               <DropdownMenuItem asChild>
                                 <a href={getPromoLink(promo)} target="_blank" rel="noopener noreferrer" className="flex items-center">
