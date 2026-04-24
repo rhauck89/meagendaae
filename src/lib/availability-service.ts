@@ -114,6 +114,26 @@ function getBaseSlotMinutes(serviceDurations: number[], intervalMinutes: number)
   };
 }
 
+/**
+ * Simple session-level cache for booking configuration.
+ * Professional settings and company settings don't change often enough
+ * to justify refetching them for every single day in a multi-day search.
+ */
+const configCache = new Map<string, {
+  config: { 
+    bookingMode: BookingMode; 
+    slotInterval: number; 
+    bufferMinutes: number; 
+    engineVersion: EngineVersion; 
+    baseSlotMinutes: number; 
+    smallestServiceMinutes: number; 
+    serviceCount: number 
+  };
+  timestamp: number;
+}>();
+
+const CACHE_TTL = 30000; // 30 seconds
+
 async function getScopedActiveServiceDurations(
   source: AvailabilitySource,
   companyId: string,
@@ -122,6 +142,9 @@ async function getScopedActiveServiceDurations(
   const servicesTable = source === 'public' ? 'public_services' : 'services';
   const servicesSelect = source === 'public' ? 'id, duration_minutes' : 'id, duration_minutes, active';
 
+  // We can optimize this by only fetching what's needed.
+  // Actually, fetching all and filtering is often faster than complex joins in Supabase JS client
+  // but we should at least use the public views when appropriate.
   const [serviceLinksRes, servicesRes] = await Promise.all([
     supabase
       .from('service_professionals' as any)
@@ -159,12 +182,19 @@ async function resolveBookingConfig(
   companyId: string,
   professionalId: string,
 ): Promise<{ bookingMode: BookingMode; slotInterval: number; bufferMinutes: number; engineVersion: EngineVersion; baseSlotMinutes: number; smallestServiceMinutes: number; serviceCount: number }> {
+  const cacheKey = `${source}:${companyId}:${professionalId}`;
+  const cached = configCache.get(cacheKey);
+  
+  if (cached && (Date.now() - cached.timestamp < CACHE_TTL)) {
+    return cached.config;
+  }
+
   const companyTable = source === 'public' ? 'public_company' : 'companies';
 
   const [companyRes, professionalRes, activeDurations] = await Promise.all([
     supabase
       .from(companyTable as any)
-      .select('booking_mode, fixed_slot_interval, buffer_minutes')
+      .select('booking_mode, fixed_slot_interval, buffer_minutes, agenda_engine_version')
       .eq('id', companyId)
       .maybeSingle(),
     source === 'public'
@@ -199,26 +229,22 @@ async function resolveBookingConfig(
 
   const { smallestServiceMinutes, slotBaseMinutes: baseSlotMinutes } = getBaseSlotMinutes(activeDurations, bufferMinutes);
 
-  // Engine version flag — V2 by default. V1 stays available as safety fallback.
-  // Reading from a future `agenda_engine_version` company column would go here;
-  // for now V2 is the global default and V1 is reachable via param override only.
   const engineVersion: EngineVersion =
     (company?.agenda_engine_version === 'v1' ? 'v1' : 'v2');
 
-  console.log('[BOOKING MODE RESOLVED]', {
-    source,
-    professionalId,
-    companyId,
-    resolvedMode,
-    finalMode: bookingMode,
-    engineVersion,
-    smallestServiceMinutes,
-    intervalo: bufferMinutes,
-    baseSlotMinutes,
-    serviceCount: activeDurations.length,
-  });
+  const config = { 
+    bookingMode, 
+    slotInterval, 
+    bufferMinutes, 
+    engineVersion, 
+    baseSlotMinutes, 
+    smallestServiceMinutes, 
+    serviceCount: activeDurations.length 
+  };
 
-  return { bookingMode, slotInterval, bufferMinutes, engineVersion, baseSlotMinutes, smallestServiceMinutes, serviceCount: activeDurations.length };
+  configCache.set(cacheKey, { config, timestamp: Date.now() });
+
+  return config;
 }
 
 /**
