@@ -855,6 +855,12 @@ const Dashboard = () => {
     }
   };
 
+  const handleAdjustment = (apt: any, type: 'reschedule' | 'professional' | 'both' | 'normal') => {
+    if (type === 'normal') return; // Handled inside AdjustAppointmentDialog
+    setRescheduleMode(type === 'reschedule' ? 'time' : type === 'professional' ? 'professional' : 'both');
+    openRescheduleDialog(apt);
+  };
+
   const openRescheduleDialog = (apt: any) => {
     setRescheduleTarget(apt);
     setRescheduleDate(undefined);
@@ -1232,16 +1238,18 @@ const Dashboard = () => {
         }}
       />
 
-      <SwapAppointmentDialog
-        open={swapDialogOpen}
+      <AdjustAppointmentDialog
+        open={adjustDialogOpen}
         onOpenChange={(open) => {
-          setSwapDialogOpen(open);
-          if (!open) setSwapTarget(null);
+          setAdjustDialogOpen(open);
+          if (!open) setAdjustTarget(null);
         }}
-        source={swapTarget}
-        onSwapped={() => {
+        appointment={adjustTarget}
+        onAdjust={(type) => handleAdjustment(adjustTarget, type)}
+        onConverted={() => {
           fetchAppointments();
           fetchUpcomingAppointments();
+          fetchMonthlyStats();
         }}
       />
 
