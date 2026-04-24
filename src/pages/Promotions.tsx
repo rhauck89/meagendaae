@@ -1324,7 +1324,47 @@ export default function Promotions() {
                     <CardHeader className="pb-2">
                       <div className="flex items-start justify-between gap-2">
                         <CardTitle className="text-lg">{promo.title}</CardTitle>
-                        {renderStatusBadge(promo)}
+                        <div className="flex items-center gap-1">
+                          {renderStatusBadge(promo)}
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-8 w-8">
+                                <MoreVertical className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={() => handleEdit(promo)}>
+                                <Edit2 className="h-4 w-4 mr-2" />Editar
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleDuplicate(promo)}>
+                                <RefreshCw className="h-4 w-4 mr-2" />Duplicar
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => toggleStatus(promo)}>
+                                {promo.status === 'active' ? (
+                                  <><Pause className="h-4 w-4 mr-2" />Pausar</>
+                                ) : (
+                                  <><Play className="h-4 w-4 mr-2" />Ativar</>
+                                )}
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem asChild>
+                                <a href={getPromoLink(promo)} target="_blank" rel="noopener noreferrer" className="flex items-center">
+                                  <ExternalLink className="h-4 w-4 mr-2" />Ver no Perfil
+                                </a>
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => { navigator.clipboard.writeText(getPromoLink(promo)); toast({ title: 'Link copiado!' }); }}>
+                                <Copy className="h-4 w-4 mr-2" />Copiar Link
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => fetchMetrics(promo)}>
+                                <BarChart3 className="h-4 w-4 mr-2" />Métricas
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem onClick={() => handleDelete(promo.id)} className="text-destructive">
+                                <Trash2 className="h-4 w-4 mr-2" />Excluir
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
                       </div>
                       {isAdmin && promo.created_by && (
                         <p className="text-xs text-muted-foreground mt-1">
