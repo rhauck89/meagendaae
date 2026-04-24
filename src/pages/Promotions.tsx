@@ -254,7 +254,6 @@ export default function Promotions() {
   const [companySlug, setCompanySlug] = useState('');
   const [companyBusinessType, setCompanyBusinessType] = useState('');
   const [metrics, setMetrics] = useState<PromoMetrics>({ clicks: 0, bookings: 0, clientsReached: 0 });
-  const [lowOccupancy, setLowOccupancy] = useState(false);
   const [insights, setInsights] = useState<PromotionInsight[]>([]);
   const [activeInsightIndex, setActiveInsightIndex] = useState(0);
 
