@@ -55,16 +55,6 @@ interface RewardItem {
   stock_total: number | null; stock_available: number | null;
 }
 
-const statusLabels: Record<string, string> = {
-  pending: 'Pendente', confirmed: 'Confirmado', cancelled: 'Cancelado',
-  completed: 'Concluído', no_show: 'Não compareceu',
-};
-const statusColors: Record<string, string> = {
-  pending: 'bg-yellow-500/10 text-yellow-600', confirmed: 'bg-blue-500/10 text-blue-600',
-  cancelled: 'bg-red-500/10 text-red-600', completed: 'bg-green-500/10 text-green-600',
-  no_show: 'bg-muted text-muted-foreground',
-};
-
 /** Company logo + name */
 const CompanyHeader = ({ company, size = 'sm' }: { company?: CompanyInfo; size?: 'sm' | 'md' | 'lg' }) => {
   if (!company) return null;
