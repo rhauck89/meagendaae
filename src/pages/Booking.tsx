@@ -605,7 +605,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
         .eq('id', promoIdRef.current)
         .limit(1);
       const pd = (promos as any)?.[0];
-      if (pd && pd.company_id === comp.id) {
+      if (pd && pd.company_id === comp.id && isPromoActive(pd)) {
         setPromoData(pd as PromotionInfo);
         // Auto-select promo services
         const promoServiceIds = pd.service_ids || (pd.service_id ? [pd.service_id] : []);
