@@ -69,6 +69,8 @@ const Loyalty = () => {
   // Overview stats
   const [stats, setStats] = useState({ totalIssued: 0, totalRedeemed: 0, totalActive: 0 });
   const [topClients, setTopClients] = useState<any[]>([]);
+  // Smart rewards: per-client appointment history (top clients only)
+  const [topClientsHistory, setTopClientsHistory] = useState<Record<string, Array<{ service_name: string | null; total_price: number; created_at: string }>>>({});
 
   // Auto-calculate points from real value
   const calculatedPoints = pointValue > 0 ? Math.ceil(rewardRealValue / pointValue) : 0;
