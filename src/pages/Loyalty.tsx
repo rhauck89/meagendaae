@@ -24,6 +24,7 @@ import { cn } from '@/lib/utils';
 
 const Loyalty = () => {
   const { companyId } = useAuth();
+  const [activeModule, setActiveModule] = useState<'points' | 'cashback'>('points');
   const [tab, setTab] = useState('overview');
 
   // Config state
@@ -419,23 +420,51 @@ const Loyalty = () => {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-xl font-display font-bold flex items-center gap-2"><Star className="h-5 w-5 text-amber-500" /> Programa de Fidelidade</h2>
-        <p className="text-sm text-muted-foreground">Gerencie pontos, recompensas e resgates dos seus clientes</p>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h2 className="text-xl font-display font-bold flex items-center gap-2">
+            {activeModule === 'points' ? <Star className="h-5 w-5 text-amber-500" /> : <Wallet className="h-5 w-5 text-amber-500" />}
+            {activeModule === 'points' ? 'Fidelidade por Pontos' : 'Programa de Cashback'}
+          </h2>
+          <p className="text-sm text-muted-foreground">
+            {activeModule === 'points' 
+              ? 'Gerencie pontos, recompensas e resgates dos seus clientes' 
+              : 'Gerencie regras de cashback e saldo dos seus clientes'}
+          </p>
+        </div>
+
+        <div className="flex p-1 bg-muted rounded-lg w-fit border">
+          <button 
+            onClick={() => { setActiveModule('points'); setTab('overview'); }}
+            className={cn(
+              "px-4 py-2 text-sm font-medium rounded-md transition-all flex items-center gap-2",
+              activeModule === 'points' ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            <Star className={cn("h-4 w-4", activeModule === 'points' && "text-amber-500")} /> Pontos
+          </button>
+          <button 
+            onClick={() => { setActiveModule('cashback'); setTab('overview'); }}
+            className={cn(
+              "px-4 py-2 text-sm font-medium rounded-md transition-all flex items-center gap-2",
+              activeModule === 'cashback' ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            <Wallet className={cn("h-4 w-4", activeModule === 'cashback' && "text-amber-500")} /> Cashback
+          </button>
+        </div>
       </div>
 
-      <Tabs value={tab} onValueChange={setTab}>
-        <TabsList className="w-full grid grid-cols-2 sm:grid-cols-5 h-auto">
-          <TabsTrigger value="overview" className="gap-1.5"><Eye className="h-4 w-4" /> Visão geral</TabsTrigger>
-          <TabsTrigger value="cashback" className="gap-1.5"><Wallet className="h-4 w-4" /> Cashback</TabsTrigger>
-          <TabsTrigger value="settings" className="gap-1.5"><Settings className="h-4 w-4" /> Pontos</TabsTrigger>
-          <TabsTrigger value="rewards" className="gap-1.5"><Gift className="h-4 w-4" /> Recompensas</TabsTrigger>
-          <TabsTrigger value="transactions" className="gap-1.5"><ArrowUpDown className="h-4 w-4" /> Movimentações</TabsTrigger>
-        </TabsList>
+      {activeModule === 'points' ? (
+        <Tabs value={tab} onValueChange={setTab}>
+          <TabsList className="w-full justify-start border-b rounded-none bg-transparent h-auto p-0 mb-4 overflow-x-auto flex-nowrap">
+            <TabsTrigger value="overview" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 py-3 h-auto">Resumo</TabsTrigger>
+            <TabsTrigger value="rewards" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 py-3 h-auto">Recompensas</TabsTrigger>
+            <TabsTrigger value="redemptions" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 py-3 h-auto">Resgates</TabsTrigger>
+            <TabsTrigger value="transactions" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 py-3 h-auto">Movimentações</TabsTrigger>
+            <TabsTrigger value="settings" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 py-3 h-auto">Configurações</TabsTrigger>
+          </TabsList>
 
-        <TabsContent value="cashback" className="mt-4">
-          <CashbackTab />
-        </TabsContent>
 
         {/* OVERVIEW TAB */}
         <TabsContent value="overview" className="space-y-4 mt-4">
@@ -463,46 +492,6 @@ const Loyalty = () => {
             </Card>
           </div>
 
-          {/* Validate redemption code */}
-          <Card>
-            <CardHeader><CardTitle className="text-base">Validar resgate</CardTitle></CardHeader>
-            <CardContent className="flex flex-col sm:flex-row gap-2">
-              <Button onClick={() => setScannerOpen(true)} className="gap-2">
-                <ScanLine className="h-4 w-4" /> Escanear QR
-              </Button>
-              <div className="flex gap-2 flex-1">
-                <Input placeholder="Ou digite o código" value={validateCode} onChange={e => setValidateCode(e.target.value.toUpperCase())} className="max-w-xs" />
-                <Button variant="outline" onClick={handleValidateCode}>Validar</Button>
-              </div>
-            </CardContent>
-          </Card>
-
-          <RewardQRScannerDialog
-            open={scannerOpen}
-            onOpenChange={setScannerOpen}
-            onConfirmed={() => { fetchRedemptions(); fetchTransactions(); fetchStats(); fetchRewardItems(); }}
-          />
-
-          {/* Pending redemptions */}
-          {redemptions.filter((r: any) => r.status === 'pending').length > 0 && (
-            <Card>
-              <CardHeader><CardTitle className="text-base">Resgates pendentes</CardTitle></CardHeader>
-              <CardContent className="space-y-2">
-                {redemptions.filter((r: any) => r.status === 'pending').map((r: any) => (
-                  <div key={r.id} className="flex items-center justify-between p-3 rounded-lg border">
-                    <div>
-                      <p className="font-medium">{r.clients?.name || 'Cliente'}</p>
-                      <p className="text-xs text-muted-foreground">Código: <span className="font-mono font-bold">{r.redemption_code}</span> · {r.total_points} pts</p>
-                    </div>
-                    <div className="flex gap-2">
-                      <Button size="sm" variant="outline" onClick={() => handleValidateRedemption(r.id, 'cancelled')}><XCircle className="h-4 w-4 mr-1" /> Cancelar</Button>
-                      <Button size="sm" onClick={() => handleValidateRedemption(r.id, 'confirmed')}><CheckCircle className="h-4 w-4 mr-1" /> Confirmar</Button>
-                    </div>
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
-          )}
 
           {/* Top clients */}
           {topClients.length > 0 && (
@@ -866,6 +855,62 @@ const Loyalty = () => {
             </DialogContent>
           </Dialog>
         </TabsContent>
+        {/* REDEMPTIONS TAB */}
+        <TabsContent value="redemptions" className="space-y-4 mt-4">
+          <Card>
+            <CardHeader><CardTitle className="text-base">Validar resgate</CardTitle></CardHeader>
+            <CardContent className="flex flex-col sm:flex-row gap-2">
+              <Button onClick={() => setScannerOpen(true)} className="gap-2">
+                <ScanLine className="h-4 w-4" /> Escanear QR
+              </Button>
+              <div className="flex gap-2 flex-1">
+                <Input placeholder="Ou digite o código" value={validateCode} onChange={e => setValidateCode(e.target.value.toUpperCase())} className="max-w-xs" />
+                <Button variant="outline" onClick={handleValidateCode}>Validar</Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          <RewardQRScannerDialog
+            open={scannerOpen}
+            onOpenChange={setScannerOpen}
+            onConfirmed={() => { fetchRedemptions(); fetchTransactions(); fetchStats(); fetchRewardItems(); }}
+          />
+
+          <Card>
+            <CardHeader><CardTitle className="text-base">Histórico de resgates</CardTitle></CardHeader>
+            <CardContent>
+              {redemptions.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-8">Nenhum resgate encontrado.</p>
+              ) : (
+                <div className="space-y-2">
+                  {redemptions.map((r: any) => (
+                    <div key={r.id} className="flex items-center justify-between p-3 rounded-lg border">
+                      <div>
+                        <p className="font-medium">{r.clients?.name || 'Cliente'}</p>
+                        <p className="text-xs text-muted-foreground">Código: <span className="font-mono font-bold">{r.redemption_code}</span> · {r.total_points} pts</p>
+                        <p className="text-[10px] text-muted-foreground mt-0.5">
+                          {format(parseISO(r.created_at), 'dd/MM/yy HH:mm')} · 
+                          <span className={cn(
+                            "ml-1",
+                            r.status === 'pending' ? "text-amber-500" : r.status === 'confirmed' ? "text-success" : "text-destructive"
+                          )}>
+                            {r.status === 'pending' ? 'Pendente' : r.status === 'confirmed' ? 'Confirmado' : 'Cancelado'}
+                          </span>
+                        </p>
+                      </div>
+                      {r.status === 'pending' && (
+                        <div className="flex gap-2">
+                          <Button size="sm" variant="outline" onClick={() => handleValidateRedemption(r.id, 'cancelled')}><XCircle className="h-4 w-4 mr-1" /> Cancelar</Button>
+                          <Button size="sm" onClick={() => handleValidateRedemption(r.id, 'confirmed')}><CheckCircle className="h-4 w-4 mr-1" /> Confirmar</Button>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
 
         {/* TRANSACTIONS TAB */}
         <TabsContent value="transactions" className="space-y-4 mt-4">
@@ -917,7 +962,10 @@ const Loyalty = () => {
             </Card>
           )}
         </TabsContent>
-      </Tabs>
+        </Tabs>
+      ) : (
+        <CashbackTab />
+      )}
     </div>
   );
 };

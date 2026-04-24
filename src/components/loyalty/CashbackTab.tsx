@@ -10,9 +10,12 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
-import { Plus, Pencil, Trash2, Wallet, Pause, Play, Calendar } from 'lucide-react';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { Plus, Pencil, Trash2, Wallet, Pause, Play, Calendar, Search, History, Users, Settings2, ArrowUpDown } from 'lucide-react';
 import { toast } from 'sonner';
 import { format, parseISO } from 'date-fns';
+import { cn } from '@/lib/utils';
+
 
 interface CashbackRule {
   id: string;
@@ -42,9 +45,13 @@ export default function CashbackTab() {
   const [rules, setRules] = useState<CashbackRule[]>([]);
   const [services, setServices] = useState<any[]>([]);
   const [balances, setBalances] = useState<ClientBalance[]>([]);
+  const [history, setHistory] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [tab, setTab] = useState('overview');
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<CashbackRule | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+
 
   // Form state
   const [title, setTitle] = useState('');
@@ -110,11 +117,24 @@ export default function CashbackTab() {
     }
   }, [companyId]);
 
+  const fetchHistory = useCallback(async () => {
+    if (!companyId) return;
+    const { data } = await supabase
+      .from('client_cashback')
+      .select('*, clients:client_id(name), promotions:promotion_id(title)')
+      .eq('company_id', companyId)
+      .order('created_at', { ascending: false })
+      .limit(100);
+    if (data) setHistory(data);
+  }, [companyId]);
+
+
   useEffect(() => {
     fetchRules();
     fetchServices();
     fetchBalances();
-  }, [fetchRules, fetchServices, fetchBalances]);
+    fetchHistory();
+  }, [fetchRules, fetchServices, fetchBalances, fetchHistory]);
 
   const resetForm = () => {
     setEditing(null);
@@ -229,50 +249,93 @@ export default function CashbackTab() {
   const totalActiveBalance = balances.reduce((s, b) => s + b.total_active, 0);
 
   return (
-    <div className="space-y-4">
-      {/* Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <Card>
-          <CardContent className="pt-6">
-            <p className="text-sm text-muted-foreground">Regras ativas</p>
-            <p className="text-2xl font-bold text-primary">{rules.filter(r => r.status === 'active').length}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6">
-            <p className="text-sm text-muted-foreground">Clientes com saldo</p>
-            <p className="text-2xl font-bold text-success">{balances.length}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6">
-            <p className="text-sm text-muted-foreground">Cashback ativo total</p>
-            <p className="text-2xl font-bold">{formatCurrency(totalActiveBalance)}</p>
-          </CardContent>
-        </Card>
-      </div>
+    <div className="space-y-6">
+      <Tabs value={tab} onValueChange={setTab}>
+        <TabsList className="w-full justify-start border-b rounded-none bg-transparent h-auto p-0 mb-4 overflow-x-auto flex-nowrap">
+          <TabsTrigger value="overview" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 py-3 h-auto">Saldo</TabsTrigger>
+          <TabsTrigger value="rules" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 py-3 h-auto">Regras</TabsTrigger>
+          <TabsTrigger value="clients" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 py-3 h-auto">Clientes</TabsTrigger>
+          <TabsTrigger value="history" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 py-3 h-auto">Movimentações</TabsTrigger>
+        </TabsList>
 
-      {/* Rules list */}
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle className="text-base flex items-center gap-2">
-            <Wallet className="h-5 w-5 text-amber-500" /> Regras de cashback
-          </CardTitle>
-          <Button onClick={openNew} size="sm" className="gap-1.5">
-            <Plus className="h-4 w-4" /> Nova regra
-          </Button>
-        </CardHeader>
-        <CardContent>
+        <TabsContent value="overview" className="space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <Card>
+              <CardContent className="pt-6">
+                <p className="text-sm text-muted-foreground">Regras ativas</p>
+                <p className="text-2xl font-bold text-primary">{rules.filter(r => r.status === 'active').length}</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="pt-6">
+                <p className="text-sm text-muted-foreground">Clientes com saldo</p>
+                <p className="text-2xl font-bold text-success">{balances.length}</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="pt-6">
+                <p className="text-sm text-muted-foreground">Cashback ativo total</p>
+                <p className="text-2xl font-bold">{formatCurrency(totalActiveBalance)}</p>
+              </CardContent>
+            </Card>
+          </div>
+
+          <Card>
+            <CardHeader><CardTitle className="text-base flex items-center gap-2"><ArrowUpDown className="h-4 w-4" /> Resumo de movimentações</CardTitle></CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="flex items-center justify-between p-3 rounded-lg border bg-muted/30">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-success/10 rounded-full">
+                      <Play className="h-4 w-4 text-success" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium">Cashback Gerado (Últimos 100)</p>
+                      <p className="text-xs text-muted-foreground">Total de créditos emitidos recentemente</p>
+                    </div>
+                  </div>
+                  <p className="font-bold text-success">
+                    {formatCurrency(history.reduce((acc, curr) => acc + (Number(curr.amount) || 0), 0))}
+                  </p>
+                </div>
+                
+                <div className="flex items-center justify-between p-3 rounded-lg border bg-muted/30">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-primary/10 rounded-full">
+                      <History className="h-4 w-4 text-primary" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium">Cashback Utilizado (Últimos 100)</p>
+                      <p className="text-xs text-muted-foreground">Créditos que já foram aplicados em agendamentos</p>
+                    </div>
+                  </div>
+                  <p className="font-bold text-primary">
+                    {formatCurrency(history.filter(h => h.used_at).reduce((acc, curr) => acc + (Number(curr.amount) || 0), 0))}
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="rules" className="space-y-4">
+          <div className="flex justify-between items-center">
+            <h3 className="text-lg font-medium">Regras de Cashback</h3>
+            <Button onClick={openNew} size="sm" className="gap-1.5">
+              <Plus className="h-4 w-4" /> Nova regra
+            </Button>
+          </div>
+
           {loading ? (
             <p className="text-sm text-muted-foreground text-center py-8">Carregando...</p>
           ) : rules.length === 0 ? (
-            <div className="text-center py-12">
+            <div className="text-center py-12 border rounded-lg bg-muted/20">
               <Wallet className="h-12 w-12 text-muted-foreground mx-auto mb-3 opacity-50" />
               <p className="text-sm text-muted-foreground">Nenhuma regra de cashback cadastrada.</p>
               <p className="text-xs text-muted-foreground mt-1">Crie a primeira regra para premiar seus clientes.</p>
             </div>
           ) : (
-            <div className="space-y-3">
+            <div className="grid grid-cols-1 gap-3">
               {rules.map(rule => {
                 const isPercentage = rule.discount_type === 'percentage';
                 const valueLabel = isPercentage
@@ -314,35 +377,101 @@ export default function CashbackTab() {
               })}
             </div>
           )}
-        </CardContent>
-      </Card>
+        </TabsContent>
 
-      {/* Top balances */}
-      {balances.length > 0 && (
-        <Card>
-          <CardHeader><CardTitle className="text-base">Clientes com saldo ativo (top 10)</CardTitle></CardHeader>
-          <CardContent>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b text-left">
-                    <th className="p-2 text-xs text-muted-foreground">Cliente</th>
-                    <th className="p-2 text-xs text-muted-foreground text-right">Saldo</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {balances.slice(0, 10).map(b => (
-                    <tr key={b.client_id} className="border-b last:border-0">
-                      <td className="p-2">{b.client_name}</td>
-                      <td className="p-2 text-right font-medium text-success">{formatCurrency(b.total_active)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+        <TabsContent value="clients" className="space-y-4">
+          <div className="flex items-center gap-2">
+            <div className="relative flex-1 max-w-sm">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input 
+                placeholder="Buscar cliente..." 
+                value={searchQuery} 
+                onChange={e => setSearchQuery(e.target.value)} 
+                className="pl-9"
+              />
             </div>
-          </CardContent>
-        </Card>
-      )}
+          </div>
+
+          <Card>
+            <CardContent className="p-0">
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b text-left bg-muted/50">
+                      <th className="p-3 font-medium">Cliente</th>
+                      <th className="p-3 font-medium text-right">Saldo Ativo</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {balances
+                      .filter(b => b.client_name.toLowerCase().includes(searchQuery.toLowerCase()))
+                      .map(b => (
+                      <tr key={b.client_id} className="border-b last:border-0 hover:bg-accent/20 transition-colors">
+                        <td className="p-3">
+                          <div className="flex items-center gap-2">
+                            <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-xs">
+                              {b.client_name.charAt(0)}
+                            </div>
+                            {b.client_name}
+                          </div>
+                        </td>
+                        <td className="p-3 text-right font-bold text-success">{formatCurrency(b.total_active)}</td>
+                      </tr>
+                    ))}
+                    {balances.length === 0 && (
+                      <tr>
+                        <td colSpan={2} className="p-8 text-center text-muted-foreground">Nenhum cliente com saldo ativo.</td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="history" className="space-y-4">
+          <Card>
+            <CardContent className="p-0">
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b text-left bg-muted/50">
+                      <th className="p-3 font-medium">Data</th>
+                      <th className="p-3 font-medium">Cliente</th>
+                      <th className="p-3 font-medium">Regra</th>
+                      <th className="p-3 font-medium text-right">Valor</th>
+                      <th className="p-3 font-medium">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {history.map(h => (
+                      <tr key={h.id} className="border-b last:border-0 hover:bg-accent/20 transition-colors">
+                        <td className="p-3 text-xs text-muted-foreground">
+                          {format(parseISO(h.created_at), 'dd/MM/yy HH:mm')}
+                        </td>
+                        <td className="p-3 font-medium">{h.clients?.name || 'Cliente'}</td>
+                        <td className="p-3 text-xs text-muted-foreground">{h.promotions?.title || '—'}</td>
+                        <td className="p-3 text-right font-medium text-success">+{formatCurrency(Number(h.amount))}</td>
+                        <td className="p-3">
+                          <Badge variant={h.used_at ? "secondary" : "outline"} className="text-[10px]">
+                            {h.used_at ? `Utilizado em ${format(parseISO(h.used_at), 'dd/MM/yy')}` : 'Disponível'}
+                          </Badge>
+                        </td>
+                      </tr>
+                    ))}
+                    {history.length === 0 && (
+                      <tr>
+                        <td colSpan={5} className="p-8 text-center text-muted-foreground">Nenhuma movimentação registrada.</td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
 
       {/* Dialog */}
       <Dialog open={dialogOpen} onOpenChange={(o) => { setDialogOpen(o); if (!o) resetForm(); }}>
