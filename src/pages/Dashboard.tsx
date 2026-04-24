@@ -2191,6 +2191,10 @@ const Dashboard = () => {
                 Confirmar pagamento
               </Button>
             </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {/* Price Confirmation Dialog */}
       <AlertDialog open={priceCheckOpen} onOpenChange={setPriceCheckOpen}>
         <AlertDialogContent>
@@ -2225,9 +2229,6 @@ const Dashboard = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
-        </DialogContent>
-      </Dialog>
 
       {/* Reschedule Dialog */}
       <Dialog open={rescheduleDialogOpen} onOpenChange={(open) => { setRescheduleDialogOpen(open); if (!open) { setRescheduleTarget(null); setRescheduleDate(undefined); setRescheduleSlots([]); setRescheduleSelectedSlot(null); } }}>
