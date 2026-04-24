@@ -15,7 +15,7 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogBody, DialogFooter, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { isPromoActive } from '@/lib/promotion-period';
-import { Calendar as CalendarIcon, CalendarCheck, ChevronLeft, ChevronRight, Clock, DollarSign, Users, UserCheck, UserMinus, AlertTriangle, Bell, MailCheck, Cake, Ban, Trash2, Timer, RefreshCw, AlertCircle, TrendingUp, BarChart3, XCircle, Percent, Receipt, Send, List, LayoutGrid, ArrowLeftRight, MoreHorizontal, MessageSquare, Info } from 'lucide-react';
+import { Calendar as CalendarIcon, CalendarCheck, ChevronLeft, ChevronRight, Clock, DollarSign, Users, UserCheck, UserMinus, AlertTriangle, Bell, MailCheck, Cake, Ban, Trash2, Timer, RefreshCw, AlertCircle, TrendingUp, BarChart3, XCircle, Percent, Receipt, Send, List, LayoutGrid, ArrowLeftRight, MoreHorizontal, MessageSquare, Info, Scissors, User, CheckCircle2 } from 'lucide-react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { BlockTimeDialog } from '@/components/BlockTimeDialog';
 import { Calendar as DatePickerCalendar } from '@/components/ui/calendar';
