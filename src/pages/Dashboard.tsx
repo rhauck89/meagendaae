@@ -863,6 +863,11 @@ const Dashboard = () => {
     openRescheduleDialog(apt);
   };
 
+  const handleApplyAISuggestion = (suggestion: any) => {
+    setAdjustDialogOpen(false);
+    executeReschedule(adjustTarget, suggestion.date, suggestion.slot, suggestion.professionalId);
+  };
+
   const openRescheduleDialog = (apt: any) => {
     setRescheduleTarget(apt);
     if (rescheduleMode === 'professional') {
