@@ -2191,7 +2191,41 @@ const Dashboard = () => {
                 Confirmar pagamento
               </Button>
             </div>
-          </div>
+      {/* Price Confirmation Dialog */}
+      <AlertDialog open={priceCheckOpen} onOpenChange={setPriceCheckOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-amber-500" />
+              Fora do horário promocional
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Este novo horário está fora da janela da promoção <strong>{priceCheckData?.promo?.title}</strong>.
+              Como deseja proceder com o preço?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex-col sm:flex-row gap-2">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setPriceCheckOpen(false);
+                executeReschedule(rescheduleTarget, rescheduleDate!, rescheduleSelectedSlot!, priceCheckData.newProfessionalId, true);
+              }}
+            >
+              Manter preço promocional
+            </Button>
+            <AlertDialogAction
+              onClick={() => {
+                setPriceCheckOpen(false);
+                executeReschedule(rescheduleTarget, rescheduleDate!, rescheduleSelectedSlot!, priceCheckData.newProfessionalId, false);
+              }}
+            >
+              Cobrar preço normal (R$ {priceCheckData?.promo?.original_price})
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </div>
         </DialogContent>
       </Dialog>
 
@@ -2213,7 +2247,28 @@ const Dashboard = () => {
               )}
             </DialogDescription>
           </DialogHeader>
-          <DialogBody>
+          <DialogBody className="space-y-6">
+            {(rescheduleMode === 'professional' || rescheduleMode === 'both') && (
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Profissional</label>
+                <div className="flex gap-2 flex-wrap">
+                  {collaboratorsList.map(c => (
+                    <Button
+                      key={c.profile_id}
+                      variant={rescheduleProfessionalId === c.profile_id || (!rescheduleProfessionalId && rescheduleTarget?.professional_id === c.profile_id) ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => {
+                        setRescheduleProfessionalId(c.profile_id);
+                        if (rescheduleDate) fetchRescheduleSlots(rescheduleDate, c.profile_id);
+                      }}
+                      className="text-xs"
+                    >
+                      {c.profile?.full_name}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+            )}
             <div className="grid grid-cols-1 sm:grid-cols-[320px_1fr] gap-6">
               {/* Left: Calendar */}
               <div className="overflow-hidden">
