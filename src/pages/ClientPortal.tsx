@@ -848,33 +848,15 @@ const ClientPortal = () => {
                   </Card>
                 ) : (
                   pastAppointments.slice(0, 50).map(apt => (
-                    <Card key={apt.id}>
-                      <CardContent className="p-3 space-y-2">
-                        <div className="flex justify-between items-start gap-2">
-                          <CompanyHeader company={companies[apt.company_id]} />
-                          <Badge className={`${statusColors[apt.status] || 'bg-muted'} text-xs`}>
-                            {statusLabels[apt.status] || apt.status}
-                          </Badge>
-                        </div>
-                        <div className="flex justify-between items-end gap-2">
-                          <div className="min-w-0">
-                            <p className="text-sm font-medium">
-                              {format(parseISO(apt.start_time), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
-                            </p>
-                            <p className="text-xs text-muted-foreground truncate">
-                              {apt.appointment_services?.map(s => s.service?.name).filter(Boolean).join(', ')}
-                              {apt.professional && ` · ${apt.professional.full_name}`}
-                            </p>
-                          </div>
-                          <p className="text-sm font-semibold shrink-0">R$ {Number(apt.total_price).toFixed(2)}</p>
-                        </div>
-                        {apt.status === 'completed' && (
-                          <Button size="sm" variant="outline" className="w-full" onClick={() => goRebook(apt.company_id)}>
-                            <Repeat className="h-3.5 w-3.5 mr-1.5" /> Repetir
-                          </Button>
-                        )}
-                      </CardContent>
-                    </Card>
+                    <UnifiedAppointmentCard
+                      key={apt.id}
+                      appointment={apt}
+                      isAdmin={false}
+                      showCompany={true}
+                      onClick={(apt) => {
+                        if (apt.status === 'completed') goRebook(apt.company_id);
+                      }}
+                    />
                   ))
                 )}
               </TabsContent>
