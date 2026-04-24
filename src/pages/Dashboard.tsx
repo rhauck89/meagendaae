@@ -1064,13 +1064,20 @@ const Dashboard = () => {
     });
 
     return (
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-lg font-display flex items-center gap-2">
-            <Clock className="h-5 w-5" /> Próximos atendimentos
+      <Card className="bg-gradient-to-br from-card to-muted/30 border-primary/10 shadow-sm overflow-hidden">
+        <CardHeader className="pb-3 bg-primary/5">
+          <CardTitle className="text-lg font-display flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Clock className="h-5 w-5 text-primary" /> Próximos atendimentos
+            </div>
+            {items.length > 0 && (
+              <Badge variant="secondary" className="text-[10px] uppercase font-bold tracking-wider px-2">
+                {items.length} agendamento{items.length > 1 ? 's' : ''}
+              </Badge>
+            )}
           </CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="pt-4">
           {items.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
               <CalendarIcon className="h-10 w-10 mb-3 opacity-30" />
