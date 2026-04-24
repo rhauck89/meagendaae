@@ -772,6 +772,8 @@ export default function Promotions() {
       cashback_validity_days: promotionType === 'cashback' ? (parseInt(cashbackValidityDays) || 30) : null,
       cashback_rules_text: promotionType === 'cashback' ? (cashbackRulesText || null) : null,
       cashback_cumulative: promotionType === 'cashback' ? cashbackCumulative : false,
+      promotion_mode: smartMode,
+      source_insight: sourceInsight,
     };
 
     if (!isAdmin && profile?.id) {
