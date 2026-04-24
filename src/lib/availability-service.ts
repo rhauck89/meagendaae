@@ -261,63 +261,87 @@ async function fetchSlotInputs(
   companyId: string,
   professionalId: string,
   date: Date,
+  prefetchData?: GetAvailableSlotsParams['prefetchData'],
 ) {
   const dateStr = format(date, 'yyyy-MM-dd');
   const startISO = `${dateStr}T00:00:00`;
   const endISO = `${dateStr}T23:59:59`;
 
-  // business_hours / business_exceptions / appointments allow public SELECT via RLS,
-  // and blocked_times has a public_blocked_times view used for anonymous reads.
-  const businessHoursTable = 'business_hours';
-  const exceptionsTable = 'business_exceptions';
   const blockedTable = source === 'public' ? 'public_blocked_times' : 'blocked_times';
   const apptsTable = 'appointments';
 
-  const [profHoursRes, bizHoursRes, exceptionsRes, blocksRes, apptsRes, eventSlotsRes] =
-    await Promise.all([
-      supabase
-        .from('professional_working_hours' as any)
-        .select('day_of_week, open_time, close_time, lunch_start, lunch_end, is_closed')
-        .eq('professional_id', professionalId),
-      supabase
-        .from(businessHoursTable as any)
-        .select('day_of_week, open_time, close_time, lunch_start, lunch_end, is_closed')
-        .eq('company_id', companyId),
-      supabase
-        .from(exceptionsTable as any)
-        .select('exception_date, is_closed, open_time, close_time')
-        .eq('company_id', companyId)
-        .eq('exception_date', dateStr),
-      supabase
-        .from(blockedTable as any)
-        .select('block_date, start_time, end_time')
-        .eq('company_id', companyId)
-        .eq('professional_id', professionalId)
-        .eq('block_date', dateStr),
-      // Public anonymous flow cannot SELECT appointments directly (RLS forbids).
-      // It must go through the SECURITY DEFINER RPC `get_booking_appointments`.
-      source === 'public'
-        ? supabase.rpc('get_booking_appointments' as any, {
-            p_company_id: companyId,
-            p_professional_id: professionalId,
-            p_selected_date: dateStr,
-            p_timezone: 'America/Sao_Paulo',
-          })
-        : supabase
-            .from(apptsTable as any)
-            .select('start_time, end_time')
-            .eq('professional_id', professionalId)
-            .eq('company_id', companyId)
-            .gte('start_time', startISO)
-            .lt('start_time', endISO)
-            .not('status', 'in', '("cancelled","no_show")'),
-      // Event slots also block time on the professional's calendar
-      supabase
-        .from('event_slots' as any)
-        .select('slot_date, start_time, end_time')
-        .eq('professional_id', professionalId)
-        .eq('slot_date', dateStr),
-    ]);
+  // Only fetch what isn't already provided
+  const fetchTasks: Promise<any>[] = [];
+  
+  // Index 0: Professional working hours
+  if (prefetchData?.professionalHours) {
+    fetchTasks.push(Promise.resolve({ data: prefetchData.professionalHours }));
+  } else {
+    fetchTasks.push(supabase
+      .from('professional_working_hours' as any)
+      .select('day_of_week, open_time, close_time, lunch_start, lunch_end, is_closed')
+      .eq('professional_id', professionalId));
+  }
+
+  // Index 1: Business hours
+  if (prefetchData?.businessHours) {
+    fetchTasks.push(Promise.resolve({ data: prefetchData.businessHours }));
+  } else {
+    fetchTasks.push(supabase
+      .from('business_hours' as any)
+      .select('day_of_week, open_time, close_time, lunch_start, lunch_end, is_closed')
+      .eq('company_id', companyId));
+  }
+
+  // Index 2: Exceptions
+  // Note: Exceptions are usually date-specific, so if prefetchData.exceptions has all exceptions for the company,
+  // we can filter it here. If it's already filtered for the date, even better.
+  if (prefetchData?.exceptions) {
+    const dailyExceptions = prefetchData.exceptions.filter(e => e.exception_date === dateStr);
+    fetchTasks.push(Promise.resolve({ data: dailyExceptions }));
+  } else {
+    fetchTasks.push(supabase
+      .from('business_exceptions' as any)
+      .select('exception_date, is_closed, open_time, close_time')
+      .eq('company_id', companyId)
+      .eq('exception_date', dateStr));
+  }
+
+  // Index 3: Blocked times
+  fetchTasks.push(supabase
+    .from(blockedTable as any)
+    .select('block_date, start_time, end_time')
+    .eq('company_id', companyId)
+    .eq('professional_id', professionalId)
+    .eq('block_date', dateStr));
+
+  // Index 4: Appointments
+  if (source === 'public') {
+    fetchTasks.push(supabase.rpc('get_booking_appointments' as any, {
+      p_company_id: companyId,
+      p_professional_id: professionalId,
+      p_selected_date: dateStr,
+      p_timezone: 'America/Sao_Paulo',
+    }));
+  } else {
+    fetchTasks.push(supabase
+      .from(apptsTable as any)
+      .select('start_time, end_time')
+      .eq('professional_id', professionalId)
+      .eq('company_id', companyId)
+      .gte('start_time', startISO)
+      .lt('start_time', endISO)
+      .not('status', 'in', '("cancelled","no_show")'));
+  }
+
+  // Index 5: Event slots
+  fetchTasks.push(supabase
+    .from('event_slots' as any)
+    .select('slot_date, start_time, end_time')
+    .eq('professional_id', professionalId)
+    .eq('slot_date', dateStr));
+
+  const [profHoursRes, bizHoursRes, exceptionsRes, blocksRes, apptsRes, eventSlotsRes] = await Promise.all(fetchTasks);
 
   const businessHours = (bizHoursRes.data || []) as unknown as BusinessHours[];
   const professionalHours = ((profHoursRes.data || []) as unknown as BusinessHours[]);
