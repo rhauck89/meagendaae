@@ -1913,9 +1913,20 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                       {totalDuration > 0 && <span className="font-normal ml-2" style={{ color: T.textSec }}>(bloco de {totalDuration} min)</span>}
                     </p>
                     {slotsLoading || !appointmentsLoaded ? (
-                      <div className="flex items-center gap-2 py-4" style={{ color: T.textSec }}>
-                        <div className="w-4 h-4 border-2 rounded-full animate-spin" style={{ borderColor: `${T.accent} transparent transparent transparent` }} />
-                        <span className="text-sm">{slotsLoading ? 'Calculando disponibilidade...' : 'Carregando agendamentos...'}</span>
+                      <div className="space-y-4">
+                        <div className="flex items-center gap-2 py-2" style={{ color: T.textSec }}>
+                          <div className="w-4 h-4 border-2 rounded-full animate-spin" style={{ borderColor: `${T.accent} transparent transparent transparent` }} />
+                          <span className="text-sm font-medium animate-pulse">Buscando melhores horários...</span>
+                        </div>
+                        <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
+                          {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((i) => (
+                            <div 
+                              key={i} 
+                              className="h-10 rounded-xl animate-pulse" 
+                              style={{ background: T.cardHover, opacity: 0.5 }} 
+                            />
+                          ))}
+                        </div>
                       </div>
                     ) : availableSlots.length === 0 ? (
                       <div className="space-y-3">
