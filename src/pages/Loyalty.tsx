@@ -24,6 +24,7 @@ import { cn } from '@/lib/utils';
 
 const Loyalty = () => {
   const { companyId } = useAuth();
+  const [activeModule, setActiveModule] = useState<'points' | 'cashback'>('points');
   const [tab, setTab] = useState('overview');
 
   // Config state
