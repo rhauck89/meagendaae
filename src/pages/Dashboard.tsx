@@ -1166,45 +1166,31 @@ const Dashboard = () => {
         <CardContent>
           <div className="space-y-3">
             {delayed.map(apt => (
-              <div key={apt.id} className="p-4 rounded-xl border border-orange-500/30 bg-orange-50/50">
-                <div className="flex items-center gap-1 mb-2">
-                  <Badge variant="outline" className="text-xs border-orange-500 text-orange-600 bg-orange-50">
-                    ⚠ Atendimento não finalizado
-                  </Badge>
-                </div>
-                <div className="flex items-center gap-4">
-                  <div className="text-center min-w-[60px]">
-                    <p className="text-lg font-display font-bold text-orange-600">{format(parseISO(apt.start_time), 'HH:mm')}</p>
-                    <p className="text-xs text-muted-foreground">{format(parseISO(apt.end_time), 'HH:mm')}</p>
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-semibold truncate">{apt.client_name || apt.client?.name || 'Cliente'}</p>
-                    <p className="text-sm text-muted-foreground truncate">
-                      {formatServicesWithDuration(apt.appointment_services)}
-                    </p>
-                    <p className="text-xs text-muted-foreground">com {apt.professional?.full_name}</p>
-                  </div>
-                  <div className="flex flex-col items-end gap-1 shrink-0">
-                    <span className="font-display font-bold">{formatCurrency(Number(apt.total_price))}</span>
-                  </div>
-                </div>
-                <div className="flex gap-2 flex-wrap mt-3">
-                  <Button size="sm" className="bg-success hover:bg-success/90 text-white text-xs" onClick={() => { setCompleteTarget(apt); setCompleteDialogOpen(true); }}>
-                    ✓ Concluir serviço
-                  </Button>
-                  {!apt.promotion_id && (
-                    <Button size="sm" variant="outline" className="text-xs" onClick={() => openRescheduleDialog(apt)}>
-                      <RefreshCw className="h-3 w-3 mr-1" />Reagendar
-                    </Button>
-                  )}
-                  <Button size="sm" variant="outline" className="text-xs" onClick={() => { setAdjustTarget(apt); setAdjustDialogOpen(true); }}>
-                    <ArrowLeftRight className="h-3 w-3 mr-1" />Ajustar
-                  </Button>
-                  <Button size="sm" variant="ghost" className="text-destructive text-xs" onClick={() => { setCancelTarget(apt); setCancelDialogOpen(true); }}>
-                    Cliente cancelou
-                  </Button>
-                </div>
-              </div>
+              <UnifiedAppointmentCard
+                key={apt.id}
+                appointment={apt}
+                isAdmin={isAdmin}
+                onComplete={(apt) => {
+                  setCompleteTarget(apt);
+                  setCompleteDialogOpen(true);
+                }}
+                onReschedule={openRescheduleDialog}
+                onAdjust={(apt) => {
+                  setAdjustTarget(apt);
+                  setAdjustDialogOpen(true);
+                }}
+                onCancel={(apt) => {
+                  setCancelTarget(apt);
+                  setCancelDialogOpen(true);
+                }}
+                onUpdateStatus={updateStatus}
+                onRegisterDelay={(apt) => {
+                  setDelayTargetId(apt.id);
+                  setDelayTargetApt(apt);
+                  setDelayDialogOpen(true);
+                }}
+                onWhatsApp={(apt) => openWhatsApp(apt.client?.whatsapp || '', `Olá ${apt.client?.name}, tudo bem?`)}
+              />
             ))}
           </div>
         </CardContent>
