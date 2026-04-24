@@ -1007,6 +1007,7 @@ export default function Promotions() {
 
   // --- Status badge renderer ---
   const renderStatusBadge = (promo: Promotion) => {
+    const isSmart = promo.promotion_mode === 'smart';
     const status = promoVisualStatus(promo, now);
     const start = getPromoStart(promo);
     const isTargetingTomorrow = isTomorrow(parseISO(promo.end_date)) && isToday(parseISO(promo.start_date));
