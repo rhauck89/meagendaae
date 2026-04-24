@@ -855,6 +855,62 @@ const Loyalty = () => {
             </DialogContent>
           </Dialog>
         </TabsContent>
+        {/* REDEMPTIONS TAB */}
+        <TabsContent value="redemptions" className="space-y-4 mt-4">
+          <Card>
+            <CardHeader><CardTitle className="text-base">Validar resgate</CardTitle></CardHeader>
+            <CardContent className="flex flex-col sm:flex-row gap-2">
+              <Button onClick={() => setScannerOpen(true)} className="gap-2">
+                <ScanLine className="h-4 w-4" /> Escanear QR
+              </Button>
+              <div className="flex gap-2 flex-1">
+                <Input placeholder="Ou digite o código" value={validateCode} onChange={e => setValidateCode(e.target.value.toUpperCase())} className="max-w-xs" />
+                <Button variant="outline" onClick={handleValidateCode}>Validar</Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          <RewardQRScannerDialog
+            open={scannerOpen}
+            onOpenChange={setScannerOpen}
+            onConfirmed={() => { fetchRedemptions(); fetchTransactions(); fetchStats(); fetchRewardItems(); }}
+          />
+
+          <Card>
+            <CardHeader><CardTitle className="text-base">Histórico de resgates</CardTitle></CardHeader>
+            <CardContent>
+              {redemptions.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-8">Nenhum resgate encontrado.</p>
+              ) : (
+                <div className="space-y-2">
+                  {redemptions.map((r: any) => (
+                    <div key={r.id} className="flex items-center justify-between p-3 rounded-lg border">
+                      <div>
+                        <p className="font-medium">{r.clients?.name || 'Cliente'}</p>
+                        <p className="text-xs text-muted-foreground">Código: <span className="font-mono font-bold">{r.redemption_code}</span> · {r.total_points} pts</p>
+                        <p className="text-[10px] text-muted-foreground mt-0.5">
+                          {format(parseISO(r.created_at), 'dd/MM/yy HH:mm')} · 
+                          <span className={cn(
+                            "ml-1",
+                            r.status === 'pending' ? "text-amber-500" : r.status === 'confirmed' ? "text-success" : "text-destructive"
+                          )}>
+                            {r.status === 'pending' ? 'Pendente' : r.status === 'confirmed' ? 'Confirmado' : 'Cancelado'}
+                          </span>
+                        </p>
+                      </div>
+                      {r.status === 'pending' && (
+                        <div className="flex gap-2">
+                          <Button size="sm" variant="outline" onClick={() => handleValidateRedemption(r.id, 'cancelled')}><XCircle className="h-4 w-4 mr-1" /> Cancelar</Button>
+                          <Button size="sm" onClick={() => handleValidateRedemption(r.id, 'confirmed')}><CheckCircle className="h-4 w-4 mr-1" /> Confirmar</Button>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
 
         {/* TRANSACTIONS TAB */}
         <TabsContent value="transactions" className="space-y-4 mt-4">
