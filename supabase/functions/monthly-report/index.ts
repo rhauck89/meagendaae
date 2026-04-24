@@ -39,7 +39,7 @@ function getMonthRange(monthStr?: string): { start: string; end: string; label: 
 }
 
 async function generateReport(
-  supabase: ReturnType<typeof createClient>,
+  supabase: any,
   companyId: string,
   start: string,
   end: string,
