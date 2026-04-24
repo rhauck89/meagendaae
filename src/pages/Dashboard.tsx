@@ -864,9 +864,16 @@ const Dashboard = () => {
 
   const openRescheduleDialog = (apt: any) => {
     setRescheduleTarget(apt);
-    setRescheduleDate(undefined);
-    setRescheduleSlots([]);
-    setRescheduleSelectedSlot(null);
+    if (rescheduleMode === 'professional') {
+      const dt = parseISO(apt.start_time);
+      setRescheduleDate(dt);
+      setRescheduleSelectedSlot(format(dt, 'HH:mm'));
+      fetchRescheduleSlots(dt, apt.professional_id);
+    } else {
+      setRescheduleDate(undefined);
+      setRescheduleSlots([]);
+      setRescheduleSelectedSlot(null);
+    }
     setRescheduleDialogOpen(true);
   };
 
