@@ -1487,14 +1487,19 @@ export default function Promotions() {
         </div>
         <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) resetForm(); }}>
           <DialogTrigger asChild>
-            <Button onClick={() => { resetForm(); setIsEditing(false); }}>
+            <Button onClick={() => { resetForm(); setIsEditing(false); setCreationMode('choice'); }}>
               <Plus className="h-4 w-4 mr-2" />
               Nova Promoção
             </Button>
           </DialogTrigger>
           <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>{isEditing ? 'Editar Promoção' : 'Criar Promoção'}</DialogTitle>
+              <DialogTitle>
+                {isEditing ? 'Editar Promoção' : 
+                 creationMode === 'choice' ? 'Como deseja criar?' :
+                 creationMode === 'smart' ? 'Oportunidades Inteligentes' :
+                 'Criar Promoção Manual'}
+              </DialogTitle>
             </DialogHeader>
 
             {/* Progress indicator */}
