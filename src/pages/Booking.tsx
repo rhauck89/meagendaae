@@ -916,6 +916,20 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
   }, [selectedDate, selectedProfessional, selectedServices, totalDuration, company]);
 
   useEffect(() => {
+    let timeout: ReturnType<typeof setTimeout>;
+    if (slotsLoading) {
+      timeout = setTimeout(() => {
+        setSlotsLoading(false);
+        if (!appointmentsLoaded) {
+          console.warn('[Booking] Slot calculation timeout');
+          setAppointmentsLoaded(true);
+        }
+      }, 10000); // 10s security timeout
+    }
+    return () => clearTimeout(timeout);
+  }, [slotsLoading, appointmentsLoaded]);
+
+  useEffect(() => {
     if (professionals.length === 1 && selectedProfessional !== professionals[0].id) {
       setSelectedProfessional(professionals[0].id);
       fetchProfessionalHours(professionals[0].id);
