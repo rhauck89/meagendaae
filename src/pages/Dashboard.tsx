@@ -1743,6 +1743,8 @@ const Dashboard = () => {
                   </div>
                 ) : (
                   <AgendaTimelineView
+                    isAdmin={isAdmin}
+
                     appointments={appointments.filter(a => a.status !== 'rescheduled')}
                     blockedTimes={blockedTimes}
                     professionals={collaboratorsList}
