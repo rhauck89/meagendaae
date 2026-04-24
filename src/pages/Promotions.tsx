@@ -1592,24 +1592,6 @@ export default function Promotions() {
               </DialogTitle>
             </DialogHeader>
 
-            {/* Progress indicator */}
-            <div className="space-y-3">
-              <div className="flex items-center justify-between text-xs text-muted-foreground">
-                {WIZARD_STEPS.map((step) => (
-                  <div key={step.num} className={`flex items-center gap-1.5 ${wizardStep >= step.num ? 'text-primary font-medium' : ''}`}>
-                    <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs border-2 transition-colors ${
-                      wizardStep > step.num ? 'bg-primary border-primary text-primary-foreground' :
-                      wizardStep === step.num ? 'border-primary text-primary' :
-                      'border-muted-foreground/30'
-                    }`}>
-                      {wizardStep > step.num ? <Check className="h-3 w-3" /> : step.num}
-                    </div>
-                    <span className="hidden sm:inline">{step.label}</span>
-                  </div>
-                ))}
-              </div>
-              <Progress value={(wizardStep / totalSteps) * 100} className="h-1.5" />
-            </div>
 
             {/* Step content */}
             {creationMode === 'choice' && !isEditing && renderChoiceScreen()}
