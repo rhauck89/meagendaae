@@ -1041,26 +1041,78 @@ export default function Promotions() {
 
       {singleDay && startDate && (
         <p className="text-sm text-muted-foreground">
-          📅 {format(parseISO(startDate), "dd/MM/yyyy (EEEE)", { locale: ptBR })}
+          📅 {(() => {
+            try {
+              const d = parseISO(startDate);
+              if (isNaN(d.getTime())) return 'Data inválida';
+              return format(d, "dd/MM/yyyy (EEEE)", { locale: ptBR });
+            } catch (e) {
+              return 'Erro ao carregar data';
+            }
+          })()}
         </p>
       )}
 
-      <div className="grid grid-cols-2 gap-4">
-        <div><Label>Horário Início</Label><Input type="time" value={startTime} onChange={e => setStartTime(e.target.value)} /></div>
-        <div><Label>Horário Fim</Label><Input type="time" value={endTime} onChange={e => setEndTime(e.target.value)} /></div>
-      </div>
+      <div className="space-y-3 pt-2">
+        <Label>Horários de agendamento</Label>
+        <div className="grid grid-cols-1 gap-3">
+          <div className="flex items-center gap-2">
+            <Switch checked={useBusinessHours} onCheckedChange={setUseBusinessHours} id="business-hours" />
+            <Label htmlFor="business-hours" className="font-normal">Seguir horário padrão da empresa</Label>
+          </div>
+          
+          {!useBusinessHours && (
+            <div className="pl-9 space-y-4 border-l-2 border-primary/10 ml-2">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-xs">Hora Início</Label>
+                  <Input type="time" value={startTime} onChange={e => setStartTime(e.target.value)} className="h-8" />
+                </div>
+                <div>
+                  <Label className="text-xs">Hora Fim</Label>
+                  <Input type="time" value={endTime} onChange={e => setEndTime(e.target.value)} className="h-8" />
+                </div>
+              </div>
 
-      {singleDay && startDate && startTime && endTime && (
-        <div className="rounded-lg bg-muted p-3 text-sm">
-          <p>📅 {format(parseISO(startDate), 'dd/MM/yyyy')}</p>
-          <p>🕒 {startTime} – {endTime}</p>
+              <div>
+                <Label className="text-xs mb-2 block">Dias da semana válidos</Label>
+                <div className="flex flex-wrap gap-2">
+                  {['D', 'S', 'T', 'Q', 'Q', 'S', 'S'].map((day, i) => (
+                    <Button
+                      key={i}
+                      type="button"
+                      variant={validDays.includes(i) ? "default" : "outline"}
+                      size="sm"
+                      className="h-8 w-8 p-0"
+                      onClick={() => setValidDays(prev => 
+                        prev.includes(i) ? prev.filter(d => d !== i) : [...prev, i]
+                      )}
+                    >
+                      {day}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <Label className="text-xs">Densidade (Intervalo mínimo em minutos)</Label>
+                <Input 
+                  type="number" 
+                  value={minIntervalMinutes} 
+                  onChange={e => setMinIntervalMinutes(e.target.value)} 
+                  className="h-8" 
+                  placeholder="0 = padrão do serviço"
+                />
+              </div>
+            </div>
+          )}
         </div>
-      )}
+      </div>
 
       <div>
         <Label>Vagas máximas</Label>
         <Input type="number" value={maxSlots} onChange={e => setMaxSlots(e.target.value)} min="0" />
-        <p className="text-xs text-muted-foreground mt-1">0 = ilimitado</p>
+        <p className="text-xs text-muted-foreground mt-1">0 = ilimitado por período</p>
       </div>
 
       {isAdmin && (
@@ -1074,9 +1126,11 @@ export default function Promotions() {
             </SelectContent>
           </Select>
           {professionalFilter === 'selected' && (
-            <div className="space-y-2 pl-2 mt-2">
-              {professionals.map((p: any) => (
-                <label key={p.profile_id} className="flex items-center gap-2 cursor-pointer">
+            <div className="space-y-2 pl-2 mt-2 max-h-40 overflow-y-auto border rounded-md p-2">
+              {professionals.length === 0 ? (
+                <p className="text-xs text-muted-foreground p-2">Carregando profissionais...</p>
+              ) : professionals.map((p: any) => (
+                <label key={p.profile_id} className="flex items-center gap-2 cursor-pointer py-1">
                   <Checkbox
                     checked={selectedProfessionalIds.includes(p.profile_id)}
                     onCheckedChange={(ch) => setSelectedProfessionalIds(prev => ch ? [...prev, p.profile_id] : prev.filter(id => id !== p.profile_id))}
