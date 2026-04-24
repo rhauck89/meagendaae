@@ -869,7 +869,7 @@ const Dashboard = () => {
     setRescheduleDialogOpen(true);
   };
 
-  const fetchRescheduleSlots = async (date: Date) => {
+  const fetchRescheduleSlots = async (date: Date, professionalId?: string) => {
     if (!rescheduleTarget || !companyId) return;
     setRescheduleSlotsLoading(true);
     setRescheduleSelectedSlot(null);
@@ -879,13 +879,13 @@ const Dashboard = () => {
         (sum: number, s: any) => sum + (s.duration_minutes || 0), 0
       ) || 30;
 
-      // Single source of truth — uses the same engine + config resolution as Booking.tsx
-      // and ManualAppointmentDialog so reschedule slots match what the booking flow shows.
+      const profId = professionalId || rescheduleProfessionalId || rescheduleTarget.professional_id;
+
       const { getAvailableSlots } = await import('@/lib/availability-service');
       const { slots } = await getAvailableSlots({
         source: 'manual',
         companyId,
-        professionalId: rescheduleTarget.professional_id,
+        professionalId: profId,
         date,
         totalDuration,
         filterPastForToday: true,
@@ -909,23 +909,78 @@ const Dashboard = () => {
 
   const confirmReschedule = async () => {
     if (!rescheduleTarget || !rescheduleSelectedSlot || !rescheduleDate) return;
+
+    const profId = rescheduleProfessionalId || rescheduleTarget.professional_id;
+
+    // Check if moving outside promo window
+    if (rescheduleTarget.promotion_id) {
+      const { data: promo } = await supabase
+        .from('promotions')
+        .select('*')
+        .eq('id', rescheduleTarget.promotion_id)
+        .maybeSingle();
+
+      if (promo) {
+        const [rh, rm] = rescheduleSelectedSlot.split(':').map(Number);
+        const startDt = new Date(rescheduleDate);
+        startDt.setHours(rh, rm, 0, 0);
+
+        if (!isPromoActive(promo, startDt)) {
+          setPriceCheckData({
+            promo,
+            newStart: startDt,
+            newProfessionalId: profId
+          });
+          setPriceCheckOpen(true);
+          return;
+        }
+      }
+    }
+
+    executeReschedule(rescheduleTarget, rescheduleDate, rescheduleSelectedSlot, profId);
+  };
+
+  const executeReschedule = async (apt: any, date: Date, time: string, profId: string, keepPromoPrice = true) => {
     setRescheduleLoading(true);
     try {
-      const totalDuration = rescheduleTarget.appointment_services?.reduce(
+      const totalDuration = apt.appointment_services?.reduce(
         (sum: number, s: any) => sum + (s.duration_minutes || 0), 0
       ) || 30;
-      const [rh, rm] = rescheduleSelectedSlot.split(':').map(Number);
-      const startDt = new Date(rescheduleDate);
+      const [rh, rm] = time.split(':').map(Number);
+      const startDt = new Date(date);
       startDt.setHours(rh, rm, 0, 0);
       const endDt = addMinutes(startDt, totalDuration);
       const newStart = startDt.toISOString();
       const newEnd = endDt.toISOString();
 
+      // Check if we need to update price
+      let newPrice = apt.total_price;
+      if (!keepPromoPrice && apt.promotion_id) {
+        const { data: promo } = await supabase.from('promotions').select('original_price').eq('id', apt.promotion_id).maybeSingle();
+        if (promo?.original_price) {
+          newPrice = promo.original_price;
+        }
+      }
+
       const { error } = await supabase.rpc('reschedule_appointment', {
-        p_appointment_id: rescheduleTarget.id,
+        p_appointment_id: apt.id,
         p_new_start: newStart,
         p_new_end: newEnd,
       });
+
+      if (error) {
+        toast.error(error.message || 'Erro ao reagendar');
+        return;
+      }
+
+      // If price changed or professional changed, update the appointment record
+      if (newPrice !== apt.total_price || profId !== apt.professional_id) {
+        await supabase.from('appointments').update({
+          total_price: newPrice,
+          professional_id: profId,
+          notes: (apt.notes || '') + (newPrice !== apt.total_price ? `\n[Preço atualizado para R$ ${newPrice}]` : '')
+        } as any).eq('id', apt.id);
+      }
       if (error) {
         toast.error(error.message || 'Erro ao reagendar');
         return;
