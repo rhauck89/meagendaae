@@ -1490,21 +1490,77 @@ export default function Promotions() {
         </Dialog>
       </div>
 
-      {/* Low occupancy suggestion */}
-      {lowOccupancy && (
-        <Card className="border-dashed border-primary/40 bg-primary/5">
-          <CardContent className="py-4 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <TrendingUp className="h-5 w-5 text-primary" />
-              <div>
-                <p className="font-medium text-sm">Agenda com vagas amanhã!</p>
-                <p className="text-xs text-muted-foreground">Crie uma promoção para preencher horários vazios</p>
+      {/* Smart Promotions / Oportunidades */}
+      {insights.length > 0 && (
+        <Card className="border-dashed border-primary/40 bg-primary/5 mb-6 overflow-hidden relative transition-all duration-300">
+          <div className="absolute top-0 left-0 w-1 h-full bg-primary" />
+          <CardContent className="py-4">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div className="flex items-center gap-4 transition-all duration-500 animate-in fade-in slide-in-from-right-4" key={activeInsightIndex}>
+                <div className="bg-white dark:bg-slate-900 p-2.5 rounded-full shadow-sm border border-primary/10">
+                  {insights[activeInsightIndex] && (() => {
+                    const Icon = insights[activeInsightIndex].icon;
+                    return <Icon className="h-5 w-5 text-primary" />;
+                  })()}
+                </div>
+                <div>
+                  <h3 className="font-semibold text-sm flex items-center gap-2">
+                    {insights[activeInsightIndex].title}
+                    {insights.length > 1 && (
+                      <span className="text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded-full font-normal">
+                        {activeInsightIndex + 1}/{insights.length}
+                      </span>
+                    )}
+                  </h3>
+                  <p className="text-xs text-muted-foreground">{insights[activeInsightIndex].description}</p>
+                </div>
+              </div>
+              
+              <div className="flex items-center justify-between w-full sm:w-auto gap-2">
+                {insights.length > 1 && (
+                  <div className="flex items-center gap-1">
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className="h-8 w-8 rounded-full hover:bg-white/50 dark:hover:bg-slate-800/50" 
+                      onClick={() => setActiveInsightIndex(prev => (prev - 1 + insights.length) % insights.length)}
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                    </Button>
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className="h-8 w-8 rounded-full hover:bg-white/50 dark:hover:bg-slate-800/50" 
+                      onClick={() => setActiveInsightIndex(prev => (prev + 1) % insights.length)}
+                    >
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
+                  </div>
+                )}
+                
+                {insights[activeInsightIndex].buttonLabel && (
+                  <Button 
+                    size="sm" 
+                    className="gap-2 shadow-sm font-medium"
+                    onClick={() => applyInsight(insights[activeInsightIndex])}
+                  >
+                    {insights[activeInsightIndex].buttonLabel}
+                  </Button>
+                )}
               </div>
             </div>
-            <Button size="sm" variant="outline" onClick={() => { resetForm(); setDialogOpen(true); }}>
-              Criar promoção rápida
-            </Button>
           </CardContent>
+          
+          {/* Progress bar for auto-rotation */}
+          {insights.length > 1 && (
+            <div className="absolute bottom-0 left-0 w-full h-0.5 bg-primary/5">
+              <div 
+                className="h-full bg-primary/20 transition-all duration-[15000ms] ease-linear"
+                style={{ width: '100%' }}
+                key={activeInsightIndex}
+              />
+            </div>
+          )}
         </Card>
       )}
 
