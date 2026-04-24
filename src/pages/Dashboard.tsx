@@ -39,6 +39,8 @@ import { useFinancialPrivacy } from '@/contexts/FinancialPrivacyContext';
 import FinancialPrivacyToggle from '@/components/FinancialPrivacyToggle';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { motion, AnimatePresence } from 'framer-motion';
+import { getProfessionalColor } from '@/utils/calendarLayout';
+
 
 type ViewMode = 'day' | 'week' | 'month';
 type StatusTab = 'all' | 'confirmed' | 'completed' | 'cancelled' | 'rescheduled';
@@ -1645,6 +1647,51 @@ const Dashboard = () => {
           </div>
         </CardHeader>
         <CardContent>
+          {/* Professional Legend & Day Stats */}
+          {agendaDisplayMode === 'calendario' && isAdmin && (
+            <div className="flex flex-wrap items-center justify-between gap-4 mb-6 p-4 rounded-xl bg-muted/20 border border-border/10">
+              <div className="flex flex-wrap items-center gap-4">
+                <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest mr-2">Profissionais:</p>
+                {collaboratorsList.map(c => {
+                  const profColor = getProfessionalColor(c.profile_id, (c.profile as any)?.full_name);
+                  const isActive = filterProfessional === 'all' || filterProfessional === c.profile_id;
+                  return (
+                    <button 
+                      key={c.profile_id}
+                      onClick={() => setFilterProfessional(isActive && filterProfessional !== 'all' ? 'all' : c.profile_id)}
+                      className={cn(
+                        "flex items-center gap-2 px-2.5 py-1 rounded-full border transition-all hover:scale-105 active:scale-95",
+                        isActive ? cn(profColor.bg, profColor.border) : "bg-transparent border-transparent opacity-40 grayscale"
+                      )}
+                    >
+                      <div className={cn("w-2 h-2 rounded-full", profColor.border.replace('border', 'bg'))} />
+                      <span className={cn("text-xs font-bold", profColor.text)}>
+                        {(c.profile as any)?.full_name?.split(' ')[0]}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {viewMode === 'day' && (
+                <div className="flex items-center gap-6">
+                  <div className="text-right">
+                    <p className="text-[10px] text-muted-foreground uppercase font-bold">Ocupação</p>
+                    <p className="text-sm font-black text-primary">
+                      {Math.round((appointments.filter(a => a.status === 'completed' || a.status === 'confirmed').length / (collaboratorsList.length * 8 || 1)) * 100)}%
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-[10px] text-muted-foreground uppercase font-bold">Total Hoje</p>
+                    <p className="text-sm font-black">
+                      {appointments.filter(a => a.status !== 'cancelled' && a.status !== 'no_show').length} Atend.
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Blocked Times */}
           {blockedTimes.length > 0 && (
             <div className="space-y-2 mb-4">
@@ -1696,6 +1743,8 @@ const Dashboard = () => {
                   </div>
                 ) : (
                   <AgendaTimelineView
+                    isAdmin={isAdmin}
+
                     appointments={appointments.filter(a => a.status !== 'rescheduled')}
                     blockedTimes={blockedTimes}
                     professionals={collaboratorsList}
