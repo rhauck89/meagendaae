@@ -821,72 +821,19 @@ const ClientPortal = () => {
                     }, {})
                   ).map(([cid, list]) => (
                     <div key={cid} className="space-y-3">
-                      {list.map(apt => {
-                        const co = companies[cid];
-                        const serviceNames = apt.appointment_services?.map(s => s.service?.name).filter(Boolean).join(', ');
-                        return (
-                          <Card key={apt.id} className="rounded-xl shadow-sm hover:shadow-md transition-shadow overflow-hidden">
-                            <CardContent className="p-5 space-y-4">
-                              {/* HEADER: company + professional */}
-                              <div className="flex items-start justify-between gap-3">
-                                <div className="flex items-center gap-3 min-w-0 flex-1">
-                                  {co?.logo_url ? (
-                                    <img src={co.logo_url} alt={co.name} className="h-11 w-11 rounded-lg object-cover border shrink-0" />
-                                  ) : (
-                                    <div className="h-11 w-11 rounded-lg bg-muted flex items-center justify-center shrink-0">
-                                      <Building2 className="h-5 w-5 text-muted-foreground" />
-                                    </div>
-                                  )}
-                                  <div className="min-w-0 flex-1">
-                                    <p className="font-semibold text-sm truncate">{co?.name || apt.company?.name || 'Empresa não encontrada'}</p>
-                                    <div className="flex items-center gap-1.5 mt-0.5">
-                                      {apt.professional?.avatar_url && (
-                                        <img src={apt.professional.avatar_url} alt="" className="h-4 w-4 rounded-full object-cover" />
-                                      )}
-                                      <p className="text-xs text-muted-foreground truncate">
-                                        com {apt.professional?.full_name || 'Profissional não informado'}
-                                      </p>
-                                    </div>
-                                  </div>
-                                </div>
-                                <Badge className={`${statusColors[apt.status] || 'bg-muted'} shrink-0`}>
-                                  {statusLabels[apt.status] || apt.status}
-                                </Badge>
-                              </div>
-
-                              {/* BODY: service */}
-                              <div className="border-t border-b py-3">
-                                <p className="text-[11px] uppercase tracking-wide text-muted-foreground mb-0.5">Serviço</p>
-                                <p className="text-base font-semibold leading-snug">
-                                  {serviceNames || '—'}
-                                </p>
-                              </div>
-
-                              {/* FOOTER: date + time + actions */}
-                              <div className="flex items-center justify-between gap-3">
-                                <div>
-                                  <p className="text-xs text-muted-foreground capitalize">
-                                    {format(parseISO(apt.start_time), "EEE, dd 'de' MMM", { locale: ptBR })}
-                                  </p>
-                                  <p className="text-xl font-bold text-primary leading-tight">
-                                    {format(parseISO(apt.start_time), 'HH:mm')}
-                                  </p>
-                                </div>
-                                <div className="flex gap-2">
-                                  {!apt.promotion_id && (
-                                    <Button size="sm" onClick={() => navigate(`/reschedule/${apt.id}`)}>
-                                      Remarcar
-                                    </Button>
-                                  )}
-                                  <Button size="sm" variant="outline" className="text-destructive border-destructive/30 hover:bg-destructive/10 hover:text-destructive" onClick={() => navigate(`/cancel/${apt.id}`)}>
-                                    Cancelar
-                                  </Button>
-                                </div>
-                              </div>
-                            </CardContent>
-                          </Card>
-                        );
-                      })}
+                      {list.map(apt => (
+                        <UnifiedAppointmentCard
+                          key={apt.id}
+                          appointment={apt}
+                          isAdmin={false}
+                          showCompany={true}
+                          onReschedule={(apt) => navigate(`/reschedule/${apt.id}`)}
+                          onCancel={(apt) => navigate(`/cancel/${apt.id}`)}
+                          onClick={(apt) => {
+                            // On client portal, clicking might show more info
+                          }}
+                        />
+                      ))}
                     </div>
                   ))
                 )}
