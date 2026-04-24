@@ -1467,22 +1467,17 @@ export default function Promotions() {
                       )}
 
                       <div className="flex gap-2 pt-2 flex-wrap">
-                        <Button size="sm" variant="outline" onClick={() => toggleStatus(promo)}>
-                          {promo.status === 'active' ? 'Pausar' : 'Ativar'}
-                        </Button>
                         <Button size="sm" onClick={() => fetchFilteredClients(promo)} disabled={status === 'expired'}>
-                          <Send className="h-3 w-3 mr-1" />Enviar
+                          <Send className="h-3 w-3 mr-1" />Divulgar
                         </Button>
-                        <Button size="sm" variant="outline" onClick={() => fetchMetrics(promo)}>
-                          <BarChart3 className="h-3 w-3 mr-1" />Métricas
+                        <Button size="sm" variant="outline" onClick={() => handleEdit(promo)}>
+                          <Edit2 className="h-3 w-3 mr-1" />Editar
                         </Button>
-                        {!isCashback && (
-                          <Button size="sm" variant="ghost" asChild>
-                            <a href={getPromoLink(promo)} target="_blank" rel="noopener noreferrer">
-                              <Eye className="h-3 w-3 mr-1" />Ver
-                            </a>
-                          </Button>
-                        )}
+                        <Button size="sm" variant="ghost" asChild>
+                          <a href={getPromoLink(promo)} target="_blank" rel="noopener noreferrer">
+                            <Eye className="h-3 w-3 mr-1" />Ver
+                          </a>
+                        </Button>
                       </div>
                     </CardContent>
                   </Card>
