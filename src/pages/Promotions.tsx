@@ -819,7 +819,7 @@ export default function Promotions() {
       case 'expired':
         return (
           <Badge variant="outline" className="gap-1.5 text-muted-foreground py-1 px-3 bg-muted/30">
-            <X className="h-3.5 w-3.5" />
+            <div className="w-2 h-2 rounded-full bg-muted-foreground/50" />
             Encerrada
           </Badge>
         );
