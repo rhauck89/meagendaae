@@ -20,7 +20,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Progress } from '@/components/ui/progress';
 import { toast } from '@/hooks/use-toast';
-import { format, parseISO } from 'date-fns';
+import { format, parseISO, isToday, isTomorrow, differenceInCalendarDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Plus, MessageCircle, Send, Users, Tag, Megaphone, Copy, BarChart3, Eye, TrendingUp, MousePointerClick, CalendarCheck, ChevronLeft, ChevronRight, Check, Clock, Flame, Timer } from 'lucide-react';
 import { formatWhatsApp, displayWhatsApp, buildWhatsAppUrl, trackWhatsAppClick } from '@/lib/whatsapp';
@@ -782,27 +782,45 @@ export default function Promotions() {
   // --- Status badge renderer ---
   const renderStatusBadge = (promo: Promotion) => {
     const status = promoVisualStatus(promo, now);
+    const start = getPromoStart(promo);
+    
     switch (status) {
       case 'scheduled':
+        let dateText = '';
+        const daysDiff = differenceInCalendarDays(start, now);
+        const startTime = promo.start_time?.slice(0, 5) || '00:00';
+        const formattedHour = startTime.split(':')[0] + 'h';
+
+        if (isToday(start)) {
+          dateText = `hoje às ${formattedHour}`;
+        } else if (isTomorrow(start)) {
+          dateText = `amanhã às ${formattedHour}`;
+        } else if (daysDiff <= 6) {
+          dateText = `${format(start, 'EEEE', { locale: ptBR })} às ${formattedHour}`;
+        } else {
+          dateText = `em ${format(start, 'dd/MM')} às ${formattedHour}`;
+        }
+
         return (
-          <Badge className="bg-blue-600 text-white gap-1">
-            <Clock className="h-3 w-3" />
-            Começa às {promo.start_time?.slice(0, 5) || '00:00'}
+          <Badge className="bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-900/30 dark:text-indigo-400 dark:border-indigo-800 gap-1.5 py-1 px-3">
+            <CalendarCheck className="h-3.5 w-3.5" />
+            Começa automaticamente {dateText}
           </Badge>
         );
       case 'active':
         return (
-          <Badge className="bg-emerald-600 text-white gap-1">
-            <Flame className="h-3 w-3" />
+          <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-800 gap-1.5 py-1 px-3">
+            <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
             Ativa agora
           </Badge>
         );
       case 'paused':
-        return <Badge variant="secondary">Pausada</Badge>;
+        return <Badge variant="secondary" className="py-1 px-3">Pausada</Badge>;
       case 'expired':
         return (
-          <Badge variant="outline" className="gap-1 text-muted-foreground">
-            ⛔ Encerrada às {promo.end_time?.slice(0, 5) || '23:59'}
+          <Badge variant="outline" className="gap-1.5 text-muted-foreground py-1 px-3 bg-muted/30">
+            <X className="h-3.5 w-3.5" />
+            Encerrada
           </Badge>
         );
     }
@@ -811,19 +829,49 @@ export default function Promotions() {
   // --- Countdown for active promos ---
   const renderCountdown = (promo: Promotion) => {
     const status = promoVisualStatus(promo, now);
-    if (status !== 'active') return null;
-    const end = getPromoEnd(promo);
-    if (isNaN(end.getTime())) return null;
-    const remaining = end.getTime() - now.getTime();
-    if (!isFinite(remaining) || remaining <= 0) return null;
-    const text = formatCountdown(remaining);
-    if (!text) return null;
-    return (
-      <div className="flex items-center gap-1.5 text-xs text-amber-600 font-medium">
-        <Timer className="h-3 w-3" />
-        ⏰ Termina em {text}
-      </div>
-    );
+    
+    if (status === 'active') {
+      const end = getPromoEnd(promo);
+      if (isNaN(end.getTime())) return null;
+      const remaining = end.getTime() - now.getTime();
+      if (!isFinite(remaining) || remaining <= 0) return null;
+      const text = formatCountdown(remaining);
+      if (!text) return null;
+      return (
+        <div className="flex items-center gap-1.5 text-xs text-amber-600 font-medium bg-amber-50 dark:bg-amber-950/20 p-2 rounded-lg">
+          <Timer className="h-3.5 w-3.5" />
+          <span>⏰ Termina em {text}</span>
+        </div>
+      );
+    }
+
+    if (status === 'scheduled') {
+      const start = getPromoStart(promo);
+      const remaining = start.getTime() - now.getTime();
+      if (remaining <= 0) return null;
+      
+      const hours = Math.floor(remaining / (1000 * 60 * 60));
+      const days = Math.floor(hours / 24);
+      
+      let countdownText = '';
+      if (days > 0) {
+        countdownText = `Faltam ${days} ${days === 1 ? 'dia' : 'dias'}`;
+      } else if (hours > 0) {
+        countdownText = `Em ${hours} ${hours === 1 ? 'hora' : 'horas'}`;
+      } else {
+        const minutes = Math.floor(remaining / (1000 * 60));
+        countdownText = `Em ${minutes} min`;
+      }
+      
+      return (
+        <div className="flex items-center gap-1.5 text-xs text-indigo-600 font-medium bg-indigo-50/50 dark:bg-indigo-900/10 p-2 rounded-lg">
+          <Clock className="h-3.5 w-3.5" />
+          <span>{countdownText}</span>
+        </div>
+      );
+    }
+    
+    return null;
   };
 
   // --- Wizard step rendering ---
@@ -1435,11 +1483,12 @@ export default function Promotions() {
                         <div className="flex items-center gap-1.5">
                           {promo.use_business_hours !== false ? (
                             <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-medium">
-                              <Clock className="h-3 w-3" /> Segue horário comercial
+                              <Clock className="h-3 w-3" /> {isToday(parseISO(promo.start_date)) ? 'Hoje segue horário comercial' : 'Segue horário comercial'}
                             </span>
                           ) : (
                             <span className="flex items-center gap-1 text-primary font-medium">
                               <Clock className="h-3 w-3" /> 
+                              {isToday(parseISO(promo.start_date)) ? 'Hoje das ' : ''}
                               {promo.start_time?.slice(0, 5)} às {promo.end_time?.slice(0, 5)}
                               {promo.valid_days && promo.valid_days.length < 7 && (
                                 <span className="ml-1 text-[10px] opacity-70">({promo.valid_days.length} dias/sem)</span>
