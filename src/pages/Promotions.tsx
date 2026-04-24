@@ -75,6 +75,15 @@ interface PromoMetrics {
   clientsReached: number;
 }
 
+interface PromotionInsight {
+  type: 'low_occupancy' | 'birthdays' | 'reactivation' | 'lunch_time' | 'afternoon_low' | 'tip';
+  title: string;
+  description: string;
+  buttonLabel?: string;
+  icon: any;
+  data?: any;
+}
+
 const MESSAGE_TAGS_TRADITIONAL = [
   { tag: '{{cliente_nome}}', label: 'Nome' },
   { tag: '{{cliente_primeiro_nome}}', label: 'Primeiro Nome' },
