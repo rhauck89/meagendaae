@@ -194,6 +194,34 @@ const Loyalty = () => {
     fetchStats();
   }, [fetchConfig, fetchServices, fetchProfessionals, fetchRewardItems, fetchTransactions, fetchRedemptions, fetchStats]);
 
+  // Fetch appointment history for top clients (smart rewards)
+  useEffect(() => {
+    if (!companyId || topClients.length === 0) return;
+    const ids = topClients.slice(0, 5).map((c) => c.id);
+    if (ids.length === 0) return;
+    (async () => {
+      const { data } = await supabase
+        .from('appointments')
+        .select('client_id, start_time, total_price, appointment_services(price, service:services(name))')
+        .eq('company_id', companyId)
+        .in('client_id', ids)
+        .order('start_time', { ascending: false })
+        .limit(200);
+      if (!data) return;
+      const map: Record<string, Array<{ service_name: string | null; total_price: number; created_at: string }>> = {};
+      for (const apt of data as any[]) {
+        const items = (apt.appointment_services || []).map((s: any) => ({
+          service_name: s.service?.name ?? null,
+          total_price: Number(s.price) || 0,
+          created_at: apt.start_time,
+        }));
+        if (!map[apt.client_id]) map[apt.client_id] = [];
+        map[apt.client_id].push(...items);
+      }
+      setTopClientsHistory(map);
+    })();
+  }, [companyId, topClients]);
+
   const saveConfig = async () => {
     if (!companyId) return;
     const payload = {
