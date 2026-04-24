@@ -1507,21 +1507,21 @@ export default function Promotions() {
 
   const renderSmartScreen = () => {
     const smartOptions = [
-      { id: 'low_occupancy', title: 'Horários vagos amanhã', desc: 'Identifica lacunas na agenda de amanhã.', icon: TrendingUp },
-      { id: 'lunch_time', title: 'Promo almoço baixa ocupação', desc: 'Preenche o horário das 11h às 14h.', icon: Clock },
-      { id: 'afternoon_low', title: 'Fim de tarde vazio', desc: 'Atrai clientes para o horário após as 17h.', icon: Flame },
-      { id: 'reactivation', title: 'Clientes inativos', desc: 'Chama de volta quem não aparece há 30 dias.', icon: RefreshCw },
-      { id: 'birthdays', title: 'Aniversariantes do mês', desc: 'Envie um presente para quem faz aniversário.', icon: Users },
-      { id: 'professional_idle', title: 'Profissional ocioso', desc: 'Promove um profissional com poucos agendamentos.', icon: Users },
+      { id: 'low_occupancy', title: 'Horários vagos amanhã', desc: 'Preencha horários livres', icon: TrendingUp },
+      { id: 'lunch_time', title: 'Promo almoço', desc: 'Baixa ocupação 11h às 14h', icon: Clock },
+      { id: 'afternoon_low', title: 'Fim de tarde vazio', desc: 'Atraia clientes fim de tarde', icon: Flame },
+      { id: 'reactivation', title: 'Clientes inativos', desc: 'Traga clientes de volta', icon: RefreshCw },
+      { id: 'birthdays', title: 'Aniversariantes', desc: 'Campanha do mês', icon: Users },
+      { id: 'professional_idle', title: 'Profissional ocioso', desc: 'Agenda fraca esta semana', icon: Users },
     ];
 
     return (
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 py-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 py-2">
         {smartOptions.map((opt) => (
           <Button
             key={opt.id}
             variant="outline"
-            className="h-auto min-h-[100px] justify-start p-5 gap-4 hover:border-primary hover:bg-primary/5 transition-all text-left group"
+            className="h-auto min-h-[100px] items-start justify-start p-5 gap-3 hover:border-primary hover:bg-primary/5 transition-all text-left group whitespace-normal overflow-hidden"
             onClick={() => {
               if (opt.id === 'professional_idle') {
                 resetForm();
@@ -1543,12 +1543,12 @@ export default function Promotions() {
               }
             }}
           >
-            <div className="bg-primary/10 p-3 rounded-lg text-primary shrink-0 group-hover:bg-primary group-hover:text-white transition-all">
-              <opt.icon className="h-6 w-6" />
+            <div className="bg-primary/10 p-2.5 rounded-lg text-primary shrink-0 group-hover:bg-primary group-hover:text-white transition-all">
+              <opt.icon className="h-5 w-5" />
             </div>
-            <div>
-              <h4 className="font-bold text-base leading-tight mb-1">{opt.title}</h4>
-              <p className="text-xs text-muted-foreground font-normal line-clamp-2 leading-relaxed">{opt.desc}</p>
+            <div className="min-w-0">
+              <h4 className="font-bold text-sm leading-tight mb-1 truncate">{opt.title}</h4>
+              <p className="text-xs text-muted-foreground font-normal line-clamp-2 leading-relaxed break-words [overflow-wrap:anywhere]">{opt.desc}</p>
             </div>
           </Button>
         ))}
