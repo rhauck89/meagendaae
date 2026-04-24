@@ -39,8 +39,8 @@ export default function PromotionPublic() {
       } else {
         const { data: promos } = await supabase
           .from('public_promotions' as any)
-          .select('id, company_id')
-          .eq('slug', promoSlug)
+          .select('id, company_id, slug')
+          .or(`slug.eq."${promoSlug}",id.eq."${promoSlug}"`)
           .limit(1);
         promoData = (promos as any)?.[0];
         if (promoData) {
