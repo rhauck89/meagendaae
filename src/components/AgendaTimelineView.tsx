@@ -1,7 +1,10 @@
-import { useMemo, useRef, useEffect, useCallback } from 'react';
-import { format, parseISO, differenceInMinutes } from 'date-fns';
+import { useMemo, useRef, useEffect, useCallback, useState } from 'react';
+import { format, parseISO, isSameDay } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
+import { groupOverlappingItems, calculateGroupPositions, getProfessionalColor, getStatusVisuals } from '@/utils/calendarLayout';
+import { motion, AnimatePresence } from 'framer-motion';
+import { User, Clock, Scissors, MoreVertical } from 'lucide-react';
 
 interface TimelineAppointment {
   id: string;
@@ -9,7 +12,7 @@ interface TimelineAppointment {
   end_time: string;
   status: string;
   client_name?: string | null;
-  client?: { name?: string } | null;
+  client?: { name?: string; whatsapp?: string } | null;
   professional_id: string;
   professional?: { full_name?: string } | null;
   total_price: number;
@@ -41,24 +44,14 @@ interface AgendaTimelineViewProps {
   onAppointmentClick: (apt: TimelineAppointment) => void;
   onEmptySlotClick?: (time: string, professionalId?: string) => void;
   getDisplayStatus: (apt: any) => string;
+  isAdmin?: boolean;
 }
 
-const HOUR_HEIGHT = 60;
+const HOUR_HEIGHT = 70; // Slightly increased for better reading
 const START_HOUR = 7;
 const END_HOUR = 22;
 const TOTAL_HOURS = END_HOUR - START_HOUR;
 const SNAP_MINUTES = 30;
-
-const timelineStatusColors: Record<string, string> = {
-  pending: 'bg-warning/80 border-warning text-warning-foreground',
-  confirmed: 'bg-primary/80 border-primary text-primary-foreground',
-  in_progress: 'bg-blue-500/80 border-blue-500 text-white',
-  cancelled: 'bg-destructive/60 border-destructive text-white opacity-60',
-  completed: 'bg-success/70 border-success text-white opacity-80',
-  no_show: 'bg-muted border-border text-muted-foreground opacity-60',
-  rescheduled: 'bg-orange-400/70 border-orange-500 text-white opacity-70',
-  late: 'bg-warning/80 border-warning text-warning-foreground',
-};
 
 const timelineStatusLabels: Record<string, string> = {
   pending: 'Pendente',
@@ -69,17 +62,6 @@ const timelineStatusLabels: Record<string, string> = {
   no_show: 'Não compareceu',
   rescheduled: 'Reagendado',
   late: 'Atrasado',
-};
-
-const getTimePosition = (timeStr: string): number => {
-  const date = parseISO(timeStr);
-  const hours = date.getHours() + date.getMinutes() / 60;
-  return Math.max(0, (hours - START_HOUR) * HOUR_HEIGHT);
-};
-
-const getBlockHeight = (startStr: string, endStr: string): number => {
-  const mins = differenceInMinutes(parseISO(endStr), parseISO(startStr));
-  return Math.max(20, (mins / 60) * HOUR_HEIGHT);
 };
 
 const snapToSlot = (rawMinutes: number): number => {
@@ -102,7 +84,9 @@ export const AgendaTimelineView = ({
   onAppointmentClick,
   onEmptySlotClick,
   getDisplayStatus,
+  isAdmin = false,
 }: AgendaTimelineViewProps) => {
+
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
