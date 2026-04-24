@@ -33,6 +33,7 @@ import { AgendaTimelineView } from '@/components/AgendaTimelineView';
 import { AgendaWeekView } from '@/components/AgendaWeekView';
 import { AgendaMonthView } from '@/components/AgendaMonthView';
 import { ResponsiveContainer, LineChart, Line } from 'recharts';
+import { UnifiedAppointmentCard } from '@/components/appointments/UnifiedAppointmentCard';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useFinancialPrivacy } from '@/contexts/FinancialPrivacyContext';
 import FinancialPrivacyToggle from '@/components/FinancialPrivacyToggle';
@@ -41,39 +42,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 type ViewMode = 'day' | 'week' | 'month';
 type StatusTab = 'all' | 'confirmed' | 'completed' | 'cancelled' | 'rescheduled';
-
-const statusColors: Record<string, string> = {
-  pending: 'bg-warning/10 text-warning border-warning/20',
-  confirmed: 'bg-primary/10 text-primary border-primary/20',
-  in_progress: 'bg-blue-500/10 text-blue-500 border-blue-500/20',
-  cancelled: 'bg-destructive/10 text-destructive border-destructive/20',
-  completed: 'bg-success/10 text-success border-success/20',
-  no_show: 'bg-muted text-muted-foreground border-border',
-  rescheduled: 'bg-orange-500/10 text-orange-600 border-orange-500/20',
-  late: 'bg-warning/10 text-warning border-warning/20',
-};
-
-const statusCardStyles: Record<string, string> = {
-  pending: 'bg-warning/5 border-l-4 border-l-warning',
-  confirmed: 'bg-[hsl(226,100%,97%)] border-l-4 border-l-primary',
-  in_progress: 'bg-blue-50 border-l-4 border-l-blue-500',
-  cancelled: 'bg-destructive/5 border-l-4 border-l-destructive opacity-60',
-  completed: 'bg-muted/50 border-l-4 border-l-success opacity-75',
-  no_show: 'bg-muted/30 border-l-4 border-l-muted-foreground opacity-60',
-  rescheduled: 'bg-orange-50 border-l-4 border-l-orange-500 opacity-60',
-  late: 'bg-warning/10 border-l-4 border-l-warning',
-};
-
-const statusLabels: Record<string, string> = {
-  pending: 'Pendente',
-  confirmed: 'Confirmado',
-  in_progress: '🔵 Em atendimento',
-  cancelled: 'Cancelado',
-  completed: 'Concluído',
-  no_show: 'Não compareceu',
-  rescheduled: 'Reagendado',
-  late: '⚠️ Atrasado',
-};
 
 const getDisplayStatus = (apt: any): string => {
   if (['completed', 'cancelled', 'no_show', 'rescheduled'].includes(apt.status)) {
@@ -1086,18 +1054,13 @@ const Dashboard = () => {
       a => a.status === 'confirmed' && now >= parseISO(a.start_time) && now <= parseISO(a.end_time)
     );
 
-    const items: { apt: any; label: string; icon: string; style: string }[] = [];
-    if (currentApt) items.push({ apt: currentApt, label: 'Em atendimento', icon: '🔵', style: 'bg-primary/5 border-l-4 border-l-primary' });
+    const items: any[] = [];
+    if (currentApt) items.push(currentApt);
 
     const remaining = 3 - items.length;
-    upcomingAppointments.slice(0, remaining).forEach((a, i) => {
+    upcomingAppointments.slice(0, remaining).forEach((a) => {
       if (currentApt && a.id === currentApt.id) return;
-      items.push({
-        apt: a,
-        label: i === 0 && !currentApt ? 'Próximo' : 'Depois',
-        icon: i === 0 && !currentApt ? '⏭' : '🕒',
-        style: i === 0 && !currentApt ? 'bg-primary/5 border-l-4 border-l-primary' : 'bg-muted/50 border-l-4 border-l-muted-foreground',
-      });
+      items.push(a);
     });
 
     return (
@@ -1115,39 +1078,39 @@ const Dashboard = () => {
             </div>
           ) : (
             <div className="space-y-3">
-              {items.map(({ apt, label, icon, style }) => (
-                <div key={apt.id} className={cn('p-4 rounded-xl border transition-shadow cursor-pointer', style)}
-                  onClick={() => {
+              {items.map((apt) => (
+                <UnifiedAppointmentCard
+                  key={apt.id}
+                  appointment={apt}
+                  variant="compact"
+                  isAdmin={isAdmin}
+                  onComplete={(apt) => {
+                    setCompleteTarget(apt);
+                    setCompleteDialogOpen(true);
+                  }}
+                  onReschedule={openRescheduleDialog}
+                  onAdjust={(apt) => {
+                    setAdjustTarget(apt);
+                    setAdjustDialogOpen(true);
+                  }}
+                  onCancel={(apt) => {
+                    setCancelTarget(apt);
+                    setCancelDialogOpen(true);
+                  }}
+                  onUpdateStatus={updateStatus}
+                  onRegisterDelay={(apt) => {
+                    setDelayTargetId(apt.id);
+                    setDelayTargetApt(apt);
+                    setDelayDialogOpen(true);
+                  }}
+                  onWhatsApp={(apt) => openWhatsApp(apt.client?.whatsapp || '', `Olá ${apt.client?.name}, tudo bem?`)}
+                  onClick={(apt) => {
                     setHighlightedAppointmentId(apt.id);
                     const el = document.getElementById(`agenda-apt-${apt.id}`);
                     if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
                     setTimeout(() => setHighlightedAppointmentId(null), 3000);
                   }}
-                >
-                  <div className="flex items-center gap-4">
-                    <div className="text-center min-w-[60px]">
-                      <p className="text-lg font-display font-bold">{format(parseISO(apt.start_time), 'HH:mm')}</p>
-                      <p className="text-[10px] text-muted-foreground">{format(parseISO(apt.start_time), 'dd/MM')}</p>
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-semibold truncate">{apt.client_name || apt.client?.name || 'Cliente'}</p>
-                      <p className="text-sm text-muted-foreground truncate">
-                        {formatServicesWithDuration(apt.appointment_services)}
-                      </p>
-                      {apt.promotion_id && (
-                        <span className="inline-flex items-center gap-1 text-xs font-medium px-1.5 py-0.5 rounded bg-accent/10 text-accent-foreground mt-0.5">🔥 Promoção</span>
-                      )}
-                      <p className="text-xs text-muted-foreground">com {apt.professional?.full_name}</p>
-                    </div>
-                    <div className="flex flex-col items-end gap-1 shrink-0">
-                      <span className="font-display font-bold">{formatCurrency(Number(apt.total_price))}</span>
-                      <Badge variant="outline" className="text-xs whitespace-nowrap">
-                        {icon} {label}
-                      </Badge>
-                    </div>
-                  </div>
-                  {renderActionButtons(apt)}
-                </div>
+                />
               ))}
             </div>
           )}
@@ -1170,45 +1133,31 @@ const Dashboard = () => {
         <CardContent>
           <div className="space-y-3">
             {delayed.map(apt => (
-              <div key={apt.id} className="p-4 rounded-xl border border-orange-500/30 bg-orange-50/50">
-                <div className="flex items-center gap-1 mb-2">
-                  <Badge variant="outline" className="text-xs border-orange-500 text-orange-600 bg-orange-50">
-                    ⚠ Atendimento não finalizado
-                  </Badge>
-                </div>
-                <div className="flex items-center gap-4">
-                  <div className="text-center min-w-[60px]">
-                    <p className="text-lg font-display font-bold text-orange-600">{format(parseISO(apt.start_time), 'HH:mm')}</p>
-                    <p className="text-xs text-muted-foreground">{format(parseISO(apt.end_time), 'HH:mm')}</p>
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-semibold truncate">{apt.client_name || apt.client?.name || 'Cliente'}</p>
-                    <p className="text-sm text-muted-foreground truncate">
-                      {formatServicesWithDuration(apt.appointment_services)}
-                    </p>
-                    <p className="text-xs text-muted-foreground">com {apt.professional?.full_name}</p>
-                  </div>
-                  <div className="flex flex-col items-end gap-1 shrink-0">
-                    <span className="font-display font-bold">{formatCurrency(Number(apt.total_price))}</span>
-                  </div>
-                </div>
-                <div className="flex gap-2 flex-wrap mt-3">
-                  <Button size="sm" className="bg-success hover:bg-success/90 text-white text-xs" onClick={() => { setCompleteTarget(apt); setCompleteDialogOpen(true); }}>
-                    ✓ Concluir serviço
-                  </Button>
-                  {!apt.promotion_id && (
-                    <Button size="sm" variant="outline" className="text-xs" onClick={() => openRescheduleDialog(apt)}>
-                      <RefreshCw className="h-3 w-3 mr-1" />Reagendar
-                    </Button>
-                  )}
-                  <Button size="sm" variant="outline" className="text-xs" onClick={() => { setAdjustTarget(apt); setAdjustDialogOpen(true); }}>
-                    <ArrowLeftRight className="h-3 w-3 mr-1" />Ajustar
-                  </Button>
-                  <Button size="sm" variant="ghost" className="text-destructive text-xs" onClick={() => { setCancelTarget(apt); setCancelDialogOpen(true); }}>
-                    Cliente cancelou
-                  </Button>
-                </div>
-              </div>
+              <UnifiedAppointmentCard
+                key={apt.id}
+                appointment={apt}
+                isAdmin={isAdmin}
+                onComplete={(apt) => {
+                  setCompleteTarget(apt);
+                  setCompleteDialogOpen(true);
+                }}
+                onReschedule={openRescheduleDialog}
+                onAdjust={(apt) => {
+                  setAdjustTarget(apt);
+                  setAdjustDialogOpen(true);
+                }}
+                onCancel={(apt) => {
+                  setCancelTarget(apt);
+                  setCancelDialogOpen(true);
+                }}
+                onUpdateStatus={updateStatus}
+                onRegisterDelay={(apt) => {
+                  setDelayTargetId(apt.id);
+                  setDelayTargetApt(apt);
+                  setDelayDialogOpen(true);
+                }}
+                onWhatsApp={(apt) => openWhatsApp(apt.client?.whatsapp || '', `Olá ${apt.client?.name}, tudo bem?`)}
+              />
             ))}
           </div>
         </CardContent>
@@ -1823,212 +1772,40 @@ const Dashboard = () => {
                   ) : (
                     <div className="space-y-4">
                       <AnimatePresence initial={false}>
-                        {filteredAppts.map((apt) => {
-                          const displayStatus = getDisplayStatus(apt);
-                          const startTime = parseISO(apt.start_time);
-                          const endTime = parseISO(apt.end_time);
-                          const isPast = new Date() > endTime;
-                          const isNow = new Date() >= startTime && new Date() <= endTime;
-                          
-                          return (
-                            <motion.div
-                              key={apt.id}
-                              id={`agenda-apt-${apt.id}`}
-                              initial={{ opacity: 0, y: 10 }}
-                              animate={{ opacity: 1, y: 0 }}
-                              exit={{ opacity: 0, scale: 0.95 }}
-                              transition={{ duration: 0.2 }}
-                              className={cn(
-                                "relative flex flex-col gap-4 p-4 rounded-2xl border transition-all",
-                                "hover:shadow-lg active:scale-[0.98]",
-                                statusCardStyles[displayStatus] || 'bg-card',
-                                highlightedAppointmentId === apt.id && 'ring-2 ring-primary shadow-xl',
-                                "group overflow-hidden"
-                              )}
-                            >
-                              {/* Left Indicator Stripe */}
-                              <div className={cn(
-                                "absolute left-0 top-0 bottom-0 w-1.5",
-                                displayStatus === 'confirmed' && 'bg-primary',
-                                displayStatus === 'completed' && 'bg-success',
-                                displayStatus === 'cancelled' && 'bg-destructive',
-                                displayStatus === 'late' && 'bg-warning',
-                                displayStatus === 'in_progress' && 'bg-blue-500'
-                              )} />
-
-                              <div className="flex justify-between items-start gap-3">
-                                <div className="flex gap-4 items-start">
-                                  {/* Time Column */}
-                                  <div className="flex flex-col items-center justify-center bg-background/50 backdrop-blur-sm rounded-xl px-3 py-2 min-w-[75px] border border-border/40">
-                                    <p className="text-xl font-display font-bold text-foreground tracking-tight">
-                                      {format(startTime, 'HH:mm')}
-                                    </p>
-                                    <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
-                                      até {format(endTime, 'HH:mm')}
-                                    </p>
-                                  </div>
-
-                                  {/* Info Column */}
-                                  <div className="space-y-1">
-                                    <div className="flex items-center gap-2 flex-wrap">
-                                      <h3 className="text-base font-bold text-foreground leading-tight">
-                                        {apt.client_name || apt.client?.name || 'Cliente'}
-                                      </h3>
-                                      {apt.promotion_id && (
-                                        <Badge variant="secondary" className="bg-orange-500/10 text-orange-600 border-none h-5 px-1.5 text-[10px] font-bold uppercase tracking-tighter">
-                                          🔥 PROMO
-                                        </Badge>
-                                      )}
-                                    </div>
-                                    <p className="text-sm font-medium text-muted-foreground/90 flex items-center gap-1.5">
-                                      <Scissors className="h-3.5 w-3.5" />
-                                      {formatServicesWithDuration(apt.appointment_services)}
-                                    </p>
-                                    <div className="flex items-center gap-3 pt-1">
-                                      <p className="text-xs font-semibold text-primary/80 flex items-center gap-1">
-                                        <User className="h-3 w-3" />
-                                        {apt.professional?.full_name}
-                                      </p>
-                                      <span className="text-base font-display font-black text-foreground">
-                                        {formatCurrency(Number(apt.total_price))}
-                                      </span>
-                                    </div>
-                                  </div>
-                                </div>
-
-                                {/* Actions Menu - Single Trigger */}
-                                <div className="flex flex-col items-end gap-2">
-                                  <DropdownMenu>
-                                    <DropdownMenuTrigger asChild>
-                                      <Button variant="ghost" size="icon" className="h-10 w-10 rounded-full hover:bg-background/80">
-                                        <MoreHorizontal className="h-6 w-6" />
-                                      </Button>
-                                    </DropdownMenuTrigger>
-                                    <DropdownMenuContent align="end" className="w-56 p-2 rounded-xl">
-                                      <DropdownMenuItem 
-                                        className="gap-2 p-3 cursor-pointer rounded-lg"
-                                        onClick={() => openWhatsApp(apt.client?.whatsapp || '', `Olá ${apt.client?.name}, confirmando seu agendamento hoje às ${format(startTime, 'HH:mm')}`)}
-                                      >
-                                        <MessageSquare className="h-4 w-4 text-green-600" /> WhatsApp
-                                      </DropdownMenuItem>
-                                      <DropdownMenuItem 
-                                        className="gap-2 p-3 cursor-pointer rounded-lg"
-                                        onClick={() => {
-                                          setDelayTargetId(apt.id);
-                                          setDelayTargetApt(apt);
-                                          setDelayDialogOpen(true);
-                                        }}
-                                      >
-                                        <Timer className="h-4 w-4 text-warning" /> Registrar Atraso
-                                      </DropdownMenuItem>
-                                      
-                                      {!apt.promotion_id && (
-                                        <DropdownMenuItem 
-                                          className="gap-2 p-3 cursor-pointer rounded-lg"
-                                          onClick={() => openRescheduleDialog(apt)}
-                                        >
-                                          <RefreshCw className="h-4 w-4 text-blue-500" /> Reagendar
-                                        </DropdownMenuItem>
-                                      )}
-
-                                      <DropdownMenuItem 
-                                        className="gap-2 p-3 cursor-pointer rounded-lg font-medium"
-                                        onClick={() => { setAdjustTarget(apt); setAdjustDialogOpen(true); }}
-                                      >
-                                        <ArrowLeftRight className="h-4 w-4 text-purple-500" /> Ajustar (IA)
-                                      </DropdownMenuItem>
-
-                                      <DropdownMenuSeparator />
-                                      
-                                      <DropdownMenuItem 
-                                        className="gap-2 p-3 cursor-pointer rounded-lg text-destructive"
-                                        onClick={() => {
-                                          setCancelTarget(apt);
-                                          setCancelDialogOpen(true);
-                                        }}
-                                      >
-                                        <XCircle className="h-4 w-4" /> Cancelar
-                                      </DropdownMenuItem>
-                                    </DropdownMenuContent>
-                                  </DropdownMenu>
-
-                                  {/* Inline Status/Delay info */}
-                                  <div className="flex flex-col items-end gap-1">
-                                    {apt.delay_minutes > 0 && (
-                                      <Badge variant="outline" className="bg-warning/10 text-warning border-warning/30 animate-pulse font-bold px-2 py-0.5">
-                                        ⏱️ +{apt.delay_minutes} min
-                                      </Badge>
-                                    )}
-                                    {displayStatus === 'late' && apt.delay_minutes <= 0 && (
-                                      <Badge variant="outline" className="bg-warning/10 text-warning border-warning/30 font-bold">
-                                        ⏱️ ATRASADO
-                                      </Badge>
-                                    )}
-                                  </div>
-                                </div>
-                              </div>
-
-                              {/* Primary Action Button (CTA) */}
-                              <div className="pt-2">
-                                {isPast && displayStatus !== 'completed' && displayStatus !== 'cancelled' ? (
-                                  <Button
-                                    className="w-full h-12 rounded-xl bg-success hover:bg-success/90 text-white font-bold text-base shadow-lg shadow-success/20"
-                                    onClick={() => {
-                                      setCompleteTarget(apt);
-                                      setCompleteDialogOpen(true);
-                                    }}
-                                  >
-                                    <CheckCircle2 className="mr-2 h-5 w-5" />
-                                    Concluir Atendimento
-                                  </Button>
-                                ) : displayStatus === 'completed' ? (
-                                  <div className="w-full h-11 flex items-center justify-center gap-2 rounded-xl bg-success/10 text-success border border-success/20 font-bold uppercase tracking-wider text-xs">
-                                    <CheckCircle2 className="h-4 w-4" />
-                                    Concluído
-                                  </div>
-                                ) : displayStatus === 'confirmed' || displayStatus === 'pending' ? (
-                                  <div className="flex gap-2">
-                                    {apt.status === 'pending' ? (
-                                      <Button 
-                                        className="flex-1 h-11 rounded-xl font-bold"
-                                        onClick={() => updateStatus(apt.id, 'confirmed')}
-                                      >
-                                        Confirmar Agora
-                                      </Button>
-                                    ) : (
-                                      <div className="flex-1 h-11 flex items-center justify-center gap-2 rounded-xl bg-primary/10 text-primary border border-primary/20 font-bold uppercase tracking-wider text-xs">
-                                        <CalendarCheck className="h-4 w-4" />
-                                        Agendamento Confirmado
-                                      </div>
-                                    )}
-                                    {isNow && (
-                                      <Button
-                                        className="flex-1 h-11 rounded-xl bg-success hover:bg-success/90 text-white font-bold"
-                                        onClick={() => {
-                                          setCompleteTarget(apt);
-                                          setCompleteDialogOpen(true);
-                                        }}
-                                      >
-                                        Concluir
-                                      </Button>
-                                    )}
-                                  </div>
-                                ) : displayStatus === 'in_progress' || displayStatus === 'late' ? (
-                                  <Button
-                                    className="w-full h-12 rounded-xl bg-success hover:bg-success/90 text-white font-bold text-base shadow-lg shadow-success/20"
-                                    onClick={() => {
-                                      setCompleteTarget(apt);
-                                      setCompleteDialogOpen(true);
-                                    }}
-                                  >
-                                    <CheckCircle2 className="mr-2 h-5 w-5" />
-                                    Concluir Atendimento
-                                  </Button>
-                                ) : null}
-                              </div>
-                            </motion.div>
-                          );
-                        })}
+                        {filteredAppts.map((apt) => (
+                          <UnifiedAppointmentCard
+                            key={apt.id}
+                            appointment={apt}
+                            isAdmin={isAdmin}
+                            onComplete={(apt) => {
+                              setCompleteTarget(apt);
+                              setCompleteDialogOpen(true);
+                            }}
+                            onReschedule={openRescheduleDialog}
+                            onAdjust={(apt) => {
+                              setAdjustTarget(apt);
+                              setAdjustDialogOpen(true);
+                            }}
+                            onCancel={(apt) => {
+                              setCancelTarget(apt);
+                              setCancelDialogOpen(true);
+                            }}
+                            onUpdateStatus={updateStatus}
+                            onRegisterDelay={(apt) => {
+                              setDelayTargetId(apt.id);
+                              setDelayTargetApt(apt);
+                              setDelayDialogOpen(true);
+                            }}
+                            onWhatsApp={(apt) => openWhatsApp(apt.client?.whatsapp || '', `Olá ${apt.client?.name}, confirmando seu agendamento hoje às ${format(parseISO(apt.start_time), 'HH:mm')}`)}
+                            isHighlighted={highlightedAppointmentId === apt.id}
+                            onClick={(apt) => {
+                              // If they click the card, we could highlight it or show details
+                              // For now, let's keep the highlighting logic
+                              setHighlightedAppointmentId(apt.id);
+                              setTimeout(() => setHighlightedAppointmentId(null), 3000);
+                            }}
+                          />
+                        ))}
                       </AnimatePresence>
                     </div>
                   )}
