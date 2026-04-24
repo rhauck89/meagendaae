@@ -1143,8 +1143,7 @@ export default function Promotions() {
     
     return (
     <div className="space-y-4">
-      {/* Cashback moved to Loyalty module */}
-      {/* Cashback notice removed as requested */}
+
 
 
       <div>
@@ -1468,39 +1467,39 @@ export default function Promotions() {
   );
 
   const renderChoiceScreen = () => (
-    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 py-6">
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 py-4">
       <Button 
         variant="outline" 
-        className="h-auto min-h-[180px] flex-col items-center justify-center p-6 gap-4 hover:border-primary hover:bg-primary/5 transition-all group"
+        className="h-auto min-h-[140px] flex-row items-start justify-start p-6 gap-4 hover:border-primary hover:bg-primary/5 transition-all group text-left whitespace-normal overflow-hidden"
         onClick={() => setCreationMode('manual')}
       >
-        <div className="bg-muted p-3 rounded-full group-hover:bg-primary/10 group-hover:text-primary transition-all duration-300">
-          <Edit2 className="h-8 w-8" />
+        <div className="bg-muted p-3 rounded-xl group-hover:bg-primary/10 group-hover:text-primary transition-all duration-300 shrink-0">
+          <Edit2 className="h-6 w-6" />
         </div>
-        <div className="text-center">
-          <h3 className="font-bold text-xl mb-1">Manual</h3>
-          <p className="text-sm text-muted-foreground font-normal line-clamp-2">
-            Crie do zero com total liberdade de configuração.
+        <div className="flex flex-col gap-1 min-w-0">
+          <h3 className="font-bold text-lg">Manual</h3>
+          <p className="text-sm text-muted-foreground font-normal line-clamp-2 break-words [overflow-wrap:anywhere]">
+            Crie promoções do zero.
           </p>
         </div>
       </Button>
 
       <Button 
         variant="outline" 
-        className="h-auto min-h-[180px] flex-col items-center justify-center p-6 gap-4 border-primary/50 bg-primary/5 hover:bg-primary/10 transition-all group relative overflow-hidden"
+        className="h-auto min-h-[140px] flex-row items-start justify-start p-6 gap-4 border-primary/30 bg-primary/5 hover:bg-primary/10 transition-all group relative overflow-hidden text-left whitespace-normal"
         onClick={() => setCreationMode('smart')}
       >
-        <div className="absolute top-3 right-3">
-          <Badge className="bg-primary text-primary-foreground text-[10px] uppercase px-2 py-0.5 shadow-sm">Premium</Badge>
+        <div className="bg-primary/10 text-primary p-3 rounded-xl group-hover:bg-primary/20 transition-all duration-300 shrink-0">
+          <Zap className="h-6 w-6" />
         </div>
-        <div className="bg-primary/10 text-primary p-3 rounded-full group-hover:bg-primary/20 transition-all duration-300">
-          <Zap className="h-8 w-8" />
-        </div>
-        <div className="text-center">
-          <h3 className="font-bold text-xl mb-1">Inteligente</h3>
-          <p className="text-sm text-muted-foreground font-normal line-clamp-2">
-            Use IA para identificar oportunidades e preencher horários vazios automaticamente.
+        <div className="flex flex-col gap-1 min-w-0 pr-10">
+          <h3 className="font-bold text-lg">Inteligente</h3>
+          <p className="text-sm text-muted-foreground font-normal line-clamp-2 break-words [overflow-wrap:anywhere]">
+            IA encontra oportunidades e monta campanhas prontas.
           </p>
+        </div>
+        <div className="absolute top-3 right-3">
+          <Badge className="bg-primary text-primary-foreground text-[9px] uppercase px-1.5 py-0 shadow-sm border-none font-bold">IA</Badge>
         </div>
       </Button>
     </div>
@@ -1508,21 +1507,21 @@ export default function Promotions() {
 
   const renderSmartScreen = () => {
     const smartOptions = [
-      { id: 'low_occupancy', title: 'Horários vagos amanhã', desc: 'Identifica lacunas na agenda de amanhã.', icon: TrendingUp },
-      { id: 'lunch_time', title: 'Promo almoço baixa ocupação', desc: 'Preenche o horário das 11h às 14h.', icon: Clock },
-      { id: 'afternoon_low', title: 'Fim de tarde vazio', desc: 'Atrai clientes para o horário após as 17h.', icon: Flame },
-      { id: 'reactivation', title: 'Clientes inativos', desc: 'Chama de volta quem não aparece há 30 dias.', icon: RefreshCw },
-      { id: 'birthdays', title: 'Aniversariantes do mês', desc: 'Envie um presente para quem faz aniversário.', icon: Users },
-      { id: 'professional_idle', title: 'Profissional ocioso', desc: 'Promove um profissional com poucos agendamentos.', icon: Users },
+      { id: 'low_occupancy', title: 'Horários vagos amanhã', desc: 'Preencha horários livres', icon: TrendingUp },
+      { id: 'lunch_time', title: 'Promo almoço', desc: 'Baixa ocupação 11h às 14h', icon: Clock },
+      { id: 'afternoon_low', title: 'Fim de tarde vazio', desc: 'Atraia clientes fim de tarde', icon: Flame },
+      { id: 'reactivation', title: 'Clientes inativos', desc: 'Traga clientes de volta', icon: RefreshCw },
+      { id: 'birthdays', title: 'Aniversariantes', desc: 'Campanha do mês', icon: Users },
+      { id: 'professional_idle', title: 'Profissional ocioso', desc: 'Agenda fraca esta semana', icon: Users },
     ];
 
     return (
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 py-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 py-2">
         {smartOptions.map((opt) => (
           <Button
             key={opt.id}
             variant="outline"
-            className="h-auto min-h-[100px] justify-start p-5 gap-4 hover:border-primary hover:bg-primary/5 transition-all text-left group"
+            className="h-auto min-h-[100px] items-start justify-start p-5 gap-3 hover:border-primary hover:bg-primary/5 transition-all text-left group whitespace-normal overflow-hidden"
             onClick={() => {
               if (opt.id === 'professional_idle') {
                 resetForm();
@@ -1544,12 +1543,12 @@ export default function Promotions() {
               }
             }}
           >
-            <div className="bg-primary/10 p-3 rounded-lg text-primary shrink-0 group-hover:bg-primary group-hover:text-white transition-all">
-              <opt.icon className="h-6 w-6" />
+            <div className="bg-primary/10 p-2.5 rounded-lg text-primary shrink-0 group-hover:bg-primary group-hover:text-white transition-all">
+              <opt.icon className="h-5 w-5" />
             </div>
-            <div>
-              <h4 className="font-bold text-base leading-tight mb-1">{opt.title}</h4>
-              <p className="text-xs text-muted-foreground font-normal line-clamp-2 leading-relaxed">{opt.desc}</p>
+            <div className="min-w-0">
+              <h4 className="font-bold text-sm leading-tight mb-1 truncate">{opt.title}</h4>
+              <p className="text-xs text-muted-foreground font-normal line-clamp-2 leading-relaxed break-words [overflow-wrap:anywhere]">{opt.desc}</p>
             </div>
           </Button>
         ))}
@@ -2019,9 +2018,9 @@ export default function Promotions() {
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <p className="text-sm text-muted-foreground">{filteredClients.length} cliente(s) filtrados</p>
                 {selectedPromotion?.promotion_mode === 'smart' && (
-                  <div className="flex items-center gap-2 bg-primary/5 text-primary px-3 py-1.5 rounded-full border border-primary/10 animate-pulse">
-                    <Check className="h-4 w-4" />
-                    <span className="text-xs font-bold">Público sugerido automaticamente pela IA ✅</span>
+                  <div className="flex items-center gap-2 bg-primary/5 text-primary px-3 py-1.5 rounded-full border border-primary/20 shadow-sm">
+                    <Zap className="h-3.5 w-3.5 fill-primary/20" />
+                    <span className="text-xs font-semibold">Público sugerido pela IA</span>
                   </div>
                 )}
                 <Button 
