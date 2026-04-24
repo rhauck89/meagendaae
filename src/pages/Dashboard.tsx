@@ -988,11 +988,9 @@ const Dashboard = () => {
                 <RefreshCw className="h-3 w-3 mr-1" />Reagendar
               </Button>
             )}
-            {!apt.promotion_id && (
-              <Button size="sm" variant="outline" className="text-xs" onClick={() => { setSwapTarget(apt); setSwapDialogOpen(true); }}>
-                <ArrowLeftRight className="h-3 w-3 mr-1" />Trocar
-              </Button>
-            )}
+            <Button size="sm" variant="outline" className="text-xs" onClick={() => { setAdjustTarget(apt); setAdjustDialogOpen(true); }}>
+              <ArrowLeftRight className="h-3 w-3 mr-1" />Ajustar
+            </Button>
             <Button size="sm" variant="ghost" className="text-destructive text-xs" onClick={() => { setCancelTarget(apt); setCancelDialogOpen(true); }}>Cancelar</Button>
           </>
         )}
@@ -1126,11 +1124,9 @@ const Dashboard = () => {
                       <RefreshCw className="h-3 w-3 mr-1" />Reagendar
                     </Button>
                   )}
-                  {!apt.promotion_id && (
-                    <Button size="sm" variant="outline" className="text-xs" onClick={() => { setSwapTarget(apt); setSwapDialogOpen(true); }}>
-                      <ArrowLeftRight className="h-3 w-3 mr-1" />Trocar
-                    </Button>
-                  )}
+                  <Button size="sm" variant="outline" className="text-xs" onClick={() => { setAdjustTarget(apt); setAdjustDialogOpen(true); }}>
+                    <ArrowLeftRight className="h-3 w-3 mr-1" />Ajustar
+                  </Button>
                   <Button size="sm" variant="ghost" className="text-destructive text-xs" onClick={() => { setCancelTarget(apt); setCancelDialogOpen(true); }}>
                     Cliente cancelou
                   </Button>
@@ -1867,16 +1863,14 @@ const Dashboard = () => {
                                       Reagendar
                                     </Button>
                                   )}
-                                  {!apt.promotion_id && (
-                                    <Button
-                                      size="sm"
-                                      variant="outline"
-                                      onClick={() => { setSwapTarget(apt); setSwapDialogOpen(true); }}
-                                    >
-                                      <ArrowLeftRight className="h-4 w-4 mr-1" />
-                                      Trocar
-                                    </Button>
-                                  )}
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => { setAdjustTarget(apt); setAdjustDialogOpen(true); }}
+                                  >
+                                    <ArrowLeftRight className="h-4 w-4 mr-1" />
+                                    Ajustar
+                                  </Button>
                                   <Button
                                     size="sm"
                                     variant="ghost"
