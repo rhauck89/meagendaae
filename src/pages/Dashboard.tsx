@@ -857,8 +857,9 @@ const Dashboard = () => {
   };
 
   const handleAdjustment = (apt: any, type: 'reschedule' | 'professional' | 'both' | 'normal') => {
-    if (type === 'normal') return; // Handled inside AdjustAppointmentDialog
+    if (type === 'normal') return;
     setRescheduleMode(type === 'reschedule' ? 'time' : type === 'professional' ? 'professional' : 'both');
+    setRescheduleProfessionalId(apt.professional_id);
     openRescheduleDialog(apt);
   };
 
