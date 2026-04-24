@@ -36,6 +36,8 @@ import { ResponsiveContainer, LineChart, Line } from 'recharts';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useFinancialPrivacy } from '@/contexts/FinancialPrivacyContext';
 import FinancialPrivacyToggle from '@/components/FinancialPrivacyToggle';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
+import { motion, AnimatePresence } from 'framer-motion';
 
 type ViewMode = 'day' | 'week' | 'month';
 type StatusTab = 'all' | 'confirmed' | 'completed' | 'cancelled' | 'rescheduled';
