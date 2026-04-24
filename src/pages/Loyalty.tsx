@@ -420,23 +420,51 @@ const Loyalty = () => {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-xl font-display font-bold flex items-center gap-2"><Star className="h-5 w-5 text-amber-500" /> Programa de Fidelidade</h2>
-        <p className="text-sm text-muted-foreground">Gerencie pontos, recompensas e resgates dos seus clientes</p>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h2 className="text-xl font-display font-bold flex items-center gap-2">
+            {activeModule === 'points' ? <Star className="h-5 w-5 text-amber-500" /> : <Wallet className="h-5 w-5 text-amber-500" />}
+            {activeModule === 'points' ? 'Fidelidade por Pontos' : 'Programa de Cashback'}
+          </h2>
+          <p className="text-sm text-muted-foreground">
+            {activeModule === 'points' 
+              ? 'Gerencie pontos, recompensas e resgates dos seus clientes' 
+              : 'Gerencie regras de cashback e saldo dos seus clientes'}
+          </p>
+        </div>
+
+        <div className="flex p-1 bg-muted rounded-lg w-fit border">
+          <button 
+            onClick={() => { setActiveModule('points'); setTab('overview'); }}
+            className={cn(
+              "px-4 py-2 text-sm font-medium rounded-md transition-all flex items-center gap-2",
+              activeModule === 'points' ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            <Star className={cn("h-4 w-4", activeModule === 'points' && "text-amber-500")} /> Pontos
+          </button>
+          <button 
+            onClick={() => { setActiveModule('cashback'); setTab('overview'); }}
+            className={cn(
+              "px-4 py-2 text-sm font-medium rounded-md transition-all flex items-center gap-2",
+              activeModule === 'cashback' ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            <Wallet className={cn("h-4 w-4", activeModule === 'cashback' && "text-amber-500")} /> Cashback
+          </button>
+        </div>
       </div>
 
-      <Tabs value={tab} onValueChange={setTab}>
-        <TabsList className="w-full grid grid-cols-2 sm:grid-cols-5 h-auto">
-          <TabsTrigger value="overview" className="gap-1.5"><Eye className="h-4 w-4" /> Visão geral</TabsTrigger>
-          <TabsTrigger value="cashback" className="gap-1.5"><Wallet className="h-4 w-4" /> Cashback</TabsTrigger>
-          <TabsTrigger value="settings" className="gap-1.5"><Settings className="h-4 w-4" /> Pontos</TabsTrigger>
-          <TabsTrigger value="rewards" className="gap-1.5"><Gift className="h-4 w-4" /> Recompensas</TabsTrigger>
-          <TabsTrigger value="transactions" className="gap-1.5"><ArrowUpDown className="h-4 w-4" /> Movimentações</TabsTrigger>
-        </TabsList>
+      {activeModule === 'points' ? (
+        <Tabs value={tab} onValueChange={setTab}>
+          <TabsList className="w-full justify-start border-b rounded-none bg-transparent h-auto p-0 mb-4 overflow-x-auto flex-nowrap">
+            <TabsTrigger value="overview" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 py-3 h-auto">Resumo</TabsTrigger>
+            <TabsTrigger value="rewards" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 py-3 h-auto">Recompensas</TabsTrigger>
+            <TabsTrigger value="redemptions" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 py-3 h-auto">Resgates</TabsTrigger>
+            <TabsTrigger value="transactions" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 py-3 h-auto">Movimentações</TabsTrigger>
+            <TabsTrigger value="settings" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 py-3 h-auto">Configurações</TabsTrigger>
+          </TabsList>
 
-        <TabsContent value="cashback" className="mt-4">
-          <CashbackTab />
-        </TabsContent>
 
         {/* OVERVIEW TAB */}
         <TabsContent value="overview" className="space-y-4 mt-4">
