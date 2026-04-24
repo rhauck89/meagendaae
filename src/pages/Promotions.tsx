@@ -209,7 +209,9 @@ export default function Promotions() {
   const [smartMode, setSmartMode] = useState<'manual' | 'smart'>('manual');
   const [sourceInsight, setSourceInsight] = useState<string | null>(null);
   const [clientsDialogOpen, setClientsDialogOpen] = useState(false);
-...
+  const [metricsDialogOpen, setMetricsDialogOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState('active');
+  const [highlightedPromoId, setHighlightedPromoId] = useState<string | null>(null);
   const [now, setNow] = useState(new Date());
 
   // Wizard step
