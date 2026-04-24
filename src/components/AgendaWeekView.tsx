@@ -1,7 +1,17 @@
 import { useMemo, useRef, useEffect, useCallback } from 'react';
-import { format, parseISO, differenceInMinutes, startOfWeek, addDays, isSameDay } from 'date-fns';
+import { format, parseISO, startOfWeek, addDays, isSameDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
+import { 
+  groupOverlappingItems, 
+  calculateGroupPositions, 
+  getProfessionalColor, 
+  getStatusVisuals,
+  getTimePosition,
+  getBlockHeight
+} from '@/utils/calendarLayout';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Badge } from '@/components/ui/badge';
 
 interface WeekAppointment {
   id: string;
@@ -27,41 +37,11 @@ interface AgendaWeekViewProps {
   getDisplayStatus: (apt: any) => string;
 }
 
-const HOUR_HEIGHT = 56;
+const HOUR_HEIGHT = 65; // Slightly more compact than day view but still readable
 const START_HOUR = 7;
 const END_HOUR = 22;
 const TOTAL_HOURS = END_HOUR - START_HOUR;
 const SNAP_MINUTES = 30;
-
-const statusColors: Record<string, string> = {
-  pending: 'bg-warning/80 border-warning text-warning-foreground',
-  confirmed: 'bg-primary/80 border-primary text-primary-foreground',
-  in_progress: 'bg-blue-500/80 border-blue-500 text-white',
-  cancelled: 'bg-destructive/60 border-destructive text-white opacity-60',
-  completed: 'bg-success/70 border-success text-white opacity-80',
-  no_show: 'bg-muted border-border text-muted-foreground opacity-60',
-  rescheduled: 'bg-orange-400/70 border-orange-500 text-white opacity-70',
-  late: 'bg-warning/80 border-warning text-warning-foreground',
-};
-
-const getTimePosition = (timeStr: string): number => {
-  const date = parseISO(timeStr);
-  const hours = date.getHours() + date.getMinutes() / 60;
-  return Math.max(0, (hours - START_HOUR) * HOUR_HEIGHT);
-};
-
-const getBlockHeight = (startStr: string, endStr: string): number => {
-  const mins = differenceInMinutes(parseISO(endStr), parseISO(startStr));
-  return Math.max(18, (mins / 60) * HOUR_HEIGHT);
-};
-
-const positionToTime = (y: number): string => {
-  const totalMinutes = (y / HOUR_HEIGHT) * 60 + START_HOUR * 60;
-  const snapped = Math.round(totalMinutes / SNAP_MINUTES) * SNAP_MINUTES;
-  const h = Math.floor(snapped / 60);
-  const m = snapped % 60;
-  return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
-};
 
 export const AgendaWeekView = ({
   appointments,
@@ -90,12 +70,20 @@ export const AgendaWeekView = ({
     return slots;
   }, []);
 
-  const appointmentsByDay = useMemo(() => {
-    const map = new Map<string, WeekAppointment[]>();
-    days.forEach(d => map.set(format(d, 'yyyy-MM-dd'), []));
-    appointments.forEach(apt => {
-      const key = format(parseISO(apt.start_time), 'yyyy-MM-dd');
-      map.get(key)?.push(apt);
+  const positionedAppointmentsByDay = useMemo(() => {
+    const map = new Map<string, any[]>();
+    days.forEach(day => {
+      const dayKey = format(day, 'yyyy-MM-dd');
+      const dayAppts = appointments.filter(apt => 
+        format(parseISO(apt.start_time), 'yyyy-MM-dd') === dayKey
+      );
+      
+      const groups = groupOverlappingItems(dayAppts);
+      const positioned = groups.flatMap(group => 
+        calculateGroupPositions(group, HOUR_HEIGHT, START_HOUR)
+      );
+      
+      map.set(dayKey, positioned);
     });
     return map;
   }, [appointments, days]);
@@ -112,30 +100,35 @@ export const AgendaWeekView = ({
 
     const rect = e.currentTarget.getBoundingClientRect();
     const y = e.clientY - rect.top + (e.currentTarget.parentElement?.parentElement?.scrollTop || 0);
-    const time = positionToTime(y);
+    const totalMinutes = (y / HOUR_HEIGHT) * 60 + START_HOUR * 60;
+    const snapped = Math.round(totalMinutes / SNAP_MINUTES) * SNAP_MINUTES;
+    const h = Math.floor(snapped / 60);
+    const m = snapped % 60;
+    const time = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
+    
     onEmptySlotClick(day, time);
   }, [onEmptySlotClick]);
 
   return (
-    <div className="border rounded-lg overflow-hidden">
+    <div className="border rounded-xl overflow-hidden bg-card shadow-sm">
       {/* Day headers */}
-      <div className="flex border-b bg-muted/30">
-        <div className="w-12 shrink-0 border-r" />
+      <div className="flex border-b bg-muted/20 backdrop-blur-sm sticky top-0 z-20">
+        <div className="w-14 shrink-0 border-r bg-muted/10" />
         {days.map(day => {
           const isToday = isSameDay(day, now);
           return (
             <div
               key={day.toISOString()}
               className={cn(
-                "flex-1 min-w-[100px] px-1 py-2 text-center border-r last:border-r-0 cursor-pointer hover:bg-muted/50 transition-colors",
-                isToday && "bg-primary/10"
+                "flex-1 min-w-[120px] px-1 py-3 text-center border-r last:border-r-0 cursor-pointer hover:bg-muted/40 transition-colors",
+                isToday && "bg-primary/[0.03]"
               )}
               onClick={() => onDayClick(day)}
             >
-              <p className="text-[10px] uppercase text-muted-foreground">{format(day, 'EEE', { locale: ptBR })}</p>
+              <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest">{format(day, 'EEE', { locale: ptBR })}</p>
               <p className={cn(
-                "text-sm font-semibold",
-                isToday && "text-primary"
+                "text-base font-display font-black leading-none mt-1",
+                isToday ? "text-primary" : "text-foreground"
               )}>{format(day, 'dd')}</p>
             </div>
           );
@@ -143,13 +136,13 @@ export const AgendaWeekView = ({
       </div>
 
       {/* Timeline body */}
-      <div ref={scrollRef} className="overflow-auto max-h-[550px] relative">
+      <div ref={scrollRef} className="overflow-auto max-h-[600px] relative scrollbar-thin scrollbar-thumb-muted">
         <div className="flex" style={{ height: TOTAL_HOURS * HOUR_HEIGHT }}>
-          {/* Time labels */}
-          <div className="w-12 shrink-0 border-r relative bg-muted/10">
+          {/* Hour labels */}
+          <div className="w-14 shrink-0 border-r relative bg-muted/5 z-10">
             {timeSlots.map((slot, i) => (
-              <div key={slot} className="absolute w-full text-right pr-1" style={{ top: i * HOUR_HEIGHT }}>
-                <span className="text-[10px] text-muted-foreground leading-none relative -top-2">{slot}</span>
+              <div key={slot} className="absolute w-full text-right pr-2" style={{ top: i * HOUR_HEIGHT }}>
+                <span className="text-[10px] font-bold text-muted-foreground/60 leading-none relative -top-2">{slot}</span>
               </div>
             ))}
           </div>
@@ -157,61 +150,80 @@ export const AgendaWeekView = ({
           {/* Day columns */}
           {days.map((day, colIdx) => {
             const dayKey = format(day, 'yyyy-MM-dd');
-            const dayAppts = appointmentsByDay.get(dayKey) || [];
+            const dayAppts = positionedAppointmentsByDay.get(dayKey) || [];
             const isToday = isSameDay(day, now);
 
             return (
               <div
                 key={dayKey}
                 className={cn(
-                  "flex-1 min-w-[100px] relative cursor-pointer hover:bg-primary/[0.02]",
+                  "flex-1 min-w-[120px] relative cursor-pointer hover:bg-primary/[0.01] transition-colors duration-200",
                   colIdx < 6 && "border-r",
-                  isToday && "bg-primary/5"
+                  isToday && "bg-primary/[0.01]"
                 )}
                 onClick={(e) => handleColumnClick(e, day)}
               >
+                {/* Grid lines */}
                 {timeSlots.map((_, i) => (
-                  <div key={i} className="absolute w-full border-t border-border/40" style={{ top: i * HOUR_HEIGHT }} />
+                  <div key={i} className="absolute w-full border-t border-border/30" style={{ top: i * HOUR_HEIGHT }} />
                 ))}
                 {timeSlots.map((_, i) => (
-                  <div key={`h-${i}`} className="absolute w-full border-t border-border/20 border-dashed" style={{ top: i * HOUR_HEIGHT + HOUR_HEIGHT / 2 }} />
+                  <div key={`h-${i}`} className="absolute w-full border-t border-border/10 border-dashed" style={{ top: i * HOUR_HEIGHT + HOUR_HEIGHT / 2 }} />
                 ))}
 
-                {dayAppts.map(apt => {
-                  const displayStatus = getDisplayStatus(apt);
-                  const top = getTimePosition(apt.start_time);
-                  const height = getBlockHeight(apt.start_time, apt.end_time);
-                  const colorClass = statusColors[displayStatus] || 'bg-muted border-border';
-                  const clientName = apt.client_name || apt.client?.name || 'Cliente';
+                <AnimatePresence>
+                  {dayAppts.map(posApt => {
+                    const apt = posApt.item as WeekAppointment;
+                    const displayStatus = getDisplayStatus(apt);
+                    const statusVisuals = getStatusVisuals(displayStatus);
+                    const profColor = getProfessionalColor(apt.professional_id, apt.professional?.full_name);
+                    const clientName = apt.client_name || apt.client?.name || 'Cliente';
 
-                  return (
-                    <div
-                      key={apt.id}
-                      data-apt="true"
-                      className={cn(
-                        "absolute left-0.5 right-0.5 rounded border cursor-pointer z-[2] overflow-hidden transition-all hover:shadow-md hover:z-[5]",
-                        colorClass
-                      )}
-                      style={{ top, height: Math.max(height, 20) }}
-                      onClick={(e) => { e.stopPropagation(); onAppointmentClick(apt); }}
-                      title={`${clientName} - ${format(parseISO(apt.start_time), 'HH:mm')} a ${format(parseISO(apt.end_time), 'HH:mm')}`}
-                    >
-                      <div className="px-1 py-0.5 h-full flex flex-col justify-center">
-                        <p className="text-[10px] font-semibold truncate leading-tight">{clientName}</p>
-                        {height >= 30 && (
-                          <p className="text-[9px] opacity-80 truncate leading-tight">
-                            {format(parseISO(apt.start_time), 'HH:mm')}
-                          </p>
+                    return (
+                      <motion.div
+                        key={apt.id}
+                        initial={{ opacity: 0, scale: 0.98 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        data-apt="true"
+                        className={cn(
+                          "absolute rounded-lg border cursor-pointer z-[2] overflow-hidden transition-all hover:shadow-md hover:z-[10] group",
+                          statusVisuals.bg,
+                          statusVisuals.border
                         )}
-                      </div>
-                    </div>
-                  );
-                })}
+                        style={{ 
+                          top: posApt.top, 
+                          height: Math.max(posApt.height, 24),
+                          left: `${posApt.left + 1}%`,
+                          width: `${posApt.width - 2}%`
+                        }}
+                        onClick={(e) => { e.stopPropagation(); onAppointmentClick(apt); }}
+                        title={`${clientName} - ${format(parseISO(apt.start_time), 'HH:mm')}`}
+                      >
+                        {/* Status Indicator Stripe */}
+                        <div className={cn("absolute left-0 top-0 bottom-0 w-0.5", statusVisuals.text.replace('text', 'bg'))} />
+                        
+                        <div className="px-1.5 py-0.5 h-full flex flex-col justify-center min-w-0">
+                          <p className={cn("text-[10px] font-bold truncate leading-tight", statusVisuals.text)}>
+                            {clientName}
+                          </p>
+                          {posApt.height >= 35 && (
+                            <p className="text-[9px] opacity-70 truncate leading-tight mt-0.5 font-medium">
+                              {format(parseISO(apt.start_time), 'HH:mm')}
+                            </p>
+                          )}
+                        </div>
+                        
+                        {/* Professional Color Bar */}
+                        <div className={cn("absolute bottom-0 left-0 right-0 h-0.5 opacity-40", profColor.border.replace('border', 'bg'))} />
+                      </motion.div>
+                    );
+                  })}
+                </AnimatePresence>
 
                 {isToday && currentTimePosition !== null && (
-                  <div className="absolute left-0 right-0 z-[10] flex items-center pointer-events-none" style={{ top: currentTimePosition }}>
-                    <div className="w-1.5 h-1.5 rounded-full bg-destructive shrink-0" />
-                    <div className="flex-1 h-[2px] bg-destructive" />
+                  <div className="absolute left-0 right-0 z-[15] flex items-center pointer-events-none" style={{ top: currentTimePosition }}>
+                    <div className="w-1.5 h-1.5 rounded-full bg-destructive shrink-0 shadow-sm" />
+                    <div className="flex-1 h-[2px] bg-destructive/50" />
                   </div>
                 )}
               </div>
