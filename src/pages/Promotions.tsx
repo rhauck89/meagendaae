@@ -467,6 +467,7 @@ export default function Promotions() {
         setDiscountType('percentage');
         setDiscountValue('15');
         setDescription('Aproveite nossos horários vagos para amanhã com um desconto especial!');
+        setMessageTemplate(`Olá {{cliente_primeiro_nome}}! 👋\n\nNotamos que amanhã ainda temos alguns horários disponíveis e resolvemos liberar um desconto de 15% para quem agendar agora! 😱\n\nCorre para garantir o seu: {{link_promocao}}`);
         break;
       case 'birthdays':
         setTitle('Presente de Aniversário 🎂');
@@ -474,6 +475,7 @@ export default function Promotions() {
         setDiscountType('percentage');
         setDiscountValue('20');
         setDescription('Parabéns! Você ganhou um desconto exclusivo para usar no seu mês de aniversário.');
+        setMessageTemplate(`Parabéns {{cliente_primeiro_nome}}! 🎂🎉\n\nA {{empresa_nome}} preparou um presente especial para o seu mês: 20% de DESCONTO em qualquer serviço!\n\nAgende seu momento: {{link_promocao}}`);
         break;
       case 'reactivation':
         setTitle('Saudades de você! ❤️');
@@ -482,6 +484,7 @@ export default function Promotions() {
         setDiscountType('fixed_amount');
         setDiscountValue('10');
         setDescription('Faz tempo que não te vemos! Ganhe um desconto para seu próximo retorno.');
+        setMessageTemplate(`Olá {{cliente_primeiro_nome}}, tudo bem? 😊\n\nFaz tempo que você não nos visita na {{empresa_nome}}... Saiba que sentimos sua falta!\n\nPara te incentivar a voltar, aqui está um cupom de R$ 10,00 para seu próximo agendamento: {{link_promocao}}`);
         break;
       case 'lunch_time':
         setTitle('Promoção Almoço ☀️');
@@ -490,6 +493,7 @@ export default function Promotions() {
         setEndTime('14:00');
         setDiscountType('percentage');
         setDiscountValue('10');
+        setMessageTemplate(`Horário de almoço com desconto na {{empresa_nome}}! 🍽️✨\n\nAgende entre 11h e 14h e ganhe 10% OFF.\n\nReserve aqui: {{link_promocao}}`);
         break;
       case 'afternoon_low':
         setTitle('Happy Hour da Beleza 🌙');
@@ -498,6 +502,7 @@ export default function Promotions() {
         setEndTime('20:00');
         setDiscountType('percentage');
         setDiscountValue('15');
+        setMessageTemplate(`Que tal um trato no visual depois do trabalho? 🌙✂️\n\nNo nosso Happy Hour (17h às 20h) você ganha 15% de desconto!\n\nAgende agora: {{link_promocao}}`);
         break;
     }
     setDialogOpen(true);
