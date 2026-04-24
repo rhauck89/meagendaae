@@ -1407,13 +1407,27 @@ export default function Promotions() {
                       )}
 
                       {/* Date + time range */}
-                      <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
-                        {promo.start_date === promo.end_date ? (
-                          <span>📅 {format(parseISO(promo.start_date), 'dd/MM/yyyy')}</span>
-                        ) : (
-                          <span>📅 {format(parseISO(promo.start_date), 'dd/MM/yyyy')} - {format(parseISO(promo.end_date), 'dd/MM/yyyy')}</span>
-                        )}
-                        {promo.start_time && promo.end_time && <span>🕒 {promo.start_time.slice(0, 5)} - {promo.end_time.slice(0, 5)}</span>}
+                      <div className="flex flex-col gap-1.5 text-xs text-muted-foreground">
+                        <div className="flex items-center gap-1.5">
+                          {promo.start_date === promo.end_date ? (
+                            <span>📅 {format(parseISO(promo.start_date), 'dd/MM/yyyy')}</span>
+                          ) : (
+                            <span>📅 {format(parseISO(promo.start_date), 'dd/MM/yyyy')} - {format(parseISO(promo.end_date), 'dd/MM/yyyy')}</span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          {promo.use_business_hours !== false ? (
+                            <span className="flex items-center gap-1"><Clock className="h-3 w-3" /> Segue horário comercial</span>
+                          ) : (
+                            <span className="flex items-center gap-1">
+                              <Clock className="h-3 w-3" /> 
+                              {promo.start_time?.slice(0, 5)} - {promo.end_time?.slice(0, 5)}
+                              {promo.valid_days && promo.valid_days.length < 7 && (
+                                <span className="ml-1 text-primary">({promo.valid_days.length} dias/sem)</span>
+                              )}
+                            </span>
+                          )}
+                        </div>
                       </div>
 
                       {/* Countdown timer for active promos */}
