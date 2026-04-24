@@ -579,5 +579,3 @@ export default function CashbackTab() {
     </div>
   );
 }
-
-}
