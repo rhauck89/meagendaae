@@ -456,17 +456,36 @@ export default function Promotions() {
     
     switch (insight.type) {
       case 'low_occupancy':
+        const todayStr = format(new Date(), 'yyyy-MM-dd');
+        const tomorrowStr = insight.data.date;
+        
         setTitle(`Relâmpago: Vagas para Amanhã`);
-        setStartDate(insight.data.date);
-        setEndDate(insight.data.date);
-        setSingleDay(true);
+        setStartDate(todayStr);
+        setEndDate(tomorrowStr);
+        setSingleDay(false);
         setDiscountType('percentage');
         setDiscountValue('15');
+        
+        // start_time logic: current hour rounded or 19:00
+        const nowHour = new Date().getHours();
+        if (nowHour < 19) {
+          setStartTime('19:00');
+        } else {
+          setStartTime(`${String(Math.min(23, nowHour + 1)).padStart(2, '0')}:00`);
+        }
+        
+        setEndTime('13:30'); 
+        setUseBusinessHours(false);
         setDescription('Aproveite nossos horários vagos para amanhã com um desconto especial!');
         setMessageTemplate(`Olá {{cliente_primeiro_nome}}! 👋\n\nNotamos que amanhã ainda temos alguns horários disponíveis e resolvemos liberar um desconto de 15% para quem agendar agora! 😱\n\nCorre para garantir o seu: {{link_promocao}}`);
         break;
       case 'birthdays':
+        const firstDayOfMonth = format(new Date(new Date().getFullYear(), new Date().getMonth(), 1), 'yyyy-MM-dd');
+        const lastDayOfMonth = format(new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0), 'yyyy-MM-dd');
         setTitle('Presente de Aniversário 🎂');
+        setStartDate(firstDayOfMonth);
+        setEndDate(lastDayOfMonth);
+        setSingleDay(false);
         setClientFilter('birthday_month');
         setDiscountType('percentage');
         setDiscountValue('20');
@@ -474,7 +493,13 @@ export default function Promotions() {
         setMessageTemplate(`Parabéns {{cliente_primeiro_nome}}! 🎂🎉\n\nA {{empresa_nome}} preparou um presente especial para o seu mês: 20% de DESCONTO em qualquer serviço!\n\nAgende seu momento: {{link_promocao}}`);
         break;
       case 'reactivation':
+        const today = new Date();
+        const nextWeek = new Date();
+        nextWeek.setDate(today.getDate() + 7);
         setTitle('Saudades de você! ❤️');
+        setStartDate(format(today, 'yyyy-MM-dd'));
+        setEndDate(format(nextWeek, 'yyyy-MM-dd'));
+        setSingleDay(false);
         setClientFilter('inactive');
         setClientFilterValue('30');
         setDiscountType('fixed_amount');
@@ -483,7 +508,11 @@ export default function Promotions() {
         setMessageTemplate(`Olá {{cliente_primeiro_nome}}, tudo bem? 😊\n\nFaz tempo que você não nos visita na {{empresa_nome}}... Saiba que sentimos sua falta!\n\nPara te incentivar a voltar, aqui está um cupom de R$ 10,00 para seu próximo agendamento: {{link_promocao}}`);
         break;
       case 'lunch_time':
+        const todayLunch = format(new Date(), 'yyyy-MM-dd');
         setTitle('Promoção Almoço ☀️');
+        setStartDate(todayLunch);
+        setEndDate(todayLunch);
+        setSingleDay(true);
         setUseBusinessHours(false);
         setStartTime('11:00');
         setEndTime('14:00');
@@ -492,7 +521,11 @@ export default function Promotions() {
         setMessageTemplate(`Horário de almoço com desconto na {{empresa_nome}}! 🍽️✨\n\nAgende entre 11h e 14h e ganhe 10% OFF.\n\nReserve aqui: {{link_promocao}}`);
         break;
       case 'afternoon_low':
+        const todayAfternoon = format(new Date(), 'yyyy-MM-dd');
         setTitle('Happy Hour da Beleza 🌙');
+        setStartDate(todayAfternoon);
+        setEndDate(todayAfternoon);
+        setSingleDay(true);
         setUseBusinessHours(false);
         setStartTime('17:00');
         setEndTime('20:00');
@@ -978,10 +1011,11 @@ export default function Promotions() {
           </Badge>
         );
       case 'active':
+        const isTargetingTomorrow = isTomorrow(parseISO(promo.end_date)) && isToday(parseISO(promo.start_date));
         return (
-          <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-800 gap-1.5 py-1 px-3">
+          <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-800 gap-1.5 py-1 px-3 shadow-sm font-medium">
             <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-            Ativa agora
+            {isTargetingTomorrow ? 'Ativa agora para reservas de amanhã' : 'Ativa agora'}
           </Badge>
         );
       case 'paused':
