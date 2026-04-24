@@ -346,18 +346,161 @@ export default function Promotions() {
     if (data) setProfessionals(data);
   };
 
-  const checkOccupancy = async () => {
+  const generateInsights = async () => {
+    if (!companyId) return;
+    const newInsights: PromotionInsight[] = [];
+    
+    // 1. Tomorrow's occupancy
     const tomorrow = new Date();
     tomorrow.setDate(tomorrow.getDate() + 1);
     const dateStr = format(tomorrow, 'yyyy-MM-dd');
-    const { data: appointments } = await supabase
+    const { data: tomorrowApps } = await supabase
       .from('appointments')
       .select('id')
       .eq('company_id', companyId!)
       .gte('start_time', `${dateStr}T00:00:00`)
       .lte('start_time', `${dateStr}T23:59:59`)
       .in('status', ['confirmed', 'pending']);
-    setLowOccupancy((appointments?.length || 0) < 3);
+
+    const appCount = tomorrowApps?.length || 0;
+    if (appCount < 5) {
+      newInsights.push({
+        type: 'low_occupancy',
+        title: '📉 Agenda com vagas amanhã',
+        description: `Você tem apenas ${appCount} horários agendados para amanhã.`,
+        buttonLabel: '⚡ Criar promoção automática',
+        icon: TrendingUp,
+        data: { date: dateStr }
+      });
+      setLowOccupancy(true);
+    } else {
+      setLowOccupancy(false);
+    }
+
+    // 2. Birthdays this month
+    const currentMonth = new Date().getMonth() + 1;
+    const { data: clients } = await supabase
+      .from('clients')
+      .select('id, name, birth_date')
+      .eq('company_id', companyId!)
+      .not('birth_date', 'is', null);
+    
+    const bdaysThisMonth = clients?.filter(c => {
+      if (!c.birth_date) return false;
+      const m = parseInt(c.birth_date.split('-')[1]);
+      return m === currentMonth;
+    }) || [];
+
+    if (bdaysThisMonth.length > 0) {
+      newInsights.push({
+        type: 'birthdays',
+        title: `🎂 ${bdaysThisMonth.length} aniversariantes este mês`,
+        description: 'Envie um presente especial para fidelizar esses clientes.',
+        buttonLabel: '🎁 Criar campanha aniversário',
+        icon: Users,
+        data: { count: bdaysThisMonth.length }
+      });
+    }
+
+    // 3. Reactivation (Inactive)
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    const { data: recentApps } = await supabase
+      .from('appointments')
+      .select('client_id')
+      .eq('company_id', companyId!)
+      .gte('start_time', thirtyDaysAgo.toISOString())
+      .limit(100);
+    
+    const recentClientIds = new Set(recentApps?.map(a => a.client_id));
+    const inactiveCount = (clients?.length || 0) - recentClientIds.size;
+    
+    if (inactiveCount > 5) {
+      newInsights.push({
+        type: 'reactivation',
+        title: `😴 ${inactiveCount} clientes inativos`,
+        description: 'Eles não aparecem há mais de 30 dias. Chame-os de volta!',
+        buttonLabel: '🔁 Criar campanha reativação',
+        icon: RefreshCw,
+        data: { count: inactiveCount }
+      });
+    }
+
+    // 4. Lunch time
+    newInsights.push({
+      type: 'lunch_time',
+      title: '🍽️ Horário fraco no almoço',
+      description: 'Geralmente as 11h às 14h são horários mais calmos.',
+      buttonLabel: '☀️ Promo almoço',
+      icon: Clock
+    });
+
+    // 5. Afternoon
+    newInsights.push({
+      type: 'afternoon_low',
+      title: '🌙 Fim de tarde com baixa ocupação',
+      description: 'Preencha os horários após as 17h com um desconto rápido.',
+      buttonLabel: '🌙 Promo fim de tarde',
+      icon: Flame
+    });
+
+    // Tip fallback
+    newInsights.push({
+      type: 'tip',
+      title: '💡 Dica de Especialista',
+      description: 'Promoções curtas (2-3 dias) com escassez convertem muito mais.',
+      icon: Megaphone
+    });
+
+    setInsights(newInsights);
+  };
+
+  const applyInsight = (insight: PromotionInsight) => {
+    resetForm();
+    
+    switch (insight.type) {
+      case 'low_occupancy':
+        setTitle(`Relâmpago: Vagas para Amanhã`);
+        setStartDate(insight.data.date);
+        setEndDate(insight.data.date);
+        setSingleDay(true);
+        setDiscountType('percentage');
+        setDiscountValue('15');
+        setDescription('Aproveite nossos horários vagos para amanhã com um desconto especial!');
+        break;
+      case 'birthdays':
+        setTitle('Presente de Aniversário 🎂');
+        setClientFilter('birthday_month');
+        setDiscountType('percentage');
+        setDiscountValue('20');
+        setDescription('Parabéns! Você ganhou um desconto exclusivo para usar no seu mês de aniversário.');
+        break;
+      case 'reactivation':
+        setTitle('Saudades de você! ❤️');
+        setClientFilter('inactive');
+        setClientFilterValue('30');
+        setDiscountType('fixed_amount');
+        setDiscountValue('10');
+        setDescription('Faz tempo que não te vemos! Ganhe um desconto para seu próximo retorno.');
+        break;
+      case 'lunch_time':
+        setTitle('Promoção Almoço ☀️');
+        setUseBusinessHours(false);
+        setStartTime('11:00');
+        setEndTime('14:00');
+        setDiscountType('percentage');
+        setDiscountValue('10');
+        break;
+      case 'afternoon_low':
+        setTitle('Happy Hour da Beleza 🌙');
+        setUseBusinessHours(false);
+        setStartTime('17:00');
+        setEndTime('20:00');
+        setDiscountType('percentage');
+        setDiscountValue('15');
+        break;
+    }
+    setDialogOpen(true);
   };
 
   const handleServiceChange = (serviceId: string) => {
