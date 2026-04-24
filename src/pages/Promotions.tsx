@@ -656,16 +656,18 @@ export default function Promotions() {
 
     const { data: appointments } = await supabase
       .from('appointments')
-      .select('client_id, total_price, start_time, status')
+      .select('client_id, total_price, start_time, status, professional_id')
       .eq('company_id', companyId!)
       .in('status', ['completed', 'confirmed']);
 
-    const clientStats = new Map<string, { totalSpent: number; lastVisit: string | null; visitCount: number }>();
+    const clientStats = new Map<string, { totalSpent: number; lastVisit: string | null; visitCount: number; professionalIds: Set<string>; visitHours: number[] }>();
     appointments?.forEach(apt => {
       if (!apt.client_id) return;
-      const c = clientStats.get(apt.client_id) || { totalSpent: 0, lastVisit: null, visitCount: 0 };
+      const c = clientStats.get(apt.client_id) || { totalSpent: 0, lastVisit: null, visitCount: 0, professionalIds: new Set<string>(), visitHours: [] };
       c.totalSpent += Number(apt.total_price) || 0;
       c.visitCount++;
+      if (apt.professional_id) c.professionalIds.add(apt.professional_id);
+      if (apt.start_time) c.visitHours.push(new Date(apt.start_time).getHours());
       if (!c.lastVisit || apt.start_time > c.lastVisit) c.lastVisit = apt.start_time;
       clientStats.set(apt.client_id, c);
     });
@@ -675,28 +677,60 @@ export default function Promotions() {
       return { id: c.id, name: c.name, whatsapp: c.whatsapp, birth_date: c.birth_date, last_visit: s?.lastVisit || null, total_spent: s?.totalSpent || 0, visit_count: s?.visitCount || 0 };
     });
 
-    const filter = promotion.client_filter;
-    const filterVal = promotion.client_filter_value;
+    // Smart logic priority if it's a smart promotion
+    if (promotion.promotion_mode === 'smart' && promotion.source_insight) {
+      const insight = promotion.source_insight;
+      if (insight === 'reactivation') {
+        const cutoff = new Date(); cutoff.setDate(cutoff.getDate() - 30);
+        result = result.filter(c => !c.last_visit || new Date(c.last_visit) < cutoff);
+      } else if (insight === 'birthdays') {
+        const m = new Date().getMonth() + 1;
+        result = result.filter(c => c.birth_date && parseInt(c.birth_date.split('-')[1], 10) === m);
+      } else if (insight === 'low_occupancy') {
+        // Active in last 60 days
+        const cutoff = new Date(); cutoff.setDate(cutoff.getDate() - 60);
+        result = result.filter(c => c.last_visit && new Date(c.last_visit) >= cutoff);
+      } else if (insight === 'lunch_time') {
+        // Customers who usually book between 9h and 14h
+        result = result.filter(c => {
+          const stats = clientStats.get(c.id);
+          if (!stats) return false;
+          const morningLunchVisits = stats.visitHours.filter(h => h >= 9 && h <= 14).length;
+          return morningLunchVisits > 0;
+        });
+      } else if (insight === 'professional_idle' && promotion.professional_ids?.length) {
+        // Customers of the target professional
+        result = result.filter(c => {
+          const stats = clientStats.get(c.id);
+          if (!stats) return false;
+          return promotion.professional_ids?.some(pid => stats.professionalIds.has(pid));
+        });
+      }
+    } else {
+      // Manual filter logic
+      const filter = promotion.client_filter;
+      const filterVal = promotion.client_filter_value;
 
-    if (filter === 'birthday_month') {
-      const m = new Date().getMonth() + 1;
-      result = result.filter(c => c.birth_date && parseInt(c.birth_date.split('-')[1], 10) === m);
-    } else if (filter === 'top_spending') {
-      result.sort((a, b) => (b.total_spent || 0) - (a.total_spent || 0));
-      result = result.slice(0, filterVal || 20);
-    } else if (filter === 'inactive') {
-      const days = filterVal || 30;
-      const cutoff = new Date(); cutoff.setDate(cutoff.getDate() - days);
-      result = result.filter(c => !c.last_visit || new Date(c.last_visit) < cutoff);
-    } else if (filter === 'new_clients') {
-      const days = filterVal || 30;
-      const cutoff = new Date(); cutoff.setDate(cutoff.getDate() - days);
-      result = result.filter(c => {
-        const cl = clients.find(cl2 => cl2.id === c.id);
-        return cl && new Date(cl.created_at) >= cutoff;
-      });
-    } else if (filter === 'frequent') {
-      result = result.filter(c => (c.visit_count || 0) >= (filterVal || 5));
+      if (filter === 'birthday_month') {
+        const m = new Date().getMonth() + 1;
+        result = result.filter(c => c.birth_date && parseInt(c.birth_date.split('-')[1], 10) === m);
+      } else if (filter === 'top_spending') {
+        result.sort((a, b) => (b.total_spent || 0) - (a.total_spent || 0));
+        result = result.slice(0, filterVal || 20);
+      } else if (filter === 'inactive') {
+        const days = filterVal || 30;
+        const cutoff = new Date(); cutoff.setDate(cutoff.getDate() - days);
+        result = result.filter(c => !c.last_visit || new Date(c.last_visit) < cutoff);
+      } else if (filter === 'new_clients') {
+        const days = filterVal || 30;
+        const cutoff = new Date(); cutoff.setDate(cutoff.getDate() - days);
+        result = result.filter(c => {
+          const cl = clients.find(cl2 => cl2.id === c.id);
+          return cl && new Date(cl.created_at) >= cutoff;
+        });
+      } else if (filter === 'frequent') {
+        result = result.filter(c => (c.visit_count || 0) >= (filterVal || 5));
+      }
     }
 
     setFilteredClients(result);
