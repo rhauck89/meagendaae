@@ -1016,14 +1016,14 @@ export default function Promotions() {
         return (
           <Badge className="bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-900/30 dark:text-indigo-400 dark:border-indigo-800 gap-1.5 py-1 px-3">
             <CalendarCheck className="h-3.5 w-3.5" />
-            {isTargetingTomorrow ? `Ativa hoje às ${formattedHour} para reservas de amanhã` : `Começa automaticamente ${dateText}`}
+            {isTargetingTomorrow ? `🟢 Ativa hoje às ${formattedHour} para reservas de amanhã` : `📅 Começa automaticamente ${dateText}`}
           </Badge>
         );
       case 'active':
         return (
           <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-800 gap-1.5 py-1 px-3 shadow-sm font-medium">
-            <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-            {isTargetingTomorrow ? 'Ativa agora para reservas de amanhã' : 'Ativa agora'}
+            {isTargetingTomorrow ? <Zap className="h-3.5 w-3.5 fill-emerald-500" /> : <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />}
+            {isTargetingTomorrow ? '🚀 Ativa agora para reservas de amanhã' : '🟢 Ativa agora'}
           </Badge>
         );
       case 'paused':
