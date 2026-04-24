@@ -14,6 +14,8 @@ import { Progress } from '@/components/ui/progress';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { PlatformLogo } from '@/components/PlatformLogo';
 import { RedemptionQRDialog, type Redemption } from '@/components/RedemptionQRDialog';
+import { SmartRewardCard } from '@/components/loyalty/SmartRewardCard';
+import { suggestSmartReward } from '@/lib/smart-rewards';
 import {
   Calendar, DollarSign, Star, Gift, User, LogOut, CheckCircle2,
   Sparkles, Home, ShoppingBag, KeyRound, ArrowRight,
@@ -1050,9 +1052,20 @@ const ClientPortal = () => {
                       const cfg = loyaltyConfigs[co.id];
                       const pointVal = cfg?.point_value || 0.05;
                       const companyRewards = rewards.filter(r => r.company_id === co.id);
-                      const next = companyRewards
-                        .map(r => ({ ...r, diff: r.points_required - balance }))
-                        .filter(r => r.diff > 0).sort((a, b) => a.diff - b.diff)[0];
+                      // Smart suggestion based on this company's appointment history
+                      const companyApts = appointments.filter(a => a.company_id === co.id);
+                      const aptHistory = companyApts.flatMap(a =>
+                        (a.appointment_services || []).map(s => ({
+                          service_name: s.service?.name ?? null,
+                          total_price: Number(s.price) || 0,
+                          created_at: a.start_time,
+                        }))
+                      );
+                      const smart = suggestSmartReward({
+                        currentBalance: balance,
+                        appointmentHistory: aptHistory,
+                        rewards: companyRewards,
+                      });
                       return (
                         <Card key={co.id}>
                           <CardHeader className="pb-2">
@@ -1070,17 +1083,8 @@ const ClientPortal = () => {
                                 Equivalente a R$ {(balance * pointVal).toFixed(2)}
                               </p>
                             )}
-                            {next ? (
-                              <>
-                                <div className="flex justify-between text-xs">
-                                  <span className="font-medium truncate">Próxima: {next.name}</span>
-                                  <span className="text-muted-foreground shrink-0">{balance}/{next.points_required}</span>
-                                </div>
-                                <Progress value={(balance / next.points_required) * 100} />
-                                <p className="text-xs text-muted-foreground">
-                                  Faltam <strong>{next.diff}</strong> pontos para recompensa
-                                </p>
-                              </>
+                            {smart ? (
+                              <SmartRewardCard suggestion={smart} pointValue={pointVal} compact />
                             ) : (
                               <p className="text-xs text-muted-foreground">Sem recompensas configuradas.</p>
                             )}

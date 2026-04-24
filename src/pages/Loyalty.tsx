@@ -12,9 +12,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Textarea } from '@/components/ui/textarea';
-import { Star, Trophy, Gift, ArrowUpDown, Settings, Eye, Plus, Pencil, Trash2, AlertTriangle, CheckCircle, XCircle, Search, Upload, ImageIcon, ScanLine, Wallet } from 'lucide-react';
+import { Star, Trophy, Gift, ArrowUpDown, Settings, Eye, Plus, Pencil, Trash2, AlertTriangle, CheckCircle, XCircle, Search, Upload, ImageIcon, ScanLine, Wallet, Sparkles } from 'lucide-react';
 import CashbackTab from '@/components/loyalty/CashbackTab';
 import { RewardQRScannerDialog } from '@/components/RewardQRScannerDialog';
+import { SmartRewardCard } from '@/components/loyalty/SmartRewardCard';
+import { suggestSmartReward } from '@/lib/smart-rewards';
+import { PlanFeatureGate } from '@/components/PlanFeatureGate';
 import { toast } from 'sonner';
 import { format, parseISO } from 'date-fns';
 import { cn } from '@/lib/utils';
@@ -66,6 +69,8 @@ const Loyalty = () => {
   // Overview stats
   const [stats, setStats] = useState({ totalIssued: 0, totalRedeemed: 0, totalActive: 0 });
   const [topClients, setTopClients] = useState<any[]>([]);
+  // Smart rewards: per-client appointment history (top clients only)
+  const [topClientsHistory, setTopClientsHistory] = useState<Record<string, Array<{ service_name: string | null; total_price: number; created_at: string }>>>({});
 
   // Auto-calculate points from real value
   const calculatedPoints = pointValue > 0 ? Math.ceil(rewardRealValue / pointValue) : 0;
@@ -188,6 +193,34 @@ const Loyalty = () => {
     fetchRedemptions();
     fetchStats();
   }, [fetchConfig, fetchServices, fetchProfessionals, fetchRewardItems, fetchTransactions, fetchRedemptions, fetchStats]);
+
+  // Fetch appointment history for top clients (smart rewards)
+  useEffect(() => {
+    if (!companyId || topClients.length === 0) return;
+    const ids = topClients.slice(0, 5).map((c) => c.id);
+    if (ids.length === 0) return;
+    (async () => {
+      const { data } = await supabase
+        .from('appointments')
+        .select('client_id, start_time, total_price, appointment_services(price, service:services(name))')
+        .eq('company_id', companyId)
+        .in('client_id', ids)
+        .order('start_time', { ascending: false })
+        .limit(200);
+      if (!data) return;
+      const map: Record<string, Array<{ service_name: string | null; total_price: number; created_at: string }>> = {};
+      for (const apt of data as any[]) {
+        const items = (apt.appointment_services || []).map((s: any) => ({
+          service_name: s.service?.name ?? null,
+          total_price: Number(s.price) || 0,
+          created_at: apt.start_time,
+        }));
+        if (!map[apt.client_id]) map[apt.client_id] = [];
+        map[apt.client_id].push(...items);
+      }
+      setTopClientsHistory(map);
+    })();
+  }, [companyId, topClients]);
 
   const saveConfig = async () => {
     if (!companyId) return;
@@ -495,6 +528,45 @@ const Loyalty = () => {
               </CardContent>
             </Card>
           )}
+
+          {/* Smart Rewards (premium / gated by plan loyalty feature) */}
+          <PlanFeatureGate
+            feature="loyalty"
+            upgradePrompt={{
+              title: 'Recompensas Inteligentes (Premium)',
+              description: 'Sugestões automáticas da próxima recompensa ideal para cada cliente com base no histórico de serviços. Disponível em planos superiores.',
+            }}
+          >
+            {topClients.length > 0 && rewardItems.length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <Sparkles className="h-4 w-4 text-primary" /> Recompensas Inteligentes
+                  </CardTitle>
+                  <p className="text-xs text-muted-foreground">
+                    Sugestão automática da próxima recompensa ideal para os top clientes, com base no serviço favorito e no saldo atual.
+                  </p>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  {topClients.slice(0, 5).map((c) => {
+                    const history = topClientsHistory[c.id] || [];
+                    const suggestion = suggestSmartReward({
+                      currentBalance: c.balance,
+                      appointmentHistory: history,
+                      rewards: rewardItems as any,
+                    });
+                    if (!suggestion) return null;
+                    return (
+                      <div key={c.id} className="space-y-1.5">
+                        <p className="text-sm font-medium">{c.name} <span className="text-xs text-muted-foreground">· {c.balance} pts</span></p>
+                        <SmartRewardCard suggestion={suggestion} pointValue={pointValue} compact />
+                      </div>
+                    );
+                  })}
+                </CardContent>
+              </Card>
+            )}
+          </PlanFeatureGate>
         </TabsContent>
 
         {/* SETTINGS TAB */}

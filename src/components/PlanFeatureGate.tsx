@@ -11,7 +11,10 @@ type PlanFeatureKey =
   | 'discount_coupons'
   | 'whitelabel'
   | 'feature_requests'
-  | 'custom_branding';
+  | 'custom_branding'
+  | 'loyalty'
+  | 'cashback'
+  | 'advanced_reports';
 
 interface PlanFeatureGateProps {
   feature: PlanFeatureKey;
