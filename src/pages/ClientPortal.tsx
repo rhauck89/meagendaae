@@ -13,6 +13,7 @@ import { Label } from '@/components/ui/label';
 import { Progress } from '@/components/ui/progress';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { PlatformLogo } from '@/components/PlatformLogo';
+import { UnifiedAppointmentCard } from '@/components/appointments/UnifiedAppointmentCard';
 import { RedemptionQRDialog, type Redemption } from '@/components/RedemptionQRDialog';
 import { SmartRewardCard } from '@/components/loyalty/SmartRewardCard';
 import { suggestSmartReward } from '@/lib/smart-rewards';
