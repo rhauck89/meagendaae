@@ -1087,18 +1087,13 @@ const Dashboard = () => {
       a => a.status === 'confirmed' && now >= parseISO(a.start_time) && now <= parseISO(a.end_time)
     );
 
-    const items: { apt: any; label: string; icon: string; style: string }[] = [];
-    if (currentApt) items.push({ apt: currentApt, label: 'Em atendimento', icon: '🔵', style: 'bg-primary/5 border-l-4 border-l-primary' });
+    const items: any[] = [];
+    if (currentApt) items.push(currentApt);
 
     const remaining = 3 - items.length;
-    upcomingAppointments.slice(0, remaining).forEach((a, i) => {
+    upcomingAppointments.slice(0, remaining).forEach((a) => {
       if (currentApt && a.id === currentApt.id) return;
-      items.push({
-        apt: a,
-        label: i === 0 && !currentApt ? 'Próximo' : 'Depois',
-        icon: i === 0 && !currentApt ? '⏭' : '🕒',
-        style: i === 0 && !currentApt ? 'bg-primary/5 border-l-4 border-l-primary' : 'bg-muted/50 border-l-4 border-l-muted-foreground',
-      });
+      items.push(a);
     });
 
     return (
@@ -1116,39 +1111,39 @@ const Dashboard = () => {
             </div>
           ) : (
             <div className="space-y-3">
-              {items.map(({ apt, label, icon, style }) => (
-                <div key={apt.id} className={cn('p-4 rounded-xl border transition-shadow cursor-pointer', style)}
-                  onClick={() => {
+              {items.map((apt) => (
+                <UnifiedAppointmentCard
+                  key={apt.id}
+                  appointment={apt}
+                  variant="compact"
+                  isAdmin={isAdmin}
+                  onComplete={(apt) => {
+                    setCompleteTarget(apt);
+                    setCompleteDialogOpen(true);
+                  }}
+                  onReschedule={openRescheduleDialog}
+                  onAdjust={(apt) => {
+                    setAdjustTarget(apt);
+                    setAdjustDialogOpen(true);
+                  }}
+                  onCancel={(apt) => {
+                    setCancelTarget(apt);
+                    setCancelDialogOpen(true);
+                  }}
+                  onUpdateStatus={updateStatus}
+                  onRegisterDelay={(apt) => {
+                    setDelayTargetId(apt.id);
+                    setDelayTargetApt(apt);
+                    setDelayDialogOpen(true);
+                  }}
+                  onWhatsApp={(apt) => openWhatsApp(apt.client?.whatsapp || '', `Olá ${apt.client?.name}, tudo bem?`)}
+                  onClick={(apt) => {
                     setHighlightedAppointmentId(apt.id);
                     const el = document.getElementById(`agenda-apt-${apt.id}`);
                     if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
                     setTimeout(() => setHighlightedAppointmentId(null), 3000);
                   }}
-                >
-                  <div className="flex items-center gap-4">
-                    <div className="text-center min-w-[60px]">
-                      <p className="text-lg font-display font-bold">{format(parseISO(apt.start_time), 'HH:mm')}</p>
-                      <p className="text-[10px] text-muted-foreground">{format(parseISO(apt.start_time), 'dd/MM')}</p>
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-semibold truncate">{apt.client_name || apt.client?.name || 'Cliente'}</p>
-                      <p className="text-sm text-muted-foreground truncate">
-                        {formatServicesWithDuration(apt.appointment_services)}
-                      </p>
-                      {apt.promotion_id && (
-                        <span className="inline-flex items-center gap-1 text-xs font-medium px-1.5 py-0.5 rounded bg-accent/10 text-accent-foreground mt-0.5">🔥 Promoção</span>
-                      )}
-                      <p className="text-xs text-muted-foreground">com {apt.professional?.full_name}</p>
-                    </div>
-                    <div className="flex flex-col items-end gap-1 shrink-0">
-                      <span className="font-display font-bold">{formatCurrency(Number(apt.total_price))}</span>
-                      <Badge variant="outline" className="text-xs whitespace-nowrap">
-                        {icon} {label}
-                      </Badge>
-                    </div>
-                  </div>
-                  {renderActionButtons(apt)}
-                </div>
+                />
               ))}
             </div>
           )}
