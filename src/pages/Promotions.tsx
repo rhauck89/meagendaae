@@ -57,6 +57,8 @@ interface Promotion {
   cashback_validity_days: number | null;
   cashback_rules_text: string | null;
   cashback_cumulative: boolean;
+  promotion_mode?: 'manual' | 'smart';
+  source_insight?: string;
 }
 
 interface ClientRow {
@@ -203,6 +205,9 @@ export default function Promotions() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedPromotion, setSelectedPromotion] = useState<Promotion | null>(null);
   const [isEditing, setIsEditing] = useState(false);
+  const [creationMode, setCreationMode] = useState<'choice' | 'manual' | 'smart' | null>(null);
+  const [smartMode, setSmartMode] = useState<'manual' | 'smart'>('manual');
+  const [sourceInsight, setSourceInsight] = useState<string | null>(null);
   const [clientsDialogOpen, setClientsDialogOpen] = useState(false);
   const [metricsDialogOpen, setMetricsDialogOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('active');
@@ -458,6 +463,8 @@ export default function Promotions() {
 
   const applyInsight = (insight: PromotionInsight) => {
     resetForm();
+    setSmartMode('smart');
+    setSourceInsight(insight.type);
     const todayStr = format(new Date(), 'yyyy-MM-dd');
     const tomorrow = new Date();
     tomorrow.setDate(tomorrow.getDate() + 1);
@@ -767,6 +774,8 @@ export default function Promotions() {
       cashback_validity_days: promotionType === 'cashback' ? (parseInt(cashbackValidityDays) || 30) : null,
       cashback_rules_text: promotionType === 'cashback' ? (cashbackRulesText || null) : null,
       cashback_cumulative: promotionType === 'cashback' ? cashbackCumulative : false,
+      promotion_mode: smartMode,
+      source_insight: sourceInsight,
     };
 
     if (!isAdmin && profile?.id) {
@@ -817,11 +826,17 @@ export default function Promotions() {
     setWizardStep(1);
     setIsEditing(false);
     setSelectedPromotion(null);
+    setCreationMode(null);
+    setSmartMode('manual');
+    setSourceInsight(null);
   };
 
   const handleEdit = (promo: Promotion) => {
     setSelectedPromotion(promo);
     setIsEditing(true);
+    setCreationMode('manual');
+    setSmartMode(promo.promotion_mode || 'manual');
+    setSourceInsight(promo.source_insight || null);
     setPromotionType(promo.promotion_type as any || 'traditional');
     setTitle(promo.title);
     setDescription(promo.description || '');
@@ -992,6 +1007,7 @@ export default function Promotions() {
 
   // --- Status badge renderer ---
   const renderStatusBadge = (promo: Promotion) => {
+    const isSmart = promo.promotion_mode === 'smart';
     const status = promoVisualStatus(promo, now);
     const start = getPromoStart(promo);
     const isTargetingTomorrow = isTomorrow(parseISO(promo.end_date)) && isToday(parseISO(promo.start_date));
@@ -1419,6 +1435,93 @@ export default function Promotions() {
     </div>
   );
 
+  const renderChoiceScreen = () => (
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 py-4">
+      <Button 
+        variant="outline" 
+        className="h-auto flex-col items-start p-6 gap-3 hover:border-primary hover:bg-primary/5 transition-all group"
+        onClick={() => setCreationMode('manual')}
+      >
+        <div className="bg-muted p-2 rounded-lg group-hover:bg-primary/10 group-hover:text-primary transition-colors">
+          <Edit2 className="h-6 w-6" />
+        </div>
+        <div className="text-left">
+          <h3 className="font-bold text-lg">Manual</h3>
+          <p className="text-sm text-muted-foreground font-normal">Crie do zero com total liberdade de configuração.</p>
+        </div>
+      </Button>
+
+      <Button 
+        variant="outline" 
+        className="h-auto flex-col items-start p-6 gap-3 border-primary/50 bg-primary/5 hover:bg-primary/10 transition-all group relative overflow-hidden"
+        onClick={() => setCreationMode('smart')}
+      >
+        <div className="absolute top-2 right-2">
+          <Badge className="bg-primary text-primary-foreground text-[10px] uppercase px-1.5 py-0">Premium</Badge>
+        </div>
+        <div className="bg-primary/10 text-primary p-2 rounded-lg group-hover:bg-primary/20 transition-colors">
+          <Zap className="h-6 w-6" />
+        </div>
+        <div className="text-left">
+          <h3 className="font-bold text-lg">Inteligente</h3>
+          <p className="text-sm text-muted-foreground font-normal">Use IA para identificar oportunidades e preencher horários vazios.</p>
+        </div>
+      </Button>
+    </div>
+  );
+
+  const renderSmartScreen = () => {
+    const smartOptions = [
+      { id: 'low_occupancy', title: 'Horários vagos amanhã', desc: 'Identifica lacunas na agenda de amanhã.', icon: TrendingUp },
+      { id: 'lunch_time', title: 'Promo almoço baixa ocupação', desc: 'Preenche o horário das 11h às 14h.', icon: Clock },
+      { id: 'afternoon_low', title: 'Fim de tarde vazio', desc: 'Atrai clientes para o horário após as 17h.', icon: Flame },
+      { id: 'reactivation', title: 'Clientes inativos', desc: 'Chama de volta quem não aparece há 30 dias.', icon: RefreshCw },
+      { id: 'birthdays', title: 'Aniversariantes do mês', desc: 'Envie um presente para quem faz aniversário.', icon: Users },
+      { id: 'professional_idle', title: 'Profissional ocioso', desc: 'Promove um profissional com poucos agendamentos.', icon: Users },
+    ];
+
+    return (
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 py-4">
+        {smartOptions.map((opt) => (
+          <Button
+            key={opt.id}
+            variant="outline"
+            className="h-auto justify-start p-4 gap-4 hover:border-primary hover:bg-primary/5 transition-all text-left"
+            onClick={() => {
+              // Reuse existing insight logic or handle new ones
+              if (opt.id === 'professional_idle') {
+                resetForm();
+                setSmartMode('smart');
+                setSourceInsight(opt.id);
+                setTitle('Destaque do Profissional');
+                setDescription('Conheça nossos especialistas com um desconto especial!');
+                setDiscountType('percentage');
+                setDiscountValue('10');
+                setDialogOpen(true);
+                setCreationMode('manual');
+              } else {
+                const mockInsight: any = { type: opt.id };
+                if (opt.id === 'lunch_time' || opt.id === 'afternoon_low') {
+                  mockInsight.data = { isTomorrow: new Date().getHours() >= 14 };
+                }
+                applyInsight(mockInsight);
+                setCreationMode('manual');
+              }
+            }}
+          >
+            <div className="bg-primary/10 p-2 rounded-lg text-primary shrink-0">
+              <opt.icon className="h-5 w-5" />
+            </div>
+            <div>
+              <h4 className="font-bold text-sm">{opt.title}</h4>
+              <p className="text-xs text-muted-foreground font-normal">{opt.desc}</p>
+            </div>
+          </Button>
+        ))}
+      </div>
+    );
+  };
+
   const renderStep3 = () => (
     <div className="space-y-4">
       <div>
@@ -1475,60 +1578,86 @@ export default function Promotions() {
         </div>
         <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) resetForm(); }}>
           <DialogTrigger asChild>
-            <Button onClick={() => { resetForm(); setIsEditing(false); }}>
+            <Button onClick={() => { resetForm(); setIsEditing(false); setCreationMode('choice'); }}>
               <Plus className="h-4 w-4 mr-2" />
               Nova Promoção
             </Button>
           </DialogTrigger>
           <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>{isEditing ? 'Editar Promoção' : 'Criar Promoção'}</DialogTitle>
+              <DialogTitle>
+                {isEditing ? 'Editar Promoção' : 
+                 creationMode === 'choice' ? 'Como deseja criar?' :
+                 creationMode === 'smart' ? 'Oportunidades Inteligentes' :
+                 'Criar Promoção Manual'}
+              </DialogTitle>
             </DialogHeader>
 
-            {/* Progress indicator */}
-            <div className="space-y-3">
-              <div className="flex items-center justify-between text-xs text-muted-foreground">
-                {WIZARD_STEPS.map((step) => (
-                  <div key={step.num} className={`flex items-center gap-1.5 ${wizardStep >= step.num ? 'text-primary font-medium' : ''}`}>
-                    <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs border-2 transition-colors ${
-                      wizardStep > step.num ? 'bg-primary border-primary text-primary-foreground' :
-                      wizardStep === step.num ? 'border-primary text-primary' :
-                      'border-muted-foreground/30'
-                    }`}>
-                      {wizardStep > step.num ? <Check className="h-3 w-3" /> : step.num}
-                    </div>
-                    <span className="hidden sm:inline">{step.label}</span>
-                  </div>
-                ))}
-              </div>
-              <Progress value={(wizardStep / totalSteps) * 100} className="h-1.5" />
-            </div>
 
             {/* Step content */}
-            {wizardStep === 1 && renderStep1()}
-            {promotionType === 'cashback' && wizardStep === 2 && renderCashbackStep()}
-            {((promotionType === 'cashback' && wizardStep === 3) || (promotionType === 'traditional' && wizardStep === 2)) && renderStep2()}
-            {((promotionType === 'cashback' && wizardStep === 4) || (promotionType === 'traditional' && wizardStep === 3)) && renderStep3()}
+            {creationMode === 'choice' && !isEditing && renderChoiceScreen()}
+            {creationMode === 'smart' && !isEditing && renderSmartScreen()}
+            
+            {creationMode === 'manual' && (
+              <>
+                <div className="space-y-3 mb-6">
+                  <div className="flex items-center justify-between text-xs text-muted-foreground">
+                    {WIZARD_STEPS.map((step) => (
+                      <div key={step.num} className={`flex items-center gap-1.5 ${wizardStep >= step.num ? 'text-primary font-medium' : ''}`}>
+                        <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs border-2 transition-colors ${
+                          wizardStep > step.num ? 'bg-primary border-primary text-primary-foreground' :
+                          wizardStep === step.num ? 'border-primary text-primary' :
+                          'border-muted-foreground/30'
+                        }`}>
+                          {wizardStep > step.num ? <Check className="h-3 w-3" /> : step.num}
+                        </div>
+                        <span className="hidden sm:inline">{step.label}</span>
+                      </div>
+                    ))}
+                  </div>
+                  <Progress value={(wizardStep / totalSteps) * 100} className="h-1.5" />
+                </div>
 
-            {/* Navigation */}
-            <div className="flex justify-between pt-2">
-              {wizardStep > 1 ? (
-                <Button variant="outline" onClick={goBack}>
+                {wizardStep === 1 && renderStep1()}
+                {promotionType === 'cashback' && wizardStep === 2 && renderCashbackStep()}
+                {((promotionType === 'cashback' && wizardStep === 3) || (promotionType === 'traditional' && wizardStep === 2)) && renderStep2()}
+                {((promotionType === 'cashback' && wizardStep === 4) || (promotionType === 'traditional' && wizardStep === 3)) && renderStep3()}
+              </>
+            )}
+
+            {/* Navigation (Manual only) */}
+            {creationMode === 'manual' && (
+              <div className="flex justify-between pt-2">
+                {wizardStep > 1 ? (
+                  <Button variant="outline" onClick={goBack}>
+                    <ChevronLeft className="h-4 w-4 mr-1" />Voltar
+                  </Button>
+                ) : (
+                  <Button variant="outline" onClick={() => isEditing ? setDialogOpen(false) : setCreationMode('choice')}>
+                    <ChevronLeft className="h-4 w-4 mr-1" />Voltar
+                  </Button>
+                )}
+
+                {wizardStep < totalSteps ? (
+                  <Button onClick={goNext}>
+                    Próximo<ChevronRight className="h-4 w-4 ml-1" />
+                  </Button>
+                ) : (
+                  <Button onClick={handleSave}>
+                    <Check className="h-4 w-4 mr-2" />
+                    {isEditing ? 'Salvar Alterações' : 'Criar Promoção'}
+                  </Button>
+                )}
+              </div>
+            )}
+
+            {creationMode === 'smart' && (
+              <div className="flex justify-start pt-2">
+                <Button variant="outline" onClick={() => setCreationMode('choice')}>
                   <ChevronLeft className="h-4 w-4 mr-1" />Voltar
                 </Button>
-              ) : <div />}
-
-              {wizardStep < totalSteps ? (
-                <Button onClick={goNext}>
-                  Próximo<ChevronRight className="h-4 w-4 ml-1" />
-                </Button>
-              ) : (
-                <Button onClick={handleSave}>
-                  <Check className="h-4 w-4 mr-2" />
-                  {isEditing ? 'Salvar Alterações' : 'Criar Promoção'}
-                </Button>
-              )}
-            </div>
+              </div>
+            )}
           </DialogContent>
         </Dialog>
       </div>
@@ -1653,7 +1782,14 @@ export default function Promotions() {
                   <Card key={promo.id} className={`transition-all duration-500 ${status === 'expired' || status === 'paused' ? 'opacity-70' : ''} ${isHighlighted ? 'ring-2 ring-primary shadow-lg animate-pulse' : ''}`}>
                     <CardHeader className="pb-2">
                       <div className="flex items-start justify-between gap-2">
-                        <CardTitle className="text-lg">{promo.title}</CardTitle>
+                        <CardTitle className="text-lg flex items-center gap-2">
+                          {promo.title}
+                          {promo.promotion_mode === 'smart' ? (
+                            <Badge variant="outline" className="text-[10px] uppercase font-bold text-primary border-primary/20 bg-primary/5 py-0 px-1.5 h-4">🤖 IA</Badge>
+                          ) : (
+                            <Badge variant="outline" className="text-[10px] uppercase font-bold text-muted-foreground border-muted-foreground/20 bg-muted/30 py-0 px-1.5 h-4">🧩 Manual</Badge>
+                          )}
+                        </CardTitle>
                         <div className="flex items-center gap-1">
                           {renderStatusBadge(promo)}
                           <DropdownMenu>

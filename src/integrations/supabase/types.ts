@@ -3236,11 +3236,13 @@ export type Database = {
           original_price: number | null
           professional_filter: string
           professional_ids: string[] | null
+          promotion_mode: string | null
           promotion_price: number | null
           promotion_type: string
           service_id: string | null
           service_ids: string[] | null
           slug: string | null
+          source_insight: string | null
           start_date: string
           start_time: string | null
           status: string
@@ -3271,11 +3273,13 @@ export type Database = {
           original_price?: number | null
           professional_filter?: string
           professional_ids?: string[] | null
+          promotion_mode?: string | null
           promotion_price?: number | null
           promotion_type?: string
           service_id?: string | null
           service_ids?: string[] | null
           slug?: string | null
+          source_insight?: string | null
           start_date: string
           start_time?: string | null
           status?: string
@@ -3306,11 +3310,13 @@ export type Database = {
           original_price?: number | null
           professional_filter?: string
           professional_ids?: string[] | null
+          promotion_mode?: string | null
           promotion_price?: number | null
           promotion_type?: string
           service_id?: string | null
           service_ids?: string[] | null
           slug?: string | null
+          source_insight?: string | null
           start_date?: string
           start_time?: string | null
           status?: string
