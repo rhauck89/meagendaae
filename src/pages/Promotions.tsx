@@ -1467,39 +1467,39 @@ export default function Promotions() {
   );
 
   const renderChoiceScreen = () => (
-    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 py-6">
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 py-4">
       <Button 
         variant="outline" 
-        className="h-auto min-h-[180px] flex-col items-center justify-center p-6 gap-4 hover:border-primary hover:bg-primary/5 transition-all group"
+        className="h-auto min-h-[140px] flex-row items-start justify-start p-6 gap-4 hover:border-primary hover:bg-primary/5 transition-all group text-left whitespace-normal overflow-hidden"
         onClick={() => setCreationMode('manual')}
       >
-        <div className="bg-muted p-3 rounded-full group-hover:bg-primary/10 group-hover:text-primary transition-all duration-300">
-          <Edit2 className="h-8 w-8" />
+        <div className="bg-muted p-3 rounded-xl group-hover:bg-primary/10 group-hover:text-primary transition-all duration-300 shrink-0">
+          <Edit2 className="h-6 w-6" />
         </div>
-        <div className="text-center">
-          <h3 className="font-bold text-xl mb-1">Manual</h3>
-          <p className="text-sm text-muted-foreground font-normal line-clamp-2">
-            Crie do zero com total liberdade de configuração.
+        <div className="flex flex-col gap-1 min-w-0">
+          <h3 className="font-bold text-lg">Manual</h3>
+          <p className="text-sm text-muted-foreground font-normal line-clamp-2 break-words [overflow-wrap:anywhere]">
+            Crie promoções do zero.
           </p>
         </div>
       </Button>
 
       <Button 
         variant="outline" 
-        className="h-auto min-h-[180px] flex-col items-center justify-center p-6 gap-4 border-primary/50 bg-primary/5 hover:bg-primary/10 transition-all group relative overflow-hidden"
+        className="h-auto min-h-[140px] flex-row items-start justify-start p-6 gap-4 border-primary/30 bg-primary/5 hover:bg-primary/10 transition-all group relative overflow-hidden text-left whitespace-normal"
         onClick={() => setCreationMode('smart')}
       >
-        <div className="absolute top-3 right-3">
-          <Badge className="bg-primary text-primary-foreground text-[10px] uppercase px-2 py-0.5 shadow-sm">Premium</Badge>
+        <div className="bg-primary/10 text-primary p-3 rounded-xl group-hover:bg-primary/20 transition-all duration-300 shrink-0">
+          <Zap className="h-6 w-6" />
         </div>
-        <div className="bg-primary/10 text-primary p-3 rounded-full group-hover:bg-primary/20 transition-all duration-300">
-          <Zap className="h-8 w-8" />
-        </div>
-        <div className="text-center">
-          <h3 className="font-bold text-xl mb-1">Inteligente</h3>
-          <p className="text-sm text-muted-foreground font-normal line-clamp-2">
-            Use IA para identificar oportunidades e preencher horários vazios automaticamente.
+        <div className="flex flex-col gap-1 min-w-0 pr-10">
+          <h3 className="font-bold text-lg">Inteligente</h3>
+          <p className="text-sm text-muted-foreground font-normal line-clamp-2 break-words [overflow-wrap:anywhere]">
+            IA encontra oportunidades e monta campanhas prontas.
           </p>
+        </div>
+        <div className="absolute top-3 right-3">
+          <Badge className="bg-primary text-primary-foreground text-[9px] uppercase px-1.5 py-0 shadow-sm border-none font-bold">IA</Badge>
         </div>
       </Button>
     </div>
