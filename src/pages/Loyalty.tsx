@@ -946,7 +946,10 @@ const Loyalty = () => {
             </Card>
           )}
         </TabsContent>
-      </Tabs>
+        </Tabs>
+      ) : (
+        <CashbackTab />
+      )}
     </div>
   );
 };
