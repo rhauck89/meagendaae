@@ -10,7 +10,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Calendar as CalendarPicker } from '@/components/ui/calendar';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Scissors, Sparkles, Clock, DollarSign, ChevronRight, ChevronLeft, CheckCircle2, Bell, Zap, CalendarPlus, MessageCircle, RotateCcw, Home, User, Phone, Mail, Cake, MapPin, Star, X, AlertTriangle, Calendar } from 'lucide-react';
-import { format, addMinutes, addDays, startOfDay, isSameDay } from 'date-fns';
+import { format, addMinutes, addDays, startOfDay, isSameDay, parseISO } from 'date-fns';
 import { fromZonedTime, toZonedTime } from 'date-fns-tz';
 import { sendAppointmentCreatedWebhook } from '@/lib/automations';
 import { isPromoActive } from '@/lib/promotion-period';
@@ -607,15 +607,25 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
       const pd = (promos as any)?.[0];
       if (pd && pd.company_id === comp.id && isPromoActive(pd)) {
         setPromoData(pd as PromotionInfo);
-        // Auto-select promo services
+        
+        // Auto-select promo services (aggressive)
         const promoServiceIds = pd.service_ids || (pd.service_id ? [pd.service_id] : []);
-        // If promo has only 1 service, auto-select it; otherwise let user choose
-        if (promoServiceIds.length === 1) {
+        if (promoServiceIds.length > 0) {
           setSelectedServices(promoServiceIds);
         }
-        // Auto-select professional if only one
-        if (pd.professional_ids?.length === 1) {
-          const profId = pd.professional_ids[0];
+
+        // Auto-select promo date if set
+        if (pd.start_date) {
+          const pDate = parseISO(pd.start_date);
+          if (pDate >= startOfDay(new Date())) {
+            setSelectedDate(pDate);
+          }
+        }
+
+        // Auto-select professional if only one or first from promo
+        const targetProfs = pd.professional_ids || [];
+        if (targetProfs.length > 0) {
+          const profId = targetProfs[0];
           setSelectedProfessional(profId);
           const { data: profHoursData } = await supabase
             .from('professional_working_hours' as any)
@@ -624,24 +634,12 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
           if (profHoursData && (profHoursData as any[]).length > 0) {
             setProfessionalHours(profHoursData as unknown as BusinessHours[]);
           }
-          // Fetch professional for display
+          
           const { data: promoProfs } = await supabase
             .from('public_professionals' as any)
             .select('*')
             .eq('company_id', comp.id)
-            .in('id', pd.professional_ids);
-          if (promoProfs) {
-            setProfessionals((promoProfs as any[]).map((p: any) => ({
-              id: p.id, name: p.name, full_name: p.name, avatar_url: p.avatar_url, slug: p.slug,
-            })));
-          }
-        } else if (pd.professional_ids?.length > 1) {
-          // Fetch specific professionals for selection
-          const { data: promoProfs } = await supabase
-            .from('public_professionals' as any)
-            .select('*')
-            .eq('company_id', comp.id)
-            .in('id', pd.professional_ids);
+            .in('id', targetProfs);
           if (promoProfs) {
             setProfessionals((promoProfs as any[]).map((p: any) => ({
               id: p.id, name: p.name, full_name: p.name, avatar_url: p.avatar_url, slug: p.slug,
@@ -855,8 +853,6 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
     setGeneratedSlots([]);
 
     try {
-      // Use the unified availability service so the public flow returns the
-      // exact same slots as the internal manual booking flow.
       const result = await getAvailableSlots({
         source: 'public',
         companyId: company.id,
@@ -864,23 +860,34 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
         date,
         totalDuration,
         filterPastForToday: true,
+        prefetchData: {
+          businessHours,
+          professionalHours,
+          exceptions,
+        }
       });
 
       if (requestId !== slotRequestRef.current) return;
 
+      let slots = result.slots;
+
+      // Filter slots based on promotion time window if applicable
+      if (promoData) {
+        if (promoData.start_time) {
+          slots = slots.filter(s => s >= promoData.start_time!);
+        }
+        if (promoData.end_time) {
+          slots = slots.filter(s => s <= promoData.end_time!);
+        }
+      }
+
       setAppointmentsForSelectedDate(result.existingAppointments);
       setAppointmentsLoaded(true);
-      setGeneratedSlots(result.slots);
-
-      console.log('[SLOTS SOURCE]', 'booking-page', { mode: result.bookingMode, count: result.slots.length });
-      console.log('[UI RECEIVED]', result.slots);
-
-      if (requestId !== slotRequestRef.current) return;
-      setAvailableSlots(result.slots);
+      setGeneratedSlots(slots);
+      setAvailableSlots(slots);
     } catch (error) {
       console.error('[Booking] Failed to load appointments for slot calculation', error);
       setAppointmentsLoaded(true);
-      setAppointmentsForSelectedDate([]);
       setAvailableSlots([]);
       setGeneratedSlots([]);
     } finally {
@@ -889,11 +896,9 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
   };
 
   useEffect(() => {
-    // Don't reset time if it's a locked preselected slot or quick slot
     if (preselected.isLockedTime(selectedTime)) {
       // Locked slot — preserve time
     } else if (skipTimeResetRef.current) {
-      // Quick slot was used — don't reset time
       skipTimeResetRef.current = false;
     } else {
       setSelectedTime(null);
@@ -908,7 +913,21 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
     if (selectedDate && selectedProfessional && company && businessHours.length > 0 && totalDuration > 0) {
       calculateSlots(selectedDate);
     }
-  }, [selectedDate, selectedProfessional, selectedServices, professionalHours, businessHours, totalDuration, company]);
+  }, [selectedDate, selectedProfessional, selectedServices, totalDuration, company]);
+
+  useEffect(() => {
+    let timeout: ReturnType<typeof setTimeout>;
+    if (slotsLoading) {
+      timeout = setTimeout(() => {
+        setSlotsLoading(false);
+        if (!appointmentsLoaded) {
+          console.warn('[Booking] Slot calculation timeout');
+          setAppointmentsLoaded(true);
+        }
+      }, 10000); // 10s security timeout
+    }
+    return () => clearTimeout(timeout);
+  }, [slotsLoading, appointmentsLoaded]);
 
   useEffect(() => {
     if (professionals.length === 1 && selectedProfessional !== professionals[0].id) {
@@ -924,38 +943,65 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
       setSmartSuggestion(null);
       return;
     }
+    
     setNextSlotsLoading(true);
-    const results: { date: Date; slots: string[] }[] = [];
-    let totalSlotsFound = 0;
-    let suggestion: { date: Date; slot: string; reason: 'tight-fit' | 'first-available' } | null = null;
-    const MAX_SLOTS = 8;
     const MAX_DAYS = 7;
-    for (let i = 0; i < MAX_DAYS && totalSlotsFound < MAX_SLOTS; i++) {
-      const day = addDays(startOfDay(new Date()), i);
-      // Unified availability service — same code path as the manual booking flow.
-      const result = await getAvailableSlots({
-        source: 'public',
-        companyId: company.id,
-        professionalId: selectedProfessional,
-        date: day,
-        totalDuration,
-        filterPastForToday: true,
-      });
-      console.log('[UI RECEIVED]', result.slots);
-      if (result.slots.length > 0) {
-        if (!suggestion) {
-          suggestion = { date: day, slot: result.slots[0], reason: 'first-available' };
-          console.log('[SUGGESTED_SLOT]', suggestion);
+    const MAX_SLOTS = 8;
+    
+    // Parallelize availability fetching for the next 7 days
+    const days = Array.from({ length: MAX_DAYS }, (_, i) => addDays(startOfDay(new Date()), i));
+    
+    try {
+      const dayResults = await Promise.all(
+        days.map(day => 
+          getAvailableSlots({
+            source: 'public',
+            companyId: company.id,
+            professionalId: selectedProfessional,
+            date: day,
+            totalDuration,
+            filterPastForToday: true,
+            prefetchData: {
+              businessHours,
+              professionalHours,
+              exceptions,
+            }
+          }).then(res => ({ date: day, slots: res.slots }))
+        )
+      );
+
+      const results: { date: Date; slots: string[] }[] = [];
+      let totalSlotsFound = 0;
+      let suggestion: { date: Date; slot: string; reason: 'tight-fit' | 'first-available' } | null = null;
+
+      for (const res of dayResults) {
+        if (totalSlotsFound >= MAX_SLOTS) break;
+        
+        let slots = res.slots;
+        // Apply promo filters if any
+        if (promoData) {
+          if (promoData.start_time) slots = slots.filter(s => s >= promoData.start_time!);
+          if (promoData.end_time) slots = slots.filter(s => s <= promoData.end_time!);
         }
-        const remaining = MAX_SLOTS - totalSlotsFound;
-        const daySlots = result.slots.slice(0, remaining);
-        results.push({ date: day, slots: daySlots });
-        totalSlotsFound += daySlots.length;
+
+        if (slots.length > 0) {
+          if (!suggestion) {
+            suggestion = { date: res.date, slot: slots[0], reason: 'first-available' };
+          }
+          const remaining = MAX_SLOTS - totalSlotsFound;
+          const daySlots = slots.slice(0, remaining);
+          results.push({ date: res.date, slots: daySlots });
+          totalSlotsFound += daySlots.length;
+        }
       }
+
+      setNextSlots(results);
+      setSmartSuggestion(suggestion);
+    } catch (error) {
+      console.error('[Booking] Failed to fetch next available slots', error);
+    } finally {
+      setNextSlotsLoading(false);
     }
-    setNextSlots(results);
-    setSmartSuggestion(suggestion);
-    setNextSlotsLoading(false);
   };
 
   useEffect(() => {
@@ -1785,7 +1831,19 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
             ) : (
               <>
                 {/* Smart suggestion (best gap fit) */}
-                {smartSuggestion && (
+                {nextSlotsLoading ? (
+                  <div className="space-y-4 rounded-2xl p-5" style={{ background: T.card, border: `1px solid ${T.border}` }}>
+                    <div className="flex items-center gap-2">
+                      <div className="w-4 h-4 border-2 rounded-full animate-spin" style={{ borderColor: `${T.accent} transparent transparent transparent` }} />
+                      <span className="text-sm font-medium animate-pulse">Buscando melhores sugestões...</span>
+                    </div>
+                    <div className="grid grid-cols-4 gap-2">
+                      {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
+                        <div key={i} className="h-10 rounded-xl animate-pulse" style={{ background: T.cardHover, opacity: 0.5 }} />
+                      ))}
+                    </div>
+                  </div>
+                ) : smartSuggestion && (
                   <div
                     className="rounded-2xl p-5 space-y-3 animate-fade-in"
                     style={{
@@ -1891,9 +1949,20 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                       {totalDuration > 0 && <span className="font-normal ml-2" style={{ color: T.textSec }}>(bloco de {totalDuration} min)</span>}
                     </p>
                     {slotsLoading || !appointmentsLoaded ? (
-                      <div className="flex items-center gap-2 py-4" style={{ color: T.textSec }}>
-                        <div className="w-4 h-4 border-2 rounded-full animate-spin" style={{ borderColor: `${T.accent} transparent transparent transparent` }} />
-                        <span className="text-sm">{slotsLoading ? 'Calculando disponibilidade...' : 'Carregando agendamentos...'}</span>
+                      <div className="space-y-4">
+                        <div className="flex items-center gap-2 py-2" style={{ color: T.textSec }}>
+                          <div className="w-4 h-4 border-2 rounded-full animate-spin" style={{ borderColor: `${T.accent} transparent transparent transparent` }} />
+                          <span className="text-sm font-medium animate-pulse">Buscando melhores horários...</span>
+                        </div>
+                        <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
+                          {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((i) => (
+                            <div 
+                              key={i} 
+                              className="h-10 rounded-xl animate-pulse" 
+                              style={{ background: T.cardHover, opacity: 0.5 }} 
+                            />
+                          ))}
+                        </div>
                       </div>
                     ) : availableSlots.length === 0 ? (
                       <div className="space-y-3">

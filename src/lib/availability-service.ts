@@ -53,6 +53,12 @@ export interface GetAvailableSlotsParams {
   totalDuration: number;
   /** When true, filters out past times if the date is today. Defaults to true. */
   filterPastForToday?: boolean;
+  /** Optional pre-fetched inputs to avoid redundant DB calls */
+  prefetchData?: {
+    businessHours?: BusinessHours[];
+    professionalHours?: BusinessHours[];
+    exceptions?: BusinessException[];
+  };
 }
 
 export interface GetAvailableSlotsResult {
@@ -114,6 +120,26 @@ function getBaseSlotMinutes(serviceDurations: number[], intervalMinutes: number)
   };
 }
 
+/**
+ * Simple session-level cache for booking configuration.
+ * Professional settings and company settings don't change often enough
+ * to justify refetching them for every single day in a multi-day search.
+ */
+const configCache = new Map<string, {
+  config: { 
+    bookingMode: BookingMode; 
+    slotInterval: number; 
+    bufferMinutes: number; 
+    engineVersion: EngineVersion; 
+    baseSlotMinutes: number; 
+    smallestServiceMinutes: number; 
+    serviceCount: number 
+  };
+  timestamp: number;
+}>();
+
+const CACHE_TTL = 30000; // 30 seconds
+
 async function getScopedActiveServiceDurations(
   source: AvailabilitySource,
   companyId: string,
@@ -122,6 +148,9 @@ async function getScopedActiveServiceDurations(
   const servicesTable = source === 'public' ? 'public_services' : 'services';
   const servicesSelect = source === 'public' ? 'id, duration_minutes' : 'id, duration_minutes, active';
 
+  // We can optimize this by only fetching what's needed.
+  // Actually, fetching all and filtering is often faster than complex joins in Supabase JS client
+  // but we should at least use the public views when appropriate.
   const [serviceLinksRes, servicesRes] = await Promise.all([
     supabase
       .from('service_professionals' as any)
@@ -159,12 +188,19 @@ async function resolveBookingConfig(
   companyId: string,
   professionalId: string,
 ): Promise<{ bookingMode: BookingMode; slotInterval: number; bufferMinutes: number; engineVersion: EngineVersion; baseSlotMinutes: number; smallestServiceMinutes: number; serviceCount: number }> {
+  const cacheKey = `${source}:${companyId}:${professionalId}`;
+  const cached = configCache.get(cacheKey);
+  
+  if (cached && (Date.now() - cached.timestamp < CACHE_TTL)) {
+    return cached.config;
+  }
+
   const companyTable = source === 'public' ? 'public_company' : 'companies';
 
   const [companyRes, professionalRes, activeDurations] = await Promise.all([
     supabase
       .from(companyTable as any)
-      .select('booking_mode, fixed_slot_interval, buffer_minutes')
+      .select('booking_mode, fixed_slot_interval, buffer_minutes, agenda_engine_version')
       .eq('id', companyId)
       .maybeSingle(),
     source === 'public'
@@ -199,26 +235,22 @@ async function resolveBookingConfig(
 
   const { smallestServiceMinutes, slotBaseMinutes: baseSlotMinutes } = getBaseSlotMinutes(activeDurations, bufferMinutes);
 
-  // Engine version flag — V2 by default. V1 stays available as safety fallback.
-  // Reading from a future `agenda_engine_version` company column would go here;
-  // for now V2 is the global default and V1 is reachable via param override only.
   const engineVersion: EngineVersion =
     (company?.agenda_engine_version === 'v1' ? 'v1' : 'v2');
 
-  console.log('[BOOKING MODE RESOLVED]', {
-    source,
-    professionalId,
-    companyId,
-    resolvedMode,
-    finalMode: bookingMode,
-    engineVersion,
-    smallestServiceMinutes,
-    intervalo: bufferMinutes,
-    baseSlotMinutes,
-    serviceCount: activeDurations.length,
-  });
+  const config = { 
+    bookingMode, 
+    slotInterval, 
+    bufferMinutes, 
+    engineVersion, 
+    baseSlotMinutes, 
+    smallestServiceMinutes, 
+    serviceCount: activeDurations.length 
+  };
 
-  return { bookingMode, slotInterval, bufferMinutes, engineVersion, baseSlotMinutes, smallestServiceMinutes, serviceCount: activeDurations.length };
+  configCache.set(cacheKey, { config, timestamp: Date.now() });
+
+  return config;
 }
 
 /**
@@ -229,63 +261,85 @@ async function fetchSlotInputs(
   companyId: string,
   professionalId: string,
   date: Date,
+  prefetchData?: GetAvailableSlotsParams['prefetchData'],
 ) {
   const dateStr = format(date, 'yyyy-MM-dd');
   const startISO = `${dateStr}T00:00:00`;
   const endISO = `${dateStr}T23:59:59`;
 
-  // business_hours / business_exceptions / appointments allow public SELECT via RLS,
-  // and blocked_times has a public_blocked_times view used for anonymous reads.
-  const businessHoursTable = 'business_hours';
-  const exceptionsTable = 'business_exceptions';
   const blockedTable = source === 'public' ? 'public_blocked_times' : 'blocked_times';
   const apptsTable = 'appointments';
 
-  const [profHoursRes, bizHoursRes, exceptionsRes, blocksRes, apptsRes, eventSlotsRes] =
-    await Promise.all([
-      supabase
-        .from('professional_working_hours' as any)
-        .select('day_of_week, open_time, close_time, lunch_start, lunch_end, is_closed')
-        .eq('professional_id', professionalId),
-      supabase
-        .from(businessHoursTable as any)
-        .select('day_of_week, open_time, close_time, lunch_start, lunch_end, is_closed')
-        .eq('company_id', companyId),
-      supabase
-        .from(exceptionsTable as any)
-        .select('exception_date, is_closed, open_time, close_time')
-        .eq('company_id', companyId)
-        .eq('exception_date', dateStr),
-      supabase
-        .from(blockedTable as any)
-        .select('block_date, start_time, end_time')
-        .eq('company_id', companyId)
-        .eq('professional_id', professionalId)
-        .eq('block_date', dateStr),
-      // Public anonymous flow cannot SELECT appointments directly (RLS forbids).
-      // It must go through the SECURITY DEFINER RPC `get_booking_appointments`.
-      source === 'public'
-        ? supabase.rpc('get_booking_appointments' as any, {
-            p_company_id: companyId,
-            p_professional_id: professionalId,
-            p_selected_date: dateStr,
-            p_timezone: 'America/Sao_Paulo',
-          })
-        : supabase
-            .from(apptsTable as any)
-            .select('start_time, end_time')
-            .eq('professional_id', professionalId)
-            .eq('company_id', companyId)
-            .gte('start_time', startISO)
-            .lt('start_time', endISO)
-            .not('status', 'in', '("cancelled","no_show")'),
-      // Event slots also block time on the professional's calendar
-      supabase
-        .from('event_slots' as any)
-        .select('slot_date, start_time, end_time')
-        .eq('professional_id', professionalId)
-        .eq('slot_date', dateStr),
-    ]);
+  // Only fetch what isn't already provided
+  const fetchTasks: any[] = [];
+  
+  // Index 0: Professional working hours
+  if (prefetchData?.professionalHours) {
+    fetchTasks.push(Promise.resolve({ data: prefetchData.professionalHours }));
+  } else {
+    fetchTasks.push(supabase
+      .from('professional_working_hours' as any)
+      .select('day_of_week, open_time, close_time, lunch_start, lunch_end, is_closed')
+      .eq('professional_id', professionalId));
+  }
+
+  // Index 1: Business hours
+  if (prefetchData?.businessHours) {
+    fetchTasks.push(Promise.resolve({ data: prefetchData.businessHours }));
+  } else {
+    fetchTasks.push(supabase
+      .from('business_hours' as any)
+      .select('day_of_week, open_time, close_time, lunch_start, lunch_end, is_closed')
+      .eq('company_id', companyId));
+  }
+
+  // Index 2: Exceptions
+  if (prefetchData?.exceptions) {
+    const dailyExceptions = prefetchData.exceptions.filter(e => e.exception_date === dateStr);
+    fetchTasks.push(Promise.resolve({ data: dailyExceptions }));
+  } else {
+    fetchTasks.push(supabase
+      .from('business_exceptions' as any)
+      .select('exception_date, is_closed, open_time, close_time')
+      .eq('company_id', companyId)
+      .eq('exception_date', dateStr));
+  }
+
+  // Index 3: Blocked times
+  fetchTasks.push(supabase
+    .from(blockedTable as any)
+    .select('block_date, start_time, end_time')
+    .eq('company_id', companyId)
+    .eq('professional_id', professionalId)
+    .eq('block_date', dateStr));
+
+  // Index 4: Appointments
+  if (source === 'public') {
+    fetchTasks.push(supabase.rpc('get_booking_appointments' as any, {
+      p_company_id: companyId,
+      p_professional_id: professionalId,
+      p_selected_date: dateStr,
+      p_timezone: 'America/Sao_Paulo',
+    }));
+  } else {
+    fetchTasks.push(supabase
+      .from(apptsTable as any)
+      .select('start_time, end_time')
+      .eq('professional_id', professionalId)
+      .eq('company_id', companyId)
+      .gte('start_time', startISO)
+      .lt('start_time', endISO)
+      .not('status', 'in', '("cancelled","no_show")'));
+  }
+
+  // Index 5: Event slots
+  fetchTasks.push(supabase
+    .from('event_slots' as any)
+    .select('slot_date, start_time, end_time')
+    .eq('professional_id', professionalId)
+    .eq('slot_date', dateStr));
+
+  const [profHoursRes, bizHoursRes, exceptionsRes, blocksRes, apptsRes, eventSlotsRes] = await Promise.all(fetchTasks);
 
   const businessHours = (bizHoursRes.data || []) as unknown as BusinessHours[];
   const professionalHours = ((profHoursRes.data || []) as unknown as BusinessHours[]);
@@ -320,6 +374,7 @@ export async function getAvailableSlots(
     date,
     totalDuration,
     filterPastForToday = true,
+    prefetchData,
   } = params;
 
   if (!companyId || !professionalId || totalDuration <= 0) {
@@ -334,7 +389,7 @@ export async function getAvailableSlots(
 
   const [config, inputs] = await Promise.all([
     resolveBookingConfig(source, companyId, professionalId),
-    fetchSlotInputs(source, companyId, professionalId, date),
+    fetchSlotInputs(source, companyId, professionalId, date, prefetchData),
   ]);
 
   console.log('[SERVICE INPUT]', {
