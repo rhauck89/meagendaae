@@ -12,9 +12,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Textarea } from '@/components/ui/textarea';
-import { Star, Trophy, Gift, ArrowUpDown, Settings, Eye, Plus, Pencil, Trash2, AlertTriangle, CheckCircle, XCircle, Search, Upload, ImageIcon, ScanLine, Wallet } from 'lucide-react';
+import { Star, Trophy, Gift, ArrowUpDown, Settings, Eye, Plus, Pencil, Trash2, AlertTriangle, CheckCircle, XCircle, Search, Upload, ImageIcon, ScanLine, Wallet, Sparkles } from 'lucide-react';
 import CashbackTab from '@/components/loyalty/CashbackTab';
 import { RewardQRScannerDialog } from '@/components/RewardQRScannerDialog';
+import { SmartRewardCard } from '@/components/loyalty/SmartRewardCard';
+import { suggestSmartReward } from '@/lib/smart-rewards';
+import { PlanFeatureGate } from '@/components/PlanFeatureGate';
 import { toast } from 'sonner';
 import { format, parseISO } from 'date-fns';
 import { cn } from '@/lib/utils';
