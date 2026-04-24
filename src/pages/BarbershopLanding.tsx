@@ -14,6 +14,7 @@ import { PlatformBranding } from '@/components/PlatformBranding';
 import { getCompanyBranding, buildThemeFromBranding, useApplyBranding } from '@/hooks/useCompanyBranding';
 import { useCompanyAmenities } from '@/hooks/useCompanyAmenities';
 import { AmenitiesDisplay } from '@/components/AmenitiesDisplay';
+import { getPromoStatus, getPromoEndLabel, getPromoStartLabel } from '@/lib/promotion-period';
 
 type BusinessType = 'barbershop' | 'esthetic';
 
