@@ -834,6 +834,9 @@ export default function Promotions() {
   const handleEdit = (promo: Promotion) => {
     setSelectedPromotion(promo);
     setIsEditing(true);
+    setCreationMode('manual');
+    setSmartMode(promo.promotion_mode || 'manual');
+    setSourceInsight(promo.source_insight || null);
     setPromotionType(promo.promotion_type as any || 'traditional');
     setTitle(promo.title);
     setDescription(promo.description || '');
