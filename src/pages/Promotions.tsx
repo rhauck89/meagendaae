@@ -75,6 +75,15 @@ interface PromoMetrics {
   clientsReached: number;
 }
 
+interface PromotionInsight {
+  type: 'low_occupancy' | 'birthdays' | 'reactivation' | 'lunch_time' | 'afternoon_low' | 'tip';
+  title: string;
+  description: string;
+  buttonLabel?: string;
+  icon: any;
+  data?: any;
+}
+
 const MESSAGE_TAGS_TRADITIONAL = [
   { tag: '{{cliente_nome}}', label: 'Nome' },
   { tag: '{{cliente_primeiro_nome}}', label: 'Primeiro Nome' },
@@ -245,7 +254,8 @@ export default function Promotions() {
   const [companySlug, setCompanySlug] = useState('');
   const [companyBusinessType, setCompanyBusinessType] = useState('');
   const [metrics, setMetrics] = useState<PromoMetrics>({ clicks: 0, bookings: 0, clientsReached: 0 });
-  const [lowOccupancy, setLowOccupancy] = useState(false);
+  const [insights, setInsights] = useState<PromotionInsight[]>([]);
+  const [activeInsightIndex, setActiveInsightIndex] = useState(0);
 
   // Feature discovery intro
   useEffect(() => {
@@ -254,9 +264,17 @@ export default function Promotions() {
     }
   }, [discoveryLoading, hasSeen]);
 
-  // Update clock every 60s for countdown
+  // Update clock and rotation every 60s
   useEffect(() => {
-    const interval = setInterval(() => setNow(new Date()), 60000);
+    const interval = setInterval(() => {
+      setNow(new Date());
+      setInsights(prev => {
+        if (prev.length > 1) {
+          setActiveInsightIndex(current => (current + 1) % prev.length);
+        }
+        return prev;
+      });
+    }, 15000); // Rotate every 15s
     return () => clearInterval(interval);
   }, []);
 
@@ -269,6 +287,7 @@ export default function Promotions() {
     if (companyId) fetchPromotions();
   }, [companyId]);
   useOnDataRefresh('promotions', handlePromotionsRefresh);
+  useOnDataRefresh('promotions', handlePromotionsRefresh);
 
   // Clear highlight after a few seconds
   useEffect(() => {
@@ -280,7 +299,13 @@ export default function Promotions() {
 
   const fetchAll = async () => {
     setLoading(true);
-    await Promise.all([fetchPromotions(), fetchServices(), fetchProfessionals(), fetchCompanyInfo(), checkOccupancy()]);
+    await Promise.all([
+      fetchPromotions(), 
+      fetchServices(), 
+      fetchProfessionals(), 
+      fetchCompanyInfo(), 
+      generateInsights()
+    ]);
     setLoading(false);
   };
 
@@ -320,18 +345,163 @@ export default function Promotions() {
     if (data) setProfessionals(data);
   };
 
-  const checkOccupancy = async () => {
+  const generateInsights = async () => {
+    if (!companyId) return;
+    const newInsights: PromotionInsight[] = [];
+    
+    // 1. Tomorrow's occupancy
     const tomorrow = new Date();
     tomorrow.setDate(tomorrow.getDate() + 1);
     const dateStr = format(tomorrow, 'yyyy-MM-dd');
-    const { data: appointments } = await supabase
+    const { data: tomorrowApps } = await supabase
       .from('appointments')
       .select('id')
       .eq('company_id', companyId!)
       .gte('start_time', `${dateStr}T00:00:00`)
       .lte('start_time', `${dateStr}T23:59:59`)
       .in('status', ['confirmed', 'pending']);
-    setLowOccupancy((appointments?.length || 0) < 3);
+
+    const appCount = tomorrowApps?.length || 0;
+    if (appCount < 5) {
+      newInsights.push({
+        type: 'low_occupancy',
+        title: '📉 Agenda com vagas amanhã',
+        description: `Você tem apenas ${appCount} horários agendados para amanhã.`,
+        buttonLabel: '⚡ Criar promoção automática',
+        icon: TrendingUp,
+        data: { date: dateStr }
+      });
+    }
+
+    // 2. Birthdays this month
+    const currentMonth = new Date().getMonth() + 1;
+    const { data: clients } = await supabase
+      .from('clients')
+      .select('id, name, birth_date')
+      .eq('company_id', companyId!)
+      .not('birth_date', 'is', null);
+    
+    const bdaysThisMonth = clients?.filter(c => {
+      if (!c.birth_date) return false;
+      const m = parseInt(c.birth_date.split('-')[1]);
+      return m === currentMonth;
+    }) || [];
+
+    if (bdaysThisMonth.length > 0) {
+      newInsights.push({
+        type: 'birthdays',
+        title: `🎂 ${bdaysThisMonth.length} aniversariantes este mês`,
+        description: 'Envie um presente especial para fidelizar esses clientes.',
+        buttonLabel: '🎁 Criar campanha aniversário',
+        icon: Users,
+        data: { count: bdaysThisMonth.length }
+      });
+    }
+
+    // 3. Reactivation (Inactive)
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    const { data: recentApps } = await supabase
+      .from('appointments')
+      .select('client_id')
+      .eq('company_id', companyId!)
+      .gte('start_time', thirtyDaysAgo.toISOString())
+      .limit(100);
+    
+    const recentClientIds = new Set(recentApps?.map(a => a.client_id));
+    const inactiveCount = (clients?.length || 0) - recentClientIds.size;
+    
+    if (inactiveCount > 5) {
+      newInsights.push({
+        type: 'reactivation',
+        title: `😴 ${inactiveCount} clientes inativos`,
+        description: 'Eles não aparecem há mais de 30 dias. Chame-os de volta!',
+        buttonLabel: '🔁 Criar campanha reativação',
+        icon: RefreshCw,
+        data: { count: inactiveCount }
+      });
+    }
+
+    // 4. Lunch time
+    newInsights.push({
+      type: 'lunch_time',
+      title: '🍽️ Horário fraco no almoço',
+      description: 'Geralmente as 11h às 14h são horários mais calmos.',
+      buttonLabel: '☀️ Promo almoço',
+      icon: Clock
+    });
+
+    // 5. Afternoon
+    newInsights.push({
+      type: 'afternoon_low',
+      title: '🌙 Fim de tarde com baixa ocupação',
+      description: 'Preencha os horários após as 17h com um desconto rápido.',
+      buttonLabel: '🌙 Promo fim de tarde',
+      icon: Flame
+    });
+
+    // Tip fallback
+    newInsights.push({
+      type: 'tip',
+      title: '💡 Dica de Especialista',
+      description: 'Promoções curtas (2-3 dias) com escassez convertem muito mais.',
+      icon: Megaphone
+    });
+
+    setInsights(newInsights);
+  };
+
+  const applyInsight = (insight: PromotionInsight) => {
+    resetForm();
+    
+    switch (insight.type) {
+      case 'low_occupancy':
+        setTitle(`Relâmpago: Vagas para Amanhã`);
+        setStartDate(insight.data.date);
+        setEndDate(insight.data.date);
+        setSingleDay(true);
+        setDiscountType('percentage');
+        setDiscountValue('15');
+        setDescription('Aproveite nossos horários vagos para amanhã com um desconto especial!');
+        setMessageTemplate(`Olá {{cliente_primeiro_nome}}! 👋\n\nNotamos que amanhã ainda temos alguns horários disponíveis e resolvemos liberar um desconto de 15% para quem agendar agora! 😱\n\nCorre para garantir o seu: {{link_promocao}}`);
+        break;
+      case 'birthdays':
+        setTitle('Presente de Aniversário 🎂');
+        setClientFilter('birthday_month');
+        setDiscountType('percentage');
+        setDiscountValue('20');
+        setDescription('Parabéns! Você ganhou um desconto exclusivo para usar no seu mês de aniversário.');
+        setMessageTemplate(`Parabéns {{cliente_primeiro_nome}}! 🎂🎉\n\nA {{empresa_nome}} preparou um presente especial para o seu mês: 20% de DESCONTO em qualquer serviço!\n\nAgende seu momento: {{link_promocao}}`);
+        break;
+      case 'reactivation':
+        setTitle('Saudades de você! ❤️');
+        setClientFilter('inactive');
+        setClientFilterValue('30');
+        setDiscountType('fixed_amount');
+        setDiscountValue('10');
+        setDescription('Faz tempo que não te vemos! Ganhe um desconto para seu próximo retorno.');
+        setMessageTemplate(`Olá {{cliente_primeiro_nome}}, tudo bem? 😊\n\nFaz tempo que você não nos visita na {{empresa_nome}}... Saiba que sentimos sua falta!\n\nPara te incentivar a voltar, aqui está um cupom de R$ 10,00 para seu próximo agendamento: {{link_promocao}}`);
+        break;
+      case 'lunch_time':
+        setTitle('Promoção Almoço ☀️');
+        setUseBusinessHours(false);
+        setStartTime('11:00');
+        setEndTime('14:00');
+        setDiscountType('percentage');
+        setDiscountValue('10');
+        setMessageTemplate(`Horário de almoço com desconto na {{empresa_nome}}! 🍽️✨\n\nAgende entre 11h e 14h e ganhe 10% OFF.\n\nReserve aqui: {{link_promocao}}`);
+        break;
+      case 'afternoon_low':
+        setTitle('Happy Hour da Beleza 🌙');
+        setUseBusinessHours(false);
+        setStartTime('17:00');
+        setEndTime('20:00');
+        setDiscountType('percentage');
+        setDiscountValue('15');
+        setMessageTemplate(`Que tal um trato no visual depois do trabalho? 🌙✂️\n\nNo nosso Happy Hour (17h às 20h) você ganha 15% de desconto!\n\nAgende agora: {{link_promocao}}`);
+        break;
+    }
+    setDialogOpen(true);
   };
 
   const handleServiceChange = (serviceId: string) => {
@@ -1321,21 +1491,77 @@ export default function Promotions() {
         </Dialog>
       </div>
 
-      {/* Low occupancy suggestion */}
-      {lowOccupancy && (
-        <Card className="border-dashed border-primary/40 bg-primary/5">
-          <CardContent className="py-4 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <TrendingUp className="h-5 w-5 text-primary" />
-              <div>
-                <p className="font-medium text-sm">Agenda com vagas amanhã!</p>
-                <p className="text-xs text-muted-foreground">Crie uma promoção para preencher horários vazios</p>
+      {/* Smart Promotions / Oportunidades */}
+      {insights.length > 0 && (
+        <Card className="border-dashed border-primary/40 bg-primary/5 mb-6 overflow-hidden relative transition-all duration-300">
+          <div className="absolute top-0 left-0 w-1 h-full bg-primary" />
+          <CardContent className="py-4">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div className="flex items-center gap-4 transition-all duration-500 animate-in fade-in slide-in-from-right-4" key={activeInsightIndex}>
+                <div className="bg-white dark:bg-slate-900 p-2.5 rounded-full shadow-sm border border-primary/10">
+                  {insights[activeInsightIndex] && (() => {
+                    const Icon = insights[activeInsightIndex].icon;
+                    return <Icon className="h-5 w-5 text-primary" />;
+                  })()}
+                </div>
+                <div>
+                  <h3 className="font-semibold text-sm flex items-center gap-2">
+                    {insights[activeInsightIndex].title}
+                    {insights.length > 1 && (
+                      <span className="text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded-full font-normal">
+                        {activeInsightIndex + 1}/{insights.length}
+                      </span>
+                    )}
+                  </h3>
+                  <p className="text-xs text-muted-foreground">{insights[activeInsightIndex].description}</p>
+                </div>
+              </div>
+              
+              <div className="flex items-center justify-between w-full sm:w-auto gap-2">
+                {insights.length > 1 && (
+                  <div className="flex items-center gap-1">
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className="h-8 w-8 rounded-full hover:bg-white/50 dark:hover:bg-slate-800/50" 
+                      onClick={() => setActiveInsightIndex(prev => (prev - 1 + insights.length) % insights.length)}
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                    </Button>
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className="h-8 w-8 rounded-full hover:bg-white/50 dark:hover:bg-slate-800/50" 
+                      onClick={() => setActiveInsightIndex(prev => (prev + 1) % insights.length)}
+                    >
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
+                  </div>
+                )}
+                
+                {insights[activeInsightIndex].buttonLabel && (
+                  <Button 
+                    size="sm" 
+                    className="gap-2 shadow-sm font-medium"
+                    onClick={() => applyInsight(insights[activeInsightIndex])}
+                  >
+                    {insights[activeInsightIndex].buttonLabel}
+                  </Button>
+                )}
               </div>
             </div>
-            <Button size="sm" variant="outline" onClick={() => { resetForm(); setDialogOpen(true); }}>
-              Criar promoção rápida
-            </Button>
           </CardContent>
+          
+          {/* Progress bar for auto-rotation */}
+          {insights.length > 1 && (
+            <div className="absolute bottom-0 left-0 w-full h-0.5 bg-primary/5">
+              <div 
+                className="h-full bg-primary/20 transition-all duration-[15000ms] ease-linear"
+                style={{ width: '100%' }}
+                key={activeInsightIndex}
+              />
+            </div>
+          )}
         </Card>
       )}
 
