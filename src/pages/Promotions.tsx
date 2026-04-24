@@ -12,8 +12,10 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
+import { MoreVertical, Edit2, Trash2, Play, Pause, ExternalLink, RefreshCw, X } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Progress } from '@/components/ui/progress';
@@ -38,6 +40,9 @@ interface Promotion {
   end_date: string;
   start_time: string | null;
   end_time: string | null;
+  use_business_hours?: boolean;
+  valid_days?: number[];
+  min_interval_minutes?: number;
   max_slots: number;
   used_slots: number;
   client_filter: string;
@@ -188,6 +193,7 @@ export default function Promotions() {
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedPromotion, setSelectedPromotion] = useState<Promotion | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
   const [clientsDialogOpen, setClientsDialogOpen] = useState(false);
   const [metricsDialogOpen, setMetricsDialogOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('active');
@@ -212,6 +218,9 @@ export default function Promotions() {
   const [singleDay, setSingleDay] = useState(false);
   const [startTime, setStartTime] = useState('');
   const [endTime, setEndTime] = useState('');
+  const [useBusinessHours, setUseBusinessHours] = useState(true);
+  const [validDays, setValidDays] = useState<number[]>([0, 1, 2, 3, 4, 5, 6]);
+  const [minIntervalMinutes, setMinIntervalMinutes] = useState('0');
   const [maxSlots, setMaxSlots] = useState('10');
   const [clientFilter, setClientFilter] = useState('all');
   const [clientFilterValue, setClientFilterValue] = useState('30');
@@ -491,7 +500,7 @@ export default function Promotions() {
     setMetricsDialogOpen(true);
   };
 
-  const handleCreate = async () => {
+  const handleSave = async () => {
     const err1 = validateStep1();
     const err2 = validateStep2();
     if (err1 || err2) {
@@ -524,14 +533,17 @@ export default function Promotions() {
       description: description || null,
       service_id: primaryServiceId,
       service_ids: effectiveIds.length > 1 ? effectiveIds : null,
-      discount_type: promotionType === 'cashback' ? discountType : discountType,
+      discount_type: discountType,
       discount_value: discountType !== 'fixed_price' ? (parseFloat(discountValue) || null) : null,
       promotion_price: payloadPromoPrice,
       original_price: payloadOrigPrice,
       start_date: startDate,
       end_date: finalEndDate,
-      start_time: startTime || null,
-      end_time: endTime || null,
+      start_time: useBusinessHours ? null : (startTime || null),
+      end_time: useBusinessHours ? null : (endTime || null),
+      use_business_hours: useBusinessHours,
+      valid_days: validDays,
+      min_interval_minutes: parseInt(minIntervalMinutes) || 0,
       max_slots: parseInt(maxSlots) || 0,
       client_filter: clientFilter,
       client_filter_value: ['inactive', 'new_clients', 'top_spending', 'frequent'].includes(clientFilter) ? parseInt(clientFilterValue) || null : null,
@@ -539,7 +551,7 @@ export default function Promotions() {
       professional_ids: professionalFilter === 'selected' ? selectedProfessionalIds : null,
       message_template: messageTemplate,
       created_by: profile?.id || null,
-      status: 'active',
+      status: isEditing && selectedPromotion ? selectedPromotion.status : 'active',
       promotion_type: promotionType,
       cashback_validity_days: promotionType === 'cashback' ? (parseInt(cashbackValidityDays) || 30) : null,
       cashback_rules_text: promotionType === 'cashback' ? (cashbackRulesText || null) : null,
@@ -552,12 +564,23 @@ export default function Promotions() {
       payload.created_by = profile.id;
     }
 
-    const { data, error } = await supabase.from('promotions').insert(payload).select('id').single();
-    if (error) {
-      toast({ title: 'Erro ao criar promoção', description: error.message, variant: 'destructive' });
-      return;
+    if (isEditing && selectedPromotion) {
+      const { error } = await supabase.from('promotions').update(payload).eq('id', selectedPromotion.id);
+      if (error) {
+        toast({ title: 'Erro ao atualizar promoção', description: error.message, variant: 'destructive' });
+        return;
+      }
+      toast({ title: 'Promoção atualizada com sucesso! 🎉' });
+    } else {
+      const { data, error } = await supabase.from('promotions').insert(payload).select('id').single();
+      if (error) {
+        toast({ title: 'Erro ao criar promoção', description: error.message, variant: 'destructive' });
+        return;
+      }
+      toast({ title: 'Promoção criada com sucesso! 🎉' });
+      if (data?.id) setHighlightedPromoId(data.id);
     }
-    toast({ title: 'Promoção criada com sucesso! 🎉' });
+
     setDialogOpen(false);
     resetForm();
 
@@ -567,7 +590,6 @@ export default function Promotions() {
     setActiveTab(targetTab);
 
     await fetchPromotions();
-    if (data?.id) setHighlightedPromoId(data.id);
   };
 
   const resetForm = () => {
@@ -575,11 +597,78 @@ export default function Promotions() {
     setTitle(''); setDescription(''); setSelectedServiceId(''); setSelectedServiceIds([]);
     setServiceSelectionMode('single'); setDiscountType('fixed_price'); setDiscountValue('');
     setPromotionPrice('');
-    setStartDate(''); setEndDate(''); setSingleDay(false); setStartTime(''); setEndTime(''); setMaxSlots('10');
+    setStartDate(''); setEndDate(''); setSingleDay(false); setStartTime(''); setEndTime(''); 
+    setUseBusinessHours(true); setValidDays([0, 1, 2, 3, 4, 5, 6]); setMinIntervalMinutes('0');
+    setMaxSlots('10');
     setClientFilter('all'); setClientFilterValue('30'); setProfessionalFilter('all');
     setSelectedProfessionalIds([]); setMessageTemplate(DEFAULT_TEMPLATE);
     setCashbackValidityDays('30'); setCashbackRulesText(''); setCashbackCumulative(false);
     setWizardStep(1);
+    setIsEditing(false);
+    setSelectedPromotion(null);
+  };
+
+  const handleEdit = (promo: Promotion) => {
+    setSelectedPromotion(promo);
+    setIsEditing(true);
+    setPromotionType(promo.promotion_type as any || 'traditional');
+    setTitle(promo.title);
+    setDescription(promo.description || '');
+    
+    const sIds = promo.service_ids || (promo.service_id ? [promo.service_id] : []);
+    if (sIds.length === services.length) {
+      setServiceSelectionMode('all');
+      setSelectedServiceIds(services.map(s => s.id));
+    } else if (sIds.length > 1) {
+      setServiceSelectionMode('multiple');
+      setSelectedServiceIds(sIds);
+    } else {
+      setServiceSelectionMode('single');
+      setSelectedServiceId(sIds[0] || '');
+      setSelectedServiceIds(sIds);
+    }
+
+    setDiscountType(promo.discount_type as any);
+    setDiscountValue(promo.discount_value ? String(promo.discount_value) : '');
+    setPromotionPrice(promo.promotion_price ? String(promo.promotion_price) : '');
+    setStartDate(promo.start_date);
+    setEndDate(promo.end_date);
+    setSingleDay(promo.start_date === promo.end_date);
+    setStartTime(promo.start_time || '');
+    setEndTime(promo.end_time || '');
+    setUseBusinessHours(promo.use_business_hours !== false);
+    setValidDays(promo.valid_days || [0, 1, 2, 3, 4, 5, 6]);
+    setMinIntervalMinutes(String(promo.min_interval_minutes || 0));
+    setMaxSlots(String(promo.max_slots));
+    setClientFilter(promo.client_filter);
+    setClientFilterValue(String(promo.client_filter_value || '30'));
+    setProfessionalFilter(promo.professional_filter);
+    setSelectedProfessionalIds(promo.professional_ids || []);
+    setMessageTemplate(promo.message_template || DEFAULT_TEMPLATE);
+    setCashbackValidityDays(String(promo.cashback_validity_days || '30'));
+    setCashbackRulesText(promo.cashback_rules_text || '');
+    setCashbackCumulative(promo.cashback_cumulative || false);
+    
+    setWizardStep(1);
+    setDialogOpen(true);
+  };
+
+  const handleDuplicate = (promo: Promotion) => {
+    handleEdit(promo);
+    setIsEditing(false);
+    setSelectedPromotion(null);
+    setTitle(`${promo.title} (Cópia)`);
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm('Tem certeza que deseja excluir esta promoção?')) return;
+    const { error } = await supabase.from('promotions').delete().eq('id', id);
+    if (error) {
+      toast({ title: 'Erro ao excluir promoção', description: error.message, variant: 'destructive' });
+      return;
+    }
+    toast({ title: 'Promoção excluída' });
+    fetchPromotions();
   };
 
   const toggleStatus = async (promo: Promotion) => {
@@ -590,7 +679,7 @@ export default function Promotions() {
 
   const getPromoLink = (promo: Promotion) => {
     const routeType = companyBusinessType === 'esthetic' ? 'estetica' : 'barbearia';
-    return `${window.location.origin}/${routeType}/${companySlug}/promo/${promo.slug || promo.id}`;
+    return `${window.location.origin}/${routeType}/${companySlug}?promo=${promo.id}`;
   };
 
   const buildWhatsAppLink = (client: ClientRow, promotion: Promotion) => {
@@ -656,6 +745,20 @@ export default function Promotions() {
 
     trackWhatsAppClick('promotions');
     return buildWhatsAppUrl(number, msg);
+  };
+
+  const handleEndNow = async (promo: Promotion) => {
+    if (!confirm('Deseja encerrar esta promoção imediatamente?')) return;
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    const dateStr = format(yesterday, 'yyyy-MM-dd');
+    const { error } = await supabase.from('promotions').update({ end_date: dateStr, status: 'expired' } as any).eq('id', promo.id);
+    if (error) {
+      toast({ title: 'Erro ao encerrar promoção', variant: 'destructive' });
+      return;
+    }
+    toast({ title: 'Promoção encerrada' });
+    fetchPromotions();
   };
 
   const getFilterLabel = (f: string) => {
@@ -952,26 +1055,78 @@ export default function Promotions() {
 
       {singleDay && startDate && (
         <p className="text-sm text-muted-foreground">
-          📅 {format(parseISO(startDate), "dd/MM/yyyy (EEEE)", { locale: ptBR })}
+          📅 {(() => {
+            try {
+              const d = parseISO(startDate);
+              if (isNaN(d.getTime())) return 'Data inválida';
+              return format(d, "dd/MM/yyyy (EEEE)", { locale: ptBR });
+            } catch (e) {
+              return 'Erro ao carregar data';
+            }
+          })()}
         </p>
       )}
 
-      <div className="grid grid-cols-2 gap-4">
-        <div><Label>Horário Início</Label><Input type="time" value={startTime} onChange={e => setStartTime(e.target.value)} /></div>
-        <div><Label>Horário Fim</Label><Input type="time" value={endTime} onChange={e => setEndTime(e.target.value)} /></div>
-      </div>
+      <div className="space-y-3 pt-2">
+        <Label>Horários de agendamento</Label>
+        <div className="grid grid-cols-1 gap-3">
+          <div className="flex items-center gap-2">
+            <Switch checked={useBusinessHours} onCheckedChange={setUseBusinessHours} id="business-hours" />
+            <Label htmlFor="business-hours" className="font-normal">Seguir horário padrão da empresa</Label>
+          </div>
+          
+          {!useBusinessHours && (
+            <div className="pl-9 space-y-4 border-l-2 border-primary/10 ml-2">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-xs">Hora Início</Label>
+                  <Input type="time" value={startTime} onChange={e => setStartTime(e.target.value)} className="h-8" />
+                </div>
+                <div>
+                  <Label className="text-xs">Hora Fim</Label>
+                  <Input type="time" value={endTime} onChange={e => setEndTime(e.target.value)} className="h-8" />
+                </div>
+              </div>
 
-      {singleDay && startDate && startTime && endTime && (
-        <div className="rounded-lg bg-muted p-3 text-sm">
-          <p>📅 {format(parseISO(startDate), 'dd/MM/yyyy')}</p>
-          <p>🕒 {startTime} – {endTime}</p>
+              <div>
+                <Label className="text-xs mb-2 block">Dias da semana válidos</Label>
+                <div className="flex flex-wrap gap-2">
+                  {['D', 'S', 'T', 'Q', 'Q', 'S', 'S'].map((day, i) => (
+                    <Button
+                      key={i}
+                      type="button"
+                      variant={validDays.includes(i) ? "default" : "outline"}
+                      size="sm"
+                      className="h-8 w-8 p-0"
+                      onClick={() => setValidDays(prev => 
+                        prev.includes(i) ? prev.filter(d => d !== i) : [...prev, i]
+                      )}
+                    >
+                      {day}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <Label className="text-xs">Densidade (Intervalo mínimo em minutos)</Label>
+                <Input 
+                  type="number" 
+                  value={minIntervalMinutes} 
+                  onChange={e => setMinIntervalMinutes(e.target.value)} 
+                  className="h-8" 
+                  placeholder="0 = padrão do serviço"
+                />
+              </div>
+            </div>
+          )}
         </div>
-      )}
+      </div>
 
       <div>
         <Label>Vagas máximas</Label>
         <Input type="number" value={maxSlots} onChange={e => setMaxSlots(e.target.value)} min="0" />
-        <p className="text-xs text-muted-foreground mt-1">0 = ilimitado</p>
+        <p className="text-xs text-muted-foreground mt-1">0 = ilimitado por período</p>
       </div>
 
       {isAdmin && (
@@ -985,9 +1140,11 @@ export default function Promotions() {
             </SelectContent>
           </Select>
           {professionalFilter === 'selected' && (
-            <div className="space-y-2 pl-2 mt-2">
-              {professionals.map((p: any) => (
-                <label key={p.profile_id} className="flex items-center gap-2 cursor-pointer">
+            <div className="space-y-2 pl-2 mt-2 max-h-40 overflow-y-auto border rounded-md p-2">
+              {professionals.length === 0 ? (
+                <p className="text-xs text-muted-foreground p-2">Carregando profissionais...</p>
+              ) : professionals.map((p: any) => (
+                <label key={p.profile_id} className="flex items-center gap-2 cursor-pointer py-1">
                   <Checkbox
                     checked={selectedProfessionalIds.includes(p.profile_id)}
                     onCheckedChange={(ch) => setSelectedProfessionalIds(prev => ch ? [...prev, p.profile_id] : prev.filter(id => id !== p.profile_id))}
@@ -1058,14 +1215,14 @@ export default function Promotions() {
         </div>
         <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) resetForm(); }}>
           <DialogTrigger asChild>
-            <Button onClick={resetForm}>
+            <Button onClick={() => { resetForm(); setIsEditing(false); }}>
               <Plus className="h-4 w-4 mr-2" />
               Nova Promoção
             </Button>
           </DialogTrigger>
           <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>Criar Promoção</DialogTitle>
+              <DialogTitle>{isEditing ? 'Editar Promoção' : 'Criar Promoção'}</DialogTitle>
             </DialogHeader>
 
             {/* Progress indicator */}
@@ -1106,8 +1263,9 @@ export default function Promotions() {
                   Próximo<ChevronRight className="h-4 w-4 ml-1" />
                 </Button>
               ) : (
-                <Button onClick={handleCreate}>
-                  <Megaphone className="h-4 w-4 mr-2" />Criar Promoção
+                <Button onClick={handleSave}>
+                  <Check className="h-4 w-4 mr-2" />
+                  {isEditing ? 'Salvar Alterações' : 'Criar Promoção'}
                 </Button>
               )}
             </div>
@@ -1180,7 +1338,50 @@ export default function Promotions() {
                     <CardHeader className="pb-2">
                       <div className="flex items-start justify-between gap-2">
                         <CardTitle className="text-lg">{promo.title}</CardTitle>
-                        {renderStatusBadge(promo)}
+                        <div className="flex items-center gap-1">
+                          {renderStatusBadge(promo)}
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-8 w-8">
+                                <MoreVertical className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={() => handleEdit(promo)}>
+                                <Edit2 className="h-4 w-4 mr-2" />Editar
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleDuplicate(promo)}>
+                                <RefreshCw className="h-4 w-4 mr-2" />Duplicar
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => toggleStatus(promo)}>
+                                {promo.status === 'active' ? (
+                                  <><Pause className="h-4 w-4 mr-2" />Pausar</>
+                                ) : (
+                                  <><Play className="h-4 w-4 mr-2" />Ativar</>
+                                )}
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleEndNow(promo)}>
+                                <X className="h-4 w-4 mr-2" />Encerrar agora
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem asChild>
+                                <a href={getPromoLink(promo)} target="_blank" rel="noopener noreferrer" className="flex items-center">
+                                  <ExternalLink className="h-4 w-4 mr-2" />Ver no Perfil
+                                </a>
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => { navigator.clipboard.writeText(getPromoLink(promo)); toast({ title: 'Link copiado!' }); }}>
+                                <Copy className="h-4 w-4 mr-2" />Copiar Link
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => fetchMetrics(promo)}>
+                                <BarChart3 className="h-4 w-4 mr-2" />Métricas
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem onClick={() => handleDelete(promo.id)} className="text-destructive">
+                                <Trash2 className="h-4 w-4 mr-2" />Excluir
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
                       </div>
                       {isAdmin && promo.created_by && (
                         <p className="text-xs text-muted-foreground mt-1">
@@ -1223,13 +1424,29 @@ export default function Promotions() {
                       )}
 
                       {/* Date + time range */}
-                      <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
-                        {promo.start_date === promo.end_date ? (
-                          <span>📅 {format(parseISO(promo.start_date), 'dd/MM/yyyy')}</span>
-                        ) : (
-                          <span>📅 {format(parseISO(promo.start_date), 'dd/MM/yyyy')} - {format(parseISO(promo.end_date), 'dd/MM/yyyy')}</span>
-                        )}
-                        {promo.start_time && promo.end_time && <span>🕒 {promo.start_time.slice(0, 5)} - {promo.end_time.slice(0, 5)}</span>}
+                      <div className="flex flex-col gap-1.5 text-xs text-muted-foreground">
+                        <div className="flex items-center gap-1.5">
+                          {promo.start_date === promo.end_date ? (
+                            <span>📅 {format(parseISO(promo.start_date), 'dd/MM/yyyy')}</span>
+                          ) : (
+                            <span>📅 {format(parseISO(promo.start_date), 'dd/MM/yyyy')} - {format(parseISO(promo.end_date), 'dd/MM/yyyy')}</span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          {promo.use_business_hours !== false ? (
+                            <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-medium">
+                              <Clock className="h-3 w-3" /> Segue horário comercial
+                            </span>
+                          ) : (
+                            <span className="flex items-center gap-1 text-primary font-medium">
+                              <Clock className="h-3 w-3" /> 
+                              {promo.start_time?.slice(0, 5)} às {promo.end_time?.slice(0, 5)}
+                              {promo.valid_days && promo.valid_days.length < 7 && (
+                                <span className="ml-1 text-[10px] opacity-70">({promo.valid_days.length} dias/sem)</span>
+                              )}
+                            </span>
+                          )}
+                        </div>
                       </div>
 
                       {/* Countdown timer for active promos */}
@@ -1269,22 +1486,17 @@ export default function Promotions() {
                       )}
 
                       <div className="flex gap-2 pt-2 flex-wrap">
-                        <Button size="sm" variant="outline" onClick={() => toggleStatus(promo)}>
-                          {promo.status === 'active' ? 'Pausar' : 'Ativar'}
-                        </Button>
                         <Button size="sm" onClick={() => fetchFilteredClients(promo)} disabled={status === 'expired'}>
-                          <Send className="h-3 w-3 mr-1" />Enviar
+                          <Send className="h-3 w-3 mr-1" />Divulgar
                         </Button>
-                        <Button size="sm" variant="outline" onClick={() => fetchMetrics(promo)}>
-                          <BarChart3 className="h-3 w-3 mr-1" />Métricas
+                        <Button size="sm" variant="outline" onClick={() => handleEdit(promo)}>
+                          <Edit2 className="h-3 w-3 mr-1" />Editar
                         </Button>
-                        {!isCashback && (
-                          <Button size="sm" variant="ghost" asChild>
-                            <a href={getPromoLink(promo)} target="_blank" rel="noopener noreferrer">
-                              <Eye className="h-3 w-3 mr-1" />Ver
-                            </a>
-                          </Button>
-                        )}
+                        <Button size="sm" variant="ghost" asChild>
+                          <a href={getPromoLink(promo)} target="_blank" rel="noopener noreferrer">
+                            <Eye className="h-3 w-3 mr-1" />Ver
+                          </a>
+                        </Button>
                       </div>
                     </CardContent>
                   </Card>
