@@ -176,6 +176,54 @@ export function AdjustAppointmentDialog({
             </p>
           </div>
 
+          {aiLoading && (
+            <div className="flex items-center justify-center py-4 gap-2 text-sm text-muted-foreground animate-pulse">
+              <Loader2 className="h-4 w-4 animate-spin text-primary" />
+              IA está analisando a melhor opção...
+            </div>
+          )}
+
+          {aiSuggestion && !aiLoading && (
+            <Card className="border-primary/20 bg-primary/5 p-4 relative overflow-hidden group">
+              <div className="absolute top-0 right-0 p-1">
+                <Sparkles className="h-4 w-4 text-primary opacity-50" />
+              </div>
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <Badge className="bg-primary text-white hover:bg-primary/90 text-[10px] px-2 py-0 h-5">
+                    SUGESTÃO IA
+                  </Badge>
+                  <span className="text-xs font-medium text-primary flex items-center gap-1">
+                    Operacional MVP
+                  </span>
+                </div>
+                
+                <div className="space-y-1">
+                  <p className="text-sm font-semibold flex items-center gap-2">
+                    <User className="h-4 w-4 text-primary" />
+                    {aiSuggestion.professionalName}
+                  </p>
+                  <p className="text-sm text-muted-foreground flex items-center gap-2">
+                    <Clock className="h-4 w-4" />
+                    {aiSuggestion.slot} • {format(aiSuggestion.date, "dd/MM/yyyy", { locale: ptBR })}
+                  </p>
+                  <p className="text-xs text-muted-foreground bg-white/50 p-2 rounded border border-primary/10 mt-2 italic">
+                    "{aiSuggestion.reason}"
+                  </p>
+                </div>
+
+                <Button 
+                  size="sm" 
+                  className="w-full gap-2 bg-primary hover:bg-primary/90 text-white shadow-sm"
+                  onClick={() => onApplySuggestion?.(aiSuggestion)}
+                >
+                  <Check className="h-4 w-4" />
+                  Confirmar Sugestão da IA
+                </Button>
+              </div>
+            </Card>
+          )}
+
           <div className="grid gap-2">
             <Button
               variant="outline"
