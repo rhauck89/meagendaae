@@ -1143,8 +1143,7 @@ export default function Promotions() {
     
     return (
     <div className="space-y-4">
-      {/* Cashback moved to Loyalty module */}
-      {/* Cashback notice removed as requested */}
+
 
 
       <div>
