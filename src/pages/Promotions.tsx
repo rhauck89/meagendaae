@@ -1483,12 +1483,12 @@ export default function Promotions() {
                         <div className="flex items-center gap-1.5">
                           {promo.use_business_hours !== false ? (
                             <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-medium">
-                              <Clock className="h-3 w-3" /> {isToday(parseISO(promo.start_date)) ? 'Hoje segue horário comercial' : 'Segue horário comercial'}
+                              <Clock className="h-3 w-3" /> {status === 'active' ? 'Hoje segue horário comercial' : 'Segue horário comercial'}
                             </span>
                           ) : (
                             <span className="flex items-center gap-1 text-primary font-medium">
                               <Clock className="h-3 w-3" /> 
-                              {isToday(parseISO(promo.start_date)) ? 'Hoje das ' : ''}
+                              {status === 'active' ? 'Hoje das ' : ''}
                               {promo.start_time?.slice(0, 5)} às {promo.end_time?.slice(0, 5)}
                               {promo.valid_days && promo.valid_days.length < 7 && (
                                 <span className="ml-1 text-[10px] opacity-70">({promo.valid_days.length} dias/sem)</span>
