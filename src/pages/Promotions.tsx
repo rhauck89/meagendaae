@@ -57,6 +57,8 @@ interface Promotion {
   cashback_validity_days: number | null;
   cashback_rules_text: string | null;
   cashback_cumulative: boolean;
+  promotion_mode?: 'manual' | 'smart';
+  source_insight?: string;
 }
 
 interface ClientRow {
