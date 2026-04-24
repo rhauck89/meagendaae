@@ -100,14 +100,29 @@ export const AgendaTimelineView = ({
 
   const columns = useMemo(() => {
     if (columnMode === 'day' || professionals.length <= 1) {
-      return [{ id: 'all', name: 'Agenda', appointments, blockedTimes }];
+      // For all mode, we need to group by collision
+      const groups = groupOverlappingItems(appointments);
+      const positionedAppointments = groups.flatMap(group => 
+        calculateGroupPositions(group, HOUR_HEIGHT, START_HOUR)
+      );
+      
+      return [{ id: 'all', name: 'Agenda', appointments: positionedAppointments, blockedTimes }];
     }
-    return professionals.map(p => ({
-      id: p.profile_id,
-      name: (p.profile as any)?.full_name || 'Sem nome',
-      appointments: appointments.filter(a => a.professional_id === p.profile_id),
-      blockedTimes: blockedTimes.filter(bt => bt.professional_id === p.profile_id),
-    }));
+    
+    return professionals.map(p => {
+      const profAppts = appointments.filter(a => a.professional_id === p.profile_id);
+      const groups = groupOverlappingItems(profAppts);
+      const positionedAppointments = groups.flatMap(group => 
+        calculateGroupPositions(group, HOUR_HEIGHT, START_HOUR)
+      );
+      
+      return {
+        id: p.profile_id,
+        name: (p.profile as any)?.full_name || 'Sem nome',
+        appointments: positionedAppointments,
+        blockedTimes: blockedTimes.filter(bt => bt.professional_id === p.profile_id),
+      };
+    });
   }, [columnMode, professionals, appointments, blockedTimes]);
 
   const timeSlots = useMemo(() => {
@@ -117,6 +132,7 @@ export const AgendaTimelineView = ({
     }
     return slots;
   }, []);
+
 
   const now = new Date();
   const currentTimePosition = now.getHours() >= START_HOUR && now.getHours() < END_HOUR
