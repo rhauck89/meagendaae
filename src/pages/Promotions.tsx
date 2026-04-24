@@ -463,6 +463,8 @@ export default function Promotions() {
 
   const applyInsight = (insight: PromotionInsight) => {
     resetForm();
+    setSmartMode('smart');
+    setSourceInsight(insight.type);
     const todayStr = format(new Date(), 'yyyy-MM-dd');
     const tomorrow = new Date();
     tomorrow.setDate(tomorrow.getDate() + 1);
