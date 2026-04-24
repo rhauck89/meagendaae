@@ -2,12 +2,15 @@ import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogBody, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Clock, User, ArrowLeftRight, Scissors, AlertTriangle, Calendar } from 'lucide-react';
+import { Card } from '@/components/ui/card';
+import { Clock, User, ArrowLeftRight, Scissors, AlertTriangle, Calendar, Sparkles, Loader2, Check } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { isPromoActive } from '@/lib/promotion-period';
+import { calculateAIOperationalSuggestion, type AIOperationalSuggestion } from '@/lib/smart-slot-suggestion';
+import { getAvailableSlots } from '@/lib/availability-service';
 
 interface AdjustAppointmentDialogProps {
   open: boolean;
@@ -15,6 +18,7 @@ interface AdjustAppointmentDialogProps {
   appointment: any;
   onAdjust: (type: 'reschedule' | 'professional' | 'both' | 'normal') => void;
   onConverted?: () => void;
+  onApplySuggestion?: (suggestion: AIOperationalSuggestion) => void;
 }
 
 export function AdjustAppointmentDialog({
@@ -23,9 +27,12 @@ export function AdjustAppointmentDialog({
   appointment,
   onAdjust,
   onConverted,
+  onApplySuggestion,
 }: AdjustAppointmentDialogProps) {
   const [loading, setLoading] = useState(false);
   const [promoData, setPromoData] = useState<any>(null);
+  const [aiSuggestion, setAiSuggestion] = useState<AIOperationalSuggestion | null>(null);
+  const [aiLoading, setAiLoading] = useState(false);
 
   useEffect(() => {
     if (open && appointment?.promotion_id) {
