@@ -1521,6 +1521,40 @@ export default function Promotions() {
     );
   };
 
+  const renderStep3 = () => (
+    <div className="space-y-4">
+      <div>
+        <Label>Filtro de clientes</Label>
+        <Select value={clientFilter} onValueChange={setClientFilter}>
+          <SelectTrigger><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todos os clientes</SelectItem>
+            <SelectItem value="birthday_month">Aniversariantes do mês</SelectItem>
+            <SelectItem value="top_spending">Maiores gastos</SelectItem>
+            <SelectItem value="inactive">Inativos</SelectItem>
+            <SelectItem value="new_clients">Novos</SelectItem>
+            <SelectItem value="frequent">Frequentes</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      {['inactive', 'new_clients'].includes(clientFilter) && (
+        <div><Label>Dias</Label><Input type="number" value={clientFilterValue} onChange={e => setClientFilterValue(e.target.value)} /></div>
+      )}
+      {clientFilter === 'top_spending' && (
+        <div><Label>Quantidade</Label><Input type="number" value={clientFilterValue} onChange={e => setClientFilterValue(e.target.value)} /></div>
+      )}
+      {clientFilter === 'frequent' && (
+        <div><Label>Mínimo de visitas</Label><Input type="number" value={clientFilterValue} onChange={e => setClientFilterValue(e.target.value)} /></div>
+      )}
+
+      <div>
+        <div className="mb-2">
+          <Label>Mensagem WhatsApp</Label>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            {promotionType === 'cashback' ? 'Mensagem de divulgação da promoção com cashback' : 'Mensagem de divulgação da promoção'}
+          </p>
+        </div>
         <div className="flex flex-wrap gap-1 mb-2">
           {(promotionType === 'cashback' ? MESSAGE_TAGS_CASHBACK : MESSAGE_TAGS_TRADITIONAL).map(t => (
             <Button key={t.tag} type="button" variant="outline" size="sm" onClick={() => setMessageTemplate(prev => prev + t.tag)} className="text-xs h-7">
