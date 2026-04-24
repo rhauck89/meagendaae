@@ -5120,12 +5120,20 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_admin: {
+        Args: { _company_id: string; _user_id: string }
+        Returns: boolean
+      }
       is_company_active: { Args: { p_company_id: string }; Returns: boolean }
       is_company_admin: {
         Args: { _company_id: string; _user_id: string }
         Returns: boolean
       }
       is_company_readonly: { Args: { p_company_id: string }; Returns: boolean }
+      is_professional: {
+        Args: { _company_id: string; _user_id: string }
+        Returns: boolean
+      }
       join_public_waitlist:
         | {
             Args: {
