@@ -45,9 +45,13 @@ export default function CashbackTab() {
   const [rules, setRules] = useState<CashbackRule[]>([]);
   const [services, setServices] = useState<any[]>([]);
   const [balances, setBalances] = useState<ClientBalance[]>([]);
+  const [history, setHistory] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [tab, setTab] = useState('overview');
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<CashbackRule | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+
 
   // Form state
   const [title, setTitle] = useState('');
