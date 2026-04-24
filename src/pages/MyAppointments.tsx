@@ -13,22 +13,6 @@ import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
-const statusColors: Record<string, string> = {
-  pending: 'bg-warning/10 text-warning',
-  confirmed: 'bg-primary/10 text-primary',
-  cancelled: 'bg-destructive/10 text-destructive',
-  completed: 'bg-success/10 text-success',
-  no_show: 'bg-muted text-muted-foreground',
-};
-
-const statusLabels: Record<string, string> = {
-  pending: 'Pendente',
-  confirmed: 'Confirmado',
-  cancelled: 'Cancelado',
-  completed: 'Concluído',
-  no_show: 'Não compareceu',
-};
-
 const MyAppointments = () => {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
