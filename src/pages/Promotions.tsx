@@ -1249,8 +1249,9 @@ export default function Promotions() {
                   Próximo<ChevronRight className="h-4 w-4 ml-1" />
                 </Button>
               ) : (
-                <Button onClick={handleCreate}>
-                  <Megaphone className="h-4 w-4 mr-2" />Criar Promoção
+                <Button onClick={handleSave}>
+                  <Check className="h-4 w-4 mr-2" />
+                  {isEditing ? 'Salvar Alterações' : 'Criar Promoção'}
                 </Button>
               )}
             </div>
