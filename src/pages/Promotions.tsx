@@ -1434,40 +1434,93 @@ export default function Promotions() {
     </div>
   );
 
-  const renderStep3 = () => (
-    <div className="space-y-4">
-      <div>
-        <Label>Filtro de clientes</Label>
-        <Select value={clientFilter} onValueChange={setClientFilter}>
-          <SelectTrigger><SelectValue /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todos os clientes</SelectItem>
-            <SelectItem value="birthday_month">Aniversariantes do mês</SelectItem>
-            <SelectItem value="top_spending">Maiores gastos</SelectItem>
-            <SelectItem value="inactive">Inativos</SelectItem>
-            <SelectItem value="new_clients">Novos</SelectItem>
-            <SelectItem value="frequent">Frequentes</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-
-      {['inactive', 'new_clients'].includes(clientFilter) && (
-        <div><Label>Dias</Label><Input type="number" value={clientFilterValue} onChange={e => setClientFilterValue(e.target.value)} /></div>
-      )}
-      {clientFilter === 'top_spending' && (
-        <div><Label>Quantidade</Label><Input type="number" value={clientFilterValue} onChange={e => setClientFilterValue(e.target.value)} /></div>
-      )}
-      {clientFilter === 'frequent' && (
-        <div><Label>Mínimo de visitas</Label><Input type="number" value={clientFilterValue} onChange={e => setClientFilterValue(e.target.value)} /></div>
-      )}
-
-      <div>
-        <div className="mb-2">
-          <Label>Mensagem WhatsApp</Label>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            {promotionType === 'cashback' ? 'Mensagem de divulgação da promoção com cashback' : 'Mensagem de divulgação da promoção'}
-          </p>
+  const renderChoiceScreen = () => (
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 py-4">
+      <Button 
+        variant="outline" 
+        className="h-auto flex-col items-start p-6 gap-3 hover:border-primary hover:bg-primary/5 transition-all group"
+        onClick={() => setCreationMode('manual')}
+      >
+        <div className="bg-muted p-2 rounded-lg group-hover:bg-primary/10 group-hover:text-primary transition-colors">
+          <Edit2 className="h-6 w-6" />
         </div>
+        <div className="text-left">
+          <h3 className="font-bold text-lg">Manual</h3>
+          <p className="text-sm text-muted-foreground font-normal">Crie do zero com total liberdade de configuração.</p>
+        </div>
+      </Button>
+
+      <Button 
+        variant="outline" 
+        className="h-auto flex-col items-start p-6 gap-3 border-primary/50 bg-primary/5 hover:bg-primary/10 transition-all group relative overflow-hidden"
+        onClick={() => setCreationMode('smart')}
+      >
+        <div className="absolute top-2 right-2">
+          <Badge className="bg-primary text-primary-foreground text-[10px] uppercase px-1.5 py-0">Premium</Badge>
+        </div>
+        <div className="bg-primary/10 text-primary p-2 rounded-lg group-hover:bg-primary/20 transition-colors">
+          <Zap className="h-6 w-6" />
+        </div>
+        <div className="text-left">
+          <h3 className="font-bold text-lg">Inteligente</h3>
+          <p className="text-sm text-muted-foreground font-normal">Use IA para identificar oportunidades e preencher horários vazios.</p>
+        </div>
+      </Button>
+    </div>
+  );
+
+  const renderSmartScreen = () => {
+    const smartOptions = [
+      { id: 'low_occupancy', title: 'Horários vagos amanhã', desc: 'Identifica lacunas na agenda de amanhã.', icon: TrendingUp },
+      { id: 'lunch_time', title: 'Promo almoço baixa ocupação', desc: 'Preenche o horário das 11h às 14h.', icon: Clock },
+      { id: 'afternoon_low', title: 'Fim de tarde vazio', desc: 'Atrai clientes para o horário após as 17h.', icon: Flame },
+      { id: 'reactivation', title: 'Clientes inativos', desc: 'Chama de volta quem não aparece há 30 dias.', icon: RefreshCw },
+      { id: 'birthdays', title: 'Aniversariantes do mês', desc: 'Envie um presente para quem faz aniversário.', icon: Users },
+      { id: 'professional_idle', title: 'Profissional ocioso', desc: 'Promove um profissional com poucos agendamentos.', icon: Users },
+    ];
+
+    return (
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 py-4">
+        {smartOptions.map((opt) => (
+          <Button
+            key={opt.id}
+            variant="outline"
+            className="h-auto justify-start p-4 gap-4 hover:border-primary hover:bg-primary/5 transition-all text-left"
+            onClick={() => {
+              // Reuse existing insight logic or handle new ones
+              if (opt.id === 'professional_idle') {
+                resetForm();
+                setSmartMode('smart');
+                setSourceInsight(opt.id);
+                setTitle('Destaque do Profissional');
+                setDescription('Conheça nossos especialistas com um desconto especial!');
+                setDiscountType('percentage');
+                setDiscountValue('10');
+                setDialogOpen(true);
+                setCreationMode('manual');
+              } else {
+                const mockInsight: any = { type: opt.id };
+                if (opt.id === 'lunch_time' || opt.id === 'afternoon_low') {
+                  mockInsight.data = { isTomorrow: new Date().getHours() >= 14 };
+                }
+                applyInsight(mockInsight);
+                setCreationMode('manual');
+              }
+            }}
+          >
+            <div className="bg-primary/10 p-2 rounded-lg text-primary shrink-0">
+              <opt.icon className="h-5 w-5" />
+            </div>
+            <div>
+              <h4 className="font-bold text-sm">{opt.title}</h4>
+              <p className="text-xs text-muted-foreground font-normal">{opt.desc}</p>
+            </div>
+          </Button>
+        ))}
+      </div>
+    );
+  };
+
         <div className="flex flex-wrap gap-1 mb-2">
           {(promotionType === 'cashback' ? MESSAGE_TAGS_CASHBACK : MESSAGE_TAGS_TRADITIONAL).map(t => (
             <Button key={t.tag} type="button" variant="outline" size="sm" onClick={() => setMessageTemplate(prev => prev + t.tag)} className="text-xs h-7">
