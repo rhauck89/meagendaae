@@ -500,7 +500,7 @@ export default function Promotions() {
     setMetricsDialogOpen(true);
   };
 
-  const handleCreate = async () => {
+  const handleSave = async () => {
     const err1 = validateStep1();
     const err2 = validateStep2();
     if (err1 || err2) {
@@ -533,7 +533,7 @@ export default function Promotions() {
       description: description || null,
       service_id: primaryServiceId,
       service_ids: effectiveIds.length > 1 ? effectiveIds : null,
-      discount_type: promotionType === 'cashback' ? discountType : discountType,
+      discount_type: discountType,
       discount_value: discountType !== 'fixed_price' ? (parseFloat(discountValue) || null) : null,
       promotion_price: payloadPromoPrice,
       original_price: payloadOrigPrice,
@@ -541,6 +541,9 @@ export default function Promotions() {
       end_date: finalEndDate,
       start_time: startTime || null,
       end_time: endTime || null,
+      use_business_hours: useBusinessHours,
+      valid_days: validDays,
+      min_interval_minutes: parseInt(minIntervalMinutes) || 0,
       max_slots: parseInt(maxSlots) || 0,
       client_filter: clientFilter,
       client_filter_value: ['inactive', 'new_clients', 'top_spending', 'frequent'].includes(clientFilter) ? parseInt(clientFilterValue) || null : null,
@@ -548,7 +551,7 @@ export default function Promotions() {
       professional_ids: professionalFilter === 'selected' ? selectedProfessionalIds : null,
       message_template: messageTemplate,
       created_by: profile?.id || null,
-      status: 'active',
+      status: isEditing && selectedPromotion ? selectedPromotion.status : 'active',
       promotion_type: promotionType,
       cashback_validity_days: promotionType === 'cashback' ? (parseInt(cashbackValidityDays) || 30) : null,
       cashback_rules_text: promotionType === 'cashback' ? (cashbackRulesText || null) : null,
@@ -561,12 +564,23 @@ export default function Promotions() {
       payload.created_by = profile.id;
     }
 
-    const { data, error } = await supabase.from('promotions').insert(payload).select('id').single();
-    if (error) {
-      toast({ title: 'Erro ao criar promoção', description: error.message, variant: 'destructive' });
-      return;
+    if (isEditing && selectedPromotion) {
+      const { error } = await supabase.from('promotions').update(payload).eq('id', selectedPromotion.id);
+      if (error) {
+        toast({ title: 'Erro ao atualizar promoção', description: error.message, variant: 'destructive' });
+        return;
+      }
+      toast({ title: 'Promoção atualizada com sucesso! 🎉' });
+    } else {
+      const { data, error } = await supabase.from('promotions').insert(payload).select('id').single();
+      if (error) {
+        toast({ title: 'Erro ao criar promoção', description: error.message, variant: 'destructive' });
+        return;
+      }
+      toast({ title: 'Promoção criada com sucesso! 🎉' });
+      if (data?.id) setHighlightedPromoId(data.id);
     }
-    toast({ title: 'Promoção criada com sucesso! 🎉' });
+
     setDialogOpen(false);
     resetForm();
 
@@ -576,7 +590,6 @@ export default function Promotions() {
     setActiveTab(targetTab);
 
     await fetchPromotions();
-    if (data?.id) setHighlightedPromoId(data.id);
   };
 
   const resetForm = () => {
@@ -584,11 +597,78 @@ export default function Promotions() {
     setTitle(''); setDescription(''); setSelectedServiceId(''); setSelectedServiceIds([]);
     setServiceSelectionMode('single'); setDiscountType('fixed_price'); setDiscountValue('');
     setPromotionPrice('');
-    setStartDate(''); setEndDate(''); setSingleDay(false); setStartTime(''); setEndTime(''); setMaxSlots('10');
+    setStartDate(''); setEndDate(''); setSingleDay(false); setStartTime(''); setEndTime(''); 
+    setUseBusinessHours(true); setValidDays([0, 1, 2, 3, 4, 5, 6]); setMinIntervalMinutes('0');
+    setMaxSlots('10');
     setClientFilter('all'); setClientFilterValue('30'); setProfessionalFilter('all');
     setSelectedProfessionalIds([]); setMessageTemplate(DEFAULT_TEMPLATE);
     setCashbackValidityDays('30'); setCashbackRulesText(''); setCashbackCumulative(false);
     setWizardStep(1);
+    setIsEditing(false);
+    setSelectedPromotion(null);
+  };
+
+  const handleEdit = (promo: Promotion) => {
+    setSelectedPromotion(promo);
+    setIsEditing(true);
+    setPromotionType(promo.promotion_type as any || 'traditional');
+    setTitle(promo.title);
+    setDescription(promo.description || '');
+    
+    const sIds = promo.service_ids || (promo.service_id ? [promo.service_id] : []);
+    if (sIds.length === services.length) {
+      setServiceSelectionMode('all');
+      setSelectedServiceIds(services.map(s => s.id));
+    } else if (sIds.length > 1) {
+      setServiceSelectionMode('multiple');
+      setSelectedServiceIds(sIds);
+    } else {
+      setServiceSelectionMode('single');
+      setSelectedServiceId(sIds[0] || '');
+      setSelectedServiceIds(sIds);
+    }
+
+    setDiscountType(promo.discount_type as any);
+    setDiscountValue(promo.discount_value ? String(promo.discount_value) : '');
+    setPromotionPrice(promo.promotion_price ? String(promo.promotion_price) : '');
+    setStartDate(promo.start_date);
+    setEndDate(promo.end_date);
+    setSingleDay(promo.start_date === promo.end_date);
+    setStartTime(promo.start_time || '');
+    setEndTime(promo.end_time || '');
+    setUseBusinessHours(promo.use_business_hours !== false);
+    setValidDays(promo.valid_days || [0, 1, 2, 3, 4, 5, 6]);
+    setMinIntervalMinutes(String(promo.min_interval_minutes || 0));
+    setMaxSlots(String(promo.max_slots));
+    setClientFilter(promo.client_filter);
+    setClientFilterValue(String(promo.client_filter_value || '30'));
+    setProfessionalFilter(promo.professional_filter);
+    setSelectedProfessionalIds(promo.professional_ids || []);
+    setMessageTemplate(promo.message_template || DEFAULT_TEMPLATE);
+    setCashbackValidityDays(String(promo.cashback_validity_days || '30'));
+    setCashbackRulesText(promo.cashback_rules_text || '');
+    setCashbackCumulative(promo.cashback_cumulative || false);
+    
+    setWizardStep(1);
+    setDialogOpen(true);
+  };
+
+  const handleDuplicate = (promo: Promotion) => {
+    handleEdit(promo);
+    setIsEditing(false);
+    setSelectedPromotion(null);
+    setTitle(`${promo.title} (Cópia)`);
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm('Tem certeza que deseja excluir esta promoção?')) return;
+    const { error } = await supabase.from('promotions').delete().eq('id', id);
+    if (error) {
+      toast({ title: 'Erro ao excluir promoção', description: error.message, variant: 'destructive' });
+      return;
+    }
+    toast({ title: 'Promoção excluída' });
+    fetchPromotions();
   };
 
   const toggleStatus = async (promo: Promotion) => {
@@ -599,7 +679,7 @@ export default function Promotions() {
 
   const getPromoLink = (promo: Promotion) => {
     const routeType = companyBusinessType === 'esthetic' ? 'estetica' : 'barbearia';
-    return `${window.location.origin}/${routeType}/${companySlug}/promo/${promo.slug || promo.id}`;
+    return `${window.location.origin}/${routeType}/${companySlug}?promo=${promo.id}`;
   };
 
   const buildWhatsAppLink = (client: ClientRow, promotion: Promotion) => {
