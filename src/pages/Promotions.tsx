@@ -1847,6 +1847,15 @@ export default function Promotions() {
 
                       {/* Type + Discount badge */}
                       <div className="flex flex-wrap gap-1.5">
+                        {promo.promotion_mode === 'smart' ? (
+                          <Badge className="bg-primary text-primary-foreground border-none flex items-center gap-1 shadow-sm">
+                            <Zap className="h-3 w-3 fill-current" /> IA
+                          </Badge>
+                        ) : (
+                          <Badge variant="outline" className="border-muted-foreground/30 text-muted-foreground flex items-center gap-1">
+                            <Edit2 className="h-3 w-3" /> Manual
+                          </Badge>
+                        )}
                         {isCashback && (
                           <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400 dark:border-emerald-800">💰 Cashback</Badge>
                         )}
