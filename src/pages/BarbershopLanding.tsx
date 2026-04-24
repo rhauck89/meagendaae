@@ -727,63 +727,92 @@ export default function BarbershopLanding({ routeBusinessType, customSlug }: Bar
         )}
 
         {/* Promoções */}
-        {companyPromotions.length > 0 && (
-          <section>
-            <div className="flex items-center gap-2 mb-4">
-              <Sparkles className="w-5 h-5" style={{ color: T.accent }} />
-              <h2 className="text-lg font-bold" style={{ color: T.text }}>Promoções</h2>
-            </div>
-            <div className="space-y-3">
-              {companyPromotions.map((promo: any) => {
-                const remaining = promo.max_slots > 0 ? promo.max_slots - promo.used_slots : null;
-                const isLow = remaining !== null && remaining > 0 && remaining <= 5;
-                const isSoldOut = remaining !== null && remaining === 0;
-                return (
-                  <div
-                    key={promo.id}
-                    className={cn(
-                      "rounded-xl p-4 transition-all duration-200",
-                      isSoldOut ? "opacity-60" : "cursor-pointer hover:scale-[1.02]"
-                    )}
-                    style={{
-                      background: T.card,
-                      border: `1px solid ${T.border}`,
-                    }}
-                    onMouseEnter={e => { if (!isSoldOut) e.currentTarget.style.borderColor = `${T.accent}60`; }}
-                    onMouseLeave={e => { e.currentTarget.style.borderColor = T.border; }}
-                    onClick={() => {
-                      if (isSoldOut) return;
-                      navigate(`/${bookingBasePath}/${slug}/agendar?promo=${promo.id}`);
-                    }}
-                  >
-                    <p className="font-bold" style={{ color: T.text }}>{promo.title}</p>
-                    {promo.description && (
-                      <p className="text-sm mt-1 line-clamp-2" style={{ color: T.textSec }}>{promo.description}</p>
-                    )}
-                    <p className="text-sm mt-1" style={{ color: T.textSec }}>
-                      📅 {format(parseISO(promo.start_date), "dd/MM/yyyy", { locale: ptBR })}
-                      {promo.start_date !== promo.end_date && ` - ${format(parseISO(promo.end_date), "dd/MM/yyyy", { locale: ptBR })}`}
-                    </p>
-                    {promo.start_time && promo.end_time && (
-                      <p className="text-sm" style={{ color: T.textSec }}>
-                        ⏰ {promo.start_time.slice(0, 5)} - {promo.end_time.slice(0, 5)}
+        {(() => {
+          const visiblePromos = companyPromotions
+            .map((p: any) => ({ promo: p, status: getPromoStatus(p) }))
+            .filter(({ status }) => status !== 'ended');
+          if (visiblePromos.length === 0) return null;
+          return (
+            <section>
+              <div className="flex items-center gap-2 mb-4">
+                <Sparkles className="w-5 h-5" style={{ color: T.accent }} />
+                <h2 className="text-lg font-bold" style={{ color: T.text }}>Promoções</h2>
+              </div>
+              <div className="space-y-3">
+                {visiblePromos.map(({ promo, status }: any) => {
+                  const remaining = promo.max_slots > 0 ? promo.max_slots - promo.used_slots : null;
+                  const isLow = remaining !== null && remaining > 0 && remaining <= 5;
+                  const isSoldOut = remaining !== null && remaining === 0;
+                  const isUpcoming = status === 'upcoming';
+                  const disabled = isSoldOut || isUpcoming;
+                  const hasDiscount = promo.original_price && promo.promotion_price;
+                  const periodLabel = isUpcoming ? getPromoStartLabel(promo) : getPromoEndLabel(promo);
+                  return (
+                    <button
+                      key={promo.id}
+                      type="button"
+                      disabled={disabled}
+                      className={cn(
+                        "w-full text-left rounded-xl p-4 transition-all duration-200",
+                        disabled ? "opacity-70 cursor-not-allowed" : "cursor-pointer hover:scale-[1.02]"
+                      )}
+                      style={{
+                        background: T.card,
+                        border: `1px solid ${disabled ? T.border : T.accent + '50'}`,
+                      }}
+                      onMouseEnter={e => { if (!disabled) e.currentTarget.style.borderColor = T.accent; }}
+                      onMouseLeave={e => { e.currentTarget.style.borderColor = disabled ? T.border : T.accent + '50'; }}
+                      onClick={() => {
+                        if (disabled) return;
+                        navigate(`/${bookingBasePath}/${slug}/agendar?promo=${promo.id}`);
+                      }}
+                    >
+                      <div className="flex items-start justify-between gap-2 mb-1">
+                        <p className="font-bold flex items-center gap-1" style={{ color: T.text }}>
+                          <span>🔥</span>{promo.title}
+                        </p>
+                        {isUpcoming && (
+                          <span className="text-[10px] uppercase font-bold px-2 py-0.5 rounded-full" style={{ background: T.border, color: T.textSec }}>
+                            Em breve
+                          </span>
+                        )}
+                      </div>
+                      {promo.description && (
+                        <p className="text-sm mb-2 line-clamp-2" style={{ color: T.textSec }}>{promo.description}</p>
+                      )}
+                      {hasDiscount && (
+                        <p className="text-sm mb-1" style={{ color: T.text }}>
+                          💰 de <span className="line-through" style={{ color: T.textSec }}>R$ {Number(promo.original_price).toFixed(2)}</span>
+                          {' '}por <span className="font-bold" style={{ color: T.accent }}>R$ {Number(promo.promotion_price).toFixed(2)}</span>
+                        </p>
+                      )}
+                      <p className="text-xs flex items-center gap-1 mb-2" style={{ color: T.textSec }}>
+                        <Clock className="w-3 h-3" />{periodLabel}
                       </p>
-                    )}
-                    {remaining !== null && (
-                      <p className={cn('text-sm font-semibold mt-2',
-                        isSoldOut ? 'text-destructive' : isLow ? 'text-orange-500' : ''
-                      )} style={!isSoldOut && !isLow ? { color: T.accent } : undefined}>
-                        {isSoldOut ? '❌ Esgotado' :
-                         isLow ? `🔥 Últimas ${remaining} vagas` :
-                         `${remaining} vagas disponíveis`}
-                      </p>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          </section>
-        )}
+                      {remaining !== null && (
+                        <p className={cn('text-xs font-semibold mb-2',
+                          isSoldOut ? 'text-destructive' : isLow ? 'text-orange-500' : ''
+                        )} style={!isSoldOut && !isLow ? { color: T.accent } : undefined}>
+                          {isSoldOut ? '❌ Esgotado' :
+                           isLow ? `🔥 Últimas ${remaining} vagas` :
+                           `${remaining} vagas disponíveis`}
+                        </p>
+                      )}
+                      {!disabled && (
+                        <span
+                          className="inline-flex items-center gap-1 mt-1 px-3 py-1.5 rounded-lg text-xs font-semibold"
+                          style={{ background: T.accent, color: '#fff' }}
+                        >
+                          🎯 Agendar com desconto
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </section>
+          );
+        })()}
 
         <LocationBlock company={company} isDark={isDark} />
 
