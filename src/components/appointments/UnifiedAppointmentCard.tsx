@@ -184,9 +184,12 @@ export function UnifiedAppointmentCard({
           </div>
 
           {/* Info Column */}
-          <div className="space-y-1 min-w-0">
+          <div className="space-y-1 min-w-0 flex-1">
             <div className="flex items-center gap-2 flex-wrap">
-              <h3 className="text-sm sm:text-base font-bold text-foreground leading-tight truncate">
+              <h3 className={cn(
+                "font-bold text-foreground leading-tight truncate",
+                variant === 'detailed' ? 'text-lg' : 'text-sm sm:text-base'
+              )}>
                 {clientName}
               </h3>
               {apt.promotion_id && (
@@ -196,7 +199,10 @@ export function UnifiedAppointmentCard({
               )}
             </div>
             
-            <p className="text-xs sm:text-sm font-medium text-muted-foreground/90 flex items-center gap-1.5 truncate">
+            <p className={cn(
+              "font-medium text-muted-foreground/90 flex items-center gap-1.5 truncate",
+              variant === 'detailed' ? 'text-sm sm:text-base' : 'text-xs sm:text-sm'
+            )}>
               <Scissors className="h-3 w-3 sm:h-3.5 sm:w-3.5 shrink-0" />
               {formatServicesWithDuration(apt.appointment_services)}
             </p>
@@ -212,10 +218,36 @@ export function UnifiedAppointmentCard({
                   {companyName}
                 </p>
               )}
-              <span className="text-sm sm:text-base font-display font-black text-foreground">
+              {variant === 'detailed' && apt.client?.whatsapp && (
+                <p className="text-[11px] sm:text-xs font-medium text-green-600 flex items-center gap-1">
+                  <MessageSquare className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
+                  {apt.client.whatsapp}
+                </p>
+              )}
+              <span className={cn(
+                "font-display font-black text-foreground",
+                variant === 'detailed' ? 'text-lg' : 'text-sm sm:text-base'
+              )}>
                 {formattedPrice}
               </span>
             </div>
+            
+            {variant === 'detailed' && apt.notes && (
+              <div className="mt-3 p-3 bg-muted/50 rounded-lg border border-border/20">
+                <p className="text-xs text-muted-foreground italic leading-relaxed">
+                  "{apt.notes}"
+                </p>
+              </div>
+            )}
+            
+            {variant === 'detailed' && (
+              <div className="flex items-center gap-3 mt-3 pt-3 border-t border-border/10">
+                <div className="flex items-center gap-1 text-[10px] text-muted-foreground uppercase tracking-widest font-bold">
+                  <Clock className="h-3 w-3" />
+                  Criado em: {format(parseISO(apt.created_at || new Date().toISOString()), 'dd/MM/yy HH:mm')}
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
