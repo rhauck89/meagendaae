@@ -10,7 +10,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Calendar as CalendarPicker } from '@/components/ui/calendar';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Scissors, Sparkles, Clock, DollarSign, ChevronRight, ChevronLeft, CheckCircle2, Bell, Zap, CalendarPlus, MessageCircle, RotateCcw, Home, User, Phone, Mail, Cake, MapPin, Star, X, AlertTriangle, Calendar } from 'lucide-react';
-import { format, addMinutes, addDays, startOfDay, isSameDay } from 'date-fns';
+import { format, addMinutes, addDays, startOfDay, isSameDay, parseISO } from 'date-fns';
 import { fromZonedTime, toZonedTime } from 'date-fns-tz';
 import { sendAppointmentCreatedWebhook } from '@/lib/automations';
 import { isPromoActive } from '@/lib/promotion-period';
