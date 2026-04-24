@@ -1315,6 +1315,7 @@ const Dashboard = () => {
         }}
         appointment={adjustTarget}
         onAdjust={(type) => handleAdjustment(adjustTarget, type)}
+        onApplySuggestion={handleApplyAISuggestion}
         onConverted={() => {
           fetchAppointments();
           fetchUpcomingAppointments();
