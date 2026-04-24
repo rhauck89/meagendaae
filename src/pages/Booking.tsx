@@ -860,6 +860,11 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
         date,
         totalDuration,
         filterPastForToday: true,
+        prefetchData: {
+          businessHours,
+          professionalHours,
+          exceptions,
+        }
       });
 
       if (requestId !== slotRequestRef.current) return;
