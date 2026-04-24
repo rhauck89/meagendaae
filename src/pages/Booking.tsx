@@ -1807,7 +1807,19 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
             ) : (
               <>
                 {/* Smart suggestion (best gap fit) */}
-                {smartSuggestion && (
+                {nextSlotsLoading ? (
+                  <div className="space-y-4 rounded-2xl p-5" style={{ background: T.card, border: `1px solid ${T.border}` }}>
+                    <div className="flex items-center gap-2">
+                      <div className="w-4 h-4 border-2 rounded-full animate-spin" style={{ borderColor: `${T.accent} transparent transparent transparent` }} />
+                      <span className="text-sm font-medium animate-pulse">Buscando melhores sugestões...</span>
+                    </div>
+                    <div className="grid grid-cols-4 gap-2">
+                      {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
+                        <div key={i} className="h-10 rounded-xl animate-pulse" style={{ background: T.cardHover, opacity: 0.5 }} />
+                      ))}
+                    </div>
+                  </div>
+                ) : smartSuggestion && (
                   <div
                     className="rounded-2xl p-5 space-y-3 animate-fade-in"
                     style={{
