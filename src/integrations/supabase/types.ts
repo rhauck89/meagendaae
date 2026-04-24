@@ -3232,6 +3232,7 @@ export type Database = {
           id: string
           max_slots: number
           message_template: string | null
+          min_interval_minutes: number | null
           original_price: number | null
           professional_filter: string
           professional_ids: string[] | null
@@ -3245,7 +3246,9 @@ export type Database = {
           status: string
           title: string
           updated_at: string
+          use_business_hours: boolean | null
           used_slots: number
+          valid_days: number[] | null
         }
         Insert: {
           cashback_cumulative?: boolean
@@ -3264,6 +3267,7 @@ export type Database = {
           id?: string
           max_slots?: number
           message_template?: string | null
+          min_interval_minutes?: number | null
           original_price?: number | null
           professional_filter?: string
           professional_ids?: string[] | null
@@ -3277,7 +3281,9 @@ export type Database = {
           status?: string
           title: string
           updated_at?: string
+          use_business_hours?: boolean | null
           used_slots?: number
+          valid_days?: number[] | null
         }
         Update: {
           cashback_cumulative?: boolean
@@ -3296,6 +3302,7 @@ export type Database = {
           id?: string
           max_slots?: number
           message_template?: string | null
+          min_interval_minutes?: number | null
           original_price?: number | null
           professional_filter?: string
           professional_ids?: string[] | null
@@ -3309,7 +3316,9 @@ export type Database = {
           status?: string
           title?: string
           updated_at?: string
+          use_business_hours?: boolean | null
           used_slots?: number
+          valid_days?: number[] | null
         }
         Relationships: [
           {
