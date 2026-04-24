@@ -855,8 +855,6 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
     setGeneratedSlots([]);
 
     try {
-      // Use the unified availability service so the public flow returns the
-      // exact same slots as the internal manual booking flow.
       const result = await getAvailableSlots({
         source: 'public',
         companyId: company.id,
@@ -868,19 +866,25 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
 
       if (requestId !== slotRequestRef.current) return;
 
+      let slots = result.slots;
+
+      // Filter slots based on promotion time window if applicable
+      if (promoData) {
+        if (promoData.start_time) {
+          slots = slots.filter(s => s >= promoData.start_time!);
+        }
+        if (promoData.end_time) {
+          slots = slots.filter(s => s <= promoData.end_time!);
+        }
+      }
+
       setAppointmentsForSelectedDate(result.existingAppointments);
       setAppointmentsLoaded(true);
-      setGeneratedSlots(result.slots);
-
-      console.log('[SLOTS SOURCE]', 'booking-page', { mode: result.bookingMode, count: result.slots.length });
-      console.log('[UI RECEIVED]', result.slots);
-
-      if (requestId !== slotRequestRef.current) return;
-      setAvailableSlots(result.slots);
+      setGeneratedSlots(slots);
+      setAvailableSlots(slots);
     } catch (error) {
       console.error('[Booking] Failed to load appointments for slot calculation', error);
       setAppointmentsLoaded(true);
-      setAppointmentsForSelectedDate([]);
       setAvailableSlots([]);
       setGeneratedSlots([]);
     } finally {
@@ -889,11 +893,9 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
   };
 
   useEffect(() => {
-    // Don't reset time if it's a locked preselected slot or quick slot
     if (preselected.isLockedTime(selectedTime)) {
       // Locked slot — preserve time
     } else if (skipTimeResetRef.current) {
-      // Quick slot was used — don't reset time
       skipTimeResetRef.current = false;
     } else {
       setSelectedTime(null);
@@ -908,7 +910,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
     if (selectedDate && selectedProfessional && company && businessHours.length > 0 && totalDuration > 0) {
       calculateSlots(selectedDate);
     }
-  }, [selectedDate, selectedProfessional, selectedServices, professionalHours, businessHours, totalDuration, company]);
+  }, [selectedDate, selectedProfessional, selectedServices, totalDuration, company]);
 
   useEffect(() => {
     if (professionals.length === 1 && selectedProfessional !== professionals[0].id) {
@@ -924,38 +926,60 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
       setSmartSuggestion(null);
       return;
     }
+    
     setNextSlotsLoading(true);
-    const results: { date: Date; slots: string[] }[] = [];
-    let totalSlotsFound = 0;
-    let suggestion: { date: Date; slot: string; reason: 'tight-fit' | 'first-available' } | null = null;
-    const MAX_SLOTS = 8;
     const MAX_DAYS = 7;
-    for (let i = 0; i < MAX_DAYS && totalSlotsFound < MAX_SLOTS; i++) {
-      const day = addDays(startOfDay(new Date()), i);
-      // Unified availability service — same code path as the manual booking flow.
-      const result = await getAvailableSlots({
-        source: 'public',
-        companyId: company.id,
-        professionalId: selectedProfessional,
-        date: day,
-        totalDuration,
-        filterPastForToday: true,
-      });
-      console.log('[UI RECEIVED]', result.slots);
-      if (result.slots.length > 0) {
-        if (!suggestion) {
-          suggestion = { date: day, slot: result.slots[0], reason: 'first-available' };
-          console.log('[SUGGESTED_SLOT]', suggestion);
+    const MAX_SLOTS = 8;
+    
+    // Parallelize availability fetching for the next 7 days
+    const days = Array.from({ length: MAX_DAYS }, (_, i) => addDays(startOfDay(new Date()), i));
+    
+    try {
+      const dayResults = await Promise.all(
+        days.map(day => 
+          getAvailableSlots({
+            source: 'public',
+            companyId: company.id,
+            professionalId: selectedProfessional,
+            date: day,
+            totalDuration,
+            filterPastForToday: true,
+          }).then(res => ({ date: day, slots: res.slots }))
+        )
+      );
+
+      const results: { date: Date; slots: string[] }[] = [];
+      let totalSlotsFound = 0;
+      let suggestion: { date: Date; slot: string; reason: 'tight-fit' | 'first-available' } | null = null;
+
+      for (const res of dayResults) {
+        if (totalSlotsFound >= MAX_SLOTS) break;
+        
+        let slots = res.slots;
+        // Apply promo filters if any
+        if (promoData) {
+          if (promoData.start_time) slots = slots.filter(s => s >= promoData.start_time!);
+          if (promoData.end_time) slots = slots.filter(s => s <= promoData.end_time!);
         }
-        const remaining = MAX_SLOTS - totalSlotsFound;
-        const daySlots = result.slots.slice(0, remaining);
-        results.push({ date: day, slots: daySlots });
-        totalSlotsFound += daySlots.length;
+
+        if (slots.length > 0) {
+          if (!suggestion) {
+            suggestion = { date: res.date, slot: slots[0], reason: 'first-available' };
+          }
+          const remaining = MAX_SLOTS - totalSlotsFound;
+          const daySlots = slots.slice(0, remaining);
+          results.push({ date: res.date, slots: daySlots });
+          totalSlotsFound += daySlots.length;
+        }
       }
+
+      setNextSlots(results);
+      setSmartSuggestion(suggestion);
+    } catch (error) {
+      console.error('[Booking] Failed to fetch next available slots', error);
+    } finally {
+      setNextSlotsLoading(false);
     }
-    setNextSlots(results);
-    setSmartSuggestion(suggestion);
-    setNextSlotsLoading(false);
   };
 
   useEffect(() => {
