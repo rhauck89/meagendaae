@@ -38,6 +38,9 @@ interface Promotion {
   end_date: string;
   start_time: string | null;
   end_time: string | null;
+  use_business_hours?: boolean;
+  valid_days?: number[];
+  min_interval_minutes?: number;
   max_slots: number;
   used_slots: number;
   client_filter: string;
