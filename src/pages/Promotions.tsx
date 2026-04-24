@@ -1782,7 +1782,14 @@ export default function Promotions() {
                   <Card key={promo.id} className={`transition-all duration-500 ${status === 'expired' || status === 'paused' ? 'opacity-70' : ''} ${isHighlighted ? 'ring-2 ring-primary shadow-lg animate-pulse' : ''}`}>
                     <CardHeader className="pb-2">
                       <div className="flex items-start justify-between gap-2">
-                        <CardTitle className="text-lg">{promo.title}</CardTitle>
+                        <CardTitle className="text-lg flex items-center gap-2">
+                          {promo.title}
+                          {promo.promotion_mode === 'smart' ? (
+                            <Badge variant="outline" className="text-[10px] uppercase font-bold text-primary border-primary/20 bg-primary/5 py-0 px-1.5 h-4">🤖 IA</Badge>
+                          ) : (
+                            <Badge variant="outline" className="text-[10px] uppercase font-bold text-muted-foreground border-muted-foreground/20 bg-muted/30 py-0 px-1.5 h-4">🧩 Manual</Badge>
+                          )}
+                        </CardTitle>
                         <div className="flex items-center gap-1">
                           {renderStatusBadge(promo)}
                           <DropdownMenu>
