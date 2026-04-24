@@ -528,6 +528,45 @@ const Loyalty = () => {
               </CardContent>
             </Card>
           )}
+
+          {/* Smart Rewards (premium / gated by plan loyalty feature) */}
+          <PlanFeatureGate
+            feature="loyalty"
+            upgradePrompt={{
+              title: 'Recompensas Inteligentes (Premium)',
+              description: 'Sugestões automáticas da próxima recompensa ideal para cada cliente com base no histórico de serviços. Disponível em planos superiores.',
+            }}
+          >
+            {topClients.length > 0 && rewardItems.length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <Sparkles className="h-4 w-4 text-primary" /> Recompensas Inteligentes
+                  </CardTitle>
+                  <p className="text-xs text-muted-foreground">
+                    Sugestão automática da próxima recompensa ideal para os top clientes, com base no serviço favorito e no saldo atual.
+                  </p>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  {topClients.slice(0, 5).map((c) => {
+                    const history = topClientsHistory[c.id] || [];
+                    const suggestion = suggestSmartReward({
+                      currentBalance: c.balance,
+                      appointmentHistory: history,
+                      rewards: rewardItems as any,
+                    });
+                    if (!suggestion) return null;
+                    return (
+                      <div key={c.id} className="space-y-1.5">
+                        <p className="text-sm font-medium">{c.name} <span className="text-xs text-muted-foreground">· {c.balance} pts</span></p>
+                        <SmartRewardCard suggestion={suggestion} pointValue={pointValue} compact />
+                      </div>
+                    );
+                  })}
+                </CardContent>
+              </Card>
+            )}
+          </PlanFeatureGate>
         </TabsContent>
 
         {/* SETTINGS TAB */}
