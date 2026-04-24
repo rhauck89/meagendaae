@@ -33,6 +33,7 @@ import { AgendaTimelineView } from '@/components/AgendaTimelineView';
 import { AgendaWeekView } from '@/components/AgendaWeekView';
 import { AgendaMonthView } from '@/components/AgendaMonthView';
 import { ResponsiveContainer, LineChart, Line } from 'recharts';
+import { UnifiedAppointmentCard } from '@/components/appointments/UnifiedAppointmentCard';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useFinancialPrivacy } from '@/contexts/FinancialPrivacyContext';
 import FinancialPrivacyToggle from '@/components/FinancialPrivacyToggle';
