@@ -1434,13 +1434,15 @@ export default function Promotions() {
                         </div>
                         <div className="flex items-center gap-1.5">
                           {promo.use_business_hours !== false ? (
-                            <span className="flex items-center gap-1"><Clock className="h-3 w-3" /> Segue horário comercial</span>
+                            <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-medium">
+                              <Clock className="h-3 w-3" /> Segue horário comercial
+                            </span>
                           ) : (
-                            <span className="flex items-center gap-1">
+                            <span className="flex items-center gap-1 text-primary font-medium">
                               <Clock className="h-3 w-3" /> 
-                              {promo.start_time?.slice(0, 5)} - {promo.end_time?.slice(0, 5)}
+                              {promo.start_time?.slice(0, 5)} às {promo.end_time?.slice(0, 5)}
                               {promo.valid_days && promo.valid_days.length < 7 && (
-                                <span className="ml-1 text-primary">({promo.valid_days.length} dias/sem)</span>
+                                <span className="ml-1 text-[10px] opacity-70">({promo.valid_days.length} dias/sem)</span>
                               )}
                             </span>
                           )}
