@@ -12,7 +12,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Textarea } from '@/components/ui/textarea';
-import { Star, Trophy, Gift, ArrowUpDown, Settings, Eye, Plus, Pencil, Trash2, AlertTriangle, CheckCircle, XCircle, Search, Upload, ImageIcon, ScanLine } from 'lucide-react';
+import { Star, Trophy, Gift, ArrowUpDown, Settings, Eye, Plus, Pencil, Trash2, AlertTriangle, CheckCircle, XCircle, Search, Upload, ImageIcon, ScanLine, Wallet } from 'lucide-react';
+import CashbackTab from '@/components/loyalty/CashbackTab';
 import { RewardQRScannerDialog } from '@/components/RewardQRScannerDialog';
 import { toast } from 'sonner';
 import { format, parseISO } from 'date-fns';
@@ -391,12 +392,17 @@ const Loyalty = () => {
       </div>
 
       <Tabs value={tab} onValueChange={setTab}>
-        <TabsList className="w-full grid grid-cols-4">
+        <TabsList className="w-full grid grid-cols-2 sm:grid-cols-5 h-auto">
           <TabsTrigger value="overview" className="gap-1.5"><Eye className="h-4 w-4" /> Visão geral</TabsTrigger>
-          <TabsTrigger value="settings" className="gap-1.5"><Settings className="h-4 w-4" /> Configurações</TabsTrigger>
-          <TabsTrigger value="rewards" className="gap-1.5"><Gift className="h-4 w-4" /> Itens de resgate</TabsTrigger>
+          <TabsTrigger value="cashback" className="gap-1.5"><Wallet className="h-4 w-4" /> Cashback</TabsTrigger>
+          <TabsTrigger value="settings" className="gap-1.5"><Settings className="h-4 w-4" /> Pontos</TabsTrigger>
+          <TabsTrigger value="rewards" className="gap-1.5"><Gift className="h-4 w-4" /> Recompensas</TabsTrigger>
           <TabsTrigger value="transactions" className="gap-1.5"><ArrowUpDown className="h-4 w-4" /> Movimentações</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="cashback" className="mt-4">
+          <CashbackTab />
+        </TabsContent>
 
         {/* OVERVIEW TAB */}
         <TabsContent value="overview" className="space-y-4 mt-4">

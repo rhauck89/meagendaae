@@ -285,6 +285,7 @@ export default function Promotions() {
       .from('promotions')
       .select('*')
       .eq('company_id', companyId!)
+      .neq('promotion_type', 'cashback')
       .order('created_at', { ascending: false });
     
     // Professionals only see their own promotions
@@ -729,19 +730,10 @@ export default function Promotions() {
     
     return (
     <div className="space-y-4">
-      {/* Promotion type selector */}
-      <div>
-        <Label>Tipo de Promoção *</Label>
-        <Select value={promotionType} onValueChange={(v: 'traditional' | 'cashback') => { setPromotionType(v); setWizardStep(1); if (v === 'cashback' && discountType === 'fixed_price') setDiscountType('percentage'); setMessageTemplate(v === 'cashback' ? DEFAULT_CASHBACK_TEMPLATE : DEFAULT_TEMPLATE); }}>
-          <SelectTrigger><SelectValue /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="traditional">Promoção Tradicional</SelectItem>
-            <SelectItem value="cashback">Cashback</SelectItem>
-          </SelectContent>
-        </Select>
-        <p className="text-xs text-muted-foreground mt-1">
-          {promotionType === 'traditional' ? 'Desconto aplicado no momento do agendamento.' : 'Cliente recebe crédito após o serviço concluído para usar no próximo agendamento.'}
-        </p>
+      {/* Cashback moved to Loyalty module */}
+      <div className="rounded-md border border-amber-500/30 bg-amber-500/5 p-3 text-xs text-muted-foreground">
+        💡 <strong>Cashback agora vive em Fidelidade.</strong> Esta tela é só para promoções tradicionais (desconto imediato).{' '}
+        <a href="/dashboard/loyalty" className="underline text-amber-600 dark:text-amber-400 font-medium">Ir para Cashback →</a>
       </div>
 
       <div>
