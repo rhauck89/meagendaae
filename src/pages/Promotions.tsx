@@ -2018,9 +2018,9 @@ export default function Promotions() {
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <p className="text-sm text-muted-foreground">{filteredClients.length} cliente(s) filtrados</p>
                 {selectedPromotion?.promotion_mode === 'smart' && (
-                  <div className="flex items-center gap-2 bg-primary/5 text-primary px-3 py-1.5 rounded-full border border-primary/10 animate-pulse">
-                    <Check className="h-4 w-4" />
-                    <span className="text-xs font-bold">Público sugerido automaticamente pela IA ✅</span>
+                  <div className="flex items-center gap-2 bg-primary/5 text-primary px-3 py-1.5 rounded-full border border-primary/20 shadow-sm">
+                    <Zap className="h-3.5 w-3.5 fill-primary/20" />
+                    <span className="text-xs font-semibold">Público sugerido pela IA</span>
                   </div>
                 )}
                 <Button 
