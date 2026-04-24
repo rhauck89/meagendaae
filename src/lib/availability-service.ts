@@ -376,6 +376,7 @@ export async function getAvailableSlots(
     date,
     totalDuration,
     filterPastForToday = true,
+    prefetchData,
   } = params;
 
   if (!companyId || !professionalId || totalDuration <= 0) {
@@ -390,7 +391,7 @@ export async function getAvailableSlots(
 
   const [config, inputs] = await Promise.all([
     resolveBookingConfig(source, companyId, professionalId),
-    fetchSlotInputs(source, companyId, professionalId, date),
+    fetchSlotInputs(source, companyId, professionalId, date, prefetchData),
   ]);
 
   console.log('[SERVICE INPUT]', {
