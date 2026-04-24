@@ -2231,7 +2231,7 @@ const Dashboard = () => {
       </AlertDialog>
 
       {/* Reschedule Dialog */}
-      <Dialog open={rescheduleDialogOpen} onOpenChange={(open) => { setRescheduleDialogOpen(open); if (!open) { setRescheduleTarget(null); setRescheduleDate(undefined); setRescheduleSlots([]); setRescheduleSelectedSlot(null); } }}>
+      <Dialog open={rescheduleDialogOpen} onOpenChange={(open) => { setRescheduleDialogOpen(open); if (!open) { setRescheduleTarget(null); setRescheduleDate(undefined); setRescheduleSlots([]); setRescheduleSelectedSlot(null); setRescheduleMode('time'); setRescheduleProfessionalId(null); } }}>
         {rescheduleDialogOpen && (
         <DialogContent className="sm:max-w-[720px]">
           <DialogHeader>
