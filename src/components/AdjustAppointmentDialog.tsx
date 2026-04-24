@@ -35,10 +35,12 @@ export function AdjustAppointmentDialog({
   const [aiLoading, setAiLoading] = useState(false);
 
   useEffect(() => {
-    if (open && appointment?.promotion_id) {
-      fetchPromoData();
+    if (open && appointment) {
+      if (appointment.promotion_id) fetchPromoData();
+      fetchAISuggestion();
     } else {
       setPromoData(null);
+      setAiSuggestion(null);
     }
   }, [open, appointment]);
 
@@ -49,6 +51,61 @@ export function AdjustAppointmentDialog({
       .eq('id', appointment.promotion_id)
       .maybeSingle();
     setPromoData(data);
+  };
+
+  const fetchAISuggestion = async () => {
+    if (!appointment || !appointment.company_id) return;
+    setAiLoading(true);
+    try {
+      const { data: collaborators } = await supabase
+        .from('collaborators')
+        .select('profile_id, profile:profiles(full_name)')
+        .eq('company_id', appointment.company_id);
+
+      if (!collaborators || collaborators.length === 0) return;
+
+      const date = parseISO(appointment.start_time);
+      const totalDuration = appointment.appointment_services?.reduce(
+        (sum: number, s: any) => sum + (s.duration_minutes || 0), 0
+      ) || 30;
+
+      // Parallel availability check for all professionals
+      const availResults = await Promise.all(
+        collaborators.map(async (c) => {
+          const res = await getAvailableSlots({
+            source: 'manual',
+            companyId: appointment.company_id,
+            professionalId: c.profile_id,
+            date,
+            totalDuration,
+            filterPastForToday: true,
+          });
+          return {
+            professionalId: c.profile_id,
+            professionalName: (c.profile as any)?.full_name || 'Profissional',
+            slots: res.slots,
+            appointments: res.existingAppointments,
+          };
+        })
+      );
+
+      const suggestion = calculateAIOperationalSuggestion(
+        {
+          start_time: appointment.start_time,
+          professional_id: appointment.professional_id,
+          professional_name: appointment.professional?.full_name || 'Profissional',
+          duration: totalDuration,
+        },
+        availResults,
+        date
+      );
+
+      setAiSuggestion(suggestion);
+    } catch (err) {
+      console.error('Error fetching AI suggestion:', err);
+    } finally {
+      setAiLoading(false);
+    }
   };
 
   const handleConvertToNormal = async () => {
