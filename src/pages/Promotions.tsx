@@ -22,7 +22,7 @@ import { Progress } from '@/components/ui/progress';
 import { toast } from '@/hooks/use-toast';
 import { format, parseISO, isToday, isTomorrow, differenceInCalendarDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Plus, MessageCircle, Send, Users, Tag, Megaphone, Copy, BarChart3, Eye, TrendingUp, MousePointerClick, CalendarCheck, ChevronLeft, ChevronRight, Check, Clock, Flame, Timer } from 'lucide-react';
+import { Plus, MessageCircle, Send, Users, Tag, Megaphone, Copy, BarChart3, Eye, TrendingUp, MousePointerClick, CalendarCheck, ChevronLeft, ChevronRight, Check, Clock, Flame, Timer, Zap } from 'lucide-react';
 import { formatWhatsApp, displayWhatsApp, buildWhatsAppUrl, trackWhatsAppClick } from '@/lib/whatsapp';
 
 interface Promotion {
@@ -423,21 +423,26 @@ export default function Promotions() {
     }
 
     // 4. Lunch time
+    const currentHour = new Date().getHours();
+    const isPastLunch = currentHour >= 14;
     newInsights.push({
       type: 'lunch_time',
-      title: '🍽️ Horário fraco no almoço',
-      description: 'Geralmente as 11h às 14h são horários mais calmos.',
-      buttonLabel: '☀️ Promo almoço',
-      icon: Clock
+      title: isPastLunch ? '🍽️ Almoço de Amanhã' : '🍽️ Horário fraco no almoço',
+      description: isPastLunch ? 'Já comece a lotar seu horário de almoço de amanhã.' : 'Geralmente as 11h às 14h são horários mais calmos.',
+      buttonLabel: isPastLunch ? '☀️ Promo almoço amanhã' : '☀️ Promo almoço',
+      icon: Clock,
+      data: { isTomorrow: isPastLunch }
     });
 
     // 5. Afternoon
+    const isPastAfternoon = currentHour >= 19;
     newInsights.push({
       type: 'afternoon_low',
-      title: '🌙 Fim de tarde com baixa ocupação',
-      description: 'Preencha os horários após as 17h com um desconto rápido.',
-      buttonLabel: '🌙 Promo fim de tarde',
-      icon: Flame
+      title: isPastAfternoon ? '🌙 Tarde de Amanhã' : '🌙 Fim de tarde com baixa ocupação',
+      description: isPastAfternoon ? 'Garanta agendamentos para o fim da tarde de amanhã.' : 'Preencha os horários após as 17h com um desconto rápido.',
+      buttonLabel: isPastAfternoon ? '🌙 Promo tarde amanhã' : '🌙 Promo fim de tarde',
+      icon: Flame,
+      data: { isTomorrow: isPastAfternoon }
     });
 
     // Tip fallback
@@ -453,27 +458,24 @@ export default function Promotions() {
 
   const applyInsight = (insight: PromotionInsight) => {
     resetForm();
+    const todayStr = format(new Date(), 'yyyy-MM-dd');
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const tomorrowStr = format(tomorrow, 'yyyy-MM-dd');
     
+    // Logic for early activation (start today at 19:00 or now)
+    const nowHour = new Date().getHours();
+    const defaultStartTime = nowHour < 19 ? '19:00' : `${String(Math.min(23, nowHour + 1)).padStart(2, '0')}:00`;
+
     switch (insight.type) {
       case 'low_occupancy':
-        const todayStr = format(new Date(), 'yyyy-MM-dd');
-        const tomorrowStr = insight.data.date;
-        
         setTitle(`Relâmpago: Vagas para Amanhã`);
         setStartDate(todayStr);
         setEndDate(tomorrowStr);
         setSingleDay(false);
         setDiscountType('percentage');
         setDiscountValue('15');
-        
-        // start_time logic: current hour rounded or 19:00
-        const nowHour = new Date().getHours();
-        if (nowHour < 19) {
-          setStartTime('19:00');
-        } else {
-          setStartTime(`${String(Math.min(23, nowHour + 1)).padStart(2, '0')}:00`);
-        }
-        
+        setStartTime(defaultStartTime);
         setEndTime('13:30'); 
         setUseBusinessHours(false);
         setDescription('Aproveite nossos horários vagos para amanhã com um desconto especial!');
@@ -508,30 +510,36 @@ export default function Promotions() {
         setMessageTemplate(`Olá {{cliente_primeiro_nome}}, tudo bem? 😊\n\nFaz tempo que você não nos visita na {{empresa_nome}}... Saiba que sentimos sua falta!\n\nPara te incentivar a voltar, aqui está um cupom de R$ 10,00 para seu próximo agendamento: {{link_promocao}}`);
         break;
       case 'lunch_time':
-        const todayLunch = format(new Date(), 'yyyy-MM-dd');
-        setTitle('Promoção Almoço ☀️');
-        setStartDate(todayLunch);
-        setEndDate(todayLunch);
-        setSingleDay(true);
+        const isLunchTomorrow = insight.data?.isTomorrow;
+        setTitle(isLunchTomorrow ? 'Promo Almoço Amanhã ☀️' : 'Promoção Almoço ☀️');
+        setStartDate(todayStr);
+        setEndDate(isLunchTomorrow ? tomorrowStr : todayStr);
+        setSingleDay(!isLunchTomorrow);
         setUseBusinessHours(false);
-        setStartTime('11:00');
+        setStartTime(isLunchTomorrow ? defaultStartTime : '11:00');
         setEndTime('14:00');
         setDiscountType('percentage');
         setDiscountValue('10');
-        setMessageTemplate(`Horário de almoço com desconto na {{empresa_nome}}! 🍽️✨\n\nAgende entre 11h e 14h e ganhe 10% OFF.\n\nReserve aqui: {{link_promocao}}`);
+        setMessageTemplate(isLunchTomorrow 
+          ? `Já pensou no almoço de amanhã? 🍽️✨\n\nAgende entre 11h e 14h de amanhã na {{empresa_nome}} e ganhe 10% OFF.\n\nReserve agora: {{link_promocao}}`
+          : `Horário de almoço com desconto na {{empresa_nome}}! 🍽️✨\n\nAgende entre 11h e 14h e ganhe 10% OFF.\n\nReserve aqui: {{link_promocao}}`
+        );
         break;
       case 'afternoon_low':
-        const todayAfternoon = format(new Date(), 'yyyy-MM-dd');
-        setTitle('Happy Hour da Beleza 🌙');
-        setStartDate(todayAfternoon);
-        setEndDate(todayAfternoon);
-        setSingleDay(true);
+        const isAfternoonTomorrow = insight.data?.isTomorrow;
+        setTitle(isAfternoonTomorrow ? 'Happy Hour Amanhã 🌙' : 'Happy Hour da Beleza 🌙');
+        setStartDate(todayStr);
+        setEndDate(isAfternoonTomorrow ? tomorrowStr : todayStr);
+        setSingleDay(!isAfternoonTomorrow);
         setUseBusinessHours(false);
-        setStartTime('17:00');
+        setStartTime(isAfternoonTomorrow ? defaultStartTime : '17:00');
         setEndTime('20:00');
         setDiscountType('percentage');
         setDiscountValue('15');
-        setMessageTemplate(`Que tal um trato no visual depois do trabalho? 🌙✂️\n\nNo nosso Happy Hour (17h às 20h) você ganha 15% de desconto!\n\nAgende agora: {{link_promocao}}`);
+        setMessageTemplate(isAfternoonTomorrow
+          ? `Garanta seu Happy Hour de amanhã! 🌙✂️\n\nAgende para amanhã entre 17h e 20h e ganhe 15% de desconto!\n\nAgende agora: {{link_promocao}}`
+          : `Que tal um trato no visual depois do trabalho? 🌙✂️\n\nNo nosso Happy Hour (17h às 20h) você ganha 15% de desconto!\n\nAgende agora: {{link_promocao}}`
+        );
         break;
     }
     setDialogOpen(true);
@@ -986,6 +994,7 @@ export default function Promotions() {
   const renderStatusBadge = (promo: Promotion) => {
     const status = promoVisualStatus(promo, now);
     const start = getPromoStart(promo);
+    const isTargetingTomorrow = isTomorrow(parseISO(promo.end_date)) && isToday(parseISO(promo.start_date));
     
     switch (status) {
       case 'scheduled':
@@ -1007,15 +1016,14 @@ export default function Promotions() {
         return (
           <Badge className="bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-900/30 dark:text-indigo-400 dark:border-indigo-800 gap-1.5 py-1 px-3">
             <CalendarCheck className="h-3.5 w-3.5" />
-            Começa automaticamente {dateText}
+            {isTargetingTomorrow ? `🟢 Ativa hoje às ${formattedHour} para reservas de amanhã` : `📅 Começa automaticamente ${dateText}`}
           </Badge>
         );
       case 'active':
-        const isTargetingTomorrow = isTomorrow(parseISO(promo.end_date)) && isToday(parseISO(promo.start_date));
         return (
           <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-800 gap-1.5 py-1 px-3 shadow-sm font-medium">
-            <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-            {isTargetingTomorrow ? 'Ativa agora para reservas de amanhã' : 'Ativa agora'}
+            {isTargetingTomorrow ? <Zap className="h-3.5 w-3.5 fill-emerald-500" /> : <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />}
+            {isTargetingTomorrow ? '🚀 Ativa agora para reservas de amanhã' : '🟢 Ativa agora'}
           </Badge>
         );
       case 'paused':
