@@ -458,27 +458,24 @@ export default function Promotions() {
 
   const applyInsight = (insight: PromotionInsight) => {
     resetForm();
+    const todayStr = format(new Date(), 'yyyy-MM-dd');
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const tomorrowStr = format(tomorrow, 'yyyy-MM-dd');
     
+    // Logic for early activation (start today at 19:00 or now)
+    const nowHour = new Date().getHours();
+    const defaultStartTime = nowHour < 19 ? '19:00' : `${String(Math.min(23, nowHour + 1)).padStart(2, '0')}:00`;
+
     switch (insight.type) {
       case 'low_occupancy':
-        const todayStr = format(new Date(), 'yyyy-MM-dd');
-        const tomorrowStr = insight.data.date;
-        
         setTitle(`Relâmpago: Vagas para Amanhã`);
         setStartDate(todayStr);
         setEndDate(tomorrowStr);
         setSingleDay(false);
         setDiscountType('percentage');
         setDiscountValue('15');
-        
-        // start_time logic: current hour rounded or 19:00
-        const nowHour = new Date().getHours();
-        if (nowHour < 19) {
-          setStartTime('19:00');
-        } else {
-          setStartTime(`${String(Math.min(23, nowHour + 1)).padStart(2, '0')}:00`);
-        }
-        
+        setStartTime(defaultStartTime);
         setEndTime('13:30'); 
         setUseBusinessHours(false);
         setDescription('Aproveite nossos horários vagos para amanhã com um desconto especial!');
@@ -513,30 +510,36 @@ export default function Promotions() {
         setMessageTemplate(`Olá {{cliente_primeiro_nome}}, tudo bem? 😊\n\nFaz tempo que você não nos visita na {{empresa_nome}}... Saiba que sentimos sua falta!\n\nPara te incentivar a voltar, aqui está um cupom de R$ 10,00 para seu próximo agendamento: {{link_promocao}}`);
         break;
       case 'lunch_time':
-        const todayLunch = format(new Date(), 'yyyy-MM-dd');
-        setTitle('Promoção Almoço ☀️');
-        setStartDate(todayLunch);
-        setEndDate(todayLunch);
-        setSingleDay(true);
+        const isLunchTomorrow = insight.data?.isTomorrow;
+        setTitle(isLunchTomorrow ? 'Promo Almoço Amanhã ☀️' : 'Promoção Almoço ☀️');
+        setStartDate(todayStr);
+        setEndDate(isLunchTomorrow ? tomorrowStr : todayStr);
+        setSingleDay(!isLunchTomorrow);
         setUseBusinessHours(false);
-        setStartTime('11:00');
+        setStartTime(isLunchTomorrow ? defaultStartTime : '11:00');
         setEndTime('14:00');
         setDiscountType('percentage');
         setDiscountValue('10');
-        setMessageTemplate(`Horário de almoço com desconto na {{empresa_nome}}! 🍽️✨\n\nAgende entre 11h e 14h e ganhe 10% OFF.\n\nReserve aqui: {{link_promocao}}`);
+        setMessageTemplate(isLunchTomorrow 
+          ? `Já pensou no almoço de amanhã? 🍽️✨\n\nAgende entre 11h e 14h de amanhã na {{empresa_nome}} e ganhe 10% OFF.\n\nReserve agora: {{link_promocao}}`
+          : `Horário de almoço com desconto na {{empresa_nome}}! 🍽️✨\n\nAgende entre 11h e 14h e ganhe 10% OFF.\n\nReserve aqui: {{link_promocao}}`
+        );
         break;
       case 'afternoon_low':
-        const todayAfternoon = format(new Date(), 'yyyy-MM-dd');
-        setTitle('Happy Hour da Beleza 🌙');
-        setStartDate(todayAfternoon);
-        setEndDate(todayAfternoon);
-        setSingleDay(true);
+        const isAfternoonTomorrow = insight.data?.isTomorrow;
+        setTitle(isAfternoonTomorrow ? 'Happy Hour Amanhã 🌙' : 'Happy Hour da Beleza 🌙');
+        setStartDate(todayStr);
+        setEndDate(isAfternoonTomorrow ? tomorrowStr : todayStr);
+        setSingleDay(!isAfternoonTomorrow);
         setUseBusinessHours(false);
-        setStartTime('17:00');
+        setStartTime(isAfternoonTomorrow ? defaultStartTime : '17:00');
         setEndTime('20:00');
         setDiscountType('percentage');
         setDiscountValue('15');
-        setMessageTemplate(`Que tal um trato no visual depois do trabalho? 🌙✂️\n\nNo nosso Happy Hour (17h às 20h) você ganha 15% de desconto!\n\nAgende agora: {{link_promocao}}`);
+        setMessageTemplate(isAfternoonTomorrow
+          ? `Garanta seu Happy Hour de amanhã! 🌙✂️\n\nAgende para amanhã entre 17h e 20h e ganhe 15% de desconto!\n\nAgende agora: {{link_promocao}}`
+          : `Que tal um trato no visual depois do trabalho? 🌙✂️\n\nNo nosso Happy Hour (17h às 20h) você ganha 15% de desconto!\n\nAgende agora: {{link_promocao}}`
+        );
         break;
     }
     setDialogOpen(true);
