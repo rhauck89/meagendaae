@@ -156,40 +156,13 @@ const MyAppointments = () => {
           </div>
         ) : (
           appointments.map((apt) => (
-            <Card key={apt.id}>
-              <CardContent className="p-4 space-y-3">
-                <div className="flex items-center justify-between">
-                  <p className="font-display font-bold">{apt.company?.name}</p>
-                  <Badge variant="outline" className={cn('text-xs', statusColors[apt.status])}>
-                    {statusLabels[apt.status]}
-                  </Badge>
-                </div>
-                <div className="text-sm space-y-1">
-                  <p className="flex items-center gap-2">
-                    <Calendar className="h-4 w-4 text-muted-foreground" />
-                    {format(parseISO(apt.start_time), "dd 'de' MMMM, yyyy", { locale: ptBR })}
-                  </p>
-                  <p className="flex items-center gap-2">
-                    <Clock className="h-4 w-4 text-muted-foreground" />
-                    {format(parseISO(apt.start_time), 'HH:mm')} - {format(parseISO(apt.end_time), 'HH:mm')}
-                  </p>
-                  <p className="text-muted-foreground">
-                    com {apt.professional?.full_name}
-                  </p>
-                  <p className="text-muted-foreground">
-                    {formatServicesWithDuration(apt.appointment_services)}
-                  </p>
-                </div>
-                <div className="flex items-center justify-between pt-2 border-t">
-                  <span className="font-display font-bold">R$ {Number(apt.total_price).toFixed(2)}</span>
-                  {!isPast(parseISO(apt.start_time)) && apt.status !== 'cancelled' && apt.status !== 'completed' && (
-                    <Button variant="ghost" size="sm" className="text-destructive" onClick={() => cancelAppointment(apt.id)}>
-                      <X className="h-4 w-4 mr-1" /> Cancelar
-                    </Button>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
+            <UnifiedAppointmentCard
+              key={apt.id}
+              appointment={apt}
+              isAdmin={false}
+              showCompany={true}
+              onCancel={(apt) => cancelAppointment(apt.id)}
+            />
           ))
         )}
       </div>
