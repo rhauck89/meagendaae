@@ -265,9 +265,17 @@ export default function Promotions() {
     }
   }, [discoveryLoading, hasSeen]);
 
-  // Update clock every 60s for countdown
+  // Update clock and rotation every 60s
   useEffect(() => {
-    const interval = setInterval(() => setNow(new Date()), 60000);
+    const interval = setInterval(() => {
+      setNow(new Date());
+      setInsights(prev => {
+        if (prev.length > 1) {
+          setActiveInsightIndex(current => (current + 1) % prev.length);
+        }
+        return prev;
+      });
+    }, 15000); // Rotate every 15s
     return () => clearInterval(interval);
   }, []);
 
@@ -279,6 +287,7 @@ export default function Promotions() {
   const handlePromotionsRefresh = useCallback(() => {
     if (companyId) fetchPromotions();
   }, [companyId]);
+  useOnDataRefresh('promotions', handlePromotionsRefresh);
   useOnDataRefresh('promotions', handlePromotionsRefresh);
 
   // Clear highlight after a few seconds
