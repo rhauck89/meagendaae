@@ -656,16 +656,18 @@ export default function Promotions() {
 
     const { data: appointments } = await supabase
       .from('appointments')
-      .select('client_id, total_price, start_time, status')
+      .select('client_id, total_price, start_time, status, professional_id')
       .eq('company_id', companyId!)
       .in('status', ['completed', 'confirmed']);
 
-    const clientStats = new Map<string, { totalSpent: number; lastVisit: string | null; visitCount: number }>();
+    const clientStats = new Map<string, { totalSpent: number; lastVisit: string | null; visitCount: number; professionalIds: Set<string>; visitHours: number[] }>();
     appointments?.forEach(apt => {
       if (!apt.client_id) return;
-      const c = clientStats.get(apt.client_id) || { totalSpent: 0, lastVisit: null, visitCount: 0 };
+      const c = clientStats.get(apt.client_id) || { totalSpent: 0, lastVisit: null, visitCount: 0, professionalIds: new Set<string>(), visitHours: [] };
       c.totalSpent += Number(apt.total_price) || 0;
       c.visitCount++;
+      if (apt.professional_id) c.professionalIds.add(apt.professional_id);
+      if (apt.start_time) c.visitHours.push(new Date(apt.start_time).getHours());
       if (!c.lastVisit || apt.start_time > c.lastVisit) c.lastVisit = apt.start_time;
       clientStats.set(apt.client_id, c);
     });
@@ -675,28 +677,60 @@ export default function Promotions() {
       return { id: c.id, name: c.name, whatsapp: c.whatsapp, birth_date: c.birth_date, last_visit: s?.lastVisit || null, total_spent: s?.totalSpent || 0, visit_count: s?.visitCount || 0 };
     });
 
-    const filter = promotion.client_filter;
-    const filterVal = promotion.client_filter_value;
+    // Smart logic priority if it's a smart promotion
+    if (promotion.promotion_mode === 'smart' && promotion.source_insight) {
+      const insight = promotion.source_insight;
+      if (insight === 'reactivation') {
+        const cutoff = new Date(); cutoff.setDate(cutoff.getDate() - 30);
+        result = result.filter(c => !c.last_visit || new Date(c.last_visit) < cutoff);
+      } else if (insight === 'birthdays') {
+        const m = new Date().getMonth() + 1;
+        result = result.filter(c => c.birth_date && parseInt(c.birth_date.split('-')[1], 10) === m);
+      } else if (insight === 'low_occupancy') {
+        // Active in last 60 days
+        const cutoff = new Date(); cutoff.setDate(cutoff.getDate() - 60);
+        result = result.filter(c => c.last_visit && new Date(c.last_visit) >= cutoff);
+      } else if (insight === 'lunch_time') {
+        // Customers who usually book between 9h and 14h
+        result = result.filter(c => {
+          const stats = clientStats.get(c.id);
+          if (!stats) return false;
+          const morningLunchVisits = stats.visitHours.filter(h => h >= 9 && h <= 14).length;
+          return morningLunchVisits > 0;
+        });
+      } else if (insight === 'professional_idle' && promotion.professional_ids?.length) {
+        // Customers of the target professional
+        result = result.filter(c => {
+          const stats = clientStats.get(c.id);
+          if (!stats) return false;
+          return promotion.professional_ids?.some(pid => stats.professionalIds.has(pid));
+        });
+      }
+    } else {
+      // Manual filter logic
+      const filter = promotion.client_filter;
+      const filterVal = promotion.client_filter_value;
 
-    if (filter === 'birthday_month') {
-      const m = new Date().getMonth() + 1;
-      result = result.filter(c => c.birth_date && parseInt(c.birth_date.split('-')[1], 10) === m);
-    } else if (filter === 'top_spending') {
-      result.sort((a, b) => (b.total_spent || 0) - (a.total_spent || 0));
-      result = result.slice(0, filterVal || 20);
-    } else if (filter === 'inactive') {
-      const days = filterVal || 30;
-      const cutoff = new Date(); cutoff.setDate(cutoff.getDate() - days);
-      result = result.filter(c => !c.last_visit || new Date(c.last_visit) < cutoff);
-    } else if (filter === 'new_clients') {
-      const days = filterVal || 30;
-      const cutoff = new Date(); cutoff.setDate(cutoff.getDate() - days);
-      result = result.filter(c => {
-        const cl = clients.find(cl2 => cl2.id === c.id);
-        return cl && new Date(cl.created_at) >= cutoff;
-      });
-    } else if (filter === 'frequent') {
-      result = result.filter(c => (c.visit_count || 0) >= (filterVal || 5));
+      if (filter === 'birthday_month') {
+        const m = new Date().getMonth() + 1;
+        result = result.filter(c => c.birth_date && parseInt(c.birth_date.split('-')[1], 10) === m);
+      } else if (filter === 'top_spending') {
+        result.sort((a, b) => (b.total_spent || 0) - (a.total_spent || 0));
+        result = result.slice(0, filterVal || 20);
+      } else if (filter === 'inactive') {
+        const days = filterVal || 30;
+        const cutoff = new Date(); cutoff.setDate(cutoff.getDate() - days);
+        result = result.filter(c => !c.last_visit || new Date(c.last_visit) < cutoff);
+      } else if (filter === 'new_clients') {
+        const days = filterVal || 30;
+        const cutoff = new Date(); cutoff.setDate(cutoff.getDate() - days);
+        result = result.filter(c => {
+          const cl = clients.find(cl2 => cl2.id === c.id);
+          return cl && new Date(cl.created_at) >= cutoff;
+        });
+      } else if (filter === 'frequent') {
+        result = result.filter(c => (c.visit_count || 0) >= (filterVal || 5));
+      }
     }
 
     setFilteredClients(result);
@@ -1110,10 +1144,8 @@ export default function Promotions() {
     return (
     <div className="space-y-4">
       {/* Cashback moved to Loyalty module */}
-      <div className="rounded-md border border-amber-500/30 bg-amber-500/5 p-3 text-xs text-muted-foreground">
-        💡 <strong>Cashback agora vive em Fidelidade.</strong> Esta tela é só para promoções tradicionais (desconto imediato).{' '}
-        <a href="/dashboard/loyalty" className="underline text-amber-600 dark:text-amber-400 font-medium">Ir para Cashback →</a>
-      </div>
+      {/* Cashback notice removed as requested */}
+
 
       <div>
         <Label>Título *</Label>
@@ -1436,35 +1468,39 @@ export default function Promotions() {
   );
 
   const renderChoiceScreen = () => (
-    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 py-4">
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 py-6">
       <Button 
         variant="outline" 
-        className="h-auto flex-col items-start p-6 gap-3 hover:border-primary hover:bg-primary/5 transition-all group"
+        className="h-auto min-h-[180px] flex-col items-center justify-center p-6 gap-4 hover:border-primary hover:bg-primary/5 transition-all group"
         onClick={() => setCreationMode('manual')}
       >
-        <div className="bg-muted p-2 rounded-lg group-hover:bg-primary/10 group-hover:text-primary transition-colors">
-          <Edit2 className="h-6 w-6" />
+        <div className="bg-muted p-3 rounded-full group-hover:bg-primary/10 group-hover:text-primary transition-all duration-300">
+          <Edit2 className="h-8 w-8" />
         </div>
-        <div className="text-left">
-          <h3 className="font-bold text-lg">Manual</h3>
-          <p className="text-sm text-muted-foreground font-normal">Crie do zero com total liberdade de configuração.</p>
+        <div className="text-center">
+          <h3 className="font-bold text-xl mb-1">Manual</h3>
+          <p className="text-sm text-muted-foreground font-normal line-clamp-2">
+            Crie do zero com total liberdade de configuração.
+          </p>
         </div>
       </Button>
 
       <Button 
         variant="outline" 
-        className="h-auto flex-col items-start p-6 gap-3 border-primary/50 bg-primary/5 hover:bg-primary/10 transition-all group relative overflow-hidden"
+        className="h-auto min-h-[180px] flex-col items-center justify-center p-6 gap-4 border-primary/50 bg-primary/5 hover:bg-primary/10 transition-all group relative overflow-hidden"
         onClick={() => setCreationMode('smart')}
       >
-        <div className="absolute top-2 right-2">
-          <Badge className="bg-primary text-primary-foreground text-[10px] uppercase px-1.5 py-0">Premium</Badge>
+        <div className="absolute top-3 right-3">
+          <Badge className="bg-primary text-primary-foreground text-[10px] uppercase px-2 py-0.5 shadow-sm">Premium</Badge>
         </div>
-        <div className="bg-primary/10 text-primary p-2 rounded-lg group-hover:bg-primary/20 transition-colors">
-          <Zap className="h-6 w-6" />
+        <div className="bg-primary/10 text-primary p-3 rounded-full group-hover:bg-primary/20 transition-all duration-300">
+          <Zap className="h-8 w-8" />
         </div>
-        <div className="text-left">
-          <h3 className="font-bold text-lg">Inteligente</h3>
-          <p className="text-sm text-muted-foreground font-normal">Use IA para identificar oportunidades e preencher horários vazios.</p>
+        <div className="text-center">
+          <h3 className="font-bold text-xl mb-1">Inteligente</h3>
+          <p className="text-sm text-muted-foreground font-normal line-clamp-2">
+            Use IA para identificar oportunidades e preencher horários vazios automaticamente.
+          </p>
         </div>
       </Button>
     </div>
@@ -1481,14 +1517,13 @@ export default function Promotions() {
     ];
 
     return (
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 py-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 py-4">
         {smartOptions.map((opt) => (
           <Button
             key={opt.id}
             variant="outline"
-            className="h-auto justify-start p-4 gap-4 hover:border-primary hover:bg-primary/5 transition-all text-left"
+            className="h-auto min-h-[100px] justify-start p-5 gap-4 hover:border-primary hover:bg-primary/5 transition-all text-left group"
             onClick={() => {
-              // Reuse existing insight logic or handle new ones
               if (opt.id === 'professional_idle') {
                 resetForm();
                 setSmartMode('smart');
@@ -1509,12 +1544,12 @@ export default function Promotions() {
               }
             }}
           >
-            <div className="bg-primary/10 p-2 rounded-lg text-primary shrink-0">
-              <opt.icon className="h-5 w-5" />
+            <div className="bg-primary/10 p-3 rounded-lg text-primary shrink-0 group-hover:bg-primary group-hover:text-white transition-all">
+              <opt.icon className="h-6 w-6" />
             </div>
             <div>
-              <h4 className="font-bold text-sm">{opt.title}</h4>
-              <p className="text-xs text-muted-foreground font-normal">{opt.desc}</p>
+              <h4 className="font-bold text-base leading-tight mb-1">{opt.title}</h4>
+              <p className="text-xs text-muted-foreground font-normal line-clamp-2 leading-relaxed">{opt.desc}</p>
             </div>
           </Button>
         ))}
@@ -1846,6 +1881,15 @@ export default function Promotions() {
 
                       {/* Type + Discount badge */}
                       <div className="flex flex-wrap gap-1.5">
+                        {promo.promotion_mode === 'smart' ? (
+                          <Badge className="bg-primary text-primary-foreground border-none flex items-center gap-1 shadow-sm">
+                            <Zap className="h-3 w-3 fill-current" /> IA
+                          </Badge>
+                        ) : (
+                          <Badge variant="outline" className="border-muted-foreground/30 text-muted-foreground flex items-center gap-1">
+                            <Edit2 className="h-3 w-3" /> Manual
+                          </Badge>
+                        )}
                         {isCashback && (
                           <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400 dark:border-emerald-800">💰 Cashback</Badge>
                         )}
@@ -1971,9 +2015,30 @@ export default function Promotions() {
           ) : filteredClients.length === 0 ? (
             <p className="text-muted-foreground py-4">Nenhum cliente encontrado.</p>
           ) : (
-            <div className="space-y-2">
-              <p className="text-sm text-muted-foreground">{filteredClients.length} cliente(s)</p>
+            <div className="space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <p className="text-sm text-muted-foreground">{filteredClients.length} cliente(s) filtrados</p>
+                {selectedPromotion?.promotion_mode === 'smart' && (
+                  <div className="flex items-center gap-2 bg-primary/5 text-primary px-3 py-1.5 rounded-full border border-primary/10 animate-pulse">
+                    <Check className="h-4 w-4" />
+                    <span className="text-xs font-bold">Público sugerido automaticamente pela IA ✅</span>
+                  </div>
+                )}
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="text-xs h-8"
+                  onClick={() => {
+                    setClientsDialogOpen(false);
+                    handleEdit(selectedPromotion!);
+                    setWizardStep(totalSteps); // Go to last step (filters)
+                  }}
+                >
+                  Editar filtros manualmente
+                </Button>
+              </div>
               <div className="border rounded-lg overflow-x-auto">
+
                 <table className="w-full text-sm">
                   <thead className="bg-muted">
                     <tr>
