@@ -90,6 +90,33 @@ export default function CashbackTab() {
     if (data) setServices(data);
   }, [companyId]);
 
+  const fetchBalances = useCallback(async () => {
+    if (!companyId) return;
+    const { data } = await supabase
+      .from('client_cashback')
+      .select('client_id, amount, status, expires_at, clients:client_id(name)')
+      .eq('company_id', companyId)
+      .eq('status', 'active');
+    if (data) {
+      const now = new Date();
+      const map = new Map<string, ClientBalance>();
+      (data as any[]).forEach(c => {
+        if (c.expires_at && new Date(c.expires_at) < now) return;
+        const existing = map.get(c.client_id);
+        if (existing) {
+          existing.total_active += Number(c.amount || 0);
+        } else {
+          map.set(c.client_id, {
+            client_id: c.client_id,
+            client_name: c.clients?.name || 'Cliente',
+            total_active: Number(c.amount || 0),
+          });
+        }
+      });
+      setBalances(Array.from(map.values()).sort((a, b) => b.total_active - a.total_active));
+    }
+  }, [companyId]);
+
   const fetchHistory = useCallback(async () => {
     if (!companyId) return;
     const { data } = await supabase
@@ -100,6 +127,7 @@ export default function CashbackTab() {
       .limit(100);
     if (data) setHistory(data);
   }, [companyId]);
+
 
   useEffect(() => {
     fetchRules();
