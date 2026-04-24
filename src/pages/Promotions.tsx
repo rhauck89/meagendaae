@@ -193,6 +193,7 @@ export default function Promotions() {
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedPromotion, setSelectedPromotion] = useState<Promotion | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
   const [clientsDialogOpen, setClientsDialogOpen] = useState(false);
   const [metricsDialogOpen, setMetricsDialogOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('active');
@@ -217,6 +218,9 @@ export default function Promotions() {
   const [singleDay, setSingleDay] = useState(false);
   const [startTime, setStartTime] = useState('');
   const [endTime, setEndTime] = useState('');
+  const [useBusinessHours, setUseBusinessHours] = useState(true);
+  const [validDays, setValidDays] = useState<number[]>([0, 1, 2, 3, 4, 5, 6]);
+  const [minIntervalMinutes, setMinIntervalMinutes] = useState('0');
   const [maxSlots, setMaxSlots] = useState('10');
   const [clientFilter, setClientFilter] = useState('all');
   const [clientFilterValue, setClientFilterValue] = useState('30');
