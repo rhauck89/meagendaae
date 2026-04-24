@@ -747,6 +747,20 @@ export default function Promotions() {
     return buildWhatsAppUrl(number, msg);
   };
 
+  const handleEndNow = async (promo: Promotion) => {
+    if (!confirm('Deseja encerrar esta promoção imediatamente?')) return;
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    const dateStr = format(yesterday, 'yyyy-MM-dd');
+    const { error } = await supabase.from('promotions').update({ end_date: dateStr, status: 'expired' } as any).eq('id', promo.id);
+    if (error) {
+      toast({ title: 'Erro ao encerrar promoção', variant: 'destructive' });
+      return;
+    }
+    toast({ title: 'Promoção encerrada' });
+    fetchPromotions();
+  };
+
   const getFilterLabel = (f: string) => {
     const m: Record<string, string> = { all: 'Todos', birthday_month: 'Aniversariantes', top_spending: 'Maiores gastos', inactive: 'Inativos', new_clients: 'Novos', frequent: 'Frequentes' };
     return m[f] || f;
