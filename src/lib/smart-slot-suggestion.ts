@@ -9,6 +9,7 @@
  * any business logic. If no good fit exists, the caller should fall back to
  * the first available slot.
  */
+import { format } from 'date-fns';
 import type { ExistingAppointment } from './availability-engine';
 
 const DEFAULT_TZ = 'America/Sao_Paulo';
