@@ -13,6 +13,7 @@ import { Scissors, Sparkles, Clock, DollarSign, ChevronRight, ChevronLeft, Check
 import { format, addMinutes, addDays, startOfDay, isSameDay } from 'date-fns';
 import { fromZonedTime, toZonedTime } from 'date-fns-tz';
 import { sendAppointmentCreatedWebhook } from '@/lib/automations';
+import { isPromoActive } from '@/lib/promotion-period';
 
 // TZ-aware Hoje/Amanhã helpers — compare dates in America/Sao_Paulo, not the
 // browser's local zone. Without this, a user in another timezone (or whose
@@ -604,7 +605,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
         .eq('id', promoIdRef.current)
         .limit(1);
       const pd = (promos as any)?.[0];
-      if (pd && pd.company_id === comp.id) {
+      if (pd && pd.company_id === comp.id && isPromoActive(pd)) {
         setPromoData(pd as PromotionInfo);
         // Auto-select promo services
         const promoServiceIds = pd.service_ids || (pd.service_id ? [pd.service_id] : []);
