@@ -300,7 +300,13 @@ export default function Promotions() {
 
   const fetchAll = async () => {
     setLoading(true);
-    await Promise.all([fetchPromotions(), fetchServices(), fetchProfessionals(), fetchCompanyInfo(), checkOccupancy()]);
+    await Promise.all([
+      fetchPromotions(), 
+      fetchServices(), 
+      fetchProfessionals(), 
+      fetchCompanyInfo(), 
+      generateInsights()
+    ]);
     setLoading(false);
   };
 
