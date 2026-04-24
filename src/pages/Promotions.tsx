@@ -456,12 +456,26 @@ export default function Promotions() {
     
     switch (insight.type) {
       case 'low_occupancy':
+        const todayStr = format(new Date(), 'yyyy-MM-dd');
+        const tomorrowStr = insight.data.date;
+        
         setTitle(`Relâmpago: Vagas para Amanhã`);
-        setStartDate(insight.data.date);
-        setEndDate(insight.data.date);
-        setSingleDay(true);
+        setStartDate(todayStr);
+        setEndDate(tomorrowStr);
+        setSingleDay(false);
         setDiscountType('percentage');
         setDiscountValue('15');
+        
+        // start_time logic: current hour rounded or 19:00
+        const nowHour = new Date().getHours();
+        if (nowHour < 19) {
+          setStartTime('19:00');
+        } else {
+          setStartTime(`${String(Math.min(23, nowHour + 1)).padStart(2, '0')}:00`);
+        }
+        
+        setEndTime('13:30'); 
+        setUseBusinessHours(false);
         setDescription('Aproveite nossos horários vagos para amanhã com um desconto especial!');
         setMessageTemplate(`Olá {{cliente_primeiro_nome}}! 👋\n\nNotamos que amanhã ainda temos alguns horários disponíveis e resolvemos liberar um desconto de 15% para quem agendar agora! 😱\n\nCorre para garantir o seu: {{link_promocao}}`);
         break;
@@ -978,10 +992,11 @@ export default function Promotions() {
           </Badge>
         );
       case 'active':
+        const isTargetingTomorrow = isTomorrow(parseISO(promo.end_date)) && isToday(parseISO(promo.start_date));
         return (
-          <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-800 gap-1.5 py-1 px-3">
+          <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-800 gap-1.5 py-1 px-3 shadow-sm font-medium">
             <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-            Ativa agora
+            {isTargetingTomorrow ? 'Ativa agora para reservas de amanhã' : 'Ativa agora'}
           </Badge>
         );
       case 'paused':
