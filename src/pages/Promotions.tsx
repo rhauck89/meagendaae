@@ -371,9 +371,6 @@ export default function Promotions() {
         icon: TrendingUp,
         data: { date: dateStr }
       });
-      setLowOccupancy(true);
-    } else {
-      setLowOccupancy(false);
     }
 
     // 2. Birthdays this month
