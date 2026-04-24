@@ -1436,35 +1436,39 @@ export default function Promotions() {
   );
 
   const renderChoiceScreen = () => (
-    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 py-4">
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 py-6">
       <Button 
         variant="outline" 
-        className="h-auto flex-col items-start p-6 gap-3 hover:border-primary hover:bg-primary/5 transition-all group"
+        className="h-auto min-h-[180px] flex-col items-center justify-center p-6 gap-4 hover:border-primary hover:bg-primary/5 transition-all group"
         onClick={() => setCreationMode('manual')}
       >
-        <div className="bg-muted p-2 rounded-lg group-hover:bg-primary/10 group-hover:text-primary transition-colors">
-          <Edit2 className="h-6 w-6" />
+        <div className="bg-muted p-3 rounded-full group-hover:bg-primary/10 group-hover:text-primary transition-all duration-300">
+          <Edit2 className="h-8 w-8" />
         </div>
-        <div className="text-left">
-          <h3 className="font-bold text-lg">Manual</h3>
-          <p className="text-sm text-muted-foreground font-normal">Crie do zero com total liberdade de configuração.</p>
+        <div className="text-center">
+          <h3 className="font-bold text-xl mb-1">Manual</h3>
+          <p className="text-sm text-muted-foreground font-normal line-clamp-2">
+            Crie do zero com total liberdade de configuração.
+          </p>
         </div>
       </Button>
 
       <Button 
         variant="outline" 
-        className="h-auto flex-col items-start p-6 gap-3 border-primary/50 bg-primary/5 hover:bg-primary/10 transition-all group relative overflow-hidden"
+        className="h-auto min-h-[180px] flex-col items-center justify-center p-6 gap-4 border-primary/50 bg-primary/5 hover:bg-primary/10 transition-all group relative overflow-hidden"
         onClick={() => setCreationMode('smart')}
       >
-        <div className="absolute top-2 right-2">
-          <Badge className="bg-primary text-primary-foreground text-[10px] uppercase px-1.5 py-0">Premium</Badge>
+        <div className="absolute top-3 right-3">
+          <Badge className="bg-primary text-primary-foreground text-[10px] uppercase px-2 py-0.5 shadow-sm">Premium</Badge>
         </div>
-        <div className="bg-primary/10 text-primary p-2 rounded-lg group-hover:bg-primary/20 transition-colors">
-          <Zap className="h-6 w-6" />
+        <div className="bg-primary/10 text-primary p-3 rounded-full group-hover:bg-primary/20 transition-all duration-300">
+          <Zap className="h-8 w-8" />
         </div>
-        <div className="text-left">
-          <h3 className="font-bold text-lg">Inteligente</h3>
-          <p className="text-sm text-muted-foreground font-normal">Use IA para identificar oportunidades e preencher horários vazios.</p>
+        <div className="text-center">
+          <h3 className="font-bold text-xl mb-1">Inteligente</h3>
+          <p className="text-sm text-muted-foreground font-normal line-clamp-2">
+            Use IA para identificar oportunidades e preencher horários vazios automaticamente.
+          </p>
         </div>
       </Button>
     </div>
@@ -1481,14 +1485,13 @@ export default function Promotions() {
     ];
 
     return (
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 py-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 py-4">
         {smartOptions.map((opt) => (
           <Button
             key={opt.id}
             variant="outline"
-            className="h-auto justify-start p-4 gap-4 hover:border-primary hover:bg-primary/5 transition-all text-left"
+            className="h-auto min-h-[100px] justify-start p-5 gap-4 hover:border-primary hover:bg-primary/5 transition-all text-left group"
             onClick={() => {
-              // Reuse existing insight logic or handle new ones
               if (opt.id === 'professional_idle') {
                 resetForm();
                 setSmartMode('smart');
@@ -1509,12 +1512,12 @@ export default function Promotions() {
               }
             }}
           >
-            <div className="bg-primary/10 p-2 rounded-lg text-primary shrink-0">
-              <opt.icon className="h-5 w-5" />
+            <div className="bg-primary/10 p-3 rounded-lg text-primary shrink-0 group-hover:bg-primary group-hover:text-white transition-all">
+              <opt.icon className="h-6 w-6" />
             </div>
             <div>
-              <h4 className="font-bold text-sm">{opt.title}</h4>
-              <p className="text-xs text-muted-foreground font-normal">{opt.desc}</p>
+              <h4 className="font-bold text-base leading-tight mb-1">{opt.title}</h4>
+              <p className="text-xs text-muted-foreground font-normal line-clamp-2 leading-relaxed">{opt.desc}</p>
             </div>
           </Button>
         ))}
