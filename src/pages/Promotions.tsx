@@ -423,21 +423,26 @@ export default function Promotions() {
     }
 
     // 4. Lunch time
+    const currentHour = new Date().getHours();
+    const isPastLunch = currentHour >= 14;
     newInsights.push({
       type: 'lunch_time',
-      title: '🍽️ Horário fraco no almoço',
-      description: 'Geralmente as 11h às 14h são horários mais calmos.',
-      buttonLabel: '☀️ Promo almoço',
-      icon: Clock
+      title: isPastLunch ? '🍽️ Almoço de Amanhã' : '🍽️ Horário fraco no almoço',
+      description: isPastLunch ? 'Já comece a lotar seu horário de almoço de amanhã.' : 'Geralmente as 11h às 14h são horários mais calmos.',
+      buttonLabel: isPastLunch ? '☀️ Promo almoço amanhã' : '☀️ Promo almoço',
+      icon: Clock,
+      data: { isTomorrow: isPastLunch }
     });
 
     // 5. Afternoon
+    const isPastAfternoon = currentHour >= 19;
     newInsights.push({
       type: 'afternoon_low',
-      title: '🌙 Fim de tarde com baixa ocupação',
-      description: 'Preencha os horários após as 17h com um desconto rápido.',
-      buttonLabel: '🌙 Promo fim de tarde',
-      icon: Flame
+      title: isPastAfternoon ? '🌙 Tarde de Amanhã' : '🌙 Fim de tarde com baixa ocupação',
+      description: isPastAfternoon ? 'Garanta agendamentos para o fim da tarde de amanhã.' : 'Preencha os horários após as 17h com um desconto rápido.',
+      buttonLabel: isPastAfternoon ? '🌙 Promo tarde amanhã' : '🌙 Promo fim de tarde',
+      icon: Flame,
+      data: { isTomorrow: isPastAfternoon }
     });
 
     // Tip fallback
