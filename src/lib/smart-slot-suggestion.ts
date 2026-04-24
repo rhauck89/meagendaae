@@ -33,12 +33,18 @@ export interface SmartSuggestion {
   reason: 'tight-fit' | 'first-available';
 }
 
+export interface AIOperationalSuggestion {
+  professionalId: string;
+  professionalName: string;
+  slot: string;
+  date: Date;
+  reason: string;
+  type: 'same-time' | 'earliest' | 'best-fit';
+}
+
 /**
  * Pick the slot with the smallest leftover minutes between (slot end + duration)
  * and the start of the next existing appointment on the same day.
- *
- * Slots without a "next appointment" after them (i.e. open-ended) are ranked last.
- * Ties are broken by the earliest start time.
  */
 export function pickSmartSuggestion(
   slots: string[],
@@ -48,16 +54,10 @@ export function pickSmartSuggestion(
 ): SmartSuggestion | null {
   if (!slots || slots.length === 0) return null;
 
-  // INVARIANT: `slots` MUST already be the engine's final list (free-window
-  // pipeline output). This function only RANKS them — it never validates
-  // availability. If the caller passes an unfiltered list, occupied slots
-  // would surface as "Sugestão ideal", which is exactly the regression we
-  // just fixed in availability-engine.ts.
   if (serviceDuration <= 0) {
     return { slot: slots[0], leftoverMinutes: Infinity, reason: 'first-available' };
   }
 
-  // Collect occupied start times (in minutes since midnight, in target tz)
   const occupiedStarts = appointments
     .map((a) => apptStartMinutesInTz(a.start_time, timezone))
     .sort((a, b) => a - b);
@@ -67,7 +67,6 @@ export function pickSmartSuggestion(
   for (const slot of slots) {
     const start = slotToMinutes(slot);
     const end = start + serviceDuration;
-    // Find the next appointment that starts AT OR AFTER our end
     const nextStart = occupiedStarts.find((s) => s >= end);
     const leftover = nextStart != null ? nextStart - end : Infinity;
 
@@ -85,4 +84,83 @@ export function pickSmartSuggestion(
   }
 
   return best;
+}
+
+/**
+ * MVP AI Operational Suggestion.
+ * Ranks suggestions based on:
+ * 1. Professional available at the exact same time (priority)
+ * 2. Earliest slot for the same professional
+ * 3. Best gap fit overall
+ */
+export function calculateAIOperationalSuggestion(
+  currentAppointment: { 
+    start_time: string; 
+    professional_id: string; 
+    professional_name: string;
+    duration: number;
+  },
+  availabilities: Array<{
+    professionalId: string;
+    professionalName: string;
+    slots: string[];
+    appointments: ExistingAppointment[];
+  }>,
+  date: Date
+): AIOperationalSuggestion | null {
+  const currentStart = format(new Date(currentAppointment.start_time), 'HH:mm');
+  
+  // 1. Try "Same Time, Different Professional"
+  for (const avail of availabilities) {
+    if (avail.professionalId === currentAppointment.professional_id) continue;
+    if (avail.slots.includes(currentStart)) {
+      return {
+        professionalId: avail.professionalId,
+        professionalName: avail.professionalName,
+        slot: currentStart,
+        date,
+        type: 'same-time',
+        reason: `${avail.professionalName} está disponível neste mesmo horário.`
+      };
+    }
+  }
+
+  // 2. Try "Earliest for Same Professional" (if not current slot)
+  const currentProfAvail = availabilities.find(a => a.professionalId === currentAppointment.professional_id);
+  if (currentProfAvail) {
+    const otherSlots = currentProfAvail.slots.filter(s => s !== currentStart);
+    if (otherSlots.length > 0) {
+      // Find the slot closest to current time (could be before or after, but usually we want "next")
+      const nextSlot = otherSlots.find(s => s > currentStart) || otherSlots[0];
+      return {
+        professionalId: currentProfAvail.professionalId,
+        professionalName: currentProfAvail.professionalName,
+        slot: nextSlot,
+        date,
+        type: 'earliest',
+        reason: `Horário mais próximo disponível com ${currentProfAvail.professionalName}.`
+      };
+    }
+  }
+
+  // 3. Try "Best Gap Fit Overall"
+  let bestOverall: AIOperationalSuggestion | null = null;
+  let minLeftover = Infinity;
+
+  for (const avail of availabilities) {
+    const smart = pickSmartSuggestion(avail.slots, avail.appointments, currentAppointment.duration);
+    if (smart && (smart.leftoverMinutes < minLeftover || !bestOverall)) {
+      minLeftover = smart.leftoverMinutes;
+      bestOverall = {
+        professionalId: avail.professionalId,
+        professionalName: avail.professionalName,
+        slot: smart.slot,
+        date,
+        type: 'best-fit',
+        reason: `Sugestão baseada na melhor otimização da agenda de ${avail.professionalName}.`
+      };
+    }
+  }
+
+  return bestOverall;
 }
