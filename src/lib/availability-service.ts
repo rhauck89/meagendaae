@@ -53,6 +53,12 @@ export interface GetAvailableSlotsParams {
   totalDuration: number;
   /** When true, filters out past times if the date is today. Defaults to true. */
   filterPastForToday?: boolean;
+  /** Optional pre-fetched inputs to avoid redundant DB calls */
+  prefetchData?: {
+    businessHours?: BusinessHours[];
+    professionalHours?: BusinessHours[];
+    exceptions?: BusinessException[];
+  };
 }
 
 export interface GetAvailableSlotsResult {
