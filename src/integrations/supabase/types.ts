@@ -3515,6 +3515,7 @@ export type Database = {
           id: string
           professional_id: string
           rating: number
+          review_type: string | null
         }
         Insert: {
           appointment_id?: string | null
@@ -3527,6 +3528,7 @@ export type Database = {
           id?: string
           professional_id: string
           rating: number
+          review_type?: string | null
         }
         Update: {
           appointment_id?: string | null
@@ -3539,12 +3541,13 @@ export type Database = {
           id?: string
           professional_id?: string
           rating?: number
+          review_type?: string | null
         }
         Relationships: [
           {
             foreignKeyName: "reviews_appointment_id_fkey"
             columns: ["appointment_id"]
-            isOneToOne: true
+            isOneToOne: false
             referencedRelation: "appointments"
             referencedColumns: ["id"]
           },
