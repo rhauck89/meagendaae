@@ -158,7 +158,7 @@ const MarketplaceActivation = () => {
           </div>
 
           <p className="text-xs text-muted-foreground mb-3">
-            Complete os passos abaixo para que sua empresa apareça no marketplace do Me Agenda Aê.
+            Complete os passos abaixo para que sua empresa apareça no marketplace do Me Agendaê.
           </p>
 
           <Progress value={percent} className="h-1.5 mb-4" />
@@ -201,7 +201,7 @@ const MarketplaceActivation = () => {
             </div>
             <DialogTitle className="text-xl">🎉 Parabéns!</DialogTitle>
             <DialogDescription className="text-base">
-              Seu perfil agora está ativo no marketplace do Me Agenda Aê.
+              Seu perfil agora está ativo no marketplace do Me Agendaê.
               Agora clientes podem encontrar sua empresa e fazer agendamentos online.
             </DialogDescription>
           </DialogHeader>

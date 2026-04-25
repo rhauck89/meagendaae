@@ -283,7 +283,7 @@ Deno.serve(async (req) => {
       try {
         const endpoint = sub.endpoint;
         const audience = new URL(endpoint).origin;
-        const subject = "mailto:contato@meagendaae.com";
+        const subject = "mailto:contato@meagendae.com";
 
         console.log(`[send-push] Sending to sub ${sub.id}, endpoint: ${endpoint.substring(0, 80)}...`);
 

@@ -28,7 +28,7 @@ const Index = () => {
             <div className="w-9 h-9 bg-primary rounded-xl flex items-center justify-center shadow-lg shadow-primary/20">
               <Calendar className="h-5 w-5 text-primary-foreground" />
             </div>
-            <span className="font-display font-bold text-xl text-foreground">MeAgendaê</span>
+            <span className="font-display font-bold text-xl text-foreground">Me Agendaê</span>
           </div>
           <div className="hidden md:flex items-center gap-8 text-sm font-medium text-muted-foreground">
             <a href="#funcionalidades" className="hover:text-foreground transition-colors">Funcionalidades</a>
@@ -101,7 +101,7 @@ const Index = () => {
             <div className="relative rounded-3xl overflow-hidden shadow-2xl shadow-primary/20 ring-1 ring-border/50">
               <img
                 src={heroBarber}
-                alt="Barbeiro brasileiro usando o MeAgendaê"
+                alt="Barbeiro brasileiro usando o Me Agendaê"
                 className="w-full h-[520px] object-cover"
                 width={1024}
                 height={1024}
@@ -483,7 +483,7 @@ const Index = () => {
 
           <div className="grid md:grid-cols-3 gap-6">
             {[
-              { img: t1, name: 'Rafael Souza', role: 'Barbeiro • SP', text: 'Depois que comecei a usar o MeAgendaê meu faturamento subiu 40%. A agenda nunca mais ficou bagunçada.' },
+              { img: t1, name: 'Rafael Souza', role: 'Barbeiro • SP', text: 'Depois que comecei a usar o Me Agendaê meu faturamento subiu 40%. A agenda nunca mais ficou bagunçada.' },
               { img: t2, name: 'Camila Ribeiro', role: 'Cabeleireira • RJ', text: 'Hoje minha equipe inteira trabalha organizada. As comissões saem automáticas, sem briga.' },
               { img: t3, name: 'Aline Pereira', role: 'Manicure • BH', text: 'Parei de perder clientes no WhatsApp. Eles agendam sozinhos pelo link e ainda recebem lembrete.' },
             ].map((t, i) => (
@@ -642,7 +642,7 @@ const Index = () => {
               <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
                 <Calendar className="h-4 w-4 text-primary-foreground" />
               </div>
-              <span className="font-display font-bold text-lg">MeAgendaê</span>
+              <span className="font-display font-bold text-lg">Me Agendaê</span>
             </div>
             <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm text-muted-foreground">
               <a href="#funcionalidades" className="hover:text-foreground transition-colors">Funcionalidades</a>
@@ -651,7 +651,7 @@ const Index = () => {
               <a href="#" className="hover:text-foreground transition-colors">Termos</a>
               <a href="#" className="hover:text-foreground transition-colors">Privacidade</a>
             </div>
-            <p className="text-xs text-muted-foreground">© {new Date().getFullYear()} MeAgendaê</p>
+            <p className="text-xs text-muted-foreground">© {new Date().getFullYear()} Me Agendaê</p>
           </div>
         </div>
       </footer>

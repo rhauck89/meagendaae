@@ -33,7 +33,7 @@ export const PlatformBranding = ({ isDark = false, hide = false }: PlatformBrand
 
   if (hide || !settings) return null;
 
-  const name = settings.system_name || 'Me Agendaê!';
+  const name = settings.system_name || 'Me Agendaê';
   const url = 'https://www.meagendae.com.br';
   const domain = 'meagendae.com.br';
 

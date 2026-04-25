@@ -31,7 +31,7 @@ const AppRedirect = () => {
 
   const bgColor = settings?.splash_background_color || '#0f2a5c';
   const logoUrl = settings?.splash_logo || settings?.system_logo;
-  const appName = settings?.system_name || 'MeAgendaAê';
+  const appName = settings?.system_name || 'Me Agendaê';
 
   return (
     <div

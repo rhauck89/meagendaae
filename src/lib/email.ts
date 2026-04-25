@@ -1,7 +1,7 @@
-// Email service — Agendaê (premium templates v3)
+// Email service — Me Agendaê (premium templates v3)
 // - Always invokes the `send-email` edge function (server-side, secure).
 // - Never imports Resend SDK on the client; the API key stays in the backend.
-// - Default sender: "Agendaê <naoresponda@agendae.com.br>"
+// - Default sender: "Me Agendaê <naoresponda@agendae.com.br>"
 // - Default reply-to: "suporte@agendae.com.br"
 // - Structured to scale to new automation types (reminders, cashback, promos…).
 
@@ -26,7 +26,7 @@ const BRAND = {
 
 // ─── Sender defaults (also enforced server-side) ───────────────────────────
 export const EMAIL_DEFAULTS = {
-  from: "Agendaê <naoresponda@agendae.com.br>",
+  from: "Me Agendaê <naoresponda@agendae.com.br>",
   replyTo: "suporte@agendae.com.br",
   tagline: "Seu negócio, sua agenda, no controle.",
 } as const;
@@ -39,7 +39,7 @@ interface TemplateOpts {
   cta?: { label: string; url: string };
   /** Preview text shown in inbox preview */
   preview?: string;
-  /** Optional small text under the CTA, e.g. "Equipe Agendaê 🚀" */
+  /** Optional small text under the CTA, e.g. "Equipe Me Agendaê 🚀" */
   signature?: string;
 }
 
@@ -48,7 +48,7 @@ export function renderEmailTemplate({
   body,
   cta,
   preview,
-  signature = "Equipe Agendaê 🚀",
+  signature = "Equipe Me Agendaê 🚀",
 }: TemplateOpts): string {
   const ctaHtml = cta
     ? `
@@ -92,7 +92,7 @@ export function renderEmailTemplate({
                   <tr>
                     <td style="padding:32px 32px 28px;">
                       <div style="font-size:24px;font-weight:700;color:#ffffff;letter-spacing:-0.02em;line-height:1;">
-                        meagendaê
+                        me agendaê
                       </div>
                       <div style="margin-top:8px;font-size:13px;color:rgba(255,255,255,0.92);letter-spacing:0.01em;font-weight:500;">
                         ${EMAIL_DEFAULTS.tagline}
@@ -119,8 +119,8 @@ export function renderEmailTemplate({
             <tr>
               <td style="padding:20px 32px 28px;border-top:1px solid ${BRAND.border};background:${BRAND.surface};">
                 <p style="margin:0;font-size:12px;line-height:1.6;color:${BRAND.muted};text-align:center;">
-                  © Agendaê — Agendamento inteligente para seu negócio<br/>
-                  <span style="color:#94a3b8;">Você recebeu este e-mail porque tem uma conta no Agendaê.</span><br/>
+                  © Me Agendaê — Agendamento inteligente para seu negócio<br/>
+                  <span style="color:#94a3b8;">Você recebeu este e-mail porque tem uma conta no Me Agendaê.</span><br/>
                   <span style="color:#94a3b8;">Dúvidas? Responda este e-mail ou escreva para <a href="mailto:${EMAIL_DEFAULTS.replyTo}" style="color:${BRAND.primary};text-decoration:none;">${EMAIL_DEFAULTS.replyTo}</a>.</span>
                 </p>
               </td>
@@ -191,7 +191,7 @@ export async function sendWelcomeCompanyEmail(opts: {
 }) {
   const dashboardUrl = `${window.location.origin}/dashboard`;
   const html = renderEmailTemplate({
-    title: "Bem-vindo ao Agendaê 🚀",
+    title: "Bem-vindo ao Me Agendaê 🚀",
     preview: `${opts.companyName} está pronta para receber agendamentos online.`,
     body: `
       <p style="margin:0 0 16px;">Olá, <strong style="color:${BRAND.text};">${escapeHtml(opts.name)}</strong>!</p>
@@ -210,7 +210,7 @@ export async function sendWelcomeCompanyEmail(opts: {
 
   return sendEmail({
     to: opts.email,
-    subject: "Bem-vindo ao Agendaê 🚀",
+    subject: "Bem-vindo ao Me Agendaê 🚀",
     html,
     type: "welcome_company",
   });
