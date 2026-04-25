@@ -212,56 +212,38 @@ const Clients = () => {
   }, [visibleClients, appointments, profileMap, isAdmin, profFilter]);
 
   // Analytics metrics - respects professional filter
-  const metrics = useMemo(() => {
-    const now = new Date();
-    
-    // 1. All client first visits (to the COMPANY)
-    // Used to determine if a client is "new" regardless of which professional they are seeing now
-    const clientFirstVisitMap: Record<string, string> = {};
-    appointments
-      .filter(a => a.status === 'completed' || a.status === 'confirmed')
-      .forEach(a => {
-        if (a.client_id && (!clientFirstVisitMap[a.client_id] || a.start_time < clientFirstVisitMap[a.client_id])) {
-          clientFirstVisitMap[a.client_id] = a.start_time;
-        }
+  const { data: serverMetrics, isLoading: loadingMetrics } = useQuery({
+    queryKey: ['client-dashboard-stats', companyId, profFilter],
+    queryFn: async () => {
+      if (!companyId) return null;
+      const { data, error } = await supabase.rpc('get_company_dashboard_stats', {
+        p_company_id: companyId,
+        p_professional_id: profFilter === 'all' ? null : profFilter
       });
+      if (error) throw error;
+      return data[0];
+    },
+    enabled: !!companyId,
+  });
 
-    // 2. Filter appointments by selected professional
-    const filteredAppts = (isAdmin && profFilter !== 'all')
-      ? appointments.filter(a => a.professional_id === profFilter)
-      : appointments;
-
-    // 3. Relevant appointments for "Attended" count (completed or confirmed)
-    const activeAppts = filteredAppts.filter(a => a.status === 'completed' || a.status === 'confirmed');
-    
-    // 4. Client IDs who have at least one active appointment in the current filter
-    const filteredClientIds = new Set(activeAppts.map(a => a.client_id).filter(Boolean));
-    
-    // 5. Total de clientes (Unique in filter)
-    const totalClients = filteredClientIds.size;
-    
-    // 6. Clientes no mês - clients in CURRENT FILTER whose FIRST visit to the COMPANY is this month
-    const newClientsMonth = Array.from(filteredClientIds).filter(cid => {
-      const firstVisit = clientFirstVisitMap[cid!];
-      return firstVisit && isSameMonth(parseISO(firstVisit), now);
-    }).length;
-    
-    // 7. Total de agendamentos
-    const totalAppointments = activeAppts.length;
-    
-    // 8. Top cliente do mês (in current filter)
-    const monthAppts = activeAppts.filter(a => isSameMonth(parseISO(a.start_time), now));
-    const clientMonthCount: Record<string, number> = {};
-    monthAppts.forEach(a => {
-      if (a.client_id) clientMonthCount[a.client_id] = (clientMonthCount[a.client_id] || 0) + 1;
-    });
-    const topEntry = Object.entries(clientMonthCount).sort((a, b) => b[1] - a[1])[0];
-    const topClientMonth = topEntry
-      ? { name: clients.find(c => c.id === topEntry[0])?.name || 'Desconhecido', count: topEntry[1] }
+  const metrics = useMemo(() => {
+    const totalClients = Number(serverMetrics?.total_clients || 0);
+    const newClientsMonth = Number(serverMetrics?.new_clients_month || 0);
+    const totalAppointments = Number(serverMetrics?.total_appointments || 0);
+    const topClientMonth = serverMetrics?.top_client_name 
+      ? { name: serverMetrics.top_client_name, count: Number(serverMetrics.top_client_count) }
       : null;
 
+    // We still need filteredClientIds for the UI table filtering
+    const filteredClientIds = new Set<string>();
+    if (isAdmin && profFilter !== 'all') {
+      appointments
+        .filter(a => a.professional_id === profFilter && (a.status === 'completed' || a.status === 'confirmed'))
+        .forEach(a => { if (a.client_id) filteredClientIds.add(a.client_id); });
+    }
+
     return { totalClients, newClientsMonth, totalAppointments, topClientMonth, filteredClientIds };
-  }, [clients, appointments, isAdmin, profFilter]);
+  }, [serverMetrics, isAdmin, profFilter, appointments]);
 
   // Unique professionals for filter
   const uniqueProfessionals = useMemo(() => {
