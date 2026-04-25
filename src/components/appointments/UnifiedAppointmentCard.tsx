@@ -110,7 +110,19 @@ export function UnifiedAppointmentCard({
   const formattedPrice = new Intl.NumberFormat('pt-BR', {
     style: 'currency',
     currency: 'BRL'
-  }).format(Number(apt.total_price));
+  }).format(Number(apt.final_price || apt.total_price));
+
+  const originalPrice = Number(apt.original_price || apt.total_price || 0);
+  const finalPrice = Number(apt.final_price || apt.total_price || 0);
+  const promoDiscount = Number(apt.promotion_discount || 0);
+  const cashbackUsed = Number(apt.cashback_used || 0);
+  const manualDiscount = Number(apt.manual_discount || 0);
+  const totalDiscounts = promoDiscount + cashbackUsed + manualDiscount;
+
+  const formatBRL = (val: number) => new Intl.NumberFormat('pt-BR', {
+    style: 'currency',
+    currency: 'BRL'
+  }).format(val);
 
   // --- COMPACT VARIANT (Used in "Next Appointments" and summaries) ---
   if (variant === 'compact') {
@@ -142,9 +154,20 @@ export function UnifiedAppointmentCard({
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-1 min-w-0">
                 <p className="text-sm font-bold truncate leading-tight">{clientName}</p>
-                {apt.special_schedule && (
-                  <span className="text-[10px]" title="Horário Especial">🟣</span>
-                )}
+                <div className="flex gap-0.5 ml-1">
+                  {apt.promotion_id && (
+                    <span className="text-[10px]" title="Promoção">🏷️</span>
+                  )}
+                  {cashbackUsed > 0 && (
+                    <span className="text-[10px]" title="Cashback">💸</span>
+                  )}
+                  {apt.client?.is_vip && (
+                    <span className="text-[10px]" title="VIP">⭐</span>
+                  )}
+                  {apt.special_schedule && (
+                    <span className="text-[10px]" title="Horário Especial">🟣</span>
+                  )}
+                </div>
               </div>
               <p className="text-[10px] text-muted-foreground truncate font-medium">
                 {formatServicesWithDuration(apt.appointment_services)}
@@ -211,8 +234,16 @@ export function UnifiedAppointmentCard({
         </div>
 
         {/* Action Button for Compact Variant */}
-        <div className="pt-1 flex items-center justify-between gap-2" onClick={(e) => e.stopPropagation()}>
-          <span className="text-xs font-bold text-foreground/80">{formattedPrice}</span>
+        <div className="pt-1 flex flex-col gap-0.5" onClick={(e) => e.stopPropagation()}>
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex flex-col">
+              {totalDiscounts > 0 && (
+                <span className="text-[9px] text-muted-foreground line-through decoration-muted-foreground/50">
+                  {formatBRL(originalPrice)}
+                </span>
+              )}
+              <span className="text-xs font-bold text-foreground/80">{formattedPrice}</span>
+            </div>
           
           <div className="flex-1 flex justify-end">
             {isPast && displayStatus !== 'completed' && displayStatus !== 'cancelled' ? (
@@ -258,7 +289,8 @@ export function UnifiedAppointmentCard({
             ) : null}
           </div>
         </div>
-      </motion.div>
+      </div>
+    </motion.div>
     );
   }
 
@@ -308,7 +340,17 @@ export function UnifiedAppointmentCard({
               </h3>
               {apt.promotion_id && (
                 <Badge variant="secondary" className="bg-orange-500/10 text-orange-600 border-none h-4 px-1 text-[9px] font-bold uppercase tracking-tighter">
-                  🔥 PROMO
+                  🏷️ PROMO
+                </Badge>
+              )}
+              {cashbackUsed > 0 && (
+                <Badge variant="secondary" className="bg-blue-500/10 text-blue-600 border-none h-4 px-1 text-[9px] font-bold uppercase tracking-tighter">
+                  💸 CASHBACK
+                </Badge>
+              )}
+              {apt.client?.is_vip && (
+                <Badge variant="secondary" className="bg-yellow-500/10 text-yellow-600 border-none h-4 px-1 text-[9px] font-bold uppercase tracking-tighter">
+                  ⭐ VIP
                 </Badge>
               )}
               {apt.special_schedule && (
@@ -343,18 +385,36 @@ export function UnifiedAppointmentCard({
                   {apt.client.whatsapp}
                 </p>
               )}
-              <div className="flex flex-col items-end">
-                <span className={cn(
-                  "font-display font-black text-foreground",
-                  variant === 'detailed' ? 'text-lg' : 'text-sm sm:text-base'
-                )}>
-                  {formattedPrice}
-                </span>
-                {apt.extra_fee > 0 && (
-                  <span className="text-[9px] text-purple-600 font-bold uppercase tracking-wider">
-                    +R$ {Number(apt.extra_fee).toFixed(2)} taxa
-                  </span>
+              <div className="flex flex-col items-end gap-0.5">
+                {totalDiscounts > 0 && (
+                  <div className="flex flex-col items-end text-[10px] space-y-0.5">
+                    <span className="text-muted-foreground line-through">
+                      {formatBRL(originalPrice)}
+                    </span>
+                    {promoDiscount > 0 && (
+                      <span className="text-orange-600 font-medium">🏷️ Promoção -{formatBRL(promoDiscount)}</span>
+                    )}
+                    {cashbackUsed > 0 && (
+                      <span className="text-blue-600 font-medium">💸 Cashback -{formatBRL(cashbackUsed)}</span>
+                    )}
+                    {manualDiscount > 0 && (
+                      <span className="text-purple-600 font-medium">✍️ Desconto manual -{formatBRL(manualDiscount)}</span>
+                    )}
+                  </div>
                 )}
+                <div className="flex flex-col items-end">
+                  <span className={cn(
+                    "font-display font-black text-foreground",
+                    variant === 'detailed' ? 'text-lg' : 'text-sm sm:text-base'
+                  )}>
+                    {totalDiscounts > 0 ? `💰 Total: ${formattedPrice}` : formattedPrice}
+                  </span>
+                  {apt.extra_fee > 0 && (
+                    <span className="text-[9px] text-purple-600 font-bold uppercase tracking-wider">
+                      +R$ {Number(apt.extra_fee).toFixed(2)} taxa
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
             

@@ -281,6 +281,7 @@ const ClientPortal = () => {
         .from('appointments')
         .select(`
           id, start_time, end_time, total_price, status, company_id, promotion_id,
+          original_price, promotion_discount, cashback_used, manual_discount, final_price,
           company:companies!appointments_company_id_fkey(id, name, logo_url, slug),
           professional:profiles!appointments_professional_id_fkey(id, full_name, avatar_url),
           appointment_services(price, service:services(id, name))
