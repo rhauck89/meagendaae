@@ -1606,6 +1606,7 @@ const Dashboard = () => {
                   <CalendarCheck className="h-4 w-4 text-accent" />
                 </div>
                 <p className="text-sm text-muted-foreground">Agendamentos realizados</p>
+
               </div>
               <p className="metric-value">{monthlyStats.completedAppointments}</p>
               {dailyTrends.length > 0 && (
