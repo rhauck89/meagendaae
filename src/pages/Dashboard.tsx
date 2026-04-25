@@ -1608,8 +1608,8 @@ const Dashboard = () => {
                 <p className="text-sm text-muted-foreground">Agendamentos realizados</p>
               </div>
               <p className="metric-value">{monthlyStats.completedAppointments}</p>
-
               {dailyTrends.length > 0 && (
+
                 <div className="h-6 w-full opacity-70">
                   <ResponsiveContainer width="100%" height="100%">
                     <LineChart data={dailyTrends}><Line type="monotone" dataKey="clients" stroke="hsl(var(--accent))" strokeWidth={1.5} dot={false} /></LineChart>
