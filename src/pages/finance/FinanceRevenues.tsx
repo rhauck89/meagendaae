@@ -11,13 +11,22 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Trash2, Pencil } from 'lucide-react';
+import { Plus, Trash2, Pencil, Filter, X } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
+import CategoryBadgeEditor from '@/components/finance/CategoryBadgeEditor';
 
 const statusLabels: Record<string, string> = { pending: 'Pendente', received: 'Recebido', cancelled: 'Cancelado' };
 
-const paymentMethodLabels: Record<string, string> = { dinheiro: 'Dinheiro', pix: 'Pix', cartao: 'Cartão', cartao_credito: 'Cartão de Crédito', cartao_debito: 'Cartão de Débito', transferencia: 'Transferência', outro: 'Outro' };
+const paymentMethodLabels: Record<string, string> = { 
+  dinheiro: 'Dinheiro', 
+  pix: 'Pix', 
+  cartao: 'Cartão', 
+  cartao_credito: 'Cartão de Crédito', 
+  cartao_debito: 'Cartão de Débito', 
+  transferencia: 'Transferência', 
+  outro: 'Outro' 
+};
 
 const emptyForm = () => ({
   description: '', amount: '', revenue_date: format(new Date(), 'yyyy-MM-dd'),
@@ -35,16 +44,22 @@ const FinanceRevenues = () => {
   const [newCatName, setNewCatName] = useState('');
   const [form, setForm] = useState(emptyForm());
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [filterCategory, setFilterCategory] = useState<string>('all');
 
-  useEffect(() => { if (companyId) { fetchRevenues(); fetchCategories(); } }, [companyId]);
+  useEffect(() => { if (companyId) { fetchRevenues(); fetchCategories(); } }, [companyId, filterCategory]);
 
   const fetchRevenues = async () => {
-    const { data } = await supabase
+    let query = supabase
       .from('company_revenues')
       .select('*, category:company_revenue_categories(name)')
       .eq('company_id', companyId!)
-      .order('revenue_date', { ascending: false })
-      .limit(200);
+      .order('revenue_date', { ascending: false });
+
+    if (filterCategory !== 'all') {
+      query = query.eq('category_id', filterCategory);
+    }
+
+    const { data } = await query.limit(200);
     if (data) setRevenues(data);
   };
 
@@ -135,63 +150,108 @@ const FinanceRevenues = () => {
           <h2 className="text-xl font-display font-bold">Receitas</h2>
           <p className="text-sm text-muted-foreground">Receitas automáticas e manuais</p>
         </div>
-        <Dialog open={open} onOpenChange={v => { if (!v) closeDialog(); else setOpen(true); }}>
-          <DialogTrigger asChild>
-            <Button><Plus className="h-4 w-4 mr-2" /> Nova Receita</Button>
-          </DialogTrigger>
-          <DialogContent className="w-[92vw] max-w-md">
-            <DialogHeader><DialogTitle>{editingId ? 'Editar Receita' : 'Nova Receita Manual'}</DialogTitle></DialogHeader>
-            <div className="space-y-4">
-              <div><Label>Descrição</Label><Input value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} /></div>
-              <div><Label>Valor (R$)</Label><Input type="number" step="0.01" value={form.amount} onChange={e => setForm(f => ({ ...f, amount: e.target.value }))} /></div>
-              <div className="grid grid-cols-2 gap-2">
-                <div><Label>Data</Label><Input type="date" value={form.revenue_date} onChange={e => setForm(f => ({ ...f, revenue_date: e.target.value }))} /></div>
-                <div><Label>Vencimento</Label><Input type="date" value={form.due_date} onChange={e => setForm(f => ({ ...f, due_date: e.target.value }))} /></div>
-              </div>
-              <div>
-                <Label>Status</Label>
-                <Select value={form.status} onValueChange={v => setForm(f => ({ ...f, status: v }))}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="pending">Pendente</SelectItem>
-                    <SelectItem value="received">Recebido</SelectItem>
-                    <SelectItem value="cancelled">Cancelado</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label>Forma de pagamento</Label>
-                <Select value={form.payment_method || 'none'} onValueChange={v => setForm(f => ({ ...f, payment_method: v === 'none' ? '' : v }))}>
-                  <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">Não informado</SelectItem>
-                    <SelectItem value="dinheiro">Dinheiro</SelectItem>
-                    <SelectItem value="pix">Pix</SelectItem>
-                    <SelectItem value="cartao">Cartão</SelectItem>
-                    <SelectItem value="transferencia">Transferência</SelectItem>
-                    <SelectItem value="outro">Outro</SelectItem>
-                  </SelectContent>
-                </Select>
-                <div className="flex items-center justify-between mb-1">
-                  <Label>Categoria</Label>
-                  <Button type="button" variant="ghost" size="sm" className="h-auto py-0.5 px-1.5 text-xs text-primary" onClick={() => setCatOpen(true)}>
-                    <Plus className="h-3 w-3 mr-1" /> Nova
-                  </Button>
+        <div className="flex gap-2 w-full sm:w-auto">
+          <Dialog open={open} onOpenChange={v => { if (!v) closeDialog(); else setOpen(true); }}>
+            <DialogTrigger asChild>
+              <Button className="flex-1 sm:flex-none"><Plus className="h-4 w-4 mr-2" /> Nova Receita</Button>
+            </DialogTrigger>
+            <DialogContent className="w-[92vw] max-w-md">
+              <DialogHeader><DialogTitle>{editingId ? 'Editar Receita' : 'Nova Receita Manual'}</DialogTitle></DialogHeader>
+              <div className="space-y-4">
+                <div><Label>Descrição</Label><Input value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} /></div>
+                <div><Label>Valor (R$)</Label><Input type="number" step="0.01" value={form.amount} onChange={e => setForm(f => ({ ...f, amount: e.target.value }))} /></div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div><Label>Data</Label><Input type="date" value={form.revenue_date} onChange={e => setForm(f => ({ ...f, revenue_date: e.target.value }))} /></div>
+                  <div><Label>Vencimento</Label><Input type="date" value={form.due_date} onChange={e => setForm(f => ({ ...f, due_date: e.target.value }))} /></div>
                 </div>
-                <Select value={form.category_id || 'none'} onValueChange={v => setForm(f => ({ ...f, category_id: v === 'none' ? '' : v }))}>
-                  <SelectTrigger><SelectValue placeholder="Selecione uma categoria" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">Sem categoria</SelectItem>
-                    {categories.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
-                  </SelectContent>
-                </Select>
+                <div>
+                  <Label>Status</Label>
+                  <Select value={form.status} onValueChange={v => setForm(f => ({ ...f, status: v }))}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="pending">Pendente</SelectItem>
+                      <SelectItem value="received">Recebido</SelectItem>
+                      <SelectItem value="cancelled">Cancelado</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>Forma de pagamento</Label>
+                  <Select value={form.payment_method || 'none'} onValueChange={v => setForm(f => ({ ...f, payment_method: v === 'none' ? '' : v }))}>
+                    <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Não informado</SelectItem>
+                      <SelectItem value="dinheiro">Dinheiro</SelectItem>
+                      <SelectItem value="pix">Pix</SelectItem>
+                      <SelectItem value="cartao">Cartão</SelectItem>
+                      <SelectItem value="transferencia">Transferência</SelectItem>
+                      <SelectItem value="outro">Outro</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <div className="flex items-center justify-between mb-1 mt-4">
+                    <Label>Categoria</Label>
+                    <Button type="button" variant="ghost" size="sm" className="h-auto py-0.5 px-1.5 text-xs text-primary" onClick={() => setCatOpen(true)}>
+                      <Plus className="h-3 w-3 mr-1" /> Nova
+                    </Button>
+                  </div>
+                  <Select value={form.category_id || 'none'} onValueChange={v => setForm(f => ({ ...f, category_id: v === 'none' ? '' : v }))}>
+                    <SelectTrigger><SelectValue placeholder="Selecione uma categoria" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Sem categoria</SelectItem>
+                      {categories.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div><Label>Observações</Label><Textarea value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} /></div>
+                <Button onClick={handleSubmit} className="w-full" disabled={submitting}>{submitting ? 'Salvando...' : 'Salvar'}</Button>
               </div>
-              <div><Label>Observações</Label><Textarea value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} /></div>
-              <Button onClick={handleSubmit} className="w-full" disabled={submitting}>{submitting ? 'Salvando...' : 'Salvar'}</Button>
-            </div>
-          </DialogContent>
-        </Dialog>
+            </DialogContent>
+          </Dialog>
+        </div>
       </div>
+
+      {/* Filters */}
+      <Card className="bg-muted/30 border-none shadow-none">
+        <CardContent className="p-4">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+            <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground shrink-0">
+              <Filter className="h-4 w-4" />
+              <span>Filtrar:</span>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Button 
+                variant={filterCategory === 'all' ? 'default' : 'outline'} 
+                size="sm"
+                className="rounded-full h-8 text-xs px-4"
+                onClick={() => setFilterCategory('all')}
+              >
+                Todos
+              </Button>
+              {categories.map(cat => (
+                <Button
+                  key={cat.id}
+                  variant={filterCategory === cat.id ? 'default' : 'outline'}
+                  size="sm"
+                  className="rounded-full h-8 text-xs px-4"
+                  onClick={() => setFilterCategory(cat.id)}
+                >
+                  {cat.name}
+                </Button>
+              ))}
+              {filterCategory !== 'all' && (
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="h-8 px-2 text-muted-foreground"
+                  onClick={() => setFilterCategory('all')}
+                >
+                  <X className="h-4 w-4 mr-1" /> Limpar
+                </Button>
+              )}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       <Dialog open={catOpen} onOpenChange={setCatOpen}>
         <DialogContent className="w-[92vw] max-w-sm">
@@ -226,15 +286,27 @@ const FinanceRevenues = () => {
                 ) : revenues.map(r => (
                   <TableRow key={r.id}>
                     <TableCell>{format(new Date(r.revenue_date + 'T12:00:00'), 'dd/MM/yyyy')}</TableCell>
-                    <TableCell>{r.description}</TableCell>
-                    <TableCell className="text-muted-foreground">{r.category?.name || '—'}</TableCell>
                     <TableCell>
-                      <Badge variant={r.is_automatic ? 'default' : 'outline'} className="text-xs">
+                      <div className="max-w-[250px] truncate" title={r.description}>
+                        {r.description}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <CategoryBadgeEditor 
+                        revenueId={r.id}
+                        companyId={companyId!}
+                        currentCategoryId={r.category_id}
+                        currentCategoryName={r.category?.name}
+                        onUpdate={fetchRevenues}
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={r.is_automatic ? 'default' : 'outline'} className="text-[10px] uppercase font-bold tracking-tight px-1.5 py-0">
                         {r.is_automatic ? 'Automática' : 'Manual'}
                       </Badge>
                     </TableCell>
                     <TableCell className="text-xs text-muted-foreground">{paymentMethodLabels[r.payment_method] || '—'}</TableCell>
-                    <TableCell><Badge variant="outline" className="text-xs">{statusLabels[r.status] || r.status}</Badge></TableCell>
+                    <TableCell><Badge variant="outline" className="text-[10px] uppercase font-bold px-1.5 py-0">{statusLabels[r.status] || r.status}</Badge></TableCell>
                     <TableCell className="text-right font-semibold text-success">{maskValue(Number(r.amount))}</TableCell>
                     <TableCell>
                       <div className="flex gap-1">
@@ -255,31 +327,45 @@ const FinanceRevenues = () => {
       </Card>
 
       {/* Mobile cards */}
-      <div className="md:hidden space-y-3">
+      <div className="md:hidden space-y-3 pb-20">
         {revenues.length === 0 ? (
           <Card><CardContent className="p-6 text-center text-muted-foreground">Nenhuma receita registrada</CardContent></Card>
         ) : revenues.map(r => (
-          <Card key={r.id}>
+          <Card key={r.id} className="overflow-hidden border-none shadow-sm">
             <CardContent className="p-4">
-              <div className="flex items-start justify-between gap-2 mb-2">
-                <span className="font-medium text-sm break-words flex-1 min-w-0">{r.description}</span>
-                <span className="font-semibold text-sm text-success shrink-0">{maskValue(Number(r.amount))}</span>
-              </div>
-              <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground mb-2">
-                <span>{format(new Date(r.revenue_date + 'T12:00:00'), 'dd/MM/yyyy')}</span>
-                <span>•</span>
-                <span>{r.category?.name || '—'}</span>
-                <Badge variant={r.is_automatic ? 'default' : 'outline'} className="text-[10px]">
-                  {r.is_automatic ? 'Auto' : 'Manual'}
-                </Badge>
-                <Badge variant="outline" className="text-[10px]">{statusLabels[r.status] || r.status}</Badge>
-              </div>
-              {!r.is_automatic && (
-                <div className="flex justify-end gap-1">
-                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(r)}><Pencil className="h-4 w-4" /></Button>
-                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleDelete(r.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+              <div className="flex items-start justify-between gap-2 mb-3">
+                <div className="space-y-1 min-w-0">
+                  <div className="font-semibold text-sm break-words line-clamp-2">{r.description}</div>
+                  <div className="text-[11px] text-muted-foreground flex items-center gap-2">
+                    <span>{format(new Date(r.revenue_date + 'T12:00:00'), 'dd/MM/yyyy')}</span>
+                    <span>•</span>
+                    <Badge variant={r.is_automatic ? 'default' : 'outline'} className="text-[9px] px-1 py-0 h-4">
+                      {r.is_automatic ? 'AUTO' : 'MANUAL'}
+                    </Badge>
+                  </div>
                 </div>
-              )}
+                <div className="text-right shrink-0">
+                  <div className="font-bold text-success">{maskValue(Number(r.amount))}</div>
+                  <div className="text-[10px] text-muted-foreground uppercase">{statusLabels[r.status] || r.status}</div>
+                </div>
+              </div>
+              
+              <div className="flex items-center justify-between mt-4 pt-3 border-t border-dashed">
+                <CategoryBadgeEditor 
+                  revenueId={r.id}
+                  companyId={companyId!}
+                  currentCategoryId={r.category_id}
+                  currentCategoryName={r.category?.name}
+                  onUpdate={fetchRevenues}
+                />
+                
+                {!r.is_automatic && (
+                  <div className="flex gap-1">
+                    <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground" onClick={() => openEdit(r)}><Pencil className="h-3.5 w-3.5" /></Button>
+                    <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive/70" onClick={() => handleDelete(r.id)}><Trash2 className="h-3.5 w-3.5" /></Button>
+                  </div>
+                )}
+              </div>
             </CardContent>
           </Card>
         ))}
