@@ -45,21 +45,8 @@ const MyAppointments = () => {
       } as any);
     }
 
-    // Fetch client records linked to this user
-    const { data: clientData } = await supabase
-      .from('clients')
-      .select('id')
-      .eq('user_id', user!.id);
-
-    if (!clientData || clientData.length === 0) {
-      // No linked client → redirect to portal so the user can complete registration
-      navigate('/minha-conta?complete=1', { replace: true });
-      return;
-    }
-
-    const clientIds = clientData.map(c => c.id);
-
-    const { data } = await supabase
+    // Direct query using user_id for strict isolation
+    const { data, error } = await supabase
       .from('appointments')
       .select(`
         *,
@@ -67,10 +54,28 @@ const MyAppointments = () => {
         company:companies(name),
         appointment_services(*, service:services(name))
       `)
-      .in('client_id', clientIds)
+      .eq('user_id', user!.id) // Critical fix
       .order('start_time', { ascending: false });
 
+    if (error) {
+      console.error('[MyAppointments] fetch error:', error);
+    }
+
     if (data) setAppointments(data);
+    
+    // Check if user has any linked client records at all
+    const { data: clientData } = await supabase
+      .from('clients')
+      .select('id')
+      .eq('user_id', user!.id)
+      .limit(1);
+
+    if (!clientData || clientData.length === 0) {
+      // No linked client → redirect to portal so the user can complete registration
+      navigate('/minha-conta?complete=1', { replace: true });
+      return;
+    }
+    
     setLoading(false);
   };
 
