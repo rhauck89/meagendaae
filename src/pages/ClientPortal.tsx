@@ -312,6 +312,7 @@ const ClientPortal = () => {
         clients: clientData as ClientRecord[],
         appointments: (aptData || []) as any,
         allCashbacks: (cashbackRes.data || []) as any,
+        allCashbackTxs: (cashbackTxRes.data || []) as any,
         allLoyaltyTxs: (loyaltyTxRes.data || []) as any,
         rewards: (rewardsRes.data || []) as any,
         companies: companiesMap,
