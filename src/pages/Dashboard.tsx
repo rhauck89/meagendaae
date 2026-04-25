@@ -135,12 +135,14 @@ const Dashboard = () => {
   const [manualAppointmentOpen, setManualAppointmentOpen] = useState(false);
   const [manualAppointmentPrefill, setManualAppointmentPrefill] = useState<{ date?: Date; time?: string; professionalId?: string }>({});
   const [highlightedAppointmentId, setHighlightedAppointmentId] = useState<string | null>(null);
+  const [occupancyDrawerOpen, setOccupancyDrawerOpen] = useState(false);
   const [agendaDisplayMode, setAgendaDisplayMode] = useState<'lista' | 'calendario'>(() => {
     if (typeof window !== 'undefined') {
       return (localStorage.getItem('agenda_display_mode') as 'lista' | 'calendario') || 'lista';
     }
     return 'lista';
   });
+
   const [timelineColumnMode, setTimelineColumnMode] = useState<'day' | 'professionals'>('day');
   // Cleanup orphan Radix portal elements when reschedule modal closes
   useEffect(() => {
