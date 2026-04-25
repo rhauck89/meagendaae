@@ -52,17 +52,34 @@ const FinanceRevenues = () => {
   const [sortField, setSortField] = useState('revenue_date');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
 
-  useEffect(() => { if (companyId) { fetchRevenues(); fetchCategories(); } }, [companyId, filterCategory]);
+  useEffect(() => { 
+    if (companyId) { 
+      fetchRevenues(); 
+      fetchCategories(); 
+    } 
+  }, [companyId, filterCategory, filterClient, filterProfessional, filterService, filterPayment, sortField, sortDirection]);
 
   const fetchRevenues = async () => {
     let query = supabase
       .from('company_revenues')
       .select('*, category:company_revenue_categories(name)')
       .eq('company_id', companyId!)
-      .order('revenue_date', { ascending: false });
+      .order(sortField, { ascending: sortDirection === 'asc' });
 
     if (filterCategory !== 'all') {
       query = query.eq('category_id', filterCategory);
+    }
+    if (filterPayment !== 'all') {
+      query = query.eq('payment_method', filterPayment);
+    }
+    if (filterClient) {
+      query = query.ilike('client_name', `%${filterClient}%`);
+    }
+    if (filterProfessional) {
+      query = query.ilike('professional_name', `%${filterProfessional}%`);
+    }
+    if (filterService) {
+      query = query.ilike('service_name', `%${filterService}%`);
     }
 
     const { data } = await query.limit(200);
