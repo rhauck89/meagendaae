@@ -49,14 +49,14 @@ self.addEventListener('push', (event) => {
 
   try {
     const data = event.data.json();
-    const title = data.title || 'MeAgendaAê';
+    const title = data.title || 'Me Agendaê';
     const options = {
       body: data.body || '',
       icon: '/icons/icon-192.png',
       badge: '/icons/icon-192.png',
       data: { url: data.url || '/dashboard' },
       vibrate: [200, 100, 200],
-      tag: `meagendaae-${Date.now()}`,
+      tag: `meagendae-${Date.now()}`,
     } as NotificationOptions & { vibrate?: number[] };
 
     event.waitUntil(self.registration.showNotification(title, options));
