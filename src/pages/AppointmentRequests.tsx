@@ -445,6 +445,14 @@ const AppointmentRequests = () => {
                 <span className="text-muted-foreground">Serviço:</span>
                 <span className="font-semibold">{services[selectedRequest?.service_id] || 'Serviço'}</span>
               </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Duração:</span>
+                <span className="font-semibold">{serviceInfo?.duration} min</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Pagamento:</span>
+                <span className="font-semibold">{serviceInfo?.payment_method}</span>
+              </div>
             </div>
 
             <div className="space-y-4">
