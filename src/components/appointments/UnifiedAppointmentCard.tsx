@@ -338,12 +338,19 @@ export function UnifiedAppointmentCard({
                   {apt.client.whatsapp}
                 </p>
               )}
-              <span className={cn(
-                "font-display font-black text-foreground",
-                variant === 'detailed' ? 'text-lg' : 'text-sm sm:text-base'
-              )}>
-                {formattedPrice}
-              </span>
+              <div className="flex flex-col items-end">
+                <span className={cn(
+                  "font-display font-black text-foreground",
+                  variant === 'detailed' ? 'text-lg' : 'text-sm sm:text-base'
+                )}>
+                  {formattedPrice}
+                </span>
+                {apt.extra_fee > 0 && (
+                  <span className="text-[9px] text-purple-600 font-bold uppercase tracking-wider">
+                    +R$ {Number(apt.extra_fee).toFixed(2)} taxa
+                  </span>
+                )}
+              </div>
             </div>
             
             {variant === 'detailed' && apt.notes && (
