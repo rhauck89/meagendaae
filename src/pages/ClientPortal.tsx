@@ -898,90 +898,145 @@ const ClientPortal = () => {
 
               {/* CASHBACK */}
               <TabsContent value="cashback" className="space-y-4 mt-4">
-                {!anyCashback ? (
+                {!anyCashback && allCashbackTxs.length === 0 ? (
                   <Card>
                     <CardContent className="p-8 text-center space-y-3">
-                      <DollarSign className="h-12 w-12 mx-auto text-muted-foreground/40" />
-                      <p className="font-semibold">Você ainda não acumulou pontos ou cashback</p>
+                      <Wallet className="h-12 w-12 mx-auto text-muted-foreground/40" />
+                      <p className="font-semibold">Sua carteira está vazia</p>
                       <p className="text-sm text-muted-foreground">
-                        Agende um serviço para começar a ganhar benefícios.
+                        Agende novos horários para acumular cashback e transformar seus agendamentos em economia! 💈
                       </p>
+                      <Button size="sm" onClick={() => navigate('/')}>Agendar Agora</Button>
                     </CardContent>
                   </Card>
                 ) : (
                   <>
-                    <Card className="bg-gradient-to-br from-green-500/10 to-transparent border-green-500/20">
-                      <CardContent className="p-5 text-center">
-                        <p className="text-xs text-muted-foreground">Cashback total disponível</p>
-                        <p className="text-4xl font-bold text-green-600 mt-1">R$ {totalCashback.toFixed(2)}</p>
-                        <p className="text-[11px] text-muted-foreground mt-1">
-                          Em {companiesWithCashback.length} {companiesWithCashback.length === 1 ? 'estabelecimento' : 'estabelecimentos'}
-                        </p>
-                      </CardContent>
-                    </Card>
-
-                    <div className="space-y-2">
-                      <h3 className="text-sm font-semibold text-muted-foreground">Saldo por estabelecimento</h3>
-                      {companiesWithCashback.map(co => (
-                        <Card key={co.id}>
-                          <CardContent className="p-3 flex items-center justify-between gap-2">
-                            <CompanyHeader company={co} size="md" />
-                            <div className="text-right">
-                              <p className="text-lg font-bold text-green-600">
-                                R$ {(cashbackByCompany[co.id] || 0).toFixed(2)}
+                    <div className="grid grid-cols-1 gap-3">
+                      {/* Resumo visual no topo estilo Wallet */}
+                      <Card className="bg-gradient-to-br from-primary/10 via-background to-background border-primary/20 overflow-hidden relative">
+                        <div className="absolute top-0 right-0 p-4 opacity-10">
+                          <Wallet className="h-16 w-16 rotate-12" />
+                        </div>
+                        <CardContent className="p-5">
+                          <div className="space-y-4">
+                            <div>
+                              <p className="text-[10px] font-bold uppercase tracking-wider text-primary/70">Saldo Disponível</p>
+                              <div className="flex items-baseline gap-1">
+                                <span className="text-2xl font-bold text-primary">R$</span>
+                                <span className="text-5xl font-black text-primary tracking-tighter">
+                                  {totalCashback.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                </span>
+                              </div>
+                              <p className="text-[11px] text-muted-foreground mt-1 font-medium">
+                                {totalCashback > 20 
+                                  ? "Você já pode usar seu saldo em benefícios 🎁" 
+                                  : totalCashback > 0 
+                                    ? "Seu cashback acumulado está crescendo 🚀"
+                                    : "Agende novos horários para acumular cashback 💈"}
                               </p>
-                              <p className="text-[10px] text-muted-foreground">disponível</p>
                             </div>
-                          </CardContent>
-                        </Card>
-                      ))}
+
+                            <div className="grid grid-cols-2 gap-3 pt-2 border-t border-primary/10">
+                              <div>
+                                <p className="text-[10px] text-muted-foreground uppercase font-bold">Total Ganho</p>
+                                <p className="text-lg font-bold text-green-600">
+                                  + R$ {cashbackTotals.gained.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                                </p>
+                              </div>
+                              <div>
+                                <p className="text-[10px] text-muted-foreground uppercase font-bold">Total Usado</p>
+                                <p className="text-lg font-bold text-red-500">
+                                  - R$ {cashbackTotals.used.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+
+                      {/* Botões de ação (Base pronta) */}
+                      <div className="flex gap-2">
+                        <Button variant="outline" size="sm" className="flex-1 text-[11px] h-9 gap-1.5" onClick={() => navigate('/')}>
+                          <Calendar className="h-3.5 w-3.5" /> Usar no próximo
+                        </Button>
+                        <Button variant="outline" size="sm" className="flex-1 text-[11px] h-9 gap-1.5" onClick={() => navigate('/help-center')}>
+                          <Star className="h-3.5 w-3.5" /> Ver regras
+                        </Button>
+                      </div>
                     </div>
 
-                    <div className="space-y-2">
-                      <h3 className="text-sm font-semibold text-muted-foreground">Histórico</h3>
-                      {allCashbackTxs.length === 0 ? (
-                        <Card><CardContent className="p-6 text-center text-sm text-muted-foreground">
-                          Nenhuma movimentação registrada ainda
-                        </CardContent></Card>
-                      ) : (
-                        allCashbackTxs.map(tx => {
-                          const isCredit = tx.type === 'credit';
-                          const isDebit = tx.type === 'debit';
-                          const isExpiration = tx.type === 'expiration';
-                          
-                          return (
-                            <Card key={tx.id}>
-                              <CardContent className="p-3">
-                                <div className="flex justify-between items-center gap-2">
-                                  <div className="min-w-0 space-y-0.5">
-                                    <CompanyHeader company={companies[tx.company_id]} />
-                                    <p className="text-[11px] text-muted-foreground">
-                                      {format(parseISO(tx.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
-                                    </p>
-                                    <p className="text-xs font-medium truncate">
+                    <div className="space-y-3">
+                      <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
+                        <History className="h-3 w-3" /> Extrato Detalhado
+                      </h3>
+                      
+                      {/* Saldo por estabelecimento */}
+                      <div className="space-y-2">
+                        {companiesWithCashback.map(co => (
+                          <div key={co.id} className="flex items-center justify-between p-3 rounded-xl bg-card border shadow-sm">
+                            <CompanyHeader company={co} size="sm" />
+                            <div className="text-right">
+                              <p className="text-sm font-bold text-primary">
+                                R$ {(cashbackByCompany[co.id] || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                              </p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Lista cronológica do extrato */}
+                      <div className="space-y-2">
+                        {allCashbackTxs.length === 0 ? (
+                          <Card><CardContent className="p-6 text-center text-sm text-muted-foreground italic">
+                            Nenhuma movimentação registrada ainda
+                          </CardContent></Card>
+                        ) : (
+                          allCashbackTxs.map(tx => {
+                            const isCredit = tx.type === 'credit';
+                            const isDebit = tx.type === 'debit';
+                            const isExpiration = tx.type === 'expiration' || (tx as any).type === 'expire';
+                            
+                            return (
+                              <div key={tx.id} className="flex items-center justify-between p-3 rounded-xl bg-card border border-border/50 hover:bg-accent/5 transition-colors">
+                                <div className="flex items-center gap-3 min-w-0">
+                                  <div className={cn(
+                                    "h-10 w-10 rounded-full flex items-center justify-center shrink-0",
+                                    isCredit ? "bg-green-500/10 text-green-600" : 
+                                    isDebit ? "bg-red-500/10 text-red-500" : 
+                                    "bg-orange-500/10 text-orange-500"
+                                  )}>
+                                    {isCredit ? <Plus className="h-5 w-5" /> : 
+                                     isDebit ? <ArrowRight className="h-5 w-5" /> : 
+                                     <Pause className="h-5 w-5" />}
+                                  </div>
+                                  <div className="min-w-0">
+                                    <p className="text-xs font-bold truncate">
                                       {tx.description || (isCredit ? 'Cashback ganho' : isDebit ? 'Cashback utilizado' : 'Cashback expirado')}
                                     </p>
-                                  </div>
-                                  <div className="text-right shrink-0">
-                                    <p className={cn(
-                                      "text-sm font-bold",
-                                      isCredit ? "text-green-600" : isDebit ? "text-red-600" : "text-orange-600"
-                                    )}>
-                                      {isCredit ? '+' : '-'} R$ {Number(tx.amount).toFixed(2)}
-                                    </p>
-                                    <Badge className={cn(
-                                      "text-[10px] px-1.5 py-0",
-                                      isCredit ? "bg-green-500/10 text-green-600" : isDebit ? "bg-red-500/10 text-red-600" : "bg-orange-500/10 text-orange-600"
-                                    )}>
-                                      {isCredit ? 'Ganho' : isDebit ? 'Usado' : 'Expirado'}
-                                    </Badge>
+                                    <div className="flex items-center gap-1.5 mt-0.5">
+                                      <span className="text-[10px] text-muted-foreground">
+                                        {format(parseISO(tx.created_at), "dd/MM/yy 'às' HH:mm", { locale: ptBR })}
+                                      </span>
+                                      <span className="text-[10px] text-muted-foreground opacity-50">•</span>
+                                      <span className="text-[10px] text-muted-foreground truncate max-w-[100px]">
+                                        {companies[tx.company_id]?.name}
+                                      </span>
+                                    </div>
                                   </div>
                                 </div>
-                              </CardContent>
-                            </Card>
-                          );
-                        })
-                      )}
+                                <div className="text-right shrink-0">
+                                  <p className={cn(
+                                    "text-sm font-black tracking-tight",
+                                    isCredit ? "text-green-600" : isDebit ? "text-red-500" : "text-orange-500"
+                                  )}>
+                                    {isCredit ? '+' : '-'} R$ {Number(tx.amount).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                                  </p>
+                                </div>
+                              </div>
+                            );
+                          })
+                        )}
+                      </div>
                     </div>
                   </>
                 )}
