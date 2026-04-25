@@ -99,6 +99,9 @@ const FinanceRevenues = () => {
     try {
       const payload = {
         description: form.description,
+        client_name: form.client_name || form.description,
+        professional_name: form.professional_name || null,
+        service_name: form.service_name || null,
         amount: parseFloat(form.amount),
         revenue_date: form.revenue_date,
         due_date: form.due_date || null,
