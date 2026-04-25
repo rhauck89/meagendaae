@@ -188,7 +188,8 @@ const Dashboard = () => {
     fetchBlockedTimes();
     fetchMonthlyStats();
     fetchUpcomingAppointments();
-  }, [companyId, currentDate, viewMode, filterProfessional]);
+  }, [companyId, currentDate, viewMode, filterProfessional, isAdmin, profileId]);
+
 
   // Listen for external refresh events (e.g. from other pages)
   const handleAgendaRefresh = useCallback(() => {
