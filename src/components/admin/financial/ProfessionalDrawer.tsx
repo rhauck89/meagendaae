@@ -216,19 +216,39 @@ export const ProfessionalDrawer = ({
                           </TableCell>
                         </TableRow>
                       ) : (
-                        details.history.map((h: any) => (
-                          <TableRow key={h.id}>
-                            <TableCell className="text-xs">
-                              {format(new Date(h.start_time), 'dd/MM HH:mm')}
-                            </TableCell>
-                            <TableCell className="text-xs font-medium truncate max-w-[120px]">
-                              {h.service?.name}
-                            </TableCell>
-                            <TableCell className="text-right text-xs font-semibold">
-                              {maskValue(h.total_price)}
-                            </TableCell>
-                          </TableRow>
-                        ))
+                        details.history.map((h: any) => {
+                          const original = Number(h.original_price || h.total_price || 0);
+                          const final = Number(h.final_price || h.total_price || 0);
+                          const discount = Number(h.promotion_discount || 0) + Number(h.cashback_used || 0) + Number(h.manual_discount || 0);
+                          
+                          return (
+                            <TableRow key={h.id}>
+                              <TableCell className="text-xs">
+                                {format(new Date(h.start_time), 'dd/MM HH:mm')}
+                              </TableCell>
+                              <TableCell className="text-xs font-medium">
+                                <div className="flex flex-col">
+                                  <span className="truncate max-w-[120px]">{h.service?.name}</span>
+                                  {discount > 0 && (
+                                    <span className="text-[10px] text-muted-foreground line-through">
+                                      {maskValue(original)}
+                                    </span>
+                                  )}
+                                </div>
+                              </TableCell>
+                              <TableCell className="text-right text-xs font-semibold">
+                                <div className="flex flex-col items-end">
+                                  <span>{maskValue(final)}</span>
+                                  {discount > 0 && (
+                                    <span className="text-[9px] text-destructive font-bold">
+                                      -{maskValue(discount)}
+                                    </span>
+                                  )}
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })
                       )}
                     </TableBody>
                   </Table>
