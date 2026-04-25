@@ -26,6 +26,7 @@ import {
   Ban,
   Filter
 } from 'lucide-react';
+
 import { 
   format, 
   startOfDay, 
@@ -34,8 +35,10 @@ import {
   endOfWeek, 
   startOfMonth, 
   endOfMonth,
-  subDays
+  subDays,
+  parseISO
 } from 'date-fns';
+
 import { ptBR } from 'date-fns/locale';
 import { useOccupancyData, OccupancyPeriod } from '@/hooks/useOccupancyData';
 import { 
