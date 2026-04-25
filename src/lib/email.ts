@@ -39,7 +39,7 @@ interface TemplateOpts {
   cta?: { label: string; url: string };
   /** Preview text shown in inbox preview */
   preview?: string;
-  /** Optional small text under the CTA, e.g. "Equipe Agendaê 🚀" */
+  /** Optional small text under the CTA, e.g. "Equipe Me Agendaê 🚀" */
   signature?: string;
 }
 
@@ -48,7 +48,7 @@ export function renderEmailTemplate({
   body,
   cta,
   preview,
-  signature = "Equipe Agendaê 🚀",
+  signature = "Equipe Me Agendaê 🚀",
 }: TemplateOpts): string {
   const ctaHtml = cta
     ? `
