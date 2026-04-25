@@ -142,6 +142,9 @@ const FinanceRevenues = () => {
     setEditingId(r.id);
     setForm({
       description: r.description,
+      client_name: r.client_name || '',
+      professional_name: r.professional_name || '',
+      service_name: r.service_name || '',
       amount: String(r.amount),
       revenue_date: r.revenue_date,
       due_date: r.due_date || '',
