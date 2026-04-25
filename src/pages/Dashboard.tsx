@@ -96,6 +96,37 @@ const Dashboard = () => {
   const [reminderCount, setReminderCount] = useState(0);
   const [birthdayClients, setBirthdayClients] = useState<any[]>([]);
   const [filterProfessional, setFilterProfessional] = useState<string>('all');
+
+  // Cache optimized dashboard stats
+  const { data: serverStats } = useQuery({
+    queryKey: ['dashboard-server-stats', companyId, filterProfessional, isAdmin, profileId],
+    queryFn: async () => {
+      if (!companyId) return null;
+      const professionalId = (!isAdmin && profileId) ? profileId : (filterProfessional === 'all' ? null : filterProfessional);
+      const { data, error } = await supabase.rpc('get_company_dashboard_stats', {
+        p_company_id: companyId,
+        p_professional_id: professionalId
+      });
+      if (error) throw error;
+      return data[0];
+    },
+    enabled: !!companyId,
+  });
+
+  // Merge server stats into monthly stats for better accuracy where available
+  useEffect(() => {
+    if (serverStats) {
+      setMonthlyStats(prev => ({
+        ...prev,
+        clients: Number(serverStats.total_clients),
+        topClient: {
+          name: serverStats.top_client_name || '',
+          count: Number(serverStats.top_client_count)
+        }
+      }));
+    }
+  }, [serverStats]);
+
   const [blockedTimes, setBlockedTimes] = useState<any[]>([]);
   const [collaboratorsList, setCollaboratorsList] = useState<any[]>([]);
   const [delayDialogOpen, setDelayDialogOpen] = useState(false);
