@@ -253,6 +253,7 @@ const Team = () => {
       is_admin_self: false,
       use_company_banner: true,
       schedule_from_company: true,
+      system_role: 'collaborator',
     });
     setWizardBM({
       business_model: 'employee',
