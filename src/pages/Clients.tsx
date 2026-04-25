@@ -13,11 +13,12 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Search, MessageCircle, Users, ArrowLeft, Calendar, DollarSign, Star, Scissors, Cake, Pencil, UserPlus, Ban, ShieldCheck, ArrowUpDown, ArrowUp, ArrowDown, CalendarCheck, Crown } from 'lucide-react';
-import { format, parseISO, startOfMonth } from 'date-fns';
+import { Search, MessageCircle, Users, ArrowLeft, Calendar, DollarSign, Star, Scissors, Cake, Pencil, UserPlus, Ban, ShieldCheck, ArrowUpDown, ArrowUp, ArrowDown, CalendarCheck, Crown, Info } from 'lucide-react';
+import { format, parseISO, startOfMonth, isSameMonth } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { displayWhatsApp, formatWhatsApp, openWhatsApp } from '@/lib/whatsapp';
 import { toast } from 'sonner';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface ClientRow {
   id: string;
@@ -177,13 +178,18 @@ const Clients = () => {
 
   const profileMap = Object.fromEntries(profiles.map(p => [p.id, p.full_name]));
 
-  // Calculate stats per client
+  // Calculate stats per client - respects filter
   const clientStatsMap = useMemo(() => {
     const map: Record<string, { totalVisits: number; totalSpent: number; lastVisit: string | null; favProfName: string; favProfId: string | null; cancelledCount: number }> = {};
     
+    // Filter appointments for stats calculation if filter is active
+    const filteredApptsForStats = (isAdmin && profFilter !== 'all')
+      ? appointments.filter(a => a.professional_id === profFilter)
+      : appointments;
+
     visibleClients.forEach(client => {
-      const clientAppts = appointments.filter(a => a.client_id === client.id);
-      const completedAppts = clientAppts.filter(a => a.status === 'completed');
+      const clientAppts = filteredApptsForStats.filter(a => a.client_id === client.id);
+      const completedAppts = clientAppts.filter(a => a.status === 'completed' || a.status === 'confirmed');
       const totalVisits = completedAppts.length;
       const totalSpent = completedAppts.reduce((sum, a) => sum + Number(a.total_price), 0);
       const lastVisit = completedAppts.length > 0
@@ -203,53 +209,59 @@ const Clients = () => {
     });
     
     return map;
-  }, [visibleClients, appointments, profileMap]);
+  }, [visibleClients, appointments, profileMap, isAdmin, profFilter]);
 
   // Analytics metrics - respects professional filter
   const metrics = useMemo(() => {
-    const monthStart = startOfMonth(new Date()).toISOString();
+    const now = new Date();
     
-    // Filter appointments by selected professional if admin has filter active
+    // 1. All client first visits (to the COMPANY)
+    // Used to determine if a client is "new" regardless of which professional they are seeing now
+    const clientFirstVisitMap: Record<string, string> = {};
+    appointments
+      .filter(a => a.status === 'completed' || a.status === 'confirmed')
+      .forEach(a => {
+        if (a.client_id && (!clientFirstVisitMap[a.client_id] || a.start_time < clientFirstVisitMap[a.client_id])) {
+          clientFirstVisitMap[a.client_id] = a.start_time;
+        }
+      });
+
+    // 2. Filter appointments by selected professional
     const filteredAppts = (isAdmin && profFilter !== 'all')
       ? appointments.filter(a => a.professional_id === profFilter)
       : appointments;
+
+    // 3. Relevant appointments for "Attended" count (completed or confirmed)
+    const activeAppts = filteredAppts.filter(a => a.status === 'completed' || a.status === 'confirmed');
     
-    // Filter visible clients by professional filter
-    const filteredClientIds = (isAdmin && profFilter !== 'all')
-      ? new Set(filteredAppts.filter(a => a.status === 'completed').map(a => a.client_id).filter(Boolean))
-      : null;
-    const metricsClients = filteredClientIds
-      ? visibleClients.filter(c => filteredClientIds.has(c.id))
-      : visibleClients;
+    // 4. Client IDs who have at least one active appointment in the current filter
+    const filteredClientIds = new Set(activeAppts.map(a => a.client_id).filter(Boolean));
     
-    // Total de clientes
-    const totalClients = metricsClients.length;
+    // 5. Total de clientes (Unique in filter)
+    const totalClients = filteredClientIds.size;
     
-    // Clientes no mês - clients whose first appointment was this month
-    const clientFirstAppt: Record<string, string> = {};
-    filteredAppts.filter(a => a.status === 'completed' || a.status === 'confirmed').forEach(a => {
-      if (a.client_id && (!clientFirstAppt[a.client_id] || a.start_time < clientFirstAppt[a.client_id])) {
-        clientFirstAppt[a.client_id] = a.start_time;
-      }
-    });
-    const newClientsMonth = Object.entries(clientFirstAppt).filter(([, firstDate]) => firstDate >= monthStart).length;
+    // 6. Clientes no mês - clients in CURRENT FILTER whose FIRST visit to the COMPANY is this month
+    const newClientsMonth = Array.from(filteredClientIds).filter(cid => {
+      const firstVisit = clientFirstVisitMap[cid!];
+      return firstVisit && isSameMonth(parseISO(firstVisit), now);
+    }).length;
     
-    // Total de agendamentos
-    const totalAppointments = filteredAppts.filter(a => a.status === 'completed' || a.status === 'confirmed').length;
+    // 7. Total de agendamentos
+    const totalAppointments = activeAppts.length;
     
-    // Top cliente do mês
-    const monthAppts = filteredAppts.filter(a => a.start_time >= monthStart && (a.status === 'completed' || a.status === 'confirmed'));
+    // 8. Top cliente do mês (in current filter)
+    const monthAppts = activeAppts.filter(a => isSameMonth(parseISO(a.start_time), now));
     const clientMonthCount: Record<string, number> = {};
     monthAppts.forEach(a => {
       if (a.client_id) clientMonthCount[a.client_id] = (clientMonthCount[a.client_id] || 0) + 1;
     });
     const topEntry = Object.entries(clientMonthCount).sort((a, b) => b[1] - a[1])[0];
     const topClientMonth = topEntry
-      ? { name: metricsClients.find(c => c.id === topEntry[0])?.name || 'Desconhecido', count: topEntry[1] }
+      ? { name: clients.find(c => c.id === topEntry[0])?.name || 'Desconhecido', count: topEntry[1] }
       : null;
 
-    return { totalClients, newClientsMonth, totalAppointments, topClientMonth };
-  }, [visibleClients, appointments, isAdmin, profFilter]);
+    return { totalClients, newClientsMonth, totalAppointments, topClientMonth, filteredClientIds };
+  }, [clients, appointments, isAdmin, profFilter]);
 
   // Unique professionals for filter
   const uniqueProfessionals = useMemo(() => {
@@ -258,19 +270,23 @@ const Clients = () => {
     return Array.from(profIds).map(id => ({ id, name: profileMap[id] || 'Desconhecido' })).sort((a, b) => a.name.localeCompare(b.name));
   }, [appointments, profileMap]);
 
-  // Filter and sort
+  // Filter and sort for the Table
   const filtered = useMemo(() => {
-    let result = visibleClients.filter(c =>
-      c.name.toLowerCase().includes(search.toLowerCase()) ||
-      (c.whatsapp && c.whatsapp.includes(search))
-    );
+    // Start with visible clients (already filtered if not admin)
+    let result = visibleClients;
 
-    // Professional filter (only for admin)
-    if (isAdmin && profFilter !== 'all') {
-      const clientIdsWithProf = new Set(
-        appointments.filter(a => a.professional_id === profFilter && a.status === 'completed').map(a => a.client_id)
+    // Filter by Search
+    if (search) {
+      const searchLower = search.toLowerCase();
+      result = result.filter(c =>
+        c.name.toLowerCase().includes(searchLower) ||
+        (c.whatsapp && c.whatsapp.includes(search))
       );
-      result = result.filter(c => clientIdsWithProf.has(c.id));
+    }
+
+    // Filter by professional (Synchronized with metrics.totalClients)
+    if (isAdmin && profFilter !== 'all') {
+      result = result.filter(c => metrics.filteredClientIds.has(c.id));
     }
 
     // Sort
@@ -297,7 +313,7 @@ const Clients = () => {
     });
 
     return result;
-  }, [visibleClients, search, sortColumn, sortDirection, profFilter, clientStatsMap, appointments, isAdmin]);
+  }, [visibleClients, search, sortColumn, sortDirection, profFilter, clientStatsMap, metrics.filteredClientIds, isAdmin]);
 
   const toggleSort = (col: SortColumn) => {
     if (sortColumn === col) {
@@ -315,8 +331,10 @@ const Clients = () => {
       : <ArrowDown className="h-3 w-3 ml-1 text-primary" />;
   };
 
-  // Birthday calculations
-  const clientsWithBirthdays = visibleClients
+  // Birthday calculations - respects professional filter
+  const clientsWithBirthdays = (isAdmin && profFilter !== 'all' 
+    ? visibleClients.filter(c => metrics.filteredClientIds.has(c.id))
+    : visibleClients)
     .filter(c => c.birth_date)
     .map(c => {
       const today = new Date();
@@ -358,7 +376,7 @@ const Clients = () => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <h2 className="text-xl sm:text-2xl font-display font-bold">Clientes</h2>
-          <p className="text-muted-foreground text-sm">{visibleClients.length} clientes cadastrados</p>
+          <p className="text-muted-foreground text-sm">{filtered.length} {filtered.length === 1 ? 'cliente encontrado' : 'clientes encontrados'}</p>
         </div>
         {isAdmin && (
           <Button className="gap-2 w-full sm:w-auto" onClick={() => setAddClientOpen(true)}>
@@ -467,7 +485,19 @@ const Clients = () => {
               <UserPlus className="h-5 w-5 text-green-500" />
             </div>
             <div className="min-w-0">
-              <p className="text-xs text-muted-foreground">Clientes no mês</p>
+              <div className="flex items-center gap-1">
+                <p className="text-xs text-muted-foreground">Clientes no mês</p>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Info className="h-3 w-3 text-muted-foreground cursor-help" />
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p className="text-xs">Clientes cuja primeira visita ocorreu neste período</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </div>
               <p className="text-2xl font-bold">{metrics.newClientsMonth}</p>
               <p className="text-xs text-muted-foreground">novos este mês</p>
             </div>
