@@ -120,8 +120,8 @@ export default function CashbackTab() {
   const fetchHistory = useCallback(async () => {
     if (!companyId) return;
     const { data } = await supabase
-      .from('client_cashback')
-      .select('*, clients:client_id(name), promotions:promotion_id(title)')
+      .from('cashback_transactions')
+      .select('*, clients:client_id(name)')
       .eq('company_id', companyId)
       .order('created_at', { ascending: false })
       .limit(100);
