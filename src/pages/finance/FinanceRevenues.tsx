@@ -74,6 +74,9 @@ const FinanceRevenues = () => {
     if (filterPayment !== 'all') {
       query = query.eq('payment_method', filterPayment);
     }
+    if (filterType !== 'all') {
+      query = query.eq('is_automatic', filterType === 'automatic');
+    }
     if (filterClient) {
       query = query.ilike('client_name', `%${filterClient}%`);
     }
