@@ -168,6 +168,13 @@
     text-overflow: ellipsis;
     white-space: nowrap;
   }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
 }
 
 #root {
