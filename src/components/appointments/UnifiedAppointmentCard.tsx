@@ -158,8 +158,11 @@ export function UnifiedAppointmentCard({
                   {apt.promotion_id && (
                     <span className="text-[10px]" title="Promoção">🏷️</span>
                   )}
-                  {cashbackUsed > 0 && (
+                  {cashbackUsed > 0 && apt.status !== 'cancelled' && apt.status !== 'no_show' && (
                     <span className="text-[10px]" title="Cashback">💸</span>
+                  )}
+                  {(apt.status === 'cancelled' || apt.status === 'no_show') && cashbackUsed > 0 && (
+                    <span className="text-[10px]" title="Cashback Estornado">💸↩️</span>
                   )}
                   {apt.client?.is_vip && (
                     <span className="text-[10px]" title="VIP">⭐</span>
