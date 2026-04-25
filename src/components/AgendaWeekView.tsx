@@ -205,8 +205,9 @@ export const AgendaWeekView = ({
                         <div className={cn("absolute left-0 top-0 bottom-0 w-0.5", statusVisuals.text.replace('text', 'bg'))} />
                         
                         <div className="px-1.5 py-0.5 h-full flex flex-col justify-center min-w-0">
-                          <p className={cn("text-[10px] font-bold truncate leading-tight", statusVisuals.text)}>
+                          <p className={cn("text-[10px] font-bold truncate leading-tight flex items-center gap-1", statusVisuals.text)}>
                             {clientName}
+                            {apt.special_schedule && <span className="text-[10px] shrink-0">🟣</span>}
                           </p>
                           {posApt.height >= 35 && (
                             <p className="text-[9px] opacity-70 truncate leading-tight mt-0.5 font-medium">
