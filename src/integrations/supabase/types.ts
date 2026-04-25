@@ -194,6 +194,7 @@ export type Database = {
       }
       appointments: {
         Row: {
+          cashback_used: number | null
           client_id: string | null
           client_name: string | null
           client_whatsapp: string | null
@@ -210,8 +211,11 @@ export type Database = {
           extra_fee_value: number | null
           final_price: number | null
           id: string
+          manual_discount: number | null
           notes: string | null
+          original_price: number | null
           professional_id: string
+          promotion_discount: number | null
           promotion_id: string | null
           rescheduled_from_id: string | null
           special_schedule: boolean | null
@@ -221,6 +225,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          cashback_used?: number | null
           client_id?: string | null
           client_name?: string | null
           client_whatsapp?: string | null
@@ -237,8 +242,11 @@ export type Database = {
           extra_fee_value?: number | null
           final_price?: number | null
           id?: string
+          manual_discount?: number | null
           notes?: string | null
+          original_price?: number | null
           professional_id: string
+          promotion_discount?: number | null
           promotion_id?: string | null
           rescheduled_from_id?: string | null
           special_schedule?: boolean | null
@@ -248,6 +256,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          cashback_used?: number | null
           client_id?: string | null
           client_name?: string | null
           client_whatsapp?: string | null
@@ -264,8 +273,11 @@ export type Database = {
           extra_fee_value?: number | null
           final_price?: number | null
           id?: string
+          manual_discount?: number | null
           notes?: string | null
+          original_price?: number | null
           professional_id?: string
+          promotion_discount?: number | null
           promotion_id?: string | null
           rescheduled_from_id?: string | null
           special_schedule?: boolean | null
