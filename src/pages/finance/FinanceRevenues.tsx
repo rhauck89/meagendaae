@@ -347,7 +347,21 @@ const FinanceRevenues = () => {
                     </div>
                   </TableHead>
                   <TableHead>Categoria</TableHead>
-                  <TableHead>Tipo</TableHead>
+                  <TableHead>
+                    <div className="space-y-2 py-2">
+                      <span className="text-xs font-semibold">Tipo</span>
+                      <Select value={filterType || 'all'} onValueChange={setFilterType}>
+                        <SelectTrigger className="h-7 text-xs">
+                          <SelectValue placeholder="Todos" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">Todos</SelectItem>
+                          <SelectItem value="automatic">Automática</SelectItem>
+                          <SelectItem value="manual">Manual</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </TableHead>
                   <TableHead>
                     <div className="space-y-2 py-2">
                       <span className="text-xs font-semibold">Pagamento</span>
