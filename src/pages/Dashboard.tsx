@@ -1690,8 +1690,6 @@ const Dashboard = () => {
 
         </div>
       </div>
-
-
       {/* Birthday Indicator - Admin only */}
       {isAdmin && birthdayClients.length > 0 && (
         <Card>
