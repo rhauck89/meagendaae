@@ -178,6 +178,7 @@ const AppointmentRequests = () => {
           start_time: startTime.toISOString(),
           end_time: endTime.toISOString(),
           total_price: finalPrice,
+          original_price: finalPrice,
           extra_fee: extraFee,
           extra_fee_type: feeType,
           extra_fee_value: feeType === 'fixed' ? parseFloat(fixedFeeValue) : (feeType === 'none' ? 0 : parseInt(feeType)),
