@@ -566,7 +566,7 @@ const Dashboard = () => {
       }
 
       const noteParts = [];
-      if (discountAmount > 0) noteParts.push(`Desconto: R$ ${discountAmount.toFixed(2)}`);
+      if (totalDiscount > 0) noteParts.push(`Descontos: R$ ${totalDiscount.toFixed(2)}`);
       if (commissionAmount > 0) noteParts.push(`Comissão: R$ ${commissionAmount.toFixed(2)} | Lucro: R$ ${companyProfit.toFixed(2)}`);
       
       // Get category ID for "Serviços"
