@@ -147,6 +147,7 @@ const ClientPortal = () => {
       setClients(cached.clients || []);
       setAppointments(cached.appointments || []);
       setAllCashbacks(cached.allCashbacks || []);
+      setAllCashbackTxs(cached.allCashbackTxs || []);
       setAllLoyaltyTxs(cached.allLoyaltyTxs || []);
       setRewards(cached.rewards || []);
       setCompanies(cached.companies || {});
