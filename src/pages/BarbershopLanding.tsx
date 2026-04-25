@@ -203,7 +203,7 @@ export default function BarbershopLanding({ routeBusinessType, customSlug }: Bar
       supabase.from('public_services' as any).select('*').eq('company_id', comp.id).order('name'),
       supabase.from('public_professionals' as any).select('*').eq('company_id', comp.id).eq('active', true),
       supabase.rpc('get_professional_ratings' as any, { p_company_id: comp.id }),
-      supabase.from('reviews').select('rating, comment, barbershop_rating, barbershop_comment, created_at, professional_id, appointment_id').eq('company_id', comp.id).order('created_at', { ascending: false }),
+      supabase.from('reviews').select('rating, comment, created_at, professional_id, appointment_id, review_type').eq('company_id', comp.id).order('created_at', { ascending: false }),
       supabase.from('public_company_settings' as any).select('*').eq('company_id', comp.id).single(),
       supabase.from('company_gallery' as any).select('*').eq('company_id', comp.id).order('sort_order'),
       supabase.from('events' as any).select('*').eq('company_id', comp.id).eq('status', 'published').order('start_date') as any,
