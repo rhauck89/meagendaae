@@ -140,7 +140,12 @@ export function UnifiedAppointmentCard({
               <p className="text-[10px] text-muted-foreground">{format(startTime, 'dd/MM')}</p>
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-bold truncate leading-tight">{clientName}</p>
+              <div className="flex items-center gap-1 min-w-0">
+                <p className="text-sm font-bold truncate leading-tight">{clientName}</p>
+                {apt.special_schedule && (
+                  <span className="text-[10px]" title="Horário Especial">🟣</span>
+                )}
+              </div>
               <p className="text-[10px] text-muted-foreground truncate font-medium">
                 {formatServicesWithDuration(apt.appointment_services)}
               </p>
