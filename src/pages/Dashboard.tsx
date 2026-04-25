@@ -86,6 +86,37 @@ const Dashboard = () => {
   const [appointments, setAppointments] = useState<any[]>([]);
   const [stats, setStats] = useState({ total: 0, revenue: 0, revenueCompleted: 0, clients: 0 });
   const [monthlyStats, setMonthlyStats] = useState({ revenue: 0, revenueCompleted: 0, clients: 0, completedAppointments: 0, cancellations: 0, occupancyRate: 0, avgTicket: 0, topClient: { name: '', count: 0 } });
+  
+  // Cache optimized dashboard stats
+  const { data: serverStats } = useQuery({
+    queryKey: ['dashboard-server-stats', companyId, filterProfessional, isAdmin, profileId],
+    queryFn: async () => {
+      if (!companyId) return null;
+      const professionalId = (!isAdmin && profileId) ? profileId : (filterProfessional === 'all' ? null : filterProfessional);
+      const { data, error } = await supabase.rpc('get_company_dashboard_stats', {
+        p_company_id: companyId,
+        p_professional_id: professionalId
+      });
+      if (error) throw error;
+      return data[0];
+    },
+    enabled: !!companyId,
+  });
+
+  // Merge server stats into monthly stats for better accuracy where available
+  useEffect(() => {
+    if (serverStats) {
+      setMonthlyStats(prev => ({
+        ...prev,
+        clients: Number(serverStats.total_clients),
+        topClient: {
+          name: serverStats.top_client_name || '',
+          count: Number(serverStats.top_client_count)
+        }
+      }));
+    }
+  }, [serverStats]);
+
   const [dailyTrends, setDailyTrends] = useState<{ date: string; revenue: number; clients: number; cancellations: number; occupancy: number }[]>([]);
   const [waitlistCount, setWaitlistCount] = useState(0);
   const [waitlistServiceBreakdown, setWaitlistServiceBreakdown] = useState<Record<string, number>>({});
