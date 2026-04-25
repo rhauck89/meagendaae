@@ -119,8 +119,8 @@ export function renderEmailTemplate({
             <tr>
               <td style="padding:20px 32px 28px;border-top:1px solid ${BRAND.border};background:${BRAND.surface};">
                 <p style="margin:0;font-size:12px;line-height:1.6;color:${BRAND.muted};text-align:center;">
-                  © Agendaê — Agendamento inteligente para seu negócio<br/>
-                  <span style="color:#94a3b8;">Você recebeu este e-mail porque tem uma conta no Agendaê.</span><br/>
+                  © Me Agendaê — Agendamento inteligente para seu negócio<br/>
+                  <span style="color:#94a3b8;">Você recebeu este e-mail porque tem uma conta no Me Agendaê.</span><br/>
                   <span style="color:#94a3b8;">Dúvidas? Responda este e-mail ou escreva para <a href="mailto:${EMAIL_DEFAULTS.replyTo}" style="color:${BRAND.primary};text-decoration:none;">${EMAIL_DEFAULTS.replyTo}</a>.</span>
                 </p>
               </td>
