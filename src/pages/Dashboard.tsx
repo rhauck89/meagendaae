@@ -1,4 +1,6 @@
 import { useEffect, useState, useCallback, useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
+
 import { formatServicesWithDuration } from '@/lib/format-services';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUserRole } from '@/hooks/useUserRole';
