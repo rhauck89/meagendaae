@@ -3078,6 +3078,9 @@ export type Database = {
           id: string
           last_login_mode: string | null
           last_visit_date: string | null
+          onboarding_completed: boolean | null
+          onboarding_hidden: boolean | null
+          onboarding_step: number | null
           opt_in_date: string | null
           opt_in_whatsapp: boolean
           role: string | null
@@ -3100,6 +3103,9 @@ export type Database = {
           id?: string
           last_login_mode?: string | null
           last_visit_date?: string | null
+          onboarding_completed?: boolean | null
+          onboarding_hidden?: boolean | null
+          onboarding_step?: number | null
           opt_in_date?: string | null
           opt_in_whatsapp?: boolean
           role?: string | null
@@ -3122,6 +3128,9 @@ export type Database = {
           id?: string
           last_login_mode?: string | null
           last_visit_date?: string | null
+          onboarding_completed?: boolean | null
+          onboarding_hidden?: boolean | null
+          onboarding_step?: number | null
           opt_in_date?: string | null
           opt_in_whatsapp?: boolean
           role?: string | null

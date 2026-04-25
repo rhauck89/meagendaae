@@ -15,7 +15,7 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogBody, DialogFooter, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { isPromoActive } from '@/lib/promotion-period';
-import { Calendar as CalendarIcon, CalendarCheck, ChevronLeft, ChevronRight, Clock, DollarSign, Users, UserCheck, UserMinus, AlertTriangle, Bell, MailCheck, Cake, Ban, Trash2, Timer, RefreshCw, AlertCircle, TrendingUp, BarChart3, XCircle, Percent, Receipt, Send, List, LayoutGrid, ArrowLeftRight, MoreHorizontal, MessageSquare, Info, Scissors, User, CheckCircle2 } from 'lucide-react';
+import { Calendar as CalendarIcon, CalendarCheck, ChevronLeft, ChevronRight, Clock, DollarSign, Users, UserCheck, UserMinus, AlertTriangle, Bell, MailCheck, Cake, Ban, Trash2, Timer, RefreshCw, AlertCircle, TrendingUp, BarChart3, XCircle, Percent, Receipt, Send, List, LayoutGrid, ArrowLeftRight, MoreHorizontal, MessageSquare, Info, Scissors, User, CheckCircle2, Rocket } from 'lucide-react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { BlockTimeDialog } from '@/components/BlockTimeDialog';
 import { Calendar as DatePickerCalendar } from '@/components/ui/calendar';
@@ -142,6 +142,17 @@ const Dashboard = () => {
     }
     return 'lista';
   });
+  const [onboardingKey, setOnboardingKey] = useState(0);
+
+  const reopenOnboarding = async () => {
+    if (!user?.id) return;
+    await supabase.from('profiles').update({ onboarding_hidden: false, onboarding_completed: false, onboarding_step: 0 }).eq('user_id', user.id);
+    localStorage.removeItem(`onboarding_checklist_completed_hidden_${user.id}`);
+    localStorage.removeItem(`onboarding_checklist_completed_completed_${user.id}`);
+    setOnboardingKey(prev => prev + 1);
+    toast.success('Primeiros passos reativados!');
+  };
+
 
   const [timelineColumnMode, setTimelineColumnMode] = useState<'day' | 'professionals'>('day');
   // Cleanup orphan Radix portal elements when reschedule modal closes
@@ -1300,7 +1311,7 @@ const Dashboard = () => {
   return (
     <div className="space-y-6">
       <TrialBanner />
-      <OnboardingChecklist />
+      <OnboardingChecklist key={onboardingKey} />
       {isAdmin && <MarketplaceActivation />}
       <TutorialProgressWidget />
 
@@ -2200,7 +2211,7 @@ const Dashboard = () => {
                   className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring mt-1"
                 />
               </div>
-            </div>
+    </div>
 
             {/* Net amount preview */}
             {completeTarget && (() => {
@@ -2412,6 +2423,16 @@ const Dashboard = () => {
         companyId={companyId!}
         professionals={collaboratorsList}
       />
+
+      <div className="flex justify-center pt-8 pb-4">
+        <button
+          onClick={reopenOnboarding}
+          className="text-xs text-muted-foreground hover:text-primary transition-colors flex items-center gap-1.5 opacity-60 hover:opacity-100"
+        >
+          <Rocket className="h-3 w-3" />
+          Ver primeiros passos
+        </button>
+      </div>
     </div>
   );
 };

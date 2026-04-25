@@ -16,7 +16,7 @@ import { resetOnboardingChecklist } from '@/components/OnboardingChecklist';
 import { resetTutorialProgress } from '@/components/TutorialProgressWidget';
 
 const SettingsGeneral = () => {
-  const { companyId } = useAuth();
+  const { companyId, user } = useAuth();
   const { refresh } = useRefreshData();
   const navigate = useNavigate();
   const [companyName, setCompanyName] = useState('');
@@ -156,11 +156,12 @@ const SettingsGeneral = () => {
           <Button
             variant="outline"
             size="sm"
-            onClick={() => {
-              resetOnboardingChecklist();
+            onClick={async () => {
+              await resetOnboardingChecklist(user?.id);
               resetTutorialProgress();
               toast.success('Tutoriais reativados! Volte ao painel para visualizá-los.');
             }}
+
           >
             Ver tutorial novamente
           </Button>
