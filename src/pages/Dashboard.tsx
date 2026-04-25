@@ -1471,7 +1471,7 @@ const Dashboard = () => {
               <Users className="h-5 w-5 text-accent" />
             </div>
             <div className="min-w-0">
-              <p className="text-sm text-muted-foreground">Atendimentos</p>
+              <p className="text-sm text-muted-foreground">Clientes únicos</p>
               <p className="metric-value">{stats.clients}</p>
             </div>
           </CardContent>
