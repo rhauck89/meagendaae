@@ -385,18 +385,36 @@ export function UnifiedAppointmentCard({
                   {apt.client.whatsapp}
                 </p>
               )}
-              <div className="flex flex-col items-end">
-                <span className={cn(
-                  "font-display font-black text-foreground",
-                  variant === 'detailed' ? 'text-lg' : 'text-sm sm:text-base'
-                )}>
-                  {formattedPrice}
-                </span>
-                {apt.extra_fee > 0 && (
-                  <span className="text-[9px] text-purple-600 font-bold uppercase tracking-wider">
-                    +R$ {Number(apt.extra_fee).toFixed(2)} taxa
-                  </span>
+              <div className="flex flex-col items-end gap-0.5">
+                {totalDiscounts > 0 && (
+                  <div className="flex flex-col items-end text-[10px] space-y-0.5">
+                    <span className="text-muted-foreground line-through">
+                      {formatBRL(originalPrice)}
+                    </span>
+                    {promoDiscount > 0 && (
+                      <span className="text-orange-600 font-medium">🏷️ Promoção -{formatBRL(promoDiscount)}</span>
+                    )}
+                    {cashbackUsed > 0 && (
+                      <span className="text-blue-600 font-medium">💸 Cashback -{formatBRL(cashbackUsed)}</span>
+                    )}
+                    {manualDiscount > 0 && (
+                      <span className="text-purple-600 font-medium">✍️ Desconto manual -{formatBRL(manualDiscount)}</span>
+                    )}
+                  </div>
                 )}
+                <div className="flex flex-col items-end">
+                  <span className={cn(
+                    "font-display font-black text-foreground",
+                    variant === 'detailed' ? 'text-lg' : 'text-sm sm:text-base'
+                  )}>
+                    {totalDiscounts > 0 ? `💰 Total: ${formattedPrice}` : formattedPrice}
+                  </span>
+                  {apt.extra_fee > 0 && (
+                    <span className="text-[9px] text-purple-600 font-bold uppercase tracking-wider">
+                      +R$ {Number(apt.extra_fee).toFixed(2)} taxa
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
             
