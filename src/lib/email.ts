@@ -210,7 +210,7 @@ export async function sendWelcomeCompanyEmail(opts: {
 
   return sendEmail({
     to: opts.email,
-    subject: "Bem-vindo ao Agendaê 🚀",
+    subject: "Bem-vindo ao Me Agendaê 🚀",
     html,
     type: "welcome_company",
   });
