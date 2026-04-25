@@ -1739,6 +1739,7 @@ export type Database = {
           amount: number
           appointment_id: string | null
           category_id: string | null
+          client_name: string | null
           company_id: string
           created_at: string
           created_by: string | null
@@ -1749,8 +1750,10 @@ export type Database = {
           notes: string | null
           payment_method: string | null
           professional_id: string | null
+          professional_name: string | null
           revenue_date: string
           service_id: string | null
+          service_name: string | null
           status: string
           updated_at: string
         }
@@ -1758,6 +1761,7 @@ export type Database = {
           amount?: number
           appointment_id?: string | null
           category_id?: string | null
+          client_name?: string | null
           company_id: string
           created_at?: string
           created_by?: string | null
@@ -1768,8 +1772,10 @@ export type Database = {
           notes?: string | null
           payment_method?: string | null
           professional_id?: string | null
+          professional_name?: string | null
           revenue_date?: string
           service_id?: string | null
+          service_name?: string | null
           status?: string
           updated_at?: string
         }
@@ -1777,6 +1783,7 @@ export type Database = {
           amount?: number
           appointment_id?: string | null
           category_id?: string | null
+          client_name?: string | null
           company_id?: string
           created_at?: string
           created_by?: string | null
@@ -1787,8 +1794,10 @@ export type Database = {
           notes?: string | null
           payment_method?: string | null
           professional_id?: string | null
+          professional_name?: string | null
           revenue_date?: string
           service_id?: string | null
+          service_name?: string | null
           status?: string
           updated_at?: string
         }
