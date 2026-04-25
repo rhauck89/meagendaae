@@ -1316,31 +1316,56 @@ const Team = () => {
                     )}
 
                     <div className="border-t pt-4">
-                      <p className="text-sm font-medium mb-2">Serviços</p>
-                      <p className="text-xs text-muted-foreground mb-3">Selecione os serviços que este profissional realiza.</p>
+                      <div className="flex items-center justify-between mb-2">
+                        <div>
+                          <p className="text-sm font-medium">Serviços ({companyServices.length} disponíveis)</p>
+                          <p className="text-xs text-muted-foreground">{form.selectedServiceIds.length} selecionado(s)</p>
+                        </div>
+                      </div>
+
                       {companyServices.length === 0 ? (
                         <p className="text-sm text-muted-foreground text-center py-4">Nenhum serviço cadastrado. Você pode vincular depois.</p>
                       ) : (
-                        <div className="space-y-2 max-h-48 overflow-y-auto">
-                          {companyServices.map((svc: any) => (
-                            <label key={svc.id} className="flex items-center gap-3 p-2 rounded-md border cursor-pointer hover:bg-muted/50 transition-colors">
-                              <Checkbox
-                                checked={form.selectedServiceIds.includes(svc.id)}
-                                onCheckedChange={(checked) => {
-                                  setForm(prev => ({
-                                    ...prev,
-                                    selectedServiceIds: checked
-                                      ? [...prev.selectedServiceIds, svc.id]
-                                      : prev.selectedServiceIds.filter(id => id !== svc.id),
-                                  }));
-                                }}
-                              />
-                              <div className="flex-1">
-                                <p className="text-sm font-medium">{svc.name}</p>
-                                <p className="text-xs text-muted-foreground">R$ {Number(svc.price).toFixed(2)} • {svc.duration_minutes} min</p>
-                              </div>
-                            </label>
-                          ))}
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-3 p-3 rounded-md border bg-muted/30 sticky top-0 z-10">
+                            <Checkbox
+                              id="select-all-wizard"
+                              checked={companyServices.length > 0 && form.selectedServiceIds.length === companyServices.length}
+                              onCheckedChange={(checked) => {
+                                setForm(prev => ({
+                                  ...prev,
+                                  selectedServiceIds: checked 
+                                    ? companyServices.map((s: any) => s.id) 
+                                    : []
+                                }));
+                              }}
+                            />
+                            <Label htmlFor="select-all-wizard" className="text-sm font-bold cursor-pointer flex-1">
+                              Selecionar todos
+                            </Label>
+                          </div>
+
+                          <div className="space-y-2 max-h-60 overflow-y-auto pr-1 mt-2">
+                            {companyServices.map((svc: any) => (
+                              <label key={svc.id} className="flex items-center gap-3 p-2 rounded-md border cursor-pointer hover:bg-muted/50 transition-colors">
+                                <Checkbox
+                                  checked={form.selectedServiceIds.includes(svc.id)}
+                                  onCheckedChange={(checked) => {
+                                    setForm(prev => ({
+                                      ...prev,
+                                      selectedServiceIds: checked
+                                        ? [...prev.selectedServiceIds, svc.id]
+                                        : prev.selectedServiceIds.filter(id => id !== svc.id),
+                                    }));
+                                  }}
+                                />
+                                <div className="flex-1">
+                                  <p className="text-sm font-medium">{svc.name}</p>
+                                  <p className="text-xs text-muted-foreground">R$ {Number(svc.price).toFixed(2)} • {svc.duration_minutes} min</p>
+                                </div>
+                              </label>
+                            ))}
+                          </div>
                         </div>
                       )}
                     </div>
