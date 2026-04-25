@@ -52,7 +52,9 @@ import {
   AreaChart, 
   Area 
 } from 'recharts';
+import { cn } from '@/lib/utils';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+
 
 interface OccupancyDrawerProps {
   open: boolean;
