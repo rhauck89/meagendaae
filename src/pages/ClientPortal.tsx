@@ -25,6 +25,7 @@ import {
 import { format, parseISO, differenceInDays, isPast } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
+import { cn } from '@/lib/utils';
 
 interface ClientRecord {
   id: string; company_id: string; name: string;
