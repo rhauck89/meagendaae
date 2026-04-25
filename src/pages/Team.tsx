@@ -12,7 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { Plus, Users, Percent, DollarSign, Settings, Copy, ExternalLink, Mail, KeyRound, MessageCircle, Pencil, UserX, UserCheck, Trash2, CalendarOff, ChevronLeft, ChevronRight, Check, Clock, Wallet, Crown, Lock, MoreVertical, Calendar as CalendarIcon, Search, X, Briefcase, Globe, Link2 } from 'lucide-react';
+import { Plus, Users, Percent, DollarSign, Settings, Copy, ExternalLink, Mail, KeyRound, MessageCircle, Pencil, UserX, UserCheck, Trash2, CalendarOff, ChevronLeft, ChevronRight, Check, Clock, Wallet, Crown, Lock, MoreVertical, Calendar as CalendarIcon, Search, X, Briefcase, Globe, Link2, Shield } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { buildWhatsAppUrl, trackWhatsAppClick } from '@/lib/whatsapp';
@@ -35,6 +35,13 @@ import {
 } from '@/lib/business-model';
 
 const ROLE_TITLES = ['Barbeiro', 'Cabeleireira', 'Esteticista', 'Manicure', 'Recepcionista'];
+const SYSTEM_ROLES = {
+  admin_principal: { label: 'Admin Principal', icon: Crown, color: 'bg-amber-100 text-amber-800 border-amber-300' },
+  admin: { label: 'Admin', icon: Shield, color: 'bg-blue-100 text-blue-800 border-blue-300' },
+  admin_financeiro: { label: 'Admin Financeiro', icon: DollarSign, color: 'bg-green-100 text-green-800 border-green-300' },
+  manager: { label: 'Gerente', icon: Briefcase, color: 'bg-purple-100 text-purple-800 border-purple-300' },
+  collaborator: { label: 'Funcionário', icon: Users, color: 'bg-slate-100 text-slate-800 border-slate-300' },
+};
 const WIZARD_STEPS = 5;
 
 const Team = () => {
@@ -109,6 +116,7 @@ const Team = () => {
     is_admin_self: false,
     use_company_banner: true,
     schedule_from_company: true,
+    system_role: 'collaborator' as string,
   });
 
   // Fetch company services for step 3
@@ -322,6 +330,7 @@ const Team = () => {
           service_ids: form.selectedServiceIds,
           has_system_access: form.has_system_access,
           is_admin_self: form.is_admin_self,
+          system_role: form.is_admin_self ? 'admin_principal' : form.system_role,
           use_company_banner: form.use_company_banner,
         },
       });
@@ -711,9 +720,13 @@ const Team = () => {
 
           {/* Tags */}
           <div className="flex flex-wrap items-center gap-1.5">
-            {isOwner && (
-              <Badge className="flex items-center gap-1 bg-amber-100 text-amber-800 border-amber-300">
-                <Crown className="h-3 w-3" /> Administrador
+            {hasAccess && (collaborator as any).system_role && SYSTEM_ROLES[(collaborator as any).system_role as keyof typeof SYSTEM_ROLES] && (
+              <Badge className={`flex items-center gap-1 ${(SYSTEM_ROLES as any)[(collaborator as any).system_role].color}`}>
+                {(() => {
+                  const RoleIcon = (SYSTEM_ROLES as any)[(collaborator as any).system_role].icon;
+                  return <RoleIcon className="h-3 w-3" />;
+                })()}
+                {(SYSTEM_ROLES as any)[(collaborator as any).system_role].label}
               </Badge>
             )}
             <Badge variant="outline" className="flex items-center gap-1">
@@ -1127,22 +1140,59 @@ const Team = () => {
 
                     {form.has_system_access && (
                       <>
-                        <div className="flex items-center gap-3 p-3 rounded-lg border">
-                          <Checkbox
-                            id="admin-self"
-                            checked={form.is_admin_self}
-                            onCheckedChange={(checked) => setForm({ ...form, is_admin_self: !!checked, email: !!checked ? '' : form.email })}
-                          />
-                          <div>
-                            <Label htmlFor="admin-self" className="text-sm font-medium cursor-pointer">Este profissional sou eu (Administrador)</Label>
-                            <p className="text-xs text-muted-foreground">Vincula ao seu login atual, sem criar nova conta</p>
-                          </div>
-                        </div>
+                        {(() => {
+                          const alreadyLinked = collaborators.find(c => c.profile?.user_id === user?.id);
+                          if (alreadyLinked) {
+                            return (
+                              <div className="p-3 rounded-lg border bg-amber-50/50 border-amber-200">
+                                <p className="text-sm font-medium text-amber-800">Seu login já está vinculado ao profissional {alreadyLinked.profile?.full_name}</p>
+                                <p className="text-xs text-amber-700 mt-1">Para criar outro administrador, convide um novo usuário informando o e-mail dele abaixo.</p>
+                              </div>
+                            );
+                          }
+                          return (
+                            <div className="flex items-center gap-3 p-3 rounded-lg border">
+                              <Checkbox
+                                id="admin-self"
+                                checked={form.is_admin_self}
+                                onCheckedChange={(checked) => setForm({ ...form, is_admin_self: !!checked, email: !!checked ? '' : form.email })}
+                              />
+                              <div>
+                                <Label htmlFor="admin-self" className="text-sm font-medium cursor-pointer">Vincular ao meu login atual</Label>
+                                <p className="text-xs text-muted-foreground">Usar minha conta neste profissional, sem criar nova conta</p>
+                              </div>
+                            </div>
+                          );
+                        })()}
 
                         {!form.is_admin_self && (
-                          <div className="space-y-2">
-                            <Label>Email de acesso *</Label>
-                            <Input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder="email@exemplo.com" />
+                          <div className="space-y-4">
+                            <div className="space-y-2">
+                              <Label>Email de acesso *</Label>
+                              <Input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder="email@exemplo.com" />
+                            </div>
+                            
+                            <div className="space-y-2">
+                              <Label>Nível de permissão</Label>
+                              <Select 
+                                value={form.system_role} 
+                                onValueChange={(v) => setForm({ ...form, system_role: v })}
+                              >
+                                <SelectTrigger><SelectValue /></SelectTrigger>
+                                <SelectContent>
+                                  {Object.entries(SYSTEM_ROLES)
+                                    .filter(([key]) => key !== 'admin_principal')
+                                    .map(([key, role]) => (
+                                      <SelectItem key={key} value={key}>
+                                        <div className="flex items-center gap-2">
+                                          <role.icon className="h-4 w-4" />
+                                          {role.label}
+                                        </div>
+                                      </SelectItem>
+                                    ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
                           </div>
                         )}
                       </>
