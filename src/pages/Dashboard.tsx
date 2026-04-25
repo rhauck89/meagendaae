@@ -106,7 +106,9 @@ const Dashboard = () => {
   const [completeTarget, setCompleteTarget] = useState<any>(null);
   const [completePaymentMethod, setCompletePaymentMethod] = useState('pix');
   const [completeCustomAmount, setCompleteCustomAmount] = useState('');
-  const [completeDiscount, setCompleteDiscount] = useState('');
+  const [completePromoDiscount, setCompletePromoDiscount] = useState('');
+  const [completeCashbackUsed, setCompleteCashbackUsed] = useState('');
+  const [completeManualDiscount, setCompleteManualDiscount] = useState('');
   const [completeObservation, setCompleteObservation] = useState('');
   const [delayLoading, setDelayLoading] = useState(false);
   const [rescheduleTarget, setRescheduleTarget] = useState<any>(null);
