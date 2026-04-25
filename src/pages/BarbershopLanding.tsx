@@ -123,7 +123,7 @@ export default function BarbershopLanding({ routeBusinessType, customSlug }: Bar
           .from('appointments')
           .select('id, start_time, total_price, professional_id')
           .eq('company_id', company.id)
-          .eq('client_id', profile.id)
+          .eq('user_id', user.id) // Enforce user isolation
           .in('status', ['completed', 'confirmed', 'pending'])
           .order('start_time', { ascending: false })
           .limit(1)
