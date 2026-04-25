@@ -248,6 +248,11 @@ export default function BarbershopLanding({ routeBusinessType, customSlug }: Bar
     setLoading(false);
   };
 
+  const bookingBasePath = businessType === 'esthetic' ? 'estetica' : 'barbearia';
+  const companyWhatsapp = company?.whatsapp ? formatWhatsApp(company.whatsapp) : (company?.phone ? formatWhatsApp(company.phone) : null);
+  const fullAddress = [company?.address, company?.address_number, company?.district, company?.city, company?.state].filter(Boolean).join(', ');
+  const shareUrl = `${window.location.origin}/${bookingBasePath}/${slug}`;
+
   const groupedServices = useMemo(() => {
     const groups: Record<string, any[]> = {
       '✂️ Cortes': [],
