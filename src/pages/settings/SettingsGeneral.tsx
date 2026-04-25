@@ -16,7 +16,7 @@ import { resetOnboardingChecklist } from '@/components/OnboardingChecklist';
 import { resetTutorialProgress } from '@/components/TutorialProgressWidget';
 
 const SettingsGeneral = () => {
-  const { companyId } = useAuth();
+  const { companyId, user } = useAuth();
   const { refresh } = useRefreshData();
   const navigate = useNavigate();
   const [companyName, setCompanyName] = useState('');
