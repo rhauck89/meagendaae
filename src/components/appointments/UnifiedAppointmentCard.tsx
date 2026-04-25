@@ -234,8 +234,16 @@ export function UnifiedAppointmentCard({
         </div>
 
         {/* Action Button for Compact Variant */}
-        <div className="pt-1 flex items-center justify-between gap-2" onClick={(e) => e.stopPropagation()}>
-          <span className="text-xs font-bold text-foreground/80">{formattedPrice}</span>
+        <div className="pt-1 flex flex-col gap-0.5" onClick={(e) => e.stopPropagation()}>
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex flex-col">
+              {totalDiscounts > 0 && (
+                <span className="text-[9px] text-muted-foreground line-through decoration-muted-foreground/50">
+                  {formatBRL(originalPrice)}
+                </span>
+              )}
+              <span className="text-xs font-bold text-foreground/80">{formattedPrice}</span>
+            </div>
           
           <div className="flex-1 flex justify-end">
             {isPast && displayStatus !== 'completed' && displayStatus !== 'cancelled' ? (
