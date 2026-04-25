@@ -304,15 +304,22 @@ export const AgendaTimelineView = ({
                         )}
 
                         {posApt.height >= 60 && (
-                          <div className="mt-auto flex items-center justify-between gap-1 opacity-70">
-                            <span className="text-[9px] font-medium">
-                              {format(parseISO(apt.start_time), 'HH:mm')}
-                            </span>
-                            {columnMode === 'day' && (
-                              <Badge variant="outline" className={cn("text-[8px] h-3 px-1 border-none bg-transparent", profColor.text)}>
-                                {apt.professional?.full_name?.split(' ')[0]}
-                              </Badge>
+                          <div className="mt-auto space-y-0.5">
+                            {apt.extra_fee && apt.extra_fee > 0 && (
+                              <p className="text-[9px] font-bold text-purple-600 flex items-center gap-0.5">
+                                💰 +R${Number(apt.extra_fee).toFixed(0)}
+                              </p>
                             )}
+                            <div className="flex items-center justify-between gap-1 opacity-70">
+                              <span className="text-[9px] font-medium">
+                                {format(parseISO(apt.start_time), 'HH:mm')}
+                              </span>
+                              {columnMode === 'day' && (
+                                <Badge variant="outline" className={cn("text-[8px] h-3 px-1 border-none bg-transparent", profColor.text)}>
+                                  {apt.professional?.full_name?.split(' ')[0]}
+                                </Badge>
+                              )}
+                            </div>
                           </div>
                         )}
                       </div>
