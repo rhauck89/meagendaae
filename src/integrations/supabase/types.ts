@@ -5166,6 +5166,10 @@ export type Database = {
       }
       get_my_company_id: { Args: never; Returns: string }
       get_my_profile_id: { Args: never; Returns: string }
+      get_or_create_revenue_category: {
+        Args: { p_company_id: string; p_name: string }
+        Returns: string
+      }
       get_professional_ratings: {
         Args: { p_company_id: string }
         Returns: {
