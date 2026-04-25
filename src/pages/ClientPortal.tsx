@@ -49,6 +49,15 @@ interface LoyaltyTx {
   id: string; points: number; transaction_type: string;
   description: string | null; balance_after: number; created_at: string; company_id: string;
 }
+interface CashbackTx {
+  id: string;
+  amount: number;
+  type: 'credit' | 'debit' | 'expiration';
+  description: string | null;
+  created_at: string;
+  company_id: string;
+  reference_id: string | null;
+}
 interface RewardItem {
   id: string; name: string; description: string | null; image_url: string | null;
   item_type: string; points_required: number; real_value: number; extra_cost: number; company_id: string;
