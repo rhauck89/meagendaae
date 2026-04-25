@@ -97,6 +97,8 @@ const AppointmentRequests = () => {
   };
 
   const handleAcceptClick = async (request: any) => {
+    setFeeType('none');
+    setFixedFeeValue('0');
     setSelectedRequest(request);
     setProcessing(true);
     try {
