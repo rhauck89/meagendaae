@@ -381,6 +381,140 @@ const AppointmentRequests = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      {/* Accept Confirmation Dialog */}
+      <Dialog open={acceptDialogOpen} onOpenChange={setAcceptDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Check className="h-5 w-5 text-green-600" />
+              Confirmar Aceite
+            </DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-6 py-4">
+            <div className="bg-muted/30 p-4 rounded-lg space-y-2 border">
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Cliente:</span>
+                <span className="font-semibold">{selectedRequest?.client_name}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Data/Hora:</span>
+                <span className="font-semibold">
+                  {selectedRequest && format(new Date(selectedRequest.requested_date + 'T12:00:00'), "dd/MM/yyyy", { locale: ptBR })} às {selectedRequest?.requested_time.slice(0, 5)}
+                </span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Serviço:</span>
+                <span className="font-semibold">{services[selectedRequest?.service_id] || 'Serviço'}</span>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <Label className="text-sm font-bold flex items-center gap-2">
+                <DollarSign className="h-4 w-4" />
+                Cobrar taxa extra por horário especial?
+              </Label>
+              
+              <RadioGroup value={feeType} onValueChange={(val: any) => setFeeType(val)} className="grid grid-cols-2 gap-2">
+                <div className="flex items-center space-x-2 border rounded-md p-2 hover:bg-accent cursor-pointer">
+                  <RadioGroupItem value="none" id="fee-none" />
+                  <Label htmlFor="fee-none" className="cursor-pointer">Sem taxa</Label>
+                </div>
+                <div className="flex items-center space-x-2 border rounded-md p-2 hover:bg-accent cursor-pointer">
+                  <RadioGroupItem value="10" id="fee-10" />
+                  <Label htmlFor="fee-10" className="cursor-pointer">+10%</Label>
+                </div>
+                <div className="flex items-center space-x-2 border rounded-md p-2 hover:bg-accent cursor-pointer">
+                  <RadioGroupItem value="20" id="fee-20" />
+                  <Label htmlFor="fee-20" className="cursor-pointer">+20%</Label>
+                </div>
+                <div className="flex items-center space-x-2 border rounded-md p-2 hover:bg-accent cursor-pointer">
+                  <RadioGroupItem value="30" id="fee-30" />
+                  <Label htmlFor="fee-30" className="cursor-pointer">+30%</Label>
+                </div>
+                <div className="flex items-center space-x-2 border rounded-md p-2 hover:bg-accent cursor-pointer col-span-2">
+                  <RadioGroupItem value="fixed" id="fee-fixed" />
+                  <Label htmlFor="fee-fixed" className="flex-1 cursor-pointer">Valor fixo R$</Label>
+                  {feeType === 'fixed' && (
+                    <Input 
+                      type="number" 
+                      className="w-24 h-8 ml-2" 
+                      value={fixedFeeValue} 
+                      onChange={(e) => setFixedFeeValue(e.target.value)}
+                      placeholder="0.00"
+                    />
+                  )}
+                </div>
+              </RadioGroup>
+            </div>
+
+            {serviceInfo && (
+              <div className="bg-primary/5 p-4 rounded-lg border border-primary/10 space-y-1">
+                <p className="text-xs font-bold uppercase tracking-wider text-primary/70">Preview de Valores</p>
+                <div className="flex justify-between text-sm">
+                  <span>Serviço:</span>
+                  <span>R$ {serviceInfo.price.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between text-sm text-green-600 font-medium">
+                  <span>Taxa extra (+):</span>
+                  <span>R$ {calculateExtraFee().toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between text-base font-bold pt-1 border-t border-primary/10">
+                  <span>Total:</span>
+                  <span>R$ {(serviceInfo.price + calculateExtraFee()).toFixed(2)}</span>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAcceptDialogOpen(false)}>Cancelar</Button>
+            <Button onClick={handleConfirmAccept} disabled={processing} className="bg-green-600 hover:bg-green-700">
+              {processing ? 'Processando...' : 'Confirmar e Agendar'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Success Dialog */}
+      <Dialog open={successDialogOpen} onOpenChange={setSuccessDialogOpen}>
+        <DialogContent className="sm:max-w-[400px]">
+          <div className="flex flex-col items-center text-center py-6 space-y-4">
+            <div className="h-16 w-16 bg-green-100 rounded-full flex items-center justify-center mb-2">
+              <Check className="h-10 w-10 text-green-600" />
+            </div>
+            <DialogHeader>
+              <DialogTitle className="text-xl">Solicitação aceita com sucesso!</DialogTitle>
+            </DialogHeader>
+            
+            <div className="space-y-1 text-sm text-muted-foreground">
+              <p><span className="font-semibold text-foreground">Cliente:</span> {selectedRequest?.client_name}</p>
+              <p>
+                <span className="font-semibold text-foreground">Data:</span> {selectedRequest && format(new Date(selectedRequest.requested_date + 'T12:00:00'), "dd/MM/yyyy", { locale: ptBR })}
+              </p>
+              <p><span className="font-semibold text-foreground">Hora:</span> {selectedRequest?.requested_time.slice(0, 5)}</p>
+            </div>
+
+            <div className="w-full pt-4 space-y-2">
+              <Button 
+                onClick={handleNotifyWhatsApp} 
+                className="w-full gap-2 bg-[#25D366] hover:bg-[#128C7E] text-white"
+              >
+                <MessageCircle className="h-5 w-5" />
+                Avisar no WhatsApp
+                <ExternalLink className="h-4 w-4 ml-auto opacity-50" />
+              </Button>
+              <Button 
+                variant="outline" 
+                onClick={() => setSuccessDialogOpen(false)} 
+                className="w-full"
+              >
+                Fechar
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Reject Dialog */}
       <Dialog open={rejectDialogOpen} onOpenChange={setRejectDialogOpen}>
