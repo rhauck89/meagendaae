@@ -891,7 +891,7 @@ const ClientPortal = () => {
           <TabsContent value="benefits" className="space-y-4 mt-0">
             <Tabs value={benefitsTab} onValueChange={setBenefitsTab}>
               <TabsList className="grid grid-cols-3 w-full">
-                <TabsTrigger value="cashback">Cashback</TabsTrigger>
+                <TabsTrigger value="cashback">Minha Carteira</TabsTrigger>
                 <TabsTrigger value="points">Pontos</TabsTrigger>
                 <TabsTrigger value="store">Loja</TabsTrigger>
               </TabsList>
