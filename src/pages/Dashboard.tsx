@@ -399,49 +399,85 @@ const Dashboard = () => {
 
   const fetchDailyTrends = async () => {
     if (!companyId) return;
-    const days = 14;
-    const startDate = format(addDays(new Date(), -days + 1), 'yyyy-MM-dd');
-    let query = supabase
-      .from('appointments')
-      .select('start_time, status, total_price')
-      .eq('company_id', companyId)
-      .gte('start_time', `${startDate}T00:00:00`)
-      .order('start_time', { ascending: true });
+    const daysCount = 14;
+    const startDate = addDays(new Date(), -daysCount + 1);
+    const startDateStr = format(startDate, 'yyyy-MM-dd');
 
-    if (!isAdmin && profileId) {
-      query = query.eq('professional_id', profileId);
-    } else if (filterProfessional !== 'all') {
-      query = query.eq('professional_id', filterProfessional);
-    }
+    const [apptsRes, bizHoursRes, collaboratorsRes, companyRes] = await Promise.all([
+      supabase
+        .from('appointments')
+        .select('start_time, status, total_price')
+        .eq('company_id', companyId)
+        .gte('start_time', `${startDateStr}T00:00:00`)
+        .order('start_time', { ascending: true }),
+      supabase
+        .from('business_hours')
+        .select('*')
+        .eq('company_id', companyId!),
+      supabase
+        .from('collaborators')
+        .select('profile_id, active')
+        .eq('company_id', companyId!)
+        .eq('active', true),
+      supabase
+        .from('companies')
+        .select('fixed_slot_interval')
+        .eq('id', companyId!)
+        .single()
+    ]);
 
-    const { data } = await query;
-
+    const data = apptsRes.data;
     if (!data) return;
 
-    const map: Record<string, { revenue: number; clients: number; cancellations: number; total: number }> = {};
-    for (let i = 0; i < days; i++) {
-      const d = format(addDays(new Date(), -days + 1 + i), 'yyyy-MM-dd');
-      map[d] = { revenue: 0, clients: 0, cancellations: 0, total: 0 };
+    const bizHours = bizHoursRes.data || [];
+    const collaborators = collaboratorsRes.data || [];
+    const slotDuration = companyRes.data?.fixed_slot_interval || 30;
+
+    const map: Record<string, { revenue: number; clients: number; cancellations: number; confirmed: number; capacity: number }> = {};
+    for (let i = 0; i < daysCount; i++) {
+      const day = addDays(startDate, i);
+      const d = format(day, 'yyyy-MM-dd');
+      
+      const dayOfWeek = day.getDay();
+      const hours = bizHours.find(h => h.day_of_week === dayOfWeek);
+      let dayCapacity = 0;
+      if (hours && !hours.is_closed) {
+        const [oH, oM] = hours.open_time.split(':').map(Number);
+        const [cH, cM] = hours.close_time.split(':').map(Number);
+        let workingMinutes = (cH * 60 + cM) - (oH * 60 + oM);
+        if (hours.lunch_start && hours.lunch_end) {
+          const [lsH, lsM] = hours.lunch_start.split(':').map(Number);
+          const [leH, leM] = hours.lunch_end.split(':').map(Number);
+          workingMinutes -= (leH * 60 + leM) - (lsH * 60 + lsM);
+        }
+        const activeCount = (!isAdmin && profileId) ? 1 : (filterProfessional !== 'all' ? 1 : collaborators.length);
+        dayCapacity = Math.max(0, Math.floor(workingMinutes / slotDuration)) * activeCount;
+      }
+
+      map[d] = { revenue: 0, clients: 0, cancellations: 0, confirmed: 0, capacity: dayCapacity };
     }
+
     for (const a of data) {
       const d = format(parseISO(a.start_time), 'yyyy-MM-dd');
       if (!map[d]) continue;
-      map[d].total++;
-      if (a.status === 'completed') {
+      if (['confirmed', 'completed', 'in_progress'].includes(a.status)) {
+        map[d].confirmed++;
         map[d].revenue += Number(a.total_price) || 0;
         map[d].clients++;
       } else if (a.status === 'cancelled' || a.status === 'no_show') {
         map[d].cancellations++;
       }
     }
+
     setDailyTrends(Object.entries(map).map(([date, v]) => ({
       date,
       revenue: v.revenue,
       clients: v.clients,
       cancellations: v.cancellations,
-      occupancy: v.total > 0 ? Math.round((v.clients / v.total) * 100) : 0,
+      occupancy: v.capacity > 0 ? Math.round((v.confirmed / v.capacity) * 100) : 0,
     })));
   };
+
 
   const fetchWaitlistCount = async () => {
     if (!companyId) return;
