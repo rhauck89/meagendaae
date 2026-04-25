@@ -53,7 +53,7 @@ interface LoyaltyTx {
 interface CashbackTx {
   id: string;
   amount: number;
-  type: 'credit' | 'debit' | 'expiration';
+  type: 'credit' | 'debit' | 'expiration' | 'expire';
   description: string | null;
   created_at: string;
   company_id: string;
