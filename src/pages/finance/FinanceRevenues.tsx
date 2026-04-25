@@ -31,6 +31,7 @@ const paymentMethodLabels: Record<string, string> = {
 const emptyForm = () => ({
   description: '', amount: '', revenue_date: format(new Date(), 'yyyy-MM-dd'),
   due_date: '', category_id: '', notes: '', status: 'received', payment_method: '',
+  client_name: '', professional_name: '', service_name: ''
 });
 
 const FinanceRevenues = () => {
