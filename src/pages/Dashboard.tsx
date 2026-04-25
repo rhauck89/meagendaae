@@ -413,10 +413,10 @@ const Dashboard = () => {
       revenueCompleted,
       clients: safeNum(uniqueClients),
       completedAppointments: safeNum(confirmed.length),
-
       cancellations: safeNum(cancelled.length),
       occupancyRate: safeNum(occupancyRate),
-      avgTicket: confirmed.length > 0 ? safeNum(revenue / confirmed.length) : 0
+      avgTicket: confirmed.length > 0 ? safeNum(revenue / confirmed.length) : 0,
+      topClient: topClient
     });
   };
 
