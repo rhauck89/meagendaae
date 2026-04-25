@@ -923,34 +923,42 @@ const ClientPortal = () => {
 
                     <div className="space-y-2">
                       <h3 className="text-sm font-semibold text-muted-foreground">Histórico</h3>
-                      {allCashbacks.length === 0 ? (
+                      {allCashbackTxs.length === 0 ? (
                         <Card><CardContent className="p-6 text-center text-sm text-muted-foreground">
-                          Nenhum cashback registrado ainda
+                          Nenhuma movimentação registrada ainda
                         </CardContent></Card>
                       ) : (
-                        allCashbacks.map(cb => {
-                          const daysLeft = differenceInDays(parseISO(cb.expires_at), new Date());
+                        allCashbackTxs.map(tx => {
+                          const isCredit = tx.type === 'credit';
+                          const isDebit = tx.type === 'debit';
+                          const isExpiration = tx.type === 'expiration';
+                          
                           return (
-                            <Card key={cb.id}>
+                            <Card key={tx.id}>
                               <CardContent className="p-3">
-                                <div className="flex justify-between items-start gap-2">
-                                  <div className="min-w-0 space-y-1">
-                                    <CompanyHeader company={companies[cb.company_id]} />
-                                    <p className="text-sm font-medium">+ R$ {Number(cb.amount).toFixed(2)}</p>
-                                    <p className="text-xs text-muted-foreground truncate">
-                                      {cb.promotion?.title || 'Promoção'}
+                                <div className="flex justify-between items-center gap-2">
+                                  <div className="min-w-0 space-y-0.5">
+                                    <CompanyHeader company={companies[tx.company_id]} />
+                                    <p className="text-[11px] text-muted-foreground">
+                                      {format(parseISO(tx.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                                    </p>
+                                    <p className="text-xs font-medium truncate">
+                                      {tx.description || (isCredit ? 'Cashback ganho' : isDebit ? 'Cashback utilizado' : 'Cashback expirado')}
                                     </p>
                                   </div>
                                   <div className="text-right shrink-0">
-                                    {cb.status === 'active' && daysLeft > 0 ? (
-                                      <Badge className={daysLeft <= 10 ? 'bg-yellow-500/10 text-yellow-600' : 'bg-green-500/10 text-green-600'}>
-                                        {daysLeft <= 10 ? `Expira em ${daysLeft}d` : `${daysLeft}d restantes`}
-                                      </Badge>
-                                    ) : cb.status === 'used' ? (
-                                      <Badge className="bg-blue-500/10 text-blue-600">Usado</Badge>
-                                    ) : (
-                                      <Badge className="bg-muted text-muted-foreground">Expirado</Badge>
-                                    )}
+                                    <p className={cn(
+                                      "text-sm font-bold",
+                                      isCredit ? "text-green-600" : isDebit ? "text-red-600" : "text-orange-600"
+                                    )}>
+                                      {isCredit ? '+' : '-'} R$ {Number(tx.amount).toFixed(2)}
+                                    </p>
+                                    <Badge className={cn(
+                                      "text-[10px] px-1.5 py-0",
+                                      isCredit ? "bg-green-500/10 text-green-600" : isDebit ? "bg-red-500/10 text-red-600" : "bg-orange-500/10 text-orange-600"
+                                    )}>
+                                      {isCredit ? 'Ganho' : isDebit ? 'Usado' : 'Expirado'}
+                                    </Badge>
                                   </div>
                                 </div>
                               </CardContent>
