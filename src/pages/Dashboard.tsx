@@ -142,6 +142,17 @@ const Dashboard = () => {
     }
     return 'lista';
   });
+  const [onboardingKey, setOnboardingKey] = useState(0);
+
+  const reopenOnboarding = async () => {
+    if (!user?.id) return;
+    await supabase.from('profiles').update({ onboarding_hidden: false, onboarding_completed: false, onboarding_step: 0 }).eq('user_id', user.id);
+    localStorage.removeItem(`onboarding_checklist_completed_hidden_${user.id}`);
+    localStorage.removeItem(`onboarding_checklist_completed_completed_${user.id}`);
+    setOnboardingKey(prev => prev + 1);
+    toast.success('Primeiros passos reativados!');
+  };
+
 
   const [timelineColumnMode, setTimelineColumnMode] = useState<'day' | 'professionals'>('day');
   // Cleanup orphan Radix portal elements when reschedule modal closes
