@@ -2017,7 +2017,18 @@ const Dashboard = () => {
       </AlertDialog>
 
       {/* Complete Confirmation Dialog with Payment Method */}
-      <Dialog open={completeDialogOpen} onOpenChange={(open) => { setCompleteDialogOpen(open); if (!open) { setCompleteTarget(null); setCompletePaymentMethod('pix'); setCompleteCustomAmount(''); setCompleteDiscount(''); setCompleteObservation(''); } }}>
+      <Dialog open={completeDialogOpen} onOpenChange={(open) => { 
+        setCompleteDialogOpen(open); 
+        if (!open) { 
+          setCompleteTarget(null); 
+          setCompletePaymentMethod('pix'); 
+          setCompleteCustomAmount(''); 
+          setCompletePromoDiscount(''); 
+          setCompleteCashbackUsed(''); 
+          setCompleteManualDiscount(''); 
+          setCompleteObservation(''); 
+        } 
+      }}>
         <DialogContent className="w-[92vw] max-w-md">
           <DialogHeader>
             <DialogTitle>Pagamento recebido?</DialogTitle>
@@ -2055,9 +2066,10 @@ const Dashboard = () => {
                 ))}
               </div>
             </div>
+
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="text-sm font-medium">Valor pago</label>
+                <label className="text-sm font-medium">Valor original</label>
                 <input
                   type="number"
                   step="0.01"
@@ -2068,30 +2080,61 @@ const Dashboard = () => {
                 />
               </div>
               <div>
-                <label className="text-sm font-medium">Desconto</label>
+                <label className="text-sm font-medium">✍️ Desc. manual</label>
                 <input
                   type="number"
                   step="0.01"
                   placeholder="0.00"
-                  value={completeDiscount}
-                  onChange={(e) => setCompleteDiscount(e.target.value)}
+                  value={completeManualDiscount}
+                  onChange={(e) => setCompleteManualDiscount(e.target.value)}
                   className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring mt-1"
                 />
               </div>
             </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-sm font-medium">🏷️ Promoção</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  placeholder="0.00"
+                  value={completePromoDiscount}
+                  onChange={(e) => setCompletePromoDiscount(e.target.value)}
+                  className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring mt-1"
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium">💸 Cashback</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  placeholder="0.00"
+                  value={completeCashbackUsed}
+                  onChange={(e) => setCompleteCashbackUsed(e.target.value)}
+                  className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring mt-1"
+                />
+              </div>
+            </div>
+
             {/* Net amount preview */}
-            {completeTarget && (parseFloat(completeDiscount) > 0 || completeCustomAmount) && (() => {
+            {completeTarget && (() => {
               const gross = parseFloat(completeCustomAmount) || Number(completeTarget.total_price);
-              const disc = parseFloat(completeDiscount) || 0;
-              const net = Math.max(0, gross - disc);
+              const discM = parseFloat(completeManualDiscount) || 0;
+              const discP = parseFloat(completePromoDiscount) || 0;
+              const discC = parseFloat(completeCashbackUsed) || 0;
+              const net = Math.max(0, gross - discM - discP - discC);
               return (
                 <div className="bg-muted/50 rounded-md p-3 text-sm space-y-1">
                   <div className="flex justify-between"><span className="text-muted-foreground">Valor bruto</span><span>R$ {gross.toFixed(2)}</span></div>
-                  {disc > 0 && <div className="flex justify-between text-destructive"><span>- Desconto</span><span>R$ {disc.toFixed(2)}</span></div>}
-                  <div className="flex justify-between font-bold border-t pt-1"><span>Valor líquido</span><span>R$ {net.toFixed(2)}</span></div>
+                  {discP > 0 && <div className="flex justify-between text-orange-600"><span>- Promoção</span><span>R$ {discP.toFixed(2)}</span></div>}
+                  {discC > 0 && <div className="flex justify-between text-blue-600"><span>- Cashback</span><span>R$ {discC.toFixed(2)}</span></div>}
+                  {discM > 0 && <div className="flex justify-between text-purple-600"><span>- Desc. Manual</span><span>R$ {discM.toFixed(2)}</span></div>}
+                  <div className="flex justify-between font-bold border-t pt-1"><span>Valor líquido (A pagar)</span><span>R$ {net.toFixed(2)}</span></div>
                 </div>
               );
             })()}
+
             <div>
               <label className="text-sm font-medium">Observação</label>
               <textarea
@@ -2110,10 +2153,13 @@ const Dashboard = () => {
                 className="flex-1 bg-success hover:bg-success/90 text-white"
                 onClick={() => {
                   if (completeTarget) {
-                    const discount = parseFloat(completeDiscount) || 0;
+                    const dManual = parseFloat(completeManualDiscount) || 0;
+                    const dPromo = parseFloat(completePromoDiscount) || 0;
+                    const dCashback = parseFloat(completeCashbackUsed) || 0;
                     const customAmount = parseFloat(completeCustomAmount) || Number(completeTarget.total_price);
-                    const finalAmount = customAmount - discount;
-                    updateStatus(completeTarget.id, 'completed', completePaymentMethod, discount, customAmount);
+                    
+                    updateStatus(completeTarget.id, 'completed', completePaymentMethod, dManual, customAmount, dPromo, dCashback);
+                    
                     if (completeObservation) {
                       supabase.from('appointments').update({ 
                         notes: [
@@ -2128,7 +2174,9 @@ const Dashboard = () => {
                   setCompleteTarget(null);
                   setCompletePaymentMethod('pix');
                   setCompleteCustomAmount('');
-                  setCompleteDiscount('');
+                  setCompletePromoDiscount('');
+                  setCompleteCashbackUsed('');
+                  setCompleteManualDiscount('');
                   setCompleteObservation('');
                 }}
               >
