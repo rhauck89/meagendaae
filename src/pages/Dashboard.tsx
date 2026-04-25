@@ -198,7 +198,7 @@ const Dashboard = () => {
       fetchMonthlyStats();
       fetchUpcomingAppointments();
     }
-  }, [companyId, currentDate, viewMode, filterProfessional]);
+  }, [companyId, currentDate, viewMode, filterProfessional, isAdmin, profileId]);
   useOnDataRefresh('agenda', handleAgendaRefresh);
 
   const fetchUpcomingAppointments = async () => {
