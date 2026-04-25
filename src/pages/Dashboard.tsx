@@ -1525,7 +1525,7 @@ const Dashboard = () => {
               )}
             </CardContent>
           </Card>
-          <Card>
+          <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => setOccupancyDrawerOpen(true)}>
             <CardContent className="p-4 space-y-1">
               <div className="flex items-center gap-2">
                 <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
@@ -1543,6 +1543,7 @@ const Dashboard = () => {
               )}
             </CardContent>
           </Card>
+
           <Card>
             <CardContent className="p-4 space-y-1">
               <div className="flex items-center gap-2">
