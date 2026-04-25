@@ -2423,6 +2423,16 @@ const Dashboard = () => {
         companyId={companyId!}
         professionals={collaboratorsList}
       />
+
+      <div className="flex justify-center pt-8 pb-4">
+        <button
+          onClick={reopenOnboarding}
+          className="text-xs text-muted-foreground hover:text-primary transition-colors flex items-center gap-1.5 opacity-60 hover:opacity-100"
+        >
+          <Rocket className="h-3 w-3" />
+          Ver primeiros passos
+        </button>
+      </div>
     </div>
   );
 };
