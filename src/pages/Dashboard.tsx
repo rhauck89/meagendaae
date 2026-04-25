@@ -1559,6 +1559,8 @@ const Dashboard = () => {
                 <p className="text-sm text-muted-foreground">Clientes no mês</p>
               </div>
               <p className="metric-value">{monthlyStats.clients}</p>
+              <p className="text-xs text-muted-foreground">atendidos</p>
+
             </CardContent>
           </Card>
           <Card>
