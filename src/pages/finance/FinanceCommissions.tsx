@@ -80,7 +80,7 @@ const FinanceCommissions = () => {
       appointments?.forEach(a => {
         const pid = a.professional_id;
         if (!grouped[pid]) grouped[pid] = { name: a.professional?.full_name || 'Sem nome', revenue: 0, count: 0 };
-        grouped[pid].revenue += Number(a.total_price);
+        grouped[pid].revenue += Number(a.final_price || a.total_price || 0);
         grouped[pid].count += 1;
       });
 
