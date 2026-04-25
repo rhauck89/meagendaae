@@ -154,9 +154,20 @@ export function UnifiedAppointmentCard({
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-1 min-w-0">
                 <p className="text-sm font-bold truncate leading-tight">{clientName}</p>
-                {apt.special_schedule && (
-                  <span className="text-[10px]" title="Horário Especial">🟣</span>
-                )}
+                <div className="flex gap-0.5 ml-1">
+                  {apt.promotion_id && (
+                    <span className="text-[10px]" title="Promoção">🏷️</span>
+                  )}
+                  {cashbackUsed > 0 && (
+                    <span className="text-[10px]" title="Cashback">💸</span>
+                  )}
+                  {apt.client?.is_vip && (
+                    <span className="text-[10px]" title="VIP">⭐</span>
+                  )}
+                  {apt.special_schedule && (
+                    <span className="text-[10px]" title="Horário Especial">🟣</span>
+                  )}
+                </div>
               </div>
               <p className="text-[10px] text-muted-foreground truncate font-medium">
                 {formatServicesWithDuration(apt.appointment_services)}
