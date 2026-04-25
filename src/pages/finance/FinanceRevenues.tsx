@@ -290,28 +290,98 @@ const FinanceRevenues = () => {
       <Card className="hidden md:block">
         <CardContent className="p-0">
           <div className="overflow-x-auto">
-            <Table className="min-w-[600px]">
+            <Table className="min-w-[1000px]">
               <TableHeader>
                 <TableRow>
-                  <TableHead>Data</TableHead>
-                  <TableHead>Descrição</TableHead>
+                  <TableHead className="cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => {
+                    if (sortField === 'revenue_date') setSortDirection(d => d === 'asc' ? 'desc' : 'asc');
+                    else { setSortField('revenue_date'); setSortDirection('desc'); }
+                  }}>
+                    <div className="flex items-center gap-1">
+                      Data {sortField === 'revenue_date' && (sortDirection === 'asc' ? '↑' : '↓')}
+                    </div>
+                  </TableHead>
+                  <TableHead>
+                    <div className="space-y-2 py-2">
+                      <span className="text-xs font-semibold">Cliente</span>
+                      <Input 
+                        placeholder="Filtrar..." 
+                        value={filterClient} 
+                        onChange={e => setFilterClient(e.target.value)}
+                        className="h-7 text-xs"
+                      />
+                    </div>
+                  </TableHead>
+                  <TableHead>
+                    <div className="space-y-2 py-2">
+                      <span className="text-xs font-semibold">Profissional</span>
+                      <Input 
+                        placeholder="Filtrar..." 
+                        value={filterProfessional} 
+                        onChange={e => setFilterProfessional(e.target.value)}
+                        className="h-7 text-xs"
+                      />
+                    </div>
+                  </TableHead>
+                  <TableHead>
+                    <div className="space-y-2 py-2">
+                      <span className="text-xs font-semibold">Serviço</span>
+                      <Input 
+                        placeholder="Filtrar..." 
+                        value={filterService} 
+                        onChange={e => setFilterService(e.target.value)}
+                        className="h-7 text-xs"
+                      />
+                    </div>
+                  </TableHead>
                   <TableHead>Categoria</TableHead>
                   <TableHead>Tipo</TableHead>
-                  <TableHead>Pagamento</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Valor</TableHead>
+                  <TableHead>
+                    <div className="space-y-2 py-2">
+                      <span className="text-xs font-semibold">Pagamento</span>
+                      <Select value={filterPayment} onValueChange={setFilterPayment}>
+                        <SelectTrigger className="h-7 text-xs">
+                          <SelectValue placeholder="Todos" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">Todos</SelectItem>
+                          {Object.entries(paymentMethodLabels).map(([val, label]) => (
+                            <SelectItem key={val} value={val}>{label}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </TableHead>
+                  <TableHead className="text-right cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => {
+                    if (sortField === 'amount') setSortDirection(d => d === 'asc' ? 'desc' : 'asc');
+                    else { setSortField('amount'); setSortDirection('desc'); }
+                  }}>
+                    <div className="flex items-center justify-end gap-1">
+                      Valor {sortField === 'amount' && (sortDirection === 'asc' ? '↑' : '↓')}
+                    </div>
+                  </TableHead>
                   <TableHead className="w-20">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {revenues.length === 0 ? (
-                  <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-8">Nenhuma receita registrada</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={9} className="text-center text-muted-foreground py-8">Nenhuma receita encontrada</TableCell></TableRow>
                 ) : revenues.map(r => (
                   <TableRow key={r.id}>
-                    <TableCell>{format(new Date(r.revenue_date + 'T12:00:00'), 'dd/MM/yyyy')}</TableCell>
+                    <TableCell className="whitespace-nowrap">{format(new Date(r.revenue_date + 'T12:00:00'), 'dd/MM/yyyy')}</TableCell>
                     <TableCell>
-                      <div className="max-w-[250px] truncate" title={r.description}>
-                        {r.description}
+                      <div className="font-medium truncate max-w-[120px]" title={r.client_name}>
+                        {r.client_name || '—'}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="text-xs truncate max-w-[120px]" title={r.professional_name}>
+                        {r.professional_name || '—'}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="text-xs truncate max-w-[150px]" title={r.service_name}>
+                        {r.service_name || '—'}
                       </div>
                     </TableCell>
                     <TableCell>
@@ -329,7 +399,6 @@ const FinanceRevenues = () => {
                       </Badge>
                     </TableCell>
                     <TableCell className="text-xs text-muted-foreground">{paymentMethodLabels[r.payment_method] || '—'}</TableCell>
-                    <TableCell><Badge variant="outline" className="text-[10px] uppercase font-bold px-1.5 py-0">{statusLabels[r.status] || r.status}</Badge></TableCell>
                     <TableCell className="text-right font-semibold text-success">{maskValue(Number(r.amount))}</TableCell>
                     <TableCell>
                       <div className="flex gap-1">
