@@ -364,7 +364,7 @@ const Dashboard = () => {
     const confirmed = data.filter(a => a.status === 'confirmed' || a.status === 'completed');
     const completed = data.filter(a => a.status === 'completed');
     const cancelled = data.filter(a => a.status === 'cancelled');
-    const uniqueClients = new Set(data.filter(a => a.status !== 'cancelled' && a.status !== 'no_show').map(a => a.client_id)).size;
+    const uniqueClients = new Set(data.filter(a => a.client_id && ['confirmed', 'completed', 'pending'].includes(a.status)).map(a => a.client_id)).size;
 
     const safeNum = (v: any) => isNaN(Number(v)) ? 0 : Number(v);
     const revenue = safeNum(confirmed.reduce((sum, a) => sum + Number(a.total_price), 0));
