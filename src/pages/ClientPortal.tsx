@@ -179,6 +179,7 @@ const ClientPortal = () => {
   const loadClientData = async (isRevalidation = false) => {
     if (!isRevalidation) setLoading(true);
     try {
+      // Step 1: Link any potential orphan clients to this user if not already done
       const { data: profileData } = await supabase
         .from('profiles').select('whatsapp').eq('user_id', user!.id).single();
 
@@ -190,80 +191,98 @@ const ClientPortal = () => {
         } as any);
       }
 
-      const { data: clientData } = await supabase
-        .from('clients')
-        .select('id, company_id, name, whatsapp, email, birth_date, registration_complete, postal_code, street, address_number, district, city, state')
-        .eq('user_id', user!.id);
-
-      if (!clientData || clientData.length === 0) {
-        if (!isRevalidation) { setClients([]); setLoading(false); }
-        return;
-      }
-      setClients(clientData as ClientRecord[]);
-
-      const companyIds = [...new Set(clientData.map(c => c.company_id))];
-      const [companyRes, cashbackRes, cashbackTxRes, loyaltyTxRes, rewardsRes] = await Promise.all([
-        supabase.from('companies').select('id, name, logo_url, slug').in('id', companyIds),
+      // Step 2: Fetch all data using user_id for strict isolation
+      // This is the CRITICAL change: we no longer rely solely on client_id lists
+      const [
+        clientRes,
+        cashbackRes,
+        cashbackTxRes,
+        loyaltyTxRes,
+        rewardsRes,
+        redemptionsRes,
+        appointmentsRes
+      ] = await Promise.all([
+        supabase.from('clients')
+          .select('id, company_id, name, whatsapp, email, birth_date, registration_complete, postal_code, street, address_number, district, city, state')
+          .eq('user_id', user!.id),
+        
         supabase.from('client_cashback')
           .select('id, amount, status, expires_at, created_at, company_id, promotion:promotions!client_cashback_promotion_id_fkey(title)')
-          .in('client_id', clientData.map(c => c.id))
+          .eq('user_id', user!.id) // Direct isolation
           .order('created_at', { ascending: false }),
+        
         supabase.from('cashback_transactions')
           .select('*')
-          .in('client_id', clientData.map(c => c.id))
+          .eq('user_id', user!.id) // Direct isolation
           .order('created_at', { ascending: false }).limit(300),
+        
         supabase.from('loyalty_points_transactions')
           .select('*')
-          .in('client_id', clientData.map(c => c.id))
+          .eq('user_id', user!.id) // Direct isolation
           .order('created_at', { ascending: false }).limit(300),
-        // Loja: busca TODOS os itens ativos com info da empresa embutida (sem depender de vínculo client→company)
+        
         supabase.from('loyalty_reward_items')
           .select(`
             id, name, description, points_required, real_value, extra_cost, image_url, item_type, company_id, stock_total, stock_available,
             company:companies!loyalty_reward_items_company_id_fkey(id, name, logo_url, slug)
           `)
           .eq('active', true),
+        
+        supabase.from('loyalty_redemptions')
+          .select('id, redemption_code, status, created_at, total_points, reward_id, company_id, client_id')
+          .eq('user_id', user!.id) // Direct isolation
+          .order('created_at', { ascending: false })
+          .limit(50),
+
+        supabase.from('appointments')
+          .select(`
+            id, start_time, end_time, total_price, status, company_id, promotion_id,
+            original_price, promotion_discount, cashback_used, manual_discount, final_price,
+            company:companies!appointments_company_id_fkey(id, name, logo_url, slug),
+            professional:profiles!appointments_professional_id_fkey(id, full_name, avatar_url),
+            appointment_services(price, service:services(id, name))
+          `)
+          .eq('user_id', user!.id) // Direct isolation
+          .order('start_time', { ascending: false }).limit(200)
       ]);
 
-      // Load redemptions (history + active QR codes) — separate so it can be refreshed independently
-      const { data: redemptionsData } = await supabase
-        .from('loyalty_redemptions')
-        .select('id, redemption_code, status, created_at, total_points, reward_id, company_id, client_id')
-        .in('client_id', clientData.map(c => c.id))
-        .order('created_at', { ascending: false })
-        .limit(50);
-      setRedemptions((redemptionsData || []) as Redemption[]);
-
-      const companiesMap: Record<string, CompanyInfo> = {};
-      if (companyRes.data) {
-        companyRes.data.forEach((c: any) => { companiesMap[c.id] = { id: c.id, name: c.name, logo_url: c.logo_url, slug: c.slug }; });
+      if (!clientRes.data || clientRes.data.length === 0) {
+        if (!isRevalidation) { setClients([]); setLoading(false); }
+        return;
       }
-      // Hidrata o mapa de empresas com as que vieram via recompensas (multi-empresa real)
-      if (rewardsRes.data) {
-        for (const r of rewardsRes.data as any[]) {
-          if (r.company && !companiesMap[r.company.id]) {
-            companiesMap[r.company.id] = { id: r.company.id, name: r.company.name, logo_url: r.company.logo_url, slug: r.company.slug };
-          }
-        }
-      }
-      setCompanies(companiesMap);
-      // Auto-select handled by dedicated effect (after points are aggregated)
-
-      console.log('[ClientPortal][Loja] rewards loaded:', {
-        count: rewardsRes.data?.length || 0,
-        companies: [...new Set((rewardsRes.data || []).map((r: any) => r.company_id))],
-        error: rewardsRes.error,
-      });
-
+      
+      const clientData = clientRes.data;
+      setClients(clientData as ClientRecord[]);
+      setAppointments((appointmentsRes.data || []) as any);
       setAllCashbacks((cashbackRes.data || []) as any);
       setAllCashbackTxs((cashbackTxRes.data || []) as any);
       setAllLoyaltyTxs((loyaltyTxRes.data || []) as any);
       setRewards((rewardsRes.data || []) as any);
+      setRedemptions((redemptionsRes.data || []) as Redemption[]);
 
+      // Map companies
+      const companiesMap: Record<string, CompanyInfo> = {};
+      const companyIds = [...new Set(clientData.map(c => c.company_id))];
+      
+      const { data: companyData } = await supabase.from('companies').select('id, name, logo_url, slug').in('id', companyIds);
+      if (companyData) {
+        companyData.forEach((c: any) => { companiesMap[c.id] = { id: c.id, name: c.name, logo_url: c.logo_url, slug: c.slug }; });
+      }
+
+      // Add companies from rewards and appointments
+      [...(rewardsRes.data || []), ...(appointmentsRes.data || [])].forEach((item: any) => {
+        if (item.company && !companiesMap[item.company.id]) {
+          companiesMap[item.company.id] = { id: item.company.id, name: item.company.name, logo_url: item.company.logo_url, slug: item.company.slug };
+        }
+      });
+      setCompanies(companiesMap);
+
+      // Load specific loyalty configs for companies linked to this client
       const cashActive: Record<string, boolean> = {};
       const loyalActive: Record<string, boolean> = {};
       const lcMap: Record<string, any> = {};
-      for (const cid of companyIds) {
+      
+      await Promise.all(companyIds.map(async (cid) => {
         const [promoCheck, lcRes] = await Promise.all([
           supabase.from('promotions').select('id').eq('company_id', cid).eq('promotion_type', 'cashback').eq('status', 'active').limit(1),
           supabase.from('loyalty_config').select('*').eq('company_id', cid).single(),
@@ -271,35 +290,13 @@ const ClientPortal = () => {
         cashActive[cid] = !!(promoCheck.data && promoCheck.data.length > 0);
         loyalActive[cid] = !!lcRes.data?.enabled;
         if (lcRes.data) lcMap[cid] = lcRes.data;
-      }
+      }));
+
       setCompanyCashbackActive(cashActive);
       setCompanyLoyaltyActive(loyalActive);
       setLoyaltyConfigs(lcMap);
 
-      const clientIds = clientData.map(c => c.id);
-      const { data: aptData, error: aptErr } = await supabase
-        .from('appointments')
-        .select(`
-          id, start_time, end_time, total_price, status, company_id, promotion_id,
-          original_price, promotion_discount, cashback_used, manual_discount, final_price,
-          company:companies!appointments_company_id_fkey(id, name, logo_url, slug),
-          professional:profiles!appointments_professional_id_fkey(id, full_name, avatar_url),
-          appointment_services(price, service:services(id, name))
-        `)
-        .in('client_id', clientIds)
-        .order('start_time', { ascending: false }).limit(200);
-      if (aptErr) console.error('[ClientPortal] appointments query error:', aptErr);
-      setAppointments((aptData || []) as any);
-
-      if (aptData) {
-        for (const a of aptData as any[]) {
-          if (a.company && !companiesMap[a.company.id]) {
-            companiesMap[a.company.id] = { id: a.company.id, name: a.company.name, logo_url: a.company.logo_url, slug: a.company.slug };
-          }
-        }
-        setCompanies({ ...companiesMap });
-      }
-
+      // Profile form initialization
       const c = clientData[0];
       setProfileForm({
         name: c.name || '', whatsapp: c.whatsapp || '', email: c.email || '',
@@ -309,10 +306,10 @@ const ClientPortal = () => {
         city: (c as any).city || '', state: (c as any).state || '',
       });
 
-      // Persist snapshot to cache only on success (don't overwrite on errors)
+      // Persist to cache
       writeCache({
         clients: clientData as ClientRecord[],
-        appointments: (aptData || []) as any,
+        appointments: (appointmentsRes.data || []) as any,
         allCashbacks: (cashbackRes.data || []) as any,
         allCashbackTxs: (cashbackTxRes.data || []) as any,
         allLoyaltyTxs: (loyaltyTxRes.data || []) as any,
@@ -323,7 +320,7 @@ const ClientPortal = () => {
         companyLoyaltyActive: loyalActive,
       });
     } catch (err) {
-      console.error('[ClientPortal] load error:', err);
+      console.error('[ClientPortal] critical data load error:', err);
     } finally {
       if (!isRevalidation) setLoading(false);
     }
