@@ -549,6 +549,14 @@ const Dashboard = () => {
       const noteParts = [];
       if (discountAmount > 0) noteParts.push(`Desconto: R$ ${discountAmount.toFixed(2)}`);
       if (commissionAmount > 0) noteParts.push(`Comissão: R$ ${commissionAmount.toFixed(2)} | Lucro: R$ ${companyProfit.toFixed(2)}`);
+      
+      // Get category ID for "Serviços"
+      const { data: catData } = await supabase
+        .from('company_revenue_categories')
+        .select('id')
+        .eq('company_id', companyId)
+        .eq('name', 'Serviços')
+        .maybeSingle();
 
       await supabase.from('company_revenues').insert({
         company_id: companyId,
@@ -560,6 +568,7 @@ const Dashboard = () => {
         due_date: format(parseISO(apt.start_time), 'yyyy-MM-dd'),
         status: 'received',
         is_automatic: true,
+        category_id: catData?.id || null,
         payment_method: paymentMethod || null,
         created_by: user?.id,
         notes: noteParts.length > 0 ? noteParts.join(' | ') : null,
