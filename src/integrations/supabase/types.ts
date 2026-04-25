@@ -5218,6 +5218,16 @@ export type Database = {
           slug: string
         }[]
       }
+      get_company_dashboard_stats: {
+        Args: { p_company_id: string; p_professional_id?: string }
+        Returns: {
+          new_clients_month: number
+          top_client_count: number
+          top_client_name: string
+          total_appointments: number
+          total_clients: number
+        }[]
+      }
       get_my_company_id: { Args: never; Returns: string }
       get_my_profile_id: { Args: never; Returns: string }
       get_or_create_revenue_category: {
