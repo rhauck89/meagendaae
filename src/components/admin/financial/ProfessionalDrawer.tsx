@@ -53,6 +53,11 @@ export const ProfessionalDrawer = ({
         .select(`
           id,
           total_price,
+          original_price,
+          promotion_discount,
+          cashback_used,
+          manual_discount,
+          final_price,
           start_time,
           client:profiles!appointments_client_id_fkey(full_name),
           service:services(name)
