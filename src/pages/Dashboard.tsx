@@ -365,6 +365,14 @@ const Dashboard = () => {
     const completed = data.filter(a => a.status === 'completed');
     const cancelled = data.filter(a => a.status === 'cancelled');
     const uniqueClients = new Set(data.filter(a => a.client_id && ['confirmed', 'completed', 'pending'].includes(a.status)).map(a => a.client_id)).size;
+    // Calculate top client
+    const clientApptCount: Record<string, number> = {};
+    confirmed.forEach(a => {
+      if (a.client_id) clientApptCount[a.client_id] = (clientApptCount[a.client_id] || 0) + 1;
+    });
+    const topEntry = Object.entries(clientApptCount).sort((a, b) => b[1] - a[1])[0];
+    const topClient = topEntry ? { name: data.find(a => a.client_id === topEntry[0])?.client?.name || 'Cliente', count: topEntry[1] } : { name: '', count: 0 };
+
 
     const safeNum = (v: any) => isNaN(Number(v)) ? 0 : Number(v);
     const revenue = safeNum(confirmed.reduce((sum, a) => sum + Number(a.total_price), 0));
