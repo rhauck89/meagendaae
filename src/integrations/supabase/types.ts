@@ -206,6 +206,9 @@ export type Database = {
           end_time: string
           event_id: string | null
           extra_fee: number | null
+          extra_fee_type: string | null
+          extra_fee_value: number | null
+          final_price: number | null
           id: string
           notes: string | null
           professional_id: string
@@ -230,6 +233,9 @@ export type Database = {
           end_time: string
           event_id?: string | null
           extra_fee?: number | null
+          extra_fee_type?: string | null
+          extra_fee_value?: number | null
+          final_price?: number | null
           id?: string
           notes?: string | null
           professional_id: string
@@ -254,6 +260,9 @@ export type Database = {
           end_time?: string
           event_id?: string | null
           extra_fee?: number | null
+          extra_fee_type?: string | null
+          extra_fee_value?: number | null
+          final_price?: number | null
           id?: string
           notes?: string | null
           professional_id?: string
