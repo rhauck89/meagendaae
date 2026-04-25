@@ -274,9 +274,6 @@ export default function BarbershopLanding({ routeBusinessType, customSlug }: Bar
     return Object.entries(groups).filter(([_, list]) => list.length > 0);
   }, [services]);
 
-  const bookingBasePath = businessType === 'esthetic' ? 'estetica' : 'barbearia';
-  const companyWhatsapp = company?.whatsapp ? formatWhatsApp(company.whatsapp) : (company?.phone ? formatWhatsApp(company.phone) : null);
-  const shareUrl = `${window.location.origin}/${bookingBasePath}/${slug}`;
 
   const handleShare = async () => {
     if (navigator.share) {
