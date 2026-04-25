@@ -38,7 +38,7 @@ const STORAGE_KEY = 'onboarding_checklist_completed';
 const SHARED_LINK_KEY = 'onboarding_shared_link';
 
 const OnboardingChecklist = () => {
-  const { companyId } = useAuth();
+  const { companyId, user } = useAuth();
   const { isAdmin, profileId } = useUserRole();
   const navigate = useNavigate();
   const [completedSteps, setCompletedSteps] = useState<Set<string>>(new Set());
@@ -47,19 +47,67 @@ const OnboardingChecklist = () => {
   const [fadingOut, setFadingOut] = useState(false);
   const [companySlug, setCompanySlug] = useState('');
   const [expandedShare, setExpandedShare] = useState(false);
+  const [isCompleted, setIsCompleted] = useState(false);
+  const [showCelebration, setShowCelebration] = useState(false);
 
   const steps = isAdmin ? adminSteps : professionalSteps;
 
   useEffect(() => {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored === 'true') {
+    // 1. Fast check from localStorage
+    const localHidden = localStorage.getItem(`${STORAGE_KEY}_hidden_${user?.id}`);
+    const localCompleted = localStorage.getItem(`${STORAGE_KEY}_completed_${user?.id}`);
+    
+    if (localHidden === 'true' || localCompleted === 'true') {
       setDismissed(true);
-      setLoading(false);
-      return;
+      // We still want to load from DB in background to be sure
     }
-    if (!companyId) return;
-    checkProgress();
-  }, [companyId, isAdmin, profileId]);
+
+    if (!companyId || !user?.id) return;
+    loadOnboardingStatus();
+  }, [companyId, isAdmin, profileId, user?.id]);
+
+  const loadOnboardingStatus = async () => {
+    try {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('onboarding_hidden, onboarding_completed, onboarding_step')
+        .eq('user_id', user?.id)
+        .maybeSingle();
+
+      if (profile) {
+        if (profile.onboarding_hidden || profile.onboarding_completed) {
+          setDismissed(true);
+          setIsCompleted(profile.onboarding_completed);
+          
+          // Sync localStorage
+          if (profile.onboarding_hidden) localStorage.setItem(`${STORAGE_KEY}_hidden_${user?.id}`, 'true');
+          if (profile.onboarding_completed) localStorage.setItem(`${STORAGE_KEY}_completed_${user?.id}`, 'true');
+        } else {
+          // If DB says it's NOT hidden/completed, but local says it is, we trust DB as source of truth
+          // but we might want to keep it hidden if local says so to avoid flickering.
+          // However, the user wants "DEFEINITIVE" fix, so DB is master.
+          setDismissed(false);
+          localStorage.removeItem(`${STORAGE_KEY}_hidden_${user?.id}`);
+        }
+      }
+
+      await checkProgress();
+    } catch (error) {
+      console.error('Error loading onboarding:', error);
+      setLoading(false);
+    }
+  };
+
+  const updateOnboardingDB = async (updates: { onboarding_hidden?: boolean; onboarding_completed?: boolean; onboarding_step?: number }) => {
+    if (!user?.id) return;
+    await supabase
+      .from('profiles')
+      .update(updates)
+      .eq('user_id', user.id);
+    
+    if (updates.onboarding_hidden) localStorage.setItem(`${STORAGE_KEY}_hidden_${user?.id}`, 'true');
+    if (updates.onboarding_completed) localStorage.setItem(`${STORAGE_KEY}_completed_${user?.id}`, 'true');
+  };
 
   const checkProgress = async () => {
     if (!companyId) return;
@@ -98,7 +146,6 @@ const OnboardingChecklist = () => {
         .eq('company_id', companyId);
       if (collabCount && collabCount > 0) completed.add('team');
 
-      // Share: based on localStorage flag
       if (localStorage.getItem(SHARED_LINK_KEY) === 'true') {
         completed.add('share');
       }
@@ -120,27 +167,35 @@ const OnboardingChecklist = () => {
     setCompletedSteps(completed);
 
     const allDone = steps.every(s => completed.has(s.key));
-    if (allDone) {
-      localStorage.setItem(STORAGE_KEY, 'true');
-      setFadingOut(true);
-      setTimeout(() => setDismissed(true), 300);
+    if (allDone && !isCompleted) {
+      handleAllDone();
     }
 
     setLoading(false);
   };
 
-  const markShareCompleted = () => {
-    localStorage.setItem(SHARED_LINK_KEY, 'true');
-    setCompletedSteps(prev => new Set([...prev, 'share']));
-    toast.success('Link copiado! Agora é só divulgar para seus clientes 🚀');
-
-    // Check if all done now
-    const newCompleted = new Set([...completedSteps, 'share']);
-    if (steps.every(s => newCompleted.has(s.key))) {
-      localStorage.setItem(STORAGE_KEY, 'true');
+  const handleAllDone = async () => {
+    setIsCompleted(true);
+    setShowCelebration(true);
+    await updateOnboardingDB({ onboarding_completed: true, onboarding_step: steps.length });
+    
+    // Auto close after 5 seconds as requested
+    setTimeout(() => {
       setFadingOut(true);
       setTimeout(() => setDismissed(true), 300);
-    }
+    }, 5000);
+  };
+
+  const markShareCompleted = () => {
+    localStorage.setItem(SHARED_LINK_KEY, 'true');
+    setCompletedSteps(prev => {
+      const next = new Set([...prev, 'share']);
+      if (steps.every(s => next.has(s.key))) {
+        handleAllDone();
+      }
+      return next;
+    });
+    toast.success('Link copiado! Agora é só divulgar para seus clientes 🚀');
   };
 
   const getBookingUrl = () => {
@@ -156,7 +211,6 @@ const OnboardingChecklist = () => {
   const handleShareWhatsApp = () => {
     const url = getBookingUrl();
     const message = `Agende seu horário comigo: ${url}`;
-    // No phone → opens WhatsApp's share/contact picker on every platform.
     const shareUrl = buildWhatsAppUrl('', message);
     trackWhatsAppClick('onboarding');
     const win = window.open(shareUrl, '_blank', 'noopener,noreferrer');
@@ -164,7 +218,25 @@ const OnboardingChecklist = () => {
     markShareCompleted();
   };
 
-  if (loading || dismissed) return null;
+  const handleHide = async () => {
+    setFadingOut(true);
+    await updateOnboardingDB({ onboarding_hidden: true });
+    setTimeout(() => setDismissed(true), 300);
+  };
+
+  if (loading || (dismissed && !fadingOut)) return null;
+
+  if (showCelebration) {
+    return (
+      <Card className="border-primary/20 bg-primary/[0.02] animate-fade-in">
+        <CardContent className="p-6 text-center space-y-2">
+          <Rocket className="h-8 w-8 text-primary mx-auto mb-2 animate-bounce" />
+          <h3 className="font-bold text-lg text-primary">🎉 Sua agenda está pronta!</h3>
+          <p className="text-sm text-muted-foreground">Você concluiu todos os passos iniciais. Boas vendas!</p>
+        </CardContent>
+      </Card>
+    );
+  }
 
   const completedCount = steps.filter(s => completedSteps.has(s.key)).length;
   const totalSteps = steps.length;
