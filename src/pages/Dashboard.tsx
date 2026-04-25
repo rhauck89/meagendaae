@@ -2332,8 +2332,16 @@ const Dashboard = () => {
         </DialogContent>
         )}
       </Dialog>
+
+      <OccupancyDrawer
+        open={occupancyDrawerOpen}
+        onOpenChange={setOccupancyDrawerOpen}
+        companyId={companyId!}
+        professionals={collaboratorsList}
+      />
     </div>
   );
 };
 
 export default Dashboard;
+
