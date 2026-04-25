@@ -338,7 +338,7 @@ const Dashboard = () => {
     const [apptsRes, bizHoursRes, collaboratorsRes, companyRes] = await Promise.all([
       supabase
         .from('appointments')
-        .select('status, total_price, client_id, start_time')
+        .select('status, total_price, client_id, start_time, client:clients!appointments_client_id_fkey(name)')
         .eq('company_id', companyId!)
         .gte('start_time', toSpStart(monthStart))
         .lte('start_time', toSpEnd(monthEnd)),
