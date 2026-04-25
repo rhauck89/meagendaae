@@ -1,23 +1,15 @@
 
-import { useState, useEffect, useMemo } from 'react';
+
+import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { 
   format, 
-  startOfDay, 
-  endOfDay, 
   eachDayOfInterval, 
   isSameDay, 
   parseISO, 
-  addMinutes,
   differenceInMinutes,
-  startOfWeek,
-  endOfWeek,
-  startOfMonth,
-  endOfMonth,
-  isWithinInterval,
   parse
 } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
 
 export type OccupancyPeriod = 'day' | 'week' | 'month' | 'custom';
 
@@ -79,7 +71,8 @@ export const useOccupancyData = ({ companyId, professionalId, dateRange, period 
         if (professionalId && professionalId !== 'all') {
           blocksQuery = blocksQuery.eq('professional_id', professionalId);
         }
-        const { data: blocks } = await blocksQuery;
+        const { data: blocksData } = await blocksQuery;
+        const blocks = (blocksData || []) as any[];
 
         // 5. Fetch Appointments
         let apptsQuery = supabase
@@ -92,7 +85,8 @@ export const useOccupancyData = ({ companyId, professionalId, dateRange, period 
         if (professionalId && professionalId !== 'all') {
           apptsQuery = apptsQuery.eq('professional_id', professionalId);
         }
-        const { data: appts } = await apptsQuery;
+        const { data: apptsData } = await apptsQuery;
+        const appts = (apptsData || []) as any[];
 
         // 6. Fetch Company Settings for slot interval
         const { data: company } = await supabase
@@ -101,7 +95,7 @@ export const useOccupancyData = ({ companyId, professionalId, dateRange, period 
           .eq('id', companyId)
           .single();
 
-        // 7. Fetch Collaborators (to count how many people are working if professionalId is 'all')
+        // 7. Fetch Collaborators
         let collaboratorsQuery = supabase
           .from('collaborators')
           .select('profile_id, active')
@@ -112,7 +106,7 @@ export const useOccupancyData = ({ companyId, professionalId, dateRange, period 
 
         // PROCESS DATA
         const days = eachDayOfInterval({ start: dateRange.start, end: dateRange.end });
-        const slotDuration = company?.fixed_slot_interval || 30; // Default to 30 if not set
+        const slotDuration = company?.fixed_slot_interval || 30;
 
         let totalAvailableSlots = 0;
         let totalOccupiedSlots = 0;
@@ -126,20 +120,18 @@ export const useOccupancyData = ({ companyId, professionalId, dateRange, period 
         days.forEach(day => {
           const dateStr = format(day, 'yyyy-MM-dd');
           const dayOfWeek = day.getDay();
-          const dayException = exceptions?.find(e => e.exception_date === dateStr);
+          const dayException = (exceptions || [])?.find(e => e.exception_date === dateStr);
           
           let dayAvailableSlots = 0;
           let dayOccupiedSlots = 0;
           
-          // For each professional active in this company
           const activeProfs = professionalId && professionalId !== 'all' 
             ? [{ profile_id: professionalId }] 
             : (collaborators || []);
 
           activeProfs.forEach(prof => {
-            // Find working hours for this professional/day
-            const customHours = profWorkingHours?.find(h => h.professional_id === prof.profile_id && h.day_of_week === dayOfWeek);
-            const standardHours = bizHours?.find(h => h.day_of_week === dayOfWeek);
+            const customHours = (profWorkingHours || [])?.find(h => h.professional_id === prof.profile_id && h.day_of_week === dayOfWeek);
+            const standardHours = (bizHours || [])?.find(h => h.day_of_week === dayOfWeek);
             const hours = customHours || standardHours;
 
             if (!hours || hours.is_closed || (dayException && dayException.is_closed)) return;
@@ -154,32 +146,27 @@ export const useOccupancyData = ({ companyId, professionalId, dateRange, period 
             
             let workingMinutes = differenceInMinutes(closeTime, openTime);
             
-            // Subtract Lunch
             if (hours.lunch_start && hours.lunch_end) {
               const lStart = parse(hours.lunch_start, 'HH:mm', day);
               const lEnd = parse(hours.lunch_end, 'HH:mm', day);
               workingMinutes -= differenceInMinutes(lEnd, lStart);
             }
 
-            // Subtract Blocks
             const dayBlocks = blocks?.filter(b => b.block_date === dateStr && b.professional_id === prof.profile_id);
             dayBlocks?.forEach(b => {
               const bStart = parse(b.start_time, 'HH:mm', day);
               const bEnd = parse(b.end_time, 'HH:mm', day);
-              workingMinutes -= differenceInMinutes(bEnd, bStart);
+              workingMinutes -= Math.max(0, differenceInMinutes(bEnd, bStart));
             });
 
             const profDayCapacity = Math.max(0, Math.floor(workingMinutes / slotDuration));
             dayAvailableSlots += profDayCapacity;
           });
 
-          // Occupied slots on this day
           const dayAppts = appts?.filter(a => isSameDay(parseISO(a.start_time), day)) || [];
           dayAppts.forEach(a => {
             if (['confirmed', 'completed', 'in_progress'].includes(a.status)) {
               dayOccupiedSlots++;
-              
-              // Hour distribution
               const hour = format(parseISO(a.start_time), 'HH:00');
               hourlyDistribution[hour] = (hourlyDistribution[hour] || 0) + 1;
             } else if (a.status === 'cancelled') {
@@ -198,18 +185,17 @@ export const useOccupancyData = ({ companyId, professionalId, dateRange, period 
             date: dateStr,
             available: dayAvailableSlots,
             occupied: dayOccupiedSlots,
+            cancelled: dayAppts.filter(a => a.status === 'cancelled').length,
+            free: Math.max(0, dayAvailableSlots - dayOccupiedSlots),
             rate: dayAvailableSlots > 0 ? Math.round((dayOccupiedSlots / dayAvailableSlots) * 100) : 0
           });
         });
 
         const occupancyRate = totalAvailableSlots > 0 ? Math.round((totalOccupiedSlots / totalAvailableSlots) * 100) : 0;
-        
-        // Peaks and Off-peaks
         const sortedHours = Object.entries(hourlyDistribution).sort((a, b) => b[1] - a[1]);
         const peakHours = sortedHours.slice(0, 3).map(([h]) => h);
         const offPeakHours = sortedHours.slice(-3).map(([h]) => h);
 
-        // Best/Worst day for week/month
         let bestDay = null;
         let worstDay = null;
         if (dailyStats.length > 1) {
@@ -227,13 +213,13 @@ export const useOccupancyData = ({ companyId, professionalId, dateRange, period 
             cancelled: totalCancelled,
             noShow: totalNoShow,
             rescheduled: totalRescheduled,
-            avgTimeBetween: 0, // Simplified for now
+            avgTimeBetween: 0,
           },
           dailyStats,
           peaks: {
             mostRequested: peakHours,
             leastRequested: offPeakHours,
-            neverRequested: [] // Would need more logic to find empty slots
+            neverRequested: []
           },
           highlights: {
             bestDay,
@@ -252,3 +238,4 @@ export const useOccupancyData = ({ companyId, professionalId, dateRange, period 
 
   return { loading, data };
 };
+
