@@ -387,7 +387,7 @@ const FinanceRevenues = () => {
                     else { setSortField('amount'); setSortDirection('desc'); }
                   }}>
                     <div className="flex items-center justify-end gap-1">
-                      Valor {sortField === 'amount' && (sortDirection === 'asc' ? '↑' : '↓')}
+                      Valor {sortField === 'amount' && (sortDirection === 'asc' ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />)}
                     </div>
                   </TableHead>
                   <TableHead className="w-20">Ações</TableHead>
