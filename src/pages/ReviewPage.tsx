@@ -97,8 +97,8 @@ const ReviewPage = () => {
           .from('reviews')
           .select('id')
           .eq('appointment_id', appointmentId!)
-          .maybeSingle();
-        if (existingReview) setAlreadyReviewed(true);
+          .limit(1);
+        if (existingReview && existingReview.length > 0) setAlreadyReviewed(true);
       } catch (innerErr) {
         console.warn('[ReviewPage] Existing-review lookup failed (non-fatal):', innerErr);
       }

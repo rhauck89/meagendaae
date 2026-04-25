@@ -96,8 +96,9 @@ export default function ProfessionalPublicProfile() {
     // Reviews - fetch all for count, display limited
     const { data: allReviewsData } = await supabase
       .from('reviews')
-      .select('rating, comment, barbershop_rating, barbershop_comment, created_at, appointment_id')
+      .select('rating, comment, created_at, appointment_id, review_type')
       .eq('professional_id', prof.id)
+      .eq('review_type', 'professional')
       .order('created_at', { ascending: false });
     if (allReviewsData) {
       // Enrich with client display name (masked)
@@ -509,9 +510,7 @@ export default function ProfessionalPublicProfile() {
               Avaliações ({totalReviews})
             </h3>
             <div className="flex flex-col gap-3">
-              {displayedReviews.map((rev, i) => {
-                const hasCompanyBlock = !!(rev.barbershop_rating || rev.barbershop_comment);
-                return (
+              {displayedReviews.map((rev, i) => (
                   <div
                     key={i}
                     className="p-3 rounded-xl border space-y-2"
@@ -535,30 +534,8 @@ export default function ProfessionalPublicProfile() {
                         "{rev.comment}"
                       </p>
                     )}
-                    {hasCompanyBlock && (
-                      <div className="pt-2" style={{ borderTop: `1px dashed ${T.border}` }}>
-                        <div className="flex items-center gap-2 flex-wrap mb-1">
-                          <span className="text-[9px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded-full" style={{ background: `${T.accent}20`, color: T.accent }}>
-                            Experiência geral
-                          </span>
-                          {rev.barbershop_rating && (
-                            <div className="flex items-center gap-0.5">
-                              {[1, 2, 3, 4, 5].map(s => (
-                                <Star key={s} className={cn("w-3 h-3", s <= rev.barbershop_rating ? "fill-yellow-400 text-yellow-400" : "text-gray-600")} />
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                        {rev.barbershop_comment && (
-                          <p className="text-xs leading-relaxed" style={{ color: T.textSec }}>
-                            "{rev.barbershop_comment}"
-                          </p>
-                        )}
-                      </div>
-                    )}
                   </div>
-                );
-              })}
+                ))}
             </div>
             {totalReviews > 3 && !showAllReviews && (
               <button

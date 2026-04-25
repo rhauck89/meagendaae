@@ -203,7 +203,7 @@ export default function BarbershopLanding({ routeBusinessType, customSlug }: Bar
       supabase.from('public_services' as any).select('*').eq('company_id', comp.id).order('name'),
       supabase.from('public_professionals' as any).select('*').eq('company_id', comp.id).eq('active', true),
       supabase.rpc('get_professional_ratings' as any, { p_company_id: comp.id }),
-      supabase.from('reviews').select('rating, comment, barbershop_rating, barbershop_comment, created_at, professional_id, appointment_id').eq('company_id', comp.id).order('created_at', { ascending: false }),
+      supabase.from('reviews').select('rating, comment, created_at, professional_id, appointment_id, review_type').eq('company_id', comp.id).order('created_at', { ascending: false }),
       supabase.from('public_company_settings' as any).select('*').eq('company_id', comp.id).single(),
       supabase.from('company_gallery' as any).select('*').eq('company_id', comp.id).order('sort_order'),
       supabase.from('events' as any).select('*').eq('company_id', comp.id).eq('status', 'published').order('start_date') as any,
@@ -302,15 +302,18 @@ export default function BarbershopLanding({ routeBusinessType, customSlug }: Bar
       }));
     }
 
-    // Company-level stats
-    const revs = enrichedReviews;
-    if (revs.length > 0) {
-      const avg = revs.reduce((sum: number, r: any) => sum + Number(r.rating), 0) / revs.length;
-      setCompanyStats({ avgRating: avg, reviewCount: revs.length });
+    // Company-level stats: filter by company review type
+    const companyReviews = enrichedReviews.filter((r: any) => r.review_type === 'company');
+    
+    if (companyReviews.length > 0) {
+      const avg = companyReviews.reduce((sum: number, r: any) => sum + Number(r.rating), 0) / companyReviews.length;
+      setCompanyStats({ avgRating: avg, reviewCount: companyReviews.length });
+    } else {
+      setCompanyStats({ avgRating: 0, reviewCount: 0 });
     }
 
-    setAllReviewsList(enrichedReviews);
-    setReviews(enrichedReviews.slice(0, 3));
+    setAllReviewsList(companyReviews);
+    setReviews(companyReviews.slice(0, 3));
     setLoading(false);
   };
 
@@ -581,12 +584,7 @@ export default function BarbershopLanding({ routeBusinessType, customSlug }: Bar
               )}
             </div>
             <div className="flex flex-col gap-3">
-              {(showAllReviews ? allReviewsList : reviews).map((rev: any, i: number) => {
-                const prof = professionals.find((p: any) => p.id === rev.professional_id);
-                const profName = prof?.full_name || prof?.name || null;
-                const profAvatar = prof?.avatar_url || null;
-                const hasCompanyBlock = !!(rev.barbershop_rating || rev.barbershop_comment);
-                return (
+              {(showAllReviews ? allReviewsList : reviews).map((rev: any, i: number) => (
                   <div
                     key={i}
                     className="p-4 rounded-xl space-y-3"
@@ -601,59 +599,19 @@ export default function BarbershopLanding({ routeBusinessType, customSlug }: Bar
                       </span>
                     </div>
 
-                    <div className="flex gap-3">
-                      {profAvatar ? (
-                        <img src={profAvatar} alt={profName || 'Profissional'} className="w-9 h-9 rounded-full object-cover flex-shrink-0" />
-                      ) : (
-                        <div className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0" style={{ background: '#FDBA2D20', color: '#FDBA2D' }}>
-                          {(profName || '?').charAt(0).toUpperCase()}
-                        </div>
-                      )}
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          {profName && (
-                            <span className="text-xs font-medium" style={{ color: T.text }}>
-                              Atendido por {profName}
-                            </span>
-                          )}
-                          <div className="flex items-center gap-0.5">
-                            {[1, 2, 3, 4, 5].map(s => (
-                              <Star key={s} className={cn("w-3 h-3", s <= rev.rating ? "fill-yellow-400 text-yellow-400" : "text-gray-600")} />
-                            ))}
-                          </div>
-                        </div>
-                        {rev.comment && (
-                          <p className="text-sm leading-relaxed mt-1" style={{ color: isDark ? '#D1D5DB' : '#4B5563' }}>
-                            "{rev.comment}"
-                          </p>
-                        )}
-                      </div>
+                    <div className="flex items-center gap-0.5">
+                      {[1, 2, 3, 4, 5].map(s => (
+                        <Star key={s} className={cn("w-3 h-3", s <= rev.rating ? "fill-yellow-400 text-yellow-400" : "text-gray-600")} />
+                      ))}
                     </div>
 
-                    {hasCompanyBlock && (
-                      <div className="pt-3" style={{ borderTop: `1px dashed ${T.border}` }}>
-                        <div className="flex items-center gap-2 flex-wrap mb-1">
-                          <span className="text-[10px] font-semibold uppercase tracking-wide px-2 py-0.5 rounded-full" style={{ background: '#FDBA2D20', color: '#FDBA2D' }}>
-                            Experiência geral
-                          </span>
-                          {rev.barbershop_rating && (
-                            <div className="flex items-center gap-0.5">
-                              {[1, 2, 3, 4, 5].map(s => (
-                                <Star key={s} className={cn("w-3 h-3", s <= rev.barbershop_rating ? "fill-yellow-400 text-yellow-400" : "text-gray-600")} />
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                        {rev.barbershop_comment && (
-                          <p className="text-sm leading-relaxed" style={{ color: isDark ? '#D1D5DB' : '#4B5563' }}>
-                            "{rev.barbershop_comment}"
-                          </p>
-                        )}
-                      </div>
+                    {rev.comment && (
+                      <p className="text-sm leading-relaxed" style={{ color: isDark ? '#D1D5DB' : '#4B5563' }}>
+                        "{rev.comment}"
+                      </p>
                     )}
                   </div>
-                );
-              })}
+                ))}
             </div>
             {allReviewsList.length > 3 && !showAllReviews && (
               <button
