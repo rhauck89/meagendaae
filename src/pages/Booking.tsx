@@ -1719,26 +1719,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                   <span className="font-bold text-base" style={{ color: T.accent }}>R$ {totalPrice.toFixed(2)}</span>
                 </div>
                 <Button
-                  onClick={async () => {
-                    if (skipProfessionalStep) {
-                      if (preselected.isActive() && selectedDate && selectedTime) {
-                        setStep('client');
-                      } else {
-                        setStep('datetime');
-                      }
-                    } else {
-                      const profs = await fetchProfessionals();
-                      if (profs.length === 1) {
-                        if (preselected.isActive() && selectedDate && selectedTime) {
-                          setStep('client');
-                        } else {
-                          setStep('datetime');
-                        }
-                      } else {
-                        setStep('professional');
-                      }
-                    }
-                  }}
+                  onClick={() => setStep("datetime")}
                   className="rounded-xl px-6 font-semibold shadow-lg transition-all hover:scale-105"
                   style={{ background: T.accent, color: '#000' }}
                 >
