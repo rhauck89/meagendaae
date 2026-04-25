@@ -191,7 +191,7 @@ export async function sendWelcomeCompanyEmail(opts: {
 }) {
   const dashboardUrl = `${window.location.origin}/dashboard`;
   const html = renderEmailTemplate({
-    title: "Bem-vindo ao Agendaê 🚀",
+    title: "Bem-vindo ao Me Agendaê 🚀",
     preview: `${opts.companyName} está pronta para receber agendamentos online.`,
     body: `
       <p style="margin:0 0 16px;">Olá, <strong style="color:${BRAND.text};">${escapeHtml(opts.name)}</strong>!</p>
