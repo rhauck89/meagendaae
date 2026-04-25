@@ -101,7 +101,7 @@ const Index = () => {
             <div className="relative rounded-3xl overflow-hidden shadow-2xl shadow-primary/20 ring-1 ring-border/50">
               <img
                 src={heroBarber}
-                alt="Barbeiro brasileiro usando o MeAgendaê"
+                alt="Barbeiro brasileiro usando o Me Agendaê"
                 className="w-full h-[520px] object-cover"
                 width={1024}
                 height={1024}
