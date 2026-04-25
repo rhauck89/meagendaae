@@ -223,6 +223,7 @@ export type Database = {
           status: Database["public"]["Enums"]["appointment_status"]
           total_price: number
           updated_at: string
+          user_id: string | null
         }
         Insert: {
           cashback_used?: number | null
@@ -254,6 +255,7 @@ export type Database = {
           status?: Database["public"]["Enums"]["appointment_status"]
           total_price?: number
           updated_at?: string
+          user_id?: string | null
         }
         Update: {
           cashback_used?: number | null
@@ -285,6 +287,7 @@ export type Database = {
           status?: Database["public"]["Enums"]["appointment_status"]
           total_price?: number
           updated_at?: string
+          user_id?: string | null
         }
         Relationships: [
           {
@@ -649,6 +652,7 @@ export type Database = {
           id: string
           reference_id: string | null
           type: string
+          user_id: string | null
         }
         Insert: {
           amount: number
@@ -659,6 +663,7 @@ export type Database = {
           id?: string
           reference_id?: string | null
           type: string
+          user_id?: string | null
         }
         Update: {
           amount?: number
@@ -669,6 +674,7 @@ export type Database = {
           id?: string
           reference_id?: string | null
           type?: string
+          user_id?: string | null
         }
         Relationships: [
           {
@@ -721,6 +727,7 @@ export type Database = {
           status: string
           used_appointment_id: string | null
           used_at: string | null
+          user_id: string | null
         }
         Insert: {
           amount?: number
@@ -734,6 +741,7 @@ export type Database = {
           status?: string
           used_appointment_id?: string | null
           used_at?: string | null
+          user_id?: string | null
         }
         Update: {
           amount?: number
@@ -747,6 +755,7 @@ export type Database = {
           status?: string
           used_appointment_id?: string | null
           used_at?: string | null
+          user_id?: string | null
         }
         Relationships: [
           {
@@ -2407,6 +2416,7 @@ export type Database = {
           reference_id: string | null
           reference_type: string | null
           transaction_type: string
+          user_id: string | null
         }
         Insert: {
           balance_after?: number
@@ -2419,6 +2429,7 @@ export type Database = {
           reference_id?: string | null
           reference_type?: string | null
           transaction_type: string
+          user_id?: string | null
         }
         Update: {
           balance_after?: number
@@ -2431,6 +2442,7 @@ export type Database = {
           reference_id?: string | null
           reference_type?: string | null
           transaction_type?: string
+          user_id?: string | null
         }
         Relationships: [
           {
@@ -2483,6 +2495,7 @@ export type Database = {
           reward_id: string | null
           status: string
           total_points: number
+          user_id: string | null
         }
         Insert: {
           client_id: string
@@ -2496,6 +2509,7 @@ export type Database = {
           reward_id?: string | null
           status?: string
           total_points: number
+          user_id?: string | null
         }
         Update: {
           client_id?: string
@@ -2509,6 +2523,7 @@ export type Database = {
           reward_id?: string | null
           status?: string
           total_points?: number
+          user_id?: string | null
         }
         Relationships: [
           {

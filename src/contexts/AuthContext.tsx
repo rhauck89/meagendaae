@@ -139,7 +139,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const signOut = async () => {
+    // Clear sensitive keys before signing out
+    const sensitiveKeys = [
+      'selectedClient', 'clientId', 'guestClient', 'cachedAppointments', 
+      'clientPhone', 'clientProfile', 'client_portal_'
+    ];
+    
+    // Clear specific keys and any starting with client_portal_
+    Object.keys(localStorage).forEach(key => {
+      if (sensitiveKeys.some(sk => key.startsWith(sk))) {
+        localStorage.removeItem(key);
+      }
+    });
+
     await supabase.auth.signOut();
+    // Use replace to avoid back button issues and force state reset
+    window.location.replace('/');
   };
 
   const refreshProfile = async () => {
