@@ -96,12 +96,10 @@ const AppointmentRequests = () => {
     }
   };
 
-  const handleAccept = async (request: any) => {
+  const handleAcceptClick = async (request: any) => {
+    setSelectedRequest(request);
     setProcessing(true);
     try {
-      // 1. Get service duration to calculate end_time
-      let durationMinutes = 30; // default
-      let servicePrice = 0;
       if (request.service_id) {
         const { data: svcData } = await supabase
           .from('services')
@@ -109,63 +107,104 @@ const AppointmentRequests = () => {
           .eq('id', request.service_id)
           .maybeSingle();
         if (svcData) {
-          durationMinutes = svcData.duration_minutes || 30;
-          servicePrice = svcData.price || 0;
+          setServiceInfo({
+            price: svcData.price || 0,
+            duration: svcData.duration_minutes || 30
+          });
         }
+      } else {
+        setServiceInfo({ price: 0, duration: 30 });
       }
+      setAcceptDialogOpen(true);
+    } catch (err) {
+      console.error('Error fetching service info:', err);
+      toast.error('Erro ao buscar informações do serviço');
+    } finally {
+      setProcessing(false);
+    }
+  };
 
-      // 2. Build start_time and end_time timestamps
-      const startTime = new Date(`${request.requested_date}T${request.requested_time}`);
-      const endTime = new Date(startTime.getTime() + durationMinutes * 60 * 1000);
+  const calculateExtraFee = () => {
+    if (!serviceInfo) return 0;
+    if (feeType === 'none') return 0;
+    if (feeType === '10') return serviceInfo.price * 0.1;
+    if (feeType === '20') return serviceInfo.price * 0.2;
+    if (feeType === '30') return serviceInfo.price * 0.3;
+    if (feeType === 'fixed') return parseFloat(fixedFeeValue) || 0;
+    return 0;
+  };
 
-      // 3. Create appointment
+  const handleConfirmAccept = async () => {
+    if (!selectedRequest || !serviceInfo) return;
+    setProcessing(true);
+    try {
+      const extraFee = calculateExtraFee();
+      const finalPrice = serviceInfo.price + extraFee;
+      const startTime = new Date(`${selectedRequest.requested_date}T${selectedRequest.requested_time}`);
+      const endTime = new Date(startTime.getTime() + serviceInfo.duration * 60 * 1000);
+
+      // 1. Create appointment
       const { data: apptData, error: apptError } = await supabase
         .from('appointments')
         .insert({
           company_id: companyId!,
-          professional_id: request.professional_id || Object.keys(professionals)[0],
-          client_name: request.client_name,
-          client_whatsapp: request.client_whatsapp,
+          professional_id: selectedRequest.professional_id || Object.keys(professionals)[0],
+          client_name: selectedRequest.client_name,
+          client_whatsapp: selectedRequest.client_whatsapp,
           start_time: startTime.toISOString(),
           end_time: endTime.toISOString(),
-          total_price: servicePrice,
+          total_price: finalPrice,
+          extra_fee: extraFee,
+          special_schedule: true,
           status: 'confirmed' as any,
-          notes: request.message || null,
+          notes: selectedRequest.message || null,
         })
         .select('id')
         .single();
 
       if (apptError) throw apptError;
 
-      // 3b. Link service to appointment via appointment_services
-      if (request.service_id && apptData?.id) {
+      // 2. Link service
+      if (selectedRequest.service_id && apptData?.id) {
         await supabase.from('appointment_services').insert({
           appointment_id: apptData.id,
-          service_id: request.service_id,
-          price: servicePrice,
-          duration_minutes: durationMinutes,
+          service_id: selectedRequest.service_id,
+          price: serviceInfo.price,
+          duration_minutes: serviceInfo.duration,
         });
       }
 
-      // 4. Update request status
+      // 3. Update request status
       await supabase
         .from('appointment_requests' as any)
         .update({ status: 'accepted', updated_at: new Date().toISOString() })
-        .eq('id', request.id);
+        .eq('id', selectedRequest.id);
 
-      toast.success('Solicitação aceita e agendamento criado!');
-
-      // 5. Open WhatsApp to notify client
-      const message = `Olá ${request.client_name}! Seu horário solicitado para ${format(new Date(request.requested_date + 'T12:00:00'), "dd/MM/yyyy", { locale: ptBR })} às ${request.requested_time.slice(0, 5)} foi *aceito*. Estamos aguardando você!`;
-      openWhatsApp(request.client_whatsapp, { source: 'appointment-requests', message });
-
+      setAcceptDialogOpen(false);
+      setSuccessDialogOpen(true);
       fetchRequests();
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error accepting request:', err);
-      toast.error('Erro ao aceitar solicitação');
+      toast.error(`Erro ao aceitar solicitação: ${err.message || 'Erro desconhecido'}`);
     } finally {
       setProcessing(false);
     }
+  };
+
+  const handleNotifyWhatsApp = () => {
+    if (!selectedRequest) return;
+    const dateStr = format(new Date(selectedRequest.requested_date + 'T12:00:00'), "dd/MM/yyyy", { locale: ptBR });
+    const timeStr = selectedRequest.requested_time.slice(0, 5);
+    const extraFee = calculateExtraFee();
+    
+    let message = `Olá ${selectedRequest.client_name}! Seu horário solicitado para ${dateStr} às ${timeStr} foi *aceito*. `;
+    if (extraFee > 0) {
+      message += `Como é um horário especial, haverá uma taxa adicional de R$ ${extraFee.toFixed(2)}. `;
+    }
+    message += `Estamos aguardando você!`;
+
+    const url = `https://wa.me/${selectedRequest.client_whatsapp.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`;
+    window.open(url, '_blank');
   };
 
   const handleSuggest = async () => {
