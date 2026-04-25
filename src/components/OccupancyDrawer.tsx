@@ -248,12 +248,12 @@ export const OccupancyDrawer = ({ open, onOpenChange, companyId, professionals }
                     </CardHeader>
                     <CardContent className="pt-4 space-y-3">
                       {data.peaks.mostRequested.length > 0 ? (
-                        data.peaks.mostRequested.map((h: string, i: number) => (
-                          <div key={h} className="flex items-center justify-between">
-                            <span className="text-sm font-medium">{h}</span>
-                            <div className="flex items-center gap-1">
-                              <div className={cn("h-1.5 rounded-full bg-orange-500", i === 0 ? "w-16" : i === 1 ? "w-10" : "w-6")} />
-                              <span className="text-[10px] text-muted-foreground uppercase font-bold">Forte</span>
+                        data.peaks.mostRequested.map((p: any, i: number) => (
+                          <div key={p.hour} className="flex items-center justify-between">
+                            <span className="text-sm font-medium">{p.hour}</span>
+                            <div className="flex items-center gap-2">
+                              <span className="text-[10px] font-bold text-muted-foreground">{p.count} agend.</span>
+                              <div className={cn("h-1.5 rounded-full bg-orange-500", i === 0 ? "w-12" : i === 1 ? "w-8" : "w-4")} />
                             </div>
                           </div>
                         ))
@@ -272,12 +272,12 @@ export const OccupancyDrawer = ({ open, onOpenChange, companyId, professionals }
                     </CardHeader>
                     <CardContent className="pt-4 space-y-3">
                       {data.peaks.leastRequested.length > 0 ? (
-                        data.peaks.leastRequested.map((h: string, i: number) => (
-                          <div key={h} className="flex items-center justify-between">
-                            <span className="text-sm font-medium">{h}</span>
-                            <div className="flex items-center gap-1">
-                              <div className={cn("h-1.5 rounded-full bg-slate-300", i === 0 ? "w-6" : "w-4")} />
-                              <span className="text-[10px] text-muted-foreground uppercase font-bold">Baixo</span>
+                        data.peaks.leastRequested.map((p: any, i: number) => (
+                          <div key={p.hour} className="flex items-center justify-between">
+                            <span className="text-sm font-medium">{p.hour}</span>
+                            <div className="flex items-center gap-2">
+                              <span className="text-[10px] font-bold text-muted-foreground">{p.count} agend.</span>
+                              <div className={cn("h-1.5 rounded-full bg-slate-300", i === 0 ? "w-4" : i === 1 ? "w-3" : "w-2")} />
                             </div>
                           </div>
                         ))
