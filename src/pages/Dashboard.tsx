@@ -521,6 +521,7 @@ const Dashboard = () => {
     cashbackUsed = 0
   ) => {
     const apt = appointments.find((a) => a.id === id);
+    const totalDiscount = manualDiscount + promoDiscount + cashbackUsed;
     
     // If just cancelling, don't reset financial values to keep history/transparency
     if (status === 'cancelled' || status === 'no_show') {
@@ -528,7 +529,6 @@ const Dashboard = () => {
         status: status as any
       }).eq('id', id);
     } else {
-      const totalDiscount = manualDiscount + promoDiscount + cashbackUsed;
       await supabase.from('appointments').update({ 
         status: status as any,
         manual_discount: manualDiscount,
