@@ -15,7 +15,7 @@ import testimonial1 from '@/assets/testimonial-1.jpg';
 import testimonial2 from '@/assets/testimonial-2.jpg';
 import testimonial3 from '@/assets/testimonial-3.jpg';
 import heroProf from '@/assets/hero-prof.jpg';
-import dashboardPreview from '@/assets/dashboard-preview.jpg';
+// dashboardPreview import removed as the asset was missing
 
 const testimonials = [
   {
@@ -151,7 +151,7 @@ export default function LandingProfissionais() {
           </Reveal>
           <Reveal delay={200}>
             <div className="rounded-3xl overflow-hidden shadow-2xl ring-1 ring-border">
-              <img src={dashboardPreview} alt="Dashboard Me Agendaê" className="w-full h-auto" />
+              <img src="https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&q=80&w=2426" alt="Dashboard Me Agendaê" className="w-full h-auto rounded-xl shadow-lg" />
             </div>
           </Reveal>
         </div>
