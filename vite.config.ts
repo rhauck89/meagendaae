@@ -29,8 +29,8 @@ export default defineConfig(({ mode }) => ({
         maximumFileSizeToCacheInBytes: 3 * 1024 * 1024,
       },
       manifest: {
-        name: "MeAgendaAê",
-        short_name: "MeAgendaAê",
+        name: "Me Agendaê",
+        short_name: "Me Agendaê",
         start_url: "/app",
         display: "standalone",
         background_color: "#ffffff",
