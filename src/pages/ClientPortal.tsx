@@ -637,7 +637,7 @@ const ClientPortal = () => {
                 >
                   <Wallet className="h-6 w-6 mb-3 text-green-600" />
                   <p className="text-3xl font-bold text-green-600">R$ {totalCashback.toFixed(2)}</p>
-                  <p className="text-xs text-muted-foreground">Cashback total</p>
+                  <p className="text-xs text-muted-foreground">Minha Carteira</p>
                   <p className="text-[11px] mt-2 flex items-center gap-1 text-muted-foreground">
                     Ver detalhes <ArrowRight className="h-3 w-3" />
                   </p>
