@@ -201,12 +201,16 @@ const ClientPortal = () => {
       setClients(clientData as ClientRecord[]);
 
       const companyIds = [...new Set(clientData.map(c => c.company_id))];
-      const [companyRes, cashbackRes, loyaltyTxRes, rewardsRes] = await Promise.all([
+      const [companyRes, cashbackRes, cashbackTxRes, loyaltyTxRes, rewardsRes] = await Promise.all([
         supabase.from('companies').select('id, name, logo_url, slug').in('id', companyIds),
         supabase.from('client_cashback')
           .select('id, amount, status, expires_at, created_at, company_id, promotion:promotions!client_cashback_promotion_id_fkey(title)')
           .in('client_id', clientData.map(c => c.id))
           .order('created_at', { ascending: false }),
+        supabase.from('cashback_transactions')
+          .select('*')
+          .in('client_id', clientData.map(c => c.id))
+          .order('created_at', { ascending: false }).limit(300),
         supabase.from('loyalty_points_transactions')
           .select('*')
           .in('client_id', clientData.map(c => c.id))
