@@ -1678,7 +1678,9 @@ const Dashboard = () => {
                 </div>
                 <p className="text-sm text-muted-foreground">Top cliente</p>
               </div>
-              <p className="metric-value text-sm truncate">{monthlyStats.clients > 0 ? (appointments.length > 0 ? "Calculando..." : "Sem dados") : "Sem dados"}</p>
+              <p className="metric-value text-sm truncate">{monthlyStats.topClient.name || "Sem dados"}</p>
+              {monthlyStats.topClient.count > 0 && <p className="text-xs text-muted-foreground">{monthlyStats.topClient.count} atendimentos</p>}
+
               <p className="text-xs text-muted-foreground">do mês</p>
             </CardContent>
           </Card>
