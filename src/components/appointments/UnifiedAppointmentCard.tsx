@@ -289,7 +289,8 @@ export function UnifiedAppointmentCard({
             ) : null}
           </div>
         </div>
-      </motion.div>
+      </div>
+    </motion.div>
     );
   }
 
