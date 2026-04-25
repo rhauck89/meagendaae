@@ -642,7 +642,7 @@ const Index = () => {
               <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
                 <Calendar className="h-4 w-4 text-primary-foreground" />
               </div>
-              <span className="font-display font-bold text-lg">MeAgendaê</span>
+              <span className="font-display font-bold text-lg">Me Agendaê</span>
             </div>
             <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm text-muted-foreground">
               <a href="#funcionalidades" className="hover:text-foreground transition-colors">Funcionalidades</a>
