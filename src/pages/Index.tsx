@@ -483,7 +483,7 @@ const Index = () => {
 
           <div className="grid md:grid-cols-3 gap-6">
             {[
-              { img: t1, name: 'Rafael Souza', role: 'Barbeiro • SP', text: 'Depois que comecei a usar o MeAgendaê meu faturamento subiu 40%. A agenda nunca mais ficou bagunçada.' },
+              { img: t1, name: 'Rafael Souza', role: 'Barbeiro • SP', text: 'Depois que comecei a usar o Me Agendaê meu faturamento subiu 40%. A agenda nunca mais ficou bagunçada.' },
               { img: t2, name: 'Camila Ribeiro', role: 'Cabeleireira • RJ', text: 'Hoje minha equipe inteira trabalha organizada. As comissões saem automáticas, sem briga.' },
               { img: t3, name: 'Aline Pereira', role: 'Manicure • BH', text: 'Parei de perder clientes no WhatsApp. Eles agendam sozinhos pelo link e ainda recebem lembrete.' },
             ].map((t, i) => (
