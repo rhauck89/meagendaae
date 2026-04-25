@@ -92,7 +92,7 @@ export function renderEmailTemplate({
                   <tr>
                     <td style="padding:32px 32px 28px;">
                       <div style="font-size:24px;font-weight:700;color:#ffffff;letter-spacing:-0.02em;line-height:1;">
-                        meagendaê
+                        me agendaê
                       </div>
                       <div style="margin-top:8px;font-size:13px;color:rgba(255,255,255,0.92);letter-spacing:0.01em;font-weight:500;">
                         ${EMAIL_DEFAULTS.tagline}
