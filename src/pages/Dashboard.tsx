@@ -351,8 +351,9 @@ const Dashboard = () => {
     const cancelled = data.filter(a => a.status === 'cancelled');
     const uniqueClients = new Set(data.filter(a => a.status !== 'cancelled' && a.status !== 'no_show').map(a => a.client_id)).size;
 
-    const revenue = confirmed.reduce((sum, a) => sum + Number(a.total_price), 0);
-    const revenueCompleted = completed.reduce((sum, a) => sum + Number(a.total_price), 0);
+    const safeNum = (v: any) => isNaN(Number(v)) ? 0 : Number(v);
+    const revenue = safeNum(confirmed.reduce((sum, a) => sum + Number(a.total_price), 0));
+    const revenueCompleted = safeNum(completed.reduce((sum, a) => sum + Number(a.total_price), 0));
     
     // Calculate REAL capacity
     const slotDuration = companyRes.data?.fixed_slot_interval || 30;
@@ -366,8 +367,8 @@ const Dashboard = () => {
       const hours = bizHours.find(h => h.day_of_week === dayOfWeek);
       if (!hours || hours.is_closed) return;
       
-      const [oH, oM] = hours.open_time.split(':').map(Number);
-      const [cH, cM] = hours.close_time.split(':').map(Number);
+      const [oH, oM] = (hours.open_time || "08:00").split(':').map(Number);
+      const [cH, cM] = (hours.close_time || "18:00").split(':').map(Number);
       let workingMinutes = (cH * 60 + cM) - (oH * 60 + oM);
       
       if (hours.lunch_start && hours.lunch_end) {
@@ -377,9 +378,21 @@ const Dashboard = () => {
       }
 
       const activeCollaboratorsCount = (!isAdmin && profileId) ? 1 : 
-        (filterProfessional !== 'all' ? 1 : collaborators.length);
+        (filterProfessional !== 'all' ? 1 : (collaborators.length || 1));
       
       totalCapacity += Math.max(0, Math.floor(workingMinutes / slotDuration)) * activeCollaboratorsCount;
+    });
+
+    const occupancyRate = totalCapacity > 0 ? Math.round((confirmed.length / totalCapacity) * 100) : 0;
+    
+    setMonthlyStats({
+      revenue,
+      revenueCompleted,
+      clients: safeNum(uniqueClients),
+      completedAppointments: safeNum(completed.length),
+      cancellations: safeNum(cancelled.length),
+      occupancyRate: safeNum(occupancyRate),
+      avgTicket: confirmed.length > 0 ? safeNum(revenue / confirmed.length) : 0
     });
 
     const occupancyRate = totalCapacity > 0 ? Math.round((confirmed.length / totalCapacity) * 100) : 0;
