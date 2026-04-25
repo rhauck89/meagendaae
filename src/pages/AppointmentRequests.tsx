@@ -218,8 +218,8 @@ const AppointmentRequests = () => {
     }
   };
 
-  const handleNotifyWhatsApp = () => {
-    if (!selectedRequest) return;
+  const getWhatsAppMessage = () => {
+    if (!selectedRequest) return "";
     const dateStr = format(new Date(selectedRequest.requested_date + 'T12:00:00'), "dd/MM/yyyy", { locale: ptBR });
     const timeStr = selectedRequest.requested_time.slice(0, 5);
     const extraFee = calculateExtraFee();
@@ -229,9 +229,20 @@ const AppointmentRequests = () => {
       message += `Como é um horário especial, haverá uma taxa adicional de R$ ${extraFee.toFixed(2)}. `;
     }
     message += `Estamos aguardando você!`;
+    return message;
+  };
 
+  const handleNotifyWhatsApp = () => {
+    if (!selectedRequest) return;
+    const message = getWhatsAppMessage();
     const url = `https://wa.me/${selectedRequest.client_whatsapp.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`;
     window.open(url, '_blank');
+  };
+
+  const handleCopyMessage = () => {
+    const message = getWhatsAppMessage();
+    navigator.clipboard.writeText(message);
+    toast.success('Mensagem copiada para a área de transferência!');
   };
 
   const handleSuggest = async () => {
