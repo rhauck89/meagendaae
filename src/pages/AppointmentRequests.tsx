@@ -2,18 +2,19 @@ import { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUserRole } from '@/hooks/useUserRole';
 import { supabase } from '@/integrations/supabase/client';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { toast } from 'sonner';
-import { Clock, Check, X, MessageCircle, ArrowRight, Inbox } from 'lucide-react';
+import { Clock, Check, X, MessageCircle, ArrowRight, Inbox, DollarSign, ExternalLink } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { displayWhatsApp, formatWhatsApp, openWhatsApp } from '@/lib/whatsapp';
+import { displayWhatsApp, openWhatsApp } from '@/lib/whatsapp';
 import { sendAppointmentCreatedWebhook } from '@/lib/automations';
 
 const statusLabels: Record<string, { label: string; color: string }> = {
