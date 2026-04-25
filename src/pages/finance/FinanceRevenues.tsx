@@ -188,7 +188,12 @@ const FinanceRevenues = () => {
             <DialogContent className="w-[92vw] max-w-md">
               <DialogHeader><DialogTitle>{editingId ? 'Editar Receita' : 'Nova Receita Manual'}</DialogTitle></DialogHeader>
               <div className="space-y-4">
-                <div><Label>Descrição</Label><Input value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} /></div>
+                <div><Label>Descrição / Título</Label><Input value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} placeholder="Ex: Venda de produto" /></div>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                  <div><Label>Cliente</Label><Input value={form.client_name} onChange={e => setForm(f => ({ ...f, client_name: e.target.value }))} placeholder="Nome do cliente" /></div>
+                  <div><Label>Profissional</Label><Input value={form.professional_name} onChange={e => setForm(f => ({ ...f, professional_name: e.target.value }))} placeholder="Responsável" /></div>
+                  <div><Label>Serviço / Item</Label><Input value={form.service_name} onChange={e => setForm(f => ({ ...f, service_name: e.target.value }))} placeholder="O que foi vendido" /></div>
+                </div>
                 <div><Label>Valor (R$)</Label><Input type="number" step="0.01" value={form.amount} onChange={e => setForm(f => ({ ...f, amount: e.target.value }))} /></div>
                 <div className="grid grid-cols-2 gap-2">
                   <div><Label>Data</Label><Input type="date" value={form.revenue_date} onChange={e => setForm(f => ({ ...f, revenue_date: e.target.value }))} /></div>
