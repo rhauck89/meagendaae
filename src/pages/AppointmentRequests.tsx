@@ -46,7 +46,7 @@ const AppointmentRequests = () => {
   // Fee states
   const [feeType, setFeeType] = useState<'none' | '10' | '20' | '30' | 'fixed'>('none');
   const [fixedFeeValue, setFixedFeeValue] = useState('0');
-  const [serviceInfo, setServiceInfo] = useState<{ price: number; duration: number } | null>(null);
+  const [serviceInfo, setServiceInfo] = useState<{ price: number; duration: number; payment_method?: string } | null>(null);
 
   useEffect(() => {
     if (companyId) {
