@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Trash2, Pencil, Filter, X } from 'lucide-react';
+import { Plus, Trash2, Pencil, Filter, X, ChevronUp, ChevronDown } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 import CategoryBadgeEditor from '@/components/finance/CategoryBadgeEditor';
@@ -31,6 +31,7 @@ const paymentMethodLabels: Record<string, string> = {
 const emptyForm = () => ({
   description: '', amount: '', revenue_date: format(new Date(), 'yyyy-MM-dd'),
   due_date: '', category_id: '', notes: '', status: 'received', payment_method: '',
+  client_name: '', professional_name: '', service_name: ''
 });
 
 const FinanceRevenues = () => {
@@ -45,18 +46,45 @@ const FinanceRevenues = () => {
   const [form, setForm] = useState(emptyForm());
   const [editingId, setEditingId] = useState<string | null>(null);
   const [filterCategory, setFilterCategory] = useState<string>('all');
+  const [filterClient, setFilterClient] = useState('');
+  const [filterProfessional, setFilterProfessional] = useState('');
+  const [filterService, setFilterService] = useState('');
+  const [filterPayment, setFilterPayment] = useState('all');
+  const [filterType, setFilterType] = useState('all');
+  const [sortField, setSortField] = useState('revenue_date');
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
 
-  useEffect(() => { if (companyId) { fetchRevenues(); fetchCategories(); } }, [companyId, filterCategory]);
+  useEffect(() => { 
+    if (companyId) { 
+      fetchRevenues(); 
+      fetchCategories(); 
+    } 
+  }, [companyId, filterCategory, filterClient, filterProfessional, filterService, filterPayment, filterType, sortField, sortDirection]);
 
   const fetchRevenues = async () => {
     let query = supabase
       .from('company_revenues')
       .select('*, category:company_revenue_categories(name)')
       .eq('company_id', companyId!)
-      .order('revenue_date', { ascending: false });
+      .order(sortField, { ascending: sortDirection === 'asc' });
 
     if (filterCategory !== 'all') {
       query = query.eq('category_id', filterCategory);
+    }
+    if (filterPayment !== 'all') {
+      query = query.eq('payment_method', filterPayment);
+    }
+    if (filterType !== 'all') {
+      query = query.eq('is_automatic', filterType === 'automatic');
+    }
+    if (filterClient) {
+      query = query.ilike('client_name', `%${filterClient}%`);
+    }
+    if (filterProfessional) {
+      query = query.ilike('professional_name', `%${filterProfessional}%`);
+    }
+    if (filterService) {
+      query = query.ilike('service_name', `%${filterService}%`);
     }
 
     const { data } = await query.limit(200);
@@ -75,6 +103,9 @@ const FinanceRevenues = () => {
     try {
       const payload = {
         description: form.description,
+        client_name: form.client_name || (form.description.includes(' — ') ? form.description.split(' — ')[0] : form.description),
+        professional_name: form.professional_name || null,
+        service_name: form.service_name || (form.description.includes(' — ') ? form.description.split(' — ')[1] : null),
         amount: parseFloat(form.amount),
         revenue_date: form.revenue_date,
         due_date: form.due_date || null,
@@ -115,6 +146,9 @@ const FinanceRevenues = () => {
     setEditingId(r.id);
     setForm({
       description: r.description,
+      client_name: r.client_name || '',
+      professional_name: r.professional_name || '',
+      service_name: r.service_name || '',
       amount: String(r.amount),
       revenue_date: r.revenue_date,
       due_date: r.due_date || '',
@@ -158,7 +192,12 @@ const FinanceRevenues = () => {
             <DialogContent className="w-[92vw] max-w-md">
               <DialogHeader><DialogTitle>{editingId ? 'Editar Receita' : 'Nova Receita Manual'}</DialogTitle></DialogHeader>
               <div className="space-y-4">
-                <div><Label>Descrição</Label><Input value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} /></div>
+                <div><Label>Descrição / Título</Label><Input value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} placeholder="Ex: Venda de produto" /></div>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                  <div><Label>Cliente</Label><Input value={form.client_name} onChange={e => setForm(f => ({ ...f, client_name: e.target.value }))} placeholder="Nome do cliente" /></div>
+                  <div><Label>Profissional</Label><Input value={form.professional_name} onChange={e => setForm(f => ({ ...f, professional_name: e.target.value }))} placeholder="Responsável" /></div>
+                  <div><Label>Serviço / Item</Label><Input value={form.service_name} onChange={e => setForm(f => ({ ...f, service_name: e.target.value }))} placeholder="O que foi vendido" /></div>
+                </div>
                 <div><Label>Valor (R$)</Label><Input type="number" step="0.01" value={form.amount} onChange={e => setForm(f => ({ ...f, amount: e.target.value }))} /></div>
                 <div className="grid grid-cols-2 gap-2">
                   <div><Label>Data</Label><Input type="date" value={form.revenue_date} onChange={e => setForm(f => ({ ...f, revenue_date: e.target.value }))} /></div>
@@ -267,28 +306,112 @@ const FinanceRevenues = () => {
       <Card className="hidden md:block">
         <CardContent className="p-0">
           <div className="overflow-x-auto">
-            <Table className="min-w-[600px]">
+            <Table className="min-w-[1000px]">
               <TableHeader>
                 <TableRow>
-                  <TableHead>Data</TableHead>
-                  <TableHead>Descrição</TableHead>
+                  <TableHead className="cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => {
+                    if (sortField === 'revenue_date') setSortDirection(d => d === 'asc' ? 'desc' : 'asc');
+                    else { setSortField('revenue_date'); setSortDirection('desc'); }
+                  }}>
+                    <div className="flex items-center gap-1">
+                      Data {sortField === 'revenue_date' && (sortDirection === 'asc' ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />)}
+                    </div>
+                  </TableHead>
+                  <TableHead>
+                    <div className="space-y-2 py-2">
+                      <span className="text-xs font-semibold">Cliente</span>
+                      <Input 
+                        placeholder="Filtrar..." 
+                        value={filterClient} 
+                        onChange={e => setFilterClient(e.target.value)}
+                        className="h-7 text-xs"
+                      />
+                    </div>
+                  </TableHead>
+                  <TableHead>
+                    <div className="space-y-2 py-2">
+                      <span className="text-xs font-semibold">Profissional</span>
+                      <Input 
+                        placeholder="Filtrar..." 
+                        value={filterProfessional} 
+                        onChange={e => setFilterProfessional(e.target.value)}
+                        className="h-7 text-xs"
+                      />
+                    </div>
+                  </TableHead>
+                  <TableHead>
+                    <div className="space-y-2 py-2">
+                      <span className="text-xs font-semibold">Serviço</span>
+                      <Input 
+                        placeholder="Filtrar..." 
+                        value={filterService} 
+                        onChange={e => setFilterService(e.target.value)}
+                        className="h-7 text-xs"
+                      />
+                    </div>
+                  </TableHead>
                   <TableHead>Categoria</TableHead>
-                  <TableHead>Tipo</TableHead>
-                  <TableHead>Pagamento</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Valor</TableHead>
+                  <TableHead>
+                    <div className="space-y-2 py-2">
+                      <span className="text-xs font-semibold">Tipo</span>
+                      <Select value={filterType || 'all'} onValueChange={setFilterType}>
+                        <SelectTrigger className="h-7 text-xs">
+                          <SelectValue placeholder="Todos" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">Todos</SelectItem>
+                          <SelectItem value="automatic">Automática</SelectItem>
+                          <SelectItem value="manual">Manual</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </TableHead>
+                  <TableHead>
+                    <div className="space-y-2 py-2">
+                      <span className="text-xs font-semibold">Pagamento</span>
+                      <Select value={filterPayment} onValueChange={setFilterPayment}>
+                        <SelectTrigger className="h-7 text-xs">
+                          <SelectValue placeholder="Todos" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">Todos</SelectItem>
+                          {Object.entries(paymentMethodLabels).map(([val, label]) => (
+                            <SelectItem key={val} value={val}>{label}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </TableHead>
+                  <TableHead className="text-right cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => {
+                    if (sortField === 'amount') setSortDirection(d => d === 'asc' ? 'desc' : 'asc');
+                    else { setSortField('amount'); setSortDirection('desc'); }
+                  }}>
+                    <div className="flex items-center justify-end gap-1">
+                      Valor {sortField === 'amount' && (sortDirection === 'asc' ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />)}
+                    </div>
+                  </TableHead>
                   <TableHead className="w-20">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {revenues.length === 0 ? (
-                  <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-8">Nenhuma receita registrada</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={9} className="text-center text-muted-foreground py-8">Nenhuma receita encontrada</TableCell></TableRow>
                 ) : revenues.map(r => (
                   <TableRow key={r.id}>
-                    <TableCell>{format(new Date(r.revenue_date + 'T12:00:00'), 'dd/MM/yyyy')}</TableCell>
+                    <TableCell className="whitespace-nowrap">{format(new Date(r.revenue_date + 'T12:00:00'), 'dd/MM/yyyy')}</TableCell>
                     <TableCell>
-                      <div className="max-w-[250px] truncate" title={r.description}>
-                        {r.description}
+                      <div className="font-medium truncate max-w-[120px]" title={r.client_name}>
+                        {r.client_name || '—'}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="text-xs truncate max-w-[120px]" title={r.professional_name}>
+                        {r.professional_name || '—'}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="text-xs truncate max-w-[150px]" title={r.service_name}>
+                        {r.service_name || '—'}
                       </div>
                     </TableCell>
                     <TableCell>
@@ -306,7 +429,6 @@ const FinanceRevenues = () => {
                       </Badge>
                     </TableCell>
                     <TableCell className="text-xs text-muted-foreground">{paymentMethodLabels[r.payment_method] || '—'}</TableCell>
-                    <TableCell><Badge variant="outline" className="text-[10px] uppercase font-bold px-1.5 py-0">{statusLabels[r.status] || r.status}</Badge></TableCell>
                     <TableCell className="text-right font-semibold text-success">{maskValue(Number(r.amount))}</TableCell>
                     <TableCell>
                       <div className="flex gap-1">
@@ -328,36 +450,75 @@ const FinanceRevenues = () => {
 
       {/* Mobile cards */}
       <div className="md:hidden space-y-3 pb-20">
+        <div className="flex flex-col gap-2 mb-4">
+          <Input 
+            placeholder="Pesquisar cliente..." 
+            value={filterClient} 
+            onChange={e => setFilterClient(e.target.value)}
+            className="h-10"
+          />
+          <div className="grid grid-cols-2 gap-2">
+            <Select value={filterPayment} onValueChange={setFilterPayment}>
+              <SelectTrigger className="h-10">
+                <SelectValue placeholder="Pagamento" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos Pagamentos</SelectItem>
+                {Object.entries(paymentMethodLabels).map(([val, label]) => (
+                  <SelectItem key={val} value={val}>{label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select value={filterCategory} onValueChange={setFilterCategory}>
+              <SelectTrigger className="h-10">
+                <SelectValue placeholder="Categoria" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todas Categorias</SelectItem>
+                {categories.map(cat => (
+                  <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
         {revenues.length === 0 ? (
-          <Card><CardContent className="p-6 text-center text-muted-foreground">Nenhuma receita registrada</CardContent></Card>
+          <Card><CardContent className="p-6 text-center text-muted-foreground">Nenhuma receita encontrada</CardContent></Card>
         ) : revenues.map(r => (
           <Card key={r.id} className="overflow-hidden border-none shadow-sm">
             <CardContent className="p-4">
               <div className="flex items-start justify-between gap-2 mb-3">
                 <div className="space-y-1 min-w-0">
-                  <div className="font-semibold text-sm break-words line-clamp-2">{r.description}</div>
-                  <div className="text-[11px] text-muted-foreground flex items-center gap-2">
-                    <span>{format(new Date(r.revenue_date + 'T12:00:00'), 'dd/MM/yyyy')}</span>
+                  <div className="font-semibold text-sm break-words line-clamp-1">{r.client_name || 'Manual'}</div>
+                  <div className="text-[11px] text-muted-foreground flex flex-wrap items-center gap-x-2 gap-y-1">
+                    <span className="font-medium text-foreground/80">{r.service_name}</span>
                     <span>•</span>
-                    <Badge variant={r.is_automatic ? 'default' : 'outline'} className="text-[9px] px-1 py-0 h-4">
-                      {r.is_automatic ? 'AUTO' : 'MANUAL'}
-                    </Badge>
+                    <span>{format(new Date(r.revenue_date + 'T12:00:00'), 'dd/MM/yyyy')}</span>
+                  </div>
+                  <div className="text-[10px] text-muted-foreground italic truncate">
+                    Prof: {r.professional_name || '—'}
                   </div>
                 </div>
                 <div className="text-right shrink-0">
-                  <div className="font-bold text-success">{maskValue(Number(r.amount))}</div>
-                  <div className="text-[10px] text-muted-foreground uppercase">{statusLabels[r.status] || r.status}</div>
+                  <div className="font-bold text-success text-sm">{maskValue(Number(r.amount))}</div>
+                  <Badge variant={r.is_automatic ? 'default' : 'outline'} className="text-[9px] px-1 py-0 h-4 uppercase mt-1">
+                    {r.is_automatic ? 'AUTO' : 'MANUAL'}
+                  </Badge>
                 </div>
               </div>
               
               <div className="flex items-center justify-between mt-4 pt-3 border-t border-dashed">
-                <CategoryBadgeEditor 
-                  revenueId={r.id}
-                  companyId={companyId!}
-                  currentCategoryId={r.category_id}
-                  currentCategoryName={r.category?.name}
-                  onUpdate={fetchRevenues}
-                />
+                <div className="flex items-center gap-2">
+                  <CategoryBadgeEditor 
+                    revenueId={r.id}
+                    companyId={companyId!}
+                    currentCategoryId={r.category_id}
+                    currentCategoryName={r.category?.name}
+                    onUpdate={fetchRevenues}
+                  />
+                  <span className="text-[10px] text-muted-foreground">{paymentMethodLabels[r.payment_method] || ''}</span>
+                </div>
                 
                 {!r.is_automatic && (
                   <div className="flex gap-1">
