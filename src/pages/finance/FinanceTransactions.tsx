@@ -19,7 +19,8 @@ import {
   Briefcase,
   CreditCard,
   Layers,
-  ArrowUpDown
+  ArrowUpDown,
+  User
 } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
@@ -38,6 +39,7 @@ interface Transaction {
   is_automatic?: boolean;
   professional?: string;
   service?: string;
+  client?: string;
   payment_method?: string;
   origin: 'Automática' | 'Manual' | 'Cashback' | 'Taxa Extra' | 'Promoção' | 'Ajuste';
   service_count?: number;
@@ -53,6 +55,7 @@ const FinanceTransactions = () => {
   
   // Filters
   const [filters, setFilters] = useState({
+    client: 'Todos',
     professional: 'Todos',
     service: 'Todos',
     payment_method: 'Todos',
@@ -83,9 +86,10 @@ const FinanceTransactions = () => {
           revenue_date, 
           is_automatic, 
           payment_method,
+          client_name,
+          professional_name,
+          service_name,
           category:company_revenue_categories(name),
-          professional:profiles(full_name),
-          service:services(name),
           appointment:appointments(
             appointment_services(count)
           )
@@ -121,8 +125,9 @@ const FinanceTransactions = () => {
         date: r.revenue_date, 
         category: categoryName, 
         is_automatic: r.is_automatic,
-        professional: (r.professional as any)?.full_name,
-        service: (r.service as any)?.name,
+        client: r.client_name || (r.description.includes(' — ') ? r.description.split(' — ')[0] : 'Manual'),
+        professional: r.professional_name || 'Admin',
+        service: r.service_name || (r.description.includes(' — ') ? r.description.split(' — ')[1] : r.description),
         payment_method: r.payment_method || 'Pendente',
         origin: origin,
         service_count: serviceCount
@@ -156,6 +161,7 @@ const FinanceTransactions = () => {
   const filteredTransactions = useMemo(() => {
     return transactions
       .filter(t => {
+        if (filters.client !== 'Todos' && t.client !== filters.client) return false;
         if (filters.professional !== 'Todos' && t.professional !== filters.professional) return false;
         if (filters.service !== 'Todos' && t.service !== filters.service) return false;
         if (filters.payment_method !== 'Todos' && t.payment_method !== filters.payment_method) return false;
@@ -188,18 +194,21 @@ const FinanceTransactions = () => {
 
   const filterOptions = useMemo(() => {
     const opts = {
+      clients: new Set<string>(),
       professionals: new Set<string>(),
       services: new Set<string>(),
       payment_methods: new Set<string>(),
     };
 
     transactions.forEach(t => {
+      if (t.client) opts.clients.add(t.client);
       if (t.professional) opts.professionals.add(t.professional);
       if (t.service) opts.services.add(t.service);
       if (t.payment_method) opts.payment_methods.add(t.payment_method);
     });
 
     return {
+      clients: Array.from(opts.clients).sort(),
       professionals: Array.from(opts.professionals).sort(),
       services: Array.from(opts.services).sort(),
       payment_methods: Array.from(opts.payment_methods).sort(),
@@ -360,7 +369,7 @@ const FinanceTransactions = () => {
           onClick={() => { 
             setStartDate(startOfMonth(new Date())); 
             setEndDate(new Date());
-            setFilters({ professional: 'Todos', service: 'Todos', payment_method: 'Todos', origin: 'Todos' });
+            setFilters({ client: 'Todos', professional: 'Todos', service: 'Todos', payment_method: 'Todos', origin: 'Todos' });
           }}
         >
           <RotateCcw className="h-3.5 w-3.5" /> 
@@ -384,6 +393,17 @@ const FinanceTransactions = () => {
               <DrawerTitle>Filtros Avançados</DrawerTitle>
             </DrawerHeader>
             <div className="p-6 space-y-6 overflow-y-auto max-h-[70vh]">
+              <div className="space-y-3">
+                <label className="text-xs font-bold uppercase tracking-wider flex items-center gap-2 text-muted-foreground"><User className="h-3.5 w-3.5 text-primary" /> Cliente</label>
+                <select 
+                  className="w-full border rounded-lg p-3 text-sm bg-background focus:ring-2 focus:ring-primary/20 outline-none transition-all"
+                  value={filters.client}
+                  onChange={(e) => setFilters(f => ({ ...f, client: e.target.value }))}
+                >
+                  <option value="Todos">Todos os clientes</option>
+                  {filterOptions.clients.map(c => <option key={c} value={c}>{c}</option>)}
+                </select>
+              </div>
               <div className="space-y-3">
                 <label className="text-xs font-bold uppercase tracking-wider flex items-center gap-2 text-muted-foreground"><Users className="h-3.5 w-3.5 text-primary" /> Profissional</label>
                 <select 
@@ -436,6 +456,9 @@ const FinanceTransactions = () => {
                 <TableRow className="hover:bg-transparent">
                   <DateHeader label="Data" />
                   <TableHead>
+                    <FilterHeader label="Cliente" options={filterOptions.clients} filterKey="client" />
+                  </TableHead>
+                  <TableHead>
                     <FilterHeader label="Profissional" options={filterOptions.professionals} filterKey="professional" />
                   </TableHead>
                   <TableHead>
@@ -457,6 +480,9 @@ const FinanceTransactions = () => {
                   <TableRow key={t.id} className="group hover:bg-muted/30 transition-colors border-b last:border-0">
                     <TableCell className="text-xs font-bold text-muted-foreground whitespace-nowrap px-4">
                       {format(new Date(t.date + 'T12:00:00'), 'dd/MM/yyyy')}
+                    </TableCell>
+                    <TableCell className="text-sm font-medium">
+                      {t.client || '—'}
                     </TableCell>
                     <TableCell className="text-sm font-medium">
                       {t.professional || '—'}
