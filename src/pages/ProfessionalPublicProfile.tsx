@@ -96,8 +96,9 @@ export default function ProfessionalPublicProfile() {
     // Reviews - fetch all for count, display limited
     const { data: allReviewsData } = await supabase
       .from('reviews')
-      .select('rating, comment, barbershop_rating, barbershop_comment, created_at, appointment_id')
+      .select('rating, comment, created_at, appointment_id, review_type')
       .eq('professional_id', prof.id)
+      .eq('review_type', 'professional')
       .order('created_at', { ascending: false });
     if (allReviewsData) {
       // Enrich with client display name (masked)
