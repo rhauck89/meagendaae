@@ -302,15 +302,18 @@ export default function BarbershopLanding({ routeBusinessType, customSlug }: Bar
       }));
     }
 
-    // Company-level stats
-    const revs = enrichedReviews;
-    if (revs.length > 0) {
-      const avg = revs.reduce((sum: number, r: any) => sum + Number(r.rating), 0) / revs.length;
-      setCompanyStats({ avgRating: avg, reviewCount: revs.length });
+    // Company-level stats: filter by company review type
+    const companyReviews = enrichedReviews.filter((r: any) => r.review_type === 'company');
+    
+    if (companyReviews.length > 0) {
+      const avg = companyReviews.reduce((sum: number, r: any) => sum + Number(r.rating), 0) / companyReviews.length;
+      setCompanyStats({ avgRating: avg, reviewCount: companyReviews.length });
+    } else {
+      setCompanyStats({ avgRating: 0, reviewCount: 0 });
     }
 
-    setAllReviewsList(enrichedReviews);
-    setReviews(enrichedReviews.slice(0, 3));
+    setAllReviewsList(companyReviews);
+    setReviews(companyReviews.slice(0, 3));
     setLoading(false);
   };
 
