@@ -45,6 +45,12 @@ const FinanceRevenues = () => {
   const [form, setForm] = useState(emptyForm());
   const [editingId, setEditingId] = useState<string | null>(null);
   const [filterCategory, setFilterCategory] = useState<string>('all');
+  const [filterClient, setFilterClient] = useState('');
+  const [filterProfessional, setFilterProfessional] = useState('');
+  const [filterService, setFilterService] = useState('');
+  const [filterPayment, setFilterPayment] = useState('all');
+  const [sortField, setSortField] = useState('revenue_date');
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
 
   useEffect(() => { if (companyId) { fetchRevenues(); fetchCategories(); } }, [companyId, filterCategory]);
 
