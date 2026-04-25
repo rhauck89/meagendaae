@@ -420,36 +420,75 @@ const FinanceRevenues = () => {
 
       {/* Mobile cards */}
       <div className="md:hidden space-y-3 pb-20">
+        <div className="flex flex-col gap-2 mb-4">
+          <Input 
+            placeholder="Pesquisar cliente..." 
+            value={filterClient} 
+            onChange={e => setFilterClient(e.target.value)}
+            className="h-10"
+          />
+          <div className="grid grid-cols-2 gap-2">
+            <Select value={filterPayment} onValueChange={setFilterPayment}>
+              <SelectTrigger className="h-10">
+                <SelectValue placeholder="Pagamento" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos Pagamentos</SelectItem>
+                {Object.entries(paymentMethodLabels).map(([val, label]) => (
+                  <SelectItem key={val} value={val}>{label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select value={filterCategory} onValueChange={setFilterCategory}>
+              <SelectTrigger className="h-10">
+                <SelectValue placeholder="Categoria" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todas Categorias</SelectItem>
+                {categories.map(cat => (
+                  <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
         {revenues.length === 0 ? (
-          <Card><CardContent className="p-6 text-center text-muted-foreground">Nenhuma receita registrada</CardContent></Card>
+          <Card><CardContent className="p-6 text-center text-muted-foreground">Nenhuma receita encontrada</CardContent></Card>
         ) : revenues.map(r => (
           <Card key={r.id} className="overflow-hidden border-none shadow-sm">
             <CardContent className="p-4">
               <div className="flex items-start justify-between gap-2 mb-3">
                 <div className="space-y-1 min-w-0">
-                  <div className="font-semibold text-sm break-words line-clamp-2">{r.description}</div>
-                  <div className="text-[11px] text-muted-foreground flex items-center gap-2">
-                    <span>{format(new Date(r.revenue_date + 'T12:00:00'), 'dd/MM/yyyy')}</span>
+                  <div className="font-semibold text-sm break-words line-clamp-1">{r.client_name || 'Manual'}</div>
+                  <div className="text-[11px] text-muted-foreground flex flex-wrap items-center gap-x-2 gap-y-1">
+                    <span className="font-medium text-foreground/80">{r.service_name}</span>
                     <span>•</span>
-                    <Badge variant={r.is_automatic ? 'default' : 'outline'} className="text-[9px] px-1 py-0 h-4">
-                      {r.is_automatic ? 'AUTO' : 'MANUAL'}
-                    </Badge>
+                    <span>{format(new Date(r.revenue_date + 'T12:00:00'), 'dd/MM/yyyy')}</span>
+                  </div>
+                  <div className="text-[10px] text-muted-foreground italic truncate">
+                    Prof: {r.professional_name || '—'}
                   </div>
                 </div>
                 <div className="text-right shrink-0">
-                  <div className="font-bold text-success">{maskValue(Number(r.amount))}</div>
-                  <div className="text-[10px] text-muted-foreground uppercase">{statusLabels[r.status] || r.status}</div>
+                  <div className="font-bold text-success text-sm">{maskValue(Number(r.amount))}</div>
+                  <Badge variant={r.is_automatic ? 'default' : 'outline'} className="text-[9px] px-1 py-0 h-4 uppercase mt-1">
+                    {r.is_automatic ? 'AUTO' : 'MANUAL'}
+                  </Badge>
                 </div>
               </div>
               
               <div className="flex items-center justify-between mt-4 pt-3 border-t border-dashed">
-                <CategoryBadgeEditor 
-                  revenueId={r.id}
-                  companyId={companyId!}
-                  currentCategoryId={r.category_id}
-                  currentCategoryName={r.category?.name}
-                  onUpdate={fetchRevenues}
-                />
+                <div className="flex items-center gap-2">
+                  <CategoryBadgeEditor 
+                    revenueId={r.id}
+                    companyId={companyId!}
+                    currentCategoryId={r.category_id}
+                    currentCategoryName={r.category?.name}
+                    onUpdate={fetchRevenues}
+                  />
+                  <span className="text-[10px] text-muted-foreground">{paymentMethodLabels[r.payment_method] || ''}</span>
+                </div>
                 
                 {!r.is_automatic && (
                   <div className="flex gap-1">
