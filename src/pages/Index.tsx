@@ -651,7 +651,7 @@ const Index = () => {
               <a href="#" className="hover:text-foreground transition-colors">Termos</a>
               <a href="#" className="hover:text-foreground transition-colors">Privacidade</a>
             </div>
-            <p className="text-xs text-muted-foreground">© {new Date().getFullYear()} MeAgendaê</p>
+            <p className="text-xs text-muted-foreground">© {new Date().getFullYear()} Me Agendaê</p>
           </div>
         </div>
       </footer>
