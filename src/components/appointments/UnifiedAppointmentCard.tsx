@@ -340,7 +340,17 @@ export function UnifiedAppointmentCard({
               </h3>
               {apt.promotion_id && (
                 <Badge variant="secondary" className="bg-orange-500/10 text-orange-600 border-none h-4 px-1 text-[9px] font-bold uppercase tracking-tighter">
-                  🔥 PROMO
+                  🏷️ PROMO
+                </Badge>
+              )}
+              {cashbackUsed > 0 && (
+                <Badge variant="secondary" className="bg-blue-500/10 text-blue-600 border-none h-4 px-1 text-[9px] font-bold uppercase tracking-tighter">
+                  💸 CASHBACK
+                </Badge>
+              )}
+              {apt.client?.is_vip && (
+                <Badge variant="secondary" className="bg-yellow-500/10 text-yellow-600 border-none h-4 px-1 text-[9px] font-bold uppercase tracking-tighter">
+                  ⭐ VIP
                 </Badge>
               )}
               {apt.special_schedule && (
