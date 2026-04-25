@@ -2211,7 +2211,17 @@ const Dashboard = () => {
                   className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring mt-1"
                 />
               </div>
-            </div>
+    </div>
+
+    <div className="flex justify-center pt-8 pb-4">
+      <button
+        onClick={reopenOnboarding}
+        className="text-xs text-muted-foreground hover:text-primary transition-colors flex items-center gap-1.5 opacity-60 hover:opacity-100"
+      >
+        <Rocket className="h-3 w-3" />
+        Ver primeiros passos
+      </button>
+    </div>
 
             {/* Net amount preview */}
             {completeTarget && (() => {
