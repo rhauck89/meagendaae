@@ -333,7 +333,7 @@ const AppointmentRequests = () => {
 
                     {req.status === 'pending' && (!isAdmin || !req.professional_id || req.professional_id === profileId) && (
                       <div className="flex items-center gap-2 shrink-0">
-                        <Button size="sm" variant="outline" className="gap-1 text-green-700 border-green-200 hover:bg-green-50" onClick={() => handleAccept(req)} disabled={processing}>
+                        <Button size="sm" variant="outline" className="gap-1 text-green-700 border-green-200 hover:bg-green-50" onClick={() => handleAcceptClick(req)} disabled={processing}>
                           <Check className="h-3.5 w-3.5" /> Aceitar
                         </Button>
                         <Button size="sm" variant="outline" className="gap-1 text-blue-700 border-blue-200 hover:bg-blue-50" onClick={() => { setSelectedRequest(req); setSuggestDialogOpen(true); }} disabled={processing}>
