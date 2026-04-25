@@ -313,8 +313,34 @@ export default function BarbershopLanding({ routeBusinessType, customSlug }: Bar
   const seoTitle = `${company.name} | ${businessType === 'esthetic' ? 'Estética' : 'Barbearia'} em ${company.city || ''} ${company.state || ''}`.trim();
   const seoDescription = `Agende seu horário na ${company.name}. ${businessType === 'esthetic' ? 'Estética' : 'Barbearia'} em ${company.city || ''} ${company.state || ''} com profissionais e agendamento online.`.trim();
 
+  // Amenity icon mapping
+  const amenityIconMap: Record<string, any> = {
+    'wi-fi': Wifi, 'wifi': Wifi, 'internet': Wifi,
+    'estacionamento': Car, 'parking': Car,
+    'café': Coffee, 'cafe': Coffee, 'coffee': Coffee,
+    'ar-condicionado': Snowflake, 'ar condicionado': Snowflake, 'climatizado': Snowflake,
+    'pix': CreditCard, 'cartão': CreditCard, 'cartao': CreditCard, 'pagamento': CreditCard,
+  };
+  const getAmenityIcon = (name: string) => {
+    const key = name?.toLowerCase().trim();
+    return amenityIconMap[key] || Sparkles;
+  };
+
+  // Category mapping with icons
+  const categoryIconMap: Record<string, any> = {
+    'Cortes': Scissors,
+    'Barba': Crown,
+    'Estética': Sparkles,
+    'Premium': Crown,
+    'Outros': Sparkles,
+  };
+  const cleanedGroups = groupedServices.map(([cat, list]) => {
+    const cleanCat = cat.replace(/^[^\w\s]+\s*/, '').trim();
+    return [cleanCat, list] as [string, any[]];
+  });
+
   return (
-    <div className="min-h-screen overflow-x-hidden" style={{ background: T.bg }}>
+    <div className="min-h-screen overflow-x-hidden pb-24" style={{ background: T.bg }}>
       <SEOHead
         title={seoTitle}
         description={seoDescription}
@@ -325,349 +351,511 @@ export default function BarbershopLanding({ routeBusinessType, customSlug }: Bar
         jsonLd={buildLocalBusinessJsonLd(company)}
       />
 
-      {/* Hero Section with Parallax */}
-      <section className="relative w-full h-[300px] sm:h-[400px] overflow-hidden">
-        <motion.div 
-          style={{ y: y1 }}
-          className="absolute inset-0 w-full h-full"
-        >
-          {company.cover_url ? (
-            <>
+      {/* HERO with cover + centered avatar */}
+      <section className="relative w-full">
+        <div className="relative h-[260px] sm:h-[340px] overflow-hidden">
+          <motion.div style={{ y: y1 }} className="absolute inset-0">
+            {company.cover_url ? (
               <img src={company.cover_url} alt={company.name} className="w-full h-full object-cover" />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
-            </>
-          ) : (
-            <div className="w-full h-full" style={{ background: `linear-gradient(to top, ${T.bg}, ${T.accent}30)` }} />
-          )}
-        </motion.div>
-        
-        {/* Logo and Quick Info Overlay */}
-        <div className="absolute bottom-0 left-0 w-full p-6 text-white z-10">
-          <div className="max-w-4xl mx-auto flex flex-col md:flex-row items-center md:items-end gap-6">
-            {company.logo_url && (
-              <motion.div 
-                initial={{ scale: 0.8, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                transition={{ duration: 0.5 }}
-                className="relative -mb-16 md:mb-0 z-20"
-              >
-                <img
-                  src={company.logo_url}
-                  alt={company.name}
-                  className="w-24 h-24 md:w-32 md:h-32 object-contain rounded-2xl p-2 bg-white/10 backdrop-blur-md border border-white/20 shadow-2xl"
-                />
-              </motion.div>
+            ) : (
+              <div className="w-full h-full" style={{ background: `linear-gradient(135deg, ${T.accent}30, ${T.bg})` }} />
             )}
-            <div className="flex-1 text-center md:text-left mt-12 md:mt-0">
-              <motion.h1 
-                initial={{ y: 20, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                className="text-3xl md:text-4xl font-black tracking-tight"
+            <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/30 to-[var(--hero-fade)]" style={{ ['--hero-fade' as any]: T.bg }} />
+          </motion.div>
+
+          {/* Top floating actions */}
+          <div className="absolute top-4 left-4 right-4 flex items-center justify-between z-20">
+            <button
+              onClick={() => navigate(-1)}
+              className="w-10 h-10 rounded-xl flex items-center justify-center backdrop-blur-md bg-black/40 border border-white/10 text-white hover:bg-black/60 transition"
+              aria-label="Voltar"
+            >
+              <ArrowLeft className="w-5 h-5" />
+            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handleShare}
+                className="w-10 h-10 rounded-xl flex items-center justify-center backdrop-blur-md bg-black/40 border border-white/10 text-white hover:bg-black/60 transition"
+                aria-label="Compartilhar"
               >
-                {company.name}
-              </motion.h1>
-              <div className="flex flex-wrap items-center justify-center md:justify-start gap-3 mt-2 text-sm text-white/80">
-                {companyStats && companyStats.reviewCount > 0 && (
-                  <div className="flex items-center gap-1.5 bg-white/10 px-2 py-1 rounded-full backdrop-blur-sm">
-                    <StarRating rating={companyStats.avgRating} size={12} />
-                    <span className="font-bold text-yellow-400">{companyStats.avgRating.toFixed(1)}</span>
-                    <span className="text-[10px]">({companyStats.reviewCount} avaliações)</span>
-                  </div>
-                )}
-                {(company.district || company.city) && (
-                  <div className="flex items-center gap-1 bg-white/10 px-2 py-1 rounded-full backdrop-blur-sm">
-                    <MapPin className="w-3 h-3" />
-                    <span>{[company.district, company.city].filter(Boolean).join(' • ')}</span>
-                  </div>
-                )}
-              </div>
+                <Share2 className="w-5 h-5" />
+              </button>
+              <button
+                className="w-10 h-10 rounded-xl flex items-center justify-center backdrop-blur-md bg-black/40 border border-white/10 text-white hover:bg-black/60 transition"
+                aria-label="Favoritar"
+              >
+                <Heart className="w-5 h-5" />
+              </button>
             </div>
           </div>
         </div>
-      </section>
 
-      <div className="max-w-4xl mx-auto px-4 pt-20 md:pt-12 pb-24 space-y-12">
-        {/* Action Buttons */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <Button
-            onClick={() => navigate(`/${bookingBasePath}/${slug}/agendar`)}
-            className="sm:col-span-2 h-14 text-lg font-black rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] transition-all active:scale-95 group"
-            style={{ background: T.accent, color: '#000' }}
+        {/* Avatar floating over hero */}
+        <div className="relative -mt-16 flex justify-center z-10">
+          <motion.div
+            initial={{ scale: 0.8, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ duration: 0.5 }}
+            className="relative"
           >
-            <Calendar className="w-6 h-6 mr-2 group-hover:animate-bounce" />
-            INICIAR AGENDAMENTO
-          </Button>
-          <div className="grid grid-cols-2 sm:grid-cols-2 gap-4">
-            {companyWhatsapp && (
-              <Button
-                variant="outline"
-                asChild
-                className="h-14 rounded-2xl border-2 transition-all active:scale-95"
-                style={{ borderColor: '#25D366', color: '#25D366', background: 'transparent' }}
+            {company.logo_url ? (
+              <img
+                src={company.logo_url}
+                alt={company.name}
+                className="w-32 h-32 rounded-full object-cover border-4 shadow-2xl"
+                style={{ borderColor: T.accent, background: T.card }}
+              />
+            ) : (
+              <div
+                className="w-32 h-32 rounded-full flex items-center justify-center text-5xl font-black border-4 shadow-2xl"
+                style={{ borderColor: T.accent, background: T.card, color: T.accent }}
               >
-                <a
-                  href={buildWhatsAppUrl(companyWhatsapp, `Olá! Vi a página da ${company.name} e gostaria de mais informações.`)}
-                  onClick={() => trackWhatsAppClick('landing_premium')}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  <MessageCircle className="w-5 h-5" />
-                </a>
-              </Button>
+                {company.name?.charAt(0)?.toUpperCase()}
+              </div>
             )}
-            <Button
-              variant="outline"
-              onClick={handleShare}
-              className="h-14 rounded-2xl border-2 transition-all active:scale-95"
-              style={{ borderColor: T.accent, color: T.accent, background: 'transparent' }}
-            >
-              <Share2 className="w-5 h-5" />
-            </Button>
-          </div>
+          </motion.div>
         </div>
 
-        {/* Amenities Tags */}
+        {/* Name + rating + location */}
+        <div className="text-center px-4 pt-4 space-y-2">
+          <motion.h1
+            initial={{ y: 10, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            className="text-3xl sm:text-4xl font-black tracking-tight inline-flex items-center gap-2"
+            style={{ color: T.text }}
+          >
+            {company.name}
+            <BadgeCheck className="w-6 h-6" style={{ color: T.accent }} fill={T.accent} stroke={T.bg} />
+          </motion.h1>
+          {companyStats && companyStats.reviewCount > 0 && (
+            <div className="flex items-center justify-center gap-2 text-sm">
+              <StarRating rating={companyStats.avgRating} size={16} />
+              <span className="font-bold" style={{ color: T.accent }}>{companyStats.avgRating.toFixed(1)}</span>
+              <span className="opacity-60" style={{ color: T.textSec }}>({companyStats.reviewCount} avaliações)</span>
+            </div>
+          )}
+          {(company.city || company.state) && (
+            <div className="flex items-center justify-center gap-1 text-sm opacity-70" style={{ color: T.textSec }}>
+              <MapPin className="w-4 h-4" />
+              <span>{[company.city, company.state].filter(Boolean).join(', ')}</span>
+            </div>
+          )}
+        </div>
+      </section>
+
+      <div className="max-w-3xl mx-auto px-4 pt-6 space-y-8">
+        {/* Amenities chips */}
         {companyAmenities.length > 0 && (
-          <div className="flex flex-wrap justify-center gap-2 py-2 border-y border-white/5">
-            {companyAmenities.slice(0, 6).map((a: any) => (
-              <div key={a.id} className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider" style={{ background: `${T.accent}10`, color: T.accent, border: `1px solid ${T.accent}20` }}>
-                <span className="opacity-70">●</span> {a.name}
-              </div>
-            ))}
+          <div className="flex gap-2 overflow-x-auto no-scrollbar -mx-4 px-4 pb-1">
+            {companyAmenities.slice(0, 8).map((a: any) => {
+              const Icon = getAmenityIcon(a.name);
+              return (
+                <div
+                  key={a.id}
+                  className="flex-shrink-0 flex items-center gap-2 px-4 py-2.5 rounded-xl border text-sm font-medium"
+                  style={{ background: T.card, borderColor: T.border, color: T.text }}
+                >
+                  <Icon className="w-4 h-4" style={{ color: T.accent }} />
+                  {a.name}
+                </div>
+              );
+            })}
           </div>
         )}
 
-        {/* Smart Rebooking Block */}
-        {isLoggedIn && lastBooking && !rebookDismissed && (() => {
-          const daysSince = Math.floor((Date.now() - new Date(lastBooking.bookedAt).getTime()) / (1000 * 60 * 60 * 24));
-          const formattedDate = format(new Date(lastBooking.bookedAt), "d 'de' MMMM", { locale: ptBR });
-          return (
-            <motion.section 
-              initial={{ scale: 0.95, opacity: 0 }}
-              whileInView={{ scale: 1, opacity: 1 }}
-              className="relative overflow-hidden rounded-3xl p-6 border-2 shadow-xl"
-              style={{ background: `${T.card}`, borderColor: `${T.accent}40` }}
+        {/* Primary CTA */}
+        <Button
+          onClick={() => navigate(`/${bookingBasePath}/${slug}/agendar`)}
+          className="w-full h-14 text-base font-bold rounded-2xl shadow-xl flex items-center justify-between px-6 transition-all active:scale-[0.98]"
+          style={{ background: T.accent, color: '#000' }}
+        >
+          <span className="flex items-center gap-2">
+            <Calendar className="w-5 h-5" />
+            Iniciar Agendamento
+          </span>
+          <ChevronRight className="w-5 h-5" />
+        </Button>
+
+        {/* Secondary actions */}
+        <div className="grid grid-cols-2 gap-3 -mt-4">
+          {companyWhatsapp && (
+            <Button
+              variant="outline"
+              asChild
+              className="h-12 rounded-xl border-2 font-semibold"
+              style={{ borderColor: '#25D366', color: '#25D366', background: 'transparent' }}
             >
-              <div className="absolute top-0 right-0 p-4">
-                <button onClick={handleDismissRebook} style={{ color: T.textSec }}><X className="h-5 w-5" /></button>
+              <a
+                href={buildWhatsAppUrl(companyWhatsapp, `Olá! Vi a página da ${company.name} e gostaria de mais informações.`)}
+                onClick={() => trackWhatsAppClick('landing_premium')}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <MessageCircle className="w-4 h-4 mr-2" />
+                Chamar no WhatsApp
+              </a>
+            </Button>
+          )}
+          <Button
+            variant="outline"
+            onClick={handleShare}
+            className="h-12 rounded-xl border-2 font-semibold"
+            style={{ borderColor: T.border, color: T.text, background: 'transparent' }}
+          >
+            <Share2 className="w-4 h-4 mr-2" />
+            Compartilhar
+          </Button>
+        </div>
+
+        {/* Smart Rebooking */}
+        {isLoggedIn && lastBooking && !rebookDismissed && (() => {
+          const formattedDate = format(new Date(lastBooking.bookedAt), "d 'de' MMMM 'de' yyyy 'às' HH:mm", { locale: ptBR });
+          return (
+            <motion.section
+              initial={{ scale: 0.97, opacity: 0 }}
+              whileInView={{ scale: 1, opacity: 1 }}
+              className="relative rounded-2xl p-5 border"
+              style={{ background: T.card, borderColor: T.border }}
+            >
+              <div className="flex items-center gap-2 mb-3" style={{ color: T.text }}>
+                <Calendar className="w-4 h-4" style={{ color: T.accent }} />
+                <span className="font-semibold text-sm">Seu último atendimento</span>
               </div>
-              <div className="flex items-center gap-3 mb-4">
-                <div className="p-2 rounded-xl bg-orange-500/20 text-orange-500">
-                  <RotateCcw className="h-5 w-5" />
-                </div>
-                <h2 className="text-xl font-black italic tracking-tight" style={{ color: T.text }}>SEU ÚLTIMO ATENDIMENTO</h2>
-              </div>
-              <div className="flex items-center gap-4 bg-white/5 p-4 rounded-2xl border border-white/5 mb-4">
+              <div className="flex items-center gap-4">
                 {lastBooking.professionalAvatar ? (
-                  <img src={lastBooking.professionalAvatar} alt="" className="w-14 h-14 rounded-full object-cover ring-4 ring-white/10" />
+                  <img src={lastBooking.professionalAvatar} alt="" className="w-12 h-12 rounded-full object-cover" style={{ border: `2px solid ${T.accent}` }} />
                 ) : (
-                  <div className="w-14 h-14 rounded-full flex items-center justify-center text-xl font-bold" style={{ background: `${T.accent}20`, color: T.accent }}>
+                  <div className="w-12 h-12 rounded-full flex items-center justify-center font-bold" style={{ background: `${T.accent}20`, color: T.accent, border: `2px solid ${T.accent}` }}>
                     {lastBooking.professionalName.charAt(0).toUpperCase()}
                   </div>
                 )}
-                <div>
-                  <p className="font-bold text-base" style={{ color: T.text }}>{lastBooking.serviceNames.join(' + ')}</p>
-                  <p className="text-sm opacity-60" style={{ color: T.textSec }}>{formattedDate} • com {lastBooking.professionalName}</p>
+                <div className="flex-1 min-w-0">
+                  <p className="font-bold text-sm truncate" style={{ color: T.text }}>{lastBooking.serviceNames.join(' + ')}</p>
+                  <p className="text-xs opacity-60 mt-0.5" style={{ color: T.textSec }}>com {lastBooking.professionalName}</p>
+                  <p className="text-xs opacity-50 mt-0.5 flex items-center gap-1" style={{ color: T.textSec }}>
+                    <Calendar className="w-3 h-3" /> {formattedDate}
+                  </p>
                 </div>
+                <Button
+                  onClick={() => navigate(`/${bookingBasePath}/${slug}/agendar?rebook=1`)}
+                  variant="outline"
+                  className="rounded-xl font-semibold text-sm border-2"
+                  style={{ borderColor: T.accent, color: T.accent, background: 'transparent' }}
+                >
+                  Repetir atendimento
+                </Button>
               </div>
-              <Button
-                onClick={() => navigate(`/${bookingBasePath}/${slug}/agendar?rebook=1`)}
-                className="w-full h-12 text-sm font-bold rounded-xl"
-                style={{ background: T.accent, color: '#000' }}
-              >
-                REPETIR ATENDIMENTO
-              </Button>
+              <button onClick={handleDismissRebook} className="absolute top-3 right-3 opacity-40 hover:opacity-80" style={{ color: T.textSec }}>
+                <X className="h-4 w-4" />
+              </button>
             </motion.section>
           );
         })()}
 
-        {/* Team Section */}
+        {/* Team */}
         {professionals.length > 0 && (
-          <section className="space-y-6">
+          <section className="space-y-4">
             <div className="flex items-center justify-between">
-              <h2 className="text-2xl font-black italic tracking-tighter" style={{ color: T.text }}>NOSSA EQUIPE</h2>
-              <div className="h-px flex-1 mx-4 bg-gradient-to-r from-white/10 to-transparent" />
+              <h2 className="text-lg font-bold flex items-center gap-2" style={{ color: T.text }}>
+                <Users className="w-5 h-5" style={{ color: T.accent }} />
+                Nossa equipe
+              </h2>
+              <button
+                onClick={() => navigate(`/${bookingBasePath}/${slug}/agendar`)}
+                className="text-sm font-medium hover:underline"
+                style={{ color: T.accent }}
+              >
+                Ver todos
+              </button>
             </div>
-            <div className="flex overflow-x-auto pb-4 gap-4 no-scrollbar -mx-4 px-4 sm:mx-0 sm:px-0">
-              {professionals.map((p: any) => {
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              {professionals.slice(0, 4).map((p: any) => {
                 const rating = professionalRatings[p.id];
                 return (
-                  <motion.div
+                  <motion.button
                     key={p.id}
-                    whileHover={{ y: -5 }}
-                    className="flex-shrink-0 w-[200px] flex flex-col items-center gap-3 p-5 rounded-[2.5rem] border transition-all duration-300 group"
-                    style={{ background: T.card, borderColor: T.border }}
+                    whileHover={{ y: -3 }}
                     onClick={() => navigate(`/${bookingBasePath}/${slug}/${p.slug ? `${p.slug}/agendar` : 'agendar'}`)}
+                    className="flex flex-col items-center gap-2 p-4 rounded-2xl border transition-all"
+                    style={{ background: T.card, borderColor: T.border }}
                   >
-                    <div className="relative">
-                      {p.avatar_url ? (
-                        <img src={p.avatar_url} alt={p.name} className="w-24 h-24 rounded-full object-cover shadow-xl grayscale-[0.5] group-hover:grayscale-0 transition-all border-2 border-transparent group-hover:border-orange-500" />
-                      ) : (
-                        <div className="w-24 h-24 rounded-full flex items-center justify-center text-3xl font-bold bg-white/5" style={{ color: T.accent }}>
-                          {p.name?.charAt(0)?.toUpperCase()}
-                        </div>
-                      )}
-                      {rating && rating.count > 0 && (
-                        <div className="absolute -bottom-1 -right-1 bg-yellow-400 text-black text-[10px] font-black px-2 py-0.5 rounded-full flex items-center gap-1">
-                          <Star className="w-2 h-2 fill-black" /> {rating.avg.toFixed(1)}
-                        </div>
-                      )}
-                    </div>
-                    <div className="text-center">
-                      <p className="font-black text-sm uppercase tracking-tight" style={{ color: T.text }}>{p.name}</p>
-                      <p className="text-[10px] font-bold opacity-40 uppercase tracking-widest mt-0.5" style={{ color: T.textSec }}>Profissional</p>
-                    </div>
-                    <Button
-                      size="sm"
-                      className="w-full h-8 rounded-full text-[10px] font-black uppercase tracking-widest"
-                      style={{ background: `${T.accent}15`, color: T.accent }}
-                    >
-                      VER PERFIL
-                    </Button>
-                  </motion.div>
+                    {p.avatar_url ? (
+                      <img
+                        src={p.avatar_url}
+                        alt={p.name}
+                        className="w-20 h-20 rounded-full object-cover"
+                        style={{ border: `2px solid ${T.accent}` }}
+                      />
+                    ) : (
+                      <div
+                        className="w-20 h-20 rounded-full flex items-center justify-center text-2xl font-bold"
+                        style={{ background: `${T.accent}20`, color: T.accent, border: `2px solid ${T.accent}` }}
+                      >
+                        {p.name?.charAt(0)?.toUpperCase()}
+                      </div>
+                    )}
+                    <p className="font-bold text-sm text-center" style={{ color: T.text }}>{p.name}</p>
+                    <p className="text-xs opacity-60" style={{ color: T.textSec }}>{p.role || 'Profissional'}</p>
+                    {rating && rating.count > 0 && (
+                      <div className="flex items-center gap-1 text-xs">
+                        <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
+                        <span className="font-bold" style={{ color: T.accent }}>{rating.avg.toFixed(1)}</span>
+                      </div>
+                    )}
+                  </motion.button>
                 );
               })}
             </div>
           </section>
         )}
 
-        {/* Reviews Section */}
-        {reviews.length > 0 && (
-          <section className="space-y-6">
+        {/* Services */}
+        {services.length > 0 && cleanedGroups.length > 0 && (
+          <section className="space-y-4">
             <div className="flex items-center justify-between">
-              <h2 className="text-2xl font-black italic tracking-tighter" style={{ color: T.text }}>AVALIAÇÕES</h2>
-              <div className="h-px flex-1 mx-4 bg-gradient-to-r from-white/10 to-transparent" />
+              <h2 className="text-lg font-bold flex items-center gap-2" style={{ color: T.text }}>
+                <Scissors className="w-5 h-5" style={{ color: T.accent }} />
+                Nossos serviços
+              </h2>
+              <button
+                onClick={() => navigate(`/${bookingBasePath}/${slug}/agendar`)}
+                className="text-sm font-medium hover:underline"
+                style={{ color: T.accent }}
+              >
+                Ver todos
+              </button>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {reviews.map((rev: any, i: number) => (
-                <div key={i} className="p-6 rounded-3xl border flex flex-col gap-4 shadow-lg" style={{ background: T.card, borderColor: T.border }}>
-                  <div className="flex items-center gap-0.5">
-                    {[1, 2, 3, 4, 5].map(s => (
-                      <Star key={s} className={cn("w-3 h-3", s <= rev.rating ? "fill-yellow-400 text-yellow-400" : "text-white/10")} />
+            <Tabs defaultValue={cleanedGroups[0][0]} className="w-full">
+              <TabsList
+                className="w-full grid h-auto p-1 rounded-2xl gap-1"
+                style={{ background: T.card, gridTemplateColumns: `repeat(${cleanedGroups.length}, minmax(0, 1fr))` }}
+              >
+                {cleanedGroups.map(([cat]) => {
+                  const Icon = categoryIconMap[cat] || Sparkles;
+                  return (
+                    <TabsTrigger
+                      key={cat}
+                      value={cat}
+                      className="flex items-center gap-1.5 rounded-xl py-2.5 text-sm font-semibold data-[state=active]:shadow-md"
+                      style={{
+                        color: T.textSec,
+                      } as any}
+                    >
+                      <Icon className="w-4 h-4" />
+                      <span className="hidden sm:inline">{cat}</span>
+                      <span className="sm:hidden text-xs">{cat}</span>
+                    </TabsTrigger>
+                  );
+                })}
+              </TabsList>
+              {cleanedGroups.map(([cat, list]) => (
+                <TabsContent key={cat} value={cat} className="mt-3">
+                  <div className="rounded-2xl border overflow-hidden" style={{ background: T.card, borderColor: T.border }}>
+                    {list.map((svc: any, i: number) => (
+                      <button
+                        key={svc.id}
+                        onClick={() => navigate(`/${bookingBasePath}/${slug}/agendar`)}
+                        className="w-full flex items-center justify-between p-4 transition-all hover:bg-white/5 text-left"
+                        style={{ borderTop: i > 0 ? `1px solid ${T.border}` : 'none' }}
+                      >
+                        <span className="font-semibold text-sm" style={{ color: T.text }}>{svc.name}</span>
+                        <div className="flex items-center gap-4">
+                          <span className="text-xs flex items-center gap-1 opacity-60" style={{ color: T.textSec }}>
+                            <Clock className="w-3 h-3" /> {svc.duration_minutes} min
+                          </span>
+                          <span className="text-sm font-bold" style={{ color: T.accent, minWidth: 70, textAlign: 'right' }}>
+                            R$ {Number(svc.price).toFixed(2).replace('.', ',')}
+                          </span>
+                        </div>
+                      </button>
                     ))}
                   </div>
-                  <p className="text-sm font-medium leading-relaxed italic opacity-80" style={{ color: T.text }}>
-                    "{rev.comment || 'Experiência excelente!'}"
-                  </p>
-                  <div className="flex items-center justify-between mt-auto pt-4 border-t border-white/5">
-                    <span className="text-[10px] font-black uppercase tracking-widest opacity-40">{rev.client_display_name || 'Cliente'}</span>
-                    <span className="text-[9px] font-bold opacity-30">{format(new Date(rev.created_at), 'dd/MM/yy')}</span>
-                  </div>
-                </div>
+                </TabsContent>
               ))}
-            </div>
-            {allReviewsList.length > 3 && (
-              <Button 
-                variant="ghost" 
-                className="w-full h-12 rounded-2xl font-bold uppercase tracking-widest text-xs"
-                style={{ color: T.textSec, background: 'rgba(255,255,255,0.03)' }}
-                onClick={() => navigate(`/${bookingBasePath}/${slug}/avaliacoes`)}
-              >
-                VER TODAS AS {allReviewsList.length} AVALIAÇÕES <ChevronRight className="ml-2 w-4 h-4" />
-              </Button>
-            )}
+            </Tabs>
+            <Button
+              variant="outline"
+              onClick={() => navigate(`/${bookingBasePath}/${slug}/agendar`)}
+              className="w-full h-11 rounded-xl border-2 font-semibold"
+              style={{ borderColor: T.accent, color: T.accent, background: 'transparent' }}
+            >
+              Ver todos os serviços
+            </Button>
           </section>
         )}
 
-        {/* Services Section */}
-        {services.length > 0 && (
-          <section className="space-y-6">
+        {/* Reviews */}
+        {reviews.length > 0 && (
+          <section className="space-y-4">
             <div className="flex items-center justify-between">
-              <h2 className="text-2xl font-black italic tracking-tighter" style={{ color: T.text }}>SERVIÇOS</h2>
-              <div className="h-px flex-1 mx-4 bg-gradient-to-r from-white/10 to-transparent" />
+              <h2 className="text-lg font-bold flex items-center gap-2" style={{ color: T.text }}>
+                <Star className="w-5 h-5" style={{ color: T.accent }} />
+                Avaliações
+              </h2>
+              {allReviewsList.length > 3 && (
+                <button
+                  onClick={() => navigate(`/${bookingBasePath}/${slug}/avaliacoes`)}
+                  className="text-sm font-medium hover:underline"
+                  style={{ color: T.accent }}
+                >
+                  Ver todas
+                </button>
+              )}
             </div>
-            <Accordion type="single" collapsible className="w-full space-y-4">
-              {groupedServices.map(([category, list], idx) => (
-                <AccordionItem key={category} value={`item-${idx}`} className="border-none">
-                  <AccordionTrigger className="flex items-center gap-4 p-6 rounded-3xl border-2 hover:no-underline transition-all" style={{ background: T.card, borderColor: T.border }}>
-                    <span className="text-lg font-black tracking-tight" style={{ color: T.text }}>{category}</span>
-                    <span className="ml-auto mr-4 text-[10px] font-black uppercase tracking-widest opacity-30">{list.length} serviços</span>
-                  </AccordionTrigger>
-                  <AccordionContent className="pt-4 space-y-3 px-2">
-                    {list.map((svc: any) => (
-                      <div
-                        key={svc.id}
-                        className="flex items-center justify-between p-4 rounded-2xl border border-white/5 group transition-all hover:bg-white/5"
-                        style={{ background: isDark ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.02)' }}
-                      >
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              {/* Average card */}
+              {companyStats && companyStats.reviewCount > 0 && (
+                <div className="p-5 rounded-2xl border flex flex-col items-center justify-center text-center" style={{ background: T.card, borderColor: T.border }}>
+                  <p className="text-4xl font-black" style={{ color: T.text }}>{companyStats.avgRating.toFixed(1).replace('.', ',')}</p>
+                  <div className="my-2"><StarRating rating={companyStats.avgRating} size={16} /></div>
+                  <p className="text-xs opacity-60" style={{ color: T.textSec }}>{companyStats.reviewCount} avaliações</p>
+                </div>
+              )}
+              {reviews.slice(0, 2).map((rev: any, i: number) => {
+                const initial = (rev.client_display_name || 'C').charAt(0).toUpperCase();
+                const colors = ['#A855F7', '#3B82F6', '#10B981', '#F59E0B'];
+                const color = colors[i % colors.length];
+                return (
+                  <div key={i} className="p-4 rounded-2xl border flex flex-col gap-3" style={{ background: T.card, borderColor: T.border }}>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <div className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold text-white" style={{ background: color }}>
+                          {initial}
+                        </div>
                         <div>
-                          <p className="text-base font-bold tracking-tight" style={{ color: T.text }}>{svc.name}</p>
-                          <div className="flex items-center gap-2 mt-1 opacity-50">
-                            <Clock className="w-3 h-3" />
-                            <span className="text-xs font-bold uppercase tracking-widest">{svc.duration_minutes} MIN</span>
+                          <p className="text-sm font-bold" style={{ color: T.text }}>{rev.client_display_name || 'Cliente'}</p>
+                          <div className="flex items-center gap-0.5">
+                            {[1, 2, 3, 4, 5].map(s => (
+                              <Star key={s} className={cn("w-3 h-3", s <= rev.rating ? "fill-yellow-400 text-yellow-400" : "text-white/10")} />
+                            ))}
                           </div>
                         </div>
-                        <div className="text-right">
-                          <p className="text-lg font-black italic" style={{ color: T.accent }}>R$ {Number(svc.price).toFixed(2)}</p>
-                        </div>
                       </div>
-                    ))}
-                  </AccordionContent>
-                </AccordionItem>
-              ))}
-            </Accordion>
+                      <span className="text-xs opacity-50" style={{ color: T.textSec }}>
+                        {format(new Date(rev.created_at), 'dd/MM/yyyy')}
+                      </span>
+                    </div>
+                    <p className="text-sm italic opacity-80 leading-relaxed" style={{ color: T.text }}>
+                      "{rev.comment || 'Experiência excelente!'}"
+                    </p>
+                  </div>
+                );
+              })}
+            </div>
           </section>
         )}
 
-        {/* Location Section */}
-        <section className="space-y-6">
-          <div className="flex items-center justify-between">
-            <h2 className="text-2xl font-black italic tracking-tighter" style={{ color: T.text }}>LOCALIZAÇÃO</h2>
-            <div className="h-px flex-1 mx-4 bg-gradient-to-r from-white/10 to-transparent" />
-          </div>
-          <div className="rounded-[2.5rem] overflow-hidden border-2 shadow-2xl" style={{ background: T.card, borderColor: T.border }}>
-            <div className="aspect-video w-full bg-white/5 flex items-center justify-center relative">
-               <Map className="w-12 h-12 opacity-10" />
-               <div className="absolute inset-0 flex items-center justify-center">
-                  <Button asChild className="rounded-full px-8 h-12 font-black shadow-xl" style={{ background: T.accent, color: '#000' }}>
-                    <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(fullAddress)}`} target="_blank" rel="noopener noreferrer">
-                      VER NO MAPA <MapPin className="ml-2 w-4 h-4" />
+        {/* Location */}
+        <section className="space-y-4">
+          <h2 className="text-lg font-bold flex items-center gap-2" style={{ color: T.text }}>
+            <MapPin className="w-5 h-5" style={{ color: T.accent }} />
+            Localização
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div className="p-5 rounded-2xl border" style={{ background: T.card, borderColor: T.border }}>
+              <div className="flex items-start gap-2 mb-3">
+                <MapPin className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: T.accent }} />
+                <div>
+                  <p className="font-bold text-base" style={{ color: T.text }}>{company.name}</p>
+                  <p className="text-sm opacity-70 leading-relaxed mt-1" style={{ color: T.textSec }}>
+                    {[company.address, company.address_number].filter(Boolean).join(', ')}
+                    {company.district && <><br />{company.district}</>}
+                    {(company.city || company.state) && <><br />{[company.city, company.state].filter(Boolean).join(', ')}</>}
+                    {company.postal_code && <><br />CEP {company.postal_code}</>}
+                  </p>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-2 mt-4">
+                <Button
+                  variant="outline"
+                  asChild
+                  className="rounded-xl h-10 font-semibold border-2 text-xs"
+                  style={{ borderColor: T.accent, color: T.accent }}
+                >
+                  <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(fullAddress)}`} target="_blank" rel="noopener noreferrer">
+                    <Navigation className="w-3.5 h-3.5 mr-1" />
+                    Como chegar
+                  </a>
+                </Button>
+                {companyWhatsapp && (
+                  <Button
+                    variant="outline"
+                    asChild
+                    className="rounded-xl h-10 font-semibold border-2 text-xs"
+                    style={{ borderColor: '#25D366', color: '#25D366' }}
+                  >
+                    <a href={buildWhatsAppUrl(companyWhatsapp)} target="_blank" rel="noopener noreferrer">
+                      <MessageCircle className="w-3.5 h-3.5 mr-1" />
+                      WhatsApp
                     </a>
                   </Button>
-               </div>
+                )}
+              </div>
             </div>
-            <div className="p-8">
-               <p className="text-lg font-black tracking-tight" style={{ color: T.text }}>{company.name}</p>
-               <p className="text-sm font-medium mt-2 opacity-60 leading-relaxed" style={{ color: T.textSec }}>
-                 {fullAddress}
-               </p>
-               <div className="grid grid-cols-2 gap-4 mt-8">
-                  <Button variant="outline" asChild className="rounded-2xl h-12 font-bold border-2" style={{ borderColor: T.border, color: T.text }}>
-                    <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(fullAddress)}`} target="_blank" rel="noopener noreferrer">
-                      COMO CHEGAR
-                    </a>
-                  </Button>
-                  {companyWhatsapp && (
-                    <Button variant="outline" asChild className="rounded-2xl h-12 font-bold border-2" style={{ borderColor: '#25D366', color: '#25D366' }}>
-                      <a href={buildWhatsAppUrl(companyWhatsapp)} target="_blank" rel="noopener noreferrer">
-                        WHATSAPP
-                      </a>
-                    </Button>
-                  )}
-               </div>
-            </div>
+            <a
+              href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(fullAddress)}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="rounded-2xl border overflow-hidden block relative min-h-[200px]"
+              style={{ background: T.card, borderColor: T.border }}
+            >
+              <iframe
+                title="Mapa"
+                src={`https://www.google.com/maps?q=${encodeURIComponent(fullAddress)}&output=embed`}
+                className="w-full h-full absolute inset-0 border-0"
+                loading="lazy"
+              />
+            </a>
           </div>
         </section>
 
         <PlatformBranding isDark={isDark} />
       </div>
 
-      {/* Persistent Booking Button on Mobile */}
-      <div className="fixed bottom-0 left-0 w-full p-4 sm:hidden z-50 pointer-events-none">
-        <motion.div 
-          initial={{ y: 100 }}
-          animate={{ y: 0 }}
-          className="pointer-events-auto"
-        >
-          <Button
-            onClick={() => navigate(`/${bookingBasePath}/${slug}/agendar`)}
-            className="w-full h-14 text-lg font-black rounded-2xl shadow-2xl"
-            style={{ background: T.accent, color: '#000' }}
+      {/* Bottom Navigation Bar */}
+      <nav
+        className="fixed bottom-0 left-0 right-0 z-50 border-t backdrop-blur-xl"
+        style={{ background: `${T.bg}E6`, borderColor: T.border }}
+      >
+        <div className="max-w-3xl mx-auto grid grid-cols-5 items-end px-2 py-2 relative">
+          <button className="flex flex-col items-center gap-0.5 py-2 text-xs font-medium" style={{ color: T.accent }}>
+            <Home className="w-5 h-5" />
+            <span>Início</span>
+          </button>
+          <button
+            onClick={() => {
+              const el = document.querySelector('[data-services-section]') as HTMLElement | null;
+              if (el) el.scrollIntoView({ behavior: 'smooth' });
+            }}
+            className="flex flex-col items-center gap-0.5 py-2 text-xs font-medium opacity-60"
+            style={{ color: T.textSec }}
           >
-            AGENDAR AGORA
-          </Button>
-        </motion.div>
-      </div>
+            <Scissors className="w-5 h-5" />
+            <span>Serviços</span>
+          </button>
+          {/* Floating booking button */}
+          <button
+            onClick={() => navigate(`/${bookingBasePath}/${slug}/agendar`)}
+            className="flex flex-col items-center -mt-8"
+          >
+            <div
+              className="w-16 h-16 rounded-full flex items-center justify-center shadow-2xl"
+              style={{ background: T.accent, color: '#000', border: `4px solid ${T.bg}` }}
+            >
+              <Calendar className="w-7 h-7" />
+            </div>
+            <span className="text-xs font-semibold mt-1" style={{ color: T.accent }}>Agendar</span>
+          </button>
+          <button className="flex flex-col items-center gap-0.5 py-2 text-xs font-medium opacity-60" style={{ color: T.textSec }}>
+            <Users className="w-5 h-5" />
+            <span>Equipe</span>
+          </button>
+          <button className="flex flex-col items-center gap-0.5 py-2 text-xs font-medium opacity-60" style={{ color: T.textSec }}>
+            <Star className="w-5 h-5" />
+            <span>Avaliações</span>
+          </button>
+        </div>
+      </nav>
     </div>
   );
 }
