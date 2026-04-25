@@ -314,7 +314,7 @@ const FinanceRevenues = () => {
                     else { setSortField('revenue_date'); setSortDirection('desc'); }
                   }}>
                     <div className="flex items-center gap-1">
-                      Data {sortField === 'revenue_date' && (sortDirection === 'asc' ? <Plus className="h-3 w-3 rotate-45" /> : <Plus className="h-3 w-3" />)}
+                      Data {sortField === 'revenue_date' && (sortDirection === 'asc' ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />)}
                     </div>
                   </TableHead>
                   <TableHead>
