@@ -346,10 +346,13 @@ export const AgendaTimelineView = ({
                         {(apt.special_schedule || (apt.extra_fee && apt.extra_fee > 0)) && (
                           <div className="mt-2 py-1.5 px-2 bg-purple-50 rounded border border-purple-100 space-y-1">
                             {apt.special_schedule && (
-                              <p className="text-[10px] font-bold text-purple-700 flex items-center gap-1">
-                                <span className="h-1.5 w-1.5 rounded-full bg-purple-500" />
-                                HORÁRIO ESPECIAL
-                              </p>
+                              <div className="flex items-center justify-between">
+                                <p className="text-[10px] font-bold text-purple-700 flex items-center gap-1">
+                                  <span className="h-1.5 w-1.5 rounded-full bg-purple-500" />
+                                  HORÁRIO ESPECIAL
+                                </p>
+                                <span className="text-[10px] font-black text-purple-600 animate-bounce">⚡ VIP</span>
+                              </div>
                             )}
                             {apt.extra_fee && apt.extra_fee > 0 && (
                               <p className="text-[10px] font-bold text-purple-600 flex items-center gap-1">
