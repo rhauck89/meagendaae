@@ -348,4 +348,5 @@ export const OccupancyDrawer = ({ open, onOpenChange, companyId, professionals }
   );
 };
 
-const cn = (...classes: any[]) => classes.filter(Boolean).join(' ');
+export default OccupancyDrawer;
+
