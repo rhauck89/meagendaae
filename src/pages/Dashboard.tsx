@@ -320,20 +320,30 @@ const Dashboard = () => {
     const monthStart = startOfMonth(new Date());
     const monthEnd = endOfMonth(new Date());
 
-    let query = supabase
-      .from('appointments')
-      .select('status, total_price, client_id')
-      .eq('company_id', companyId!)
-      .gte('start_time', toSpStart(monthStart))
-      .lte('start_time', toSpEnd(monthEnd));
+    const [apptsRes, bizHoursRes, collaboratorsRes, companyRes] = await Promise.all([
+      supabase
+        .from('appointments')
+        .select('status, total_price, client_id, start_time')
+        .eq('company_id', companyId!)
+        .gte('start_time', toSpStart(monthStart))
+        .lte('start_time', toSpEnd(monthEnd)),
+      supabase
+        .from('business_hours')
+        .select('*')
+        .eq('company_id', companyId!),
+      supabase
+        .from('collaborators')
+        .select('profile_id, active')
+        .eq('company_id', companyId!)
+        .eq('active', true),
+      supabase
+        .from('companies')
+        .select('fixed_slot_interval')
+        .eq('id', companyId!)
+        .single()
+    ]);
 
-    if (!isAdmin && profileId) {
-      query = query.eq('professional_id', profileId);
-    } else if (filterProfessional !== 'all') {
-      query = query.eq('professional_id', filterProfessional);
-    }
-
-    const { data } = await query;
+    const data = apptsRes.data;
     if (!data) return;
 
     const confirmed = data.filter(a => a.status === 'confirmed' || a.status === 'completed');
@@ -343,10 +353,36 @@ const Dashboard = () => {
 
     const revenue = confirmed.reduce((sum, a) => sum + Number(a.total_price), 0);
     const revenueCompleted = completed.reduce((sum, a) => sum + Number(a.total_price), 0);
-    const totalAppts = data.filter(a => a.status !== 'cancelled' && a.status !== 'no_show').length;
+    
+    // Calculate REAL capacity
+    const slotDuration = companyRes.data?.fixed_slot_interval || 30;
+    const bizHours = bizHoursRes.data || [];
+    const collaborators = collaboratorsRes.data || [];
+    const daysInMonth = eachDayOfInterval({ start: monthStart, end: monthEnd });
+    
+    let totalCapacity = 0;
+    daysInMonth.forEach(day => {
+      const dayOfWeek = day.getDay();
+      const hours = bizHours.find(h => h.day_of_week === dayOfWeek);
+      if (!hours || hours.is_closed) return;
+      
+      const [oH, oM] = hours.open_time.split(':').map(Number);
+      const [cH, cM] = hours.close_time.split(':').map(Number);
+      let workingMinutes = (cH * 60 + cM) - (oH * 60 + oM);
+      
+      if (hours.lunch_start && hours.lunch_end) {
+        const [lsH, lsM] = hours.lunch_start.split(':').map(Number);
+        const [leH, leM] = hours.lunch_end.split(':').map(Number);
+        workingMinutes -= (leH * 60 + leM) - (lsH * 60 + lsM);
+      }
 
-    // Rough occupancy: confirmed+completed vs total non-cancelled
-    const occupancyRate = totalAppts > 0 ? Math.round((confirmed.length / Math.max(totalAppts, 1)) * 100) : 0;
+      const activeCollaboratorsCount = (!isAdmin && profileId) ? 1 : 
+        (filterProfessional !== 'all' ? 1 : collaborators.length);
+      
+      totalCapacity += Math.max(0, Math.floor(workingMinutes / slotDuration)) * activeCollaboratorsCount;
+    });
+
+    const occupancyRate = totalCapacity > 0 ? Math.round((confirmed.length / totalCapacity) * 100) : 0;
     const avgTicket = uniqueClients > 0 ? revenue / uniqueClients : 0;
 
     setMonthlyStats({
@@ -359,6 +395,7 @@ const Dashboard = () => {
       avgTicket,
     });
   };
+
 
   const fetchDailyTrends = async () => {
     if (!companyId) return;
