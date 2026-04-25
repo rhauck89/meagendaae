@@ -942,6 +942,7 @@ export type Database = {
           rent_amount: number
           rent_cycle: string | null
           slug: string | null
+          system_role: string | null
           use_company_banner: boolean
         }
         Insert: {
@@ -967,6 +968,7 @@ export type Database = {
           rent_amount?: number
           rent_cycle?: string | null
           slug?: string | null
+          system_role?: string | null
           use_company_banner?: boolean
         }
         Update: {
@@ -992,6 +994,7 @@ export type Database = {
           rent_amount?: number
           rent_cycle?: string | null
           slug?: string | null
+          system_role?: string | null
           use_company_banner?: boolean
         }
         Relationships: [
@@ -3100,6 +3103,7 @@ export type Database = {
           opt_in_whatsapp: boolean
           role: string | null
           social_links: Json | null
+          system_role: string | null
           updated_at: string
           user_id: string
           whatsapp: string | null
@@ -3125,6 +3129,7 @@ export type Database = {
           opt_in_whatsapp?: boolean
           role?: string | null
           social_links?: Json | null
+          system_role?: string | null
           updated_at?: string
           user_id: string
           whatsapp?: string | null
@@ -3150,6 +3155,7 @@ export type Database = {
           opt_in_whatsapp?: boolean
           role?: string | null
           social_links?: Json | null
+          system_role?: string | null
           updated_at?: string
           user_id?: string
           whatsapp?: string | null
