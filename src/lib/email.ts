@@ -26,7 +26,7 @@ const BRAND = {
 
 // ─── Sender defaults (also enforced server-side) ───────────────────────────
 export const EMAIL_DEFAULTS = {
-  from: "Agendaê <naoresponda@agendae.com.br>",
+  from: "Me Agendaê <naoresponda@agendae.com.br>",
   replyTo: "suporte@agendae.com.br",
   tagline: "Seu negócio, sua agenda, no controle.",
 } as const;
