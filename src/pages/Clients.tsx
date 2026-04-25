@@ -331,8 +331,10 @@ const Clients = () => {
       : <ArrowDown className="h-3 w-3 ml-1 text-primary" />;
   };
 
-  // Birthday calculations
-  const clientsWithBirthdays = visibleClients
+  // Birthday calculations - respects professional filter
+  const clientsWithBirthdays = (isAdmin && profFilter !== 'all' 
+    ? visibleClients.filter(c => metrics.filteredClientIds.has(c.id))
+    : visibleClients)
     .filter(c => c.birth_date)
     .map(c => {
       const today = new Date();
