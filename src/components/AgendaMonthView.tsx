@@ -18,6 +18,7 @@ interface MonthAppointment {
   appointment_services?: Array<{ service?: { name?: string } | null }>;
   delay_minutes?: number | null;
   promotion_id?: string | null;
+  special_schedule?: boolean;
 }
 
 interface AgendaMonthViewProps {
