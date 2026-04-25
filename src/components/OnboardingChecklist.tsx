@@ -256,10 +256,8 @@ const OnboardingChecklist = () => {
           <div className="flex items-center gap-3">
             <span className="text-xs text-muted-foreground">{completedCount}/{totalSteps}</span>
             <button
-              onClick={() => {
-                setFadingOut(true);
-                setTimeout(() => setDismissed(true), 300);
-              }}
+              onClick={handleHide}
+
               className="text-xs text-muted-foreground hover:text-foreground transition-colors"
             >
               Ocultar
