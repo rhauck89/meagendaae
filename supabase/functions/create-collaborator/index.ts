@@ -292,6 +292,8 @@ Deno.serve(async (req) => {
       const rawEquity = Number(body.partner_equity_percent);
       const partnerEquityPercent = Number.isFinite(rawEquity) && rawEquity >= 0 && rawEquity <= 100 ? rawEquity : 0;
 
+      const systemRole = typeof body.system_role === "string" ? body.system_role : "collaborator";
+
       const { error: collaboratorError } = await supabaseAdmin.from("collaborators").insert({
         company_id: companyId,
         profile_id: profileId,
@@ -310,6 +312,7 @@ Deno.serve(async (req) => {
         rent_amount: rentAmount,
         partner_revenue_mode: partnerRevenueMode,
         partner_equity_percent: partnerEquityPercent,
+        system_role: systemRole,
       });
 
       if (collaboratorError) {
