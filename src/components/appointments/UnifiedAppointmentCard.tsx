@@ -110,7 +110,19 @@ export function UnifiedAppointmentCard({
   const formattedPrice = new Intl.NumberFormat('pt-BR', {
     style: 'currency',
     currency: 'BRL'
-  }).format(Number(apt.total_price));
+  }).format(Number(apt.final_price || apt.total_price));
+
+  const originalPrice = Number(apt.original_price || apt.total_price || 0);
+  const finalPrice = Number(apt.final_price || apt.total_price || 0);
+  const promoDiscount = Number(apt.promotion_discount || 0);
+  const cashbackUsed = Number(apt.cashback_used || 0);
+  const manualDiscount = Number(apt.manual_discount || 0);
+  const totalDiscounts = promoDiscount + cashbackUsed + manualDiscount;
+
+  const formatBRL = (val: number) => new Intl.NumberFormat('pt-BR', {
+    style: 'currency',
+    currency: 'BRL'
+  }).format(val);
 
   // --- COMPACT VARIANT (Used in "Next Appointments" and summaries) ---
   if (variant === 'compact') {
