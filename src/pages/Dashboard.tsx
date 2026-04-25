@@ -40,6 +40,8 @@ import FinancialPrivacyToggle from '@/components/FinancialPrivacyToggle';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { motion, AnimatePresence } from 'framer-motion';
 import { getProfessionalColor } from '@/utils/calendarLayout';
+import { OccupancyDrawer } from '@/components/OccupancyDrawer';
+
 
 
 type ViewMode = 'day' | 'week' | 'month';
