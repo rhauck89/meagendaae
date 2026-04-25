@@ -205,11 +205,13 @@ export type Database = {
           delay_source_appointment_id: string | null
           end_time: string
           event_id: string | null
+          extra_fee: number | null
           id: string
           notes: string | null
           professional_id: string
           promotion_id: string | null
           rescheduled_from_id: string | null
+          special_schedule: boolean | null
           start_time: string
           status: Database["public"]["Enums"]["appointment_status"]
           total_price: number
@@ -227,11 +229,13 @@ export type Database = {
           delay_source_appointment_id?: string | null
           end_time: string
           event_id?: string | null
+          extra_fee?: number | null
           id?: string
           notes?: string | null
           professional_id: string
           promotion_id?: string | null
           rescheduled_from_id?: string | null
+          special_schedule?: boolean | null
           start_time: string
           status?: Database["public"]["Enums"]["appointment_status"]
           total_price?: number
@@ -249,11 +253,13 @@ export type Database = {
           delay_source_appointment_id?: string | null
           end_time?: string
           event_id?: string | null
+          extra_fee?: number | null
           id?: string
           notes?: string | null
           professional_id?: string
           promotion_id?: string | null
           rescheduled_from_id?: string | null
+          special_schedule?: boolean | null
           start_time?: string
           status?: Database["public"]["Enums"]["appointment_status"]
           total_price?: number

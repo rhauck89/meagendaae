@@ -2,18 +2,19 @@ import { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUserRole } from '@/hooks/useUserRole';
 import { supabase } from '@/integrations/supabase/client';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { toast } from 'sonner';
-import { Clock, Check, X, MessageCircle, ArrowRight, Inbox } from 'lucide-react';
+import { Clock, Check, X, MessageCircle, ArrowRight, Inbox, DollarSign, ExternalLink } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { displayWhatsApp, formatWhatsApp, openWhatsApp } from '@/lib/whatsapp';
+import { displayWhatsApp, openWhatsApp } from '@/lib/whatsapp';
 import { sendAppointmentCreatedWebhook } from '@/lib/automations';
 
 const statusLabels: Record<string, { label: string; color: string }> = {
@@ -34,11 +35,18 @@ const AppointmentRequests = () => {
   // Dialog states
   const [suggestDialogOpen, setSuggestDialogOpen] = useState(false);
   const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
+  const [acceptDialogOpen, setAcceptDialogOpen] = useState(false);
+  const [successDialogOpen, setSuccessDialogOpen] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState<any>(null);
   const [suggestedDate, setSuggestedDate] = useState('');
   const [suggestedTime, setSuggestedTime] = useState('');
   const [rejectionReason, setRejectionReason] = useState('');
   const [processing, setProcessing] = useState(false);
+
+  // Fee states
+  const [feeType, setFeeType] = useState<'none' | '10' | '20' | '30' | 'fixed'>('none');
+  const [fixedFeeValue, setFixedFeeValue] = useState('0');
+  const [serviceInfo, setServiceInfo] = useState<{ price: number; duration: number } | null>(null);
 
   useEffect(() => {
     if (companyId) {
@@ -88,12 +96,12 @@ const AppointmentRequests = () => {
     }
   };
 
-  const handleAccept = async (request: any) => {
+  const handleAcceptClick = async (request: any) => {
+    setFeeType('none');
+    setFixedFeeValue('0');
+    setSelectedRequest(request);
     setProcessing(true);
     try {
-      // 1. Get service duration to calculate end_time
-      let durationMinutes = 30; // default
-      let servicePrice = 0;
       if (request.service_id) {
         const { data: svcData } = await supabase
           .from('services')
@@ -101,63 +109,104 @@ const AppointmentRequests = () => {
           .eq('id', request.service_id)
           .maybeSingle();
         if (svcData) {
-          durationMinutes = svcData.duration_minutes || 30;
-          servicePrice = svcData.price || 0;
+          setServiceInfo({
+            price: svcData.price || 0,
+            duration: svcData.duration_minutes || 30
+          });
         }
+      } else {
+        setServiceInfo({ price: 0, duration: 30 });
       }
+      setAcceptDialogOpen(true);
+    } catch (err) {
+      console.error('Error fetching service info:', err);
+      toast.error('Erro ao buscar informações do serviço');
+    } finally {
+      setProcessing(false);
+    }
+  };
 
-      // 2. Build start_time and end_time timestamps
-      const startTime = new Date(`${request.requested_date}T${request.requested_time}`);
-      const endTime = new Date(startTime.getTime() + durationMinutes * 60 * 1000);
+  const calculateExtraFee = () => {
+    if (!serviceInfo) return 0;
+    if (feeType === 'none') return 0;
+    if (feeType === '10') return serviceInfo.price * 0.1;
+    if (feeType === '20') return serviceInfo.price * 0.2;
+    if (feeType === '30') return serviceInfo.price * 0.3;
+    if (feeType === 'fixed') return parseFloat(fixedFeeValue) || 0;
+    return 0;
+  };
 
-      // 3. Create appointment
+  const handleConfirmAccept = async () => {
+    if (!selectedRequest || !serviceInfo) return;
+    setProcessing(true);
+    try {
+      const extraFee = calculateExtraFee();
+      const finalPrice = serviceInfo.price + extraFee;
+      const startTime = new Date(`${selectedRequest.requested_date}T${selectedRequest.requested_time}`);
+      const endTime = new Date(startTime.getTime() + serviceInfo.duration * 60 * 1000);
+
+      // 1. Create appointment
       const { data: apptData, error: apptError } = await supabase
         .from('appointments')
         .insert({
           company_id: companyId!,
-          professional_id: request.professional_id || Object.keys(professionals)[0],
-          client_name: request.client_name,
-          client_whatsapp: request.client_whatsapp,
+          professional_id: selectedRequest.professional_id || Object.keys(professionals)[0],
+          client_name: selectedRequest.client_name,
+          client_whatsapp: selectedRequest.client_whatsapp,
           start_time: startTime.toISOString(),
           end_time: endTime.toISOString(),
-          total_price: servicePrice,
+          total_price: finalPrice,
+          extra_fee: extraFee,
+          special_schedule: true,
           status: 'confirmed' as any,
-          notes: request.message || null,
+          notes: selectedRequest.message || null,
         })
         .select('id')
         .single();
 
       if (apptError) throw apptError;
 
-      // 3b. Link service to appointment via appointment_services
-      if (request.service_id && apptData?.id) {
+      // 2. Link service
+      if (selectedRequest.service_id && apptData?.id) {
         await supabase.from('appointment_services').insert({
           appointment_id: apptData.id,
-          service_id: request.service_id,
-          price: servicePrice,
-          duration_minutes: durationMinutes,
+          service_id: selectedRequest.service_id,
+          price: serviceInfo.price,
+          duration_minutes: serviceInfo.duration,
         });
       }
 
-      // 4. Update request status
+      // 3. Update request status
       await supabase
         .from('appointment_requests' as any)
         .update({ status: 'accepted', updated_at: new Date().toISOString() })
-        .eq('id', request.id);
+        .eq('id', selectedRequest.id);
 
-      toast.success('Solicitação aceita e agendamento criado!');
-
-      // 5. Open WhatsApp to notify client
-      const message = `Olá ${request.client_name}! Seu horário solicitado para ${format(new Date(request.requested_date + 'T12:00:00'), "dd/MM/yyyy", { locale: ptBR })} às ${request.requested_time.slice(0, 5)} foi *aceito*. Estamos aguardando você!`;
-      openWhatsApp(request.client_whatsapp, { source: 'appointment-requests', message });
-
+      setAcceptDialogOpen(false);
+      setSuccessDialogOpen(true);
       fetchRequests();
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error accepting request:', err);
-      toast.error('Erro ao aceitar solicitação');
+      toast.error(`Erro ao aceitar solicitação: ${err.message || 'Erro desconhecido'}`);
     } finally {
       setProcessing(false);
     }
+  };
+
+  const handleNotifyWhatsApp = () => {
+    if (!selectedRequest) return;
+    const dateStr = format(new Date(selectedRequest.requested_date + 'T12:00:00'), "dd/MM/yyyy", { locale: ptBR });
+    const timeStr = selectedRequest.requested_time.slice(0, 5);
+    const extraFee = calculateExtraFee();
+    
+    let message = `Olá ${selectedRequest.client_name}! Seu horário solicitado para ${dateStr} às ${timeStr} foi *aceito*. `;
+    if (extraFee > 0) {
+      message += `Como é um horário especial, haverá uma taxa adicional de R$ ${extraFee.toFixed(2)}. `;
+    }
+    message += `Estamos aguardando você!`;
+
+    const url = `https://wa.me/${selectedRequest.client_whatsapp.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`;
+    window.open(url, '_blank');
   };
 
   const handleSuggest = async () => {
@@ -286,7 +335,7 @@ const AppointmentRequests = () => {
 
                     {req.status === 'pending' && (!isAdmin || !req.professional_id || req.professional_id === profileId) && (
                       <div className="flex items-center gap-2 shrink-0">
-                        <Button size="sm" variant="outline" className="gap-1 text-green-700 border-green-200 hover:bg-green-50" onClick={() => handleAccept(req)} disabled={processing}>
+                        <Button size="sm" variant="outline" className="gap-1 text-green-700 border-green-200 hover:bg-green-50" onClick={() => handleAcceptClick(req)} disabled={processing}>
                           <Check className="h-3.5 w-3.5" /> Aceitar
                         </Button>
                         <Button size="sm" variant="outline" className="gap-1 text-blue-700 border-blue-200 hover:bg-blue-50" onClick={() => { setSelectedRequest(req); setSuggestDialogOpen(true); }} disabled={processing}>
@@ -332,6 +381,140 @@ const AppointmentRequests = () => {
               {processing ? 'Enviando...' : 'Enviar sugestão'}
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      {/* Accept Confirmation Dialog */}
+      <Dialog open={acceptDialogOpen} onOpenChange={setAcceptDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Check className="h-5 w-5 text-green-600" />
+              Confirmar Aceite
+            </DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-6 py-4">
+            <div className="bg-muted/30 p-4 rounded-lg space-y-2 border">
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Cliente:</span>
+                <span className="font-semibold">{selectedRequest?.client_name}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Data/Hora:</span>
+                <span className="font-semibold">
+                  {selectedRequest && format(new Date(selectedRequest.requested_date + 'T12:00:00'), "dd/MM/yyyy", { locale: ptBR })} às {selectedRequest?.requested_time.slice(0, 5)}
+                </span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Serviço:</span>
+                <span className="font-semibold">{services[selectedRequest?.service_id] || 'Serviço'}</span>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <Label className="text-sm font-bold flex items-center gap-2">
+                <DollarSign className="h-4 w-4" />
+                Cobrar taxa extra por horário especial?
+              </Label>
+              
+              <RadioGroup value={feeType} onValueChange={(val: any) => setFeeType(val)} className="grid grid-cols-2 gap-2">
+                <div className="flex items-center space-x-2 border rounded-md p-2 hover:bg-accent cursor-pointer">
+                  <RadioGroupItem value="none" id="fee-none" />
+                  <Label htmlFor="fee-none" className="cursor-pointer">Sem taxa</Label>
+                </div>
+                <div className="flex items-center space-x-2 border rounded-md p-2 hover:bg-accent cursor-pointer">
+                  <RadioGroupItem value="10" id="fee-10" />
+                  <Label htmlFor="fee-10" className="cursor-pointer">+10%</Label>
+                </div>
+                <div className="flex items-center space-x-2 border rounded-md p-2 hover:bg-accent cursor-pointer">
+                  <RadioGroupItem value="20" id="fee-20" />
+                  <Label htmlFor="fee-20" className="cursor-pointer">+20%</Label>
+                </div>
+                <div className="flex items-center space-x-2 border rounded-md p-2 hover:bg-accent cursor-pointer">
+                  <RadioGroupItem value="30" id="fee-30" />
+                  <Label htmlFor="fee-30" className="cursor-pointer">+30%</Label>
+                </div>
+                <div className="flex items-center space-x-2 border rounded-md p-2 hover:bg-accent cursor-pointer col-span-2">
+                  <RadioGroupItem value="fixed" id="fee-fixed" />
+                  <Label htmlFor="fee-fixed" className="flex-1 cursor-pointer">Valor fixo R$</Label>
+                  {feeType === 'fixed' && (
+                    <Input 
+                      type="number" 
+                      className="w-24 h-8 ml-2" 
+                      value={fixedFeeValue} 
+                      onChange={(e) => setFixedFeeValue(e.target.value)}
+                      placeholder="0.00"
+                    />
+                  )}
+                </div>
+              </RadioGroup>
+            </div>
+
+            {serviceInfo && (
+              <div className="bg-primary/5 p-4 rounded-lg border border-primary/10 space-y-1">
+                <p className="text-xs font-bold uppercase tracking-wider text-primary/70">Preview de Valores</p>
+                <div className="flex justify-between text-sm">
+                  <span>Serviço:</span>
+                  <span>R$ {serviceInfo.price.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between text-sm text-green-600 font-medium">
+                  <span>Taxa extra (+):</span>
+                  <span>R$ {calculateExtraFee().toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between text-base font-bold pt-1 border-t border-primary/10">
+                  <span>Total:</span>
+                  <span>R$ {(serviceInfo.price + calculateExtraFee()).toFixed(2)}</span>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAcceptDialogOpen(false)}>Cancelar</Button>
+            <Button onClick={handleConfirmAccept} disabled={processing} className="bg-green-600 hover:bg-green-700">
+              {processing ? 'Processando...' : 'Confirmar e Agendar'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Success Dialog */}
+      <Dialog open={successDialogOpen} onOpenChange={setSuccessDialogOpen}>
+        <DialogContent className="sm:max-w-[400px]">
+          <div className="flex flex-col items-center text-center py-6 space-y-4">
+            <div className="h-16 w-16 bg-green-100 rounded-full flex items-center justify-center mb-2">
+              <Check className="h-10 w-10 text-green-600" />
+            </div>
+            <DialogHeader>
+              <DialogTitle className="text-xl">Solicitação aceita com sucesso!</DialogTitle>
+            </DialogHeader>
+            
+            <div className="space-y-1 text-sm text-muted-foreground">
+              <p><span className="font-semibold text-foreground">Cliente:</span> {selectedRequest?.client_name}</p>
+              <p>
+                <span className="font-semibold text-foreground">Data:</span> {selectedRequest && format(new Date(selectedRequest.requested_date + 'T12:00:00'), "dd/MM/yyyy", { locale: ptBR })}
+              </p>
+              <p><span className="font-semibold text-foreground">Hora:</span> {selectedRequest?.requested_time.slice(0, 5)}</p>
+            </div>
+
+            <div className="w-full pt-4 space-y-2">
+              <Button 
+                onClick={handleNotifyWhatsApp} 
+                className="w-full gap-2 bg-[#25D366] hover:bg-[#128C7E] text-white"
+              >
+                <MessageCircle className="h-5 w-5" />
+                Avisar no WhatsApp
+                <ExternalLink className="h-4 w-4 ml-auto opacity-50" />
+              </Button>
+              <Button 
+                variant="outline" 
+                onClick={() => setSuccessDialogOpen(false)} 
+                className="w-full"
+              >
+                Fechar
+              </Button>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
 

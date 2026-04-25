@@ -11,7 +11,7 @@ import {
   getBlockHeight
 } from '@/utils/calendarLayout';
 import { motion, AnimatePresence } from 'framer-motion';
-import { User, Scissors, Clock, MoreVertical, AlertCircle } from 'lucide-react';
+import { User, Scissors, Clock, MoreVertical, AlertCircle, DollarSign } from 'lucide-react';
 import {
   Tooltip,
   TooltipContent,
@@ -32,6 +32,8 @@ interface TimelineAppointment {
   appointment_services?: Array<{ service?: { name?: string } | null; duration_minutes?: number }>;
   delay_minutes?: number | null;
   promotion_id?: string | null;
+  special_schedule?: boolean;
+  extra_fee?: number;
 }
 
 interface TimelineBlockedTime {
@@ -283,9 +285,14 @@ export const AgendaTimelineView = ({
                           <p className={cn("text-[11px] font-bold truncate leading-tight", statusVisuals.text)}>
                             {clientName}
                           </p>
-                          {apt.delay_minutes ? (
-                            <span className="text-[9px] animate-pulse text-warning font-black">⏱️</span>
-                          ) : null}
+                          <div className="flex items-center gap-0.5 shrink-0">
+                            {apt.special_schedule && (
+                              <span className="text-[10px]" title="Horário Especial">🟣</span>
+                            )}
+                            {apt.delay_minutes ? (
+                              <span className="text-[9px] animate-pulse text-warning font-black">⏱️</span>
+                            ) : null}
+                          </div>
                         </div>
 
                         {posApt.height >= 40 && (
@@ -334,11 +341,35 @@ export const AgendaTimelineView = ({
                           )}
                         </div>
                         
+                        {(apt.special_schedule || (apt.extra_fee && apt.extra_fee > 0)) && (
+                          <div className="mt-2 py-1.5 px-2 bg-purple-50 rounded border border-purple-100 space-y-1">
+                            {apt.special_schedule && (
+                              <p className="text-[10px] font-bold text-purple-700 flex items-center gap-1">
+                                <span className="h-1.5 w-1.5 rounded-full bg-purple-500" />
+                                HORÁRIO ESPECIAL
+                              </p>
+                            )}
+                            {apt.extra_fee && apt.extra_fee > 0 && (
+                              <p className="text-[10px] font-bold text-purple-600 flex items-center gap-1">
+                                <DollarSign className="h-3 w-3" />
+                                +R$ {Number(apt.extra_fee).toFixed(2)} taxa extra
+                              </p>
+                            )}
+                          </div>
+                        )}
+
                         <div className="mt-3 pt-2 border-t flex items-center justify-between">
                           <Badge variant="outline" className={cn("text-[10px] uppercase font-bold tracking-tighter", statusVisuals.bg, statusVisuals.text)}>
                             {timelineStatusLabels[displayStatus] || displayStatus}
                           </Badge>
-                          <span className="text-xs font-bold">R$ {Number(apt.total_price).toFixed(2)}</span>
+                          <div className="text-right">
+                            <span className="text-xs font-bold block">R$ {Number(apt.total_price).toFixed(2)}</span>
+                            {apt.extra_fee && apt.extra_fee > 0 && (
+                              <span className="text-[9px] text-muted-foreground line-through">
+                                R$ {(Number(apt.total_price) - Number(apt.extra_fee)).toFixed(2)}
+                              </span>
+                            )}
+                          </div>
                         </div>
                       </div>
                     </motion.div>
