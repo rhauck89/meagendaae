@@ -631,16 +631,7 @@ const Dashboard = () => {
                 expires_at: expiresAt.toISOString(),
               });
 
-              // Create transaction record
-              await supabase.from('cashback_transactions').insert({
-                company_id: companyId,
-                client_id: apt.client_id,
-                amount: cashbackAmount,
-                type: 'credit',
-                reference_id: apt.id,
-                description: `Cashback ganho no agendamento #${apt.id.slice(0, 8)}`,
-              });
-
+              // Transaction is now handled automatically by database trigger on client_cashback table
               toast.success(`Cashback de R$ ${cashbackAmount.toFixed(2)} gerado automaticamente!`);
             }
           }
