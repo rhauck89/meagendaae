@@ -90,6 +90,7 @@ const ClientPortal = () => {
   const [clients, setClients] = useState<ClientRecord[]>([]);
   const [appointments, setAppointments] = useState<AppointmentRow[]>([]);
   const [allCashbacks, setAllCashbacks] = useState<CashbackRow[]>([]);
+  const [allCashbackTxs, setAllCashbackTxs] = useState<CashbackTx[]>([]);
   const [allLoyaltyTxs, setAllLoyaltyTxs] = useState<LoyaltyTx[]>([]);
   const [rewards, setRewards] = useState<RewardItem[]>([]);
   const [loyaltyConfigs, setLoyaltyConfigs] = useState<Record<string, any>>({});
