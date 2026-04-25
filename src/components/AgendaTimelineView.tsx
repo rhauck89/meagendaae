@@ -11,7 +11,7 @@ import {
   getBlockHeight
 } from '@/utils/calendarLayout';
 import { motion, AnimatePresence } from 'framer-motion';
-import { User, Scissors, Clock, MoreVertical, AlertCircle } from 'lucide-react';
+import { User, Scissors, Clock, MoreVertical, AlertCircle, DollarSign } from 'lucide-react';
 import {
   Tooltip,
   TooltipContent,
