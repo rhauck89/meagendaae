@@ -201,43 +201,6 @@ const Services = () => {
                   />
                 </div>
               </div>
-              <div className="space-y-2">
-                <Label>Lembrete automático de retorno (dias)</Label>
-                <Input
-                  type="number"
-                  value={form.recommended_return_days}
-                  onChange={(e) => setForm({ ...form, recommended_return_days: e.target.value })}
-                  placeholder="Ex: 20 dias"
-                />
-                <p className="text-xs text-muted-foreground">
-                  Após esse número de dias do atendimento, o sistema enviará automaticamente um lembrete ao cliente sugerindo um novo agendamento.
-                </p>
-                <p className="text-xs text-muted-foreground/70 italic">
-                  Exemplo: Se o cliente cortar o cabelo hoje e o retorno estiver definido como 25 dias, o sistema enviará automaticamente um lembrete em 25 dias convidando o cliente a agendar novamente. Deixe vazio para não enviar lembrete.
-                </p>
-              </div>
-              <div className="space-y-2">
-                <Label>Modo de agendamento</Label>
-                <Select
-                  value={form.booking_mode}
-                  onValueChange={(v) => setForm({ ...form, booking_mode: v })}
-                  disabled={companyBookingMode !== 'hybrid'}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="company_default">Usar padrão da empresa</SelectItem>
-                    <SelectItem value="intelligent">Agendamento inteligente</SelectItem>
-                    <SelectItem value="fixed_grid">Grade fixa</SelectItem>
-                  </SelectContent>
-                </Select>
-                {companyBookingMode !== 'hybrid' && (
-                  <p className="text-xs text-muted-foreground italic">
-                    Ative o Modo Híbrido nas configurações da agenda para personalizar por serviço.
-                  </p>
-                )}
-              </div>
               <Button onClick={handleSave} className="w-full">
                 {editing ? 'Salvar' : 'Criar'}
               </Button>
@@ -261,17 +224,6 @@ const Services = () => {
                 <span className="flex items-center gap-1">
                   <DollarSign className="h-4 w-4" /> R$ {Number(service.price).toFixed(2)}
                 </span>
-                {(service as any).recommended_return_days && (
-                  <span className="flex items-center gap-1">
-                    <RefreshCw className="h-4 w-4" /> Lembrete automático: {(service as any).recommended_return_days} dias
-                  </span>
-                )}
-                {companyBookingMode === 'hybrid' && (service as any).booking_mode && (service as any).booking_mode !== 'company_default' && (
-                  <span className="flex items-center gap-1">
-                    {(service as any).booking_mode === 'intelligent' ? <Zap className="h-4 w-4" /> : <Grid3X3 className="h-4 w-4" />}
-                    {(service as any).booking_mode === 'intelligent' ? 'Inteligente' : 'Grade fixa'}
-                  </span>
-                )}
               </div>
               <div className="flex gap-2">
                 <Button variant="outline" size="sm" onClick={() => openEdit(service)}>
