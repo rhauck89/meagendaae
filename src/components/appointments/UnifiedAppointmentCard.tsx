@@ -158,8 +158,11 @@ export function UnifiedAppointmentCard({
                   {apt.promotion_id && (
                     <span className="text-[10px]" title="Promoção">🏷️</span>
                   )}
-                  {cashbackUsed > 0 && (
+                  {cashbackUsed > 0 && apt.status !== 'cancelled' && apt.status !== 'no_show' && (
                     <span className="text-[10px]" title="Cashback">💸</span>
+                  )}
+                  {(apt.status === 'cancelled' || apt.status === 'no_show') && cashbackUsed > 0 && (
+                    <span className="text-[10px]" title="Cashback Estornado">💸↩️</span>
                   )}
                   {apt.client?.is_vip && (
                     <span className="text-[10px]" title="VIP">⭐</span>
@@ -343,9 +346,14 @@ export function UnifiedAppointmentCard({
                   🏷️ PROMO
                 </Badge>
               )}
-              {cashbackUsed > 0 && (
+              {cashbackUsed > 0 && apt.status !== 'cancelled' && apt.status !== 'no_show' && (
                 <Badge variant="secondary" className="bg-blue-500/10 text-blue-600 border-none h-4 px-1 text-[9px] font-bold uppercase tracking-tighter">
                   💸 CASHBACK
+                </Badge>
+              )}
+              {(apt.status === 'cancelled' || apt.status === 'no_show') && cashbackUsed > 0 && (
+                <Badge variant="secondary" className="bg-green-500/10 text-green-600 border-none h-4 px-1 text-[9px] font-bold uppercase tracking-tighter">
+                  💸 Cashback devolvido
                 </Badge>
               )}
               {apt.client?.is_vip && (

@@ -523,14 +523,21 @@ const Dashboard = () => {
     const apt = appointments.find((a) => a.id === id);
     const totalDiscount = manualDiscount + promoDiscount + cashbackUsed;
     
-    await supabase.from('appointments').update({ 
-      status: status as any,
-      manual_discount: manualDiscount,
-      promotion_discount: promoDiscount,
-      cashback_used: cashbackUsed,
-      final_price: (customAmount ?? Number(apt?.total_price || 0)) - totalDiscount,
-      original_price: customAmount ?? Number(apt?.total_price || 0)
-    }).eq('id', id);
+    // If just cancelling, don't reset financial values to keep history/transparency
+    if (status === 'cancelled' || status === 'no_show') {
+      await supabase.from('appointments').update({ 
+        status: status as any
+      }).eq('id', id);
+    } else {
+      await supabase.from('appointments').update({ 
+        status: status as any,
+        manual_discount: manualDiscount,
+        promotion_discount: promoDiscount,
+        cashback_used: cashbackUsed,
+        final_price: (customAmount ?? Number(apt?.total_price || 0)) - totalDiscount,
+        original_price: customAmount ?? Number(apt?.total_price || 0)
+      }).eq('id', id);
+    }
 
     // If completing, create automatic revenue with commission calculation
     if (status === 'completed' && apt && companyId) {
