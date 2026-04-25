@@ -1545,6 +1545,17 @@ const Dashboard = () => {
           <Card>
             <CardContent className="p-4 space-y-1">
               <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                  <Users className="h-4 w-4 text-primary" />
+                </div>
+                <p className="text-sm text-muted-foreground">Clientes no mês</p>
+              </div>
+              <p className="metric-value">{monthlyStats.clients}</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4 space-y-1">
+              <div className="flex items-center gap-2">
                 <div className="w-8 h-8 rounded-lg bg-success/10 flex items-center justify-center shrink-0">
                   <DollarSign className="h-4 w-4 text-success" />
                 </div>
