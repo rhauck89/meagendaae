@@ -338,6 +338,21 @@ const ClientPortal = () => {
     }
     return map;
   }, [allCashbacks]);
+  const cashbackTotals = useMemo(() => {
+    let gained = 0;
+    let used = 0;
+    let expired = 0;
+    
+    for (const tx of allCashbackTxs) {
+      const amt = Number(tx.amount) || 0;
+      if (tx.type === 'credit') gained += amt;
+      else if (tx.type === 'debit') used += amt;
+      else if (tx.type === 'expiration' || (tx as any).type === 'expire') expired += amt;
+    }
+    
+    return { gained, used, expired };
+  }, [allCashbackTxs]);
+
   const totalCashback = useMemo(
     () => Object.values(cashbackByCompany).reduce((s, v) => s + v, 0), [cashbackByCompany]);
 
