@@ -530,15 +530,15 @@ const AppointmentRequests = () => {
               <Check className="h-10 w-10 text-green-600" />
             </div>
             <DialogHeader>
-              <DialogTitle className="text-xl">Solicitação aceita com sucesso!</DialogTitle>
+              <DialogTitle className="text-xl">✅ Solicitação aceita com sucesso</DialogTitle>
             </DialogHeader>
             
-            <div className="space-y-1 text-sm text-muted-foreground">
-              <p><span className="font-semibold text-foreground">Cliente:</span> {selectedRequest?.client_name}</p>
-              <p>
-                <span className="font-semibold text-foreground">Data:</span> {selectedRequest && format(new Date(selectedRequest.requested_date + 'T12:00:00'), "dd/MM/yyyy", { locale: ptBR })}
+            <div className="bg-muted/30 p-4 rounded-lg w-full space-y-2 border">
+              <p className="text-sm flex justify-between"><span className="text-muted-foreground">Cliente:</span> <span className="font-semibold">{selectedRequest?.client_name}</span></p>
+              <p className="text-sm flex justify-between">
+                <span className="text-muted-foreground">Data:</span> <span className="font-semibold">{selectedRequest && format(new Date(selectedRequest.requested_date + 'T12:00:00'), "dd/MM/yyyy", { locale: ptBR })}</span>
               </p>
-              <p><span className="font-semibold text-foreground">Hora:</span> {selectedRequest?.requested_time.slice(0, 5)}</p>
+              <p className="text-sm flex justify-between"><span className="text-muted-foreground">Hora:</span> <span className="font-semibold">{selectedRequest?.requested_time.slice(0, 5)}</span></p>
             </div>
 
             <div className="w-full pt-4 space-y-2">
@@ -550,13 +550,21 @@ const AppointmentRequests = () => {
                 Avisar no WhatsApp
                 <ExternalLink className="h-4 w-4 ml-auto opacity-50" />
               </Button>
-              <Button 
-                variant="outline" 
-                onClick={() => setSuccessDialogOpen(false)} 
-                className="w-full"
-              >
-                Fechar
-              </Button>
+              <div className="grid grid-cols-2 gap-2 w-full">
+                <Button 
+                  variant="outline" 
+                  onClick={handleCopyMessage} 
+                  className="gap-2"
+                >
+                  Copiar mensagem
+                </Button>
+                <Button 
+                  variant="outline" 
+                  onClick={() => setSuccessDialogOpen(false)} 
+                >
+                  Apenas fechar
+                </Button>
+              </div>
             </div>
           </div>
         </DialogContent>
