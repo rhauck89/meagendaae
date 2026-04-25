@@ -19,7 +19,8 @@ import {
   Briefcase,
   CreditCard,
   Layers,
-  ArrowUpDown
+  ArrowUpDown,
+  User
 } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
