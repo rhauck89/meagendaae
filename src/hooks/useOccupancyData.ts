@@ -8,7 +8,8 @@ import {
   isSameDay, 
   parseISO, 
   differenceInMinutes,
-  parse
+  parse,
+  startOfHour
 } from 'date-fns';
 
 export type OccupancyPeriod = 'day' | 'week' | 'month' | 'custom';
@@ -19,6 +20,11 @@ interface UseOccupancyDataParams {
   dateRange: { start: Date; end: Date };
   period: OccupancyPeriod;
 }
+
+const safeNumber = (val: any) => {
+  const num = Number(val);
+  return isNaN(num) ? 0 : num;
+};
 
 export const useOccupancyData = ({ companyId, professionalId, dateRange, period }: UseOccupancyDataParams) => {
   const [loading, setLoading] = useState(true);
@@ -167,7 +173,7 @@ export const useOccupancyData = ({ companyId, professionalId, dateRange, period 
           dayAppts.forEach(a => {
             if (['confirmed', 'completed', 'in_progress'].includes(a.status)) {
               dayOccupiedSlots++;
-              const hour = format(parseISO(a.start_time), 'HH:00');
+              const hour = format(startOfHour(parseISO(a.start_time)), 'HH:00');
               hourlyDistribution[hour] = (hourlyDistribution[hour] || 0) + 1;
             } else if (a.status === 'cancelled') {
               totalCancelled++;
@@ -193,12 +199,14 @@ export const useOccupancyData = ({ companyId, professionalId, dateRange, period 
 
         const occupancyRate = totalAvailableSlots > 0 ? Math.round((totalOccupiedSlots / totalAvailableSlots) * 100) : 0;
         const sortedHours = Object.entries(hourlyDistribution).sort((a, b) => b[1] - a[1]);
-        const peakHours = sortedHours.slice(0, 3).map(([h]) => h);
-        const offPeakHours = sortedHours.slice(-3).map(([h]) => h);
+        
+        // Detailed peaks with counts
+        const peakHours = sortedHours.slice(0, 3).map(([h, count]) => ({ hour: h, count: safeNumber(count) }));
+        const offPeakHours = sortedHours.filter(([_, count]) => count > 0).slice(-3).reverse().map(([h, count]) => ({ hour: h, count: safeNumber(count) }));
 
         let bestDay = null;
         let worstDay = null;
-        if (dailyStats.length > 1) {
+        if (dailyStats.length > 0) {
           const sortedDays = [...dailyStats].sort((a, b) => b.rate - a.rate);
           bestDay = sortedDays[0];
           worstDay = sortedDays[sortedDays.length - 1];
@@ -206,16 +214,21 @@ export const useOccupancyData = ({ companyId, professionalId, dateRange, period 
 
         setData({
           summary: {
-            occupancyRate,
-            totalAvailableSlots,
-            totalOccupiedSlots,
-            freeSlots: Math.max(0, totalAvailableSlots - totalOccupiedSlots),
-            cancelled: totalCancelled,
-            noShow: totalNoShow,
-            rescheduled: totalRescheduled,
+            occupancyRate: safeNumber(occupancyRate),
+            totalAvailableSlots: safeNumber(totalAvailableSlots),
+            totalOccupiedSlots: safeNumber(totalOccupiedSlots),
+            freeSlots: Math.max(0, safeNumber(totalAvailableSlots) - safeNumber(totalOccupiedSlots)),
+            cancelled: safeNumber(totalCancelled),
+            noShow: safeNumber(totalNoShow),
+            rescheduled: safeNumber(totalRescheduled),
             avgTimeBetween: 0,
           },
-          dailyStats,
+          dailyStats: dailyStats.map(ds => ({
+            ...ds,
+            rate: safeNumber(ds.rate),
+            occupied: safeNumber(ds.occupied),
+            available: safeNumber(ds.available)
+          })),
           peaks: {
             mostRequested: peakHours,
             leastRequested: offPeakHours,
