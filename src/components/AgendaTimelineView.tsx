@@ -287,7 +287,9 @@ export const AgendaTimelineView = ({
                           </p>
                           <div className="flex items-center gap-0.5 shrink-0">
                             {apt.special_schedule && (
-                              <span className="text-[10px]" title="Horário Especial">🟣</span>
+                              <Badge variant="secondary" className="bg-purple-100 text-purple-800 border-purple-200 text-[8px] h-3.5 px-1 py-0 font-black animate-pulse">
+                                🟣 Especial
+                              </Badge>
                             )}
                             {apt.delay_minutes ? (
                               <span className="text-[9px] animate-pulse text-warning font-black">⏱️</span>
