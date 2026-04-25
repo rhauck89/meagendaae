@@ -46,7 +46,7 @@ const AppointmentRequests = () => {
   // Fee states
   const [feeType, setFeeType] = useState<'none' | '10' | '20' | '30' | 'fixed'>('none');
   const [fixedFeeValue, setFixedFeeValue] = useState('0');
-  const [serviceInfo, setServiceInfo] = useState<{ price: number; duration: number } | null>(null);
+  const [serviceInfo, setServiceInfo] = useState<{ price: number; duration: number; payment_method?: string } | null>(null);
 
   useEffect(() => {
     if (companyId) {
@@ -97,10 +97,23 @@ const AppointmentRequests = () => {
   };
 
   const handleAcceptClick = async (request: any) => {
-    setFeeType('none');
-    setFixedFeeValue('0');
     setSelectedRequest(request);
     setProcessing(true);
+    
+    // Check if requested date is Sunday
+    try {
+      const date = new Date(request.requested_date + 'T12:00:00');
+      if (date.getDay() === 0) { // 0 is Sunday
+        setFeeType('20');
+      } else {
+        setFeeType('none');
+      }
+    } catch (e) {
+      setFeeType('none');
+    }
+
+    setFixedFeeValue('0');
+    
     try {
       if (request.service_id) {
         const { data: svcData } = await supabase
@@ -108,14 +121,23 @@ const AppointmentRequests = () => {
           .select('duration_minutes, price')
           .eq('id', request.service_id)
           .maybeSingle();
+        
+        // Also get default payment method from company if needed
+        const { data: companyData } = await supabase
+          .from('companies')
+          .select('id, name')
+          .eq('id', companyId!)
+          .maybeSingle();
+
         if (svcData) {
           setServiceInfo({
             price: svcData.price || 0,
-            duration: svcData.duration_minutes || 30
+            duration: svcData.duration_minutes || 30,
+            payment_method: 'Cartão ou Pix (no local)' // Standard default
           });
         }
       } else {
-        setServiceInfo({ price: 0, duration: 30 });
+        setServiceInfo({ price: 0, duration: 30, payment_method: 'A combinar' });
       }
       setAcceptDialogOpen(true);
     } catch (err) {
@@ -157,6 +179,9 @@ const AppointmentRequests = () => {
           end_time: endTime.toISOString(),
           total_price: finalPrice,
           extra_fee: extraFee,
+          extra_fee_type: feeType,
+          extra_fee_value: feeType === 'fixed' ? parseFloat(fixedFeeValue) : (feeType === 'none' ? 0 : parseInt(feeType)),
+          final_price: finalPrice,
           special_schedule: true,
           status: 'confirmed' as any,
           notes: selectedRequest.message || null,
@@ -193,8 +218,8 @@ const AppointmentRequests = () => {
     }
   };
 
-  const handleNotifyWhatsApp = () => {
-    if (!selectedRequest) return;
+  const getWhatsAppMessage = () => {
+    if (!selectedRequest) return "";
     const dateStr = format(new Date(selectedRequest.requested_date + 'T12:00:00'), "dd/MM/yyyy", { locale: ptBR });
     const timeStr = selectedRequest.requested_time.slice(0, 5);
     const extraFee = calculateExtraFee();
@@ -204,9 +229,20 @@ const AppointmentRequests = () => {
       message += `Como é um horário especial, haverá uma taxa adicional de R$ ${extraFee.toFixed(2)}. `;
     }
     message += `Estamos aguardando você!`;
+    return message;
+  };
 
+  const handleNotifyWhatsApp = () => {
+    if (!selectedRequest) return;
+    const message = getWhatsAppMessage();
     const url = `https://wa.me/${selectedRequest.client_whatsapp.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`;
     window.open(url, '_blank');
+  };
+
+  const handleCopyMessage = () => {
+    const message = getWhatsAppMessage();
+    navigator.clipboard.writeText(message);
+    toast.success('Mensagem copiada para a área de transferência!');
   };
 
   const handleSuggest = async () => {
@@ -409,6 +445,14 @@ const AppointmentRequests = () => {
                 <span className="text-muted-foreground">Serviço:</span>
                 <span className="font-semibold">{services[selectedRequest?.service_id] || 'Serviço'}</span>
               </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Duração:</span>
+                <span className="font-semibold">{serviceInfo?.duration} min</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Pagamento:</span>
+                <span className="font-semibold">{serviceInfo?.payment_method}</span>
+              </div>
             </div>
 
             <div className="space-y-4">
@@ -486,15 +530,15 @@ const AppointmentRequests = () => {
               <Check className="h-10 w-10 text-green-600" />
             </div>
             <DialogHeader>
-              <DialogTitle className="text-xl">Solicitação aceita com sucesso!</DialogTitle>
+              <DialogTitle className="text-xl">✅ Solicitação aceita com sucesso</DialogTitle>
             </DialogHeader>
             
-            <div className="space-y-1 text-sm text-muted-foreground">
-              <p><span className="font-semibold text-foreground">Cliente:</span> {selectedRequest?.client_name}</p>
-              <p>
-                <span className="font-semibold text-foreground">Data:</span> {selectedRequest && format(new Date(selectedRequest.requested_date + 'T12:00:00'), "dd/MM/yyyy", { locale: ptBR })}
+            <div className="bg-muted/30 p-4 rounded-lg w-full space-y-2 border">
+              <p className="text-sm flex justify-between"><span className="text-muted-foreground">Cliente:</span> <span className="font-semibold">{selectedRequest?.client_name}</span></p>
+              <p className="text-sm flex justify-between">
+                <span className="text-muted-foreground">Data:</span> <span className="font-semibold">{selectedRequest && format(new Date(selectedRequest.requested_date + 'T12:00:00'), "dd/MM/yyyy", { locale: ptBR })}</span>
               </p>
-              <p><span className="font-semibold text-foreground">Hora:</span> {selectedRequest?.requested_time.slice(0, 5)}</p>
+              <p className="text-sm flex justify-between"><span className="text-muted-foreground">Hora:</span> <span className="font-semibold">{selectedRequest?.requested_time.slice(0, 5)}</span></p>
             </div>
 
             <div className="w-full pt-4 space-y-2">
@@ -506,13 +550,21 @@ const AppointmentRequests = () => {
                 Avisar no WhatsApp
                 <ExternalLink className="h-4 w-4 ml-auto opacity-50" />
               </Button>
-              <Button 
-                variant="outline" 
-                onClick={() => setSuccessDialogOpen(false)} 
-                className="w-full"
-              >
-                Fechar
-              </Button>
+              <div className="grid grid-cols-2 gap-2 w-full">
+                <Button 
+                  variant="outline" 
+                  onClick={handleCopyMessage} 
+                  className="gap-2"
+                >
+                  Copiar mensagem
+                </Button>
+                <Button 
+                  variant="outline" 
+                  onClick={() => setSuccessDialogOpen(false)} 
+                >
+                  Apenas fechar
+                </Button>
+              </div>
             </div>
           </div>
         </DialogContent>

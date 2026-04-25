@@ -287,7 +287,9 @@ export const AgendaTimelineView = ({
                           </p>
                           <div className="flex items-center gap-0.5 shrink-0">
                             {apt.special_schedule && (
-                              <span className="text-[10px]" title="Horário Especial">🟣</span>
+                              <Badge variant="secondary" className="bg-purple-100 text-purple-800 border-purple-200 text-[8px] h-3.5 px-1 py-0 font-black animate-pulse">
+                                🟣 Especial
+                              </Badge>
                             )}
                             {apt.delay_minutes ? (
                               <span className="text-[9px] animate-pulse text-warning font-black">⏱️</span>
@@ -302,15 +304,22 @@ export const AgendaTimelineView = ({
                         )}
 
                         {posApt.height >= 60 && (
-                          <div className="mt-auto flex items-center justify-between gap-1 opacity-70">
-                            <span className="text-[9px] font-medium">
-                              {format(parseISO(apt.start_time), 'HH:mm')}
-                            </span>
-                            {columnMode === 'day' && (
-                              <Badge variant="outline" className={cn("text-[8px] h-3 px-1 border-none bg-transparent", profColor.text)}>
-                                {apt.professional?.full_name?.split(' ')[0]}
-                              </Badge>
+                          <div className="mt-auto space-y-0.5">
+                            {apt.extra_fee && apt.extra_fee > 0 && (
+                              <p className="text-[9px] font-bold text-purple-600 flex items-center gap-0.5">
+                                💰 +R${Number(apt.extra_fee).toFixed(0)}
+                              </p>
                             )}
+                            <div className="flex items-center justify-between gap-1 opacity-70">
+                              <span className="text-[9px] font-medium">
+                                {format(parseISO(apt.start_time), 'HH:mm')}
+                              </span>
+                              {columnMode === 'day' && (
+                                <Badge variant="outline" className={cn("text-[8px] h-3 px-1 border-none bg-transparent", profColor.text)}>
+                                  {apt.professional?.full_name?.split(' ')[0]}
+                                </Badge>
+                              )}
+                            </div>
                           </div>
                         )}
                       </div>
@@ -344,10 +353,13 @@ export const AgendaTimelineView = ({
                         {(apt.special_schedule || (apt.extra_fee && apt.extra_fee > 0)) && (
                           <div className="mt-2 py-1.5 px-2 bg-purple-50 rounded border border-purple-100 space-y-1">
                             {apt.special_schedule && (
-                              <p className="text-[10px] font-bold text-purple-700 flex items-center gap-1">
-                                <span className="h-1.5 w-1.5 rounded-full bg-purple-500" />
-                                HORÁRIO ESPECIAL
-                              </p>
+                              <div className="flex items-center justify-between">
+                                <p className="text-[10px] font-bold text-purple-700 flex items-center gap-1">
+                                  <span className="h-1.5 w-1.5 rounded-full bg-purple-500" />
+                                  HORÁRIO ESPECIAL
+                                </p>
+                                <span className="text-[10px] font-black text-purple-600 animate-bounce">⚡ VIP</span>
+                              </div>
                             )}
                             {apt.extra_fee && apt.extra_fee > 0 && (
                               <p className="text-[10px] font-bold text-purple-600 flex items-center gap-1">

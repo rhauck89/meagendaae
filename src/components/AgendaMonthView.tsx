@@ -18,6 +18,7 @@ interface MonthAppointment {
   appointment_services?: Array<{ service?: { name?: string } | null }>;
   delay_minutes?: number | null;
   promotion_id?: string | null;
+  special_schedule?: boolean;
 }
 
 interface AgendaMonthViewProps {
@@ -133,8 +134,9 @@ export const AgendaMonthView = ({
                         >
                           {/* Small professional color dot */}
                           <div className={cn("w-1.5 h-1.5 rounded-full shrink-0", profColor.border.replace('border', 'bg'))} />
-                          <span className={cn("text-[10px] font-bold truncate leading-tight flex-1", statusVisuals.text)}>
+                          <span className={cn("text-[10px] font-bold truncate leading-tight flex-1 flex items-center gap-0.5", statusVisuals.text)}>
                             {format(parseISO(apt.start_time), 'HH:mm')} {clientName}
+                            {apt.special_schedule && <span className="text-[9px] shrink-0">🟣</span>}
                           </span>
                         </div>
                       );
