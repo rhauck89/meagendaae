@@ -1784,7 +1784,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
         {/* ═══ DATE/TIME ═══ */}
         {step === 'datetime' && (
           <div className="space-y-5 animate-fade-in">
-            <button onClick={() => setStep(skipProfessionalStep ? 'services' : 'professional')} className="flex items-center gap-1 text-sm font-medium hover:opacity-80" style={{ color: T.textSec }}>
+            <button onClick={() => setStep('services')} className="flex items-center gap-1 text-sm font-medium hover:opacity-80" style={{ color: T.textSec }}>
               <ChevronLeft className="h-4 w-4" /> Voltar
             </button>
             <div>
