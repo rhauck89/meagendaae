@@ -21,7 +21,7 @@ Deno.serve(async (req) => {
     .limit(1)
     .single();
 
-  const name = data?.system_name || "MeAgendaAê";
+  const name = data?.system_name || "Me Agendaê";
   const bgColor = data?.splash_background_color || "#0f2a5c";
   
   // Use stored URLs from platform_settings, fallback to default storage paths
