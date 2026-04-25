@@ -19,7 +19,7 @@ import { Calendar as CalendarIcon, CalendarCheck, ChevronLeft, ChevronRight, Clo
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { BlockTimeDialog } from '@/components/BlockTimeDialog';
 import { Calendar as DatePickerCalendar } from '@/components/ui/calendar';
-import { format, addDays, addMinutes, startOfWeek, endOfWeek, startOfMonth, endOfMonth, isSameDay, parseISO, differenceInDays } from 'date-fns';
+import { format, addDays, addMinutes, startOfWeek, endOfWeek, startOfMonth, endOfMonth, isSameDay, parseISO, differenceInDays, eachDayOfInterval } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -40,6 +40,8 @@ import FinancialPrivacyToggle from '@/components/FinancialPrivacyToggle';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { motion, AnimatePresence } from 'framer-motion';
 import { getProfessionalColor } from '@/utils/calendarLayout';
+import { OccupancyDrawer } from '@/components/OccupancyDrawer';
+
 
 
 type ViewMode = 'day' | 'week' | 'month';
@@ -133,12 +135,14 @@ const Dashboard = () => {
   const [manualAppointmentOpen, setManualAppointmentOpen] = useState(false);
   const [manualAppointmentPrefill, setManualAppointmentPrefill] = useState<{ date?: Date; time?: string; professionalId?: string }>({});
   const [highlightedAppointmentId, setHighlightedAppointmentId] = useState<string | null>(null);
+  const [occupancyDrawerOpen, setOccupancyDrawerOpen] = useState(false);
   const [agendaDisplayMode, setAgendaDisplayMode] = useState<'lista' | 'calendario'>(() => {
     if (typeof window !== 'undefined') {
       return (localStorage.getItem('agenda_display_mode') as 'lista' | 'calendario') || 'lista';
     }
     return 'lista';
   });
+
   const [timelineColumnMode, setTimelineColumnMode] = useState<'day' | 'professionals'>('day');
   // Cleanup orphan Radix portal elements when reschedule modal closes
   useEffect(() => {
@@ -316,20 +320,30 @@ const Dashboard = () => {
     const monthStart = startOfMonth(new Date());
     const monthEnd = endOfMonth(new Date());
 
-    let query = supabase
-      .from('appointments')
-      .select('status, total_price, client_id')
-      .eq('company_id', companyId!)
-      .gte('start_time', toSpStart(monthStart))
-      .lte('start_time', toSpEnd(monthEnd));
+    const [apptsRes, bizHoursRes, collaboratorsRes, companyRes] = await Promise.all([
+      supabase
+        .from('appointments')
+        .select('status, total_price, client_id, start_time')
+        .eq('company_id', companyId!)
+        .gte('start_time', toSpStart(monthStart))
+        .lte('start_time', toSpEnd(monthEnd)),
+      supabase
+        .from('business_hours')
+        .select('*')
+        .eq('company_id', companyId!),
+      supabase
+        .from('collaborators')
+        .select('profile_id, active')
+        .eq('company_id', companyId!)
+        .eq('active', true),
+      supabase
+        .from('companies')
+        .select('fixed_slot_interval')
+        .eq('id', companyId!)
+        .single()
+    ]);
 
-    if (!isAdmin && profileId) {
-      query = query.eq('professional_id', profileId);
-    } else if (filterProfessional !== 'all') {
-      query = query.eq('professional_id', filterProfessional);
-    }
-
-    const { data } = await query;
+    const data = apptsRes.data;
     if (!data) return;
 
     const confirmed = data.filter(a => a.status === 'confirmed' || a.status === 'completed');
@@ -339,10 +353,36 @@ const Dashboard = () => {
 
     const revenue = confirmed.reduce((sum, a) => sum + Number(a.total_price), 0);
     const revenueCompleted = completed.reduce((sum, a) => sum + Number(a.total_price), 0);
-    const totalAppts = data.filter(a => a.status !== 'cancelled' && a.status !== 'no_show').length;
+    
+    // Calculate REAL capacity
+    const slotDuration = companyRes.data?.fixed_slot_interval || 30;
+    const bizHours = bizHoursRes.data || [];
+    const collaborators = collaboratorsRes.data || [];
+    const daysInMonth = eachDayOfInterval({ start: monthStart, end: monthEnd });
+    
+    let totalCapacity = 0;
+    daysInMonth.forEach(day => {
+      const dayOfWeek = day.getDay();
+      const hours = bizHours.find(h => h.day_of_week === dayOfWeek);
+      if (!hours || hours.is_closed) return;
+      
+      const [oH, oM] = hours.open_time.split(':').map(Number);
+      const [cH, cM] = hours.close_time.split(':').map(Number);
+      let workingMinutes = (cH * 60 + cM) - (oH * 60 + oM);
+      
+      if (hours.lunch_start && hours.lunch_end) {
+        const [lsH, lsM] = hours.lunch_start.split(':').map(Number);
+        const [leH, leM] = hours.lunch_end.split(':').map(Number);
+        workingMinutes -= (leH * 60 + leM) - (lsH * 60 + lsM);
+      }
 
-    // Rough occupancy: confirmed+completed vs total non-cancelled
-    const occupancyRate = totalAppts > 0 ? Math.round((confirmed.length / Math.max(totalAppts, 1)) * 100) : 0;
+      const activeCollaboratorsCount = (!isAdmin && profileId) ? 1 : 
+        (filterProfessional !== 'all' ? 1 : collaborators.length);
+      
+      totalCapacity += Math.max(0, Math.floor(workingMinutes / slotDuration)) * activeCollaboratorsCount;
+    });
+
+    const occupancyRate = totalCapacity > 0 ? Math.round((confirmed.length / totalCapacity) * 100) : 0;
     const avgTicket = uniqueClients > 0 ? revenue / uniqueClients : 0;
 
     setMonthlyStats({
@@ -356,51 +396,88 @@ const Dashboard = () => {
     });
   };
 
+
   const fetchDailyTrends = async () => {
     if (!companyId) return;
-    const days = 14;
-    const startDate = format(addDays(new Date(), -days + 1), 'yyyy-MM-dd');
-    let query = supabase
-      .from('appointments')
-      .select('start_time, status, total_price')
-      .eq('company_id', companyId)
-      .gte('start_time', `${startDate}T00:00:00`)
-      .order('start_time', { ascending: true });
+    const daysCount = 14;
+    const startDate = addDays(new Date(), -daysCount + 1);
+    const startDateStr = format(startDate, 'yyyy-MM-dd');
 
-    if (!isAdmin && profileId) {
-      query = query.eq('professional_id', profileId);
-    } else if (filterProfessional !== 'all') {
-      query = query.eq('professional_id', filterProfessional);
-    }
+    const [apptsRes, bizHoursRes, collaboratorsRes, companyRes] = await Promise.all([
+      supabase
+        .from('appointments')
+        .select('start_time, status, total_price')
+        .eq('company_id', companyId)
+        .gte('start_time', `${startDateStr}T00:00:00`)
+        .order('start_time', { ascending: true }),
+      supabase
+        .from('business_hours')
+        .select('*')
+        .eq('company_id', companyId!),
+      supabase
+        .from('collaborators')
+        .select('profile_id, active')
+        .eq('company_id', companyId!)
+        .eq('active', true),
+      supabase
+        .from('companies')
+        .select('fixed_slot_interval')
+        .eq('id', companyId!)
+        .single()
+    ]);
 
-    const { data } = await query;
-
+    const data = apptsRes.data;
     if (!data) return;
 
-    const map: Record<string, { revenue: number; clients: number; cancellations: number; total: number }> = {};
-    for (let i = 0; i < days; i++) {
-      const d = format(addDays(new Date(), -days + 1 + i), 'yyyy-MM-dd');
-      map[d] = { revenue: 0, clients: 0, cancellations: 0, total: 0 };
+    const bizHours = bizHoursRes.data || [];
+    const collaborators = collaboratorsRes.data || [];
+    const slotDuration = companyRes.data?.fixed_slot_interval || 30;
+
+    const map: Record<string, { revenue: number; clients: number; cancellations: number; confirmed: number; capacity: number }> = {};
+    for (let i = 0; i < daysCount; i++) {
+      const day = addDays(startDate, i);
+      const d = format(day, 'yyyy-MM-dd');
+      
+      const dayOfWeek = day.getDay();
+      const hours = bizHours.find(h => h.day_of_week === dayOfWeek);
+      let dayCapacity = 0;
+      if (hours && !hours.is_closed) {
+        const [oH, oM] = hours.open_time.split(':').map(Number);
+        const [cH, cM] = hours.close_time.split(':').map(Number);
+        let workingMinutes = (cH * 60 + cM) - (oH * 60 + oM);
+        if (hours.lunch_start && hours.lunch_end) {
+          const [lsH, lsM] = hours.lunch_start.split(':').map(Number);
+          const [leH, leM] = hours.lunch_end.split(':').map(Number);
+          workingMinutes -= (leH * 60 + leM) - (lsH * 60 + lsM);
+        }
+        const activeCount = (!isAdmin && profileId) ? 1 : (filterProfessional !== 'all' ? 1 : collaborators.length);
+        dayCapacity = Math.max(0, Math.floor(workingMinutes / slotDuration)) * activeCount;
+      }
+
+      map[d] = { revenue: 0, clients: 0, cancellations: 0, confirmed: 0, capacity: dayCapacity };
     }
+
     for (const a of data) {
       const d = format(parseISO(a.start_time), 'yyyy-MM-dd');
       if (!map[d]) continue;
-      map[d].total++;
-      if (a.status === 'completed') {
+      if (['confirmed', 'completed', 'in_progress'].includes(a.status)) {
+        map[d].confirmed++;
         map[d].revenue += Number(a.total_price) || 0;
         map[d].clients++;
       } else if (a.status === 'cancelled' || a.status === 'no_show') {
         map[d].cancellations++;
       }
     }
+
     setDailyTrends(Object.entries(map).map(([date, v]) => ({
       date,
       revenue: v.revenue,
       clients: v.clients,
       cancellations: v.cancellations,
-      occupancy: v.total > 0 ? Math.round((v.clients / v.total) * 100) : 0,
+      occupancy: v.capacity > 0 ? Math.round((v.confirmed / v.capacity) * 100) : 0,
     })));
   };
+
 
   const fetchWaitlistCount = async () => {
     if (!companyId) return;
@@ -1521,7 +1598,7 @@ const Dashboard = () => {
               )}
             </CardContent>
           </Card>
-          <Card>
+          <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => setOccupancyDrawerOpen(true)}>
             <CardContent className="p-4 space-y-1">
               <div className="flex items-center gap-2">
                 <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
@@ -1539,6 +1616,7 @@ const Dashboard = () => {
               )}
             </CardContent>
           </Card>
+
           <Card>
             <CardContent className="p-4 space-y-1">
               <div className="flex items-center gap-2">
@@ -2327,8 +2405,16 @@ const Dashboard = () => {
         </DialogContent>
         )}
       </Dialog>
+
+      <OccupancyDrawer
+        open={occupancyDrawerOpen}
+        onOpenChange={setOccupancyDrawerOpen}
+        companyId={companyId!}
+        professionals={collaboratorsList}
+      />
     </div>
   );
 };
 
 export default Dashboard;
+
