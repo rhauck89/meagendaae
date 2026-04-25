@@ -59,7 +59,7 @@ const FinanceRevenues = () => {
       fetchRevenues(); 
       fetchCategories(); 
     } 
-  }, [companyId, filterCategory, filterClient, filterProfessional, filterService, filterPayment, sortField, sortDirection]);
+  }, [companyId, filterCategory, filterClient, filterProfessional, filterService, filterPayment, filterType, sortField, sortDirection]);
 
   const fetchRevenues = async () => {
     let query = supabase
