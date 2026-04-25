@@ -1,4 +1,6 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
+
 import { formatServicesWithDuration } from '@/lib/format-services';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUserRole } from '@/hooks/useUserRole';
@@ -15,7 +17,7 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogBody, DialogFooter, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { isPromoActive } from '@/lib/promotion-period';
-import { Calendar as CalendarIcon, CalendarCheck, ChevronLeft, ChevronRight, Clock, DollarSign, Users, UserCheck, UserMinus, AlertTriangle, Bell, MailCheck, Cake, Ban, Trash2, Timer, RefreshCw, AlertCircle, TrendingUp, BarChart3, XCircle, Percent, Receipt, Send, List, LayoutGrid, ArrowLeftRight, MoreHorizontal, MessageSquare, Info, Scissors, User, CheckCircle2, Rocket } from 'lucide-react';
+import { Calendar as CalendarIcon, CalendarCheck, ChevronLeft, ChevronRight, Clock, DollarSign, Users, UserCheck, UserMinus, AlertTriangle, Bell, MailCheck, Cake, Ban, Trash2, Timer, RefreshCw, AlertCircle, TrendingUp, BarChart3, XCircle, Percent, Receipt, Send, List, LayoutGrid, ArrowLeftRight, MoreHorizontal, MessageSquare, Info, Scissors, User, CheckCircle2, Rocket, Crown } from 'lucide-react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { BlockTimeDialog } from '@/components/BlockTimeDialog';
 import { Calendar as DatePickerCalendar } from '@/components/ui/calendar';
@@ -85,7 +87,8 @@ const Dashboard = () => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [appointments, setAppointments] = useState<any[]>([]);
   const [stats, setStats] = useState({ total: 0, revenue: 0, revenueCompleted: 0, clients: 0 });
-  const [monthlyStats, setMonthlyStats] = useState({ revenue: 0, revenueCompleted: 0, clients: 0, completedAppointments: 0, cancellations: 0, occupancyRate: 0, avgTicket: 0 });
+  const [monthlyStats, setMonthlyStats] = useState({ revenue: 0, revenueCompleted: 0, clients: 0, completedAppointments: 0, cancellations: 0, occupancyRate: 0, avgTicket: 0, topClient: { name: '', count: 0 } });
+  
   const [dailyTrends, setDailyTrends] = useState<{ date: string; revenue: number; clients: number; cancellations: number; occupancy: number }[]>([]);
   const [waitlistCount, setWaitlistCount] = useState(0);
   const [waitlistServiceBreakdown, setWaitlistServiceBreakdown] = useState<Record<string, number>>({});
@@ -93,6 +96,37 @@ const Dashboard = () => {
   const [reminderCount, setReminderCount] = useState(0);
   const [birthdayClients, setBirthdayClients] = useState<any[]>([]);
   const [filterProfessional, setFilterProfessional] = useState<string>('all');
+
+  // Cache optimized dashboard stats
+  const { data: serverStats } = useQuery({
+    queryKey: ['dashboard-server-stats', companyId, filterProfessional, isAdmin, profileId],
+    queryFn: async () => {
+      if (!companyId) return null;
+      const professionalId = (!isAdmin && profileId) ? profileId : (filterProfessional === 'all' ? null : filterProfessional);
+      const { data, error } = await supabase.rpc('get_company_dashboard_stats', {
+        p_company_id: companyId,
+        p_professional_id: professionalId
+      });
+      if (error) throw error;
+      return data[0];
+    },
+    enabled: !!companyId,
+  });
+
+  // Merge server stats into monthly stats for better accuracy where available
+  useEffect(() => {
+    if (serverStats) {
+      setMonthlyStats(prev => ({
+        ...prev,
+        clients: Number(serverStats.total_clients),
+        topClient: {
+          name: serverStats.top_client_name || '',
+          count: Number(serverStats.top_client_count)
+        }
+      }));
+    }
+  }, [serverStats]);
+
   const [blockedTimes, setBlockedTimes] = useState<any[]>([]);
   const [collaboratorsList, setCollaboratorsList] = useState<any[]>([]);
   const [delayDialogOpen, setDelayDialogOpen] = useState(false);
@@ -188,7 +222,8 @@ const Dashboard = () => {
     fetchBlockedTimes();
     fetchMonthlyStats();
     fetchUpcomingAppointments();
-  }, [companyId, currentDate, viewMode, filterProfessional]);
+  }, [companyId, currentDate, viewMode, filterProfessional, isAdmin, profileId]);
+
 
   // Listen for external refresh events (e.g. from other pages)
   const handleAgendaRefresh = useCallback(() => {
@@ -197,7 +232,7 @@ const Dashboard = () => {
       fetchMonthlyStats();
       fetchUpcomingAppointments();
     }
-  }, [companyId, currentDate, viewMode, filterProfessional]);
+  }, [companyId, currentDate, viewMode, filterProfessional, isAdmin, profileId]);
   useOnDataRefresh('agenda', handleAgendaRefresh);
 
   const fetchUpcomingAppointments = async () => {
@@ -317,11 +352,15 @@ const Dashboard = () => {
       setAppointments(data);
       const selectedAppts = data.filter((a) => isSameDay(parseISO(a.start_time), currentDate));
       const validStatuses = ['confirmed', 'completed', 'pending', 'in_progress'];
+      
+      // We calculate daily clients correctly by counting distinct client_ids
+      const dailyClients = new Set(selectedAppts.filter((a) => validStatuses.includes(a.status)).map(a => a.client_id).filter(Boolean)).size;
+
       setStats({
         total: selectedAppts.length,
         revenue: selectedAppts.filter((a) => validStatuses.includes(a.status)).reduce((sum, a) => sum + Number(a.total_price), 0),
         revenueCompleted: selectedAppts.filter((a) => a.status === 'completed').reduce((sum, a) => sum + Number(a.total_price), 0),
-        clients: selectedAppts.filter((a) => validStatuses.includes(a.status)).length,
+        clients: dailyClients,
       });
     }
   };
@@ -334,7 +373,7 @@ const Dashboard = () => {
     const [apptsRes, bizHoursRes, collaboratorsRes, companyRes] = await Promise.all([
       supabase
         .from('appointments')
-        .select('status, total_price, client_id, start_time')
+        .select('status, total_price, client_id, start_time, client:clients!appointments_client_id_fkey(name)')
         .eq('company_id', companyId!)
         .gte('start_time', toSpStart(monthStart))
         .lte('start_time', toSpEnd(monthEnd)),
@@ -360,7 +399,15 @@ const Dashboard = () => {
     const confirmed = data.filter(a => a.status === 'confirmed' || a.status === 'completed');
     const completed = data.filter(a => a.status === 'completed');
     const cancelled = data.filter(a => a.status === 'cancelled');
-    const uniqueClients = new Set(data.filter(a => a.status !== 'cancelled' && a.status !== 'no_show').map(a => a.client_id)).size;
+    const uniqueClients = new Set(data.filter(a => a.client_id && ['confirmed', 'completed', 'pending'].includes(a.status)).map(a => a.client_id)).size;
+    // Calculate top client
+    const clientApptCount: Record<string, number> = {};
+    confirmed.forEach(a => {
+      if (a.client_id) clientApptCount[a.client_id] = (clientApptCount[a.client_id] || 0) + 1;
+    });
+    const topEntry = Object.entries(clientApptCount).sort((a, b) => b[1] - a[1])[0];
+    const topClient = topEntry ? { name: data.find(a => a.client_id === topEntry[0])?.client?.name || 'Cliente', count: topEntry[1] } : { name: '', count: 0 };
+
 
     const safeNum = (v: any) => isNaN(Number(v)) ? 0 : Number(v);
     const revenue = safeNum(confirmed.reduce((sum, a) => sum + Number(a.total_price), 0));
@@ -400,10 +447,11 @@ const Dashboard = () => {
       revenue,
       revenueCompleted,
       clients: safeNum(uniqueClients),
-      completedAppointments: safeNum(completed.length),
+      completedAppointments: safeNum(confirmed.length),
       cancellations: safeNum(cancelled.length),
       occupancyRate: safeNum(occupancyRate),
-      avgTicket: confirmed.length > 0 ? safeNum(revenue / confirmed.length) : 0
+      avgTicket: confirmed.length > 0 ? safeNum(revenue / confirmed.length) : 0,
+      topClient: topClient
     });
   };
 
@@ -1466,7 +1514,7 @@ const Dashboard = () => {
               <Users className="h-5 w-5 text-accent" />
             </div>
             <div className="min-w-0">
-              <p className="text-sm text-muted-foreground">Atendimentos</p>
+              <p className="text-sm text-muted-foreground">Clientes únicos</p>
               <p className="metric-value">{stats.clients}</p>
             </div>
           </CardContent>
@@ -1540,6 +1588,19 @@ const Dashboard = () => {
           <Card>
             <CardContent className="p-4 space-y-1">
               <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                  <Users className="h-4 w-4 text-primary" />
+                </div>
+                <p className="text-sm text-muted-foreground">Clientes no mês</p>
+              </div>
+              <p className="metric-value">{monthlyStats.clients}</p>
+              <p className="text-xs text-muted-foreground">atendidos</p>
+
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4 space-y-1">
+              <div className="flex items-center gap-2">
                 <div className="w-8 h-8 rounded-lg bg-success/10 flex items-center justify-center shrink-0">
                   <DollarSign className="h-4 w-4 text-success" />
                 </div>
@@ -1579,10 +1640,11 @@ const Dashboard = () => {
                 <div className="w-8 h-8 rounded-lg bg-accent/10 flex items-center justify-center shrink-0">
                   <CalendarCheck className="h-4 w-4 text-accent" />
                 </div>
-                <p className="text-sm text-muted-foreground">Agendamentos feitos</p>
+                <p className="text-sm text-muted-foreground">Agendamentos realizados</p>
               </div>
               <p className="metric-value">{monthlyStats.completedAppointments}</p>
               {dailyTrends.length > 0 && (
+
                 <div className="h-6 w-full opacity-70">
                   <ResponsiveContainer width="100%" height="100%">
                     <LineChart data={dailyTrends}><Line type="monotone" dataKey="clients" stroke="hsl(var(--accent))" strokeWidth={1.5} dot={false} /></LineChart>
@@ -1646,10 +1708,23 @@ const Dashboard = () => {
               )}
             </CardContent>
           </Card>
+          <Card>
+            <CardContent className="p-4 space-y-1">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-amber-500/10 flex items-center justify-center shrink-0">
+                  <Crown className="h-4 w-4 text-amber-500" />
+                </div>
+                <p className="text-sm text-muted-foreground">Top cliente</p>
+              </div>
+              <p className="metric-value text-sm truncate">{monthlyStats.topClient.name || "Sem dados"}</p>
+              {monthlyStats.topClient.count > 0 && <p className="text-xs text-muted-foreground">{monthlyStats.topClient.count} atendimentos</p>}
+
+              <p className="text-xs text-muted-foreground">do mês</p>
+            </CardContent>
+          </Card>
+
         </div>
       </div>
-
-
       {/* Birthday Indicator - Admin only */}
       {isAdmin && birthdayClients.length > 0 && (
         <Card>
@@ -2438,4 +2513,3 @@ const Dashboard = () => {
 };
 
 export default Dashboard;
-
