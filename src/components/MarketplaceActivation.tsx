@@ -201,7 +201,7 @@ const MarketplaceActivation = () => {
             </div>
             <DialogTitle className="text-xl">🎉 Parabéns!</DialogTitle>
             <DialogDescription className="text-base">
-              Seu perfil agora está ativo no marketplace do Me Agenda Aê.
+              Seu perfil agora está ativo no marketplace do Me Agendaê.
               Agora clientes podem encontrar sua empresa e fazer agendamentos online.
             </DialogDescription>
           </DialogHeader>
