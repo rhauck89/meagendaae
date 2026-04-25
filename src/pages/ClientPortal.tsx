@@ -255,6 +255,7 @@ const ClientPortal = () => {
       });
 
       setAllCashbacks((cashbackRes.data || []) as any);
+      setAllCashbackTxs((cashbackTxRes.data || []) as any);
       setAllLoyaltyTxs((loyaltyTxRes.data || []) as any);
       setRewards((rewardsRes.data || []) as any);
 
