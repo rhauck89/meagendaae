@@ -1311,7 +1311,7 @@ const Dashboard = () => {
   return (
     <div className="space-y-6">
       <TrialBanner />
-      <OnboardingChecklist />
+      <OnboardingChecklist key={onboardingKey} />
       {isAdmin && <MarketplaceActivation />}
       <TutorialProgressWidget />
 
