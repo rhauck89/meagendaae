@@ -496,7 +496,7 @@ export default function BarbershopLanding({ routeBusinessType, customSlug }: Bar
                     whileHover={{ y: -5 }}
                     className="flex-shrink-0 w-[200px] flex flex-col items-center gap-3 p-5 rounded-[2.5rem] border transition-all duration-300 group"
                     style={{ background: T.card, borderColor: T.border }}
-                    onClick={() => navigate(`/${bookingBasePath}/${slug}/${p.slug || 'agendar'}`)}
+                    onClick={() => navigate(`/${bookingBasePath}/${slug}/${p.slug ? `${p.slug}/agendar` : 'agendar'}`)}
                   >
                     <div className="relative">
                       {p.avatar_url ? (
