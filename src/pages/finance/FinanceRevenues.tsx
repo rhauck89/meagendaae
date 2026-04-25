@@ -50,6 +50,7 @@ const FinanceRevenues = () => {
   const [filterProfessional, setFilterProfessional] = useState('');
   const [filterService, setFilterService] = useState('');
   const [filterPayment, setFilterPayment] = useState('all');
+  const [filterType, setFilterType] = useState('all');
   const [sortField, setSortField] = useState('revenue_date');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
 
