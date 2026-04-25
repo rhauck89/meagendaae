@@ -285,9 +285,14 @@ export const AgendaTimelineView = ({
                           <p className={cn("text-[11px] font-bold truncate leading-tight", statusVisuals.text)}>
                             {clientName}
                           </p>
-                          {apt.delay_minutes ? (
-                            <span className="text-[9px] animate-pulse text-warning font-black">⏱️</span>
-                          ) : null}
+                          <div className="flex items-center gap-0.5 shrink-0">
+                            {apt.special_schedule && (
+                              <span className="text-[10px]" title="Horário Especial">🟣</span>
+                            )}
+                            {apt.delay_minutes ? (
+                              <span className="text-[9px] animate-pulse text-warning font-black">⏱️</span>
+                            ) : null}
+                          </div>
                         </div>
 
                         {posApt.height >= 40 && (
