@@ -394,19 +394,6 @@ const Dashboard = () => {
       occupancyRate: safeNum(occupancyRate),
       avgTicket: confirmed.length > 0 ? safeNum(revenue / confirmed.length) : 0
     });
-
-    const occupancyRate = totalCapacity > 0 ? Math.round((confirmed.length / totalCapacity) * 100) : 0;
-    const avgTicket = uniqueClients > 0 ? revenue / uniqueClients : 0;
-
-    setMonthlyStats({
-      revenue,
-      revenueCompleted,
-      clients: uniqueClients,
-      completedAppointments: completed.length,
-      cancellations: cancelled.length,
-      occupancyRate,
-      avgTicket,
-    });
   };
 
 
