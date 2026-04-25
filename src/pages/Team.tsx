@@ -127,6 +127,15 @@ const Team = () => {
     },
   });
 
+  useEffect(() => {
+    if (wizardStep === 4 && form.selectedServiceIds.length === 0 && companyServices.length > 0) {
+      setForm(prev => ({
+        ...prev,
+        selectedServiceIds: companyServices.map((s: any) => s.id)
+      }));
+    }
+  }, [wizardStep, companyServices.length]);
+
   const teamQueryKey = ['collaborators', companyId];
 
   const { data: company } = useQuery({
