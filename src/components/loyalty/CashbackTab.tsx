@@ -120,8 +120,8 @@ export default function CashbackTab() {
   const fetchHistory = useCallback(async () => {
     if (!companyId) return;
     const { data } = await supabase
-      .from('client_cashback')
-      .select('*, clients:client_id(name), promotions:promotion_id(title)')
+      .from('cashback_transactions')
+      .select('*, clients:client_id(name)')
       .eq('company_id', companyId)
       .order('created_at', { ascending: false })
       .limit(100);
@@ -445,21 +445,34 @@ export default function CashbackTab() {
                     </tr>
                   </thead>
                   <tbody>
-                    {history.map(h => (
-                      <tr key={h.id} className="border-b last:border-0 hover:bg-accent/20 transition-colors">
-                        <td className="p-3 text-xs text-muted-foreground">
-                          {format(parseISO(h.created_at), 'dd/MM/yy HH:mm')}
-                        </td>
-                        <td className="p-3 font-medium">{h.clients?.name || 'Cliente'}</td>
-                        <td className="p-3 text-xs text-muted-foreground">{h.promotions?.title || '—'}</td>
-                        <td className="p-3 text-right font-medium text-success">+{formatCurrency(Number(h.amount))}</td>
-                        <td className="p-3">
-                          <Badge variant={h.used_at ? "secondary" : "outline"} className="text-[10px]">
-                            {h.used_at ? `Utilizado em ${format(parseISO(h.used_at), 'dd/MM/yy')}` : 'Disponível'}
-                          </Badge>
-                        </td>
-                      </tr>
-                    ))}
+                    {history.map((h: any) => {
+                      const isCredit = h.type === 'credit';
+                      const isDebit = h.type === 'debit';
+                      const isExpiration = h.type === 'expiration';
+                      
+                      return (
+                        <tr key={h.id} className="border-b last:border-0 hover:bg-accent/20 transition-colors">
+                          <td className="p-3 text-xs text-muted-foreground">
+                            {format(parseISO(h.created_at), 'dd/MM/yy HH:mm')}
+                          </td>
+                          <td className="p-3 font-medium">{h.clients?.name || 'Cliente'}</td>
+                          <td className="p-3 text-xs text-muted-foreground">
+                            {h.description || (isCredit ? 'Cashback ganho' : isDebit ? 'Cashback utilizado' : 'Cashback expirado')}
+                          </td>
+                          <td className={cn(
+                            "p-3 text-right font-medium",
+                            isCredit ? "text-success" : isDebit ? "text-destructive" : "text-warning"
+                          )}>
+                            {isCredit ? '+' : '-'} {formatCurrency(Number(h.amount))}
+                          </td>
+                          <td className="p-3">
+                            <Badge variant={isCredit ? "default" : isDebit ? "secondary" : "outline"} className="text-[10px]">
+                              {isCredit ? 'Ganho' : isDebit ? 'Usado' : 'Expirado'}
+                            </Badge>
+                          </td>
+                        </tr>
+                      );
+                    })}
                     {history.length === 0 && (
                       <tr>
                         <td colSpan={5} className="p-8 text-center text-muted-foreground">Nenhuma movimentação registrada.</td>

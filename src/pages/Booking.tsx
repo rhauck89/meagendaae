@@ -1270,6 +1270,16 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
               used_appointment_id: appointmentId as string,
             })
             .eq('id', credit.id);
+
+          // Create transaction record for each used credit
+          await supabase.from('cashback_transactions').insert({
+            company_id: company.id,
+            client_id: savedClientId,
+            amount: Number(credit.amount),
+            type: 'debit',
+            reference_id: appointmentId as string,
+            description: `Cashback utilizado no agendamento #${(appointmentId as string).slice(0, 8)}`,
+          });
         }
       }
 
