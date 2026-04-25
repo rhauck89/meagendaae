@@ -305,41 +305,66 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
 
   // Check for cashback credits when client is identified
   useEffect(() => {
-    if (!savedClientId || !company?.id) return;
-    const checkCashback = async () => {
-      const { data } = await supabase
-        .from('client_cashback')
-        .select('id, amount, expires_at')
-        .eq('client_id', savedClientId)
-        .eq('company_id', company.id)
-        .eq('status', 'active')
-        .gt('expires_at', new Date().toISOString());
-      setCashbackCredits(data || []);
-    };
-    checkCashback();
-    // Check loyalty points
-    const checkLoyalty = async () => {
-      const { data: txs } = await supabase
-        .from('loyalty_points_transactions' as any)
-        .select('balance_after')
-        .eq('client_id', savedClientId)
-        .eq('company_id', company.id)
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      setLoyaltyPoints((txs as any)?.balance_after || 0);
-      // Fetch point value from config
-      const { data: lc } = await supabase
-        .from('loyalty_config' as any)
-        .select('point_value, enabled')
-        .eq('company_id', company.id)
-        .maybeSingle();
-      if (lc && (lc as any).enabled) {
-        setLoyaltyPointValue(Number((lc as any).point_value) || 0);
+    const checkBenefits = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      const currentUserId = session?.user?.id;
+      
+      if (!currentUserId && !savedClientId) {
+        setCashbackCredits([]);
+        setLoyaltyPoints(0);
+        return;
+      }
+
+      if (company?.id) {
+        // Query cashback using direct user_id for isolation if logged in, or fallback to savedClientId
+        const cashbackQuery = supabase
+          .from('client_cashback')
+          .select('id, amount, expires_at')
+          .eq('company_id', company.id)
+          .eq('status', 'active')
+          .gt('expires_at', new Date().toISOString());
+
+        if (currentUserId) {
+          cashbackQuery.eq('user_id', currentUserId);
+        } else {
+          cashbackQuery.eq('client_id', savedClientId);
+        }
+
+        const { data: cbData } = await cashbackQuery;
+        setCashbackCredits(cbData || []);
+
+        // Query loyalty points
+        const loyaltyQuery = supabase
+          .from('loyalty_points_transactions' as any)
+          .select('balance_after')
+          .eq('company_id', company.id)
+          .order('created_at', { ascending: false })
+          .limit(1);
+
+        if (currentUserId) {
+          loyaltyQuery.eq('user_id', currentUserId);
+        } else {
+          loyaltyQuery.eq('client_id', savedClientId);
+        }
+
+        const { data: txs } = await loyaltyQuery.maybeSingle();
+        setLoyaltyPoints((txs as any)?.balance_after || 0);
+
+        // Fetch point value from config
+        const { data: lc } = await supabase
+          .from('loyalty_config' as any)
+          .select('point_value, enabled')
+          .eq('company_id', company.id)
+          .maybeSingle();
+        
+        if (lc && (lc as any).enabled) {
+          setLoyaltyPointValue(Number((lc as any).point_value) || 0);
+        }
       }
     };
-    checkLoyalty();
-  }, [savedClientId, company?.id]);
+    
+    checkBenefits();
+  }, [savedClientId, company?.id, isClientLoggedIn]);
 
   // Check if client is logged in
   useEffect(() => {
