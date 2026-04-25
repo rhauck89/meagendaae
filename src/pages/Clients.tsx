@@ -178,13 +178,18 @@ const Clients = () => {
 
   const profileMap = Object.fromEntries(profiles.map(p => [p.id, p.full_name]));
 
-  // Calculate stats per client
+  // Calculate stats per client - respects filter
   const clientStatsMap = useMemo(() => {
     const map: Record<string, { totalVisits: number; totalSpent: number; lastVisit: string | null; favProfName: string; favProfId: string | null; cancelledCount: number }> = {};
     
+    // Filter appointments for stats calculation if filter is active
+    const filteredApptsForStats = (isAdmin && profFilter !== 'all')
+      ? appointments.filter(a => a.professional_id === profFilter)
+      : appointments;
+
     visibleClients.forEach(client => {
-      const clientAppts = appointments.filter(a => a.client_id === client.id);
-      const completedAppts = clientAppts.filter(a => a.status === 'completed');
+      const clientAppts = filteredApptsForStats.filter(a => a.client_id === client.id);
+      const completedAppts = clientAppts.filter(a => a.status === 'completed' || a.status === 'confirmed');
       const totalVisits = completedAppts.length;
       const totalSpent = completedAppts.reduce((sum, a) => sum + Number(a.total_price), 0);
       const lastVisit = completedAppts.length > 0
@@ -204,7 +209,7 @@ const Clients = () => {
     });
     
     return map;
-  }, [visibleClients, appointments, profileMap]);
+  }, [visibleClients, appointments, profileMap, isAdmin, profFilter]);
 
   // Analytics metrics - respects professional filter
   const metrics = useMemo(() => {
