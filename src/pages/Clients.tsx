@@ -478,7 +478,19 @@ const Clients = () => {
               <UserPlus className="h-5 w-5 text-green-500" />
             </div>
             <div className="min-w-0">
-              <p className="text-xs text-muted-foreground">Clientes no mês</p>
+              <div className="flex items-center gap-1">
+                <p className="text-xs text-muted-foreground">Clientes no mês</p>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Info className="h-3 w-3 text-muted-foreground cursor-help" />
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p className="text-xs">Clientes cuja primeira visita ocorreu neste período</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </div>
               <p className="text-2xl font-bold">{metrics.newClientsMonth}</p>
               <p className="text-xs text-muted-foreground">novos este mês</p>
             </div>
