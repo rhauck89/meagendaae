@@ -967,7 +967,7 @@ const ClientPortal = () => {
 
                     <div className="space-y-3">
                       <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
-                        <History className="h-3 w-3" /> Extrato Detalhado
+                        <HistoryIcon className="h-3 w-3" /> Extrato Detalhado
                       </h3>
                       
                       {/* Saldo por estabelecimento */}
