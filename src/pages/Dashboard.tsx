@@ -511,15 +511,32 @@ const Dashboard = () => {
     setCurrentDate(addDays(currentDate, direction * days));
   };
 
-  const updateStatus = async (id: string, status: string, paymentMethod?: string, discountAmount = 0, customAmount?: number) => {
+  const updateStatus = async (
+    id: string, 
+    status: string, 
+    paymentMethod?: string, 
+    manualDiscount = 0, 
+    customAmount?: number,
+    promoDiscount = 0,
+    cashbackUsed = 0
+  ) => {
     const apt = appointments.find((a) => a.id === id);
-    await supabase.from('appointments').update({ status: status as any }).eq('id', id);
+    const totalDiscount = manualDiscount + promoDiscount + cashbackUsed;
+    
+    await supabase.from('appointments').update({ 
+      status: status as any,
+      manual_discount: manualDiscount,
+      promotion_discount: promoDiscount,
+      cashback_used: cashbackUsed,
+      final_price: (customAmount ?? Number(apt?.total_price || 0)) - totalDiscount,
+      original_price: customAmount ?? Number(apt?.total_price || 0)
+    }).eq('id', id);
 
     // If completing, create automatic revenue with commission calculation
     if (status === 'completed' && apt && companyId) {
       const serviceNames = apt.appointment_services?.map((s: any) => s.service?.name).filter(Boolean).join(', ') || 'Serviço';
       const grossPrice = customAmount ?? Number(apt.total_price);
-      const netPrice = Math.max(0, grossPrice - discountAmount);
+      const netPrice = Math.max(0, grossPrice - totalDiscount);
 
       // Fetch collaborator commission settings
       let commissionAmount = 0;
