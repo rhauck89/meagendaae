@@ -14,7 +14,7 @@ import { SEOHead } from '@/components/SEOHead';
 import testimonial1 from '@/assets/testimonial-1.jpg';
 import testimonial2 from '@/assets/testimonial-2.jpg';
 import testimonial3 from '@/assets/testimonial-3.jpg';
-import heroProf from '@/assets/hero-prof.jpg';
+import heroProf from '@/assets/hero-barber.jpg';
 // dashboardPreview import removed as the asset was missing
 
 const testimonials = [

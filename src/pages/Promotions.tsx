@@ -1761,7 +1761,8 @@ export default function Promotions() {
           {insights.length > 1 && (
             <div className="absolute bottom-0 left-0 w-full h-0.5 bg-primary/5">
               <div 
-                className="h-full bg-primary/20 transition-all duration-[15s] ease-linear"
+                style={{ transitionDuration: '15s' }}
+                className="h-full bg-primary/20 transition-all ease-linear"
                 style={{ width: '100%' }}
                 key={activeInsightIndex}
               />
