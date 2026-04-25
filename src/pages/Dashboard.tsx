@@ -404,7 +404,8 @@ const Dashboard = () => {
       revenue,
       revenueCompleted,
       clients: safeNum(uniqueClients),
-      completedAppointments: safeNum(completed.length),
+      completedAppointments: safeNum(confirmed.length),
+
       cancellations: safeNum(cancelled.length),
       occupancyRate: safeNum(occupancyRate),
       avgTicket: confirmed.length > 0 ? safeNum(revenue / confirmed.length) : 0
