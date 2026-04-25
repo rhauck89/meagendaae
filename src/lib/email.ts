@@ -1,7 +1,7 @@
-// Email service — Agendaê (premium templates v3)
+// Email service — Me Agendaê (premium templates v3)
 // - Always invokes the `send-email` edge function (server-side, secure).
 // - Never imports Resend SDK on the client; the API key stays in the backend.
-// - Default sender: "Agendaê <naoresponda@agendae.com.br>"
+// - Default sender: "Me Agendaê <naoresponda@agendae.com.br>"
 // - Default reply-to: "suporte@agendae.com.br"
 // - Structured to scale to new automation types (reminders, cashback, promos…).
 
