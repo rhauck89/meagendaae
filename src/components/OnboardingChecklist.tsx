@@ -336,7 +336,20 @@ const OnboardingChecklist = () => {
 
 export default OnboardingChecklist;
 
-export const resetOnboardingChecklist = () => {
+export const resetOnboardingChecklist = async (userId?: string) => {
   localStorage.removeItem(STORAGE_KEY);
   localStorage.removeItem(SHARED_LINK_KEY);
+  if (userId) {
+    localStorage.removeItem(`onboarding_checklist_completed_hidden_${userId}`);
+    localStorage.removeItem(`onboarding_checklist_completed_completed_${userId}`);
+    await supabase
+      .from('profiles')
+      .update({ 
+        onboarding_hidden: false, 
+        onboarding_completed: false, 
+        onboarding_step: 0 
+      })
+      .eq('user_id', userId);
+  }
 };
+
