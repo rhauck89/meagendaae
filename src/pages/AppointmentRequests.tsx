@@ -97,10 +97,23 @@ const AppointmentRequests = () => {
   };
 
   const handleAcceptClick = async (request: any) => {
-    setFeeType('none');
-    setFixedFeeValue('0');
     setSelectedRequest(request);
     setProcessing(true);
+    
+    // Check if requested date is Sunday
+    try {
+      const date = new Date(request.requested_date + 'T12:00:00');
+      if (date.getDay() === 0) { // 0 is Sunday
+        setFeeType('20');
+      } else {
+        setFeeType('none');
+      }
+    } catch (e) {
+      setFeeType('none');
+    }
+
+    setFixedFeeValue('0');
+    
     try {
       if (request.service_id) {
         const { data: svcData } = await supabase
@@ -108,14 +121,23 @@ const AppointmentRequests = () => {
           .select('duration_minutes, price')
           .eq('id', request.service_id)
           .maybeSingle();
+        
+        // Also get default payment method from company if needed
+        const { data: companyData } = await supabase
+          .from('companies')
+          .select('id, name')
+          .eq('id', companyId!)
+          .maybeSingle();
+
         if (svcData) {
           setServiceInfo({
             price: svcData.price || 0,
-            duration: svcData.duration_minutes || 30
+            duration: svcData.duration_minutes || 30,
+            payment_method: 'Cartão ou Pix (no local)' // Standard default
           });
         }
       } else {
-        setServiceInfo({ price: 0, duration: 30 });
+        setServiceInfo({ price: 0, duration: 30, payment_method: 'A combinar' });
       }
       setAcceptDialogOpen(true);
     } catch (err) {
