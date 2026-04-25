@@ -1,0 +1,1 @@
+ALTER FUNCTION public.handle_cashback_transaction_sync() SET search_path = public;
