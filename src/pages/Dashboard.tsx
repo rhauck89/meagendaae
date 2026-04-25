@@ -317,11 +317,18 @@ const Dashboard = () => {
       setAppointments(data);
       const selectedAppts = data.filter((a) => isSameDay(parseISO(a.start_time), currentDate));
       const validStatuses = ['confirmed', 'completed', 'pending', 'in_progress'];
+      // Fetch optimized stats for the dashboard header if needed, but here we update the local daily stats
+      const selectedAppts = data.filter((a) => isSameDay(parseISO(a.start_time), currentDate));
+      const validStatuses = ['confirmed', 'completed', 'pending', 'in_progress'];
+      
+      // We calculate daily clients correctly by counting distinct client_ids
+      const dailyClients = new Set(selectedAppts.filter((a) => validStatuses.includes(a.status)).map(a => a.client_id).filter(Boolean)).size;
+
       setStats({
         total: selectedAppts.length,
         revenue: selectedAppts.filter((a) => validStatuses.includes(a.status)).reduce((sum, a) => sum + Number(a.total_price), 0),
         revenueCompleted: selectedAppts.filter((a) => a.status === 'completed').reduce((sum, a) => sum + Number(a.total_price), 0),
-        clients: selectedAppts.filter((a) => validStatuses.includes(a.status)).length,
+        clients: dailyClients,
       });
     }
   };
