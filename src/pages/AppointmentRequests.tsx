@@ -35,11 +35,18 @@ const AppointmentRequests = () => {
   // Dialog states
   const [suggestDialogOpen, setSuggestDialogOpen] = useState(false);
   const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
+  const [acceptDialogOpen, setAcceptDialogOpen] = useState(false);
+  const [successDialogOpen, setSuccessDialogOpen] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState<any>(null);
   const [suggestedDate, setSuggestedDate] = useState('');
   const [suggestedTime, setSuggestedTime] = useState('');
   const [rejectionReason, setRejectionReason] = useState('');
   const [processing, setProcessing] = useState(false);
+
+  // Fee states
+  const [feeType, setFeeType] = useState<'none' | '10' | '20' | '30' | 'fixed'>('none');
+  const [fixedFeeValue, setFixedFeeValue] = useState('0');
+  const [serviceInfo, setServiceInfo] = useState<{ price: number; duration: number } | null>(null);
 
   useEffect(() => {
     if (companyId) {
