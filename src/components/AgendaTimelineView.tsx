@@ -32,6 +32,8 @@ interface TimelineAppointment {
   appointment_services?: Array<{ service?: { name?: string } | null; duration_minutes?: number }>;
   delay_minutes?: number | null;
   promotion_id?: string | null;
+  special_schedule?: boolean;
+  extra_fee?: number;
 }
 
 interface TimelineBlockedTime {
