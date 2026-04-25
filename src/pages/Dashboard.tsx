@@ -564,7 +564,7 @@ const Dashboard = () => {
         professional_id: apt.professional_id,
         description: `${apt.client_name || 'Cliente'} — ${serviceNames}`,
         client_name: apt.client_name || 'Cliente',
-        professional_name: collaboratorsList.find(c => c.profile_id === apt.professional_id)?.profiles?.full_name || 'Profissional',
+        professional_name: collaboratorsList.find(c => c.profile_id === apt.professional_id)?.profile?.full_name || 'Profissional',
         service_name: serviceNames,
         amount: netPrice,
         revenue_date: format(parseISO(apt.start_time), 'yyyy-MM-dd'),
