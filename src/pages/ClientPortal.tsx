@@ -20,7 +20,7 @@ import { suggestSmartReward } from '@/lib/smart-rewards';
 import {
   Calendar, DollarSign, Star, Gift, User, LogOut, CheckCircle2,
   Sparkles, Home, ShoppingBag, KeyRound, ArrowRight,
-  Building2, ChevronRight, Bell, Repeat, Wallet,
+  Building2, ChevronRight, Bell, Repeat, Wallet, Plus, Pause, History as HistoryIcon,
 } from 'lucide-react';
 import { format, parseISO, differenceInDays, isPast } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
