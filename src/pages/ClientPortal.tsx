@@ -127,6 +127,7 @@ const ClientPortal = () => {
     clients: ClientRecord[];
     appointments: AppointmentRow[];
     allCashbacks: CashbackRow[];
+    allCashbackTxs: CashbackTx[];
     allLoyaltyTxs: LoyaltyTx[];
     rewards: RewardItem[];
     companies: Record<string, CompanyInfo>;
