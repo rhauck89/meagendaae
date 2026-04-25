@@ -1662,6 +1662,19 @@ const Dashboard = () => {
               )}
             </CardContent>
           </Card>
+          <Card>
+            <CardContent className="p-4 space-y-1">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-amber-500/10 flex items-center justify-center shrink-0">
+                  <Crown className="h-4 w-4 text-amber-500" />
+                </div>
+                <p className="text-sm text-muted-foreground">Top cliente</p>
+              </div>
+              <p className="metric-value text-sm truncate">{monthlyStats.clients > 0 ? (appointments.length > 0 ? "Calculando..." : "Sem dados") : "Sem dados"}</p>
+              <p className="text-xs text-muted-foreground">do mês</p>
+            </CardContent>
+          </Card>
+
         </div>
       </div>
 
