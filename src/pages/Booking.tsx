@@ -185,7 +185,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
   const [promoData, setPromoData] = useState<PromotionInfo | null>(null);
   const isPromoMode = !!promoData;
 
-  const [step, setStep] = useState<Step>('services');
+  const [step, setStep] = useState<Step>(professionalSlug ? 'services' : 'professional');
   const [selectedServices, setSelectedServices] = useState<string[]>([]);
   const [selectedProfessional, setSelectedProfessional] = useState<string | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
@@ -1609,6 +1609,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
         {step === 'services' && (
           <div className="space-y-5 animate-fade-in">
 
+            <button onClick={() => setStep("professional")} className="flex items-center gap-1 text-sm font-medium hover:opacity-80 mb-2" style={{ color: T.textSec }}><ChevronLeft className="h-4 w-4" /> Voltar</button>
             <div>
               <h2 className="text-2xl font-bold tracking-tight">{isPromoMode ? 'Escolha um serviço da promoção' : 'Escolha os serviços'}</h2>
               <p className="text-sm mt-1" style={{ color: T.textSec }}>{isCashbackPromo ? 'Selecione o serviço e ganhe cashback após concluir' : isPromoMode ? 'Selecione o serviço que deseja agendar com desconto' : 'Selecione um ou mais serviços desejados'}</p>
@@ -1719,26 +1720,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                   <span className="font-bold text-base" style={{ color: T.accent }}>R$ {totalPrice.toFixed(2)}</span>
                 </div>
                 <Button
-                  onClick={async () => {
-                    if (skipProfessionalStep) {
-                      if (preselected.isActive() && selectedDate && selectedTime) {
-                        setStep('client');
-                      } else {
-                        setStep('datetime');
-                      }
-                    } else {
-                      const profs = await fetchProfessionals();
-                      if (profs.length === 1) {
-                        if (preselected.isActive() && selectedDate && selectedTime) {
-                          setStep('client');
-                        } else {
-                          setStep('datetime');
-                        }
-                      } else {
-                        setStep('professional');
-                      }
-                    }
-                  }}
+                  onClick={() => setStep("datetime")}
                   className="rounded-xl px-6 font-semibold shadow-lg transition-all hover:scale-105"
                   style={{ background: T.accent, color: '#000' }}
                 >
@@ -1765,7 +1747,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                 return (
                   <div
                     key={p.id}
-                    onClick={() => { setSelectedProfessional(p.id); fetchProfessionalHours(p.id); fetchRecentBookings(p.id); setStep(preselected.isActive() && selectedDate && selectedTime ? 'client' : 'datetime'); }}
+                    onClick={() => { setSelectedProfessional(p.id); fetchProfessionalHours(p.id); fetchRecentBookings(p.id); setStep('services'); }}
                     className="p-5 rounded-2xl cursor-pointer transition-all duration-200 hover:scale-[1.02] text-center"
                     style={{
                       background: sel ? `${T.accent}10` : T.card,
@@ -1803,7 +1785,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
         {/* ═══ DATE/TIME ═══ */}
         {step === 'datetime' && (
           <div className="space-y-5 animate-fade-in">
-            <button onClick={() => setStep(skipProfessionalStep ? 'services' : 'professional')} className="flex items-center gap-1 text-sm font-medium hover:opacity-80" style={{ color: T.textSec }}>
+            <button onClick={() => setStep('services')} className="flex items-center gap-1 text-sm font-medium hover:opacity-80" style={{ color: T.textSec }}>
               <ChevronLeft className="h-4 w-4" /> Voltar
             </button>
             <div>
