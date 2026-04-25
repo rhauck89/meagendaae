@@ -306,6 +306,11 @@ export function UnifiedAppointmentCard({
                   🔥 PROMO
                 </Badge>
               )}
+              {apt.special_schedule && (
+                <Badge variant="secondary" className="bg-purple-500/10 text-purple-600 border-none h-4 px-1 text-[9px] font-bold uppercase tracking-tighter">
+                  🟣 ESPECIAL
+                </Badge>
+              )}
             </div>
             
             <p className={cn(
