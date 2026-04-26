@@ -1478,7 +1478,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
         style={{ 
           background: `${T.card}F2`, 
           borderBottom: `2px solid ${T.accent}44`,
-          boxShadow: '0 4px 20px rgba(0,0,0,0.1)'
+          boxShadow: '0 15px 50px -12px rgba(0,0,0,0.6)'
         }}
       >
         <div className="max-w-2xl mx-auto px-4 py-3 flex items-center justify-between gap-4">
