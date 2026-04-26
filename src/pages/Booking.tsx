@@ -1470,10 +1470,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
 
   // ─── Render ───
   return (
-    <div className="min-h-screen pb-20 sm:pb-0" style={{ background: '#FF0000', color: '#FFFFFF' }}>
-      <div className="fixed top-0 left-0 right-0 z-[9999] bg-yellow-400 text-black p-4 text-center font-black text-4xl animate-bounce">
-        TESTE NOVO BOOKING ATIVO
-      </div>
+    <div className="min-h-screen pb-20 sm:pb-0 font-sans tracking-tight" style={{ background: T.bg, color: T.text }}>
 
       {/* Premium Header Fixo */}
       <header 
