@@ -1875,7 +1875,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
             </button>
             <div className="space-y-1">
               <h2 className="text-2xl font-black tracking-tight flex items-center gap-2">
-                Escolha seu Horário
+                {clientForm.full_name ? `${clientForm.full_name.split(' ')[0]}, qual seu melhor horário?` : 'Escolha seu Horário'}
                 <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
               </h2>
               <p className="text-sm opacity-70" style={{ color: T.textSec }}>Selecione o melhor momento para sua experiência</p>
