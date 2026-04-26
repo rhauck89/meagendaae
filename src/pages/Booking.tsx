@@ -2279,24 +2279,50 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
 
         {/* ═══ BENEFITS CHOICE ═══ */}
         {step === 'benefits' && (
-          <div className="space-y-5 animate-fade-in">
-            <button onClick={() => setStep('client')} className="flex items-center gap-1 text-sm font-medium hover:opacity-80" style={{ color: T.textSec }}>
+          <div className="space-y-8 animate-in slide-in-from-right duration-500">
+            <button onClick={() => setStep('client')} className="flex items-center gap-1 text-xs font-black uppercase tracking-widest opacity-60 hover:opacity-100 transition-opacity" style={{ color: T.textSec }}>
               <ChevronLeft className="h-4 w-4" /> Voltar
             </button>
-            <div>
-              <h2 className="text-2xl font-bold tracking-tight">Ganhe benefícios!</h2>
-              <p className="text-sm mt-1" style={{ color: T.textSec }}>
-                Crie uma conta e acumule recompensas a cada serviço
-              </p>
+            <div className="text-center space-y-4">
+              <div className="w-24 h-24 rounded-full bg-amber-500/10 flex items-center justify-center mx-auto shadow-2xl shadow-amber-500/20">
+                <Sparkles className="h-12 w-12 text-amber-500" />
+              </div>
+              <div className="space-y-2">
+                <h2 className="text-3xl font-black tracking-tight">Ganhe Recompensas!</h2>
+                <p className="text-sm opacity-70 max-w-xs mx-auto" style={{ color: T.textSec }}>
+                  Como cliente especial, você acumula benefícios reais a cada visita.
+                </p>
+              </div>
             </div>
 
-            {/* Continue to confirm */}
+            <div className="grid grid-cols-1 gap-4">
+              <div className="p-6 rounded-[2rem] bg-white/5 border-2 border-dashed border-white/10 flex items-start gap-4">
+                <div className="w-10 h-10 rounded-xl bg-green-500/20 flex items-center justify-center shrink-0">
+                  <span className="text-xl">💰</span>
+                </div>
+                <div>
+                  <p className="font-black text-base">Cashback Instantâneo</p>
+                  <p className="text-xs opacity-60 mt-1">Receba parte do valor pago de volta para usar no seu próximo agendamento.</p>
+                </div>
+              </div>
+              <div className="p-6 rounded-[2rem] bg-white/5 border-2 border-dashed border-white/10 flex items-start gap-4">
+                <div className="w-10 h-10 rounded-xl bg-amber-500/20 flex items-center justify-center shrink-0">
+                  <span className="text-xl">⭐</span>
+                </div>
+                <div>
+                  <p className="font-black text-base">Clube de Fidelidade</p>
+                  <p className="text-xs opacity-60 mt-1">Acumule pontos e troque por serviços gratuitos ou descontos exclusivos.</p>
+                </div>
+              </div>
+            </div>
+
             <Button
               onClick={() => setStep('confirm')}
-              className="w-full rounded-xl py-6 font-semibold text-base shadow-lg"
-              style={{ background: T.accent, color: '#000' }}
+              className="w-full rounded-full py-8 font-black text-lg shadow-2xl transition-all hover:scale-[1.02] active:scale-[0.98] group"
+              style={{ background: `linear-gradient(135deg, ${T.accent}, #F4C752)`, color: '#000' }}
             >
-              Continuar <ChevronRight className="h-4 w-4 ml-1" />
+              Quero meus benefícios
+              <ChevronRight className="h-6 w-6 ml-2 transition-transform group-hover:translate-x-1" />
             </Button>
           </div>
         )}
