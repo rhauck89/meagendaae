@@ -2465,12 +2465,19 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
         {/* ═══ CONFIRM ═══ */}
         {step === 'confirm' && (
           <div className="space-y-6 animate-in slide-in-from-right duration-500">
-            <button onClick={() => setStep('client')} className="flex items-center gap-1 text-xs font-black uppercase tracking-widest opacity-60 hover:opacity-100 transition-opacity" style={{ color: T.textSec }}>
+            <button 
+              onClick={() => setStep('client')} 
+              className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest opacity-60 hover:opacity-100 transition-opacity" 
+              style={{ color: T.textSec }}
+            >
               <ChevronLeft className="h-4 w-4" /> Voltar
             </button>
-            <div className="space-y-1">
-              <h2 className="text-2xl font-black tracking-tight">{clientForm.full_name.split(' ')[0]}, revise sua reserva 👇</h2>
-              <p className="text-sm opacity-70" style={{ color: T.textSec }}>Tudo certo para o seu momento de autocuidado</p>
+            <div className="space-y-2">
+              <h2 className="text-4xl font-black tracking-tighter leading-none">{clientForm.full_name.split(' ')[0]}, revise seu Ticket Premium 👇</h2>
+              <div className="flex items-center gap-2">
+                <p className="text-[10px] font-black opacity-60 uppercase tracking-[0.2em]" style={{ color: T.textSec }}>Confirme os detalhes da sua reserva</p>
+                <div className="h-px flex-1 bg-white/5" />
+              </div>
             </div>
             
             <div 
