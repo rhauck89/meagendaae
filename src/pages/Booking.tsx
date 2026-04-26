@@ -1713,15 +1713,23 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
         {step === 'services' && (
           <div className="space-y-5 animate-fade-in">
 
-            <button onClick={() => setStep("professional")} className="flex items-center gap-1 text-sm font-medium hover:opacity-80 mb-2" style={{ color: T.textSec }}><ChevronLeft className="h-4 w-4" /> Voltar</button>
+            <button 
+              onClick={() => setStep("professional")} 
+              className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest hover:opacity-80 transition-opacity mb-4" 
+              style={{ color: T.textSec }}
+            >
+              <ChevronLeft className="h-4 w-4" /> Voltar
+            </button>
             <div className="space-y-2">
-              <h2 className="text-3xl font-black tracking-tighter flex items-center gap-2" style={{ color: T.text }}>
-                {clientForm.full_name ? `${clientForm.full_name.split(' ')[0]}, escolha seus Serviços` : (isPromoMode ? 'Oferta Selecionada' : 'Escolha seus Serviços')}
-                <Badge className="bg-amber-500 text-black border-none text-[10px] font-black h-5">UAU</Badge>
+              <h2 className="text-4xl font-black tracking-tighter leading-none" style={{ color: T.text }}>
+                {clientForm.full_name ? `${clientForm.full_name.split(' ')[0]}, o que faremos hoje?` : (isPromoMode ? 'Sua Oferta Premium' : 'Escolha seus Serviços')}
               </h2>
-              <p className="text-sm font-bold opacity-60 uppercase tracking-widest" style={{ color: T.textSec }}>
-                {isCashbackPromo ? 'Ganhe dinheiro de volta na hora' : 'Selecione os tratamentos para hoje'}
-              </p>
+              <div className="flex items-center gap-2">
+                <p className="text-[10px] font-black opacity-60 uppercase tracking-[0.2em]" style={{ color: T.textSec }}>
+                  {isCashbackPromo ? 'Ganhe cashback instantâneo' : 'Tratamentos exclusivos para você'}
+                </p>
+                <div className="h-px flex-1 bg-white/5" />
+              </div>
             </div>
 
             {/* Loyalty & Cashback Cards */}
