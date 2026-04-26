@@ -1639,13 +1639,13 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
           <div className="space-y-5 animate-fade-in">
 
             <button onClick={() => setStep("professional")} className="flex items-center gap-1 text-sm font-medium hover:opacity-80 mb-2" style={{ color: T.textSec }}><ChevronLeft className="h-4 w-4" /> Voltar</button>
-            <div>
-              <h2 className="text-2xl font-black tracking-tight flex items-center gap-2">
+            <div className="space-y-2">
+              <h2 className="text-3xl font-black tracking-tighter flex items-center gap-2" style={{ color: T.text }}>
                 {isPromoMode ? 'Oferta Selecionada' : 'Escolha seus Serviços'}
-                <Badge className="bg-green-500/10 text-green-500 border-green-500/20 text-[10px]">Premium</Badge>
+                <Badge className="bg-amber-500 text-black border-none text-[10px] font-black h-5">UAU</Badge>
               </h2>
-              <p className="text-sm mt-1 opacity-70" style={{ color: T.textSec }}>
-                {isCashbackPromo ? 'Selecione e ganhe dinheiro de volta na hora' : 'Escolha os tratamentos que deseja realizar hoje'}
+              <p className="text-sm font-bold opacity-60 uppercase tracking-widest" style={{ color: T.textSec }}>
+                {isCashbackPromo ? 'Ganhe dinheiro de volta na hora' : 'Selecione os tratamentos para hoje'}
               </p>
             </div>
 
