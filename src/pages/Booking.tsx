@@ -1477,7 +1477,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
         className="sticky top-0 z-50 backdrop-blur-xl transition-all duration-500"
         style={{ 
           background: `${T.card}F2`, 
-          borderBottom: `1px solid ${T.border}`,
+          borderBottom: `2px solid ${T.accent}44`,
           boxShadow: '0 4px 20px rgba(0,0,0,0.1)'
         }}
       >
