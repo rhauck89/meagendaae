@@ -1476,7 +1476,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
       <header 
         className="sticky top-0 z-50 backdrop-blur-xl transition-all duration-500"
         style={{ 
-          background: `${T.card}CC`, 
+          background: `${T.card}F2`, 
           borderBottom: `1px solid ${T.border}`,
           boxShadow: '0 4px 20px rgba(0,0,0,0.1)'
         }}
