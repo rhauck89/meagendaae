@@ -1961,15 +1961,22 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
         {/* ═══ DATE/TIME ═══ */}
         {step === 'datetime' && (
           <div className="space-y-6 animate-in slide-in-from-right duration-500">
-            <button onClick={() => setStep('services')} className="flex items-center gap-1 text-xs font-black uppercase tracking-widest opacity-60 hover:opacity-100 transition-opacity" style={{ color: T.textSec }}>
+            <button 
+              onClick={() => setStep('services')} 
+              className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest opacity-60 hover:opacity-100 transition-opacity" 
+              style={{ color: T.textSec }}
+            >
               <ChevronLeft className="h-4 w-4" /> Voltar
             </button>
-            <div className="space-y-1">
-              <h2 className="text-2xl font-black tracking-tight flex items-center gap-2">
-                {clientForm.full_name ? `${clientForm.full_name.split(' ')[0]}, qual seu melhor horário?` : 'Escolha seu Horário'}
-                <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+            <div className="space-y-2">
+              <h2 className="text-4xl font-black tracking-tighter flex items-center gap-3 leading-none">
+                {clientForm.full_name ? `${clientForm.full_name.split(' ')[0]}, seu momento?` : 'Escolha seu Horário'}
+                <div className="w-3 h-3 rounded-full bg-green-500 animate-pulse shadow-[0_0_12px_rgba(34,197,94,0.6)]" />
               </h2>
-              <p className="text-sm opacity-70" style={{ color: T.textSec }}>Selecione o melhor momento para sua experiência</p>
+              <div className="flex items-center gap-2">
+                <p className="text-[10px] font-black opacity-60 uppercase tracking-[0.2em]" style={{ color: T.textSec }}>Selecione o melhor encaixe na agenda</p>
+                <div className="h-px flex-1 bg-white/5" />
+              </div>
             </div>
 
             {/* Quick slot confirmation block */}
