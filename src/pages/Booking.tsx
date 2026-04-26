@@ -1470,10 +1470,75 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
 
   // ─── Render ───
   return (
-    <div className="min-h-screen pb-20 sm:pb-0 font-sans tracking-tight" style={{ background: '#000033', color: T.text }}>
-      <div style={{ background: '#000', color: '#fff', padding: '20px', fontSize: '32px', textAlign: 'center', position: 'fixed', top: 0, left: 0, right: 0, zIndex: 99999 }}>
-        BOOKING REAL ALTERADO
-      </div>
+    <div className="min-h-screen pb-20 sm:pb-0 font-sans tracking-tight" style={{ background: T.bg, color: T.text }}>
+      {/* Premium Header Fixo */}
+      <header 
+        className="sticky top-0 z-50 backdrop-blur-xl transition-all duration-500"
+        style={{ 
+          background: `${T.card}F2`, 
+          borderBottom: `2px solid ${T.accent}44`,
+          boxShadow: '0 15px 50px -12px rgba(0,0,0,0.6)'
+        }}
+      >
+        <div className="max-w-2xl mx-auto px-4 py-3 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3 min-w-0">
+            <a href={companyPageUrl} className="shrink-0">
+              {displayLogoUrl ? (
+                <img src={displayLogoUrl} alt={company.name} className="h-12 w-12 rounded-2xl object-contain bg-white/5 p-1.5 shadow-xl" style={{ border: `1px solid ${T.accent}22` }} />
+              ) : (
+                <div className="w-12 h-12 rounded-2xl flex items-center justify-center shadow-lg" style={{ background: T.accent }}>
+                  <Icon className="h-6 w-6 text-black" />
+                </div>
+              )}
+            </a>
+            <div className="min-w-0">
+              <h1 className="font-black text-lg tracking-tighter truncate uppercase">{company.name}</h1>
+              <div className="flex items-center gap-1.5">
+                <StarRating rating={companyStats?.avgRating || 5} size={10} />
+                <span className="text-[10px] font-black" style={{ color: T.accent }}>{companyStats?.avgRating?.toFixed(1) || '5.0'} • Premium</span>
+              </div>
+            </div>
+          </div>
+
+          {step !== 'success' && (
+            <div className="flex-1 max-w-[140px] hidden sm:block">
+              <div className="flex justify-between items-center mb-1">
+                <span className="text-[10px] font-black uppercase tracking-widest opacity-60">Etapa {currentStepIdx + 1}/{stepList.length}</span>
+              </div>
+              <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden border border-white/5">
+                <div 
+                  className="h-full rounded-full transition-all duration-700 ease-out shadow-[0_0_10px_rgba(245,158,11,0.5)]" 
+                  style={{ 
+                    background: `linear-gradient(90deg, ${T.accent}, #F4C752)`,
+                    width: `${((currentStepIdx + 1) / stepList.length) * 100}%` 
+                  }} 
+                />
+              </div>
+            </div>
+          )}
+
+          <button
+            onClick={() => setShowReviewModal(true)}
+            className="shrink-0 text-[10px] font-black uppercase tracking-[0.2em] px-4 py-2 rounded-xl border transition-all hover:scale-105 active:scale-95 shadow-lg"
+            style={{ borderColor: `${T.accent}40`, color: T.accent, background: `${T.accent}08` }}
+          >
+            Avaliar
+          </button>
+        </div>
+        
+        {/* Mobile Progress Bar */}
+        {step !== 'success' && (
+          <div className="h-1 w-full bg-white/5 sm:hidden">
+            <div 
+              className="h-full transition-all duration-700 ease-out" 
+              style={{ 
+                background: `linear-gradient(90deg, ${T.accent}, #F4C752)`,
+                width: `${((currentStepIdx + 1) / stepList.length) * 100}%` 
+              }} 
+            />
+          </div>
+        )}
+      </header>
 
       {/* Premium Header Fixo */}
       <header 
