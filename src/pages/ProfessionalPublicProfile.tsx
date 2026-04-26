@@ -1,11 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
-import { Star, MessageCircle, MapPin, Share2, Check, Calendar, Clock, Instagram, Sparkles, Scissors } from 'lucide-react';
-import { LocationBlock, buildMapsUrl } from '@/components/LocationBlock';
+import { Star, MessageCircle, MapPin, Share2, Check, Calendar, Clock, Instagram, Sparkles, Scissors, BadgeCheck, Trophy, Flame, Crown, Users, ArrowLeft, Heart, ShieldCheck, Zap, Repeat } from 'lucide-react';
+import { LocationBlock } from '@/components/LocationBlock';
 import { SEOHead } from '@/components/SEOHead';
-import { format, addDays, startOfDay, isToday, isTomorrow } from 'date-fns';
+import { format, addDays, startOfDay, isToday, isTomorrow, differenceInYears, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { buildWhatsAppUrl, trackWhatsAppClick } from '@/lib/whatsapp';
@@ -15,7 +15,8 @@ import { formatWhatsApp } from '@/lib/whatsapp';
 import { PlatformBranding } from '@/components/PlatformBranding';
 import { getCompanyBranding, buildThemeFromBranding, useApplyBranding } from '@/hooks/useCompanyBranding';
 import { useCompanyAmenities } from '@/hooks/useCompanyAmenities';
-import { AmenitiesDisplay } from '@/components/AmenitiesDisplay';
+import { motion, AnimatePresence, useScroll, useTransform } from 'framer-motion';
+import { toast } from 'sonner';
 
 type BusinessType = 'barbershop' | 'esthetic';
 
