@@ -1470,10 +1470,75 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
 
   // ─── Render ───
   return (
-    <div className="min-h-screen pb-20 sm:pb-0 font-sans tracking-tight" style={{ background: '#000033', color: T.text }}>
-      <div style={{ background: '#000', color: '#fff', padding: '20px', fontSize: '32px', textAlign: 'center', position: 'fixed', top: 0, left: 0, right: 0, zIndex: 99999 }}>
-        BOOKING REAL ALTERADO
-      </div>
+    <div className="min-h-screen pb-20 sm:pb-0 font-sans tracking-tight" style={{ background: T.bg, color: T.text }}>
+      {/* Premium Header Fixo */}
+      <header 
+        className="sticky top-0 z-50 backdrop-blur-xl transition-all duration-500"
+        style={{ 
+          background: `${T.card}F2`, 
+          borderBottom: `2px solid ${T.accent}44`,
+          boxShadow: '0 15px 50px -12px rgba(0,0,0,0.6)'
+        }}
+      >
+        <div className="max-w-2xl mx-auto px-4 py-3 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3 min-w-0">
+            <a href={companyPageUrl} className="shrink-0">
+              {displayLogoUrl ? (
+                <img src={displayLogoUrl} alt={company.name} className="h-12 w-12 rounded-2xl object-contain bg-white/5 p-1.5 shadow-xl" style={{ border: `1px solid ${T.accent}22` }} />
+              ) : (
+                <div className="w-12 h-12 rounded-2xl flex items-center justify-center shadow-lg" style={{ background: T.accent }}>
+                  <Icon className="h-6 w-6 text-black" />
+                </div>
+              )}
+            </a>
+            <div className="min-w-0">
+              <h1 className="font-black text-lg tracking-tighter truncate uppercase">{company.name}</h1>
+              <div className="flex items-center gap-1.5">
+                <StarRating rating={companyStats?.avgRating || 5} size={10} />
+                <span className="text-[10px] font-black" style={{ color: T.accent }}>{companyStats?.avgRating?.toFixed(1) || '5.0'} • Premium</span>
+              </div>
+            </div>
+          </div>
+
+          {step !== 'success' && (
+            <div className="flex-1 max-w-[140px] hidden sm:block">
+              <div className="flex justify-between items-center mb-1">
+                <span className="text-[10px] font-black uppercase tracking-widest opacity-60">Etapa {currentStepIdx + 1}/{stepList.length}</span>
+              </div>
+              <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden border border-white/5">
+                <div 
+                  className="h-full rounded-full transition-all duration-700 ease-out shadow-[0_0_10px_rgba(245,158,11,0.5)]" 
+                  style={{ 
+                    background: `linear-gradient(90deg, ${T.accent}, #F4C752)`,
+                    width: `${((currentStepIdx + 1) / stepList.length) * 100}%` 
+                  }} 
+                />
+              </div>
+            </div>
+          )}
+
+          <button
+            onClick={() => setShowReviewModal(true)}
+            className="shrink-0 text-[10px] font-black uppercase tracking-[0.2em] px-4 py-2 rounded-xl border transition-all hover:scale-105 active:scale-95 shadow-lg"
+            style={{ borderColor: `${T.accent}40`, color: T.accent, background: `${T.accent}08` }}
+          >
+            Avaliar
+          </button>
+        </div>
+        
+        {/* Mobile Progress Bar */}
+        {step !== 'success' && (
+          <div className="h-1 w-full bg-white/5 sm:hidden">
+            <div 
+              className="h-full transition-all duration-700 ease-out" 
+              style={{ 
+                background: `linear-gradient(90deg, ${T.accent}, #F4C752)`,
+                width: `${((currentStepIdx + 1) / stepList.length) * 100}%` 
+              }} 
+            />
+          </div>
+        )}
+      </header>
 
       {/* Premium Header Fixo */}
       <header 
@@ -1544,42 +1609,48 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
         )}
       </header>
 
-      {/* Persistent Professional Card (visible after professional is selected) */}
+      {/* Persistent Professional Card */}
       {selectedProfessional && professionals.length > 0 && step !== 'success' && step !== 'professional' && (() => {
         const prof = professionals.find(p => p.id === selectedProfessional);
         if (!prof) return null;
         return (
-          <div className="max-w-2xl mx-auto px-4 pt-6">
+          <div className="max-w-2xl mx-auto px-4 pt-8">
             <div 
-              className="flex items-center gap-4 p-4 rounded-3xl animate-in fade-in slide-in-from-top-4 duration-500" 
-              style={{ background: `linear-gradient(135deg, ${T.card}, ${T.bg})`, border: `2px solid ${T.accent}`, boxShadow: '0 8px 32px -8px rgba(245, 158, 11, 0.4)' }}
+              className="flex items-center gap-5 p-5 rounded-[2.5rem] animate-in fade-in slide-in-from-top-6 duration-700 relative overflow-hidden group" 
+              style={{ 
+                background: `linear-gradient(135deg, ${T.card}, ${T.bg})`, 
+                border: `2px solid ${T.accent}`, 
+                boxShadow: `0 20px 40px -12px ${T.accent}40` 
+              }}
             >
+              <div className="absolute top-0 right-0 p-12 blur-3xl rounded-full -mr-10 -mt-10 opacity-10 pointer-events-none" style={{ background: T.accent }} />
+              
               <div className="relative shrink-0">
                 {prof.avatar_url ? (
-                  <img src={prof.avatar_url} alt={prof.full_name} className="w-14 h-14 rounded-2xl object-cover" style={{ border: `2px solid ${T.accent}` }} />
+                  <img src={prof.avatar_url} alt={prof.full_name} className="w-16 h-16 rounded-[1.5rem] object-cover shadow-2xl transition-transform group-hover:scale-105" style={{ border: `2px solid ${T.accent}` }} />
                 ) : (
-                  <div className="w-14 h-14 rounded-2xl flex items-center justify-center text-xl font-bold" style={{ background: `${T.accent}20`, color: T.accent, border: `2px solid ${T.accent}` }}>
+                  <div className="w-16 h-16 rounded-[1.5rem] flex items-center justify-center text-2xl font-black shadow-2xl" style={{ background: `${T.accent}15`, color: T.accent, border: `2px solid ${T.accent}` }}>
                     {prof.full_name?.charAt(0)?.toUpperCase()}
                   </div>
                 )}
-                <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-green-500 border-2 rounded-full flex items-center justify-center shadow-lg" style={{ borderColor: T.card }}>
-                  <div className="w-1.5 h-1.5 bg-white rounded-full animate-pulse" />
+                <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-green-500 border-2 rounded-full flex items-center justify-center shadow-xl" style={{ borderColor: T.card }}>
+                  <div className="w-2 h-2 bg-white rounded-full animate-pulse" />
                 </div>
               </div>
               <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-1.5">
-                  <p className="font-bold text-base leading-tight truncate" style={{ color: T.accent }}>{prof.full_name}</p>
-                  <Badge className="bg-amber-500 text-black border-none text-[9px] h-4 py-0 font-black tracking-tighter uppercase">Expert</Badge>
+                <div className="flex items-center gap-2">
+                  <p className="font-black text-lg tracking-tight truncate uppercase" style={{ color: T.accent }}>{prof.full_name}</p>
+                  <Badge className="bg-amber-500 text-black border-none text-[8px] font-black h-4 py-0 px-2 rounded-full uppercase">Pro</Badge>
                 </div>
-                <div className="flex items-center gap-2 mt-1">
-                  <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-white/10 uppercase tracking-widest" style={{ color: T.textSec }}>
-                    {recentBookings && recentBookings > 0 ? `🔥 ${recentBookings} atendimentos hoje` : '⭐ Top avaliado'}
+                <div className="flex items-center gap-2 mt-1.5">
+                  <span className="text-[10px] font-black px-3 py-1 rounded-full bg-white/10 uppercase tracking-[0.1em] backdrop-blur-sm" style={{ color: T.textSec }}>
+                    {recentBookings && recentBookings > 0 ? `🔥 ${recentBookings} agendados hoje` : '⭐ Especialista'}
                   </span>
                 </div>
               </div>
               <button 
                 onClick={() => setStep('professional')}
-                className="p-3 rounded-xl bg-white/5 hover:bg-amber-500/20 transition-all border border-white/10 active:scale-90"
+                className="p-4 rounded-2xl bg-white/5 hover:bg-amber-500/20 transition-all border border-white/10 active:scale-90 shadow-lg group-hover:rotate-12"
                 style={{ color: T.accent }}
               >
                 <RotateCcw className="h-5 w-5" />
@@ -1642,15 +1713,23 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
         {step === 'services' && (
           <div className="space-y-5 animate-fade-in">
 
-            <button onClick={() => setStep("professional")} className="flex items-center gap-1 text-sm font-medium hover:opacity-80 mb-2" style={{ color: T.textSec }}><ChevronLeft className="h-4 w-4" /> Voltar</button>
+            <button 
+              onClick={() => setStep("professional")} 
+              className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest hover:opacity-80 transition-opacity mb-4" 
+              style={{ color: T.textSec }}
+            >
+              <ChevronLeft className="h-4 w-4" /> Voltar
+            </button>
             <div className="space-y-2">
-              <h2 className="text-3xl font-black tracking-tighter flex items-center gap-2" style={{ color: T.text }}>
-                {clientForm.full_name ? `${clientForm.full_name.split(' ')[0]}, escolha seus Serviços` : (isPromoMode ? 'Oferta Selecionada' : 'Escolha seus Serviços')}
-                <Badge className="bg-amber-500 text-black border-none text-[10px] font-black h-5">UAU</Badge>
+              <h2 className="text-4xl font-black tracking-tighter leading-none" style={{ color: T.text }}>
+                {clientForm.full_name ? `${clientForm.full_name.split(' ')[0]}, o que faremos hoje?` : (isPromoMode ? 'Sua Oferta Premium' : 'Escolha seus Serviços')}
               </h2>
-              <p className="text-sm font-bold opacity-60 uppercase tracking-widest" style={{ color: T.textSec }}>
-                {isCashbackPromo ? 'Ganhe dinheiro de volta na hora' : 'Selecione os tratamentos para hoje'}
-              </p>
+              <div className="flex items-center gap-2">
+                <p className="text-[10px] font-black opacity-60 uppercase tracking-[0.2em]" style={{ color: T.textSec }}>
+                  {isCashbackPromo ? 'Ganhe cashback instantâneo' : 'Tratamentos exclusivos para você'}
+                </p>
+                <div className="h-px flex-1 bg-white/5" />
+              </div>
             </div>
 
             {/* Loyalty & Cashback Cards */}
@@ -1799,12 +1878,21 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
         {/* ═══ PROFESSIONAL ═══ */}
         {step === 'professional' && (
           <div className="space-y-6 animate-in slide-in-from-right duration-500">
-            <button onClick={() => setStep('services')} className="flex items-center gap-1 text-xs font-black uppercase tracking-widest opacity-60 hover:opacity-100 transition-opacity" style={{ color: T.textSec }}>
+            <button 
+              onClick={() => setStep('services')} 
+              className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest opacity-60 hover:opacity-100 transition-opacity" 
+              style={{ color: T.textSec }}
+            >
               <ChevronLeft className="h-4 w-4" /> Voltar
             </button>
-            <div className="space-y-1">
-              <h2 className="text-3xl font-black tracking-tighter" style={{ color: T.text }}>{clientForm.full_name ? `${clientForm.full_name.split(' ')[0]}, qual profissional você prefere?` : 'Escolha seu Profissional'}</h2>
-              <p className="text-sm opacity-70" style={{ color: T.textSec }}>Selecione o especialista para seu atendimento</p>
+            <div className="space-y-2">
+              <h2 className="text-4xl font-black tracking-tighter leading-none" style={{ color: T.text }}>
+                {clientForm.full_name ? `${clientForm.full_name.split(' ')[0]}, qual seu Expert?` : 'Escolha seu Expert'}
+              </h2>
+              <div className="flex items-center gap-2">
+                <p className="text-[10px] font-black opacity-60 uppercase tracking-[0.2em]" style={{ color: T.textSec }}>Especialistas prontos para te atender</p>
+                <div className="h-px flex-1 bg-white/5" />
+              </div>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {professionals.map((p, idx) => {
@@ -1873,15 +1961,22 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
         {/* ═══ DATE/TIME ═══ */}
         {step === 'datetime' && (
           <div className="space-y-6 animate-in slide-in-from-right duration-500">
-            <button onClick={() => setStep('services')} className="flex items-center gap-1 text-xs font-black uppercase tracking-widest opacity-60 hover:opacity-100 transition-opacity" style={{ color: T.textSec }}>
+            <button 
+              onClick={() => setStep('services')} 
+              className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest opacity-60 hover:opacity-100 transition-opacity" 
+              style={{ color: T.textSec }}
+            >
               <ChevronLeft className="h-4 w-4" /> Voltar
             </button>
-            <div className="space-y-1">
-              <h2 className="text-2xl font-black tracking-tight flex items-center gap-2">
-                {clientForm.full_name ? `${clientForm.full_name.split(' ')[0]}, qual seu melhor horário?` : 'Escolha seu Horário'}
-                <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+            <div className="space-y-2">
+              <h2 className="text-4xl font-black tracking-tighter flex items-center gap-3 leading-none">
+                {clientForm.full_name ? `${clientForm.full_name.split(' ')[0]}, seu momento?` : 'Escolha seu Horário'}
+                <div className="w-3 h-3 rounded-full bg-green-500 animate-pulse shadow-[0_0_12px_rgba(34,197,94,0.6)]" />
               </h2>
-              <p className="text-sm opacity-70" style={{ color: T.textSec }}>Selecione o melhor momento para sua experiência</p>
+              <div className="flex items-center gap-2">
+                <p className="text-[10px] font-black opacity-60 uppercase tracking-[0.2em]" style={{ color: T.textSec }}>Selecione o melhor encaixe na agenda</p>
+                <div className="h-px flex-1 bg-white/5" />
+              </div>
             </div>
 
             {/* Quick slot confirmation block */}
@@ -2370,12 +2465,19 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
         {/* ═══ CONFIRM ═══ */}
         {step === 'confirm' && (
           <div className="space-y-6 animate-in slide-in-from-right duration-500">
-            <button onClick={() => setStep('client')} className="flex items-center gap-1 text-xs font-black uppercase tracking-widest opacity-60 hover:opacity-100 transition-opacity" style={{ color: T.textSec }}>
+            <button 
+              onClick={() => setStep('client')} 
+              className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest opacity-60 hover:opacity-100 transition-opacity" 
+              style={{ color: T.textSec }}
+            >
               <ChevronLeft className="h-4 w-4" /> Voltar
             </button>
-            <div className="space-y-1">
-              <h2 className="text-2xl font-black tracking-tight">{clientForm.full_name.split(' ')[0]}, revise sua reserva 👇</h2>
-              <p className="text-sm opacity-70" style={{ color: T.textSec }}>Tudo certo para o seu momento de autocuidado</p>
+            <div className="space-y-2">
+              <h2 className="text-4xl font-black tracking-tighter leading-none">{clientForm.full_name.split(' ')[0]}, revise seu Ticket Premium 👇</h2>
+              <div className="flex items-center gap-2">
+                <p className="text-[10px] font-black opacity-60 uppercase tracking-[0.2em]" style={{ color: T.textSec }}>Confirme os detalhes da sua reserva</p>
+                <div className="h-px flex-1 bg-white/5" />
+              </div>
             </div>
             
             <div 
@@ -2604,8 +2706,11 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <h2 className="text-4xl font-black tracking-tighter">Perfeito, {clientForm.full_name.split(' ')[0]}! 🎉</h2>
-                  <p className="text-sm font-bold opacity-60 uppercase tracking-widest" style={{ color: T.textSec }}>Seu horário está reservado com exclusividade</p>
+                  <h2 className="text-5xl font-black tracking-tighter leading-none italic uppercase">Ticket Confirmado!</h2>
+                  <p className="text-xl font-black tracking-tight mt-2" style={{ color: T.accent }}>{clientForm.full_name.split(' ')[0]}, seu momento está reservado. 🎉</p>
+                  <div className="flex justify-center mt-2">
+                    <p className="text-[10px] font-black opacity-60 uppercase tracking-[0.4em] border-y border-white/10 py-1" style={{ color: T.textSec }}>Acesse com exclusividade</p>
+                  </div>
                 </div>
               </div>
 
