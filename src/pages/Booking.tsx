@@ -2076,25 +2076,29 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
 
         {/* ═══ CLIENT INFO ═══ */}
         {step === 'client' && (
-          <div className="space-y-5 animate-fade-in">
+          <div className="space-y-6 animate-in slide-in-from-right duration-500">
             <button onClick={() => {
               if (preselected.isActive()) {
                 setStep('services');
               } else {
                 setStep('datetime');
               }
-            }} className="flex items-center gap-1 text-sm font-medium hover:opacity-80" style={{ color: T.textSec }}>
+            }} className="flex items-center gap-1 text-xs font-black uppercase tracking-widest opacity-60 hover:opacity-100 transition-opacity" style={{ color: T.textSec }}>
               <ChevronLeft className="h-4 w-4" /> Voltar
             </button>
-            <div>
-              <h2 className="text-2xl font-bold tracking-tight">{savedClientId ? 'Confirme seus dados' : 'Seus dados'}</h2>
-              <p className="text-sm mt-1" style={{ color: T.textSec }}>
-                {savedClientId ? 'Dados carregados automaticamente' : 'Preencha para finalizar o agendamento'}
+            <div className="space-y-1">
+              <h2 className="text-2xl font-black tracking-tight">{savedClientId ? 'Bem-vindo de volta!' : 'Só mais um passo...'}</h2>
+              <p className="text-sm opacity-70" style={{ color: T.textSec }}>
+                {savedClientId ? 'Confirme seus dados para finalizar' : 'Complete sua identificação para agendar'}
               </p>
             </div>
+
             {clientDataWasAutoFilled && (
-              <div className="rounded-xl px-4 py-3 flex items-center justify-between" style={{ background: `${T.accent}10`, border: `1px solid ${T.accent}30` }}>
-                <span className="text-sm" style={{ color: T.accent }}>✅ Seus dados foram preenchidos automaticamente</span>
+              <div className="rounded-2xl p-4 flex items-center justify-between animate-in fade-in duration-500" style={{ background: `${T.accent}10`, border: `1px solid ${T.accent}30` }}>
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                  <span className="text-[10px] font-black uppercase tracking-widest" style={{ color: T.accent }}>Dados Carregados</span>
+                </div>
                 <button
                   onClick={() => {
                     setClientForm({ full_name: '', email: '', whatsapp: '', birth_date: '' });
@@ -2106,95 +2110,127 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                       localStorage.removeItem(`client_data_${company.id}`);
                     }
                     localStorage.removeItem('meagendae_client_data');
-                    toast.success('Dados limpos com sucesso');
+                    toast.success('Pronto para novos dados!');
                   }}
-                  className="text-xs px-3 py-1.5 rounded-lg font-medium transition-all hover:opacity-80"
-                  style={{ background: T.card, border: `1px solid ${T.border}`, color: T.textSec }}
+                  className="text-[10px] font-black uppercase tracking-widest opacity-60 hover:opacity-100"
+                  style={{ color: T.textSec }}
                 >
-                  🗑 Limpar
+                  Alterar dados
                 </button>
               </div>
             )}
-            <div className="space-y-4">
-              <div className="space-y-1.5">
-                <Label className="text-sm font-medium flex items-center gap-1.5" style={{ color: T.textSec }}><User className="h-3.5 w-3.5" /> Nome completo *</Label>
-                <Input value={clientForm.full_name} onChange={(e) => setClientForm({ ...clientForm, full_name: e.target.value })} placeholder="Seu nome" className="rounded-xl h-12 text-base" style={{ background: T.card, border: `1px solid ${T.border}`, color: T.text }} />
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-sm font-medium flex items-center gap-1.5" style={{ color: T.textSec }}><Phone className="h-3.5 w-3.5" /> WhatsApp *</Label>
-                <Input
-                  value={clientForm.whatsapp}
-                  onChange={(e) => {
-                    const digits = e.target.value.replace(/\D/g, '').slice(0, 11);
-                    let masked = digits;
-                    if (digits.length > 7) masked = `(${digits.slice(0,2)}) ${digits.slice(2,7)}-${digits.slice(7)}`;
-                    else if (digits.length > 2) masked = `(${digits.slice(0,2)}) ${digits.slice(2)}`;
-                    setClientForm({ ...clientForm, whatsapp: masked });
-                  }}
-                  placeholder="(11) 99999-9999" maxLength={15}
-                  className="rounded-xl h-12 text-base" style={{ background: T.card, border: `1px solid ${T.border}`, color: T.text }}
-                />
-                {clientForm.whatsapp && clientForm.whatsapp.replace(/\D/g, '').length > 0 && !isValidWhatsApp(clientForm.whatsapp) && (
-                  <p className="text-sm text-red-400 mt-1">Número inválido. Use DDD + número.</p>
-                )}
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-sm font-medium flex items-center gap-1.5" style={{ color: T.textSec }}><Mail className="h-3.5 w-3.5" /> Email *</Label>
-                <Input type="email" value={clientForm.email} onChange={(e) => setClientForm({ ...clientForm, email: e.target.value })} placeholder="seuemail@exemplo.com" className="rounded-xl h-12 text-base" style={{ background: T.card, border: `1px solid ${T.border}`, color: T.text }} />
-              </div>
-              {!isClientLoggedIn && (
+
+            <div 
+              className="rounded-[2.5rem] p-6 space-y-5 relative overflow-hidden" 
+              style={{ background: T.card, border: `2px solid ${T.border}` }}
+            >
+              <div className="space-y-4">
                 <div className="space-y-1.5">
-                  <Label className="text-sm font-medium flex items-center gap-1.5" style={{ color: T.textSec }}>🔒 Senha *</Label>
-                  <Input type="password" value={clientPassword} onChange={(e) => setClientPassword(e.target.value)} placeholder="Mínimo 8 caracteres" autoComplete="new-password" className="rounded-xl h-12 text-base" style={{ background: T.card, border: `1px solid ${T.border}`, color: T.text }} />
-                  <p className="text-xs" style={{ color: T.textSec }}>Use no mínimo 8 caracteres. Evite senhas comuns como 123456. Se já tem conta, use sua senha.</p>
+                  <Label className="text-[10px] font-black uppercase tracking-widest opacity-40 ml-2" style={{ color: T.textSec }}>Seu Nome Completo</Label>
+                  <Input 
+                    value={clientForm.full_name} 
+                    onChange={(e) => setClientForm({ ...clientForm, full_name: e.target.value })} 
+                    placeholder="Ex: Raphael Silva" 
+                    className="rounded-2xl h-14 text-base font-bold bg-white/5 border-white/10 focus:border-amber-500 transition-all" 
+                  />
                 </div>
-              )}
-              <div className="space-y-1.5">
-                <Label className="text-sm font-medium flex items-center gap-1.5" style={{ color: T.textSec }}><Cake className="h-3.5 w-3.5" /> Data de nascimento</Label>
-                <Input type="date" value={clientForm.birth_date} onChange={(e) => setClientForm({ ...clientForm, birth_date: e.target.value })} className="rounded-xl h-12 text-base" style={{ background: T.card, border: `1px solid ${T.border}`, color: T.text }} />
+                <div className="space-y-1.5">
+                  <Label className="text-[10px] font-black uppercase tracking-widest opacity-40 ml-2" style={{ color: T.textSec }}>WhatsApp para Confirmação</Label>
+                  <Input
+                    value={clientForm.whatsapp}
+                    onChange={(e) => {
+                      const digits = e.target.value.replace(/\D/g, '').slice(0, 11);
+                      let masked = digits;
+                      if (digits.length > 7) masked = `(${digits.slice(0,2)}) ${digits.slice(2,7)}-${digits.slice(7)}`;
+                      else if (digits.length > 2) masked = `(${digits.slice(0,2)}) ${digits.slice(2)}`;
+                      setClientForm({ ...clientForm, whatsapp: masked });
+                    }}
+                    placeholder="(11) 99999-9999" 
+                    maxLength={15}
+                    className="rounded-2xl h-14 text-base font-bold bg-white/5 border-white/10 focus:border-amber-500 transition-all"
+                  />
+                  {clientForm.whatsapp && clientForm.whatsapp.replace(/\D/g, '').length > 0 && !isValidWhatsApp(clientForm.whatsapp) && (
+                    <p className="text-[10px] font-bold text-red-400 mt-1 uppercase tracking-tighter">Número incompleto. Use DDD + 9 dígitos.</p>
+                  )}
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-[10px] font-black uppercase tracking-widest opacity-40 ml-2" style={{ color: T.textSec }}>Seu Melhor E-mail</Label>
+                  <Input 
+                    type="email" 
+                    value={clientForm.email} 
+                    onChange={(e) => setClientForm({ ...clientForm, email: e.target.value })} 
+                    placeholder="email@exemplo.com" 
+                    className="rounded-2xl h-14 text-base font-bold bg-white/5 border-white/10 focus:border-amber-500 transition-all" 
+                  />
+                </div>
+                {!isClientLoggedIn && (
+                  <div className="space-y-1.5 animate-in slide-in-from-top-2 duration-300">
+                    <Label className="text-[10px] font-black uppercase tracking-widest opacity-40 ml-2" style={{ color: T.textSec }}>Crie uma Senha Segura</Label>
+                    <Input 
+                      type="password" 
+                      value={clientPassword} 
+                      onChange={(e) => setClientPassword(e.target.value)} 
+                      placeholder="Mínimo 8 caracteres" 
+                      className="rounded-2xl h-14 text-base font-bold bg-white/5 border-white/10 focus:border-amber-500 transition-all" 
+                    />
+                    <p className="text-[9px] font-bold opacity-40 uppercase tracking-widest ml-2 leading-relaxed">
+                      Sua senha permite acompanhar cashback, pontos e histórico de agendamentos.
+                    </p>
+                  </div>
+                )}
+                <div className="space-y-1.5">
+                  <Label className="text-[10px] font-black uppercase tracking-widest opacity-40 ml-2" style={{ color: T.textSec }}>Data de Nascimento (Opcional)</Label>
+                  <Input 
+                    type="date" 
+                    value={clientForm.birth_date} 
+                    onChange={(e) => setClientForm({ ...clientForm, birth_date: e.target.value })} 
+                    className="rounded-2xl h-14 text-base font-bold bg-white/5 border-white/10 focus:border-amber-500 transition-all invert-calendar" 
+                  />
+                </div>
+              </div>
+              
+              <div className="flex items-start gap-3 pt-2">
+                <Checkbox 
+                  id="opt-in-whatsapp" 
+                  checked={optInWhatsapp} 
+                  onCheckedChange={(v) => setOptInWhatsapp(v === true)} 
+                  className="mt-1 rounded-md border-white/20"
+                />
+                <label htmlFor="opt-in-whatsapp" className="text-[10px] font-bold uppercase tracking-widest leading-relaxed cursor-pointer opacity-60 hover:opacity-100 transition-opacity" style={{ color: T.textSec }}>
+                  Aceito receber lembretes de horário e novidades via WhatsApp.
+                </label>
               </div>
             </div>
-            <div className="flex items-start gap-3 pt-1">
-              <Checkbox id="opt-in-whatsapp" checked={optInWhatsapp} onCheckedChange={(v) => setOptInWhatsapp(v === true)} />
-              <label htmlFor="opt-in-whatsapp" className="text-sm leading-snug cursor-pointer" style={{ color: T.textSec }}>
-                Aceito receber lembretes e comunicações via WhatsApp. Posso cancelar a qualquer momento.
-              </label>
-            </div>
-            {!clientForm.whatsapp && (
-              <p className="text-sm mt-1" style={{ color: '#F87171' }}>Informe seu número de WhatsApp para continuar.</p>
-            )}
+
             <Button
               onClick={async () => {
                 if (!clientForm.whatsapp || !isValidWhatsApp(clientForm.whatsapp)) {
-                  toast.error('Informe seu número de WhatsApp para continuar.');
+                  toast.error('Informe seu WhatsApp válido para continuar.');
                   return;
                 }
                 if (!clientForm.full_name.trim()) {
-                  toast.error('Informe seu nome para continuar.');
+                  toast.error('Informe seu nome completo para continuar.');
                   return;
                 }
                 if (!clientForm.email?.trim()) {
-                  toast.error('Informe seu email para continuar.');
+                  toast.error('Informe seu e-mail para continuar.');
                   return;
                 }
 
-                // ── Inline auth: sign in or sign up silently ──
                 if (!isClientLoggedIn) {
                   if (!clientPassword || clientPassword.length < 8) {
-                    toast.error('A senha deve ter no mínimo 8 caracteres.');
+                    toast.error('A senha deve ter no mínimo 8 caracteres para sua segurança.');
                     return;
                   }
                   setAuthLoading(true);
                   try {
                     const emailTrimmed = clientForm.email.trim().toLowerCase();
-                    // Try sign in first
                     const { error: signInError } = await supabase.auth.signInWithPassword({
                       email: emailTrimmed,
                       password: clientPassword,
                     });
                     if (!signInError) {
-                      toast.success('Login realizado!');
-                      // link_client_to_user will be called when session is set
+                      toast.success('Bem-vindo de volta!');
                       const formattedPhone = clientForm.whatsapp ? formatWhatsApp(clientForm.whatsapp) : '';
                       const { data: { user } } = await supabase.auth.getUser();
                       if (user) {
@@ -2205,7 +2241,6 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                         } as any);
                       }
                     } else {
-                      // If invalid credentials, try sign up
                       const isInvalidCreds = /invalid login|invalid credentials/i.test(signInError.message);
                       if (!isInvalidCreds) {
                         toast.error(signInError.message);
@@ -2232,19 +2267,17 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                         return;
                       }
                       if (signUpData.user) {
-                        toast.success('Conta criada com sucesso! 🎉 Agora você pode acompanhar seus agendamentos, cashback e pontos.');
+                        toast.success('Conta criada com sucesso! 🎁');
                         await supabase.rpc('link_client_to_user', {
                           p_user_id: signUpData.user.id,
                           p_phone: formattedPhone || null,
                           p_email: emailTrimmed,
                         } as any);
-                        // Welcome email — fire-and-forget
                         try {
                           const { sendWelcomeClientEmail } = await import('@/lib/email');
                           void sendWelcomeClientEmail({ email: emailTrimmed, name: clientForm.full_name.trim() });
-                        } catch (e) { console.warn('[email] welcome client failed', e); }
+                        } catch (e) { console.warn('[email] welcome failed', e); }
                       }
-                      toast.success('Conta criada!');
                     }
                   } catch (err: any) {
                     toast.error(err?.message || 'Erro ao autenticar');
@@ -2254,7 +2287,6 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                   setAuthLoading(false);
                 }
 
-                // Check if company has cashback or loyalty active — show benefits step
                 const hasBenefits = (loyaltyPointValue > 0) || (isPromoMode && promoData?.promotion_type === 'cashback');
                 if (hasBenefits && !savedClientId) {
                   setStep('benefits');
@@ -2262,16 +2294,20 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                   setStep('confirm');
                 }
               }}
-              className="w-full rounded-xl py-6 font-semibold text-base shadow-lg transition-all hover:scale-[1.01]"
-              style={{ background: T.accent, color: '#000' }}
+              className="w-full rounded-full py-8 font-black text-lg shadow-2xl transition-all hover:scale-[1.02] active:scale-[0.98] group"
+              style={{ background: `linear-gradient(135deg, ${T.accent}, #F4C752)`, color: '#000' }}
               disabled={authLoading || !clientForm.full_name.trim() || !clientForm.whatsapp || !isValidWhatsApp(clientForm.whatsapp) || !clientForm.email?.trim() || (!isClientLoggedIn && clientPassword.length < 8)}
             >
               {authLoading ? (
-                <div className="flex items-center gap-2">
-                  <div className="w-5 h-5 border-2 rounded-full animate-spin" style={{ borderColor: '#000 transparent transparent transparent' }} /> Estamos preparando sua conta...
+                <div className="flex items-center gap-3">
+                  <div className="w-5 h-5 border-4 rounded-full animate-spin" style={{ borderColor: '#000 transparent transparent transparent' }} />
+                  Preparando seu Acesso...
                 </div>
               ) : (
-                <>Revisar Agendamento <ChevronRight className="h-4 w-4 ml-1" /></>
+                <div className="flex items-center gap-2">
+                  Revisar Agendamento
+                  <ChevronRight className="h-6 w-6 ml-1 transition-transform group-hover:translate-x-1" />
+                </div>
               )}
             </Button>
           </div>
