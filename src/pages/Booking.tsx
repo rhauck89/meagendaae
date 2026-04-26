@@ -1470,134 +1470,169 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
 
   // ─── Render ───
   return (
-    <div className="min-h-screen" style={{ background: T.bg, color: T.text }}>
-      {/* Banner */}
-      {displayCoverUrl && (
-        <div className="w-full h-36 sm:h-48 overflow-hidden">
-          <img src={displayCoverUrl} alt={company.name} className="w-full h-full object-cover" />
-        </div>
-      )}
-
-      {/* Header */}
-      <header style={{ background: T.card, borderBottom: `1px solid ${T.border}` }}>
-        <div className="max-w-2xl mx-auto px-4 py-4 flex items-center gap-3">
-          <a href={companyPageUrl} className="shrink-0">
-            {displayLogoUrl ? (
-              <img src={displayLogoUrl} alt={company.name} className="max-h-11 max-w-[120px] object-contain" />
-            ) : (
-              <div className="w-11 h-11 rounded-2xl flex items-center justify-center shadow-lg" style={{ background: T.accent }}>
-                <Icon className="h-5 w-5 text-black" />
+    <div className="min-h-screen pb-20 sm:pb-0" style={{ background: T.bg, color: T.text }}>
+      {/* Premium Header Fixo */}
+      <header 
+        className="sticky top-0 z-50 backdrop-blur-md transition-all duration-300"
+        style={{ 
+          background: `${T.card}CC`, 
+          borderBottom: `1px solid ${T.border}`,
+          boxShadow: '0 4px 20px rgba(0,0,0,0.1)'
+        }}
+      >
+        <div className="max-w-2xl mx-auto px-4 py-3 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3 min-w-0">
+            <a href={companyPageUrl} className="shrink-0">
+              {displayLogoUrl ? (
+                <img src={displayLogoUrl} alt={company.name} className="h-10 w-10 rounded-xl object-contain bg-white/5 p-1" />
+              ) : (
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center shadow-lg" style={{ background: T.accent }}>
+                  <Icon className="h-5 w-5 text-black" />
+                </div>
+              )}
+            </a>
+            <div className="min-w-0">
+              <h1 className="font-bold text-base tracking-tight truncate">{company.name}</h1>
+              <div className="flex items-center gap-1.5">
+                <StarRating rating={companyStats?.avgRating || 5} size={10} />
+                <span className="text-[10px] font-bold" style={{ color: T.accent }}>{companyStats?.avgRating?.toFixed(1) || '5.0'}</span>
               </div>
-            )}
-          </a>
-          <div className="min-w-0 flex-1">
-            <h1 className="font-bold text-lg tracking-tight">{company.name}</h1>
-            {companyStats && companyStats.reviewCount > 0 ? (
-              <div className="flex items-center gap-1.5 flex-wrap mt-0.5">
-                <StarRating rating={companyStats.avgRating} size={14} />
-                <span className="text-xs font-semibold" style={{ color: '#FDBA2D' }}>{companyStats.avgRating.toFixed(1)}</span>
-                <span className="text-xs" style={{ color: T.textSec }}>({companyStats.reviewCount} avaliações)</span>
-              </div>
-            ) : (
-              <p className="text-xs" style={{ color: T.textSec }}>
-                {businessType === 'barbershop' ? 'Barbearia' : 'Estética'} • Agendamento online
-              </p>
-            )}
+            </div>
           </div>
+
+          {step !== 'success' && (
+            <div className="flex-1 max-w-[140px] hidden sm:block">
+              <div className="flex justify-between items-center mb-1">
+                <span className="text-[10px] font-bold uppercase tracking-wider opacity-60">Etapa {currentStepIdx + 1}/{stepList.length}</span>
+              </div>
+              <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
+                <div 
+                  className="h-full rounded-full transition-all duration-700 ease-out" 
+                  style={{ 
+                    background: `linear-gradient(90deg, ${T.accent}, #F4C752)`,
+                    width: `${((currentStepIdx + 1) / stepList.length) * 100}%` 
+                  }} 
+                />
+              </div>
+            </div>
+          )}
+
           <button
             onClick={() => setShowReviewModal(true)}
-            className="shrink-0 text-xs font-medium px-3 py-1.5 rounded-full transition-colors"
-            style={{ background: `${T.accent}20`, color: '#FDBA2D' }}
+            className="shrink-0 text-[10px] font-bold uppercase tracking-widest px-3 py-1.5 rounded-full border transition-all hover:scale-105 active:scale-95"
+            style={{ borderColor: `${T.accent}40`, color: T.accent, background: `${T.accent}05` }}
           >
             Avaliar
           </button>
         </div>
+        
+        {/* Mobile Progress Bar (pinned to bottom of header) */}
+        {step !== 'success' && (
+          <div className="h-0.5 w-full bg-white/5 sm:hidden">
+            <div 
+              className="h-full transition-all duration-700 ease-out" 
+              style={{ 
+                background: `linear-gradient(90deg, ${T.accent}, #F4C752)`,
+                width: `${((currentStepIdx + 1) / stepList.length) * 100}%` 
+              }} 
+            />
+          </div>
+        )}
       </header>
 
       {/* Persistent Professional Card (visible after professional is selected) */}
       {selectedProfessional && professionals.length > 0 && step !== 'success' && step !== 'professional' && (() => {
         const prof = professionals.find(p => p.id === selectedProfessional);
         if (!prof) return null;
-        const rating = professionalRatings[prof.id];
         return (
           <div className="max-w-2xl mx-auto px-4 pt-6">
-            <div className="flex items-center gap-4 p-4 rounded-2xl" style={{ background: T.card, border: `1px solid ${T.border}` }}>
-              {prof.avatar_url ? (
-                <img src={prof.avatar_url} alt={prof.full_name} className="w-16 h-16 rounded-full object-cover shrink-0" style={{ border: `2.5px solid ${T.accent}` }} />
-              ) : (
-                <div className="w-16 h-16 rounded-full flex items-center justify-center text-xl font-bold shrink-0" style={{ background: `${T.accent}20`, color: T.accent, border: `2.5px solid ${T.accent}` }}>
-                  {prof.full_name?.charAt(0)?.toUpperCase()}
+            <div 
+              className="flex items-center gap-4 p-4 rounded-3xl animate-in fade-in slide-in-from-top-4 duration-500" 
+              style={{ background: `linear-gradient(135deg, ${T.card}, ${T.bg})`, border: `1px solid ${T.border}`, boxShadow: '0 8px 32px -8px rgba(0,0,0,0.3)' }}
+            >
+              <div className="relative shrink-0">
+                {prof.avatar_url ? (
+                  <img src={prof.avatar_url} alt={prof.full_name} className="w-14 h-14 rounded-2xl object-cover" style={{ border: `2px solid ${T.accent}` }} />
+                ) : (
+                  <div className="w-14 h-14 rounded-2xl flex items-center justify-center text-xl font-bold" style={{ background: `${T.accent}20`, color: T.accent, border: `2px solid ${T.accent}` }}>
+                    {prof.full_name?.charAt(0)?.toUpperCase()}
+                  </div>
+                )}
+                <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-green-500 border-2 rounded-full flex items-center justify-center shadow-lg" style={{ borderColor: T.card }}>
+                  <div className="w-1.5 h-1.5 bg-white rounded-full animate-pulse" />
                 </div>
-              )}
-              <div className="min-w-0">
-                <p className="font-bold text-lg leading-tight truncate">{prof.full_name}</p>
-                {rating && (
-                  <p className="flex items-center gap-1 text-sm mt-0.5" style={{ color: T.accent }}>
-                    <Star className="h-3.5 w-3.5 fill-current" /> {rating.avg.toFixed(1)}
-                    <span className="font-normal" style={{ color: T.textSec }}>({rating.count} avaliações)</span>
-                  </p>
-                )}
-                <p className="text-xs mt-0.5 truncate" style={{ color: T.textSec }}>{company.name}</p>
-                {recentBookings !== null && recentBookings >= 1 && (
-                  <p className="text-xs mt-1 font-medium" style={{ color: T.greenText }}>
-                    {recentBookings >= 5
-                      ? '🔥 Muito procurado esta semana'
-                      : recentBookings >= 2
-                        ? `👥 ${recentBookings} pessoas agendaram recentemente`
-                        : '👤 1 pessoa agendou recentemente'}
-                  </p>
-                )}
               </div>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-1.5">
+                  <p className="font-bold text-base leading-tight truncate">{prof.full_name}</p>
+                  <Badge className="bg-amber-500/10 text-amber-500 border-amber-500/20 text-[9px] h-4 py-0 font-black tracking-tighter uppercase">Expert</Badge>
+                </div>
+                <div className="flex items-center gap-2 mt-1">
+                  <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-white/5" style={{ color: T.textSec }}>
+                    {recentBookings && recentBookings > 0 ? `🔥 ${recentBookings} atendimentos hoje` : '⭐ Top avaliado'}
+                  </span>
+                </div>
+              </div>
+              <button 
+                onClick={() => setStep('professional')}
+                className="p-2 rounded-xl bg-white/5 hover:bg-white/10 transition-colors"
+                style={{ color: T.textSec }}
+              >
+                <RotateCcw className="h-4 w-4" />
+              </button>
             </div>
           </div>
         );
       })()}
 
       <div className="max-w-2xl mx-auto px-4 py-6 space-y-6">
-        {/* Progress */}
-        {step !== 'success' && (
-          <div className="flex items-center gap-1">
-            {stepList.map((s, i) => (
-              <div key={s} className="flex-1 flex flex-col items-center gap-1">
-                <div className="h-1.5 w-full rounded-full transition-all duration-500" style={{ background: i <= currentStepIdx ? T.accent : T.border }} />
-                <span className="text-[10px] font-medium tracking-wide uppercase" style={{ color: i <= currentStepIdx ? T.accent : T.textSec }}>
-                  {stepLabels[s]}
-                </span>
-              </div>
-            ))}
-          </div>
-        )}
-
         {/* Promotion Banner */}
         {isPromoMode && promoData && step !== 'success' && (
-          <div className="rounded-2xl p-4 space-y-2" style={{ background: `${T.accent}15`, border: `1px solid ${T.accent}40` }}>
-            <div className="flex items-center gap-2">
-              <Sparkles className="h-4 w-4" style={{ color: T.accent }} />
-              <span className="text-xs font-bold uppercase tracking-wider" style={{ color: T.accent }}>
-                {isCashbackPromo ? 'Promoção Cashback' : 'Promoção'}
-              </span>
-            </div>
-            <p className="font-bold text-base">{promoData.title}</p>
-            {isCashbackPromo ? (
-              <div className="space-y-1">
-                <p className="text-sm" style={{ color: T.accent }}>
-                  💰 Ganhe {promoData.discount_type === 'percentage' ? `${promoData.discount_value}%` : `R$ ${Number(promoData.discount_value || 0).toFixed(2)}`} de cashback após concluir o serviço!
-                </p>
-                {promoData.cashback_validity_days && (
-                  <p className="text-xs" style={{ color: T.textSec }}>
-                    Válido por {promoData.cashback_validity_days} dias para uso no próximo agendamento
-                  </p>
-                )}
+          <div 
+            className="rounded-3xl p-5 relative overflow-hidden group animate-in zoom-in-95 duration-500" 
+            style={{ 
+              background: `linear-gradient(135deg, ${T.accent}15, rgba(0,0,0,0.1))`, 
+              border: `1px solid ${T.accent}30` 
+            }}
+          >
+            <div className="absolute top-0 right-0 p-8 blur-3xl rounded-full -mr-10 -mt-10 opacity-20 pointer-events-none" style={{ background: T.accent }} />
+            <div className="relative z-10 space-y-3">
+              <div className="flex items-center gap-2">
+                <div className="p-1.5 rounded-lg" style={{ background: `${T.accent}20` }}>
+                  <Sparkles className="h-4 w-4" style={{ color: T.accent }} />
+                </div>
+                <span className="text-[10px] font-black uppercase tracking-widest" style={{ color: T.accent }}>
+                  {isCashbackPromo ? 'Ganhe Cashback Agora' : 'Oferta Especial Ativa'}
+                </span>
               </div>
-            ) : (
-              promoData.service_name && (
-                <div className="flex items-center gap-3">
-                  <span className="text-sm" style={{ color: T.textSec }}>{promoData.service_name}</span>
-                  {promoData.original_price != null && promoData.promotion_price != null && (
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm line-through" style={{ color: T.textSec }}>R$ {Number(promoData.original_price).toFixed(2)}</span>
-                      <span className="text-sm font-bold" style={{ color: T.accent }}>R$ {Number(promoData.promotion_price).toFixed(2)}</span>
+              <p className="font-black text-xl leading-tight">{promoData.title}</p>
+              {isCashbackPromo ? (
+                <div className="space-y-2">
+                  <p className="text-sm font-bold flex items-center gap-2" style={{ color: '#10b981' }}>
+                    <div className="w-2 h-2 rounded-full bg-[#10b981] animate-pulse" />
+                    Ganhe {promoData.discount_type === 'percentage' ? `${promoData.discount_value}%` : `R$ ${Number(promoData.discount_value || 0).toFixed(2)}`} de volta
+                  </p>
+                  <p className="text-xs opacity-70 leading-relaxed" style={{ color: T.textSec }}>
+                    O valor será creditado em sua conta MeAgendae após a conclusão do serviço para usar quando quiser.
+                  </p>
+                </div>
+              ) : (
+                promoData.service_name && (
+                  <div className="flex items-center gap-4">
+                    <div className="flex flex-col">
+                      <span className="text-[10px] uppercase font-bold opacity-60">De</span>
+                      <span className="text-sm line-through opacity-50">R$ {Number(promoData.original_price).toFixed(2)}</span>
                     </div>
+                    <div className="flex flex-col">
+                      <span className="text-[10px] uppercase font-bold" style={{ color: T.accent }}>Por</span>
+                      <span className="text-xl font-black" style={{ color: T.accent }}>R$ {Number(promoData.promotion_price).toFixed(2)}</span>
+                    </div>
+                  </div>
+                )
+              )}
+            </div>
+          </div>
+        )}
                   )}
                 </div>
               )
