@@ -1800,7 +1800,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
               <ChevronLeft className="h-4 w-4" /> Voltar
             </button>
             <div className="space-y-1">
-              <h2 className="text-2xl font-black tracking-tight">Escolha o Profissional</h2>
+              <h2 className="text-3xl font-black tracking-tighter" style={{ color: T.text }}>{clientForm.full_name ? `${clientForm.full_name.split(' ')[0]}, qual profissional você prefere?` : 'Escolha seu Profissional'}</h2>
               <p className="text-sm opacity-70" style={{ color: T.textSec }}>Selecione o especialista para seu atendimento</p>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
