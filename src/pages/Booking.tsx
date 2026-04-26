@@ -1966,245 +1966,99 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                   </div>
                 )}
 
-                {/* Other available slots */}
-                {nextSlots.length > 0 && (
-                  <div className="rounded-2xl p-5 space-y-4" style={{ background: T.card, border: `1px solid ${T.border}` }}>
-                    <div className="flex items-center gap-2">
-                      <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: `${T.accent}20` }}>
-                        <Zap className="h-4 w-4" style={{ color: T.accent }} />
-                      </div>
-                      <p className="font-semibold text-sm">{smartSuggestion ? 'Outros horários disponíveis' : 'Próximos horários disponíveis'}</p>
-                    </div>
-                    {nextSlots.map(({ date, slots }) => {
-                      const dayLabel = isTodayTz(date) ? 'Hoje' : isTomorrowTz(date) ? 'Amanhã' : format(date, "EEEE, dd/MM", { locale: ptBR });
-                      const filtered = smartSuggestion && isSameDay(date, smartSuggestion.date)
-                        ? slots.filter((s) => s !== smartSuggestion.slot)
-                        : slots;
-                      if (filtered.length === 0) return null;
+                {/* Day Selection Horizontal */}
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2">
+                    <Calendar className="h-4 w-4" style={{ color: T.accent }} />
+                    <span className="text-[10px] font-black uppercase tracking-widest opacity-60">Escolha o dia</span>
+                  </div>
+                  <div className="flex gap-3 overflow-x-auto pb-4 scrollbar-hide">
+                    {nextSlots.map(({ date }) => {
+                      const isSel = selectedDate && isSameDay(date, selectedDate);
                       return (
-                        <div key={date.toISOString()}>
-                          <p className="text-xs font-medium mb-2 capitalize" style={{ color: T.textSec }}>{dayLabel}</p>
-                          <div className="flex flex-wrap gap-2">
-                            {filtered.map((slot) => (
-                              <button
-                                key={`${date.toISOString()}-${slot}`}
-                                onClick={() => handleQuickSlot(date, slot)}
-                                className="px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 hover:scale-105"
-                                style={{ background: T.cardHover, border: `1px solid ${T.border}`, color: T.text }}
-                                onMouseEnter={(e) => { e.currentTarget.style.background = T.accent; e.currentTarget.style.color = '#000'; e.currentTarget.style.borderColor = T.accent; }}
-                                onMouseLeave={(e) => { e.currentTarget.style.background = T.cardHover; e.currentTarget.style.color = T.text; e.currentTarget.style.borderColor = T.border; }}
-                              >
-                                {formatSlotTime(slot)}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
+                        <button
+                          key={date.toISOString()}
+                          onClick={() => { setSelectedDate(date); setSelectedTime(null); }}
+                          className="flex flex-col items-center min-w-[75px] p-4 rounded-[2rem] transition-all duration-300"
+                          style={{
+                            background: isSel ? `linear-gradient(135deg, ${T.accent}, #F4C752)` : T.card,
+                            border: `2px solid ${isSel ? T.accent : T.border}`,
+                            color: isSel ? '#000' : T.text,
+                            boxShadow: isSel ? `0 15px 30px -10px ${T.accent}80` : 'none'
+                          }}
+                        >
+                          <span className="text-[10px] font-black uppercase opacity-60">{format(date, "EEE", { locale: ptBR })}</span>
+                          <span className="text-xl font-black mt-1">{format(date, "dd")}</span>
+                        </button>
                       );
                     })}
                   </div>
-                )}
-                {nextSlotsLoading && <p className="text-sm" style={{ color: T.textSec }}>Buscando próximos horários...</p>}
-
-                <p className="text-xs text-center" style={{ color: T.textSec }}>ou escolha uma data no calendário</p>
-
-                <div className="booking-dark-calendar rounded-2xl p-4" style={{ background: T.card, border: `1px solid ${T.border}` }}>
-                  <CalendarPicker
-                    mode="single" selected={selectedDate}
-                    onSelect={(date) => { setSelectedDate(date); setSelectedTime(null); }}
-                    locale={ptBR}
-                    disabled={(date) => {
-                      const today = new Date(new Date().setHours(0, 0, 0, 0));
-                      if (date < today) return true;
-                      if (isPromoMode && promoData) {
-                        const startDate = new Date(promoData.start_date + 'T00:00:00');
-                        const endDate = new Date(promoData.end_date + 'T23:59:59');
-                        return date < startDate || date > endDate;
-                      }
-                      return false;
-                    }}
-                    className="mx-auto"
-                  />
                 </div>
 
+                {/* Time Selection Grid */}
                 {selectedDate && (
-                  <div className="space-y-3">
-                    <p className="text-sm font-semibold">
-                      Horários disponíveis
-                      {totalDuration > 0 && <span className="font-normal ml-2" style={{ color: T.textSec }}>(bloco de {totalDuration} min)</span>}
-                    </p>
-                    {slotsLoading || !appointmentsLoaded ? (
-                      <div className="space-y-4">
-                        <div className="flex items-center gap-2 py-2" style={{ color: T.textSec }}>
-                          <div className="w-4 h-4 border-2 rounded-full animate-spin" style={{ borderColor: `${T.accent} transparent transparent transparent` }} />
-                          <span className="text-sm font-medium animate-pulse">Buscando melhores horários...</span>
-                        </div>
-                        <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
-                          {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((i) => (
-                            <div 
-                              key={i} 
-                              className="h-10 rounded-xl animate-pulse" 
-                              style={{ background: T.cardHover, opacity: 0.5 }} 
-                            />
-                          ))}
-                        </div>
-                      </div>
-                    ) : availableSlots.length === 0 ? (
-                      <div className="space-y-3">
-                        <p className="text-sm" style={{ color: T.textSec }}>
-                          {businessHours.length === 0 ? 'Horários de funcionamento não configurados' : 'Nenhum horário disponível neste dia'}
-                        </p>
-                        <div className="p-4 rounded-2xl" style={{ background: `${T.accent}08`, border: `1px dashed ${T.accent}40` }}>
-                          <div className="flex items-start gap-3">
-                            <Bell className="h-5 w-5 mt-0.5 shrink-0" style={{ color: T.accent }} />
-                            <div className="flex-1">
-                              <p className="font-semibold text-sm">Quer ser avisado se surgir vaga?</p>
-                              <p className="text-xs mt-1" style={{ color: T.textSec }}>
-                                Entre na lista de espera e avisaremos quando um horário ficar disponível para {format(selectedDate, "dd 'de' MMMM", { locale: ptBR })}.
-                              </p>
-                              <button
-                                className="mt-3 px-4 py-2 rounded-xl text-sm font-medium flex items-center gap-1.5 transition-all hover:scale-105"
-                                style={{ border: `1px solid ${T.accent}`, color: T.accent }}
-                                onClick={() => setShowWaitlistForm(true)}
-                              >
-                                <Bell className="h-3.5 w-3.5" />
-                                Avisar se surgir vaga
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-
-                        {waitlistSuccess && (
-                          <div className="mt-4 p-6 rounded-2xl border text-center space-y-2" style={{ borderColor: '#10B98140', background: '#10B98110' }}>
-                            <div className="text-3xl">✅</div>
-                            <p className="font-semibold text-sm" style={{ color: '#10B981' }}>Você entrou na lista de espera!</p>
-                            <p className="text-xs" style={{ color: T.textSec }}>Avisaremos no WhatsApp se surgir uma vaga.</p>
-                            <button
-                              className="mt-3 px-4 py-2 rounded-xl text-sm font-medium"
-                              style={{ color: T.accent, border: `1px solid ${T.accent}` }}
-                              onClick={() => {
-                                setWaitlistSuccess(false);
-                                setStep('services');
-                                setSelectedServices([]);
-                                setSelectedProfessional(null);
-                                setSelectedDate(undefined);
-                                setSelectedTime(null);
-                              }}
-                            >
-                              Voltar ao início
-                            </button>
-                          </div>
-                        )}
-
-                        {showWaitlistForm && !waitlistSuccess && (
-                          <div className="mt-4 p-4 rounded-2xl border space-y-3" style={{ borderColor: `${T.accent}40`, background: `${T.accent}05` }}>
-                            <p className="font-semibold text-sm">Dados para lista de espera</p>
-                            <div className="space-y-2">
-                              <div>
-                                <label className="text-xs font-medium block mb-1">Nome *</label>
-                                <input
-                                  className="w-full px-3 py-2 rounded-lg border text-sm"
-                                  style={{ background: '#FFFFFF', color: '#111827' }}
-                                  placeholder="Seu nome"
-                                  value={waitlistForm.name}
-                                  onChange={(e) => setWaitlistForm(f => ({ ...f, name: e.target.value }))}
-                                />
-                              </div>
-                              <div>
-                                <label className="text-xs font-medium block mb-1">WhatsApp *</label>
-                                <input
-                                  className="w-full px-3 py-2 rounded-lg border text-sm"
-                                  style={{ background: '#FFFFFF', color: '#111827' }}
-                                  placeholder="(31) 99999-9999"
-                                  value={waitlistForm.whatsapp}
-                                  onChange={(e) => {
-                                    const digits = e.target.value.replace(/\D/g, '').slice(0, 11);
-                                    let masked = digits;
-                                    if (digits.length > 7) masked = `(${digits.slice(0,2)}) ${digits.slice(2,7)}-${digits.slice(7)}`;
-                                    else if (digits.length > 2) masked = `(${digits.slice(0,2)}) ${digits.slice(2)}`;
-                                    setWaitlistForm(f => ({ ...f, whatsapp: masked }));
-                                  }}
-                                  maxLength={15}
-                                />
-                              </div>
-                              <div>
-                                <label className="text-xs font-medium block mb-1">Email (opcional)</label>
-                                <input
-                                  type="email"
-                                  className="w-full px-3 py-2 rounded-lg border text-sm"
-                                  style={{ background: '#FFFFFF', color: '#111827' }}
-                                  placeholder="seu@email.com"
-                                  value={waitlistForm.email}
-                                  onChange={(e) => setWaitlistForm(f => ({ ...f, email: e.target.value }))}
-                                />
-                              </div>
-                            </div>
-                            <div className="flex gap-2">
-                              <button
-                                className="px-4 py-2 rounded-xl text-sm font-medium"
-                                style={{ color: T.textSec }}
-                                onClick={() => setShowWaitlistForm(false)}
-                              >
-                                Cancelar
-                              </button>
-                              <button
-                                className="px-4 py-2 rounded-xl text-sm font-medium text-white"
-                                style={{ background: T.accent }}
-                                onClick={handleJoinWaitlist}
-                                disabled={waitlistLoading}
-                              >
-                                {waitlistLoading ? 'Entrando...' : 'Entrar na lista'}
-                              </button>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    ) : (
-                      <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
-                        {availableSlots.map((slot) => {
-                          const isSel = selectedTime === slot;
-                          return (
-                            <button
-                              key={slot}
-                              onClick={() => setSelectedTime(slot)}
-                              className="py-2.5 rounded-xl text-sm font-medium transition-all duration-200 hover:scale-105"
-                              style={{
-                                background: isSel ? T.accent : T.cardHover,
-                                color: isSel ? '#000' : T.text,
-                                border: `1px solid ${isSel ? T.accent : T.border}`,
-                                boxShadow: isSel ? `0 0 16px ${T.accent}30` : 'none',
-                              }}
-                            >
-                              {formatSlotTime(slot)}
-                            </button>
-                          );
-                        })}
-                      </div>
+                  <div className="space-y-4 animate-in fade-in slide-in-from-top-4 duration-500">
+                    <div className="flex items-center gap-2">
+                      <Clock className="h-4 w-4" style={{ color: T.accent }} />
+                      <span className="text-[10px] font-black uppercase tracking-widest opacity-60">
+                        Horários para {format(selectedDate, "dd/MM")}
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
+                      {(nextSlots.find(d => isSameDay(d.date, selectedDate))?.slots || []).map((slot) => {
+                        const isSel = selectedTime === slot;
+                        return (
+                          <button
+                            key={slot}
+                            onClick={() => { setSelectedTime(slot); setStep('client'); }}
+                            className="py-5 rounded-3xl text-sm font-black transition-all duration-300 border-2"
+                            style={{ 
+                              background: isSel ? T.accent : T.card, 
+                              borderColor: isSel ? T.accent : T.border,
+                              color: isSel ? '#000' : T.text,
+                              boxShadow: isSel ? `0 10px 20px -5px ${T.accent}40` : 'none'
+                            }}
+                          >
+                            {formatSlotTime(slot)}
+                          </button>
+                        );
+                      })}
+                    </div>
+                    
+                    {allowCustomRequests && !isPromoMode && (
+                      <button
+                        onClick={() => setShowCustomRequestForm(true)}
+                        className="w-full mt-6 py-5 rounded-[2rem] text-[10px] font-black uppercase tracking-widest transition-all hover:bg-white/5 border-2 group"
+                        style={{ color: T.accent, border: `2px dashed ${T.accent}40` }}
+                      >
+                        <MessageCircle className="h-5 w-5 inline mr-2 group-hover:rotate-12 transition-transform" />
+                        Solicitar horário personalizado
+                      </button>
                     )}
                   </div>
                 )}
-                {selectedTime && (
-                  <Button
-                    onClick={() => setStep('client')}
-                    className="w-full rounded-xl py-6 font-semibold text-base shadow-lg transition-all hover:scale-[1.01]"
-                    style={{ background: T.accent, color: '#000' }}
-                  >
-                    Continuar <ChevronRight className="h-4 w-4 ml-1" />
-                  </Button>
+
+                {/* Waitlist (if no slots for selected date) */}
+                {selectedDate && (nextSlots.find(d => isSameDay(d.date, selectedDate))?.slots?.length === 0) && (
+                  <div className="p-8 rounded-[2.5rem] text-center space-y-4" style={{ background: `${T.accent}05`, border: `2px dashed ${T.accent}30` }}>
+                    <div className="w-16 h-16 rounded-full bg-amber-500/10 flex items-center justify-center mx-auto">
+                      <Bell className="h-8 w-8 text-amber-500" />
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-black tracking-tight">Vagas Esgotadas</h3>
+                      <p className="text-sm opacity-60 mt-1">Gostaria de ser avisado caso surja uma vaga para este dia?</p>
+                    </div>
+                    <Button
+                      onClick={() => setShowWaitlistForm(true)}
+                      className="rounded-full px-8 py-6 font-black uppercase text-xs tracking-widest"
+                      style={{ background: T.accent, color: '#000' }}
+                    >
+                      Entrar na Lista de Espera
+                    </Button>
+                  </div>
                 )}
 
-                {/* Custom Request Button */}
-                {allowCustomRequests && !isPromoMode && (
-                  <button
-                    onClick={() => setShowCustomRequestForm(true)}
-                    className="w-full text-center py-3 rounded-xl text-sm font-medium transition-all hover:opacity-80"
-                    style={{ color: T.accent, border: `1px dashed ${T.accent}40` }}
-                  >
-                    <Clock className="h-4 w-4 inline mr-1.5" style={{ verticalAlign: '-2px' }} />
-                    Solicitar horário personalizado
-                  </button>
-                )}
-
-                {/* Custom Request Form */}
+                {/* Custom Request Form Component */}
                 {company && (
                   <CustomRequestForm
                     open={showCustomRequestForm}
@@ -2215,7 +2069,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                     themeColors={T}
                   />
                 )}
-              </>
+              </div>
             )}
           </div>
         )}
