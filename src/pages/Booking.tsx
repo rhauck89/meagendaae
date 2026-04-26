@@ -2706,8 +2706,11 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <h2 className="text-4xl font-black tracking-tighter">Perfeito, {clientForm.full_name.split(' ')[0]}! 🎉</h2>
-                  <p className="text-sm font-bold opacity-60 uppercase tracking-widest" style={{ color: T.textSec }}>Seu horário está reservado com exclusividade</p>
+                  <h2 className="text-5xl font-black tracking-tighter leading-none italic uppercase">Ticket Confirmado!</h2>
+                  <p className="text-xl font-black tracking-tight mt-2" style={{ color: T.accent }}>{clientForm.full_name.split(' ')[0]}, seu momento está reservado. 🎉</p>
+                  <div className="flex justify-center mt-2">
+                    <p className="text-[10px] font-black opacity-60 uppercase tracking-[0.4em] border-y border-white/10 py-1" style={{ color: T.textSec }}>Acesse com exclusividade</p>
+                  </div>
                 </div>
               </div>
 
