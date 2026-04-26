@@ -1633,12 +1633,6 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
             </div>
           </div>
         )}
-                  )}
-                </div>
-              )
-            )}
-          </div>
-        )}
 
         {/* ═══ SERVICES ═══ */}
         {step === 'services' && (
