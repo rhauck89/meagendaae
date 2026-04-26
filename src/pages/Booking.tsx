@@ -1878,12 +1878,21 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
         {/* ═══ PROFESSIONAL ═══ */}
         {step === 'professional' && (
           <div className="space-y-6 animate-in slide-in-from-right duration-500">
-            <button onClick={() => setStep('services')} className="flex items-center gap-1 text-xs font-black uppercase tracking-widest opacity-60 hover:opacity-100 transition-opacity" style={{ color: T.textSec }}>
+            <button 
+              onClick={() => setStep('services')} 
+              className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest opacity-60 hover:opacity-100 transition-opacity" 
+              style={{ color: T.textSec }}
+            >
               <ChevronLeft className="h-4 w-4" /> Voltar
             </button>
-            <div className="space-y-1">
-              <h2 className="text-3xl font-black tracking-tighter" style={{ color: T.text }}>{clientForm.full_name ? `${clientForm.full_name.split(' ')[0]}, qual profissional você prefere?` : 'Escolha seu Profissional'}</h2>
-              <p className="text-sm opacity-70" style={{ color: T.textSec }}>Selecione o especialista para seu atendimento</p>
+            <div className="space-y-2">
+              <h2 className="text-4xl font-black tracking-tighter leading-none" style={{ color: T.text }}>
+                {clientForm.full_name ? `${clientForm.full_name.split(' ')[0]}, qual seu Expert?` : 'Escolha seu Expert'}
+              </h2>
+              <div className="flex items-center gap-2">
+                <p className="text-[10px] font-black opacity-60 uppercase tracking-[0.2em]" style={{ color: T.textSec }}>Especialistas prontos para te atender</p>
+                <div className="h-px flex-1 bg-white/5" />
+              </div>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {professionals.map((p, idx) => {
