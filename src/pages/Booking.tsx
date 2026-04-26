@@ -1697,7 +1697,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                         toggleService(svc.id);
                       }
                     }}
-                    className="p-5 rounded-[2rem] transition-all duration-300 cursor-pointer relative overflow-hidden group hover:scale-[1.02] active:scale-[0.98]"
+                    className="p-5 rounded-[2.5rem] transition-all duration-300 cursor-pointer relative overflow-hidden group hover:scale-[1.02] active:scale-[0.98]"
                     style={{
                       background: sel ? `linear-gradient(135deg, ${T.accent}20, ${T.card})` : T.card,
                       border: `2px solid ${sel ? T.accent : T.border}`,
