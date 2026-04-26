@@ -314,8 +314,11 @@ export default function ProfessionalPublicProfile() {
   const seoTitle = `${professional.name} | ${businessType === 'esthetic' ? 'Profissional' : 'Barbeiro'} na ${company.name}`;
   const seoDescription = `Agende com ${professional.name} na ${company.name} em ${company.city || ''} ${company.state || ''}.`.trim();
 
+  const firstName = professional.name.split(' ')[0];
+  const goldGradient = `linear-gradient(135deg, ${T.accent} 0%, #F4C752 50%, ${T.accent} 100%)`;
+
   return (
-    <div className="min-h-screen overflow-x-hidden pb-32" style={{ background: T.bg }}>
+    <div className="min-h-screen overflow-x-hidden pb-28" style={{ background: T.bg }}>
       <SEOHead
         title={seoTitle}
         description={seoDescription}
@@ -325,309 +328,373 @@ export default function ProfessionalPublicProfile() {
         canonical={profileUrl}
       />
 
-      {/* HERO SECTION */}
+      {/* HERO — banner ocupando topo, avatar SOBRE o banner */}
       <section className="relative w-full">
-        <div className="relative h-[240px] overflow-hidden">
+        <div className="relative h-[420px] sm:h-[460px] overflow-hidden">
           <motion.div style={{ y: y1 }} className="absolute inset-0">
             {profile?.banner_url || company?.cover_url ? (
               <img src={profile?.banner_url || company?.cover_url} alt="Banner" className="w-full h-full object-cover" />
             ) : (
               <div className="w-full h-full" style={{ background: `linear-gradient(135deg, ${T.accent}40, ${T.bg})` }} />
             )}
-            <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-[var(--hero-fade)]" style={{ ['--hero-fade' as any]: T.bg }} />
+            <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-black/20 to-[var(--hero-fade)]" style={{ ['--hero-fade' as any]: T.bg }} />
           </motion.div>
 
-          {/* Top Actions */}
+          {/* Top icons */}
           <div className="absolute top-4 left-4 right-4 flex items-center justify-between z-20">
             <button
               onClick={() => navigate(-1)}
-              className="w-10 h-10 rounded-xl flex items-center justify-center backdrop-blur-md bg-black/20 border border-white/10 text-white"
+              className="w-10 h-10 rounded-full flex items-center justify-center backdrop-blur-md bg-black/40 border border-white/10 text-white"
+              aria-label="Voltar"
             >
               <ArrowLeft className="w-5 h-5" />
             </button>
-            <button
-              onClick={handleShare}
-              className="w-10 h-10 rounded-xl flex items-center justify-center backdrop-blur-md bg-black/20 border border-white/10 text-white"
-            >
-              <Share2 className="w-5 h-5" />
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handleShare}
+                className="w-10 h-10 rounded-full flex items-center justify-center backdrop-blur-md bg-black/40 border border-white/10 text-white"
+                aria-label="Compartilhar"
+              >
+                <Share2 className="w-4 h-4" />
+              </button>
+              <button
+                className="w-10 h-10 rounded-full flex items-center justify-center backdrop-blur-md bg-black/40 border border-white/10 text-white"
+                aria-label="Favoritar"
+              >
+                <Heart className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+
+          {/* Avatar centralizado SOBRE o banner */}
+          <div className="absolute inset-x-0 bottom-24 flex justify-center z-10">
+            <motion.div initial={{ scale: 0.85, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="relative">
+              <div className="w-28 h-28 rounded-full p-[3px] shadow-2xl" style={{ background: goldGradient }}>
+                <div className="w-full h-full rounded-full overflow-hidden bg-background">
+                  {avatarUrl ? (
+                    <img src={avatarUrl} alt={professional.name} className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-3xl font-bold" style={{ background: `${T.accent}20`, color: T.accent }}>
+                      {professional.name?.charAt(0)}
+                    </div>
+                  )}
+                </div>
+              </div>
+              <div className="absolute -bottom-1 right-0 rounded-full p-0.5 shadow-lg" style={{ background: goldGradient }}>
+                <div className="w-6 h-6 rounded-full flex items-center justify-center" style={{ background: T.bg }}>
+                  <BadgeCheck className="w-4 h-4" style={{ color: T.accent }} fill={T.accent} stroke={T.bg} />
+                </div>
+              </div>
+            </motion.div>
           </div>
         </div>
 
-        {/* Profile Identity Card */}
-        <div className="relative px-4 -mt-20 z-10 flex flex-col items-center">
-          <motion.div 
-            initial={{ scale: 0.9, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            className="relative"
-          >
-            <div className="w-32 h-32 rounded-full border-4 shadow-xl overflow-hidden bg-background" style={{ borderColor: T.accent }}>
-              {avatarUrl ? (
-                <img src={avatarUrl} alt={professional.name} className="w-full h-full object-cover" />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center text-4xl font-bold" style={{ background: `${T.accent}20`, color: T.accent }}>
-                  {professional.name?.charAt(0)}
-                </div>
-              )}
-            </div>
-            <div className="absolute bottom-1 right-1 bg-blue-500 rounded-full p-1 border-2 border-background shadow-lg">
-              <BadgeCheck className="w-5 h-5 text-white" />
-            </div>
-          </motion.div>
+        {/* Identidade */}
+        <div className="text-center -mt-16 px-4 relative z-10">
+          <div className="flex items-center justify-center gap-2">
+            <h1 className="text-3xl font-black tracking-tight" style={{ color: T.text }}>{professional.name}</h1>
+            <BadgeCheck className="w-6 h-6" style={{ color: T.accent }} fill={T.accent} stroke={T.bg} />
+          </div>
+          <p className="text-sm mt-1.5 opacity-80" style={{ color: T.textSec }}>{profile?.specialty}</p>
 
-          <div className="mt-4 text-center">
-            <h1 className="text-3xl font-bold tracking-tight" style={{ color: T.text }}>{professional.name}</h1>
-            <p className="text-sm font-medium mt-1 flex items-center justify-center gap-1.5 opacity-80" style={{ color: T.textSec }}>
-              <Crown className="w-4 h-4" />
-              {profile?.specialty}
-            </p>
-            
-            {rating && rating.count > 0 && (
-              <div className="flex items-center justify-center gap-1.5 mt-2 bg-yellow-400/10 px-3 py-1 rounded-full border border-yellow-400/20">
-                <div className="flex items-center">
-                  {[1, 2, 3, 4, 5].map(i => (
-                    <Star key={i} className={cn("w-3.5 h-3.5", i <= Math.round(rating.avg) ? "fill-yellow-400 text-yellow-400" : "text-gray-600")} />
-                  ))}
-                </div>
-                <span className="text-sm font-bold" style={{ color: T.text }}>{rating.avg.toFixed(1)}</span>
-                <span className="text-xs opacity-60" style={{ color: T.textSec }}>({rating.count} avaliações)</span>
-              </div>
-            )}
-            
-            <p className="text-xs mt-3 flex items-center justify-center gap-1 opacity-60" style={{ color: T.textSec }}>
+          <div className="flex items-center justify-center gap-4 mt-3 text-sm" style={{ color: T.textSec }}>
+            <div className="flex items-center gap-1.5">
+              <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+              <span className="font-bold" style={{ color: T.text }}>{rating?.avg?.toFixed(1) || '5.0'}</span>
+              <span className="opacity-60">({rating?.count || 0} avaliações)</span>
+            </div>
+            <span className="opacity-30">•</span>
+            <div className="flex items-center gap-1">
               <MapPin className="w-3.5 h-3.5" />
-              {company.city}, {company.state}
-            </p>
+              <span>{company.city}, {company.state}</span>
+            </div>
           </div>
         </div>
       </section>
 
-      <main className="max-w-md mx-auto px-4 mt-8 space-y-8">
-        {/* PREMIUM BADGES */}
-        <section className="grid grid-cols-2 gap-3">
-          <div className="p-4 rounded-2xl border flex flex-col items-center text-center gap-2" style={{ background: T.card, borderColor: T.border }}>
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: `${T.accent}15` }}>
-              <Trophy className="w-5 h-5" style={{ color: T.accent }} />
+      <main className="max-w-3xl mx-auto px-4 mt-8 space-y-6">
+        {/* BADGES — 4 colunas horizontais */}
+        <section className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          {[
+            { icon: Scissors, label: `${profile?.experience_years} anos de experiência` },
+            { icon: Trophy, label: 'Especialista' },
+            { icon: MessageCircle, label: 'Atendimento personalizado' },
+            { icon: Crown, label: 'Top Profissional' },
+          ].map((b, i) => (
+            <div key={i} className="px-3 py-3 rounded-2xl border flex items-center gap-2 justify-center" style={{ background: T.card, borderColor: T.border }}>
+              <b.icon className="w-4 h-4 flex-shrink-0" style={{ color: T.accent }} />
+              <span className="text-xs font-semibold leading-tight" style={{ color: T.text }}>{b.label}</span>
             </div>
-            <div>
-              <p className="text-xs font-medium opacity-60" style={{ color: T.textSec }}>Experiência</p>
-              <p className="text-sm font-bold" style={{ color: T.text }}>+{profile?.experience_years} anos</p>
-            </div>
-          </div>
-          <div className="p-4 rounded-2xl border flex flex-col items-center text-center gap-2" style={{ background: T.card, borderColor: T.border }}>
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-orange-500/15">
-              <Flame className="w-5 h-5 text-orange-500" />
-            </div>
-            <div>
-              <p className="text-xs font-medium opacity-60" style={{ color: T.textSec }}>Status</p>
-              <p className="text-sm font-bold" style={{ color: T.text }}>Altamente procurado</p>
-            </div>
-          </div>
+          ))}
         </section>
 
-        {/* LAST APPOINTMENT / REBOOKING */}
+        {/* CTA PRINCIPAL DOURADO */}
+        <button
+          onClick={() => navigate(bookingUrl)}
+          className="w-full rounded-2xl py-4 px-6 flex items-center justify-center gap-3 shadow-2xl transition-transform hover:scale-[1.01] active:scale-[0.99]"
+          style={{ background: goldGradient, boxShadow: `0 10px 40px -10px ${T.accent}80` }}
+        >
+          <Calendar className="w-5 h-5" style={{ color: '#1a1a1a' }} />
+          <span className="text-base font-black" style={{ color: '#1a1a1a' }}>Agendar com {firstName}</span>
+          <span className="ml-auto" style={{ color: '#1a1a1a' }}>›</span>
+        </button>
+
+        {/* BOTÕES SECUNDÁRIOS */}
+        <div className="grid grid-cols-2 gap-3">
+          {whatsappDigits ? (
+            <a
+              href={buildWhatsAppUrl(whatsappDigits, `Olá ${professional.name}!`)}
+              onClick={() => trackWhatsAppClick('professional-profile')}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center justify-center gap-2 h-12 rounded-xl border font-bold text-sm transition-colors"
+              style={{ borderColor: '#25D36680', background: 'transparent', color: '#25D366' }}
+            >
+              <MessageCircle className="w-4 h-4" />
+              Chamar no WhatsApp
+            </a>
+          ) : (
+            <button onClick={handleShare} className="flex items-center justify-center gap-2 h-12 rounded-xl border font-bold text-sm" style={{ borderColor: T.border, background: 'transparent', color: T.text }}>
+              <Share2 className="w-4 h-4" /> Compartilhar
+            </button>
+          )}
+          <button
+            onClick={() => navigate(`${bookingUrl}?request=true`)}
+            className="flex items-center justify-center gap-2 h-12 rounded-xl border font-bold text-sm"
+            style={{ borderColor: T.border, background: 'transparent', color: T.text }}
+          >
+            <MessageCircle className="w-4 h-4" />
+            Enviar mensagem
+          </button>
+        </div>
+
+        {/* ÚLTIMO ATENDIMENTO */}
         <AnimatePresence>
           {lastBooking && (
-            <motion.section 
-              initial={{ x: 20, opacity: 0 }}
-              animate={{ x: 0, opacity: 1 }}
-              className="p-5 rounded-3xl border-2 overflow-hidden relative"
-              style={{ background: `${T.accent}08`, borderColor: T.accent }}
+            <motion.section
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="rounded-2xl border p-5"
+              style={{ background: T.card, borderColor: T.border }}
             >
-              <div className="flex items-start gap-4">
-                <div className="w-12 h-12 rounded-2xl flex items-center justify-center bg-background border shadow-sm">
-                  <Repeat className="w-6 h-6" style={{ color: T.accent }} />
+              <div className="flex items-center gap-2 mb-4">
+                <Sparkles className="w-4 h-4" style={{ color: T.accent }} />
+                <h3 className="text-sm font-bold" style={{ color: T.text }}>Seu último atendimento com {firstName}</h3>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-[auto,1fr,auto] gap-4 items-center">
+                <div className="flex items-center gap-3">
+                  <div className="w-14 h-14 rounded-full overflow-hidden border-2" style={{ borderColor: T.accent }}>
+                    {avatarUrl ? <img src={avatarUrl} className="w-full h-full object-cover" alt="" /> : <div className="w-full h-full" style={{ background: T.accent }} />}
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold" style={{ color: T.text }}>{lastBooking.serviceName || 'Serviço'}</p>
+                    <p className="text-xs opacity-70" style={{ color: T.textSec }}>
+                      {format(parseISO(lastBooking.start_time), "dd 'de' MMMM 'de' yyyy 'às' HH:mm", { locale: ptBR })}
+                    </p>
+                    <span className="inline-block mt-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-500/15 text-emerald-500">Concluído</span>
+                  </div>
                 </div>
-                <div className="flex-1">
-                  <h3 className="text-sm font-bold" style={{ color: T.text }}>Seu último atendimento com {professional.name.split(' ')[0]}</h3>
-                  <p className="text-xs mt-0.5 opacity-70" style={{ color: T.textSec }}>
-                    {lastBooking.serviceName} • {format(parseISO(lastBooking.start_time), "dd 'de' MMMM", { locale: ptBR })}
+                <div className="px-4 sm:border-l" style={{ borderColor: T.border }}>
+                  <p className="text-xs font-bold flex items-center gap-1" style={{ color: T.accent }}>
+                    💡 Dica do {firstName}
                   </p>
-                  <p className="text-[11px] mt-2 font-medium text-emerald-500 flex items-center gap-1">
-                    <Zap className="w-3 h-3 fill-emerald-500" />
-                    Dica: Para manter o visual, retorne em até 20 dias.
+                  <p className="text-xs mt-1 opacity-80" style={{ color: T.textSec }}>
+                    Para manter o degradê sempre alinhado, retorne em até 20 dias.
                   </p>
-                  <Button 
-                    onClick={() => navigate(`${bookingUrl}?rebook=true`)}
-                    className="w-full mt-4 h-10 rounded-xl font-bold"
-                    style={{ background: T.accent, color: T.bg }}
-                  >
-                    Repetir atendimento
-                  </Button>
                 </div>
+                <Button
+                  onClick={() => navigate(`${bookingUrl}?rebook=true`)}
+                  className="h-11 px-5 rounded-xl font-bold whitespace-nowrap"
+                  style={{ background: T.accent, color: '#1a1a1a' }}
+                >
+                  Repetir atendimento
+                </Button>
               </div>
             </motion.section>
           )}
         </AnimatePresence>
 
-        {/* BIO SECTION */}
-        {profile?.bio && (
-          <section>
-            <h3 className="text-sm font-bold mb-3 uppercase tracking-wider opacity-60 px-1" style={{ color: T.textSec }}>Sobre o profissional</h3>
-            <div className="p-5 rounded-3xl border" style={{ background: T.card, borderColor: T.border }}>
-              <p className="text-sm leading-relaxed" style={{ color: T.textSec }}>{profile.bio}</p>
-            </div>
-          </section>
-        )}
-
-        {/* NUMBERS SECTION */}
-        <section className="grid grid-cols-2 gap-4">
-          <div className="space-y-4">
-            <div className="p-4 rounded-3xl border" style={{ background: T.card, borderColor: T.border }}>
-              <p className="text-2xl font-black" style={{ color: T.text }}>{completedCount}+</p>
-              <p className="text-[10px] uppercase font-bold tracking-widest opacity-50" style={{ color: T.textSec }}>Atendimentos</p>
-            </div>
-            <div className="p-4 rounded-3xl border" style={{ background: T.card, borderColor: T.border }}>
-              <p className="text-2xl font-black" style={{ color: T.text }}>18d</p>
-              <p className="text-[10px] uppercase font-bold tracking-widest opacity-50" style={{ color: T.textSec }}>Média Retorno</p>
-            </div>
-          </div>
-          <div className="space-y-4">
-            <div className="p-4 rounded-3xl border" style={{ background: T.card, borderColor: T.border }}>
-              <p className="text-2xl font-black" style={{ color: T.text }}>98%</p>
-              <p className="text-[10px] uppercase font-bold tracking-widest opacity-50" style={{ color: T.textSec }}>Satisfação</p>
-            </div>
-            <div className="p-4 rounded-3xl border" style={{ background: T.card, borderColor: T.border }}>
-              <p className="text-2xl font-black" style={{ color: T.text }}>{rating?.avg || 5.0}</p>
-              <p className="text-[10px] uppercase font-bold tracking-widest opacity-50" style={{ color: T.textSec }}>Nota Real</p>
-            </div>
-          </div>
-        </section>
-
-        {/* NEXT AVAILABLE */}
-        {nextAvailable && (
-          <section>
-            <h3 className="text-sm font-bold mb-3 uppercase tracking-wider opacity-60 px-1" style={{ color: T.textSec }}>Próximas vagas</h3>
-            <div className="p-6 rounded-3xl border-2" style={{ background: T.card, borderColor: `${T.accent}30` }}>
-              <div className="flex items-center gap-3 mb-4">
-                <Calendar className="w-5 h-5" style={{ color: T.accent }} />
-                <span className="text-sm font-bold capitalize" style={{ color: T.text }}>{nextAvailable.label}</span>
-              </div>
-              <div className="grid grid-cols-3 gap-2">
-                {nextAvailable.slots.slice(0, 5).map(time => (
-                  <button
-                    key={time}
-                    onClick={() => navigate(`${bookingUrl}?date=${format(nextAvailable.date, 'yyyy-MM-dd')}&time=${time}`)}
-                    className="py-3 rounded-xl text-sm font-bold border transition-all hover:scale-105 active:scale-95"
-                    style={{ background: `${T.accent}15`, borderColor: `${T.accent}30`, color: T.accent }}
-                  >
-                    {time}
-                  </button>
-                ))}
-                <button
-                  onClick={() => navigate(bookingUrl)}
-                  className="py-3 rounded-xl text-[10px] font-bold border opacity-60"
-                  style={{ background: 'transparent', borderColor: T.border, color: T.textSec }}
-                >
-                  Ver mais
-                </button>
-              </div>
-            </div>
-          </section>
-        )}
-
-        {/* SERVICES SECTION */}
-        {services.length > 0 && (
-          <section>
-            <div className="flex items-center justify-between mb-3 px-1">
-              <h3 className="text-sm font-bold uppercase tracking-wider opacity-60" style={{ color: T.textSec }}>Serviços Principais</h3>
-              <button onClick={() => navigate(bookingUrl)} className="text-[10px] font-bold uppercase tracking-widest underline" style={{ color: T.accent }}>Ver todos</button>
-            </div>
-            <div className="space-y-3">
-              {services.slice(0, 4).map(svc => (
-                <div 
-                  key={svc.id}
-                  className="group p-4 rounded-3xl border flex items-center justify-between transition-all hover:border-accent"
-                  style={{ background: T.card, borderColor: T.border }}
-                >
-                  <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 rounded-2xl flex items-center justify-center bg-background border">
-                      {businessType === 'barbershop' ? <Scissors className="w-5 h-5" style={{ color: T.accent }} /> : <Sparkles className="w-5 h-5" style={{ color: T.accent }} />}
-                    </div>
-                    <div>
-                      <p className="text-sm font-bold" style={{ color: T.text }}>{svc.name}</p>
-                      <p className="text-[10px] font-medium opacity-50" style={{ color: T.textSec }}>{svc.duration_minutes} min</p>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-sm font-bold" style={{ color: T.accent }}>R$ {Number(svc.price).toFixed(2)}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </section>
-        )}
-
-        {/* REVIEWS SECTION */}
+        {/* AVALIAÇÕES — Nota gigante + 2 depoimentos */}
         {reviews.length > 0 && (
-          <section>
-            <div className="flex items-center justify-between mb-4 px-1">
-              <h3 className="text-sm font-bold uppercase tracking-wider opacity-60" style={{ color: T.textSec }}>O que dizem os clientes</h3>
-              <button onClick={() => setShowAllReviews(true)} className="text-[10px] font-bold uppercase tracking-widest underline" style={{ color: T.accent }}>{totalReviews} avaliações</button>
+          <section className="rounded-2xl border p-5" style={{ background: T.card, borderColor: T.border }}>
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+                <h3 className="text-sm font-bold" style={{ color: T.text }}>Avaliações</h3>
+              </div>
+              <button onClick={() => setShowAllReviews(true)} className="text-xs font-semibold" style={{ color: T.accent }}>Ver todas</button>
             </div>
-            <div className="space-y-4">
+
+            <div className="grid grid-cols-1 md:grid-cols-[200px,1fr,1fr] gap-5 items-center">
+              {/* Nota gigante */}
+              <div className="text-center md:border-r pr-0 md:pr-4" style={{ borderColor: T.border }}>
+                <p className="text-5xl font-black" style={{ color: T.text }}>{rating?.avg?.toFixed(1) || '5.0'}</p>
+                <div className="flex items-center justify-center gap-0.5 mt-1">
+                  {[1, 2, 3, 4, 5].map(s => (
+                    <Star key={s} className={cn("w-4 h-4", s <= Math.round(rating?.avg || 5) ? "fill-yellow-400 text-yellow-400" : "text-gray-600")} />
+                  ))}
+                </div>
+                <p className="text-xs mt-2 opacity-60" style={{ color: T.textSec }}>{totalReviews} avaliações</p>
+              </div>
+
+              {/* Depoimentos */}
               {reviews.slice(0, 2).map((rev, i) => (
-                <div 
-                  key={i}
-                  className="p-5 rounded-3xl border relative"
-                  style={{ background: T.card, borderColor: T.border }}
-                >
-                  <div className="flex items-center gap-1 mb-3">
-                    {[1, 2, 3, 4, 5].map(s => (
-                      <Star key={s} className={cn("w-3 h-3", s <= rev.rating ? "fill-yellow-400 text-yellow-400" : "text-gray-600")} />
-                    ))}
-                  </div>
-                  <p className="text-sm italic leading-relaxed mb-4 opacity-80" style={{ color: T.text }}>"{rev.comment || 'Atendimento excelente, super recomendo!'}"</p>
-                  <div className="flex items-center justify-between">
+                <div key={i} className="text-sm">
+                  <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center gap-2">
-                      <div className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold" style={{ background: `${T.accent}20`, color: T.accent }}>
+                      <div className="w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold" style={{ background: `${T.accent}25`, color: T.accent }}>
                         {rev.client_display_name?.charAt(0) || 'C'}
                       </div>
                       <span className="text-xs font-bold" style={{ color: T.text }}>{rev.client_display_name || 'Cliente'}</span>
                     </div>
-                    <ShieldCheck className="w-4 h-4 text-emerald-500 opacity-50" />
+                    <span className="text-[10px] opacity-50" style={{ color: T.textSec }}>{format(new Date(rev.created_at), 'dd/MM/yyyy')}</span>
                   </div>
+                  <div className="flex items-center gap-0.5 mb-1.5">
+                    {[1, 2, 3, 4, 5].map(s => (
+                      <Star key={s} className={cn("w-3 h-3", s <= rev.rating ? "fill-yellow-400 text-yellow-400" : "text-gray-600")} />
+                    ))}
+                  </div>
+                  <p className="text-xs italic leading-relaxed opacity-80" style={{ color: T.text }}>
+                    "{rev.comment || 'Profissional impecável! Atendimento top e corte sempre perfeito.'}"
+                  </p>
                 </div>
               ))}
             </div>
           </section>
         )}
 
-        {/* CONFIDENCE ICONS / FOOTER */}
-        <section className="pt-8 pb-12 text-center space-y-6">
-          <div className="grid grid-cols-2 gap-4">
-            <div className="flex items-center gap-2 justify-center opacity-60">
-              <ShieldCheck className="w-4 h-4" />
-              <span className="text-[10px] font-bold uppercase tracking-wider">Profissional Certificado</span>
+        {/* SERVIÇOS + AGENDA — duas colunas */}
+        <section className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Serviços */}
+          {services.length > 0 && (
+            <div className="rounded-2xl border p-5" style={{ background: T.card, borderColor: T.border }}>
+              <div className="flex items-center gap-2 mb-4">
+                <Scissors className="w-4 h-4" style={{ color: T.accent }} />
+                <h3 className="text-sm font-bold" style={{ color: T.text }}>Serviços de {firstName}</h3>
+              </div>
+              <div className="space-y-1">
+                {services.slice(0, 5).map(svc => (
+                  <div key={svc.id} className="flex items-center justify-between py-2.5 border-b last:border-b-0" style={{ borderColor: `${T.border}80` }}>
+                    <div className="flex items-center gap-2 min-w-0">
+                      <Scissors className="w-3.5 h-3.5 flex-shrink-0 opacity-60" style={{ color: T.textSec }} />
+                      <span className="text-sm font-medium truncate" style={{ color: T.text }}>{svc.name}</span>
+                    </div>
+                    <div className="flex items-center gap-3 flex-shrink-0">
+                      <span className="text-xs opacity-60" style={{ color: T.textSec }}>{svc.duration_minutes} min</span>
+                      <span className="text-sm font-bold" style={{ color: T.accent }}>R$ {Number(svc.price).toFixed(2)}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <button
+                onClick={() => navigate(bookingUrl)}
+                className="w-full mt-4 py-2.5 rounded-xl border text-xs font-semibold"
+                style={{ borderColor: T.border, color: T.text, background: 'transparent' }}
+              >
+                Ver todos os serviços
+              </button>
             </div>
-            <div className="flex items-center gap-2 justify-center opacity-60">
-              <Heart className="w-4 h-4" />
-              <span className="text-[10px] font-bold uppercase tracking-wider">Satisfação Garantida</span>
+          )}
+
+          {/* Agenda */}
+          {nextAvailable && (
+            <div className="rounded-2xl border p-5" style={{ background: T.card, borderColor: T.border }}>
+              <div className="flex items-center gap-2 mb-4">
+                <Calendar className="w-4 h-4" style={{ color: T.accent }} />
+                <h3 className="text-sm font-bold" style={{ color: T.text }}>Agenda disponível</h3>
+              </div>
+
+              {/* Seletor de data */}
+              <div className="flex items-center gap-2 mb-4">
+                <div
+                  className="flex-1 px-3 py-2.5 rounded-lg border flex items-center justify-between text-sm"
+                  style={{ borderColor: T.border, color: T.text, background: T.bg }}
+                >
+                  <span className="capitalize">{nextAvailable.label.replace(/[^\w\s,]/g, '').trim() || format(nextAvailable.date, "dd 'de' MMMM", { locale: ptBR })}</span>
+                  <span className="opacity-50">▾</span>
+                </div>
+                <button className="w-9 h-9 rounded-lg border flex items-center justify-center" style={{ borderColor: T.border, color: T.textSec }}>‹</button>
+                <button className="w-9 h-9 rounded-lg border flex items-center justify-center" style={{ borderColor: T.border, color: T.textSec }}>›</button>
+              </div>
+
+              {/* Grade de horários */}
+              <div className="grid grid-cols-3 gap-2">
+                {nextAvailable.slots.slice(0, 9).map(time => (
+                  <button
+                    key={time}
+                    onClick={() => navigate(`${bookingUrl}?date=${format(nextAvailable.date, 'yyyy-MM-dd')}&time=${time}`)}
+                    className="py-2.5 rounded-lg text-sm font-bold border transition-all hover:scale-105"
+                    style={{ background: 'transparent', borderColor: `${T.accent}40`, color: T.accent }}
+                  >
+                    {time}
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
-          
-          <div className="opacity-40">
-            <PlatformBranding isDark={isDark} />
-          </div>
+          )}
         </section>
+
+        {/* FAIXA VERDE — CTA secundário */}
+        <section
+          className="rounded-2xl p-5 flex items-center gap-4 justify-between"
+          style={{ background: 'rgba(16, 185, 129, 0.12)', border: '1px solid rgba(16, 185, 129, 0.3)' }}
+        >
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-11 h-11 rounded-xl flex items-center justify-center bg-emerald-500/20 flex-shrink-0">
+              <Calendar className="w-5 h-5 text-emerald-500" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-sm font-bold" style={{ color: T.text }}>Agende seu horário com {firstName}</p>
+              <p className="text-xs opacity-70 truncate" style={{ color: T.textSec }}>Escolha o melhor horário e garanta seu atendimento!</p>
+            </div>
+          </div>
+          <Button
+            onClick={() => navigate(bookingUrl)}
+            className="h-11 px-4 rounded-xl font-bold whitespace-nowrap bg-emerald-500 hover:bg-emerald-600 text-white flex-shrink-0"
+          >
+            Ver horários ›
+          </Button>
+        </section>
+
+        {/* RODAPÉ — 4 ícones de confiança */}
+        <section className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2">
+          {[
+            { icon: Users, title: 'Atendimento', sub: 'Personalizado' },
+            { icon: Crown, title: 'Ambiente', sub: 'Premium' },
+            { icon: ShieldCheck, title: 'Profissional', sub: 'Certificado' },
+            { icon: Heart, title: 'Satisfação', sub: 'Garantida' },
+          ].map((item, i) => (
+            <div key={i} className="rounded-2xl border px-4 py-3 flex items-center gap-3" style={{ background: T.card, borderColor: T.border }}>
+              <item.icon className="w-5 h-5 flex-shrink-0" style={{ color: T.accent }} />
+              <div className="min-w-0">
+                <p className="text-xs font-bold" style={{ color: T.text }}>{item.title}</p>
+                <p className="text-[10px] opacity-60" style={{ color: T.textSec }}>{item.sub}</p>
+              </div>
+            </div>
+          ))}
+        </section>
+
+        <div className="pt-6 pb-4 opacity-40 text-center">
+          <PlatformBranding isDark={isDark} />
+        </div>
       </main>
 
-      {/* FLOATING ACTION BAR MOBILE */}
-      <div className="fixed bottom-0 left-0 right-0 p-4 z-50 pointer-events-none">
-        <div className="max-w-md mx-auto flex gap-3 pointer-events-auto">
-          <Button 
+      {/* Floating CTA mobile */}
+      <div className="fixed bottom-0 left-0 right-0 p-3 z-50 pointer-events-none md:hidden" style={{ background: `linear-gradient(to top, ${T.bg}, transparent)` }}>
+        <div className="max-w-md mx-auto flex gap-2 pointer-events-auto">
+          <Button
             onClick={() => navigate(bookingUrl)}
-            className="flex-1 h-14 rounded-2xl text-base font-black shadow-2xl shadow-accent/20"
-            style={{ background: T.accent, color: T.bg }}
+            className="flex-1 h-13 rounded-xl text-sm font-black shadow-2xl"
+            style={{ background: goldGradient, color: '#1a1a1a', boxShadow: `0 10px 30px -8px ${T.accent}90` }}
           >
-            AGENDAR COM {professional.name.split(' ')[0].toUpperCase()}
+            AGENDAR COM {firstName.toUpperCase()}
           </Button>
           {whatsappDigits && (
             <a
-              href={buildWhatsAppUrl(whatsappDigits, `Olá ${professional.name}! Gostaria de tirar uma dúvida.`)}
-              className="w-14 h-14 rounded-2xl flex items-center justify-center bg-emerald-500 text-white shadow-2xl shadow-emerald-500/20"
+              href={buildWhatsAppUrl(whatsappDigits, `Olá ${professional.name}!`)}
+              className="w-13 h-13 px-3 rounded-xl flex items-center justify-center bg-emerald-500 text-white shadow-xl"
             >
-              <MessageCircle className="w-6 h-6" />
+              <MessageCircle className="w-5 h-5" />
             </a>
           )}
         </div>
