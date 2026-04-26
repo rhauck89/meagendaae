@@ -1868,110 +1868,101 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
 
         {/* ═══ DATE/TIME ═══ */}
         {step === 'datetime' && (
-          <div className="space-y-5 animate-fade-in">
-            <button onClick={() => setStep('services')} className="flex items-center gap-1 text-sm font-medium hover:opacity-80" style={{ color: T.textSec }}>
+          <div className="space-y-6 animate-in slide-in-from-right duration-500">
+            <button onClick={() => setStep('services')} className="flex items-center gap-1 text-xs font-black uppercase tracking-widest opacity-60 hover:opacity-100 transition-opacity" style={{ color: T.textSec }}>
               <ChevronLeft className="h-4 w-4" /> Voltar
             </button>
-            <div>
-              <h2 className="text-2xl font-bold tracking-tight">Escolha data e horário</h2>
-              <p className="text-sm mt-1" style={{ color: T.textSec }}>Selecione o melhor momento para você</p>
+            <div className="space-y-1">
+              <h2 className="text-2xl font-black tracking-tight flex items-center gap-2">
+                Escolha seu Horário
+                <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+              </h2>
+              <p className="text-sm opacity-70" style={{ color: T.textSec }}>Selecione o melhor momento para sua experiência</p>
             </div>
 
             {/* Quick slot confirmation block */}
             {quickSlotSelected && selectedDate && selectedTime ? (
-              <div className="space-y-4">
-                <div className="rounded-2xl p-6 space-y-4" style={{ background: T.card, border: `1.5px solid ${T.accent}`, boxShadow: `0 0 24px ${T.accent}15` }}>
-                  <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: `${T.accent}20` }}>
-                      <Zap className="h-4.5 w-4.5" style={{ color: T.accent }} />
-                    </div>
-                    <p className="font-bold text-base" style={{ color: T.accent }}>Horário selecionado</p>
-                  </div>
-                  <div className="flex items-center gap-4">
-                    <div className="w-14 h-14 rounded-xl flex items-center justify-center" style={{ background: `${T.accent}15` }}>
-                      <CalendarPlus className="h-6 w-6" style={{ color: T.accent }} />
+              <div className="space-y-4 animate-in zoom-in duration-300">
+                <div 
+                  className="rounded-[2.5rem] p-8 space-y-6 relative overflow-hidden" 
+                  style={{ background: `linear-gradient(135deg, ${T.card}, ${T.bg})`, border: `2px solid ${T.accent}`, boxShadow: `0 24px 48px -12px ${T.accent}30` }}
+                >
+                  <div className="absolute top-0 right-0 p-12 blur-3xl rounded-full -mr-10 -mt-10 opacity-20" style={{ background: T.accent }} />
+                  <div className="relative z-10 flex flex-col items-center text-center space-y-4">
+                    <div className="w-16 h-16 rounded-2xl flex items-center justify-center shadow-xl" style={{ background: `linear-gradient(135deg, ${T.accent}, #F4C752)` }}>
+                      <Clock className="h-8 w-8 text-black" />
                     </div>
                     <div>
-                      <p className="font-semibold text-lg capitalize">
-                        {isTodayTz(selectedDate) ? 'Hoje' : isTomorrowTz(selectedDate) ? 'Amanhã' : format(selectedDate, "EEEE", { locale: ptBR })}
-                        {' • '}
-                        {format(selectedDate, "dd/MM", { locale: ptBR })}
+                      <p className="text-[10px] font-black uppercase tracking-[0.2em]" style={{ color: T.accent }}>Horário Selecionado</p>
+                      <p className="text-4xl font-black mt-2">{selectedTime}</p>
+                      <p className="text-sm font-bold opacity-60 mt-1 capitalize">
+                        {isTodayTz(selectedDate) ? 'Hoje' : isTomorrowTz(selectedDate) ? 'Amanhã' : format(selectedDate, "EEEE, dd 'de' MMMM", { locale: ptBR })}
                       </p>
-                      <p className="text-2xl font-bold" style={{ color: T.accent }}>{selectedTime}</p>
                     </div>
+                    <button
+                      onClick={() => {
+                        setQuickSlotSelected(false);
+                        setSelectedTime(null);
+                        setSelectedDate(undefined);
+                      }}
+                      className="text-xs font-black uppercase tracking-widest py-2 px-4 rounded-full bg-white/5 hover:bg-white/10 transition-colors"
+                      style={{ color: T.textSec }}
+                    >
+                      <RotateCcw className="h-3 w-3 inline mr-2" />
+                      Alterar Horário
+                    </button>
                   </div>
-                  <button
-                    onClick={() => {
-                      setQuickSlotSelected(false);
-                      setSelectedTime(null);
-                      setSelectedDate(undefined);
-                    }}
-                    className="w-full py-2.5 rounded-xl text-sm font-medium transition-all hover:opacity-80"
-                    style={{ border: `1px solid ${T.border}`, color: T.textSec }}
-                  >
-                    <RotateCcw className="h-3.5 w-3.5 inline mr-1.5" style={{ verticalAlign: '-2px' }} />
-                    Alterar horário
-                  </button>
                 </div>
                 <Button
                   onClick={() => setStep('client')}
-                  className="w-full rounded-xl py-6 font-semibold text-base shadow-lg transition-all hover:scale-[1.01]"
-                  style={{ background: T.accent, color: '#000' }}
+                  className="w-full rounded-full py-8 font-black text-lg shadow-2xl transition-all hover:scale-[1.02] active:scale-[0.98] group"
+                  style={{ background: `linear-gradient(135deg, ${T.accent}, #F4C752)`, color: '#000' }}
                 >
-                  Continuar <ChevronRight className="h-4 w-4 ml-1" />
+                  Confirmar e Continuar
+                  <ChevronRight className="h-6 w-6 ml-2 transition-transform group-hover:translate-x-1" />
                 </Button>
               </div>
             ) : (
-              <>
+              <div className="space-y-6">
                 {/* Smart suggestion (best gap fit) */}
                 {nextSlotsLoading ? (
-                  <div className="space-y-4 rounded-2xl p-5" style={{ background: T.card, border: `1px solid ${T.border}` }}>
-                    <div className="flex items-center gap-2">
-                      <div className="w-4 h-4 border-2 rounded-full animate-spin" style={{ borderColor: `${T.accent} transparent transparent transparent` }} />
-                      <span className="text-sm font-medium animate-pulse">Buscando melhores sugestões...</span>
+                  <div className="space-y-4 rounded-[2rem] p-6" style={{ background: T.card, border: `1px solid ${T.border}` }}>
+                    <div className="flex items-center gap-3">
+                      <div className="w-5 h-5 border-2 rounded-full animate-spin" style={{ borderColor: `${T.accent} transparent transparent transparent` }} />
+                      <span className="text-xs font-black uppercase tracking-widest opacity-60">Buscando melhores encaixes...</span>
                     </div>
-                    <div className="grid grid-cols-4 gap-2">
-                      {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
-                        <div key={i} className="h-10 rounded-xl animate-pulse" style={{ background: T.cardHover, opacity: 0.5 }} />
+                    <div className="grid grid-cols-4 gap-3">
+                      {[1, 2, 3, 4].map((i) => (
+                        <div key={i} className="h-12 rounded-2xl animate-pulse" style={{ background: 'rgba(255,255,255,0.05)' }} />
                       ))}
                     </div>
                   </div>
                 ) : smartSuggestion && (
                   <div
-                    className="rounded-2xl p-5 space-y-3 animate-fade-in"
+                    className="rounded-[2.5rem] p-6 space-y-4 animate-in zoom-in duration-500 relative overflow-hidden group cursor-pointer"
+                    onClick={() => handleQuickSlot(smartSuggestion.date, smartSuggestion.slot)}
                     style={{
-                      background: `linear-gradient(135deg, ${T.accent}18, ${T.card})`,
-                      border: `1px solid ${T.accent}55`,
-                      boxShadow: `0 8px 24px -12px ${T.accent}40`,
+                      background: `linear-gradient(135deg, ${T.accent}25, ${T.card})`,
+                      border: `2px solid ${T.accent}50`,
+                      boxShadow: `0 20px 40px -20px ${T.accent}40`,
                     }}
                   >
-                    <div className="flex items-center justify-between gap-2">
-                      <div className="flex items-center gap-2">
-                        <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: `${T.accent}30` }}>
-                          <Sparkles className="h-4 w-4" style={{ color: T.accent }} />
-                        </div>
-                        <p className="font-semibold text-sm">Sugestão ideal para você</p>
-                      </div>
-                      <span
-                        className="text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wide"
-                        style={{ background: T.accent, color: '#000' }}
-                      >
-                        Recomendado
-                      </span>
+                    <div className="absolute top-0 right-0 p-4">
+                      <Badge className="bg-amber-500 text-black font-black text-[9px] tracking-tighter border-none">RECOMENDADO</Badge>
                     </div>
-                    <button
-                      onClick={() => handleQuickSlot(smartSuggestion.date, smartSuggestion.slot)}
-                      className="w-full py-4 rounded-xl text-2xl font-bold transition-all duration-200 hover:scale-[1.02] active:scale-[0.99]"
-                      style={{ background: T.accent, color: '#000' }}
-                    >
-                      {formatSlotTime(smartSuggestion.slot)}
-                      <span className="block text-xs font-medium mt-1 opacity-80 capitalize">
-                        {isTodayTz(smartSuggestion.date) ? 'Hoje' : isTomorrowTz(smartSuggestion.date) ? 'Amanhã' : format(smartSuggestion.date, "EEEE, dd/MM", { locale: ptBR })}
-                      </span>
-                    </button>
-                    <p className="text-xs text-center" style={{ color: T.textSec }}>
-                      {smartSuggestion.reason === 'tight-fit' ? '✨ Melhor encaixe na agenda' : 'Primeiro horário disponível'}
-                    </p>
+                    <div className="flex items-center gap-4">
+                      <div className="w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 shadow-lg group-hover:scale-110 transition-transform" style={{ background: `linear-gradient(135deg, ${T.accent}, #F4C752)` }}>
+                        <Zap className="h-7 w-7 text-black" />
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-[10px] font-black uppercase tracking-widest opacity-60">Sugestão Ideal</p>
+                        <p className="text-2xl font-black">{formatSlotTime(smartSuggestion.slot)}</p>
+                        <p className="text-xs font-bold opacity-60 capitalize">
+                          {isTodayTz(smartSuggestion.date) ? 'Hoje' : isTomorrowTz(smartSuggestion.date) ? 'Amanhã' : format(smartSuggestion.date, "EEEE, dd/MM", { locale: ptBR })}
+                        </p>
+                      </div>
+                      <ChevronRight className="h-6 w-6 opacity-30 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
+                    </div>
                   </div>
                 )}
 
