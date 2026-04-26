@@ -111,7 +111,7 @@ export default function ProfessionalPublicProfile() {
             const { data: svc } = await supabase.from('public_services' as any).select('name').eq('id', apptSvcs[0].service_id).maybeSingle();
             setLastBooking({
               ...appt,
-              serviceName: svc?.name
+              serviceName: (svc as any)?.name
             });
           }
         }
