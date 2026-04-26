@@ -2555,146 +2555,96 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
           };
 
           return (
-            <div className="space-y-6 text-center animate-fade-in">
-              <div className="flex justify-center pt-6">
-                <div className="w-24 h-24 rounded-full flex items-center justify-center animate-scale-in" style={{ background: T.green }}>
-                  <CheckCircle2 className="h-12 w-12" style={{ color: T.greenText }} />
+            <div className="space-y-8 animate-in zoom-in-95 duration-700">
+              <div className="flex flex-col items-center gap-6 pt-10">
+                <div className="relative">
+                  <div className="absolute inset-0 bg-green-500 blur-2xl opacity-20 animate-pulse rounded-full" />
+                  <div className="w-24 h-24 rounded-full flex items-center justify-center animate-bounce bg-green-500/10 border-4 border-green-500/20 relative z-10 shadow-2xl">
+                    <CheckCircle2 className="h-12 w-12 text-green-500" />
+                  </div>
                 </div>
-              </div>
-              <div>
-                <h2 className="text-2xl font-bold tracking-tight">Agendamento Confirmado!</h2>
-                <p className="text-sm mt-2" style={{ color: T.textSec }}>Seu horário foi reservado com sucesso</p>
+                <div className="space-y-2">
+                  <h2 className="text-4xl font-black tracking-tighter">Perfeito, {clientForm.full_name.split(' ')[0]}! 🎉</h2>
+                  <p className="text-sm font-bold opacity-60 uppercase tracking-widest" style={{ color: T.textSec }}>Seu horário está reservado com exclusividade</p>
+                </div>
               </div>
 
-              <div className="rounded-2xl p-5 space-y-5 text-left" style={{ background: T.card, border: `1px solid ${T.border}` }}>
-                <div className="flex items-center gap-4">
-                  {bookingResult.professionalAvatar ? (
-                    <img src={bookingResult.professionalAvatar} alt={bookingResult.professionalName} className="w-14 h-14 rounded-full object-cover" />
-                  ) : (
-                    <div className="w-14 h-14 rounded-full flex items-center justify-center text-xl font-bold" style={{ background: `${T.accent}20`, color: T.accent }}>
-                      {bookingResult.professionalName.charAt(0).toUpperCase()}
+              <div 
+                className="rounded-[2.5rem] p-8 space-y-6 relative overflow-hidden text-left" 
+                style={{ background: T.card, border: `2px solid ${T.border}`, boxShadow: '0 32px 64px -16px rgba(0,0,0,0.5)' }}
+              >
+                <div className="absolute top-0 right-0 p-12 blur-3xl rounded-full -mr-10 -mt-10 opacity-10 pointer-events-none" style={{ background: T.accent }} />
+                
+                <div className="flex items-center gap-5">
+                  <div className="w-16 h-16 rounded-2xl bg-white/5 flex items-center justify-center shrink-0">
+                    <CalendarPlus className="h-8 w-8" style={{ color: T.accent }} />
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-black uppercase tracking-widest opacity-40">Data e Hora do Agendamento</p>
+                    <p className="text-xl font-black capitalize">{format(bookingResult.date, "dd 'de' MMMM", { locale: ptBR })}</p>
+                    <p className="text-2xl font-black" style={{ color: T.accent }}>às {bookingResult.time}</p>
+                  </div>
+                </div>
+
+                <div className="h-px w-full bg-white/5" />
+
+                <div className="space-y-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center">
+                      <User className="h-5 w-5 opacity-40" />
                     </div>
-                  )}
-                  <div>
-                    <p className="text-xs" style={{ color: T.textSec }}>Profissional</p>
-                    <p className="font-semibold text-base">{bookingResult.professionalName}</p>
-                  </div>
-                </div>
-                <div style={{ borderTop: `1px solid ${T.border}` }} />
-                <div>
-                  <p className="text-xs mb-2" style={{ color: T.textSec }}>Serviços</p>
-                  <div className="flex flex-wrap gap-2">
-                    {bookingResult.serviceNames.map((name) => (
-                      <span key={name} className="px-3 py-1 rounded-lg text-xs font-medium" style={{ background: `${T.accent}15`, color: T.accent }}>{name}</span>
-                    ))}
-                  </div>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  <div>
-                    <p className="text-xs mb-1" style={{ color: T.textSec }}>📅 Data</p>
-                    <p className="font-semibold text-sm">{format(bookingResult.date, "dd 'de' MMMM, yyyy", { locale: ptBR })}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs mb-1" style={{ color: T.textSec }}>🕐 Horário</p>
-                    <p className="font-semibold text-sm">{bookingResult.time}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs mb-1" style={{ color: T.textSec }}>⏱️ Duração</p>
-                    <p className="font-semibold text-sm">{bookingResult.totalDuration} min</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <MapPin className="h-4 w-4 shrink-0" style={{ color: T.textSec }} />
-                  <div>
-                    <p className="text-xs" style={{ color: T.textSec }}>Local</p>
-                    <p className="font-semibold text-sm">{bookingResult.companyName}</p>
-                  </div>
-                </div>
-                <div style={{ borderTop: `1px solid ${T.border}` }} />
-                {isPromoMode && promoData ? (
-                  <div className="space-y-3">
                     <div>
-                      <p className="text-xs mb-1" style={{ color: T.textSec }}>🎉 Promoção</p>
-                      <p className="font-semibold text-sm">{promoData.title}</p>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      {promoData.original_price != null && (
-                        <span className="text-sm line-through" style={{ color: T.textSec }}>R$ {Number(promoData.original_price).toFixed(2)}</span>
-                      )}
-                      <span className="text-2xl font-bold" style={{ color: T.accent }}>R$ {bookingResult.totalPrice.toFixed(2)}</span>
-                    </div>
-                    {savings > 0 && (
-                      <div className="flex items-center gap-2 px-3 py-2 rounded-xl" style={{ background: 'rgba(34,197,94,0.15)' }}>
-                        <span className="text-sm font-semibold" style={{ color: '#4ADE80' }}>🔥 Você economizou R$ {savings.toFixed(2)}</span>
-                      </div>
-                    )}
-                    <div className="flex items-center gap-2 px-3 py-2 rounded-xl" style={{ background: 'rgba(245,158,11,0.1)' }}>
-                      <span className="text-xs" style={{ color: T.accent }}>⚠ Promoção válida apenas para este horário.</span>
+                      <p className="text-[10px] font-black uppercase tracking-widest opacity-40">Profissional Responsável</p>
+                      <p className="font-black text-base">{bookingResult.professionalName}</p>
                     </div>
                   </div>
-                ) : (
-                  <div className="flex justify-between items-center">
-                    <span className="text-lg font-bold">Total</span>
-                    <span className="text-2xl font-bold" style={{ color: T.accent }}>R$ {bookingResult.totalPrice.toFixed(2)}</span>
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center">
+                      <Scissors className="h-5 w-5 opacity-40" />
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {bookingResult.serviceNames.map((name) => (
+                        <span key={name} className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest bg-white/5" style={{ color: T.accent }}>{name}</span>
+                      ))}
+                    </div>
                   </div>
-                )}
+                </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <button onClick={() => window.open(calUrl(), '_blank')} className="flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-medium transition-all hover:scale-105" style={{ background: T.card, border: `1px solid ${T.border}`, color: T.text }}>
-                  <CalendarPlus className="h-4 w-4" style={{ color: T.accent }} /> 📅 Salvar no Google Agenda
-                </button>
-                {bookingResult.companyPhone && (
-                  <button onClick={() => window.open(waUrl(), '_blank')} className="flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-medium transition-all hover:scale-105" style={{ background: '#25D366', color: '#fff' }}>
-                    <MessageCircle className="h-4 w-4" /> 📲 Enviar confirmação no WhatsApp
-                  </button>
-                )}
-                {bookingResult.companyAddress && (
-                  <button onClick={() => window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(bookingResult.companyAddress!)}`, '_blank')} className="flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-medium transition-all hover:scale-105 col-span-2" style={{ background: T.card, border: `1px solid ${T.border}`, color: T.text }}>
-                    <MapPin className="h-4 w-4" style={{ color: T.accent }} /> 📍 Abrir localização
-                  </button>
-                )}
-              </div>
-
-              <div className={`grid ${isPromoMode ? 'grid-cols-1' : 'grid-cols-2'} gap-3`}>
-                {!isPromoMode && (
-                  <button onClick={() => window.location.href = `/reschedule/${bookingResult.appointmentId}`} className="flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-medium transition-all hover:scale-105" style={{ background: T.card, border: `1px solid ${T.border}`, color: T.text }}>
-                    🔄 Reagendar
-                  </button>
-                )}
-                <button onClick={() => window.location.href = `/cancel/${bookingResult.appointmentId}`} className="flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-medium transition-all hover:scale-105" style={{ background: T.card, border: `1px solid ${T.border}`, color: '#F87171' }}>
-                  ❌ Cancelar
-                </button>
-              </div>
-
-              {/* ── Account Block (always logged in) ── */}
-              <div className="rounded-2xl p-5 space-y-3" style={{ background: T.card, border: `1px solid ${T.border}` }}>
-                <p className="text-base font-semibold flex items-center gap-2">👤 Sua conta</p>
-                <p className="text-sm" style={{ color: T.textSec }}>Acompanhe seus agendamentos, cashback e pontos de fidelidade.</p>
-                {(cashbackTotal > 0 || loyaltyPoints > 0) && (
-                  <div className="flex gap-3 text-sm font-medium">
-                    {cashbackTotal > 0 && <span style={{ color: T.accent }}>💰 R${cashbackTotal.toFixed(2)}</span>}
-                    {loyaltyPoints > 0 && <span style={{ color: T.accent }}>⭐ {loyaltyPoints} pts{loyaltyPointValue > 0 ? ` (R$${(loyaltyPoints * loyaltyPointValue).toFixed(2)})` : ''}</span>}
-                  </div>
-                )}
-                {hasValidClient ? (
-                  <Button onClick={() => window.location.href = '/minha-conta'} className="w-full rounded-xl py-5 font-semibold text-base" style={{ background: T.accent, color: '#000' }}>
-                    <Calendar className="h-4 w-4 mr-2" /> Ver meus agendamentos
-                  </Button>
-                ) : (
-                  <Button onClick={() => setShowCompleteSignup(true)} className="w-full rounded-xl py-5 font-semibold text-base" style={{ background: T.accent, color: '#000' }}>
-                    <User className="h-4 w-4 mr-2" /> Concluir cadastro
-                  </Button>
-                )}
-              </div>
-
-              <div className="space-y-3 pt-2">
-                <Button onClick={resetBooking} className="w-full rounded-xl py-6 font-semibold text-base shadow-lg transition-all hover:scale-[1.01]" style={{ background: T.accent, color: '#000' }}>
-                  <RotateCcw className="h-4 w-4 mr-2" /> Agendar outro serviço
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <Button
+                  onClick={() => window.open(calUrl(), '_blank')}
+                  className="rounded-full py-8 font-black uppercase text-xs tracking-widest bg-white/5 hover:bg-white/10 transition-all border-none"
+                  style={{ color: T.text }}
+                >
+                  <Calendar className="h-5 w-5 mr-3 opacity-60" />
+                  Salvar no Google Agenda
                 </Button>
-                <button onClick={() => window.location.href = '/'} className="w-full py-3 rounded-xl text-sm font-medium hover:opacity-80" style={{ color: T.textSec }}>
-                  <Home className="h-4 w-4 mr-1 inline" /> Voltar ao início
+                <Button
+                  onClick={() => window.open(waUrl(), '_blank')}
+                  className="rounded-full py-8 font-black uppercase text-xs tracking-widest bg-green-500/10 hover:bg-green-500/20 transition-all border-none"
+                  style={{ color: '#10B981' }}
+                >
+                  <MessageCircle className="h-5 w-5 mr-3" />
+                  Enviar no WhatsApp
+                </Button>
+              </div>
+
+              <div className="pt-6 flex flex-col items-center gap-4">
+                <button 
+                  onClick={resetBooking}
+                  className="text-xs font-black uppercase tracking-widest opacity-40 hover:opacity-100 transition-opacity"
+                >
+                  Fazer novo agendamento
                 </button>
+                <div className="h-px w-12 bg-white/10" />
+                <a 
+                  href="/minha-conta" 
+                  className="text-sm font-black"
+                  style={{ color: T.accent }}
+                >
+                  Acompanhar meus horários
+                </a>
               </div>
             </div>
           );
@@ -2723,7 +2673,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
         </button>
       )}
 
-      {/* Complete signup modal: opens from "Concluir cadastro" button on success screen */}
+      {/* Complete signup modal */}
       {company?.id && (
         <CompleteSignupModal
           open={showCompleteSignup}
@@ -2740,7 +2690,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
         />
       )}
 
-      {/* Centralized booking error dialog with smart suggestions */}
+      {/* Centralized booking error dialog */}
       <BookingErrorDialog
         open={!!bookingError}
         onOpenChange={(o) => { if (!o) setBookingError(null); }}
@@ -2781,7 +2731,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
           </DialogHeader>
           <div className="space-y-5 pt-2">
             <div className="flex flex-col items-center gap-2">
-              <p className="text-sm" style={{ color: T.textSec }}>Como foi sua experiência?</p>
+              <p className="text-sm" style={{ color: T.textSec }}>Como foi sua experiênca?</p>
               <InteractiveStarRating rating={reviewRating} onRate={setReviewRating} size={36} />
             </div>
             <div className="space-y-2">
