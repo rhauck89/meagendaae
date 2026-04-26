@@ -1548,7 +1548,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
           <div className="max-w-2xl mx-auto px-4 pt-6">
             <div 
               className="flex items-center gap-4 p-4 rounded-3xl animate-in fade-in slide-in-from-top-4 duration-500" 
-              style={{ background: `linear-gradient(135deg, ${T.card}, ${T.bg})`, border: `1px solid ${T.border}`, boxShadow: '0 8px 32px -8px rgba(0,0,0,0.3)' }}
+              style={{ background: `linear-gradient(135deg, ${T.card}, ${T.bg})`, border: `2px solid ${T.accent}`, boxShadow: '0 8px 32px -8px rgba(245, 158, 11, 0.4)' }}
             >
               <div className="relative shrink-0">
                 {prof.avatar_url ? (
@@ -1564,21 +1564,21 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
               </div>
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-1.5">
-                  <p className="font-bold text-base leading-tight truncate">{prof.full_name}</p>
-                  <Badge className="bg-amber-500/10 text-amber-500 border-amber-500/20 text-[9px] h-4 py-0 font-black tracking-tighter uppercase">Expert</Badge>
+                  <p className="font-bold text-base leading-tight truncate" style={{ color: T.accent }}>{prof.full_name}</p>
+                  <Badge className="bg-amber-500 text-black border-none text-[9px] h-4 py-0 font-black tracking-tighter uppercase">Expert</Badge>
                 </div>
                 <div className="flex items-center gap-2 mt-1">
-                  <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-white/5" style={{ color: T.textSec }}>
+                  <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-white/10 uppercase tracking-widest" style={{ color: T.textSec }}>
                     {recentBookings && recentBookings > 0 ? `🔥 ${recentBookings} atendimentos hoje` : '⭐ Top avaliado'}
                   </span>
                 </div>
               </div>
               <button 
                 onClick={() => setStep('professional')}
-                className="p-2 rounded-xl bg-white/5 hover:bg-white/10 transition-colors"
-                style={{ color: T.textSec }}
+                className="p-3 rounded-xl bg-white/5 hover:bg-amber-500/20 transition-all border border-white/10 active:scale-90"
+                style={{ color: T.accent }}
               >
-                <RotateCcw className="h-4 w-4" />
+                <RotateCcw className="h-5 w-5" />
               </button>
             </div>
           </div>
