@@ -1470,138 +1470,167 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
 
   // ─── Render ───
   return (
-    <div className="min-h-screen" style={{ background: T.bg, color: T.text }}>
-      {/* Banner */}
-      {displayCoverUrl && (
-        <div className="w-full h-36 sm:h-48 overflow-hidden">
-          <img src={displayCoverUrl} alt={company.name} className="w-full h-full object-cover" />
-        </div>
-      )}
-
-      {/* Header */}
-      <header style={{ background: T.card, borderBottom: `1px solid ${T.border}` }}>
-        <div className="max-w-2xl mx-auto px-4 py-4 flex items-center gap-3">
-          <a href={companyPageUrl} className="shrink-0">
-            {displayLogoUrl ? (
-              <img src={displayLogoUrl} alt={company.name} className="max-h-11 max-w-[120px] object-contain" />
-            ) : (
-              <div className="w-11 h-11 rounded-2xl flex items-center justify-center shadow-lg" style={{ background: T.accent }}>
-                <Icon className="h-5 w-5 text-black" />
+    <div className="min-h-screen pb-20 sm:pb-0" style={{ background: T.bg, color: T.text }}>
+      {/* Premium Header Fixo */}
+      <header 
+        className="sticky top-0 z-50 backdrop-blur-md transition-all duration-300"
+        style={{ 
+          background: `${T.card}CC`, 
+          borderBottom: `1px solid ${T.border}`,
+          boxShadow: '0 4px 20px rgba(0,0,0,0.1)'
+        }}
+      >
+        <div className="max-w-2xl mx-auto px-4 py-3 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3 min-w-0">
+            <a href={companyPageUrl} className="shrink-0">
+              {displayLogoUrl ? (
+                <img src={displayLogoUrl} alt={company.name} className="h-10 w-10 rounded-xl object-contain bg-white/5 p-1" />
+              ) : (
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center shadow-lg" style={{ background: T.accent }}>
+                  <Icon className="h-5 w-5 text-black" />
+                </div>
+              )}
+            </a>
+            <div className="min-w-0">
+              <h1 className="font-bold text-base tracking-tight truncate">{company.name}</h1>
+              <div className="flex items-center gap-1.5">
+                <StarRating rating={companyStats?.avgRating || 5} size={10} />
+                <span className="text-[10px] font-bold" style={{ color: T.accent }}>{companyStats?.avgRating?.toFixed(1) || '5.0'}</span>
               </div>
-            )}
-          </a>
-          <div className="min-w-0 flex-1">
-            <h1 className="font-bold text-lg tracking-tight">{company.name}</h1>
-            {companyStats && companyStats.reviewCount > 0 ? (
-              <div className="flex items-center gap-1.5 flex-wrap mt-0.5">
-                <StarRating rating={companyStats.avgRating} size={14} />
-                <span className="text-xs font-semibold" style={{ color: '#FDBA2D' }}>{companyStats.avgRating.toFixed(1)}</span>
-                <span className="text-xs" style={{ color: T.textSec }}>({companyStats.reviewCount} avaliações)</span>
-              </div>
-            ) : (
-              <p className="text-xs" style={{ color: T.textSec }}>
-                {businessType === 'barbershop' ? 'Barbearia' : 'Estética'} • Agendamento online
-              </p>
-            )}
+            </div>
           </div>
+
+          {step !== 'success' && (
+            <div className="flex-1 max-w-[140px] hidden sm:block">
+              <div className="flex justify-between items-center mb-1">
+                <span className="text-[10px] font-bold uppercase tracking-wider opacity-60">Etapa {currentStepIdx + 1}/{stepList.length}</span>
+              </div>
+              <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
+                <div 
+                  className="h-full rounded-full transition-all duration-700 ease-out" 
+                  style={{ 
+                    background: `linear-gradient(90deg, ${T.accent}, #F4C752)`,
+                    width: `${((currentStepIdx + 1) / stepList.length) * 100}%` 
+                  }} 
+                />
+              </div>
+            </div>
+          )}
+
           <button
             onClick={() => setShowReviewModal(true)}
-            className="shrink-0 text-xs font-medium px-3 py-1.5 rounded-full transition-colors"
-            style={{ background: `${T.accent}20`, color: '#FDBA2D' }}
+            className="shrink-0 text-[10px] font-bold uppercase tracking-widest px-3 py-1.5 rounded-full border transition-all hover:scale-105 active:scale-95"
+            style={{ borderColor: `${T.accent}40`, color: T.accent, background: `${T.accent}05` }}
           >
             Avaliar
           </button>
         </div>
+        
+        {/* Mobile Progress Bar (pinned to bottom of header) */}
+        {step !== 'success' && (
+          <div className="h-0.5 w-full bg-white/5 sm:hidden">
+            <div 
+              className="h-full transition-all duration-700 ease-out" 
+              style={{ 
+                background: `linear-gradient(90deg, ${T.accent}, #F4C752)`,
+                width: `${((currentStepIdx + 1) / stepList.length) * 100}%` 
+              }} 
+            />
+          </div>
+        )}
       </header>
 
       {/* Persistent Professional Card (visible after professional is selected) */}
       {selectedProfessional && professionals.length > 0 && step !== 'success' && step !== 'professional' && (() => {
         const prof = professionals.find(p => p.id === selectedProfessional);
         if (!prof) return null;
-        const rating = professionalRatings[prof.id];
         return (
           <div className="max-w-2xl mx-auto px-4 pt-6">
-            <div className="flex items-center gap-4 p-4 rounded-2xl" style={{ background: T.card, border: `1px solid ${T.border}` }}>
-              {prof.avatar_url ? (
-                <img src={prof.avatar_url} alt={prof.full_name} className="w-16 h-16 rounded-full object-cover shrink-0" style={{ border: `2.5px solid ${T.accent}` }} />
-              ) : (
-                <div className="w-16 h-16 rounded-full flex items-center justify-center text-xl font-bold shrink-0" style={{ background: `${T.accent}20`, color: T.accent, border: `2.5px solid ${T.accent}` }}>
-                  {prof.full_name?.charAt(0)?.toUpperCase()}
+            <div 
+              className="flex items-center gap-4 p-4 rounded-3xl animate-in fade-in slide-in-from-top-4 duration-500" 
+              style={{ background: `linear-gradient(135deg, ${T.card}, ${T.bg})`, border: `1px solid ${T.border}`, boxShadow: '0 8px 32px -8px rgba(0,0,0,0.3)' }}
+            >
+              <div className="relative shrink-0">
+                {prof.avatar_url ? (
+                  <img src={prof.avatar_url} alt={prof.full_name} className="w-14 h-14 rounded-2xl object-cover" style={{ border: `2px solid ${T.accent}` }} />
+                ) : (
+                  <div className="w-14 h-14 rounded-2xl flex items-center justify-center text-xl font-bold" style={{ background: `${T.accent}20`, color: T.accent, border: `2px solid ${T.accent}` }}>
+                    {prof.full_name?.charAt(0)?.toUpperCase()}
+                  </div>
+                )}
+                <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-green-500 border-2 rounded-full flex items-center justify-center shadow-lg" style={{ borderColor: T.card }}>
+                  <div className="w-1.5 h-1.5 bg-white rounded-full animate-pulse" />
                 </div>
-              )}
-              <div className="min-w-0">
-                <p className="font-bold text-lg leading-tight truncate">{prof.full_name}</p>
-                {rating && (
-                  <p className="flex items-center gap-1 text-sm mt-0.5" style={{ color: T.accent }}>
-                    <Star className="h-3.5 w-3.5 fill-current" /> {rating.avg.toFixed(1)}
-                    <span className="font-normal" style={{ color: T.textSec }}>({rating.count} avaliações)</span>
-                  </p>
-                )}
-                <p className="text-xs mt-0.5 truncate" style={{ color: T.textSec }}>{company.name}</p>
-                {recentBookings !== null && recentBookings >= 1 && (
-                  <p className="text-xs mt-1 font-medium" style={{ color: T.greenText }}>
-                    {recentBookings >= 5
-                      ? '🔥 Muito procurado esta semana'
-                      : recentBookings >= 2
-                        ? `👥 ${recentBookings} pessoas agendaram recentemente`
-                        : '👤 1 pessoa agendou recentemente'}
-                  </p>
-                )}
               </div>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-1.5">
+                  <p className="font-bold text-base leading-tight truncate">{prof.full_name}</p>
+                  <Badge className="bg-amber-500/10 text-amber-500 border-amber-500/20 text-[9px] h-4 py-0 font-black tracking-tighter uppercase">Expert</Badge>
+                </div>
+                <div className="flex items-center gap-2 mt-1">
+                  <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-white/5" style={{ color: T.textSec }}>
+                    {recentBookings && recentBookings > 0 ? `🔥 ${recentBookings} atendimentos hoje` : '⭐ Top avaliado'}
+                  </span>
+                </div>
+              </div>
+              <button 
+                onClick={() => setStep('professional')}
+                className="p-2 rounded-xl bg-white/5 hover:bg-white/10 transition-colors"
+                style={{ color: T.textSec }}
+              >
+                <RotateCcw className="h-4 w-4" />
+              </button>
             </div>
           </div>
         );
       })()}
 
       <div className="max-w-2xl mx-auto px-4 py-6 space-y-6">
-        {/* Progress */}
-        {step !== 'success' && (
-          <div className="flex items-center gap-1">
-            {stepList.map((s, i) => (
-              <div key={s} className="flex-1 flex flex-col items-center gap-1">
-                <div className="h-1.5 w-full rounded-full transition-all duration-500" style={{ background: i <= currentStepIdx ? T.accent : T.border }} />
-                <span className="text-[10px] font-medium tracking-wide uppercase" style={{ color: i <= currentStepIdx ? T.accent : T.textSec }}>
-                  {stepLabels[s]}
-                </span>
-              </div>
-            ))}
-          </div>
-        )}
-
         {/* Promotion Banner */}
         {isPromoMode && promoData && step !== 'success' && (
-          <div className="rounded-2xl p-4 space-y-2" style={{ background: `${T.accent}15`, border: `1px solid ${T.accent}40` }}>
-            <div className="flex items-center gap-2">
-              <Sparkles className="h-4 w-4" style={{ color: T.accent }} />
-              <span className="text-xs font-bold uppercase tracking-wider" style={{ color: T.accent }}>
-                {isCashbackPromo ? 'Promoção Cashback' : 'Promoção'}
-              </span>
-            </div>
-            <p className="font-bold text-base">{promoData.title}</p>
-            {isCashbackPromo ? (
-              <div className="space-y-1">
-                <p className="text-sm" style={{ color: T.accent }}>
-                  💰 Ganhe {promoData.discount_type === 'percentage' ? `${promoData.discount_value}%` : `R$ ${Number(promoData.discount_value || 0).toFixed(2)}`} de cashback após concluir o serviço!
-                </p>
-                {promoData.cashback_validity_days && (
-                  <p className="text-xs" style={{ color: T.textSec }}>
-                    Válido por {promoData.cashback_validity_days} dias para uso no próximo agendamento
-                  </p>
-                )}
-              </div>
-            ) : (
-              promoData.service_name && (
-                <div className="flex items-center gap-3">
-                  <span className="text-sm" style={{ color: T.textSec }}>{promoData.service_name}</span>
-                  {promoData.original_price != null && promoData.promotion_price != null && (
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm line-through" style={{ color: T.textSec }}>R$ {Number(promoData.original_price).toFixed(2)}</span>
-                      <span className="text-sm font-bold" style={{ color: T.accent }}>R$ {Number(promoData.promotion_price).toFixed(2)}</span>
-                    </div>
-                  )}
+          <div 
+            className="rounded-3xl p-5 relative overflow-hidden group animate-in zoom-in-95 duration-500" 
+            style={{ 
+              background: `linear-gradient(135deg, ${T.accent}15, rgba(0,0,0,0.1))`, 
+              border: `1px solid ${T.accent}30` 
+            }}
+          >
+            <div className="absolute top-0 right-0 p-8 blur-3xl rounded-full -mr-10 -mt-10 opacity-20 pointer-events-none" style={{ background: T.accent }} />
+            <div className="relative z-10 space-y-3">
+              <div className="flex items-center gap-2">
+                <div className="p-1.5 rounded-lg" style={{ background: `${T.accent}20` }}>
+                  <Sparkles className="h-4 w-4" style={{ color: T.accent }} />
                 </div>
-              )
-            )}
+                <span className="text-[10px] font-black uppercase tracking-widest" style={{ color: T.accent }}>
+                  {isCashbackPromo ? 'Ganhe Cashback Agora' : 'Oferta Especial Ativa'}
+                </span>
+              </div>
+              <p className="font-black text-xl leading-tight">{promoData.title}</p>
+              {isCashbackPromo ? (
+                <div className="space-y-2">
+                  <p className="text-sm font-bold flex items-center gap-2" style={{ color: '#10b981' }}>
+                    <div className="w-2 h-2 rounded-full bg-[#10b981] animate-pulse" />
+                    Ganhe {promoData.discount_type === 'percentage' ? `${promoData.discount_value}%` : `R$ ${Number(promoData.discount_value || 0).toFixed(2)}`} de volta
+                  </p>
+                  <p className="text-xs opacity-70 leading-relaxed" style={{ color: T.textSec }}>
+                    O valor será creditado em sua conta MeAgendae após a conclusão do serviço para usar quando quiser.
+                  </p>
+                </div>
+              ) : (
+                promoData.service_name && (
+                  <div className="flex items-center gap-4">
+                    <div className="flex flex-col">
+                      <span className="text-[10px] uppercase font-bold opacity-60">De</span>
+                      <span className="text-sm line-through opacity-50">R$ {Number(promoData.original_price).toFixed(2)}</span>
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="text-[10px] uppercase font-bold" style={{ color: T.accent }}>Por</span>
+                      <span className="text-xl font-black" style={{ color: T.accent }}>R$ {Number(promoData.promotion_price).toFixed(2)}</span>
+                    </div>
+                  </div>
+                )
+              )}
+            </div>
           </div>
         )}
 
@@ -1611,46 +1640,49 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
 
             <button onClick={() => setStep("professional")} className="flex items-center gap-1 text-sm font-medium hover:opacity-80 mb-2" style={{ color: T.textSec }}><ChevronLeft className="h-4 w-4" /> Voltar</button>
             <div>
-              <h2 className="text-2xl font-bold tracking-tight">{isPromoMode ? 'Escolha um serviço da promoção' : 'Escolha os serviços'}</h2>
-              <p className="text-sm mt-1" style={{ color: T.textSec }}>{isCashbackPromo ? 'Selecione o serviço e ganhe cashback após concluir' : isPromoMode ? 'Selecione o serviço que deseja agendar com desconto' : 'Selecione um ou mais serviços desejados'}</p>
+              <h2 className="text-2xl font-black tracking-tight flex items-center gap-2">
+                {isPromoMode ? 'Oferta Selecionada' : 'Escolha seus Serviços'}
+                <Badge className="bg-green-500/10 text-green-500 border-green-500/20 text-[10px]">Premium</Badge>
+              </h2>
+              <p className="text-sm mt-1 opacity-70" style={{ color: T.textSec }}>
+                {isCashbackPromo ? 'Selecione e ganhe dinheiro de volta na hora' : 'Escolha os tratamentos que deseja realizar hoje'}
+              </p>
             </div>
-            {/* Cashback balance indicator */}
-            {cashbackCredits.length > 0 && cashbackTotal > 0 && (
-              <div className="rounded-xl p-3 flex items-center gap-3" style={{ background: '#10b98115', border: '1px solid #10b98130' }}>
-                <span className="text-lg">💳</span>
-                <div>
-                  <p className="font-semibold text-sm" style={{ color: '#10b981' }}>
-                    Cashback disponível: R$ {cashbackTotal.toFixed(2)}
-                  </p>
-                  <p className="text-xs" style={{ color: T.textSec }}>Você pode usar este crédito na confirmação do agendamento</p>
+
+            {/* Loyalty & Cashback Cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {cashbackCredits.length > 0 && cashbackTotal > 0 && (
+                <div className="rounded-2xl p-4 flex items-center gap-3 animate-in slide-in-from-left duration-500" style={{ background: 'linear-gradient(135deg, #10b98110, #10b98120)', border: '1px solid #10b98130' }}>
+                  <div className="w-10 h-10 rounded-full bg-[#10b98120] flex items-center justify-center shrink-0">
+                    <span className="text-lg">💰</span>
+                  </div>
+                  <div>
+                    <p className="text-[10px] uppercase font-bold opacity-60" style={{ color: '#10b981' }}>Saldo disponível</p>
+                    <p className="font-black text-lg" style={{ color: '#10b981' }}>R$ {cashbackTotal.toFixed(2)}</p>
+                  </div>
                 </div>
-              </div>
-            )}
-            {/* Loyalty points indicator */}
-            {loyaltyPoints > 0 && (
-              <div className="rounded-xl p-3 flex items-center gap-3" style={{ background: `${T.accent}10`, border: `1px solid ${T.accent}25` }}>
-                <span className="text-lg">⭐</span>
-                <div>
-                  <p className="font-semibold text-sm" style={{ color: T.accent }}>
-                    Você possui {loyaltyPoints} pontos no programa de fidelidade
-                    {loyaltyPointValue > 0 && (
-                      <span className="font-normal text-xs ml-1" style={{ color: T.textSec }}>
-                        (equivalente a R$ {(loyaltyPoints * loyaltyPointValue).toFixed(2).replace('.', ',')})
-                      </span>
-                    )}
-                  </p>
-                  <p className="text-xs" style={{ color: T.textSec }}>Acumule pontos e troque por recompensas</p>
+              )}
+              {loyaltyPoints > 0 && (
+                <div className="rounded-2xl p-4 flex items-center gap-3 animate-in slide-in-from-right duration-500" style={{ background: `linear-gradient(135deg, ${T.accent}10, ${T.accent}20)`, border: `1px solid ${T.accent}30` }}>
+                  <div className="w-10 h-10 rounded-full bg-amber-500/20 flex items-center justify-center shrink-0">
+                    <span className="text-lg">⭐</span>
+                  </div>
+                  <div>
+                    <p className="text-[10px] uppercase font-bold opacity-60" style={{ color: T.accent }}>Pontos Fidelidade</p>
+                    <p className="font-black text-lg" style={{ color: T.accent }}>{loyaltyPoints} pts</p>
+                  </div>
                 </div>
-              </div>
-            )}
-            <div className="space-y-3">
+              )}
+            </div>
+
+            <div className="space-y-4">
               {(() => {
                 const promoServiceIds = promoData?.service_ids || (promoData?.service_id ? [promoData.service_id] : []);
                 const filteredSvcs = isPromoMode && promoServiceIds.length > 0
                   ? services.filter(s => promoServiceIds.includes(s.id))
                   : services;
                 return filteredSvcs;
-              })().map((svc) => {
+              })().map((svc, idx) => {
                 const sel = selectedServices.includes(svc.id);
                 const promoServiceIds = promoData?.service_ids || (promoData?.service_id ? [promoData.service_id] : []);
                 const isPromoService = isPromoMode && promoServiceIds.includes(svc.id);
@@ -1659,73 +1691,102 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                     key={svc.id}
                     onClick={() => {
                       if (isPromoMode && isPromoService) {
-                        // In promo mode: single-select among promo services
                         setSelectedServices(sel ? [] : [svc.id]);
                       } else {
                         toggleService(svc.id);
                       }
                     }}
-                    className="p-4 rounded-2xl transition-all duration-200 cursor-pointer hover:scale-[1.01]"
+                    className="p-5 rounded-[2rem] transition-all duration-300 cursor-pointer relative overflow-hidden group hover:scale-[1.02] active:scale-[0.98]"
                     style={{
-                      background: sel ? `${T.accent}10` : T.card,
-                      border: `1.5px solid ${sel ? T.accent : T.border}`,
-                      boxShadow: sel ? `0 0 20px ${T.accent}15` : '0 2px 8px rgba(0,0,0,0.2)',
+                      background: sel ? `linear-gradient(135deg, ${T.accent}20, ${T.card})` : T.card,
+                      border: `2px solid ${sel ? T.accent : T.border}`,
+                      boxShadow: sel ? `0 20px 40px -20px ${T.accent}40` : '0 4px 12px rgba(0,0,0,0.1)',
+                      animationDelay: `${idx * 100}ms`
                     }}
                   >
-                    <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0" style={{ background: sel ? T.accent : `${T.accent}20` }}>
-                        <Scissors className="h-5 w-5" style={{ color: sel ? '#000' : T.accent }} />
+                    {sel && (
+                      <div className="absolute top-4 right-4 animate-in zoom-in duration-300">
+                        <div className="w-6 h-6 rounded-full bg-green-500 flex items-center justify-center shadow-lg shadow-green-500/40">
+                          <CheckCircle2 className="h-4 w-4 text-white" />
+                        </div>
+                      </div>
+                    )}
+                    
+                    <div className="flex items-center gap-5">
+                      <div className="w-16 h-16 rounded-2xl flex items-center justify-center shrink-0 transition-transform group-hover:rotate-12" style={{ background: sel ? T.accent : `${T.accent}15` }}>
+                        <Scissors className="h-7 w-7" style={{ color: sel ? '#000' : T.accent }} />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="font-semibold text-[15px]">{svc.name}</p>
-                        <span className="flex items-center gap-1 text-sm" style={{ color: T.textSec }}>
-                          <Clock className="h-3.5 w-3.5" /> {svc.duration_minutes} min
-                        </span>
-                      </div>
-                      {isPromoMode && promoData && !isCashbackPromo && promoServiceIds.includes(svc.id) ? (() => {
-                        const orig = Number(svc.price);
-                        let promo = orig;
-                        if (promoData.discount_type === 'percentage' && promoData.discount_value) {
-                          promo = orig * (1 - Number(promoData.discount_value) / 100);
-                        } else if (promoData.discount_type === 'fixed_amount' && promoData.discount_value) {
-                          promo = Math.max(0, orig - Number(promoData.discount_value));
-                        } else if (promoData.promotion_price != null) {
-                          promo = Number(promoData.promotion_price);
-                        }
-                        return (
-                          <div className="text-right shrink-0">
-                            <p className="text-sm line-through" style={{ color: T.textSec }}>R$ {orig.toFixed(2)}</p>
-                            <p className="font-bold text-lg" style={{ color: T.accent }}>R$ {promo.toFixed(2)}</p>
-                          </div>
-                        );
-                      })() : isCashbackPromo && promoServiceIds.includes(svc.id) ? (
-                        <div className="text-right shrink-0">
-                          <p className="font-bold text-lg" style={{ color: T.accent }}>R$ {Number(svc.price).toFixed(2)}</p>
-                          <p className="text-xs" style={{ color: '#10b981' }}>💰 cashback</p>
+                        <p className="font-black text-lg tracking-tight group-hover:text-amber-500 transition-colors">{svc.name}</p>
+                        <div className="flex items-center gap-3 mt-1 opacity-70">
+                          <span className="flex items-center gap-1 text-xs font-bold uppercase tracking-wider">
+                            <Clock className="h-3 w-3" /> {svc.duration_minutes} min
+                          </span>
+                          <span className="w-1 h-1 rounded-full bg-white/20" />
+                          <span className="text-xs font-bold uppercase tracking-wider">Acabamento Premium</span>
                         </div>
-                      ) : (
-                        <p className="font-bold text-lg shrink-0" style={{ color: T.accent }}>R$ {Number(svc.price).toFixed(2)}</p>
-                      )}
+                      </div>
+                      <div className="text-right shrink-0">
+                        {isPromoMode && promoData && !isCashbackPromo && promoServiceIds.includes(svc.id) ? (() => {
+                          const orig = Number(svc.price);
+                          let promo = orig;
+                          if (promoData.discount_type === 'percentage' && promoData.discount_value) {
+                            promo = orig * (1 - Number(promoData.discount_value) / 100);
+                          } else if (promoData.discount_type === 'fixed_amount' && promoData.discount_value) {
+                            promo = Math.max(0, orig - Number(promoData.discount_value));
+                          } else if (promoData.promotion_price != null) {
+                            promo = Number(promoData.promotion_price);
+                          }
+                          return (
+                            <div className="flex flex-col items-end">
+                              <p className="text-xs line-through opacity-40 font-bold">R$ {orig.toFixed(2)}</p>
+                              <p className="font-black text-xl" style={{ color: T.accent }}>R$ {promo.toFixed(2)}</p>
+                            </div>
+                          );
+                        })() : isCashbackPromo && promoServiceIds.includes(svc.id) ? (
+                          <div className="flex flex-col items-end">
+                            <p className="font-black text-xl" style={{ color: T.accent }}>R$ {Number(svc.price).toFixed(2)}</p>
+                            <Badge className="bg-green-500/20 text-green-500 border-none text-[8px] h-3 px-1 font-black">CASHBACK</Badge>
+                          </div>
+                        ) : (
+                          <p className="font-black text-xl" style={{ color: T.accent }}>R$ {Number(svc.price).toFixed(2)}</p>
+                        )}
+                      </div>
                     </div>
                   </div>
                 );
               })}
             </div>
+
+            {/* Bottom Bar Otimizada Mobile */}
             {selectedServices.length > 0 && (
-              <div className="flex items-center justify-between p-4 rounded-2xl animate-fade-in" style={{ background: T.card, border: `1px solid ${T.border}` }}>
-                <div className="text-sm" style={{ color: T.textSec }}>
-                  <span className="font-medium" style={{ color: T.text }}>{selectedServices.length}</span> serviço(s)
-                  <span className="mx-2 opacity-30">•</span>{totalDuration} min
-                  <span className="mx-2 opacity-30">•</span>
-                  <span className="font-bold text-base" style={{ color: T.accent }}>R$ {totalPrice.toFixed(2)}</span>
-                </div>
-                <Button
-                  onClick={() => setStep("datetime")}
-                  className="rounded-xl px-6 font-semibold shadow-lg transition-all hover:scale-105"
-                  style={{ background: T.accent, color: '#000' }}
+              <div className="fixed bottom-0 left-0 right-0 p-4 z-40 sm:relative sm:p-0">
+                <div 
+                  className="max-w-2xl mx-auto rounded-[2.5rem] p-4 flex items-center justify-between gap-4 animate-in slide-in-from-bottom-10 duration-500 shadow-2xl shadow-black/50" 
+                  style={{ background: T.card, border: `1px solid ${T.border}` }}
                 >
-                  Continuar <ChevronRight className="h-4 w-4 ml-1" />
-                </Button>
+                  <div className="pl-4">
+                    <p className="text-[10px] font-black uppercase tracking-widest opacity-60">Total Estimado</p>
+                    <div className="flex items-baseline gap-1">
+                      <span className="text-2xl font-black" style={{ color: T.accent }}>R$ {totalPrice.toFixed(2)}</span>
+                      <span className="text-xs font-bold opacity-60">/ {totalDuration}m</span>
+                    </div>
+                  </div>
+                  <Button
+                    onClick={() => {
+                      if (!selectedProfessional && !skipProfessionalStep) {
+                        setStep('professional');
+                      } else {
+                        setStep('datetime');
+                      }
+                    }}
+                    className="rounded-full px-8 py-7 font-black text-base transition-all hover:scale-105 active:scale-95 group"
+                    style={{ background: `linear-gradient(135deg, ${T.accent}, #F4C752)`, color: '#000' }}
+                  >
+                    Continuar
+                    <ChevronRight className="h-5 w-5 ml-2 transition-transform group-hover:translate-x-1" />
+                  </Button>
+                </div>
               </div>
             )}
           </div>
@@ -1733,46 +1794,69 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
 
         {/* ═══ PROFESSIONAL ═══ */}
         {step === 'professional' && (
-          <div className="space-y-5 animate-fade-in">
-            <button onClick={() => setStep('services')} className="flex items-center gap-1 text-sm font-medium hover:opacity-80" style={{ color: T.textSec }}>
+          <div className="space-y-6 animate-in slide-in-from-right duration-500">
+            <button onClick={() => setStep('services')} className="flex items-center gap-1 text-xs font-black uppercase tracking-widest opacity-60 hover:opacity-100 transition-opacity" style={{ color: T.textSec }}>
               <ChevronLeft className="h-4 w-4" /> Voltar
             </button>
-            <div>
-              <h2 className="text-2xl font-bold tracking-tight">Escolha o profissional</h2>
-              <p className="text-sm mt-1" style={{ color: T.textSec }}>Selecione quem irá atendê-lo</p>
+            <div className="space-y-1">
+              <h2 className="text-2xl font-black tracking-tight">Escolha o Profissional</h2>
+              <p className="text-sm opacity-70" style={{ color: T.textSec }}>Selecione o especialista para seu atendimento</p>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {professionals.map((p) => {
+              {professionals.map((p, idx) => {
                 const sel = selectedProfessional === p.id;
+                const rating = professionalRatings[p.id];
                 return (
                   <div
                     key={p.id}
-                    onClick={() => { setSelectedProfessional(p.id); fetchProfessionalHours(p.id); fetchRecentBookings(p.id); setStep('services'); }}
-                    className="p-5 rounded-2xl cursor-pointer transition-all duration-200 hover:scale-[1.02] text-center"
+                    onClick={() => { 
+                      setSelectedProfessional(p.id); 
+                      fetchProfessionalHours(p.id); 
+                      fetchRecentBookings(p.id); 
+                      setStep('services'); 
+                    }}
+                    className="p-6 rounded-[2.5rem] cursor-pointer transition-all duration-300 relative group overflow-hidden"
                     style={{
-                      background: sel ? `${T.accent}10` : T.card,
-                      border: `1.5px solid ${sel ? T.accent : T.border}`,
-                      boxShadow: sel ? `0 0 24px ${T.accent}20` : '0 2px 12px rgba(0,0,0,0.25)',
+                      background: sel ? `linear-gradient(135deg, ${T.accent}20, ${T.card})` : T.card,
+                      border: `2px solid ${sel ? T.accent : T.border}`,
+                      boxShadow: sel ? `0 20px 40px -20px ${T.accent}40` : '0 4px 12px rgba(0,0,0,0.1)',
+                      animationDelay: `${idx * 100}ms`
                     }}
                   >
-                    <div className="flex flex-col items-center gap-3">
-                      {p.avatar_url ? (
-                        <img src={p.avatar_url} alt={p.full_name} className="w-20 h-20 rounded-full object-cover" style={{ border: `3px solid ${sel ? T.accent : T.border}` }} />
-                      ) : (
-                        <div className="w-20 h-20 rounded-full flex items-center justify-center text-2xl font-bold" style={{ background: `${T.accent}20`, color: T.accent }}>
-                          {p.full_name?.charAt(0)?.toUpperCase()}
-                        </div>
-                      )}
-                      <div>
-                        <p className="font-semibold text-base">{p.full_name}</p>
-                        {professionalRatings[p.id] ? (
-                          <p className="text-xs mt-0.5 flex items-center justify-center gap-1" style={{ color: T.accent }}>
-                            <Star className="h-3.5 w-3.5 fill-current" /> {professionalRatings[p.id].avg.toFixed(1)}
-                            <span style={{ color: T.textSec }}>({professionalRatings[p.id].count} avaliações)</span>
-                          </p>
+                    <div className="flex flex-col items-center gap-4">
+                      <div className="relative">
+                        {p.avatar_url ? (
+                          <img src={p.avatar_url} alt={p.full_name} className="w-24 h-24 rounded-3xl object-cover transition-transform group-hover:scale-105" style={{ border: `3px solid ${sel ? T.accent : T.border}` }} />
                         ) : (
-                          <p className="text-xs mt-0.5" style={{ color: T.textSec }}>Profissional</p>
+                          <div className="w-24 h-24 rounded-3xl flex items-center justify-center text-3xl font-black" style={{ background: `${T.accent}15`, color: T.accent, border: `3px solid ${sel ? T.accent : T.border}` }}>
+                            {p.full_name?.charAt(0)?.toUpperCase()}
+                          </div>
                         )}
+                        {sel && (
+                          <div className="absolute -bottom-2 -right-2 w-8 h-8 rounded-full bg-green-500 flex items-center justify-center shadow-lg border-4" style={{ borderColor: T.card }}>
+                            <CheckCircle2 className="h-4 w-4 text-white" />
+                          </div>
+                        )}
+                      </div>
+                      <div className="text-center">
+                        <p className="font-black text-lg leading-tight group-hover:text-amber-500 transition-colors">{p.full_name}</p>
+                        <div className="flex flex-col items-center gap-1 mt-2">
+                          {rating ? (
+                            <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/5">
+                              <Star className="h-3 w-3 fill-amber-500 text-amber-500" />
+                              <span className="text-xs font-black">{rating.avg.toFixed(1)}</span>
+                              <span className="text-[10px] font-bold opacity-40">({rating.count})</span>
+                            </div>
+                          ) : (
+                            <span className="text-[10px] font-black uppercase tracking-widest opacity-40">Profissional Especialista</span>
+                          )}
+                          <Button 
+                            className="mt-4 rounded-full px-6 py-2 h-auto text-[10px] font-black uppercase tracking-widest border-none transition-all group-hover:px-8"
+                            style={{ background: sel ? T.accent : `${T.accent}15`, color: sel ? '#000' : T.accent }}
+                          >
+                            Selecionar
+                          </Button>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -1784,352 +1868,197 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
 
         {/* ═══ DATE/TIME ═══ */}
         {step === 'datetime' && (
-          <div className="space-y-5 animate-fade-in">
-            <button onClick={() => setStep('services')} className="flex items-center gap-1 text-sm font-medium hover:opacity-80" style={{ color: T.textSec }}>
+          <div className="space-y-6 animate-in slide-in-from-right duration-500">
+            <button onClick={() => setStep('services')} className="flex items-center gap-1 text-xs font-black uppercase tracking-widest opacity-60 hover:opacity-100 transition-opacity" style={{ color: T.textSec }}>
               <ChevronLeft className="h-4 w-4" /> Voltar
             </button>
-            <div>
-              <h2 className="text-2xl font-bold tracking-tight">Escolha data e horário</h2>
-              <p className="text-sm mt-1" style={{ color: T.textSec }}>Selecione o melhor momento para você</p>
+            <div className="space-y-1">
+              <h2 className="text-2xl font-black tracking-tight flex items-center gap-2">
+                Escolha seu Horário
+                <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+              </h2>
+              <p className="text-sm opacity-70" style={{ color: T.textSec }}>Selecione o melhor momento para sua experiência</p>
             </div>
 
             {/* Quick slot confirmation block */}
             {quickSlotSelected && selectedDate && selectedTime ? (
-              <div className="space-y-4">
-                <div className="rounded-2xl p-6 space-y-4" style={{ background: T.card, border: `1.5px solid ${T.accent}`, boxShadow: `0 0 24px ${T.accent}15` }}>
-                  <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: `${T.accent}20` }}>
-                      <Zap className="h-4.5 w-4.5" style={{ color: T.accent }} />
-                    </div>
-                    <p className="font-bold text-base" style={{ color: T.accent }}>Horário selecionado</p>
-                  </div>
-                  <div className="flex items-center gap-4">
-                    <div className="w-14 h-14 rounded-xl flex items-center justify-center" style={{ background: `${T.accent}15` }}>
-                      <CalendarPlus className="h-6 w-6" style={{ color: T.accent }} />
+              <div className="space-y-4 animate-in zoom-in duration-300">
+                <div 
+                  className="rounded-[2.5rem] p-8 space-y-6 relative overflow-hidden" 
+                  style={{ background: `linear-gradient(135deg, ${T.card}, ${T.bg})`, border: `2px solid ${T.accent}`, boxShadow: `0 24px 48px -12px ${T.accent}30` }}
+                >
+                  <div className="absolute top-0 right-0 p-12 blur-3xl rounded-full -mr-10 -mt-10 opacity-20" style={{ background: T.accent }} />
+                  <div className="relative z-10 flex flex-col items-center text-center space-y-4">
+                    <div className="w-16 h-16 rounded-2xl flex items-center justify-center shadow-xl" style={{ background: `linear-gradient(135deg, ${T.accent}, #F4C752)` }}>
+                      <Clock className="h-8 w-8 text-black" />
                     </div>
                     <div>
-                      <p className="font-semibold text-lg capitalize">
-                        {isTodayTz(selectedDate) ? 'Hoje' : isTomorrowTz(selectedDate) ? 'Amanhã' : format(selectedDate, "EEEE", { locale: ptBR })}
-                        {' • '}
-                        {format(selectedDate, "dd/MM", { locale: ptBR })}
+                      <p className="text-[10px] font-black uppercase tracking-[0.2em]" style={{ color: T.accent }}>Horário Selecionado</p>
+                      <p className="text-4xl font-black mt-2">{selectedTime}</p>
+                      <p className="text-sm font-bold opacity-60 mt-1 capitalize">
+                        {isTodayTz(selectedDate) ? 'Hoje' : isTomorrowTz(selectedDate) ? 'Amanhã' : format(selectedDate, "EEEE, dd 'de' MMMM", { locale: ptBR })}
                       </p>
-                      <p className="text-2xl font-bold" style={{ color: T.accent }}>{selectedTime}</p>
                     </div>
+                    <button
+                      onClick={() => {
+                        setQuickSlotSelected(false);
+                        setSelectedTime(null);
+                        setSelectedDate(undefined);
+                      }}
+                      className="text-xs font-black uppercase tracking-widest py-2 px-4 rounded-full bg-white/5 hover:bg-white/10 transition-colors"
+                      style={{ color: T.textSec }}
+                    >
+                      <RotateCcw className="h-3 w-3 inline mr-2" />
+                      Alterar Horário
+                    </button>
                   </div>
-                  <button
-                    onClick={() => {
-                      setQuickSlotSelected(false);
-                      setSelectedTime(null);
-                      setSelectedDate(undefined);
-                    }}
-                    className="w-full py-2.5 rounded-xl text-sm font-medium transition-all hover:opacity-80"
-                    style={{ border: `1px solid ${T.border}`, color: T.textSec }}
-                  >
-                    <RotateCcw className="h-3.5 w-3.5 inline mr-1.5" style={{ verticalAlign: '-2px' }} />
-                    Alterar horário
-                  </button>
                 </div>
                 <Button
                   onClick={() => setStep('client')}
-                  className="w-full rounded-xl py-6 font-semibold text-base shadow-lg transition-all hover:scale-[1.01]"
-                  style={{ background: T.accent, color: '#000' }}
+                  className="w-full rounded-full py-8 font-black text-lg shadow-2xl transition-all hover:scale-[1.02] active:scale-[0.98] group"
+                  style={{ background: `linear-gradient(135deg, ${T.accent}, #F4C752)`, color: '#000' }}
                 >
-                  Continuar <ChevronRight className="h-4 w-4 ml-1" />
+                  Confirmar e Continuar
+                  <ChevronRight className="h-6 w-6 ml-2 transition-transform group-hover:translate-x-1" />
                 </Button>
               </div>
             ) : (
-              <>
+              <div className="space-y-6">
                 {/* Smart suggestion (best gap fit) */}
                 {nextSlotsLoading ? (
-                  <div className="space-y-4 rounded-2xl p-5" style={{ background: T.card, border: `1px solid ${T.border}` }}>
-                    <div className="flex items-center gap-2">
-                      <div className="w-4 h-4 border-2 rounded-full animate-spin" style={{ borderColor: `${T.accent} transparent transparent transparent` }} />
-                      <span className="text-sm font-medium animate-pulse">Buscando melhores sugestões...</span>
+                  <div className="space-y-4 rounded-[2rem] p-6" style={{ background: T.card, border: `1px solid ${T.border}` }}>
+                    <div className="flex items-center gap-3">
+                      <div className="w-5 h-5 border-2 rounded-full animate-spin" style={{ borderColor: `${T.accent} transparent transparent transparent` }} />
+                      <span className="text-xs font-black uppercase tracking-widest opacity-60">Buscando melhores encaixes...</span>
                     </div>
-                    <div className="grid grid-cols-4 gap-2">
-                      {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
-                        <div key={i} className="h-10 rounded-xl animate-pulse" style={{ background: T.cardHover, opacity: 0.5 }} />
+                    <div className="grid grid-cols-4 gap-3">
+                      {[1, 2, 3, 4].map((i) => (
+                        <div key={i} className="h-12 rounded-2xl animate-pulse" style={{ background: 'rgba(255,255,255,0.05)' }} />
                       ))}
                     </div>
                   </div>
                 ) : smartSuggestion && (
                   <div
-                    className="rounded-2xl p-5 space-y-3 animate-fade-in"
+                    className="rounded-[2.5rem] p-6 space-y-4 animate-in zoom-in duration-500 relative overflow-hidden group cursor-pointer"
+                    onClick={() => handleQuickSlot(smartSuggestion.date, smartSuggestion.slot)}
                     style={{
-                      background: `linear-gradient(135deg, ${T.accent}18, ${T.card})`,
-                      border: `1px solid ${T.accent}55`,
-                      boxShadow: `0 8px 24px -12px ${T.accent}40`,
+                      background: `linear-gradient(135deg, ${T.accent}25, ${T.card})`,
+                      border: `2px solid ${T.accent}50`,
+                      boxShadow: `0 20px 40px -20px ${T.accent}40`,
                     }}
                   >
-                    <div className="flex items-center justify-between gap-2">
-                      <div className="flex items-center gap-2">
-                        <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: `${T.accent}30` }}>
-                          <Sparkles className="h-4 w-4" style={{ color: T.accent }} />
-                        </div>
-                        <p className="font-semibold text-sm">Sugestão ideal para você</p>
-                      </div>
-                      <span
-                        className="text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wide"
-                        style={{ background: T.accent, color: '#000' }}
-                      >
-                        Recomendado
-                      </span>
+                    <div className="absolute top-0 right-0 p-4">
+                      <Badge className="bg-amber-500 text-black font-black text-[9px] tracking-tighter border-none">RECOMENDADO</Badge>
                     </div>
-                    <button
-                      onClick={() => handleQuickSlot(smartSuggestion.date, smartSuggestion.slot)}
-                      className="w-full py-4 rounded-xl text-2xl font-bold transition-all duration-200 hover:scale-[1.02] active:scale-[0.99]"
-                      style={{ background: T.accent, color: '#000' }}
-                    >
-                      {formatSlotTime(smartSuggestion.slot)}
-                      <span className="block text-xs font-medium mt-1 opacity-80 capitalize">
-                        {isTodayTz(smartSuggestion.date) ? 'Hoje' : isTomorrowTz(smartSuggestion.date) ? 'Amanhã' : format(smartSuggestion.date, "EEEE, dd/MM", { locale: ptBR })}
-                      </span>
-                    </button>
-                    <p className="text-xs text-center" style={{ color: T.textSec }}>
-                      {smartSuggestion.reason === 'tight-fit' ? '✨ Melhor encaixe na agenda' : 'Primeiro horário disponível'}
-                    </p>
+                    <div className="flex items-center gap-4">
+                      <div className="w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 shadow-lg group-hover:scale-110 transition-transform" style={{ background: `linear-gradient(135deg, ${T.accent}, #F4C752)` }}>
+                        <Zap className="h-7 w-7 text-black" />
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-[10px] font-black uppercase tracking-widest opacity-60">Sugestão Ideal</p>
+                        <p className="text-2xl font-black">{formatSlotTime(smartSuggestion.slot)}</p>
+                        <p className="text-xs font-bold opacity-60 capitalize">
+                          {isTodayTz(smartSuggestion.date) ? 'Hoje' : isTomorrowTz(smartSuggestion.date) ? 'Amanhã' : format(smartSuggestion.date, "EEEE, dd/MM", { locale: ptBR })}
+                        </p>
+                      </div>
+                      <ChevronRight className="h-6 w-6 opacity-30 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
+                    </div>
                   </div>
                 )}
 
-                {/* Other available slots */}
-                {nextSlots.length > 0 && (
-                  <div className="rounded-2xl p-5 space-y-4" style={{ background: T.card, border: `1px solid ${T.border}` }}>
-                    <div className="flex items-center gap-2">
-                      <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: `${T.accent}20` }}>
-                        <Zap className="h-4 w-4" style={{ color: T.accent }} />
-                      </div>
-                      <p className="font-semibold text-sm">{smartSuggestion ? 'Outros horários disponíveis' : 'Próximos horários disponíveis'}</p>
-                    </div>
-                    {nextSlots.map(({ date, slots }) => {
-                      const dayLabel = isTodayTz(date) ? 'Hoje' : isTomorrowTz(date) ? 'Amanhã' : format(date, "EEEE, dd/MM", { locale: ptBR });
-                      const filtered = smartSuggestion && isSameDay(date, smartSuggestion.date)
-                        ? slots.filter((s) => s !== smartSuggestion.slot)
-                        : slots;
-                      if (filtered.length === 0) return null;
+                {/* Day Selection Horizontal */}
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2">
+                    <Calendar className="h-4 w-4" style={{ color: T.accent }} />
+                    <span className="text-[10px] font-black uppercase tracking-widest opacity-60">Escolha o dia</span>
+                  </div>
+                  <div className="flex gap-3 overflow-x-auto pb-4 scrollbar-hide">
+                    {nextSlots.map(({ date }) => {
+                      const isSel = selectedDate && isSameDay(date, selectedDate);
                       return (
-                        <div key={date.toISOString()}>
-                          <p className="text-xs font-medium mb-2 capitalize" style={{ color: T.textSec }}>{dayLabel}</p>
-                          <div className="flex flex-wrap gap-2">
-                            {filtered.map((slot) => (
-                              <button
-                                key={`${date.toISOString()}-${slot}`}
-                                onClick={() => handleQuickSlot(date, slot)}
-                                className="px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 hover:scale-105"
-                                style={{ background: T.cardHover, border: `1px solid ${T.border}`, color: T.text }}
-                                onMouseEnter={(e) => { e.currentTarget.style.background = T.accent; e.currentTarget.style.color = '#000'; e.currentTarget.style.borderColor = T.accent; }}
-                                onMouseLeave={(e) => { e.currentTarget.style.background = T.cardHover; e.currentTarget.style.color = T.text; e.currentTarget.style.borderColor = T.border; }}
-                              >
-                                {formatSlotTime(slot)}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
+                        <button
+                          key={date.toISOString()}
+                          onClick={() => { setSelectedDate(date); setSelectedTime(null); }}
+                          className="flex flex-col items-center min-w-[75px] p-4 rounded-[2rem] transition-all duration-300"
+                          style={{
+                            background: isSel ? `linear-gradient(135deg, ${T.accent}, #F4C752)` : T.card,
+                            border: `2px solid ${isSel ? T.accent : T.border}`,
+                            color: isSel ? '#000' : T.text,
+                            boxShadow: isSel ? `0 15px 30px -10px ${T.accent}80` : 'none'
+                          }}
+                        >
+                          <span className="text-[10px] font-black uppercase opacity-60">{format(date, "EEE", { locale: ptBR })}</span>
+                          <span className="text-xl font-black mt-1">{format(date, "dd")}</span>
+                        </button>
                       );
                     })}
                   </div>
-                )}
-                {nextSlotsLoading && <p className="text-sm" style={{ color: T.textSec }}>Buscando próximos horários...</p>}
-
-                <p className="text-xs text-center" style={{ color: T.textSec }}>ou escolha uma data no calendário</p>
-
-                <div className="booking-dark-calendar rounded-2xl p-4" style={{ background: T.card, border: `1px solid ${T.border}` }}>
-                  <CalendarPicker
-                    mode="single" selected={selectedDate}
-                    onSelect={(date) => { setSelectedDate(date); setSelectedTime(null); }}
-                    locale={ptBR}
-                    disabled={(date) => {
-                      const today = new Date(new Date().setHours(0, 0, 0, 0));
-                      if (date < today) return true;
-                      if (isPromoMode && promoData) {
-                        const startDate = new Date(promoData.start_date + 'T00:00:00');
-                        const endDate = new Date(promoData.end_date + 'T23:59:59');
-                        return date < startDate || date > endDate;
-                      }
-                      return false;
-                    }}
-                    className="mx-auto"
-                  />
                 </div>
 
+                {/* Time Selection Grid */}
                 {selectedDate && (
-                  <div className="space-y-3">
-                    <p className="text-sm font-semibold">
-                      Horários disponíveis
-                      {totalDuration > 0 && <span className="font-normal ml-2" style={{ color: T.textSec }}>(bloco de {totalDuration} min)</span>}
-                    </p>
-                    {slotsLoading || !appointmentsLoaded ? (
-                      <div className="space-y-4">
-                        <div className="flex items-center gap-2 py-2" style={{ color: T.textSec }}>
-                          <div className="w-4 h-4 border-2 rounded-full animate-spin" style={{ borderColor: `${T.accent} transparent transparent transparent` }} />
-                          <span className="text-sm font-medium animate-pulse">Buscando melhores horários...</span>
-                        </div>
-                        <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
-                          {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((i) => (
-                            <div 
-                              key={i} 
-                              className="h-10 rounded-xl animate-pulse" 
-                              style={{ background: T.cardHover, opacity: 0.5 }} 
-                            />
-                          ))}
-                        </div>
-                      </div>
-                    ) : availableSlots.length === 0 ? (
-                      <div className="space-y-3">
-                        <p className="text-sm" style={{ color: T.textSec }}>
-                          {businessHours.length === 0 ? 'Horários de funcionamento não configurados' : 'Nenhum horário disponível neste dia'}
-                        </p>
-                        <div className="p-4 rounded-2xl" style={{ background: `${T.accent}08`, border: `1px dashed ${T.accent}40` }}>
-                          <div className="flex items-start gap-3">
-                            <Bell className="h-5 w-5 mt-0.5 shrink-0" style={{ color: T.accent }} />
-                            <div className="flex-1">
-                              <p className="font-semibold text-sm">Quer ser avisado se surgir vaga?</p>
-                              <p className="text-xs mt-1" style={{ color: T.textSec }}>
-                                Entre na lista de espera e avisaremos quando um horário ficar disponível para {format(selectedDate, "dd 'de' MMMM", { locale: ptBR })}.
-                              </p>
-                              <button
-                                className="mt-3 px-4 py-2 rounded-xl text-sm font-medium flex items-center gap-1.5 transition-all hover:scale-105"
-                                style={{ border: `1px solid ${T.accent}`, color: T.accent }}
-                                onClick={() => setShowWaitlistForm(true)}
-                              >
-                                <Bell className="h-3.5 w-3.5" />
-                                Avisar se surgir vaga
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-
-                        {waitlistSuccess && (
-                          <div className="mt-4 p-6 rounded-2xl border text-center space-y-2" style={{ borderColor: '#10B98140', background: '#10B98110' }}>
-                            <div className="text-3xl">✅</div>
-                            <p className="font-semibold text-sm" style={{ color: '#10B981' }}>Você entrou na lista de espera!</p>
-                            <p className="text-xs" style={{ color: T.textSec }}>Avisaremos no WhatsApp se surgir uma vaga.</p>
-                            <button
-                              className="mt-3 px-4 py-2 rounded-xl text-sm font-medium"
-                              style={{ color: T.accent, border: `1px solid ${T.accent}` }}
-                              onClick={() => {
-                                setWaitlistSuccess(false);
-                                setStep('services');
-                                setSelectedServices([]);
-                                setSelectedProfessional(null);
-                                setSelectedDate(undefined);
-                                setSelectedTime(null);
-                              }}
-                            >
-                              Voltar ao início
-                            </button>
-                          </div>
-                        )}
-
-                        {showWaitlistForm && !waitlistSuccess && (
-                          <div className="mt-4 p-4 rounded-2xl border space-y-3" style={{ borderColor: `${T.accent}40`, background: `${T.accent}05` }}>
-                            <p className="font-semibold text-sm">Dados para lista de espera</p>
-                            <div className="space-y-2">
-                              <div>
-                                <label className="text-xs font-medium block mb-1">Nome *</label>
-                                <input
-                                  className="w-full px-3 py-2 rounded-lg border text-sm"
-                                  style={{ background: '#FFFFFF', color: '#111827' }}
-                                  placeholder="Seu nome"
-                                  value={waitlistForm.name}
-                                  onChange={(e) => setWaitlistForm(f => ({ ...f, name: e.target.value }))}
-                                />
-                              </div>
-                              <div>
-                                <label className="text-xs font-medium block mb-1">WhatsApp *</label>
-                                <input
-                                  className="w-full px-3 py-2 rounded-lg border text-sm"
-                                  style={{ background: '#FFFFFF', color: '#111827' }}
-                                  placeholder="(31) 99999-9999"
-                                  value={waitlistForm.whatsapp}
-                                  onChange={(e) => {
-                                    const digits = e.target.value.replace(/\D/g, '').slice(0, 11);
-                                    let masked = digits;
-                                    if (digits.length > 7) masked = `(${digits.slice(0,2)}) ${digits.slice(2,7)}-${digits.slice(7)}`;
-                                    else if (digits.length > 2) masked = `(${digits.slice(0,2)}) ${digits.slice(2)}`;
-                                    setWaitlistForm(f => ({ ...f, whatsapp: masked }));
-                                  }}
-                                  maxLength={15}
-                                />
-                              </div>
-                              <div>
-                                <label className="text-xs font-medium block mb-1">Email (opcional)</label>
-                                <input
-                                  type="email"
-                                  className="w-full px-3 py-2 rounded-lg border text-sm"
-                                  style={{ background: '#FFFFFF', color: '#111827' }}
-                                  placeholder="seu@email.com"
-                                  value={waitlistForm.email}
-                                  onChange={(e) => setWaitlistForm(f => ({ ...f, email: e.target.value }))}
-                                />
-                              </div>
-                            </div>
-                            <div className="flex gap-2">
-                              <button
-                                className="px-4 py-2 rounded-xl text-sm font-medium"
-                                style={{ color: T.textSec }}
-                                onClick={() => setShowWaitlistForm(false)}
-                              >
-                                Cancelar
-                              </button>
-                              <button
-                                className="px-4 py-2 rounded-xl text-sm font-medium text-white"
-                                style={{ background: T.accent }}
-                                onClick={handleJoinWaitlist}
-                                disabled={waitlistLoading}
-                              >
-                                {waitlistLoading ? 'Entrando...' : 'Entrar na lista'}
-                              </button>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    ) : (
-                      <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
-                        {availableSlots.map((slot) => {
-                          const isSel = selectedTime === slot;
-                          return (
-                            <button
-                              key={slot}
-                              onClick={() => setSelectedTime(slot)}
-                              className="py-2.5 rounded-xl text-sm font-medium transition-all duration-200 hover:scale-105"
-                              style={{
-                                background: isSel ? T.accent : T.cardHover,
-                                color: isSel ? '#000' : T.text,
-                                border: `1px solid ${isSel ? T.accent : T.border}`,
-                                boxShadow: isSel ? `0 0 16px ${T.accent}30` : 'none',
-                              }}
-                            >
-                              {formatSlotTime(slot)}
-                            </button>
-                          );
-                        })}
-                      </div>
+                  <div className="space-y-4 animate-in fade-in slide-in-from-top-4 duration-500">
+                    <div className="flex items-center gap-2">
+                      <Clock className="h-4 w-4" style={{ color: T.accent }} />
+                      <span className="text-[10px] font-black uppercase tracking-widest opacity-60">
+                        Horários para {format(selectedDate, "dd/MM")}
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
+                      {(nextSlots.find(d => isSameDay(d.date, selectedDate))?.slots || []).map((slot) => {
+                        const isSel = selectedTime === slot;
+                        return (
+                          <button
+                            key={slot}
+                            onClick={() => { setSelectedTime(slot); setStep('client'); }}
+                            className="py-5 rounded-3xl text-sm font-black transition-all duration-300 border-2"
+                            style={{ 
+                              background: isSel ? T.accent : T.card, 
+                              borderColor: isSel ? T.accent : T.border,
+                              color: isSel ? '#000' : T.text,
+                              boxShadow: isSel ? `0 10px 20px -5px ${T.accent}40` : 'none'
+                            }}
+                          >
+                            {formatSlotTime(slot)}
+                          </button>
+                        );
+                      })}
+                    </div>
+                    
+                    {allowCustomRequests && !isPromoMode && (
+                      <button
+                        onClick={() => setShowCustomRequestForm(true)}
+                        className="w-full mt-6 py-5 rounded-[2rem] text-[10px] font-black uppercase tracking-widest transition-all hover:bg-white/5 border-2 group"
+                        style={{ color: T.accent, border: `2px dashed ${T.accent}40` }}
+                      >
+                        <MessageCircle className="h-5 w-5 inline mr-2 group-hover:rotate-12 transition-transform" />
+                        Solicitar horário personalizado
+                      </button>
                     )}
                   </div>
                 )}
-                {selectedTime && (
-                  <Button
-                    onClick={() => setStep('client')}
-                    className="w-full rounded-xl py-6 font-semibold text-base shadow-lg transition-all hover:scale-[1.01]"
-                    style={{ background: T.accent, color: '#000' }}
-                  >
-                    Continuar <ChevronRight className="h-4 w-4 ml-1" />
-                  </Button>
+
+                {/* Waitlist (if no slots for selected date) */}
+                {selectedDate && (nextSlots.find(d => isSameDay(d.date, selectedDate))?.slots?.length === 0) && (
+                  <div className="p-8 rounded-[2.5rem] text-center space-y-4" style={{ background: `${T.accent}05`, border: `2px dashed ${T.accent}30` }}>
+                    <div className="w-16 h-16 rounded-full bg-amber-500/10 flex items-center justify-center mx-auto">
+                      <Bell className="h-8 w-8 text-amber-500" />
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-black tracking-tight">Vagas Esgotadas</h3>
+                      <p className="text-sm opacity-60 mt-1">Gostaria de ser avisado caso surja uma vaga para este dia?</p>
+                    </div>
+                    <Button
+                      onClick={() => setShowWaitlistForm(true)}
+                      className="rounded-full px-8 py-6 font-black uppercase text-xs tracking-widest"
+                      style={{ background: T.accent, color: '#000' }}
+                    >
+                      Entrar na Lista de Espera
+                    </Button>
+                  </div>
                 )}
 
-                {/* Custom Request Button */}
-                {allowCustomRequests && !isPromoMode && (
-                  <button
-                    onClick={() => setShowCustomRequestForm(true)}
-                    className="w-full text-center py-3 rounded-xl text-sm font-medium transition-all hover:opacity-80"
-                    style={{ color: T.accent, border: `1px dashed ${T.accent}40` }}
-                  >
-                    <Clock className="h-4 w-4 inline mr-1.5" style={{ verticalAlign: '-2px' }} />
-                    Solicitar horário personalizado
-                  </button>
-                )}
-
-                {/* Custom Request Form */}
+                {/* Custom Request Form Component */}
                 {company && (
                   <CustomRequestForm
                     open={showCustomRequestForm}
@@ -2140,32 +2069,36 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                     themeColors={T}
                   />
                 )}
-              </>
+              </div>
             )}
           </div>
         )}
 
         {/* ═══ CLIENT INFO ═══ */}
         {step === 'client' && (
-          <div className="space-y-5 animate-fade-in">
+          <div className="space-y-6 animate-in slide-in-from-right duration-500">
             <button onClick={() => {
               if (preselected.isActive()) {
                 setStep('services');
               } else {
                 setStep('datetime');
               }
-            }} className="flex items-center gap-1 text-sm font-medium hover:opacity-80" style={{ color: T.textSec }}>
+            }} className="flex items-center gap-1 text-xs font-black uppercase tracking-widest opacity-60 hover:opacity-100 transition-opacity" style={{ color: T.textSec }}>
               <ChevronLeft className="h-4 w-4" /> Voltar
             </button>
-            <div>
-              <h2 className="text-2xl font-bold tracking-tight">{savedClientId ? 'Confirme seus dados' : 'Seus dados'}</h2>
-              <p className="text-sm mt-1" style={{ color: T.textSec }}>
-                {savedClientId ? 'Dados carregados automaticamente' : 'Preencha para finalizar o agendamento'}
+            <div className="space-y-1">
+              <h2 className="text-2xl font-black tracking-tight">{savedClientId ? 'Bem-vindo de volta!' : 'Só mais um passo...'}</h2>
+              <p className="text-sm opacity-70" style={{ color: T.textSec }}>
+                {savedClientId ? 'Confirme seus dados para finalizar' : 'Complete sua identificação para agendar'}
               </p>
             </div>
+
             {clientDataWasAutoFilled && (
-              <div className="rounded-xl px-4 py-3 flex items-center justify-between" style={{ background: `${T.accent}10`, border: `1px solid ${T.accent}30` }}>
-                <span className="text-sm" style={{ color: T.accent }}>✅ Seus dados foram preenchidos automaticamente</span>
+              <div className="rounded-2xl p-4 flex items-center justify-between animate-in fade-in duration-500" style={{ background: `${T.accent}10`, border: `1px solid ${T.accent}30` }}>
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                  <span className="text-[10px] font-black uppercase tracking-widest" style={{ color: T.accent }}>Dados Carregados</span>
+                </div>
                 <button
                   onClick={() => {
                     setClientForm({ full_name: '', email: '', whatsapp: '', birth_date: '' });
@@ -2177,95 +2110,127 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                       localStorage.removeItem(`client_data_${company.id}`);
                     }
                     localStorage.removeItem('meagendae_client_data');
-                    toast.success('Dados limpos com sucesso');
+                    toast.success('Pronto para novos dados!');
                   }}
-                  className="text-xs px-3 py-1.5 rounded-lg font-medium transition-all hover:opacity-80"
-                  style={{ background: T.card, border: `1px solid ${T.border}`, color: T.textSec }}
+                  className="text-[10px] font-black uppercase tracking-widest opacity-60 hover:opacity-100"
+                  style={{ color: T.textSec }}
                 >
-                  🗑 Limpar
+                  Alterar dados
                 </button>
               </div>
             )}
-            <div className="space-y-4">
-              <div className="space-y-1.5">
-                <Label className="text-sm font-medium flex items-center gap-1.5" style={{ color: T.textSec }}><User className="h-3.5 w-3.5" /> Nome completo *</Label>
-                <Input value={clientForm.full_name} onChange={(e) => setClientForm({ ...clientForm, full_name: e.target.value })} placeholder="Seu nome" className="rounded-xl h-12 text-base" style={{ background: T.card, border: `1px solid ${T.border}`, color: T.text }} />
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-sm font-medium flex items-center gap-1.5" style={{ color: T.textSec }}><Phone className="h-3.5 w-3.5" /> WhatsApp *</Label>
-                <Input
-                  value={clientForm.whatsapp}
-                  onChange={(e) => {
-                    const digits = e.target.value.replace(/\D/g, '').slice(0, 11);
-                    let masked = digits;
-                    if (digits.length > 7) masked = `(${digits.slice(0,2)}) ${digits.slice(2,7)}-${digits.slice(7)}`;
-                    else if (digits.length > 2) masked = `(${digits.slice(0,2)}) ${digits.slice(2)}`;
-                    setClientForm({ ...clientForm, whatsapp: masked });
-                  }}
-                  placeholder="(11) 99999-9999" maxLength={15}
-                  className="rounded-xl h-12 text-base" style={{ background: T.card, border: `1px solid ${T.border}`, color: T.text }}
-                />
-                {clientForm.whatsapp && clientForm.whatsapp.replace(/\D/g, '').length > 0 && !isValidWhatsApp(clientForm.whatsapp) && (
-                  <p className="text-sm text-red-400 mt-1">Número inválido. Use DDD + número.</p>
-                )}
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-sm font-medium flex items-center gap-1.5" style={{ color: T.textSec }}><Mail className="h-3.5 w-3.5" /> Email *</Label>
-                <Input type="email" value={clientForm.email} onChange={(e) => setClientForm({ ...clientForm, email: e.target.value })} placeholder="seuemail@exemplo.com" className="rounded-xl h-12 text-base" style={{ background: T.card, border: `1px solid ${T.border}`, color: T.text }} />
-              </div>
-              {!isClientLoggedIn && (
+
+            <div 
+              className="rounded-[2.5rem] p-6 space-y-5 relative overflow-hidden" 
+              style={{ background: T.card, border: `2px solid ${T.border}` }}
+            >
+              <div className="space-y-4">
                 <div className="space-y-1.5">
-                  <Label className="text-sm font-medium flex items-center gap-1.5" style={{ color: T.textSec }}>🔒 Senha *</Label>
-                  <Input type="password" value={clientPassword} onChange={(e) => setClientPassword(e.target.value)} placeholder="Mínimo 8 caracteres" autoComplete="new-password" className="rounded-xl h-12 text-base" style={{ background: T.card, border: `1px solid ${T.border}`, color: T.text }} />
-                  <p className="text-xs" style={{ color: T.textSec }}>Use no mínimo 8 caracteres. Evite senhas comuns como 123456. Se já tem conta, use sua senha.</p>
+                  <Label className="text-[10px] font-black uppercase tracking-widest opacity-40 ml-2" style={{ color: T.textSec }}>Seu Nome Completo</Label>
+                  <Input 
+                    value={clientForm.full_name} 
+                    onChange={(e) => setClientForm({ ...clientForm, full_name: e.target.value })} 
+                    placeholder="Ex: Raphael Silva" 
+                    className="rounded-2xl h-14 text-base font-bold bg-white/5 border-white/10 focus:border-amber-500 transition-all" 
+                  />
                 </div>
-              )}
-              <div className="space-y-1.5">
-                <Label className="text-sm font-medium flex items-center gap-1.5" style={{ color: T.textSec }}><Cake className="h-3.5 w-3.5" /> Data de nascimento</Label>
-                <Input type="date" value={clientForm.birth_date} onChange={(e) => setClientForm({ ...clientForm, birth_date: e.target.value })} className="rounded-xl h-12 text-base" style={{ background: T.card, border: `1px solid ${T.border}`, color: T.text }} />
+                <div className="space-y-1.5">
+                  <Label className="text-[10px] font-black uppercase tracking-widest opacity-40 ml-2" style={{ color: T.textSec }}>WhatsApp para Confirmação</Label>
+                  <Input
+                    value={clientForm.whatsapp}
+                    onChange={(e) => {
+                      const digits = e.target.value.replace(/\D/g, '').slice(0, 11);
+                      let masked = digits;
+                      if (digits.length > 7) masked = `(${digits.slice(0,2)}) ${digits.slice(2,7)}-${digits.slice(7)}`;
+                      else if (digits.length > 2) masked = `(${digits.slice(0,2)}) ${digits.slice(2)}`;
+                      setClientForm({ ...clientForm, whatsapp: masked });
+                    }}
+                    placeholder="(11) 99999-9999" 
+                    maxLength={15}
+                    className="rounded-2xl h-14 text-base font-bold bg-white/5 border-white/10 focus:border-amber-500 transition-all"
+                  />
+                  {clientForm.whatsapp && clientForm.whatsapp.replace(/\D/g, '').length > 0 && !isValidWhatsApp(clientForm.whatsapp) && (
+                    <p className="text-[10px] font-bold text-red-400 mt-1 uppercase tracking-tighter">Número incompleto. Use DDD + 9 dígitos.</p>
+                  )}
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-[10px] font-black uppercase tracking-widest opacity-40 ml-2" style={{ color: T.textSec }}>Seu Melhor E-mail</Label>
+                  <Input 
+                    type="email" 
+                    value={clientForm.email} 
+                    onChange={(e) => setClientForm({ ...clientForm, email: e.target.value })} 
+                    placeholder="email@exemplo.com" 
+                    className="rounded-2xl h-14 text-base font-bold bg-white/5 border-white/10 focus:border-amber-500 transition-all" 
+                  />
+                </div>
+                {!isClientLoggedIn && (
+                  <div className="space-y-1.5 animate-in slide-in-from-top-2 duration-300">
+                    <Label className="text-[10px] font-black uppercase tracking-widest opacity-40 ml-2" style={{ color: T.textSec }}>Crie uma Senha Segura</Label>
+                    <Input 
+                      type="password" 
+                      value={clientPassword} 
+                      onChange={(e) => setClientPassword(e.target.value)} 
+                      placeholder="Mínimo 8 caracteres" 
+                      className="rounded-2xl h-14 text-base font-bold bg-white/5 border-white/10 focus:border-amber-500 transition-all" 
+                    />
+                    <p className="text-[9px] font-bold opacity-40 uppercase tracking-widest ml-2 leading-relaxed">
+                      Sua senha permite acompanhar cashback, pontos e histórico de agendamentos.
+                    </p>
+                  </div>
+                )}
+                <div className="space-y-1.5">
+                  <Label className="text-[10px] font-black uppercase tracking-widest opacity-40 ml-2" style={{ color: T.textSec }}>Data de Nascimento (Opcional)</Label>
+                  <Input 
+                    type="date" 
+                    value={clientForm.birth_date} 
+                    onChange={(e) => setClientForm({ ...clientForm, birth_date: e.target.value })} 
+                    className="rounded-2xl h-14 text-base font-bold bg-white/5 border-white/10 focus:border-amber-500 transition-all invert-calendar" 
+                  />
+                </div>
+              </div>
+              
+              <div className="flex items-start gap-3 pt-2">
+                <Checkbox 
+                  id="opt-in-whatsapp" 
+                  checked={optInWhatsapp} 
+                  onCheckedChange={(v) => setOptInWhatsapp(v === true)} 
+                  className="mt-1 rounded-md border-white/20"
+                />
+                <label htmlFor="opt-in-whatsapp" className="text-[10px] font-bold uppercase tracking-widest leading-relaxed cursor-pointer opacity-60 hover:opacity-100 transition-opacity" style={{ color: T.textSec }}>
+                  Aceito receber lembretes de horário e novidades via WhatsApp.
+                </label>
               </div>
             </div>
-            <div className="flex items-start gap-3 pt-1">
-              <Checkbox id="opt-in-whatsapp" checked={optInWhatsapp} onCheckedChange={(v) => setOptInWhatsapp(v === true)} />
-              <label htmlFor="opt-in-whatsapp" className="text-sm leading-snug cursor-pointer" style={{ color: T.textSec }}>
-                Aceito receber lembretes e comunicações via WhatsApp. Posso cancelar a qualquer momento.
-              </label>
-            </div>
-            {!clientForm.whatsapp && (
-              <p className="text-sm mt-1" style={{ color: '#F87171' }}>Informe seu número de WhatsApp para continuar.</p>
-            )}
+
             <Button
               onClick={async () => {
                 if (!clientForm.whatsapp || !isValidWhatsApp(clientForm.whatsapp)) {
-                  toast.error('Informe seu número de WhatsApp para continuar.');
+                  toast.error('Informe seu WhatsApp válido para continuar.');
                   return;
                 }
                 if (!clientForm.full_name.trim()) {
-                  toast.error('Informe seu nome para continuar.');
+                  toast.error('Informe seu nome completo para continuar.');
                   return;
                 }
                 if (!clientForm.email?.trim()) {
-                  toast.error('Informe seu email para continuar.');
+                  toast.error('Informe seu e-mail para continuar.');
                   return;
                 }
 
-                // ── Inline auth: sign in or sign up silently ──
                 if (!isClientLoggedIn) {
                   if (!clientPassword || clientPassword.length < 8) {
-                    toast.error('A senha deve ter no mínimo 8 caracteres.');
+                    toast.error('A senha deve ter no mínimo 8 caracteres para sua segurança.');
                     return;
                   }
                   setAuthLoading(true);
                   try {
                     const emailTrimmed = clientForm.email.trim().toLowerCase();
-                    // Try sign in first
                     const { error: signInError } = await supabase.auth.signInWithPassword({
                       email: emailTrimmed,
                       password: clientPassword,
                     });
                     if (!signInError) {
-                      toast.success('Login realizado!');
-                      // link_client_to_user will be called when session is set
+                      toast.success('Bem-vindo de volta!');
                       const formattedPhone = clientForm.whatsapp ? formatWhatsApp(clientForm.whatsapp) : '';
                       const { data: { user } } = await supabase.auth.getUser();
                       if (user) {
@@ -2276,7 +2241,6 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                         } as any);
                       }
                     } else {
-                      // If invalid credentials, try sign up
                       const isInvalidCreds = /invalid login|invalid credentials/i.test(signInError.message);
                       if (!isInvalidCreds) {
                         toast.error(signInError.message);
@@ -2303,19 +2267,17 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                         return;
                       }
                       if (signUpData.user) {
-                        toast.success('Conta criada com sucesso! 🎉 Agora você pode acompanhar seus agendamentos, cashback e pontos.');
+                        toast.success('Conta criada com sucesso! 🎁');
                         await supabase.rpc('link_client_to_user', {
                           p_user_id: signUpData.user.id,
                           p_phone: formattedPhone || null,
                           p_email: emailTrimmed,
                         } as any);
-                        // Welcome email — fire-and-forget
                         try {
                           const { sendWelcomeClientEmail } = await import('@/lib/email');
                           void sendWelcomeClientEmail({ email: emailTrimmed, name: clientForm.full_name.trim() });
-                        } catch (e) { console.warn('[email] welcome client failed', e); }
+                        } catch (e) { console.warn('[email] welcome failed', e); }
                       }
-                      toast.success('Conta criada!');
                     }
                   } catch (err: any) {
                     toast.error(err?.message || 'Erro ao autenticar');
@@ -2325,7 +2287,6 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                   setAuthLoading(false);
                 }
 
-                // Check if company has cashback or loyalty active — show benefits step
                 const hasBenefits = (loyaltyPointValue > 0) || (isPromoMode && promoData?.promotion_type === 'cashback');
                 if (hasBenefits && !savedClientId) {
                   setStep('benefits');
@@ -2333,16 +2294,20 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                   setStep('confirm');
                 }
               }}
-              className="w-full rounded-xl py-6 font-semibold text-base shadow-lg transition-all hover:scale-[1.01]"
-              style={{ background: T.accent, color: '#000' }}
+              className="w-full rounded-full py-8 font-black text-lg shadow-2xl transition-all hover:scale-[1.02] active:scale-[0.98] group"
+              style={{ background: `linear-gradient(135deg, ${T.accent}, #F4C752)`, color: '#000' }}
               disabled={authLoading || !clientForm.full_name.trim() || !clientForm.whatsapp || !isValidWhatsApp(clientForm.whatsapp) || !clientForm.email?.trim() || (!isClientLoggedIn && clientPassword.length < 8)}
             >
               {authLoading ? (
-                <div className="flex items-center gap-2">
-                  <div className="w-5 h-5 border-2 rounded-full animate-spin" style={{ borderColor: '#000 transparent transparent transparent' }} /> Estamos preparando sua conta...
+                <div className="flex items-center gap-3">
+                  <div className="w-5 h-5 border-4 rounded-full animate-spin" style={{ borderColor: '#000 transparent transparent transparent' }} />
+                  Preparando seu Acesso...
                 </div>
               ) : (
-                <>Revisar Agendamento <ChevronRight className="h-4 w-4 ml-1" /></>
+                <div className="flex items-center gap-2">
+                  Revisar Agendamento
+                  <ChevronRight className="h-6 w-6 ml-1 transition-transform group-hover:translate-x-1" />
+                </div>
               )}
             </Button>
           </div>
@@ -2350,135 +2315,196 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
 
         {/* ═══ BENEFITS CHOICE ═══ */}
         {step === 'benefits' && (
-          <div className="space-y-5 animate-fade-in">
-            <button onClick={() => setStep('client')} className="flex items-center gap-1 text-sm font-medium hover:opacity-80" style={{ color: T.textSec }}>
+          <div className="space-y-8 animate-in slide-in-from-right duration-500">
+            <button onClick={() => setStep('client')} className="flex items-center gap-1 text-xs font-black uppercase tracking-widest opacity-60 hover:opacity-100 transition-opacity" style={{ color: T.textSec }}>
               <ChevronLeft className="h-4 w-4" /> Voltar
             </button>
-            <div>
-              <h2 className="text-2xl font-bold tracking-tight">Ganhe benefícios!</h2>
-              <p className="text-sm mt-1" style={{ color: T.textSec }}>
-                Crie uma conta e acumule recompensas a cada serviço
-              </p>
+            <div className="text-center space-y-4">
+              <div className="w-24 h-24 rounded-full bg-amber-500/10 flex items-center justify-center mx-auto shadow-2xl shadow-amber-500/20">
+                <Sparkles className="h-12 w-12 text-amber-500" />
+              </div>
+              <div className="space-y-2">
+                <h2 className="text-3xl font-black tracking-tight">Ganhe Recompensas!</h2>
+                <p className="text-sm opacity-70 max-w-xs mx-auto" style={{ color: T.textSec }}>
+                  Como cliente especial, você acumula benefícios reais a cada visita.
+                </p>
+              </div>
             </div>
 
-            {/* Continue to confirm */}
+            <div className="grid grid-cols-1 gap-4">
+              <div className="p-6 rounded-[2rem] bg-white/5 border-2 border-dashed border-white/10 flex items-start gap-4">
+                <div className="w-10 h-10 rounded-xl bg-green-500/20 flex items-center justify-center shrink-0">
+                  <span className="text-xl">💰</span>
+                </div>
+                <div>
+                  <p className="font-black text-base">Cashback Instantâneo</p>
+                  <p className="text-xs opacity-60 mt-1">Receba parte do valor pago de volta para usar no seu próximo agendamento.</p>
+                </div>
+              </div>
+              <div className="p-6 rounded-[2rem] bg-white/5 border-2 border-dashed border-white/10 flex items-start gap-4">
+                <div className="w-10 h-10 rounded-xl bg-amber-500/20 flex items-center justify-center shrink-0">
+                  <span className="text-xl">⭐</span>
+                </div>
+                <div>
+                  <p className="font-black text-base">Clube de Fidelidade</p>
+                  <p className="text-xs opacity-60 mt-1">Acumule pontos e troque por serviços gratuitos ou descontos exclusivos.</p>
+                </div>
+              </div>
+            </div>
+
             <Button
               onClick={() => setStep('confirm')}
-              className="w-full rounded-xl py-6 font-semibold text-base shadow-lg"
-              style={{ background: T.accent, color: '#000' }}
+              className="w-full rounded-full py-8 font-black text-lg shadow-2xl transition-all hover:scale-[1.02] active:scale-[0.98] group"
+              style={{ background: `linear-gradient(135deg, ${T.accent}, #F4C752)`, color: '#000' }}
             >
-              Continuar <ChevronRight className="h-4 w-4 ml-1" />
+              Quero meus benefícios
+              <ChevronRight className="h-6 w-6 ml-2 transition-transform group-hover:translate-x-1" />
             </Button>
           </div>
         )}
 
         {/* ═══ CONFIRM ═══ */}
         {step === 'confirm' && (
-          <div className="space-y-5 animate-fade-in">
-            <button onClick={() => setStep('client')} className="flex items-center gap-1 text-sm font-medium hover:opacity-80" style={{ color: T.textSec }}>
+          <div className="space-y-6 animate-in slide-in-from-right duration-500">
+            <button onClick={() => setStep('client')} className="flex items-center gap-1 text-xs font-black uppercase tracking-widest opacity-60 hover:opacity-100 transition-opacity" style={{ color: T.textSec }}>
               <ChevronLeft className="h-4 w-4" /> Voltar
             </button>
-            <div>
-              <h2 className="text-2xl font-bold tracking-tight">Confirmar Agendamento</h2>
-              <p className="text-sm mt-1" style={{ color: T.textSec }}>Revise os detalhes antes de confirmar</p>
+            <div className="space-y-1">
+              <h2 className="text-2xl font-black tracking-tight">{clientForm.full_name.split(' ')[0]}, revise sua reserva 👇</h2>
+              <p className="text-sm opacity-70" style={{ color: T.textSec }}>Tudo certo para o seu momento de autocuidado</p>
             </div>
-            <div className="rounded-2xl p-5 space-y-5" style={{ background: T.card, border: `1px solid ${T.border}` }}>
-              {/* Promotion details */}
-              {isPromoMode && promoData && (
-                <>
-                  <div className="flex items-center gap-2">
-                    <Sparkles className="h-4 w-4" style={{ color: T.accent }} />
-                    <span className="text-xs font-bold uppercase tracking-wider" style={{ color: T.accent }}>Promoção: {promoData.title}</span>
+            
+            <div 
+              className="rounded-[2.5rem] p-6 space-y-6 relative overflow-hidden" 
+              style={{ background: T.card, border: `2px solid ${T.border}`, boxShadow: '0 20px 40px -20px rgba(0,0,0,0.4)' }}
+            >
+              <div className="absolute top-0 right-0 p-8 blur-3xl rounded-full -mr-10 -mt-10 opacity-10 pointer-events-none" style={{ background: T.accent }} />
+              
+              {/* Summary Header */}
+              <div className="flex items-center gap-4">
+                {selectedProfessional && professionals.find(p => p.id === selectedProfessional)?.avatar_url ? (
+                  <img 
+                    src={professionals.find(p => p.id === selectedProfessional)?.avatar_url} 
+                    className="w-16 h-16 rounded-2xl object-cover" 
+                    alt="Professional" 
+                  />
+                ) : (
+                  <div className="w-16 h-16 rounded-2xl bg-white/5 flex items-center justify-center">
+                    <User className="h-8 w-8 opacity-20" />
                   </div>
-                  <div style={{ borderTop: `1px solid ${T.border}` }} />
-                </>
-              )}
-              {/* Services */}
-              <div>
-                <p className="text-xs mb-2" style={{ color: T.textSec }}>Serviços</p>
-                <div className="space-y-2">
+                )}
+                <div>
+                  <p className="text-[10px] font-black uppercase tracking-widest opacity-60">Profissional Especialista</p>
+                  <p className="font-black text-lg">{professionals.find(p => p.id === selectedProfessional)?.full_name || 'Expert'}</p>
+                </div>
+              </div>
+
+              <div className="h-px w-full bg-white/5" />
+
+              {/* Services List */}
+              <div className="space-y-4">
+                <p className="text-[10px] font-black uppercase tracking-widest opacity-60">Serviços Selecionados</p>
+                <div className="space-y-3">
                   {services.filter((s) => selectedServices.includes(s.id)).map((s) => (
-                    <div key={s.id} className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <div className="w-2 h-2 rounded-full" style={{ background: T.accent }} />
-                        <span className="text-sm font-medium">{s.name}</span>
-                        <span className="text-xs" style={{ color: T.textSec }}>{s.duration_minutes} min</span>
-                      </div>
-                      {isPromoMode && promoData?.original_price != null && promoData?.promotion_price != null ? (
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm line-through" style={{ color: T.textSec }}>R$ {Number(promoData.original_price).toFixed(2)}</span>
-                          <span className="text-sm font-semibold" style={{ color: T.accent }}>R$ {Number(promoData.promotion_price).toFixed(2)}</span>
+                    <div key={s.id} className="flex items-center justify-between group">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center group-hover:bg-amber-500/10 transition-colors">
+                          <Scissors className="h-4 w-4 opacity-40 group-hover:text-amber-500 group-hover:opacity-100 transition-all" />
                         </div>
-                      ) : (
-                        <span className="text-sm font-semibold" style={{ color: T.accent }}>R$ {Number(s.price).toFixed(2)}</span>
-                      )}
+                        <div>
+                          <p className="text-sm font-black">{s.name}</p>
+                          <p className="text-[10px] font-bold opacity-40 uppercase tracking-tighter">{s.duration_minutes} min • Tratamento VIP</p>
+                        </div>
+                      </div>
+                      <p className="text-sm font-black" style={{ color: T.accent }}>R$ {Number(s.price).toFixed(2)}</p>
                     </div>
                   ))}
                 </div>
               </div>
-              <div style={{ borderTop: `1px solid ${T.border}` }} />
-              {/* Date & Time */}
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <p className="text-xs mb-1" style={{ color: T.textSec }}>Data</p>
-                  <p className="font-semibold text-sm">{selectedDate && format(selectedDate, "dd 'de' MMMM", { locale: ptBR })}</p>
+
+              <div className="h-px w-full bg-white/5" />
+
+              {/* Appointment Details */}
+              <div className="grid grid-cols-2 gap-6">
+                <div className="p-4 rounded-3xl bg-white/5 space-y-1">
+                  <p className="text-[10px] font-black uppercase tracking-widest opacity-40">Data do Serviço</p>
+                  <p className="font-black text-sm capitalize">{selectedDate && format(selectedDate, "dd 'de' MMMM", { locale: ptBR })}</p>
                 </div>
-                <div>
-                  <p className="text-xs mb-1" style={{ color: T.textSec }}>Horário</p>
-                  <p className="font-semibold text-sm">{selectedTime} • {totalDuration} min</p>
+                <div className="p-4 rounded-3xl bg-white/5 space-y-1">
+                  <p className="text-[10px] font-black uppercase tracking-widest opacity-40">Horário & Duração</p>
+                  <p className="font-black text-sm">{selectedTime} <span className="opacity-40 font-bold ml-1">• {totalDuration}m</span></p>
                 </div>
               </div>
-              <div style={{ borderTop: `1px solid ${T.border}` }} />
-              {/* Cashback earn info — auto-detected or promo-based */}
-              {cashbackEarnAmount > 0 && (
-                <div className="rounded-xl p-3" style={{ background: '#10b98115', border: '1px solid #10b98130' }}>
-                  <p className="font-semibold text-sm" style={{ color: '#10b981' }}>
-                    💰 Você ganhará R$ {cashbackEarnAmount.toFixed(2)} de cashback
-                  </p>
-                  <p className="text-xs" style={{ color: T.textSec }}>
-                    Crédito disponível após conclusão do serviço para usar no próximo agendamento
-                  </p>
-                </div>
-              )}
-              {/* Cashback credit (use existing credits) */}
-              {cashbackCredits.length > 0 && (
-                <div className="rounded-xl p-3" style={{ background: `${T.accent}15`, border: `1px solid ${T.accent}30` }}>
-                  <label className="flex items-center justify-between cursor-pointer">
-                    <div>
-                      <p className="font-semibold text-sm">💰 Cashback disponível: R$ {cashbackTotal.toFixed(2)}</p>
-                      <p className="text-xs" style={{ color: T.textSec }}>Usar crédito neste agendamento</p>
+
+              {/* Benefits Info */}
+              {(cashbackEarnAmount > 0 || useCashback) && (
+                <div className="space-y-3">
+                  {cashbackEarnAmount > 0 && (
+                    <div className="rounded-2xl p-4 flex items-center gap-3 animate-in zoom-in duration-500" style={{ background: 'linear-gradient(135deg, #10b98110, #10b98120)', border: '1px solid #10b98130' }}>
+                      <div className="w-8 h-8 rounded-full bg-[#10b98120] flex items-center justify-center shrink-0">
+                        <span className="text-sm">🎁</span>
+                      </div>
+                      <p className="text-xs font-bold" style={{ color: '#10b981' }}>
+                        Você ganhará <span className="text-sm font-black">R$ {cashbackEarnAmount.toFixed(2)}</span> de cashback
+                      </p>
                     </div>
-                    <input type="checkbox" checked={useCashback} onChange={e => setUseCashback(e.target.checked)} className="w-5 h-5 rounded" />
-                  </label>
+                  )}
+                  {cashbackCredits.length > 0 && (
+                    <div 
+                      className="rounded-2xl p-4 flex items-center justify-between gap-3 cursor-pointer select-none border-2 transition-all" 
+                      onClick={() => setUseCashback(!useCashback)}
+                      style={{ 
+                        background: useCashback ? `${T.accent}15` : 'rgba(255,255,255,0.02)', 
+                        borderColor: useCashback ? T.accent : 'transparent'
+                      }}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-amber-500/10 flex items-center justify-center">
+                          <span className="text-sm">💰</span>
+                        </div>
+                        <div>
+                          <p className="text-[10px] font-black uppercase tracking-widest opacity-60">Usar Créditos</p>
+                          <p className="text-sm font-black">Saldo: R$ {cashbackTotal.toFixed(2)}</p>
+                        </div>
+                      </div>
+                      <Checkbox checked={useCashback} onCheckedChange={(v) => setUseCashback(v === true)} className="rounded-full w-6 h-6" />
+                    </div>
+                  )}
                 </div>
               )}
-              {/* Total */}
-              <div className="flex justify-between items-center">
-                <span className="text-lg font-bold">Total</span>
-                <div className="text-right">
+
+              {/* Final Price */}
+              <div className="pt-4 flex justify-between items-center">
+                <div>
+                  <p className="text-[10px] font-black uppercase tracking-widest opacity-60">Total a Pagar no Local</p>
                   {cashbackDiscount > 0 && (
-                    <p className="text-xs line-through" style={{ color: T.textSec }}>R$ {totalPrice.toFixed(2)}</p>
+                    <p className="text-xs line-through opacity-40 font-bold">R$ {totalPrice.toFixed(2)}</p>
                   )}
-                  <span className="text-2xl font-bold" style={{ color: T.accent }}>R$ {finalPrice.toFixed(2)}</span>
                 </div>
+                <p className="text-4xl font-black tracking-tighter" style={{ color: T.accent }}>R$ {finalPrice.toFixed(2)}</p>
               </div>
             </div>
+
             <Button
-              onClick={() => {
-                handleBook();
-              }}
-              className="w-full rounded-xl py-6 font-semibold text-base shadow-lg transition-all hover:scale-[1.01]"
-              style={{ background: T.accent, color: '#000' }}
-              disabled={loading} size="lg"
+              onClick={() => handleBook()}
+              className="w-full rounded-full py-8 font-black text-lg shadow-2xl transition-all hover:scale-[1.02] active:scale-[0.98] group"
+              style={{ background: `linear-gradient(135deg, ${T.accent}, #F4C752)`, color: '#000' }}
+              disabled={loading}
             >
               {loading ? (
-                <div className="flex items-center gap-2">
-                  <div className="w-5 h-5 border-2 rounded-full animate-spin" style={{ borderColor: '#000 transparent transparent transparent' }} /> Agendando...
+                <div className="flex items-center gap-3">
+                  <div className="w-5 h-5 border-4 rounded-full animate-spin" style={{ borderColor: '#000 transparent transparent transparent' }} />
+                  Confirmando seu Horário...
                 </div>
               ) : (
-                <><CheckCircle2 className="h-5 w-5 mr-2" /> Confirmar Agendamento</>
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="h-6 w-6" />
+                  Finalizar Agendamento
+                </div>
               )}
             </Button>
+            
+            <p className="text-[10px] text-center font-bold opacity-40 uppercase tracking-widest">Pague diretamente no estabelecimento</p>
           </div>
         )}
 
@@ -2565,146 +2591,96 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
           };
 
           return (
-            <div className="space-y-6 text-center animate-fade-in">
-              <div className="flex justify-center pt-6">
-                <div className="w-24 h-24 rounded-full flex items-center justify-center animate-scale-in" style={{ background: T.green }}>
-                  <CheckCircle2 className="h-12 w-12" style={{ color: T.greenText }} />
+            <div className="space-y-8 animate-in zoom-in-95 duration-700">
+              <div className="flex flex-col items-center gap-6 pt-10">
+                <div className="relative">
+                  <div className="absolute inset-0 bg-green-500 blur-2xl opacity-20 animate-pulse rounded-full" />
+                  <div className="w-24 h-24 rounded-full flex items-center justify-center animate-bounce bg-green-500/10 border-4 border-green-500/20 relative z-10 shadow-2xl">
+                    <CheckCircle2 className="h-12 w-12 text-green-500" />
+                  </div>
                 </div>
-              </div>
-              <div>
-                <h2 className="text-2xl font-bold tracking-tight">Agendamento Confirmado!</h2>
-                <p className="text-sm mt-2" style={{ color: T.textSec }}>Seu horário foi reservado com sucesso</p>
+                <div className="space-y-2">
+                  <h2 className="text-4xl font-black tracking-tighter">Perfeito, {clientForm.full_name.split(' ')[0]}! 🎉</h2>
+                  <p className="text-sm font-bold opacity-60 uppercase tracking-widest" style={{ color: T.textSec }}>Seu horário está reservado com exclusividade</p>
+                </div>
               </div>
 
-              <div className="rounded-2xl p-5 space-y-5 text-left" style={{ background: T.card, border: `1px solid ${T.border}` }}>
-                <div className="flex items-center gap-4">
-                  {bookingResult.professionalAvatar ? (
-                    <img src={bookingResult.professionalAvatar} alt={bookingResult.professionalName} className="w-14 h-14 rounded-full object-cover" />
-                  ) : (
-                    <div className="w-14 h-14 rounded-full flex items-center justify-center text-xl font-bold" style={{ background: `${T.accent}20`, color: T.accent }}>
-                      {bookingResult.professionalName.charAt(0).toUpperCase()}
+              <div 
+                className="rounded-[2.5rem] p-8 space-y-6 relative overflow-hidden text-left" 
+                style={{ background: T.card, border: `2px solid ${T.border}`, boxShadow: '0 32px 64px -16px rgba(0,0,0,0.5)' }}
+              >
+                <div className="absolute top-0 right-0 p-12 blur-3xl rounded-full -mr-10 -mt-10 opacity-10 pointer-events-none" style={{ background: T.accent }} />
+                
+                <div className="flex items-center gap-5">
+                  <div className="w-16 h-16 rounded-2xl bg-white/5 flex items-center justify-center shrink-0">
+                    <CalendarPlus className="h-8 w-8" style={{ color: T.accent }} />
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-black uppercase tracking-widest opacity-40">Data e Hora do Agendamento</p>
+                    <p className="text-xl font-black capitalize">{format(bookingResult.date, "dd 'de' MMMM", { locale: ptBR })}</p>
+                    <p className="text-2xl font-black" style={{ color: T.accent }}>às {bookingResult.time}</p>
+                  </div>
+                </div>
+
+                <div className="h-px w-full bg-white/5" />
+
+                <div className="space-y-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center">
+                      <User className="h-5 w-5 opacity-40" />
                     </div>
-                  )}
-                  <div>
-                    <p className="text-xs" style={{ color: T.textSec }}>Profissional</p>
-                    <p className="font-semibold text-base">{bookingResult.professionalName}</p>
-                  </div>
-                </div>
-                <div style={{ borderTop: `1px solid ${T.border}` }} />
-                <div>
-                  <p className="text-xs mb-2" style={{ color: T.textSec }}>Serviços</p>
-                  <div className="flex flex-wrap gap-2">
-                    {bookingResult.serviceNames.map((name) => (
-                      <span key={name} className="px-3 py-1 rounded-lg text-xs font-medium" style={{ background: `${T.accent}15`, color: T.accent }}>{name}</span>
-                    ))}
-                  </div>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  <div>
-                    <p className="text-xs mb-1" style={{ color: T.textSec }}>📅 Data</p>
-                    <p className="font-semibold text-sm">{format(bookingResult.date, "dd 'de' MMMM, yyyy", { locale: ptBR })}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs mb-1" style={{ color: T.textSec }}>🕐 Horário</p>
-                    <p className="font-semibold text-sm">{bookingResult.time}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs mb-1" style={{ color: T.textSec }}>⏱️ Duração</p>
-                    <p className="font-semibold text-sm">{bookingResult.totalDuration} min</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <MapPin className="h-4 w-4 shrink-0" style={{ color: T.textSec }} />
-                  <div>
-                    <p className="text-xs" style={{ color: T.textSec }}>Local</p>
-                    <p className="font-semibold text-sm">{bookingResult.companyName}</p>
-                  </div>
-                </div>
-                <div style={{ borderTop: `1px solid ${T.border}` }} />
-                {isPromoMode && promoData ? (
-                  <div className="space-y-3">
                     <div>
-                      <p className="text-xs mb-1" style={{ color: T.textSec }}>🎉 Promoção</p>
-                      <p className="font-semibold text-sm">{promoData.title}</p>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      {promoData.original_price != null && (
-                        <span className="text-sm line-through" style={{ color: T.textSec }}>R$ {Number(promoData.original_price).toFixed(2)}</span>
-                      )}
-                      <span className="text-2xl font-bold" style={{ color: T.accent }}>R$ {bookingResult.totalPrice.toFixed(2)}</span>
-                    </div>
-                    {savings > 0 && (
-                      <div className="flex items-center gap-2 px-3 py-2 rounded-xl" style={{ background: 'rgba(34,197,94,0.15)' }}>
-                        <span className="text-sm font-semibold" style={{ color: '#4ADE80' }}>🔥 Você economizou R$ {savings.toFixed(2)}</span>
-                      </div>
-                    )}
-                    <div className="flex items-center gap-2 px-3 py-2 rounded-xl" style={{ background: 'rgba(245,158,11,0.1)' }}>
-                      <span className="text-xs" style={{ color: T.accent }}>⚠ Promoção válida apenas para este horário.</span>
+                      <p className="text-[10px] font-black uppercase tracking-widest opacity-40">Profissional Responsável</p>
+                      <p className="font-black text-base">{bookingResult.professionalName}</p>
                     </div>
                   </div>
-                ) : (
-                  <div className="flex justify-between items-center">
-                    <span className="text-lg font-bold">Total</span>
-                    <span className="text-2xl font-bold" style={{ color: T.accent }}>R$ {bookingResult.totalPrice.toFixed(2)}</span>
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center">
+                      <Scissors className="h-5 w-5 opacity-40" />
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {bookingResult.serviceNames.map((name) => (
+                        <span key={name} className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest bg-white/5" style={{ color: T.accent }}>{name}</span>
+                      ))}
+                    </div>
                   </div>
-                )}
+                </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <button onClick={() => window.open(calUrl(), '_blank')} className="flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-medium transition-all hover:scale-105" style={{ background: T.card, border: `1px solid ${T.border}`, color: T.text }}>
-                  <CalendarPlus className="h-4 w-4" style={{ color: T.accent }} /> 📅 Salvar no Google Agenda
-                </button>
-                {bookingResult.companyPhone && (
-                  <button onClick={() => window.open(waUrl(), '_blank')} className="flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-medium transition-all hover:scale-105" style={{ background: '#25D366', color: '#fff' }}>
-                    <MessageCircle className="h-4 w-4" /> 📲 Enviar confirmação no WhatsApp
-                  </button>
-                )}
-                {bookingResult.companyAddress && (
-                  <button onClick={() => window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(bookingResult.companyAddress!)}`, '_blank')} className="flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-medium transition-all hover:scale-105 col-span-2" style={{ background: T.card, border: `1px solid ${T.border}`, color: T.text }}>
-                    <MapPin className="h-4 w-4" style={{ color: T.accent }} /> 📍 Abrir localização
-                  </button>
-                )}
-              </div>
-
-              <div className={`grid ${isPromoMode ? 'grid-cols-1' : 'grid-cols-2'} gap-3`}>
-                {!isPromoMode && (
-                  <button onClick={() => window.location.href = `/reschedule/${bookingResult.appointmentId}`} className="flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-medium transition-all hover:scale-105" style={{ background: T.card, border: `1px solid ${T.border}`, color: T.text }}>
-                    🔄 Reagendar
-                  </button>
-                )}
-                <button onClick={() => window.location.href = `/cancel/${bookingResult.appointmentId}`} className="flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-medium transition-all hover:scale-105" style={{ background: T.card, border: `1px solid ${T.border}`, color: '#F87171' }}>
-                  ❌ Cancelar
-                </button>
-              </div>
-
-              {/* ── Account Block (always logged in) ── */}
-              <div className="rounded-2xl p-5 space-y-3" style={{ background: T.card, border: `1px solid ${T.border}` }}>
-                <p className="text-base font-semibold flex items-center gap-2">👤 Sua conta</p>
-                <p className="text-sm" style={{ color: T.textSec }}>Acompanhe seus agendamentos, cashback e pontos de fidelidade.</p>
-                {(cashbackTotal > 0 || loyaltyPoints > 0) && (
-                  <div className="flex gap-3 text-sm font-medium">
-                    {cashbackTotal > 0 && <span style={{ color: T.accent }}>💰 R${cashbackTotal.toFixed(2)}</span>}
-                    {loyaltyPoints > 0 && <span style={{ color: T.accent }}>⭐ {loyaltyPoints} pts{loyaltyPointValue > 0 ? ` (R$${(loyaltyPoints * loyaltyPointValue).toFixed(2)})` : ''}</span>}
-                  </div>
-                )}
-                {hasValidClient ? (
-                  <Button onClick={() => window.location.href = '/minha-conta'} className="w-full rounded-xl py-5 font-semibold text-base" style={{ background: T.accent, color: '#000' }}>
-                    <Calendar className="h-4 w-4 mr-2" /> Ver meus agendamentos
-                  </Button>
-                ) : (
-                  <Button onClick={() => setShowCompleteSignup(true)} className="w-full rounded-xl py-5 font-semibold text-base" style={{ background: T.accent, color: '#000' }}>
-                    <User className="h-4 w-4 mr-2" /> Concluir cadastro
-                  </Button>
-                )}
-              </div>
-
-              <div className="space-y-3 pt-2">
-                <Button onClick={resetBooking} className="w-full rounded-xl py-6 font-semibold text-base shadow-lg transition-all hover:scale-[1.01]" style={{ background: T.accent, color: '#000' }}>
-                  <RotateCcw className="h-4 w-4 mr-2" /> Agendar outro serviço
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <Button
+                  onClick={() => window.open(calUrl(), '_blank')}
+                  className="rounded-full py-8 font-black uppercase text-xs tracking-widest bg-white/5 hover:bg-white/10 transition-all border-none"
+                  style={{ color: T.text }}
+                >
+                  <Calendar className="h-5 w-5 mr-3 opacity-60" />
+                  Salvar no Google Agenda
                 </Button>
-                <button onClick={() => window.location.href = '/'} className="w-full py-3 rounded-xl text-sm font-medium hover:opacity-80" style={{ color: T.textSec }}>
-                  <Home className="h-4 w-4 mr-1 inline" /> Voltar ao início
+                <Button
+                  onClick={() => window.open(waUrl(), '_blank')}
+                  className="rounded-full py-8 font-black uppercase text-xs tracking-widest bg-green-500/10 hover:bg-green-500/20 transition-all border-none"
+                  style={{ color: '#10B981' }}
+                >
+                  <MessageCircle className="h-5 w-5 mr-3" />
+                  Enviar no WhatsApp
+                </Button>
+              </div>
+
+              <div className="pt-6 flex flex-col items-center gap-4">
+                <button 
+                  onClick={resetBooking}
+                  className="text-xs font-black uppercase tracking-widest opacity-40 hover:opacity-100 transition-opacity"
+                >
+                  Fazer novo agendamento
                 </button>
+                <div className="h-px w-12 bg-white/10" />
+                <a 
+                  href="/minha-conta" 
+                  className="text-sm font-black"
+                  style={{ color: T.accent }}
+                >
+                  Acompanhar meus horários
+                </a>
               </div>
             </div>
           );
@@ -2733,7 +2709,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
         </button>
       )}
 
-      {/* Complete signup modal: opens from "Concluir cadastro" button on success screen */}
+      {/* Complete signup modal */}
       {company?.id && (
         <CompleteSignupModal
           open={showCompleteSignup}
@@ -2750,7 +2726,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
         />
       )}
 
-      {/* Centralized booking error dialog with smart suggestions */}
+      {/* Centralized booking error dialog */}
       <BookingErrorDialog
         open={!!bookingError}
         onOpenChange={(o) => { if (!o) setBookingError(null); }}
@@ -2791,7 +2767,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
           </DialogHeader>
           <div className="space-y-5 pt-2">
             <div className="flex flex-col items-center gap-2">
-              <p className="text-sm" style={{ color: T.textSec }}>Como foi sua experiência?</p>
+              <p className="text-sm" style={{ color: T.textSec }}>Como foi sua experiênca?</p>
               <InteractiveStarRating rating={reviewRating} onRate={setReviewRating} size={36} />
             </div>
             <div className="space-y-2">
