@@ -1640,46 +1640,49 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
 
             <button onClick={() => setStep("professional")} className="flex items-center gap-1 text-sm font-medium hover:opacity-80 mb-2" style={{ color: T.textSec }}><ChevronLeft className="h-4 w-4" /> Voltar</button>
             <div>
-              <h2 className="text-2xl font-bold tracking-tight">{isPromoMode ? 'Escolha um serviço da promoção' : 'Escolha os serviços'}</h2>
-              <p className="text-sm mt-1" style={{ color: T.textSec }}>{isCashbackPromo ? 'Selecione o serviço e ganhe cashback após concluir' : isPromoMode ? 'Selecione o serviço que deseja agendar com desconto' : 'Selecione um ou mais serviços desejados'}</p>
+              <h2 className="text-2xl font-black tracking-tight flex items-center gap-2">
+                {isPromoMode ? 'Oferta Selecionada' : 'Escolha seus Serviços'}
+                <Badge className="bg-green-500/10 text-green-500 border-green-500/20 text-[10px]">Premium</Badge>
+              </h2>
+              <p className="text-sm mt-1 opacity-70" style={{ color: T.textSec }}>
+                {isCashbackPromo ? 'Selecione e ganhe dinheiro de volta na hora' : 'Escolha os tratamentos que deseja realizar hoje'}
+              </p>
             </div>
-            {/* Cashback balance indicator */}
-            {cashbackCredits.length > 0 && cashbackTotal > 0 && (
-              <div className="rounded-xl p-3 flex items-center gap-3" style={{ background: '#10b98115', border: '1px solid #10b98130' }}>
-                <span className="text-lg">💳</span>
-                <div>
-                  <p className="font-semibold text-sm" style={{ color: '#10b981' }}>
-                    Cashback disponível: R$ {cashbackTotal.toFixed(2)}
-                  </p>
-                  <p className="text-xs" style={{ color: T.textSec }}>Você pode usar este crédito na confirmação do agendamento</p>
+
+            {/* Loyalty & Cashback Cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {cashbackCredits.length > 0 && cashbackTotal > 0 && (
+                <div className="rounded-2xl p-4 flex items-center gap-3 animate-in slide-in-from-left duration-500" style={{ background: 'linear-gradient(135deg, #10b98110, #10b98120)', border: '1px solid #10b98130' }}>
+                  <div className="w-10 h-10 rounded-full bg-[#10b98120] flex items-center justify-center shrink-0">
+                    <span className="text-lg">💰</span>
+                  </div>
+                  <div>
+                    <p className="text-[10px] uppercase font-bold opacity-60" style={{ color: '#10b981' }}>Saldo disponível</p>
+                    <p className="font-black text-lg" style={{ color: '#10b981' }}>R$ {cashbackTotal.toFixed(2)}</p>
+                  </div>
                 </div>
-              </div>
-            )}
-            {/* Loyalty points indicator */}
-            {loyaltyPoints > 0 && (
-              <div className="rounded-xl p-3 flex items-center gap-3" style={{ background: `${T.accent}10`, border: `1px solid ${T.accent}25` }}>
-                <span className="text-lg">⭐</span>
-                <div>
-                  <p className="font-semibold text-sm" style={{ color: T.accent }}>
-                    Você possui {loyaltyPoints} pontos no programa de fidelidade
-                    {loyaltyPointValue > 0 && (
-                      <span className="font-normal text-xs ml-1" style={{ color: T.textSec }}>
-                        (equivalente a R$ {(loyaltyPoints * loyaltyPointValue).toFixed(2).replace('.', ',')})
-                      </span>
-                    )}
-                  </p>
-                  <p className="text-xs" style={{ color: T.textSec }}>Acumule pontos e troque por recompensas</p>
+              )}
+              {loyaltyPoints > 0 && (
+                <div className="rounded-2xl p-4 flex items-center gap-3 animate-in slide-in-from-right duration-500" style={{ background: `linear-gradient(135deg, ${T.accent}10, ${T.accent}20)`, border: `1px solid ${T.accent}30` }}>
+                  <div className="w-10 h-10 rounded-full bg-amber-500/20 flex items-center justify-center shrink-0">
+                    <span className="text-lg">⭐</span>
+                  </div>
+                  <div>
+                    <p className="text-[10px] uppercase font-bold opacity-60" style={{ color: T.accent }}>Pontos Fidelidade</p>
+                    <p className="font-black text-lg" style={{ color: T.accent }}>{loyaltyPoints} pts</p>
+                  </div>
                 </div>
-              </div>
-            )}
-            <div className="space-y-3">
+              )}
+            </div>
+
+            <div className="space-y-4">
               {(() => {
                 const promoServiceIds = promoData?.service_ids || (promoData?.service_id ? [promoData.service_id] : []);
                 const filteredSvcs = isPromoMode && promoServiceIds.length > 0
                   ? services.filter(s => promoServiceIds.includes(s.id))
                   : services;
                 return filteredSvcs;
-              })().map((svc) => {
+              })().map((svc, idx) => {
                 const sel = selectedServices.includes(svc.id);
                 const promoServiceIds = promoData?.service_ids || (promoData?.service_id ? [promoData.service_id] : []);
                 const isPromoService = isPromoMode && promoServiceIds.includes(svc.id);
@@ -1688,73 +1691,102 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                     key={svc.id}
                     onClick={() => {
                       if (isPromoMode && isPromoService) {
-                        // In promo mode: single-select among promo services
                         setSelectedServices(sel ? [] : [svc.id]);
                       } else {
                         toggleService(svc.id);
                       }
                     }}
-                    className="p-4 rounded-2xl transition-all duration-200 cursor-pointer hover:scale-[1.01]"
+                    className="p-5 rounded-[2rem] transition-all duration-300 cursor-pointer relative overflow-hidden group hover:scale-[1.02] active:scale-[0.98]"
                     style={{
-                      background: sel ? `${T.accent}10` : T.card,
-                      border: `1.5px solid ${sel ? T.accent : T.border}`,
-                      boxShadow: sel ? `0 0 20px ${T.accent}15` : '0 2px 8px rgba(0,0,0,0.2)',
+                      background: sel ? `linear-gradient(135deg, ${T.accent}20, ${T.card})` : T.card,
+                      border: `2px solid ${sel ? T.accent : T.border}`,
+                      boxShadow: sel ? `0 20px 40px -20px ${T.accent}40` : '0 4px 12px rgba(0,0,0,0.1)',
+                      animationDelay: `${idx * 100}ms`
                     }}
                   >
-                    <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0" style={{ background: sel ? T.accent : `${T.accent}20` }}>
-                        <Scissors className="h-5 w-5" style={{ color: sel ? '#000' : T.accent }} />
+                    {sel && (
+                      <div className="absolute top-4 right-4 animate-in zoom-in duration-300">
+                        <div className="w-6 h-6 rounded-full bg-green-500 flex items-center justify-center shadow-lg shadow-green-500/40">
+                          <CheckCircle2 className="h-4 w-4 text-white" />
+                        </div>
+                      </div>
+                    )}
+                    
+                    <div className="flex items-center gap-5">
+                      <div className="w-16 h-16 rounded-2xl flex items-center justify-center shrink-0 transition-transform group-hover:rotate-12" style={{ background: sel ? T.accent : `${T.accent}15` }}>
+                        <Scissors className="h-7 w-7" style={{ color: sel ? '#000' : T.accent }} />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="font-semibold text-[15px]">{svc.name}</p>
-                        <span className="flex items-center gap-1 text-sm" style={{ color: T.textSec }}>
-                          <Clock className="h-3.5 w-3.5" /> {svc.duration_minutes} min
-                        </span>
-                      </div>
-                      {isPromoMode && promoData && !isCashbackPromo && promoServiceIds.includes(svc.id) ? (() => {
-                        const orig = Number(svc.price);
-                        let promo = orig;
-                        if (promoData.discount_type === 'percentage' && promoData.discount_value) {
-                          promo = orig * (1 - Number(promoData.discount_value) / 100);
-                        } else if (promoData.discount_type === 'fixed_amount' && promoData.discount_value) {
-                          promo = Math.max(0, orig - Number(promoData.discount_value));
-                        } else if (promoData.promotion_price != null) {
-                          promo = Number(promoData.promotion_price);
-                        }
-                        return (
-                          <div className="text-right shrink-0">
-                            <p className="text-sm line-through" style={{ color: T.textSec }}>R$ {orig.toFixed(2)}</p>
-                            <p className="font-bold text-lg" style={{ color: T.accent }}>R$ {promo.toFixed(2)}</p>
-                          </div>
-                        );
-                      })() : isCashbackPromo && promoServiceIds.includes(svc.id) ? (
-                        <div className="text-right shrink-0">
-                          <p className="font-bold text-lg" style={{ color: T.accent }}>R$ {Number(svc.price).toFixed(2)}</p>
-                          <p className="text-xs" style={{ color: '#10b981' }}>💰 cashback</p>
+                        <p className="font-black text-lg tracking-tight group-hover:text-amber-500 transition-colors">{svc.name}</p>
+                        <div className="flex items-center gap-3 mt-1 opacity-70">
+                          <span className="flex items-center gap-1 text-xs font-bold uppercase tracking-wider">
+                            <Clock className="h-3 w-3" /> {svc.duration_minutes} min
+                          </span>
+                          <span className="w-1 h-1 rounded-full bg-white/20" />
+                          <span className="text-xs font-bold uppercase tracking-wider">Acabamento Premium</span>
                         </div>
-                      ) : (
-                        <p className="font-bold text-lg shrink-0" style={{ color: T.accent }}>R$ {Number(svc.price).toFixed(2)}</p>
-                      )}
+                      </div>
+                      <div className="text-right shrink-0">
+                        {isPromoMode && promoData && !isCashbackPromo && promoServiceIds.includes(svc.id) ? (() => {
+                          const orig = Number(svc.price);
+                          let promo = orig;
+                          if (promoData.discount_type === 'percentage' && promoData.discount_value) {
+                            promo = orig * (1 - Number(promoData.discount_value) / 100);
+                          } else if (promoData.discount_type === 'fixed_amount' && promoData.discount_value) {
+                            promo = Math.max(0, orig - Number(promoData.discount_value));
+                          } else if (promoData.promotion_price != null) {
+                            promo = Number(promoData.promotion_price);
+                          }
+                          return (
+                            <div className="flex flex-col items-end">
+                              <p className="text-xs line-through opacity-40 font-bold">R$ {orig.toFixed(2)}</p>
+                              <p className="font-black text-xl" style={{ color: T.accent }}>R$ {promo.toFixed(2)}</p>
+                            </div>
+                          );
+                        })() : isCashbackPromo && promoServiceIds.includes(svc.id) ? (
+                          <div className="flex flex-col items-end">
+                            <p className="font-black text-xl" style={{ color: T.accent }}>R$ {Number(svc.price).toFixed(2)}</p>
+                            <Badge className="bg-green-500/20 text-green-500 border-none text-[8px] h-3 px-1 font-black">CASHBACK</Badge>
+                          </div>
+                        ) : (
+                          <p className="font-black text-xl" style={{ color: T.accent }}>R$ {Number(svc.price).toFixed(2)}</p>
+                        )}
+                      </div>
                     </div>
                   </div>
                 );
               })}
             </div>
+
+            {/* Bottom Bar Otimizada Mobile */}
             {selectedServices.length > 0 && (
-              <div className="flex items-center justify-between p-4 rounded-2xl animate-fade-in" style={{ background: T.card, border: `1px solid ${T.border}` }}>
-                <div className="text-sm" style={{ color: T.textSec }}>
-                  <span className="font-medium" style={{ color: T.text }}>{selectedServices.length}</span> serviço(s)
-                  <span className="mx-2 opacity-30">•</span>{totalDuration} min
-                  <span className="mx-2 opacity-30">•</span>
-                  <span className="font-bold text-base" style={{ color: T.accent }}>R$ {totalPrice.toFixed(2)}</span>
-                </div>
-                <Button
-                  onClick={() => setStep("datetime")}
-                  className="rounded-xl px-6 font-semibold shadow-lg transition-all hover:scale-105"
-                  style={{ background: T.accent, color: '#000' }}
+              <div className="fixed bottom-0 left-0 right-0 p-4 z-40 sm:relative sm:p-0">
+                <div 
+                  className="max-w-2xl mx-auto rounded-[2.5rem] p-4 flex items-center justify-between gap-4 animate-in slide-in-from-bottom-10 duration-500 shadow-2xl shadow-black/50" 
+                  style={{ background: T.card, border: `1px solid ${T.border}` }}
                 >
-                  Continuar <ChevronRight className="h-4 w-4 ml-1" />
-                </Button>
+                  <div className="pl-4">
+                    <p className="text-[10px] font-black uppercase tracking-widest opacity-60">Total Estimado</p>
+                    <div className="flex items-baseline gap-1">
+                      <span className="text-2xl font-black" style={{ color: T.accent }}>R$ {totalPrice.toFixed(2)}</span>
+                      <span className="text-xs font-bold opacity-60">/ {totalDuration}m</span>
+                    </div>
+                  </div>
+                  <Button
+                    onClick={() => {
+                      if (!selectedProfessional && !skipProfessionalStep) {
+                        setStep('professional');
+                      } else {
+                        setStep('datetime');
+                      }
+                    }}
+                    className="rounded-full px-8 py-7 font-black text-base transition-all hover:scale-105 active:scale-95 group"
+                    style={{ background: `linear-gradient(135deg, ${T.accent}, #F4C752)`, color: '#000' }}
+                  >
+                    Continuar
+                    <ChevronRight className="h-5 w-5 ml-2 transition-transform group-hover:translate-x-1" />
+                  </Button>
+                </div>
               </div>
             )}
           </div>
