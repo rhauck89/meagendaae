@@ -50,8 +50,18 @@ export default function ProfessionalPublicProfile() {
   const [loading, setLoading] = useState(true);
   const [companySettings, setCompanySettings] = useState<any>(null);
   const [activeCashback, setActiveCashback] = useState<string | null>(null);
+  const [lastBooking, setLastBooking] = useState<any>(null);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   const { amenities: companyAmenities } = useCompanyAmenities(company?.id);
+  const { scrollY } = useScroll();
+  const y1 = useTransform(scrollY, [0, 500], [0, 200]);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => setIsLoggedIn(!!session?.user));
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, session) => setIsLoggedIn(!!session?.user));
+    return () => subscription.unsubscribe();
+  }, []);
 
   useEffect(() => { if (slug && professionalSlug) load(); }, [slug, professionalSlug]);
 
@@ -61,7 +71,6 @@ export default function ProfessionalPublicProfile() {
     const comp = compArr?.[0];
     if (!comp) { setLoading(false); return; }
 
-    // Fetch full company data from public_company view for address/cover fields
     const { data: fullCompanyData } = await supabase.from('public_company' as any).select('*').eq('id', comp.id).single();
     const companyFull = { ...comp, ...((fullCompanyData as any) || {}) };
     setCompany(companyFull);
@@ -71,11 +80,44 @@ export default function ProfessionalPublicProfile() {
     const prof = (pubProfs as any[])?.[0];
     if (!prof) { setLoading(false); return; }
     setProfessional(prof);
+    setProfile({ 
+      bio: prof.bio, 
+      social_links: prof.social_links, 
+      whatsapp: prof.whatsapp, 
+      avatar_url: prof.avatar_url, 
+      banner_url: prof.banner_url,
+      specialty: prof.specialty || (companyFull.business_type === 'barbershop' ? 'Especialista em barba e corte' : 'Especialista em estética facial'),
+      experience_years: prof.experience_years || 5
+    });
 
-    // Bio, social_links, and whatsapp now come from public_professionals view
-    setProfile({ bio: prof.bio, social_links: prof.social_links, whatsapp: prof.whatsapp, avatar_url: prof.avatar_url, banner_url: prof.banner_url });
+    // Check for last booking if logged in
+    if (isLoggedIn) {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data: appt } = await supabase
+          .from('appointments')
+          .select('id, start_time, total_price, professional_id, status')
+          .eq('company_id', comp.id)
+          .eq('user_id', user.id)
+          .eq('professional_id', prof.id)
+          .in('status', ['completed', 'confirmed'])
+          .order('start_time', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        
+        if (appt) {
+          const { data: apptSvcs } = await supabase.from('appointment_services').select('service_id').eq('appointment_id', appt.id);
+          if (apptSvcs && apptSvcs.length > 0) {
+            const { data: svc } = await supabase.from('public_services' as any).select('name').eq('id', apptSvcs[0].service_id).maybeSingle();
+            setLastBooking({
+              ...appt,
+              serviceName: svc?.name
+            });
+          }
+        }
+      }
+    }
 
-    // Services
     const { data: spData } = await supabase.from('service_professionals').select('service_id, price_override').eq('professional_id', prof.id);
     const svcIds = (spData || []).map((s: any) => s.service_id);
     if (svcIds.length > 0) {
