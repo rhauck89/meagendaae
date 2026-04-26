@@ -1794,46 +1794,69 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
 
         {/* ═══ PROFESSIONAL ═══ */}
         {step === 'professional' && (
-          <div className="space-y-5 animate-fade-in">
-            <button onClick={() => setStep('services')} className="flex items-center gap-1 text-sm font-medium hover:opacity-80" style={{ color: T.textSec }}>
+          <div className="space-y-6 animate-in slide-in-from-right duration-500">
+            <button onClick={() => setStep('services')} className="flex items-center gap-1 text-xs font-black uppercase tracking-widest opacity-60 hover:opacity-100 transition-opacity" style={{ color: T.textSec }}>
               <ChevronLeft className="h-4 w-4" /> Voltar
             </button>
-            <div>
-              <h2 className="text-2xl font-bold tracking-tight">Escolha o profissional</h2>
-              <p className="text-sm mt-1" style={{ color: T.textSec }}>Selecione quem irá atendê-lo</p>
+            <div className="space-y-1">
+              <h2 className="text-2xl font-black tracking-tight">Escolha o Profissional</h2>
+              <p className="text-sm opacity-70" style={{ color: T.textSec }}>Selecione o especialista para seu atendimento</p>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {professionals.map((p) => {
+              {professionals.map((p, idx) => {
                 const sel = selectedProfessional === p.id;
+                const rating = professionalRatings[p.id];
                 return (
                   <div
                     key={p.id}
-                    onClick={() => { setSelectedProfessional(p.id); fetchProfessionalHours(p.id); fetchRecentBookings(p.id); setStep('services'); }}
-                    className="p-5 rounded-2xl cursor-pointer transition-all duration-200 hover:scale-[1.02] text-center"
+                    onClick={() => { 
+                      setSelectedProfessional(p.id); 
+                      fetchProfessionalHours(p.id); 
+                      fetchRecentBookings(p.id); 
+                      setStep('services'); 
+                    }}
+                    className="p-6 rounded-[2.5rem] cursor-pointer transition-all duration-300 relative group overflow-hidden"
                     style={{
-                      background: sel ? `${T.accent}10` : T.card,
-                      border: `1.5px solid ${sel ? T.accent : T.border}`,
-                      boxShadow: sel ? `0 0 24px ${T.accent}20` : '0 2px 12px rgba(0,0,0,0.25)',
+                      background: sel ? `linear-gradient(135deg, ${T.accent}20, ${T.card})` : T.card,
+                      border: `2px solid ${sel ? T.accent : T.border}`,
+                      boxShadow: sel ? `0 20px 40px -20px ${T.accent}40` : '0 4px 12px rgba(0,0,0,0.1)',
+                      animationDelay: `${idx * 100}ms`
                     }}
                   >
-                    <div className="flex flex-col items-center gap-3">
-                      {p.avatar_url ? (
-                        <img src={p.avatar_url} alt={p.full_name} className="w-20 h-20 rounded-full object-cover" style={{ border: `3px solid ${sel ? T.accent : T.border}` }} />
-                      ) : (
-                        <div className="w-20 h-20 rounded-full flex items-center justify-center text-2xl font-bold" style={{ background: `${T.accent}20`, color: T.accent }}>
-                          {p.full_name?.charAt(0)?.toUpperCase()}
-                        </div>
-                      )}
-                      <div>
-                        <p className="font-semibold text-base">{p.full_name}</p>
-                        {professionalRatings[p.id] ? (
-                          <p className="text-xs mt-0.5 flex items-center justify-center gap-1" style={{ color: T.accent }}>
-                            <Star className="h-3.5 w-3.5 fill-current" /> {professionalRatings[p.id].avg.toFixed(1)}
-                            <span style={{ color: T.textSec }}>({professionalRatings[p.id].count} avaliações)</span>
-                          </p>
+                    <div className="flex flex-col items-center gap-4">
+                      <div className="relative">
+                        {p.avatar_url ? (
+                          <img src={p.avatar_url} alt={p.full_name} className="w-24 h-24 rounded-3xl object-cover transition-transform group-hover:scale-105" style={{ border: `3px solid ${sel ? T.accent : T.border}` }} />
                         ) : (
-                          <p className="text-xs mt-0.5" style={{ color: T.textSec }}>Profissional</p>
+                          <div className="w-24 h-24 rounded-3xl flex items-center justify-center text-3xl font-black" style={{ background: `${T.accent}15`, color: T.accent, border: `3px solid ${sel ? T.accent : T.border}` }}>
+                            {p.full_name?.charAt(0)?.toUpperCase()}
+                          </div>
                         )}
+                        {sel && (
+                          <div className="absolute -bottom-2 -right-2 w-8 h-8 rounded-full bg-green-500 flex items-center justify-center shadow-lg border-4" style={{ borderColor: T.card }}>
+                            <CheckCircle2 className="h-4 w-4 text-white" />
+                          </div>
+                        )}
+                      </div>
+                      <div className="text-center">
+                        <p className="font-black text-lg leading-tight group-hover:text-amber-500 transition-colors">{p.full_name}</p>
+                        <div className="flex flex-col items-center gap-1 mt-2">
+                          {rating ? (
+                            <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/5">
+                              <Star className="h-3 w-3 fill-amber-500 text-amber-500" />
+                              <span className="text-xs font-black">{rating.avg.toFixed(1)}</span>
+                              <span className="text-[10px] font-bold opacity-40">({rating.count})</span>
+                            </div>
+                          ) : (
+                            <span className="text-[10px] font-black uppercase tracking-widest opacity-40">Profissional Especialista</span>
+                          )}
+                          <Button 
+                            className="mt-4 rounded-full px-6 py-2 h-auto text-[10px] font-black uppercase tracking-widest border-none transition-all group-hover:px-8"
+                            style={{ background: sel ? T.accent : `${T.accent}15`, color: sel ? '#000' : T.accent }}
+                          >
+                            Selecionar
+                          </Button>
+                        </div>
                       </div>
                     </div>
                   </div>
