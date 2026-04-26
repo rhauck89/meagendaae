@@ -1470,18 +1470,15 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
 
   // ─── Render ───
   return (
-    <div className="min-h-screen pb-20 sm:pb-0" style={{ background: '#FF0000', color: '#FFFFFF' }}>
-      <div className="fixed top-0 left-0 right-0 z-[9999] bg-yellow-400 text-black p-4 text-center font-black text-4xl animate-bounce">
-        TESTE NOVO BOOKING ATIVO
-      </div>
+    <div className="min-h-screen pb-20 sm:pb-0 font-sans tracking-tight" style={{ background: T.bg, color: T.text }}>
 
       {/* Premium Header Fixo */}
       <header 
-        className="sticky top-0 z-50 backdrop-blur-md transition-all duration-300"
+        className="sticky top-0 z-50 backdrop-blur-xl transition-all duration-500"
         style={{ 
-          background: `${T.card}CC`, 
-          borderBottom: `1px solid ${T.border}`,
-          boxShadow: '0 4px 20px rgba(0,0,0,0.1)'
+          background: `${T.card}F2`, 
+          borderBottom: `2px solid ${T.accent}44`,
+          boxShadow: '0 15px 50px -12px rgba(0,0,0,0.6)'
         }}
       >
         <div className="max-w-2xl mx-auto px-4 py-3 flex items-center justify-between gap-4">
@@ -1645,7 +1642,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
             <button onClick={() => setStep("professional")} className="flex items-center gap-1 text-sm font-medium hover:opacity-80 mb-2" style={{ color: T.textSec }}><ChevronLeft className="h-4 w-4" /> Voltar</button>
             <div className="space-y-2">
               <h2 className="text-3xl font-black tracking-tighter flex items-center gap-2" style={{ color: T.text }}>
-                {isPromoMode ? 'Oferta Selecionada' : 'Escolha seus Serviços'}
+                {clientForm.full_name ? `${clientForm.full_name.split(' ')[0]}, escolha seus Serviços` : (isPromoMode ? 'Oferta Selecionada' : 'Escolha seus Serviços')}
                 <Badge className="bg-amber-500 text-black border-none text-[10px] font-black h-5">UAU</Badge>
               </h2>
               <p className="text-sm font-bold opacity-60 uppercase tracking-widest" style={{ color: T.textSec }}>
@@ -1700,7 +1697,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                         toggleService(svc.id);
                       }
                     }}
-                    className="p-5 rounded-[2rem] transition-all duration-300 cursor-pointer relative overflow-hidden group hover:scale-[1.02] active:scale-[0.98]"
+                    className="p-5 rounded-[2.5rem] transition-all duration-300 cursor-pointer relative overflow-hidden group hover:scale-[1.02] active:scale-[0.98]"
                     style={{
                       background: sel ? `linear-gradient(135deg, ${T.accent}20, ${T.card})` : T.card,
                       border: `2px solid ${sel ? T.accent : T.border}`,
@@ -1803,7 +1800,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
               <ChevronLeft className="h-4 w-4" /> Voltar
             </button>
             <div className="space-y-1">
-              <h2 className="text-2xl font-black tracking-tight">Escolha o Profissional</h2>
+              <h2 className="text-3xl font-black tracking-tighter" style={{ color: T.text }}>{clientForm.full_name ? `${clientForm.full_name.split(' ')[0]}, qual profissional você prefere?` : 'Escolha seu Profissional'}</h2>
               <p className="text-sm opacity-70" style={{ color: T.textSec }}>Selecione o especialista para seu atendimento</p>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -1878,7 +1875,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
             </button>
             <div className="space-y-1">
               <h2 className="text-2xl font-black tracking-tight flex items-center gap-2">
-                Escolha seu Horário
+                {clientForm.full_name ? `${clientForm.full_name.split(' ')[0]}, qual seu melhor horário?` : 'Escolha seu Horário'}
                 <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
               </h2>
               <p className="text-sm opacity-70" style={{ color: T.textSec }}>Selecione o melhor momento para sua experiência</p>
