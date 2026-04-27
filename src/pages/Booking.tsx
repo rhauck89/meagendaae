@@ -225,6 +225,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
   const [isClientLoggedIn, setIsClientLoggedIn] = useState(false);
   const [hasValidClient, setHasValidClient] = useState(false);
   const [showCompleteSignup, setShowCompleteSignup] = useState(false);
+  const [currentWeekStart, setCurrentWeekStart] = useState<Date>(startOfWeek(new Date(), { locale: ptBR }));
   
   const [hasBenefitsActive, setHasBenefitsActive] = useState(false);
   const [lastBooking, setLastBooking] = useState<{
