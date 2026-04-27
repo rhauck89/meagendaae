@@ -20,7 +20,7 @@ import {
   Smartphone, Sparkles, Inbox, MessageCircle, Loader2,
 } from 'lucide-react';
 import {
-  getInstance, connectInstance, disconnectInstance, setInstanceStatus, sendTest,
+  getInstance, connectInstance, disconnectInstance, setInstanceStatus, sendTest, getStatus, getQrCode,
   listAutomations, upsertAutomation, toggleAutomation,
   listTemplates, saveTemplate, deleteTemplate,
   listLogs, listMetrics,
