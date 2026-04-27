@@ -405,7 +405,7 @@ Deno.serve(async (req) => {
           method: 'POST',
           body: JSON.stringify({
             number: phone,
-            text: body,
+            text: messageText,
           }),
         });
 
