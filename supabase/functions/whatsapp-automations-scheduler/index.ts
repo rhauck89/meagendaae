@@ -31,12 +31,25 @@ Deno.serve(async (req) => {
     }
 
     const companyIds = activeInstances.map(i => i.company_id);
+    
+    // 2. Fetch enabled automations
+    const { data: automations } = await supabase
+      .from("whatsapp_automations")
+      .select("company_id, trigger, enabled")
+      .in("company_id", companyIds)
+      .eq("enabled", true);
+
+    const isAutomationEnabled = (companyId: string, trigger: string) => {
+      return automations?.some(a => a.company_id === companyId && a.trigger === trigger);
+    };
+
     let totalProcessed = 0;
 
     // --- REMINDERS (2h before) ---
+    // Look for appointments starting in 1h 45m to 2h 15m
     const now = new Date();
-    const in2h = new Date(now.getTime() + 2 * 60 * 60 * 1000);
-    const in2h15m = new Date(now.getTime() + (2 * 60 + 15) * 60 * 1000);
+    const minStart = new Date(now.getTime() + 105 * 60 * 1000);
+    const maxStart = new Date(now.getTime() + 135 * 60 * 1000);
 
     const { data: reminderAppts } = await supabase
       .from("appointments")
@@ -49,12 +62,13 @@ Deno.serve(async (req) => {
       .in("company_id", companyIds)
       .in("status", ["pending", "confirmed"])
       .eq("whatsapp_reminder_sent", false)
-      .gte("start_time", in2h.toISOString())
-      .lt("start_time", in2h15m.toISOString());
+      .gte("start_time", minStart.toISOString())
+      .lt("start_time", maxStart.toISOString());
 
     if (reminderAppts && reminderAppts.length > 0) {
       console.log(`[SCHEDULER] Found ${reminderAppts.length} appointments for 2h reminder.`);
       for (const apt of reminderAppts) {
+        if (!isAutomationEnabled(apt.company_id, 'appointment_reminder')) continue;
         if (!apt.client_whatsapp) continue;
 
         const tz = apt.company?.timezone || "America/Sao_Paulo";
@@ -79,9 +93,9 @@ Deno.serve(async (req) => {
     }
 
     // --- REVIEWS (Post-service) ---
-    // Look for appointments that ended between 30m and 1h ago
-    const thirtyMinsAgo = new Date(now.getTime() - 30 * 60 * 1000);
-    const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000);
+    // Look for appointments completed 30m to 1h 30m ago
+    const minCompleted = new Date(now.getTime() - 90 * 60 * 1000);
+    const maxCompleted = new Date(now.getTime() - 30 * 60 * 1000);
 
     const { data: reviewAppts } = await supabase
       .from("appointments")
@@ -92,16 +106,17 @@ Deno.serve(async (req) => {
       .in("company_id", companyIds)
       .eq("status", "completed")
       .eq("whatsapp_review_sent", false)
-      .lte("completed_at", thirtyMinsAgo.toISOString())
-      .gte("completed_at", oneHourAgo.toISOString());
+      .gte("completed_at", minCompleted.toISOString())
+      .lt("completed_at", maxCompleted.toISOString());
 
     if (reviewAppts && reviewAppts.length > 0) {
       console.log(`[SCHEDULER] Found ${reviewAppts.length} appointments for post-service review.`);
       for (const apt of reviewAppts) {
+        if (!isAutomationEnabled(apt.company_id, 'post_service_review')) continue;
         if (!apt.client_whatsapp) continue;
 
-        // Build review link
-        const baseUrl = Deno.env.get("SITE_URL") || `https://${apt.company?.slug || 'app'}.agendae.io`;
+        // Build review link - using actual app domain
+        const baseUrl = Deno.env.get("SITE_URL") || `https://app.agendae.io`;
         const reviewUrl = `${baseUrl}/review/${apt.id}`;
 
         const message = `Obrigado pela visita hoje 💛\nSua opinião é muito importante para nós!\n\nAvalie seu atendimento aqui:\n${reviewUrl}`;
