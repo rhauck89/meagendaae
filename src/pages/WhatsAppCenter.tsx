@@ -143,7 +143,7 @@ export default function WhatsAppCenter() {
         </div>
 
         <TabsContent value="overview"><OverviewTab loading={loading} instance={instance} logs={logs} metrics={metrics} /></TabsContent>
-        <TabsContent value="connection"><ConnectionTab companyId={companyId} instance={instance} loading={loading} onChange={reload} /></TabsContent>
+        <TabsContent value="connection"><ConnectionTab companyId={companyId} userId={user?.id} instance={instance} loading={loading} onChange={reload} /></TabsContent>
         <TabsContent value="automations"><AutomationsTab companyId={companyId} automations={automations} templates={templates} loading={loading} onChange={reload} /></TabsContent>
         <TabsContent value="templates"><TemplatesTab companyId={companyId} templates={templates} loading={loading} onChange={reload} /></TabsContent>
         <TabsContent value="history"><HistoryTab companyId={companyId} logs={logs} loading={loading} onChange={reload} /></TabsContent>
