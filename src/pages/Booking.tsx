@@ -991,10 +991,17 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
     
     setNextSlotsLoading(true);
     const MAX_DAYS = 7;
-    const MAX_SLOTS = 8;
     
-    // Parallelize availability fetching for the next 7 days
-    const days = Array.from({ length: MAX_DAYS }, (_, i) => addDays(startOfDay(new Date()), i));
+    // Fetch slots for the current visible week
+    const days = eachDayOfInterval({
+      start: currentWeekStart,
+      end: addDays(currentWeekStart, 6)
+    });
+    
+    // Also ensure selectedDate is included if it's outside the current week
+    if (selectedDate && !days.some(d => isSameDay(d, selectedDate))) {
+      days.push(selectedDate);
+    }
     
     try {
       const dayResults = await Promise.all(
@@ -1016,12 +1023,9 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
       );
 
       const results: { date: Date; slots: string[] }[] = [];
-      let totalSlotsFound = 0;
       let suggestion: { date: Date; slot: string; reason: 'tight-fit' | 'first-available' } | null = null;
 
       for (const res of dayResults) {
-        if (totalSlotsFound >= MAX_SLOTS) break;
-        
         let slots = res.slots;
         // Apply promo filters if any
         if (promoData) {
@@ -1030,13 +1034,12 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
         }
 
         if (slots.length > 0) {
-          if (!suggestion) {
+          if (!suggestion && (isToday(res.date) || res.date > new Date())) {
             suggestion = { date: res.date, slot: slots[0], reason: 'first-available' };
           }
-          const remaining = MAX_SLOTS - totalSlotsFound;
-          const daySlots = slots.slice(0, remaining);
-          results.push({ date: res.date, slots: daySlots });
-          totalSlotsFound += daySlots.length;
+          results.push({ date: res.date, slots: slots });
+        } else {
+          results.push({ date: res.date, slots: [] });
         }
       }
 
