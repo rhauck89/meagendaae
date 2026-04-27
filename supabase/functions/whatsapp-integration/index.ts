@@ -131,7 +131,7 @@ Deno.serve(async (req) => {
           appointment_id: appointmentId, 
           client_name: clientName,
           message_type: 'appointment_confirmed', 
-          status: 'error', 
+          status: 'failed', 
           error_message: 'Telefone do cliente não encontrado' 
         });
         return new Response(JSON.stringify({ success: true, warning: 'No phone' }));
@@ -152,7 +152,7 @@ Deno.serve(async (req) => {
           client_name: clientName,
           phone: clientPhone,
           message_type: 'appointment_confirmed', 
-          status: 'error', 
+          status: 'failed', 
           error_message: `WhatsApp não conectado (Status: ${status})` 
         });
         return new Response(JSON.stringify({ error: 'Not connected', status }));
@@ -197,7 +197,7 @@ Deno.serve(async (req) => {
           phone, 
           message_type: 'appointment_confirmed', 
           body: message, 
-          status: 'error', 
+          status: 'failed', 
           error_message: e.message 
         });
         return new Response(JSON.stringify({ error: e.message }), { status: 502 });
