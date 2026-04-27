@@ -156,7 +156,7 @@ Deno.serve(async (req) => {
       const hours = String(date.getHours()).padStart(2, '0');
       const minutes = String(date.getMinutes()).padStart(2, '0');
       
-      const message = `Olá ${clientName} 👋\nSeu horário foi confirmado:\n\n📅 ${day}/${month}\n🕐 ${hours}:${minutes}\n✂️ ${appt.service?.name || 'Serviço'}\n👤 ${appt.professional?.full_name || 'Profissional'}`;
+      const message = `Olá ${clientName} 👋\nSeu horário foi confirmado:\n\n📅 ${day}/${month}\n🕐 ${hours}:${minutes}\n✂️ ${serviceName}\n👤 ${appt.professional?.full_name || 'Profissional'}`;
       
       const phone = clientPhone.replace(/\D/g, '').startsWith('55') ? clientPhone.replace(/\D/g, '') : '55' + clientPhone.replace(/\D/g, '');
 
@@ -205,7 +205,7 @@ Deno.serve(async (req) => {
 
       const { data: appts } = await adminClient
         .from('appointments')
-        .select(`*, client:clients(name, whatsapp), service:services(name), professional:profiles!appointments_professional_id_fkey(full_name)`)
+        .select(`*, client:clients(name, whatsapp), appointment_services(service:services(name)), professional:profiles(full_name)`)
         .eq('whatsapp_reminder_sent', false)
         .gte('start_time', `${tomorrowStr}T00:00:00`)
         .lte('start_time', `${tomorrowStr}T23:59:59`);
@@ -225,7 +225,8 @@ Deno.serve(async (req) => {
         const hours = String(date.getHours()).padStart(2, '0');
         const minutes = String(date.getMinutes()).padStart(2, '0');
 
-        const message = `Lembrete de amanhã! ⏰\nOlá ${appt.client?.name || 'Cliente'}, tudo bem?\n\nConfirmando seu horário:\n📅 Amanhã, ${day}/${month}\n🕐 ${hours}:${minutes}\n✂️ ${appt.service?.name || 'Serviço'}\n\nAté lá! 🚀`;
+        const serviceName = appt.appointment_services?.[0]?.service?.name || 'Serviço';
+        const message = `Lembrete de amanhã! ⏰\nOlá ${appt.client?.name || 'Cliente'}, tudo bem?\n\nConfirmando seu horário:\n📅 Amanhã, ${day}/${month}\n🕐 ${hours}:${minutes}\n✂️ ${serviceName}\n\nAté lá! 🚀`;
         const phone = clientPhone.replace(/\D/g, '').startsWith('55') ? clientPhone.replace(/\D/g, '') : '55' + clientPhone.replace(/\D/g, '');
 
         try {
