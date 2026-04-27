@@ -381,7 +381,7 @@ function ConnectionTab({ companyId, userId, instance, loading, onChange }: { com
     }
     catch (e) { 
       console.error('Connection flow failed:', e);
-      handleError(e, { area: 'whatsapp.connect' }); 
+      handleError(e, { area: 'whatsapp.connect', companyId, userId }); 
     }
     finally { setBusy(false); }
   };
