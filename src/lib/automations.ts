@@ -134,16 +134,10 @@ async function sendNativeWhatsAppConfirmation(data: AppointmentWebhookData) {
 export function sendAppointmentCreatedWebhook(
   data: AppointmentWebhookData
 ): void {
-  const payload = {
-    event: 'appointment_created' as const,
-    created_at: new Date().toISOString(),
-    ...data,
-  };
-  // Fire and forget webhooks
-  void dispatchWebhook(payload);
-  
-  // Fire and forget native WhatsApp
-  void sendNativeWhatsAppConfirmation(data);
+  // Make.com webhook is now disabled as we are using native automations.
+  // The native WhatsApp confirmation is now handled by a database trigger (tr_appointment_confirmation)
+  // to ensure reliability across all booking channels (admin and public).
+  console.info('[automations] skipping manual dispatch - handled by native DB trigger');
 }
 
 /**
