@@ -116,6 +116,8 @@ Deno.serve(async (req) => {
         .single();
 
       if (company) {
+        console.log(`Found company: ${company.name}`);
+
         meta.title = isBooking
           ? `Agende seu horário • ${company.name}`
           : company.name;
