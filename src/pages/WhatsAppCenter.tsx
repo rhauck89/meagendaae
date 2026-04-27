@@ -550,8 +550,16 @@ function ConnectionTab({ companyId, userId, instance, loading, onChange }: { com
         {status === 'connected' && (
           <div className="space-y-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-              <InfoRow icon={<Users className="h-4 w-4" />} label="Nome do perfil" value={instance?.profile_name ?? 'Sincronizando informações...'} />
-              <InfoRow icon={<Smartphone className="h-4 w-4" />} label="Número conectado" value={instance?.phone ?? 'Sincronizando informações...'} />
+              <InfoRow 
+                icon={<Users className="h-4 w-4" />} 
+                label="Nome do perfil" 
+                value={instance?.profile_name ?? (syncTimeout ? 'WhatsApp conectado' : 'Sincronizando informações...')} 
+              />
+              <InfoRow 
+                icon={<Smartphone className="h-4 w-4" />} 
+                label="Número conectado" 
+                value={instance?.phone ?? (syncTimeout ? 'Sessão ativa' : 'Sincronizando informações...')} 
+              />
               <InfoRow
                 icon={<Clock className="h-4 w-4" />}
                 label="Última atividade"
@@ -561,16 +569,21 @@ function ConnectionTab({ companyId, userId, instance, loading, onChange }: { com
             <div className="space-y-3 border-t pt-4">
               <div>
                 <Label className="text-sm font-medium">Testar envio</Label>
-                <p className="text-xs text-muted-foreground mt-0.5">Envie uma mensagem para validar a conexão</p>
+                <p className="text-xs text-muted-foreground mt-0.5">O +55 será adicionado automaticamente. Digite DDD + número.</p>
               </div>
               <div className="flex flex-col sm:flex-row gap-2">
-                <Input
-                  placeholder="Telefone com DDD (ex.: 11999998888)"
-                  value={testPhone}
-                  onChange={e => setTestPhone(e.target.value)}
-                  inputMode="tel"
-                  className="flex-1"
-                />
+                <div className="relative flex-1">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground font-medium border-r pr-2">
+                    +55
+                  </span>
+                  <Input
+                    placeholder="DDD + Número (ex.: 32991267990)"
+                    value={testPhone}
+                    onChange={e => setTestPhone(e.target.value.replace(/\D/g, ''))}
+                    inputMode="tel"
+                    className="pl-14"
+                  />
+                </div>
                 <Button onClick={handleTest} disabled={busy} className="gap-2 sm:w-auto">
                   {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}Enviar teste
                 </Button>
