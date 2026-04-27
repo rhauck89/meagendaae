@@ -302,7 +302,7 @@ function StatCard({ icon, label, value }: { icon: React.ReactNode; label: string
 // ─────────────────────────────────────────────────────────────────────────────
 // CONNECTION
 // ─────────────────────────────────────────────────────────────────────────────
-function ConnectionTab({ companyId, instance, loading, onChange }: { companyId: string; instance: WhatsAppInstance | null; loading: boolean; onChange: () => void }) {
+function ConnectionTab({ companyId, userId, instance, loading, onChange }: { companyId: string; userId?: string; instance: WhatsAppInstance | null; loading: boolean; onChange: () => void }) {
   const [busy, setBusy] = useState(false);
   const [testPhone, setTestPhone] = useState('');
   const [testMsg, setTestMsg] = useState('Mensagem de teste do Agendaê 🚀');
