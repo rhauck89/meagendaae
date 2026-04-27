@@ -307,16 +307,31 @@ function ConnectionTab({ companyId, userId, instance, loading, onChange }: { com
   const [testPhone, setTestPhone] = useState('');
   const [testMsg, setTestMsg] = useState('Mensagem de teste do Agendaê 🚀');
   const [qrTimeout, setQrTimeout] = useState(false);
+  const [syncTimeout, setSyncTimeout] = useState(false);
 
   const status = instance?.status ?? 'disconnected';
 
-  // Polling for status
+  // Timeout for "Syncing information" state
   useEffect(() => {
-    if (!companyId || status === 'disconnected' || status === 'connected' || status === 'error') return;
+    let timer: NodeJS.Timeout;
+    if (status === 'connected' && (!instance?.profile_name || !instance?.phone)) {
+      timer = setTimeout(() => setSyncTimeout(true), 10000);
+    } else {
+      setSyncTimeout(false);
+    }
+    return () => clearTimeout(timer);
+  }, [status, instance?.profile_name, instance?.phone]);
+
+  // Polling for status and profile data
+  useEffect(() => {
+    if (!companyId || status === 'disconnected' || status === 'error') return;
+
+    // Even if connected, we might want to poll if profile data is missing
+    const shouldPoll = status !== 'connected' || !instance?.profile_name || !instance?.phone;
+    if (!shouldPoll) return;
 
     let timeoutId: NodeJS.Timeout;
     if (status === 'connecting' || status === 'pending') {
-      // Set a 60-second timeout to show retry if QR doesn't appear
       timeoutId = setTimeout(() => {
         if (!instance?.qr_code) setQrTimeout(true);
       }, 60000);
@@ -325,10 +340,15 @@ function ConnectionTab({ companyId, userId, instance, loading, onChange }: { com
     const interval = setInterval(async () => {
       try {
         const res = await getStatus(companyId);
-        // If status changed to connected or disconnected, refresh parent
-        if (res.mappedStatus !== status) {
+        
+        // Refresh parent if status or profile data changed
+        const statusChanged = res.mappedStatus !== status;
+        const profileDataFound = (res.profile_name && !instance?.profile_name) || (res.phone && !instance?.phone);
+        
+        if (statusChanged || profileDataFound) {
           onChange();
         }
+
         // If we have no QR and we are connecting, try to fetch it
         if (res.mappedStatus === 'connecting' && !instance?.qr_code) {
            await getQrCode(companyId);
@@ -336,10 +356,8 @@ function ConnectionTab({ companyId, userId, instance, loading, onChange }: { com
         }
       } catch (e: any) {
         console.error('Error polling WhatsApp status:', e);
-        // If we get a 404 or 403, it means the instance record is corrupted or gone
         if (e?.status === 404 || e?.status === 403) {
-          console.warn('Instance not found or forbidden, resetting state');
-          onChange(); // This will trigger a reload and clear the state
+          onChange();
         }
       }
     }, 5000);
@@ -348,7 +366,7 @@ function ConnectionTab({ companyId, userId, instance, loading, onChange }: { com
       clearInterval(interval);
       if (timeoutId) clearTimeout(timeoutId);
     };
-  }, [status, companyId, instance?.qr_code]);
+  }, [status, companyId, instance?.qr_code, instance?.profile_name, instance?.phone]);
 
   const handleConnect = async () => {
     if (busy) return;
@@ -419,10 +437,22 @@ function ConnectionTab({ companyId, userId, instance, loading, onChange }: { com
   };
 
   const handleTest = async () => {
-    if (!testPhone.trim()) { toast.error('Informe um telefone para testar'); return; }
+    let phone = testPhone.replace(/\D/g, '');
+    if (!phone) { toast.error('Informe um telefone para testar'); return; }
+    
+    // Add Brazil country code if missing
+    if (phone.length <= 11) {
+      phone = '55' + phone;
+    }
+    
     if (!testMsg.trim()) { toast.error('Digite uma mensagem'); return; }
+    
     setBusy(true);
-    try { await sendTest(companyId, testPhone, testMsg); toast.success('Mensagem de teste registrada', { description: 'Verifique o histórico para acompanhar a entrega.' }); onChange(); }
+    try { 
+      await sendTest(companyId, phone, testMsg); 
+      toast.success('Mensagem de teste enviada!', { description: 'Verifique o histórico para acompanhar a entrega.' }); 
+      onChange(); 
+    }
     catch (e) { handleError(e, { area: 'whatsapp.sendTest', companyId, userId }); }
     finally { setBusy(false); }
   };
@@ -520,8 +550,16 @@ function ConnectionTab({ companyId, userId, instance, loading, onChange }: { com
         {status === 'connected' && (
           <div className="space-y-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-              <InfoRow icon={<Users className="h-4 w-4" />} label="Nome do perfil" value={instance?.profile_name ?? 'Sincronizando informações...'} />
-              <InfoRow icon={<Smartphone className="h-4 w-4" />} label="Número conectado" value={instance?.phone ?? 'Sincronizando informações...'} />
+              <InfoRow 
+                icon={<Users className="h-4 w-4" />} 
+                label="Nome do perfil" 
+                value={instance?.profile_name ?? (syncTimeout ? 'WhatsApp conectado' : 'Sincronizando informações...')} 
+              />
+              <InfoRow 
+                icon={<Smartphone className="h-4 w-4" />} 
+                label="Número conectado" 
+                value={instance?.phone ?? (syncTimeout ? 'Sessão ativa' : 'Sincronizando informações...')} 
+              />
               <InfoRow
                 icon={<Clock className="h-4 w-4" />}
                 label="Última atividade"
@@ -531,16 +569,21 @@ function ConnectionTab({ companyId, userId, instance, loading, onChange }: { com
             <div className="space-y-3 border-t pt-4">
               <div>
                 <Label className="text-sm font-medium">Testar envio</Label>
-                <p className="text-xs text-muted-foreground mt-0.5">Envie uma mensagem para validar a conexão</p>
+                <p className="text-xs text-muted-foreground mt-0.5">O +55 será adicionado automaticamente. Digite DDD + número.</p>
               </div>
               <div className="flex flex-col sm:flex-row gap-2">
-                <Input
-                  placeholder="Telefone com DDD (ex.: 11999998888)"
-                  value={testPhone}
-                  onChange={e => setTestPhone(e.target.value)}
-                  inputMode="tel"
-                  className="flex-1"
-                />
+                <div className="relative flex-1">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground font-medium border-r pr-2">
+                    +55
+                  </span>
+                  <Input
+                    placeholder="DDD + Número (ex.: 32991267990)"
+                    value={testPhone}
+                    onChange={e => setTestPhone(e.target.value.replace(/\D/g, ''))}
+                    inputMode="tel"
+                    className="pl-14"
+                  />
+                </div>
                 <Button onClick={handleTest} disabled={busy} className="gap-2 sm:w-auto">
                   {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}Enviar teste
                 </Button>
