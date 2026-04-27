@@ -2639,7 +2639,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                         <span className="text-sm">🎁</span>
                       </div>
                       <p className="text-xs font-bold" style={{ color: '#10b981' }}>
-                        Você ganhará <span className="text-sm font-black">R$ {cashbackEarnAmount.toFixed(2)}</span> de cashback
+                        Você ganhará <span className="text-sm font-black">R$ {(Number(cashbackEarnAmount) || 0).toFixed(2)}</span> de cashback
                       </p>
                     </div>
                   )}
@@ -2658,7 +2658,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                         </div>
                         <div>
                           <p className="text-[10px] font-black uppercase tracking-widest opacity-60">Usar Créditos</p>
-                          <p className="text-sm font-black">Saldo: R$ {cashbackTotal.toFixed(2)}</p>
+                          <p className="text-sm font-black">Saldo: R$ {(Number(cashbackTotal) || 0).toFixed(2)}</p>
                         </div>
                       </div>
                       <Checkbox checked={useCashback} onCheckedChange={(v) => setUseCashback(v === true)} className="rounded-full w-6 h-6" />
@@ -2672,10 +2672,10 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                 <div>
                   <p className="text-[10px] font-black uppercase tracking-widest opacity-60">Total a Pagar no Local</p>
                   {cashbackDiscount > 0 && (
-                    <p className="text-xs line-through opacity-40 font-bold">R$ {totalPrice.toFixed(2)}</p>
+                    <p className="text-xs line-through opacity-40 font-bold">R$ {(Number(totalPrice) || 0).toFixed(2)}</p>
                   )}
                 </div>
-                <p className="text-4xl font-black tracking-tighter" style={{ color: T.accent }}>R$ {finalPrice.toFixed(2)}</p>
+                <p className="text-4xl font-black tracking-tighter" style={{ color: T.accent }}>R$ {(Number(finalPrice) || 0).toFixed(2)}</p>
               </div>
             </div>
 
