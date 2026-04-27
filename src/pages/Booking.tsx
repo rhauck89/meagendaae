@@ -2045,9 +2045,10 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                           Hoje
                         </Button>
                         <Select 
-                          value={format(currentWeekStart, 'MM')} 
+                          value={format(currentWeekStart, 'yyyy-MM')} 
                           onValueChange={(val) => {
-                            const newDate = setMonth(currentWeekStart, parseInt(val) - 1);
+                            const [year, month] = val.split('-').map(Number);
+                            const newDate = setMonth(new Date(year, month - 1, 1), month - 1);
                             setCurrentWeekStart(startOfWeek(newDate, { locale: ptBR }));
                           }}
                         >
@@ -2061,7 +2062,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                             }).map((month) => (
                               <SelectItem 
                                 key={month.toISOString()} 
-                                value={format(month, 'MM')}
+                                value={format(month, 'yyyy-MM')}
                                 className="text-white focus:bg-white/10"
                               >
                                 {format(month, 'MMMM yyyy', { locale: ptBR })}
