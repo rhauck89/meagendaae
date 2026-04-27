@@ -54,7 +54,7 @@ const STATUS_LABEL: Record<string, string> = {
 };
 
 export default function WhatsAppCenter() {
-  const { companyId } = useAuth();
+  const { companyId, user } = useAuth();
   const [tab, setTab] = useState('overview');
   const [loading, setLoading] = useState(true);
   const [instance, setInstance] = useState<WhatsAppInstance | null>(null);
@@ -80,7 +80,7 @@ export default function WhatsAppCenter() {
       setLogs(l);
       setMetrics(m);
     } catch (e) {
-      handleError(e, { area: 'whatsapp.center.load', onRetry: reload });
+      handleError(e, { area: 'whatsapp.center.load', onRetry: reload, companyId, userId: user?.id });
     } finally {
       setLoading(false);
     }
@@ -143,7 +143,7 @@ export default function WhatsAppCenter() {
         </div>
 
         <TabsContent value="overview"><OverviewTab loading={loading} instance={instance} logs={logs} metrics={metrics} /></TabsContent>
-        <TabsContent value="connection"><ConnectionTab companyId={companyId} instance={instance} loading={loading} onChange={reload} /></TabsContent>
+        <TabsContent value="connection"><ConnectionTab companyId={companyId} userId={user?.id} instance={instance} loading={loading} onChange={reload} /></TabsContent>
         <TabsContent value="automations"><AutomationsTab companyId={companyId} automations={automations} templates={templates} loading={loading} onChange={reload} /></TabsContent>
         <TabsContent value="templates"><TemplatesTab companyId={companyId} templates={templates} loading={loading} onChange={reload} /></TabsContent>
         <TabsContent value="history"><HistoryTab companyId={companyId} logs={logs} loading={loading} onChange={reload} /></TabsContent>
@@ -302,7 +302,7 @@ function StatCard({ icon, label, value }: { icon: React.ReactNode; label: string
 // ─────────────────────────────────────────────────────────────────────────────
 // CONNECTION
 // ─────────────────────────────────────────────────────────────────────────────
-function ConnectionTab({ companyId, instance, loading, onChange }: { companyId: string; instance: WhatsAppInstance | null; loading: boolean; onChange: () => void }) {
+function ConnectionTab({ companyId, userId, instance, loading, onChange }: { companyId: string; userId?: string; instance: WhatsAppInstance | null; loading: boolean; onChange: () => void }) {
   const [busy, setBusy] = useState(false);
   const [testPhone, setTestPhone] = useState('');
   const [testMsg, setTestMsg] = useState('Mensagem de teste do Agendaê 🚀');
@@ -381,7 +381,7 @@ function ConnectionTab({ companyId, instance, loading, onChange }: { companyId: 
     }
     catch (e) { 
       console.error('Connection flow failed:', e);
-      handleError(e, { area: 'whatsapp.connect' }); 
+      handleError(e, { area: 'whatsapp.connect', companyId, userId }); 
     }
     finally { setBusy(false); }
   };
@@ -405,7 +405,7 @@ function ConnectionTab({ companyId, instance, loading, onChange }: { companyId: 
       toast.success('Nova instância pronta', { description: 'Escaneie o novo QR Code.' });
       onChange();
     } catch (e) {
-      handleError(e, { area: 'whatsapp.reconnect' });
+      handleError(e, { area: 'whatsapp.reconnect', companyId, userId });
     } finally {
       setBusy(false);
     }
@@ -414,7 +414,7 @@ function ConnectionTab({ companyId, instance, loading, onChange }: { companyId: 
   const handleDisconnect = async () => {
     setBusy(true);
     try { await disconnectInstance(companyId); toast.success('WhatsApp desconectado'); onChange(); }
-    catch (e) { handleError(e, { area: 'whatsapp.disconnect' }); }
+    catch (e) { handleError(e, { area: 'whatsapp.disconnect', companyId, userId }); }
     finally { setBusy(false); }
   };
 
@@ -423,7 +423,7 @@ function ConnectionTab({ companyId, instance, loading, onChange }: { companyId: 
     if (!testMsg.trim()) { toast.error('Digite uma mensagem'); return; }
     setBusy(true);
     try { await sendTest(companyId, testPhone, testMsg); toast.success('Mensagem de teste registrada', { description: 'Verifique o histórico para acompanhar a entrega.' }); onChange(); }
-    catch (e) { handleError(e, { area: 'whatsapp.sendTest' }); }
+    catch (e) { handleError(e, { area: 'whatsapp.sendTest', companyId, userId }); }
     finally { setBusy(false); }
   };
 
@@ -520,8 +520,8 @@ function ConnectionTab({ companyId, instance, loading, onChange }: { companyId: 
         {status === 'connected' && (
           <div className="space-y-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-              <InfoRow icon={<Users className="h-4 w-4" />} label="Nome do perfil" value={instance?.profile_name ?? '—'} />
-              <InfoRow icon={<Smartphone className="h-4 w-4" />} label="Número conectado" value={instance?.phone ?? '—'} />
+              <InfoRow icon={<Users className="h-4 w-4" />} label="Nome do perfil" value={instance?.profile_name ?? 'Sincronizando informações...'} />
+              <InfoRow icon={<Smartphone className="h-4 w-4" />} label="Número conectado" value={instance?.phone ?? 'Sincronizando informações...'} />
               <InfoRow
                 icon={<Clock className="h-4 w-4" />}
                 label="Última atividade"

@@ -280,18 +280,50 @@ Deno.serve(async (req) => {
         else if (evolutionStatus === 'connecting') status = 'connecting';
         else if (evolutionStatus === 'close') status = 'closed';
 
-        const updateData: any = { status };
+        const updateData: any = { 
+          status,
+          updated_at: new Date().toISOString()
+        };
+        
+        if (status === 'connected') {
+          updateData.last_seen_at = new Date().toISOString();
+        }
 
         if (status === 'connected') {
           try {
             // Fetch detailed instance info to get phone/name
+            // In v2.3.7, /instance/fetchInstances returns an array. 
+            // We can also try /instance/connectionState as it sometimes contains the owner info in some sub-versions.
+            console.log(`[STATUS] Fetching detailed info for ${instanceData.instance_name}`);
             const infoResult = await fetchEvolution(`/instance/fetchInstances?instanceName=${instanceData.instance_name}`);
-            const inst = Array.isArray(infoResult) ? infoResult.find((i: any) => i.instanceName === instanceData.instance_name) : null;
+            
+            let inst = null;
+            if (Array.isArray(infoResult)) {
+              inst = infoResult.find((i: any) => i.instanceName === instanceData.instance_name || i.name === instanceData.instance_name);
+            } else if (infoResult && typeof infoResult === 'object') {
+              // Some versions might return a single object if instanceName is specified
+              inst = infoResult;
+            }
             
             if (inst) {
-              if (inst.owner) updateData.phone = inst.owner.split('@')[0];
-              if (inst.profileName) updateData.profile_name = inst.profileName;
+              console.log(`[STATUS] Found instance details:`, { profileName: inst.profileName, owner: inst.owner });
+              if (inst.owner) {
+                // Evolution returns owner as "number@s.whatsapp.net" or just "number"
+                updateData.phone = inst.owner.split('@')[0];
+              } else if (inst.number) {
+                updateData.phone = inst.number;
+              }
+              
+              if (inst.profileName) {
+                updateData.profile_name = inst.profileName;
+              } else if (inst.profilePicture) {
+                // If we have a picture but no name, maybe we can at least know it's active
+                console.log(`[STATUS] Profile name missing but found picture/other data`);
+              }
+              
               updateData.connected_at = new Date().toISOString();
+            } else {
+              console.warn(`[STATUS] Instance ${instanceData.instance_name} not found in fetchInstances response`);
             }
           } catch (e) {
             console.warn('[STATUS INFO ERROR] Could not fetch detailed instance info', e.message);
@@ -356,9 +388,11 @@ Deno.serve(async (req) => {
     }
 
     if (action === 'send-test') {
-      const { phone, body } = params;
-      if (!phone || !body) {
-        return new Response(JSON.stringify({ error: 'phone and body required' }), {
+      const { phone, body, text } = params;
+      const messageText = text || body;
+
+      if (!phone || !messageText) {
+        return new Response(JSON.stringify({ error: 'phone and text/body required' }), {
           status: 400,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
@@ -378,7 +412,7 @@ Deno.serve(async (req) => {
           method: 'POST',
           body: JSON.stringify({
             number: phone,
-            text: body,
+            text: messageText,
           }),
         });
 

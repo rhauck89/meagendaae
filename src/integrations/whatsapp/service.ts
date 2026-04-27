@@ -83,14 +83,14 @@ export async function setInstanceStatus(
 }
 
 /** Send a test message via Evolution API. */
-export async function sendTest(companyId: string, phone: string, body: string): Promise<any> {
-  const result = await callEdgeFunction('send-test', companyId, { phone, body });
+export async function sendTest(companyId: string, phone: string, text: string): Promise<any> {
+  const result = await callEdgeFunction('send-test', companyId, { phone, text });
   
   // Log message in local DB for history
   await logMessage({
     company_id: companyId,
     phone,
-    body,
+    body: text,
     message_type: 'test',
     source: 'whatsapp-center-test',
     status: 'sent',
