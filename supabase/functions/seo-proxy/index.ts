@@ -44,7 +44,7 @@ Deno.serve(async (req) => {
         .from('appointments')
         .select(`
           id, start_time,
-          companies (name, logo_url, banner_url),
+          companies (name, logo_url, cover_url),
           collaborators (
             profiles (full_name, avatar_url)
           )
