@@ -423,7 +423,7 @@ function ConnectionTab({ companyId, userId, instance, loading, onChange }: { com
     if (!testMsg.trim()) { toast.error('Digite uma mensagem'); return; }
     setBusy(true);
     try { await sendTest(companyId, testPhone, testMsg); toast.success('Mensagem de teste registrada', { description: 'Verifique o histórico para acompanhar a entrega.' }); onChange(); }
-    catch (e) { handleError(e, { area: 'whatsapp.sendTest' }); }
+    catch (e) { handleError(e, { area: 'whatsapp.sendTest', companyId, userId }); }
     finally { setBusy(false); }
   };
 
