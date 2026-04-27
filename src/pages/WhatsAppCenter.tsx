@@ -584,15 +584,15 @@ function ConnectionTab({ companyId, userId, instance, loading, onChange }: { com
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
               <InfoRow 
                 icon={<Users className="h-4 w-4" />} 
-                label="Nome do perfil" 
+                label={instance?.profile_name ? "Nome do perfil" : "Conexão"} 
                 value={instance?.profile_name || '✔ WhatsApp conectado'} 
-                valueClassName={!instance?.profile_name ? "text-green-600" : ""}
+                valueClassName={!instance?.profile_name ? "text-green-600 font-bold" : ""}
               />
               <InfoRow 
                 icon={<Smartphone className="h-4 w-4" />} 
-                label="Número conectado" 
+                label={instance?.phone ? "Número conectado" : "Sessão"} 
                 value={instance?.phone || '✔ Sessão ativa'} 
-                valueClassName={!instance?.phone ? "text-green-600" : ""}
+                valueClassName={!instance?.phone ? "text-green-600 font-bold" : ""}
               />
               <InfoRow
                 icon={<Clock className="h-4 w-4" />}
