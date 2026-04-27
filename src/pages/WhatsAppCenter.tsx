@@ -400,7 +400,8 @@ function ConnectionTab({ companyId, userId, instance, loading, onChange }: { com
     }
     catch (e) { 
       console.error('Connection flow failed:', e);
-      handleError(e, { area: 'whatsapp.connect', companyId, userId }); 
+      const friendly = translateWhatsAppError(e);
+      toast.error(friendly.title, { description: friendly.message });
     }
     finally { setBusy(false); }
   };
