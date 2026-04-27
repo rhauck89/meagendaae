@@ -1,5 +1,5 @@
 // WhatsApp Center types
-export type WhatsAppStatus = 'disconnected' | 'connecting' | 'connected' | 'error';
+export type WhatsAppStatus = 'disconnected' | 'connecting' | 'connected' | 'error' | 'pending' | 'closed';
 export type WhatsAppMessageStatus = 'pending' | 'sent' | 'delivered' | 'read' | 'failed';
 export type WhatsAppAutomationTrigger =
   | 'appointment_confirmed'
