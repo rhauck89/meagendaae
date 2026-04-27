@@ -743,7 +743,11 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
           }
         }
         if (autoLinks.length > 0) {
-          await supabase.from('service_professionals').insert(autoLinks as any);
+          try {
+            await supabase.from('service_professionals').insert(autoLinks as any);
+          } catch (e) {
+            console.warn('[Booking] Error auto-linking services to professionals:', e);
+          }
         }
       }
     } else {
@@ -752,7 +756,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
 
     setProfessionals(mappedProfs);
 
-    if (mappedProfs.length === 1) {
+    if (mappedProfs.length === 1 && !selectedProfessional) {
       setSelectedProfessional(mappedProfs[0].id);
       fetchProfessionalHours(mappedProfs[0].id);
     }
