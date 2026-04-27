@@ -937,8 +937,12 @@ function TemplateEditor({ companyId, template, onClose, onSaved }: {
     .replace(/\{\{data\}\}/g, '15/05')
     .replace(/\{\{hora\}\}/g, '14:00')
     .replace(/\{\{link_agendamento\}\}/g, 'https://...')
+    .replace(/\{\{link_avaliacao\}\}/g, 'https://...')
     .replace(/\{\{pontos\}\}/g, '120')
-    .replace(/\{\{cashback\}\}/g, 'R$ 25,00');
+    .replace(/\{\{cashback\}\}/g, 'R$ 25,00')
+    .replace(/\{\{tempo_atraso\}\}/g, '15')
+    .replace(/\{\{nova_previsao\}\}/g, '14:15')
+    .replace(/\{\{logo\}\}/g, '[Logo da Empresa]');
 
   const save = async () => {
     if (!name.trim()) { toast.error('Dê um nome ao template'); return; }
