@@ -102,26 +102,95 @@ Deno.serve(async (req) => {
       const { appointmentId } = params;
       const { data: appt } = await adminClient
         .from('appointments')
-        .select(`*, client:clients(name, phone), service:services(name), professional:profiles!appointments_professional_id_fkey(full_name)`)
+        .select(`*, client:clients(name, whatsapp), service:services(name), professional:profiles!appointments_professional_id_fkey(full_name)`)
         .eq('id', appointmentId).single();
 
-      if (!appt || !appt.client?.phone || appt.whatsapp_confirmation_sent) return new Response(JSON.stringify({ success: true }));
+      const clientPhone = appt?.client?.whatsapp || appt?.client_whatsapp;
+      const clientName = appt?.client?.name || appt?.client_name || 'Cliente';
+
+      if (!appt) {
+        console.error(`[ERROR] Appointment ${appointmentId} not found`);
+        return new Response(JSON.stringify({ error: 'Appointment not found' }), { status: 404 });
+      }
+
+      if (!clientPhone) {
+        console.warn(`[WARN] No phone found for appointment ${appointmentId}`);
+        await adminClient.from('whatsapp_logs').insert({ 
+          company_id: companyId, 
+          appointment_id: appointmentId, 
+          client_name: clientName,
+          message_type: 'appointment_confirmed', 
+          status: 'error', 
+          error_message: 'Telefone do cliente não encontrado' 
+        });
+        return new Response(JSON.stringify({ success: true, warning: 'No phone' }));
+      }
+
+      if (appt.whatsapp_confirmation_sent) {
+        console.log(`[INFO] Confirmation already sent for appointment ${appointmentId}`);
+        return new Response(JSON.stringify({ success: true }));
+      }
 
       const instanceData = await getInstance(companyId);
-      if (!instanceData || instanceData.status !== 'connected') return new Response(JSON.stringify({ error: 'Not connected' }), { status: 400 });
+      if (!instanceData || instanceData.status !== 'connected') {
+        const status = instanceData?.status || 'none';
+        console.warn(`[WARN] Instance for company ${companyId} is in status: ${status}`);
+        await adminClient.from('whatsapp_logs').insert({ 
+          company_id: companyId, 
+          appointment_id: appointmentId, 
+          client_name: clientName,
+          phone: clientPhone,
+          message_type: 'appointment_confirmed', 
+          status: 'error', 
+          error_message: `WhatsApp não conectado (Status: ${status})` 
+        });
+        return new Response(JSON.stringify({ error: 'Not connected', status }));
+      }
 
       const date = new Date(appt.start_time);
-      const message = `Olá ${appt.client.name} 👋\nSeu horário foi confirmado:\n\n📅 ${date.toLocaleDateString('pt-BR')}\n🕐 ${date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}\n✂️ ${appt.service?.name}\n👤 ${appt.professional?.full_name}`;
+      // Format date/time manually to avoid locale issues in edge functions
+      const day = String(date.getDate()).padStart(2, '0');
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const hours = String(date.getHours()).padStart(2, '0');
+      const minutes = String(date.getMinutes()).padStart(2, '0');
       
-      const phone = appt.client.phone.replace(/\D/g, '').startsWith('55') ? appt.client.phone.replace(/\D/g, '') : '55' + appt.client.phone.replace(/\D/g, '');
+      const message = `Olá ${clientName} 👋\nSeu horário foi confirmado:\n\n📅 ${day}/${month}\n🕐 ${hours}:${minutes}\n✂️ ${appt.service?.name || 'Serviço'}\n👤 ${appt.professional?.full_name || 'Profissional'}`;
+      
+      const phone = clientPhone.replace(/\D/g, '').startsWith('55') ? clientPhone.replace(/\D/g, '') : '55' + clientPhone.replace(/\D/g, '');
 
       try {
-        await fetchEvolution(`/message/sendText/${instanceData.instance_name}`, { method: 'POST', body: JSON.stringify({ number: phone, text: message }) });
-        await adminClient.from('whatsapp_logs').insert({ company_id: companyId, appointment_id: appointmentId, client_id: appt.client_id, client_name: appt.client.name, phone, message_type: 'appointment_confirmed', body: message, status: 'sent', delivered_at: new Date().toISOString() });
+        console.log(`[INFO] Sending confirmation to ${phone} via instance ${instanceData.instance_name}`);
+        await fetchEvolution(`/message/sendText/${instanceData.instance_name}`, { 
+          method: 'POST', 
+          body: JSON.stringify({ number: phone, text: message }) 
+        });
+        
+        await adminClient.from('whatsapp_logs').insert({ 
+          company_id: companyId, 
+          appointment_id: appointmentId, 
+          client_id: appt.client_id, 
+          client_name: clientName, 
+          phone, 
+          message_type: 'appointment_confirmed', 
+          body: message, 
+          status: 'sent', 
+          delivered_at: new Date().toISOString() 
+        });
+        
         await adminClient.from('appointments').update({ whatsapp_confirmation_sent: true }).eq('id', appointmentId);
         return new Response(JSON.stringify({ success: true }));
       } catch (e: any) {
-        await adminClient.from('whatsapp_logs').insert({ company_id: companyId, appointment_id: appointmentId, client_name: appt.client.name, phone, message_type: 'appointment_confirmed', body: message, status: 'error', error_message: e.message });
+        console.error(`[ERROR] Failed to send WhatsApp: ${e.message}`);
+        await adminClient.from('whatsapp_logs').insert({ 
+          company_id: companyId, 
+          appointment_id: appointmentId, 
+          client_name: clientName, 
+          phone, 
+          message_type: 'appointment_confirmed', 
+          body: message, 
+          status: 'error', 
+          error_message: e.message 
+        });
         return new Response(JSON.stringify({ error: e.message }), { status: 502 });
       }
     }
@@ -134,7 +203,7 @@ Deno.serve(async (req) => {
 
       const { data: appts } = await adminClient
         .from('appointments')
-        .select(`*, client:clients(name, phone), service:services(name), professional:profiles!appointments_professional_id_fkey(full_name)`)
+        .select(`*, client:clients(name, whatsapp), service:services(name), professional:profiles!appointments_professional_id_fkey(full_name)`)
         .eq('whatsapp_reminder_sent', false)
         .gte('start_time', `${tomorrowStr}T00:00:00`)
         .lte('start_time', `${tomorrowStr}T23:59:59`);
@@ -144,11 +213,18 @@ Deno.serve(async (req) => {
       for (const appt of appts) {
         if (!appt.client?.phone) continue;
         const inst = await getInstance(appt.company_id);
-        if (!inst || inst.status !== 'connected') continue;
+        const clientPhone = appt.client?.whatsapp || appt.client_whatsapp;
+        
+        if (!inst || inst.status !== 'connected' || !clientPhone) continue;
 
         const date = new Date(appt.start_time);
-        const message = `Lembrete de amanhã! ⏰\nOlá ${appt.client.name}, tudo bem?\n\nConfirmando seu horário:\n📅 Amanhã, ${date.toLocaleDateString('pt-BR')}\n🕐 ${date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}\n✂️ ${appt.service?.name}\n\nAté lá! 🚀`;
-        const phone = appt.client.phone.replace(/\D/g, '').startsWith('55') ? appt.client.phone.replace(/\D/g, '') : '55' + appt.client.phone.replace(/\D/g, '');
+        const day = String(date.getDate()).padStart(2, '0');
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const hours = String(date.getHours()).padStart(2, '0');
+        const minutes = String(date.getMinutes()).padStart(2, '0');
+
+        const message = `Lembrete de amanhã! ⏰\nOlá ${appt.client?.name || 'Cliente'}, tudo bem?\n\nConfirmando seu horário:\n📅 Amanhã, ${day}/${month}\n🕐 ${hours}:${minutes}\n✂️ ${appt.service?.name || 'Serviço'}\n\nAté lá! 🚀`;
+        const phone = clientPhone.replace(/\D/g, '').startsWith('55') ? clientPhone.replace(/\D/g, '') : '55' + clientPhone.replace(/\D/g, '');
 
         try {
           await fetchEvolution(`/message/sendText/${inst.instance_name}`, { method: 'POST', body: JSON.stringify({ number: phone, text: message }) });
@@ -163,7 +239,7 @@ Deno.serve(async (req) => {
     if (action === 'process-reviews') {
       const { data: appts } = await adminClient
         .from('appointments')
-        .select(`*, client:clients(name, phone), company:companies(review_url)`)
+        .select(`*, client:clients(name, whatsapp), company:companies(review_url)`)
         .eq('status', 'completed')
         .eq('whatsapp_review_sent', false)
         .lt('end_time', new Date().toISOString());
@@ -173,10 +249,12 @@ Deno.serve(async (req) => {
       for (const appt of appts) {
         if (!appt.client?.phone) continue;
         const inst = await getInstance(appt.company_id);
-        if (!inst || inst.status !== 'connected') continue;
+        const clientPhone = appt.client?.whatsapp || appt.client_whatsapp;
+        
+        if (!inst || inst.status !== 'connected' || !clientPhone) continue;
 
-        const message = `Obrigado pela visita hoje, ${appt.client.name}! 💛\nSua opinião é muito importante para nós.\n\nComo foi sua experiência?\n${appt.company?.review_url || 'Deixe sua avaliação!'}`;
-        const phone = appt.client.phone.replace(/\D/g, '').startsWith('55') ? appt.client.phone.replace(/\D/g, '') : '55' + appt.client.phone.replace(/\D/g, '');
+        const message = `Obrigado pela visita hoje, ${appt.client?.name || 'Cliente'}! 💛\nSua opinião é muito importante para nós.\n\nComo foi sua experiência?\n${appt.company?.review_url || 'Deixe sua avaliação!'}`;
+        const phone = clientPhone.replace(/\D/g, '').startsWith('55') ? clientPhone.replace(/\D/g, '') : '55' + clientPhone.replace(/\D/g, '');
 
         try {
           await fetchEvolution(`/message/sendText/${inst.instance_name}`, { method: 'POST', body: JSON.stringify({ number: phone, text: message }) });
