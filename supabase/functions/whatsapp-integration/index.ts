@@ -245,42 +245,55 @@ Deno.serve(async (req) => {
     }
 
     if (action === 'get-status') {
-      if (!instanceData?.instance_name) throw new Error('No instance found for this company');
-
-      const result = await fetchEvolution(`/instance/connectionState/${instanceData.instance_name}`);
-      const evolutionStatus = result.instance?.state; // open, close, connecting, etc.
-
-      let status: 'disconnected' | 'connecting' | 'connected' | 'error' | 'pending' | 'closed' = 'disconnected';
-      if (evolutionStatus === 'open') status = 'connected';
-      else if (evolutionStatus === 'connecting') status = 'connecting';
-      else if (evolutionStatus === 'close') status = 'closed';
-
-      const updateData: any = { status };
-
-      if (status === 'connected') {
-        try {
-          // Fetch detailed instance info to get phone/name
-          const infoResult = await fetchEvolution(`/instance/fetchInstances?instanceName=${instanceData.instance_name}`);
-          const inst = Array.isArray(infoResult) ? infoResult.find((i: any) => i.instanceName === instanceData.instance_name) : null;
-          
-          if (inst) {
-            if (inst.owner) updateData.phone = inst.owner.split('@')[0];
-            if (inst.profileName) updateData.profile_name = inst.profileName;
-            updateData.connected_at = new Date().toISOString();
-          }
-        } catch (e) {
-          console.warn('[STATUS INFO ERROR] Could not fetch detailed instance info', e.message);
-        }
+      if (!instanceData?.instance_name) {
+        return new Response(JSON.stringify({ error: 'status fetch failed', details: 'No instance name found. Please reconnect.' }), {
+          status: 404,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
       }
 
-      await adminClient
-        .from('whatsapp_instances')
-        .update(updateData)
-        .eq('company_id', companyId);
+      try {
+        const result = await fetchEvolution(`/instance/connectionState/${instanceData.instance_name}`);
+        const evolutionStatus = result.instance?.state; // open, close, connecting, etc.
 
-      return new Response(JSON.stringify({ ...result, mappedStatus: status, ...updateData }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+        let status: 'disconnected' | 'connecting' | 'connected' | 'error' | 'pending' | 'closed' = 'disconnected';
+        if (evolutionStatus === 'open') status = 'connected';
+        else if (evolutionStatus === 'connecting') status = 'connecting';
+        else if (evolutionStatus === 'close') status = 'closed';
+
+        const updateData: any = { status };
+
+        if (status === 'connected') {
+          try {
+            // Fetch detailed instance info to get phone/name
+            const infoResult = await fetchEvolution(`/instance/fetchInstances?instanceName=${instanceData.instance_name}`);
+            const inst = Array.isArray(infoResult) ? infoResult.find((i: any) => i.instanceName === instanceData.instance_name) : null;
+            
+            if (inst) {
+              if (inst.owner) updateData.phone = inst.owner.split('@')[0];
+              if (inst.profileName) updateData.profile_name = inst.profileName;
+              updateData.connected_at = new Date().toISOString();
+            }
+          } catch (e) {
+            console.warn('[STATUS INFO ERROR] Could not fetch detailed instance info', e.message);
+          }
+        }
+
+        await adminClient
+          .from('whatsapp_instances')
+          .update(updateData)
+          .eq('company_id', companyId);
+
+        return new Response(JSON.stringify({ ...result, mappedStatus: status, ...updateData }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      } catch (e) {
+        console.error('[GET-STATUS ERROR]', e.message);
+        return new Response(JSON.stringify({ error: 'status fetch failed', details: e.message }), {
+          status: 502,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
     }
 
     if (action === 'logout' || action === 'delete') {
