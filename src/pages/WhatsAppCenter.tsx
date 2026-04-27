@@ -80,7 +80,7 @@ export default function WhatsAppCenter() {
       setLogs(l);
       setMetrics(m);
     } catch (e) {
-      handleError(e, { area: 'whatsapp.center.load', onRetry: reload });
+      handleError(e, { area: 'whatsapp.center.load', onRetry: reload, companyId, userId: user?.id });
     } finally {
       setLoading(false);
     }
