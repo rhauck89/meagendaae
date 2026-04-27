@@ -306,12 +306,21 @@ function ConnectionTab({ companyId, instance, loading, onChange }: { companyId: 
   const [busy, setBusy] = useState(false);
   const [testPhone, setTestPhone] = useState('');
   const [testMsg, setTestMsg] = useState('Mensagem de teste do Agendaê 🚀');
+  const [qrTimeout, setQrTimeout] = useState(false);
 
   const status = instance?.status ?? 'disconnected';
 
   // Polling for status
   useEffect(() => {
     if (!companyId || status === 'disconnected' || status === 'connected' || status === 'error') return;
+
+    let timeoutId: NodeJS.Timeout;
+    if (status === 'connecting' || status === 'pending') {
+      // Set a 60-second timeout to show retry if QR doesn't appear
+      timeoutId = setTimeout(() => {
+        if (!instance?.qr_code) setQrTimeout(true);
+      }, 60000);
+    }
 
     const interval = setInterval(async () => {
       try {
@@ -330,14 +339,19 @@ function ConnectionTab({ companyId, instance, loading, onChange }: { companyId: 
       }
     }, 5000);
 
-    return () => clearInterval(interval);
+    return () => {
+      clearInterval(interval);
+      if (timeoutId) clearTimeout(timeoutId);
+    };
   }, [status, companyId, instance?.qr_code]);
 
   const handleConnect = async () => {
     if (busy) return;
     setBusy(true);
+    setQrTimeout(false);
     try { 
       // Step 1: Create instance in Evolution API and Save to DB
+      // The Edge Function already handles destroying old instance if action='create'
       console.log('Step 1: Creating instance...');
       await connectInstance(companyId); 
       
@@ -356,7 +370,6 @@ function ConnectionTab({ companyId, instance, loading, onChange }: { companyId: 
         toast.success('QR Code gerado!', { description: 'Escaneie agora para conectar.' });
       } catch (qrError) {
         console.warn('QR Code fetch failed initially, polling will handle it:', qrError);
-        // We don't fail the whole operation here, as polling is active
       }
       
       onChange(); 
@@ -366,6 +379,31 @@ function ConnectionTab({ companyId, instance, loading, onChange }: { companyId: 
       handleError(e, { area: 'whatsapp.connect' }); 
     }
     finally { setBusy(false); }
+  };
+
+  const handleReconnect = async () => {
+    if (busy) return;
+    const confirmed = confirm('Deseja realmente reconectar? Isso irá derrubar a conexão atual e gerar um novo QR Code.');
+    if (!confirmed) return;
+    
+    setBusy(true);
+    setQrTimeout(false);
+    try {
+      toast.info('Reiniciando instância...', { description: 'Isso pode levar alguns segundos.' });
+      // Calling connectInstance handles cleanup + fresh creation in Edge Function
+      await connectInstance(companyId);
+      onChange();
+      
+      // Wait for initialization
+      await new Promise(resolve => setTimeout(resolve, 4000));
+      await getQrCode(companyId);
+      toast.success('Nova instância pronta', { description: 'Escaneie o novo QR Code.' });
+      onChange();
+    } catch (e) {
+      handleError(e, { area: 'whatsapp.reconnect' });
+    } finally {
+      setBusy(false);
+    }
   };
 
   const handleDisconnect = async () => {
