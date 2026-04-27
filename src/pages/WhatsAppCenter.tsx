@@ -334,22 +334,37 @@ function ConnectionTab({ companyId, instance, loading, onChange }: { companyId: 
   }, [status, companyId, instance?.qr_code]);
 
   const handleConnect = async () => {
+    if (busy) return;
     setBusy(true);
     try { 
+      // Step 1: Create instance in Evolution API and Save to DB
+      console.log('Step 1: Creating instance...');
       await connectInstance(companyId); 
-      toast.success('Iniciando conexão...', { description: 'Gerando QR Code oficial Evolution API.' }); 
+      
+      // Step 2: Immediate UI refresh to show "Generating QR..."
+      onChange();
+      
+      // Step 3: Fetch the actual QR code base64
+      console.log('Step 2: Fetching QR code...');
+      toast.info('Iniciando conexão...', { description: 'Gerando QR Code oficial Evolution API.' }); 
+      
+      // Small delay to allow Evolution to be ready
+      await new Promise(resolve => setTimeout(resolve, 3000));
+      
+      try {
+        await getQrCode(companyId);
+        toast.success('QR Code gerado!', { description: 'Escaneie agora para conectar.' });
+      } catch (qrError) {
+        console.warn('QR Code fetch failed initially, polling will handle it:', qrError);
+        // We don't fail the whole operation here, as polling is active
+      }
+      
       onChange(); 
-      // Try to get QR immediately after creation
-      setTimeout(async () => {
-        try {
-          await getQrCode(companyId);
-          onChange();
-        } catch (e) {
-          console.error('Failed to get QR code initially:', e);
-        }
-      }, 2000);
     }
-    catch (e) { handleError(e, { area: 'whatsapp.connect' }); }
+    catch (e) { 
+      console.error('Connection flow failed:', e);
+      handleError(e, { area: 'whatsapp.connect' }); 
+    }
     finally { setBusy(false); }
   };
 
