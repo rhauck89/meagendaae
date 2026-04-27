@@ -67,7 +67,7 @@ Deno.serve(async (req) => {
           meta.description = "Deseja realmente cancelar seu agendamento?";
         }
 
-        meta.image = prof?.avatar_url || company?.banner_url || company?.logo_url || DEFAULT_IMAGE;
+        meta.image = prof?.avatar_url || company?.cover_url || company?.logo_url || DEFAULT_IMAGE;
       }
     }
 
