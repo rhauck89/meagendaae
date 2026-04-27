@@ -991,10 +991,17 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
     
     setNextSlotsLoading(true);
     const MAX_DAYS = 7;
-    const MAX_SLOTS = 8;
     
-    // Parallelize availability fetching for the next 7 days
-    const days = Array.from({ length: MAX_DAYS }, (_, i) => addDays(startOfDay(new Date()), i));
+    // Fetch slots for the current visible week
+    const days = eachDayOfInterval({
+      start: currentWeekStart,
+      end: addDays(currentWeekStart, 6)
+    });
+    
+    // Also ensure selectedDate is included if it's outside the current week
+    if (selectedDate && !days.some(d => isSameDay(d, selectedDate))) {
+      days.push(selectedDate);
+    }
     
     try {
       const dayResults = await Promise.all(
@@ -1016,12 +1023,9 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
       );
 
       const results: { date: Date; slots: string[] }[] = [];
-      let totalSlotsFound = 0;
       let suggestion: { date: Date; slot: string; reason: 'tight-fit' | 'first-available' } | null = null;
 
       for (const res of dayResults) {
-        if (totalSlotsFound >= MAX_SLOTS) break;
-        
         let slots = res.slots;
         // Apply promo filters if any
         if (promoData) {
@@ -1030,13 +1034,12 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
         }
 
         if (slots.length > 0) {
-          if (!suggestion) {
+          if (!suggestion && (isToday(res.date) || res.date > new Date())) {
             suggestion = { date: res.date, slot: slots[0], reason: 'first-available' };
           }
-          const remaining = MAX_SLOTS - totalSlotsFound;
-          const daySlots = slots.slice(0, remaining);
-          results.push({ date: res.date, slots: daySlots });
-          totalSlotsFound += daySlots.length;
+          results.push({ date: res.date, slots: slots });
+        } else {
+          results.push({ date: res.date, slots: [] });
         }
       }
 
@@ -1053,7 +1056,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
     if (selectedProfessional && businessHours.length > 0 && totalDuration > 0 && step !== 'client' && step !== 'confirm') {
       fetchNextAvailableSlots();
     }
-  }, [selectedProfessional, professionalHours, businessHours, totalDuration]);
+  }, [selectedProfessional, professionalHours, businessHours, totalDuration, currentWeekStart, selectedDate]);
 
   const handleQuickSlot = (date: Date, time: string) => {
     skipTimeResetRef.current = true;
@@ -2042,9 +2045,10 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                           Hoje
                         </Button>
                         <Select 
-                          value={format(currentWeekStart, 'MM')} 
+                          value={format(currentWeekStart, 'yyyy-MM')} 
                           onValueChange={(val) => {
-                            const newDate = setMonth(currentWeekStart, parseInt(val) - 1);
+                            const [year, month] = val.split('-').map(Number);
+                            const newDate = setMonth(new Date(year, month - 1, 1), month - 1);
                             setCurrentWeekStart(startOfWeek(newDate, { locale: ptBR }));
                           }}
                         >
@@ -2058,7 +2062,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                             }).map((month) => (
                               <SelectItem 
                                 key={month.toISOString()} 
-                                value={format(month, 'MM')}
+                                value={format(month, 'yyyy-MM')}
                                 className="text-white focus:bg-white/10"
                               >
                                 {format(month, 'MMMM yyyy', { locale: ptBR })}
@@ -2178,13 +2182,13 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                 )}
 
                 {/* Waitlist (if no slots for selected date) */}
-                {selectedDate && (nextSlots.find(d => isSameDay(d.date, selectedDate))?.slots?.length === 0) && (
+                {selectedDate && !slotsLoading && !nextSlotsLoading && (nextSlots.find(d => isSameDay(d.date, selectedDate))?.slots?.length === 0) && (
                   <div className="p-8 rounded-[2.5rem] text-center space-y-4" style={{ background: `${T.accent}05`, border: `2px dashed ${T.accent}30` }}>
                     <div className="w-16 h-16 rounded-full bg-amber-500/10 flex items-center justify-center mx-auto">
                       <Bell className="h-8 w-8 text-amber-500" />
                     </div>
                     <div>
-                      <h3 className="text-lg font-black tracking-tight">Vagas Esgotadas</h3>
+                      <h3 className="text-lg font-black tracking-tight">Sem horários disponíveis neste dia</h3>
                       <p className="text-sm opacity-60 mt-1">Gostaria de ser avisado caso surja uma vaga para este dia?</p>
                     </div>
                     <Button
