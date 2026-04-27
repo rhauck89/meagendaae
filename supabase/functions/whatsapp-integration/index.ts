@@ -107,7 +107,7 @@ Deno.serve(async (req) => {
       try {
         const response = await fetch(url, { ...options, headers });
         const text = await response.text();
-        console.log(`[EVOLUTION RES] ${response.status} ${url}`, text.substring(0, 1000));
+        console.log(`[EVOLUTION RES] ${response.status} ${url}`, text.substring(0, 2000));
         
         let json;
         try {
@@ -118,8 +118,13 @@ Deno.serve(async (req) => {
         
         if (!response.ok) {
           const errMsg = json.message || json.error || `HTTP ${response.status}`;
-          console.error(`[EVOLUTION API ERROR] ${url} -> ${errMsg}`, json);
-          throw new Error(errMsg);
+          console.error(`[EVOLUTION API ERROR] ${url} -> ${response.status}`, json);
+          // Return the full error body for debugging
+          throw new Error(JSON.stringify({ 
+            status: response.status, 
+            message: errMsg,
+            details: json 
+          }));
         }
         return json;
       } catch (e: any) {
@@ -165,14 +170,25 @@ Deno.serve(async (req) => {
           method: 'POST',
           body: JSON.stringify({
             instanceName,
-            token: Math.random().toString(36).substring(2, 15),
             qrcode: true,
+            integration: 'WHATSAPP-BAILEYS'
           }),
         });
-      } catch (e) {
+      } catch (e: any) {
         console.error('[CREATE ERROR] Evolution API failed', e.message);
-        return new Response(JSON.stringify({ error: 'create failed', details: e.message }), {
-          status: 502,
+        let errorDetails;
+        try {
+          errorDetails = JSON.parse(e.message);
+        } catch {
+          errorDetails = { message: e.message };
+        }
+        
+        return new Response(JSON.stringify({ 
+          error: 'create failed', 
+          details: errorDetails.message || 'Unknown error',
+          fullError: errorDetails
+        }), {
+          status: errorDetails.status || 502,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
