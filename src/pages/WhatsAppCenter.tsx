@@ -315,13 +315,13 @@ function OverviewTab({ loading, instance, logs, metrics }: { loading: boolean; i
   );
 }
 
-function StatCard({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
+function StatCard({ icon, label, value, valueClassName }: { icon: React.ReactNode; label: string; value: string; valueClassName?: string }) {
   return (
     <Card>
       <CardContent className="p-3 md:p-4 space-y-1">
         <div className="flex items-center justify-between">{icon}</div>
         <p className="text-[11px] sm:text-xs text-muted-foreground leading-tight">{label}</p>
-        <p className="text-lg sm:text-xl font-bold truncate">{value}</p>
+        <p className={cn("text-lg sm:text-xl font-bold truncate", valueClassName)}>{value}</p>
       </CardContent>
     </Card>
   );
