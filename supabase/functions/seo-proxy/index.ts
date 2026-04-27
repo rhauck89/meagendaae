@@ -124,7 +124,7 @@ Deno.serve(async (req) => {
         meta.description = isBooking
           ? "Escolha serviço, profissional e horário em poucos segundos."
           : `Bem-vindo ao ${company.name}. Confira nossos serviços e agende seu horário online.`;
-        meta.image = company.banner_url || company.logo_url || DEFAULT_IMAGE;
+        meta.image = company.cover_url || company.logo_url || DEFAULT_IMAGE;
       }
     }
   } catch (e) {
