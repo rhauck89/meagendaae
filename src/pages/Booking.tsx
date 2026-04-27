@@ -470,8 +470,14 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
   }, [company?.id]);
 
   useEffect(() => {
-    if (slug) fetchCompany();
-  }, [slug]);
+    if (slug) {
+      fetchCompany().then(() => {
+        if (!professionalSlug && !promoIdRef.current) {
+          fetchProfessionals();
+        }
+      });
+    }
+  }, [slug, professionalSlug]);
 
   const fetchCompany = async () => {
     const { data: compArr } = await supabase.rpc('get_company_by_slug', { _slug: slug! });
