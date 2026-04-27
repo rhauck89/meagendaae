@@ -106,6 +106,8 @@ Deno.serve(async (req) => {
     const reservedRoutes = ['app', 'auth', 'dashboard', 'admin', 'super-admin', 'my-appointments', 'minha-conta', 'cliente'];
     const companyMatch = path.match(/^\/(barbearia|estetica|salao|clinica)\/([^\/]+)(\/agendar)?$/);
     if (companyMatch && !reservedRoutes.includes(companyMatch[2])) {
+      console.log(`Company match: ${companyMatch[2]}`);
+
       const [_, tipo, slug, isBooking] = companyMatch;
       const { data: company } = await supabase
         .from('companies')
