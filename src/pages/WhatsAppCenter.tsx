@@ -100,7 +100,11 @@ export default function WhatsAppCenter() {
       setLogs(l);
       setMetrics(m);
     } catch (e) {
-      handleError(e, { area: 'whatsapp.center.load', onRetry: reload, companyId, userId: user?.id });
+      const friendly = translateWhatsAppError(e);
+      toast.error(friendly.title, { 
+        description: friendly.message,
+        action: { label: 'Tentar novamente', onClick: reload }
+      });
     } finally {
       setLoading(false);
     }
