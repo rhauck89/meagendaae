@@ -100,13 +100,15 @@ Deno.serve(async (req) => {
     // ACTION: send-confirmation (called by Trigger)
     if (action === 'send-confirmation') {
       const { appointmentId } = params;
-      const { data: appt } = await adminClient
+      const { data: appt, error: apptError } = await adminClient
         .from('appointments')
         .select(`*, client:clients(name, whatsapp), service:services(name), professional:profiles!appointments_professional_id_fkey(full_name)`)
         .eq('id', appointmentId).single();
 
-      const clientPhone = appt?.client?.whatsapp || appt?.client_whatsapp;
-      const clientName = appt?.client?.name || appt?.client_name || 'Cliente';
+      if (apptError) {
+        console.error(`[ERROR] Database error fetching appointment ${appointmentId}:`, apptError);
+        return new Response(JSON.stringify({ error: 'Appointment fetch error', details: apptError }), { status: 500 });
+      }
 
       if (!appt) {
         console.error(`[ERROR] Appointment ${appointmentId} not found`);
