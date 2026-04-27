@@ -54,7 +54,7 @@ const STATUS_LABEL: Record<string, string> = {
 };
 
 export default function WhatsAppCenter() {
-  const { companyId } = useAuth();
+  const { companyId, user } = useAuth();
   const [tab, setTab] = useState('overview');
   const [loading, setLoading] = useState(true);
   const [instance, setInstance] = useState<WhatsAppInstance | null>(null);
