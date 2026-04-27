@@ -462,13 +462,27 @@ function ConnectionTab({ companyId, instance, loading, onChange }: { companyId: 
 
         {(status === 'connecting' || status === 'pending') && (
           <div className="text-center py-6 space-y-4">
-            <p className="font-medium">Escaneie o QR Code com seu WhatsApp</p>
+            <p className="font-medium">
+              {!instance?.qr_code ? 'Gerando QR Code...' : 'Escaneie o QR Code com seu WhatsApp'}
+            </p>
             {instance?.qr_code ? (
-              <img src={instance.qr_code} alt="QR Code de conexão" className="mx-auto h-48 w-48 sm:h-60 sm:w-60 border rounded-lg" />
+              <img src={instance.qr_code} alt="QR Code de conexão" className="mx-auto h-48 w-48 sm:h-60 sm:w-60 border rounded-lg shadow-sm" />
             ) : (
               <div className="mx-auto h-48 w-48 sm:h-60 sm:w-60 border rounded-lg flex flex-col items-center justify-center gap-2 bg-muted/30">
-                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-                <p className="text-xs text-muted-foreground">Gerando QR Code...</p>
+                {qrTimeout ? (
+                  <div className="px-4 text-center space-y-3">
+                    <AlertCircle className="h-8 w-8 mx-auto text-destructive" />
+                    <p className="text-xs text-muted-foreground">Demorando mais que o esperado...</p>
+                    <Button variant="outline" size="sm" onClick={handleConnect} disabled={busy}>
+                      Tentar novamente
+                    </Button>
+                  </div>
+                ) : (
+                  <>
+                    <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                    <p className="text-xs text-muted-foreground">Isso pode levar até 30 segundos</p>
+                  </>
+                )}
               </div>
             )}
             <p className="text-xs text-muted-foreground px-2">
@@ -476,6 +490,11 @@ function ConnectionTab({ companyId, instance, loading, onChange }: { companyId: 
             </p>
             <div className="flex flex-col sm:flex-row justify-center gap-2">
               <Button variant="outline" onClick={handleDisconnect} disabled={busy}>Cancelar</Button>
+              {instance?.qr_code && (
+                <Button variant="ghost" onClick={handleConnect} disabled={busy} size="sm">
+                  Novo QR Code
+                </Button>
+              )}
             </div>
           </div>
         )}
@@ -487,7 +506,7 @@ function ConnectionTab({ companyId, instance, loading, onChange }: { companyId: 
             description="Não conseguimos manter a conexão ativa. Tente reconectar abaixo."
             action={
               <Button onClick={handleConnect} disabled={busy} className="gap-2 mt-2">
-                <RefreshCw className="h-4 w-4" />Reconectar
+                <RefreshCw className="h-4 w-4" />Reconectar agora
               </Button>
             }
           />
