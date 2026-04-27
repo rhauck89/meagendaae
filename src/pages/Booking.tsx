@@ -709,7 +709,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
     const { data: pubProfs } = await supabase
       .from('public_professionals' as any)
       .select('*')
-      .eq('company_id', company.id)
+      .eq('company_id', targetCompanyId)
       .eq('active', true);
 
     let allProfs = ((pubProfs as any[]) || []).map((p: any) => ({
@@ -747,7 +747,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
         const autoLinks: any[] = [];
         for (const prof of mappedProfs) {
           for (const svcId of selectedServices) {
-            autoLinks.push({ service_id: svcId, professional_id: prof.id, company_id: company.id });
+            autoLinks.push({ service_id: svcId, professional_id: prof.id, company_id: targetCompanyId });
           }
         }
         if (autoLinks.length > 0) {
