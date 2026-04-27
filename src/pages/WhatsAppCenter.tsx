@@ -306,12 +306,21 @@ function ConnectionTab({ companyId, instance, loading, onChange }: { companyId: 
   const [busy, setBusy] = useState(false);
   const [testPhone, setTestPhone] = useState('');
   const [testMsg, setTestMsg] = useState('Mensagem de teste do Agendaê 🚀');
+  const [qrTimeout, setQrTimeout] = useState(false);
 
   const status = instance?.status ?? 'disconnected';
 
   // Polling for status
   useEffect(() => {
     if (!companyId || status === 'disconnected' || status === 'connected' || status === 'error') return;
+
+    let timeoutId: NodeJS.Timeout;
+    if (status === 'connecting' || status === 'pending') {
+      // Set a 60-second timeout to show retry if QR doesn't appear
+      timeoutId = setTimeout(() => {
+        if (!instance?.qr_code) setQrTimeout(true);
+      }, 60000);
+    }
 
     const interval = setInterval(async () => {
       try {
@@ -330,14 +339,19 @@ function ConnectionTab({ companyId, instance, loading, onChange }: { companyId: 
       }
     }, 5000);
 
-    return () => clearInterval(interval);
+    return () => {
+      clearInterval(interval);
+      if (timeoutId) clearTimeout(timeoutId);
+    };
   }, [status, companyId, instance?.qr_code]);
 
   const handleConnect = async () => {
     if (busy) return;
     setBusy(true);
+    setQrTimeout(false);
     try { 
       // Step 1: Create instance in Evolution API and Save to DB
+      // The Edge Function already handles destroying old instance if action='create'
       console.log('Step 1: Creating instance...');
       await connectInstance(companyId); 
       
@@ -356,7 +370,6 @@ function ConnectionTab({ companyId, instance, loading, onChange }: { companyId: 
         toast.success('QR Code gerado!', { description: 'Escaneie agora para conectar.' });
       } catch (qrError) {
         console.warn('QR Code fetch failed initially, polling will handle it:', qrError);
-        // We don't fail the whole operation here, as polling is active
       }
       
       onChange(); 
@@ -366,6 +379,31 @@ function ConnectionTab({ companyId, instance, loading, onChange }: { companyId: 
       handleError(e, { area: 'whatsapp.connect' }); 
     }
     finally { setBusy(false); }
+  };
+
+  const handleReconnect = async () => {
+    if (busy) return;
+    const confirmed = confirm('Deseja realmente reconectar? Isso irá derrubar a conexão atual e gerar um novo QR Code.');
+    if (!confirmed) return;
+    
+    setBusy(true);
+    setQrTimeout(false);
+    try {
+      toast.info('Reiniciando instância...', { description: 'Isso pode levar alguns segundos.' });
+      // Calling connectInstance handles cleanup + fresh creation in Edge Function
+      await connectInstance(companyId);
+      onChange();
+      
+      // Wait for initialization
+      await new Promise(resolve => setTimeout(resolve, 4000));
+      await getQrCode(companyId);
+      toast.success('Nova instância pronta', { description: 'Escaneie o novo QR Code.' });
+      onChange();
+    } catch (e) {
+      handleError(e, { area: 'whatsapp.reconnect' });
+    } finally {
+      setBusy(false);
+    }
   };
 
   const handleDisconnect = async () => {
@@ -424,13 +462,27 @@ function ConnectionTab({ companyId, instance, loading, onChange }: { companyId: 
 
         {(status === 'connecting' || status === 'pending') && (
           <div className="text-center py-6 space-y-4">
-            <p className="font-medium">Escaneie o QR Code com seu WhatsApp</p>
+            <p className="font-medium">
+              {!instance?.qr_code ? 'Gerando QR Code...' : 'Escaneie o QR Code com seu WhatsApp'}
+            </p>
             {instance?.qr_code ? (
-              <img src={instance.qr_code} alt="QR Code de conexão" className="mx-auto h-48 w-48 sm:h-60 sm:w-60 border rounded-lg" />
+              <img src={instance.qr_code} alt="QR Code de conexão" className="mx-auto h-48 w-48 sm:h-60 sm:w-60 border rounded-lg shadow-sm" />
             ) : (
               <div className="mx-auto h-48 w-48 sm:h-60 sm:w-60 border rounded-lg flex flex-col items-center justify-center gap-2 bg-muted/30">
-                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-                <p className="text-xs text-muted-foreground">Gerando QR Code...</p>
+                {qrTimeout ? (
+                  <div className="px-4 text-center space-y-3">
+                    <AlertCircle className="h-8 w-8 mx-auto text-destructive" />
+                    <p className="text-xs text-muted-foreground">Demorando mais que o esperado...</p>
+                    <Button variant="outline" size="sm" onClick={handleConnect} disabled={busy}>
+                      Tentar novamente
+                    </Button>
+                  </div>
+                ) : (
+                  <>
+                    <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                    <p className="text-xs text-muted-foreground">Isso pode levar até 30 segundos</p>
+                  </>
+                )}
               </div>
             )}
             <p className="text-xs text-muted-foreground px-2">
@@ -438,6 +490,11 @@ function ConnectionTab({ companyId, instance, loading, onChange }: { companyId: 
             </p>
             <div className="flex flex-col sm:flex-row justify-center gap-2">
               <Button variant="outline" onClick={handleDisconnect} disabled={busy}>Cancelar</Button>
+              {instance?.qr_code && (
+                <Button variant="ghost" onClick={handleConnect} disabled={busy} size="sm">
+                  Novo QR Code
+                </Button>
+              )}
             </div>
           </div>
         )}
@@ -449,7 +506,7 @@ function ConnectionTab({ companyId, instance, loading, onChange }: { companyId: 
             description="Não conseguimos manter a conexão ativa. Tente reconectar abaixo."
             action={
               <Button onClick={handleConnect} disabled={busy} className="gap-2 mt-2">
-                <RefreshCw className="h-4 w-4" />Reconectar
+                <RefreshCw className="h-4 w-4" />Reconectar agora
               </Button>
             }
           />
@@ -486,7 +543,7 @@ function ConnectionTab({ companyId, instance, loading, onChange }: { companyId: 
               <Textarea value={testMsg} onChange={e => setTestMsg(e.target.value)} rows={2} placeholder="Sua mensagem..." />
             </div>
             <div className="flex flex-col sm:flex-row gap-2 pt-4 border-t">
-              <Button variant="outline" onClick={handleConnect} disabled={busy} className="gap-2">
+              <Button variant="outline" onClick={handleReconnect} disabled={busy} className="gap-2">
                 <RefreshCw className="h-4 w-4" />Reconectar
               </Button>
               <Button variant="destructive" onClick={handleDisconnect} disabled={busy} className="gap-2">
