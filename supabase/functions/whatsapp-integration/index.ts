@@ -51,33 +51,35 @@ Deno.serve(async (req) => {
     }
 
     // Verify user access
-    const { data: profile, error: profileError } = await supabaseClient
-      .from('profiles')
-      .select('company_id, role')
-      .eq('user_id', user.id)
-      .single();
+    if (!isServiceRole) {
+      const { data: profile, error: profileError } = await adminClient
+        .from('profiles')
+        .select('company_id, role')
+        .eq('user_id', user.id)
+        .single();
 
-    if (profileError || !profile) {
-      console.error('[PROFILE ERROR]', profileError, user.id);
-      return new Response(JSON.stringify({ error: 'Forbidden', details: 'Profile not found or inaccessible' }), {
-        status: 403,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
+      if (profileError || !profile) {
+        console.error('[PROFILE ERROR]', profileError, user?.id);
+        return new Response(JSON.stringify({ error: 'Forbidden', details: 'Profile not found or inaccessible' }), {
+          status: 403,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
 
-    const isSuperAdmin = profile.role === 'super_admin';
-    const belongsToCompany = profile.company_id === companyId;
+      const isSuperAdmin = profile.role === 'super_admin';
+      const belongsToCompany = profile.company_id === companyId;
 
-    if (!isSuperAdmin && !belongsToCompany) {
-      console.warn(`[FORBIDDEN] User ${user.id} tried to access company ${companyId}. Profile company: ${profile.company_id}, Role: ${profile.role}`);
-      return new Response(JSON.stringify({ 
-        error: 'Forbidden', 
-        details: 'User does not belong to this company',
-        debug: { profileCompany: profile.company_id, requestedCompany: companyId, role: profile.role } 
-      }), {
-        status: 403,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+      if (!isSuperAdmin && !belongsToCompany) {
+        console.warn(`[FORBIDDEN] User ${user?.id} tried to access company ${companyId}. Profile company: ${profile.company_id}, Role: ${profile.role}`);
+        return new Response(JSON.stringify({ 
+          error: 'Forbidden', 
+          details: 'User does not belong to this company',
+          debug: { profileCompany: profile.company_id, requestedCompany: companyId, role: profile.role } 
+        }), {
+          status: 403,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
     }
 
     let EVOLUTION_API_URL = Deno.env.get('EVOLUTION_API_BASE_URL')?.replace(/\/$/, '');
