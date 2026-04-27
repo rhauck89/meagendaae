@@ -1056,7 +1056,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
     if (selectedProfessional && businessHours.length > 0 && totalDuration > 0 && step !== 'client' && step !== 'confirm') {
       fetchNextAvailableSlots();
     }
-  }, [selectedProfessional, professionalHours, businessHours, totalDuration]);
+  }, [selectedProfessional, professionalHours, businessHours, totalDuration, currentWeekStart, selectedDate]);
 
   const handleQuickSlot = (date: Date, time: string) => {
     skipTimeResetRef.current = true;
