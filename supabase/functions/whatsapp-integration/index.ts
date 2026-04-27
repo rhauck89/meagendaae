@@ -127,24 +127,54 @@ Deno.serve(async (req) => {
     };
 
     if (action === 'create') {
+      console.log(`[CREATE] Starting instance creation for company ${companyId}`);
+      
       const { data: company } = await adminClient
         .from('companies')
         .select('slug')
         .eq('id', companyId)
         .single();
 
-      if (!company) throw new Error('Company not found');
+      if (!company) {
+        console.error('[CREATE ERROR] Company not found');
+        return new Response(JSON.stringify({ error: 'company not found' }), {
+          status: 404,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
 
-      const instanceName = `${company.slug}-${Math.random().toString(36).substring(2, 7)}`;
+      // 1. Cleanup old instance if it exists
+      if (instanceData?.instance_name) {
+        console.log(`[CREATE] Cleaning up existing instance: ${instanceData.instance_name}`);
+        try {
+          await fetchEvolution(`/instance/delete/${instanceData.instance_name}`, { method: 'DELETE' });
+        } catch (e) {
+          console.warn('[CREATE] Failed to delete old instance (may not exist in Evolution)', e.message);
+        }
+      }
 
-      const result = await fetchEvolution('/instance/create', {
-        method: 'POST',
-        body: JSON.stringify({
-          instanceName,
-          token: Math.random().toString(36).substring(2, 15),
-          qrcode: true,
-        }),
-      });
+      const instanceName = `agendae-${company.slug}-${Math.random().toString(36).substring(2, 7)}`.toLowerCase();
+      console.log(`[CREATE] Creating new instance: ${instanceName}`);
+
+      let result;
+      try {
+        result = await fetchEvolution('/instance/create', {
+          method: 'POST',
+          body: JSON.stringify({
+            instanceName,
+            token: Math.random().toString(36).substring(2, 15),
+            qrcode: true,
+          }),
+        });
+      } catch (e) {
+        console.error('[CREATE ERROR] Evolution API failed', e.message);
+        return new Response(JSON.stringify({ error: 'create failed', details: e.message }), {
+          status: 502,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      console.log('[CREATE] Evolution instance created, updating database...');
 
       const { data: newInstance, error: dbError } = await adminClient
         .from('whatsapp_instances')
@@ -153,42 +183,65 @@ Deno.serve(async (req) => {
           instance_name: instanceName,
           instance_id: result.instance?.instanceId || instanceName,
           status: 'pending',
+          qr_code: null,
+          phone: null,
+          profile_name: null,
           updated_at: new Date().toISOString(),
         }, { onConflict: 'company_id' })
         .select()
         .single();
 
-      if (dbError) throw dbError;
+      if (dbError) {
+        console.error('[CREATE ERROR] Database insert failed', dbError);
+        return new Response(JSON.stringify({ error: 'db insert failed', details: dbError.message }), {
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
 
+      console.log('[CREATE] Success');
       return new Response(JSON.stringify(newInstance), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
     if (action === 'get-qr') {
-      if (!instanceData?.instance_name) throw new Error('No instance found for this company');
-
-      const result = await fetchEvolution(`/instance/connect/${instanceData.instance_name}`);
-
-      // Evolution returns base64 in some format
-      if (result.base64 || (result.code && typeof result.code === 'string' && result.code.startsWith('data:image'))) {
-        const qr = result.base64 || result.code;
-        
-        await adminClient
-          .from('whatsapp_instances')
-          .update({ qr_code: qr, status: 'connecting' })
-          .eq('company_id', companyId);
-        
-        return new Response(JSON.stringify({ qr_code: qr }), {
+      if (!instanceData?.instance_name) {
+        console.warn('[GET-QR] No instance name found in DB for company', companyId);
+        return new Response(JSON.stringify({ error: 'qr fetch failed', details: 'No instance name found. Please reconnect.' }), {
+          status: 404,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
 
-      console.warn('[QR NOT FOUND] Response did not contain valid QR base64', result);
-      return new Response(JSON.stringify({ error: 'QR Code not available yet. Try again in a few seconds.', original: result }), {
-        status: 404,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+      try {
+        const result = await fetchEvolution(`/instance/connect/${instanceData.instance_name}`);
+
+        if (result.base64 || (result.code && typeof result.code === 'string' && result.code.startsWith('data:image'))) {
+          const qr = result.base64 || result.code;
+          
+          await adminClient
+            .from('whatsapp_instances')
+            .update({ qr_code: qr, status: 'connecting' })
+            .eq('company_id', companyId);
+          
+          return new Response(JSON.stringify({ qr_code: qr }), {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
+
+        console.warn('[GET-QR] No QR base64 in response', result);
+        return new Response(JSON.stringify({ error: 'qr fetch failed', details: 'Evolution API did not return a QR code yet.' }), {
+          status: 404,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      } catch (e) {
+        console.error('[GET-QR ERROR]', e.message);
+        return new Response(JSON.stringify({ error: 'qr fetch failed', details: e.message }), {
+          status: 502,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
     }
 
     if (action === 'get-status') {
