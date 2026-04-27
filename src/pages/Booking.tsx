@@ -489,7 +489,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
   const fetchCompany = async () => {
     const { data: compArr } = await supabase.rpc('get_company_by_slug', { _slug: slug! });
     const comp = compArr?.[0];
-    if (!comp) return;
+    if (!comp) return null;
     setCompany(comp);
 
     const resolvedType: BusinessType = routeBusinessType || comp.business_type || 'barbershop';
