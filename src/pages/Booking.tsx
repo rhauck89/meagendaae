@@ -2182,13 +2182,13 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                 )}
 
                 {/* Waitlist (if no slots for selected date) */}
-                {selectedDate && (nextSlots.find(d => isSameDay(d.date, selectedDate))?.slots?.length === 0) && (
+                {selectedDate && !slotsLoading && (nextSlots.find(d => isSameDay(d.date, selectedDate))?.slots?.length === 0) && (
                   <div className="p-8 rounded-[2.5rem] text-center space-y-4" style={{ background: `${T.accent}05`, border: `2px dashed ${T.accent}30` }}>
                     <div className="w-16 h-16 rounded-full bg-amber-500/10 flex items-center justify-center mx-auto">
                       <Bell className="h-8 w-8 text-amber-500" />
                     </div>
                     <div>
-                      <h3 className="text-lg font-black tracking-tight">Vagas Esgotadas</h3>
+                      <h3 className="text-lg font-black tracking-tight">Sem horários disponíveis neste dia</h3>
                       <p className="text-sm opacity-60 mt-1">Gostaria de ser avisado caso surja uma vaga para este dia?</p>
                     </div>
                     <Button
