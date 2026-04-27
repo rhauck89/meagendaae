@@ -297,8 +297,15 @@ Deno.serve(async (req) => {
     }
 
     if (action === 'logout' || action === 'delete') {
-      if (!instanceData?.instance_name) throw new Error('No instance found');
+      if (!instanceData?.instance_name) {
+        return new Response(JSON.stringify({ error: 'No instance found to disconnect' }), {
+          status: 404,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
 
+      console.log(`[DISCONNECT] Logging out and deleting instance ${instanceData.instance_name}`);
+      
       try {
         await fetchEvolution(`/instance/logout/${instanceData.instance_name}`, { method: 'DELETE' });
       } catch (e) {
@@ -320,6 +327,7 @@ Deno.serve(async (req) => {
           profile_name: null,
           connected_at: null,
           instance_name: null,
+          updated_at: new Date().toISOString(),
         })
         .eq('company_id', companyId);
 
@@ -330,20 +338,41 @@ Deno.serve(async (req) => {
 
     if (action === 'send-test') {
       const { phone, body } = params;
-      if (!phone || !body) throw new Error('Phone and body are required');
-      if (!instanceData?.instance_name) throw new Error('No instance found');
+      if (!phone || !body) {
+        return new Response(JSON.stringify({ error: 'phone and body required' }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      
+      if (!instanceData?.instance_name) {
+        return new Response(JSON.stringify({ error: 'No active instance found for sending messages' }), {
+          status: 404,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
 
-      const result = await fetchEvolution(`/message/sendText/${instanceData.instance_name}`, {
-        method: 'POST',
-        body: JSON.stringify({
-          number: phone,
-          text: body,
-        }),
-      });
+      console.log(`[SEND-TEST] Sending message to ${phone} from ${instanceData.instance_name}`);
+      
+      try {
+        const result = await fetchEvolution(`/message/sendText/${instanceData.instance_name}`, {
+          method: 'POST',
+          body: JSON.stringify({
+            number: phone,
+            text: body,
+          }),
+        });
 
-      return new Response(JSON.stringify(result), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+        return new Response(JSON.stringify(result), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      } catch (e) {
+        console.error('[SEND-TEST ERROR]', e.message);
+        return new Response(JSON.stringify({ error: 'send failed', details: e.message }), {
+          status: 502,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
     }
 
     return new Response(JSON.stringify({ error: 'Invalid action' }), {
