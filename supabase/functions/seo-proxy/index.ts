@@ -37,6 +37,8 @@ Deno.serve(async (req) => {
     // 1. Review / Reschedule / Cancel (/review/:id, /reschedule/:id, /cancel/:id)
     const appointmentMatch = path.match(/^\/(review|reschedule|cancel)\/([^\/]+)$/);
     if (appointmentMatch) {
+      console.log(`Appointment match: ${appointmentMatch[1]}, id: ${appointmentMatch[2]}`);
+
       const [_, type, id] = appointmentMatch;
       const { data: appointment } = await supabase
         .from('appointments')
