@@ -405,7 +405,7 @@ function ConnectionTab({ companyId, userId, instance, loading, onChange }: { com
       toast.success('Nova instância pronta', { description: 'Escaneie o novo QR Code.' });
       onChange();
     } catch (e) {
-      handleError(e, { area: 'whatsapp.reconnect' });
+      handleError(e, { area: 'whatsapp.reconnect', companyId, userId });
     } finally {
       setBusy(false);
     }
