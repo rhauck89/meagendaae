@@ -381,9 +381,11 @@ Deno.serve(async (req) => {
     }
 
     if (action === 'send-test') {
-      const { phone, body } = params;
-      if (!phone || !body) {
-        return new Response(JSON.stringify({ error: 'phone and body required' }), {
+      const { phone, body, text } = params;
+      const messageText = text || body;
+
+      if (!phone || !messageText) {
+        return new Response(JSON.stringify({ error: 'phone and text/body required' }), {
           status: 400,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
