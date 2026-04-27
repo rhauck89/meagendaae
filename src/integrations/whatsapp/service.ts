@@ -40,40 +40,30 @@ async function upsertInstance(companyId: string, patch: Partial<WhatsAppInstance
 }
 
 /**
- * MOCK — eventually calls Evolution API to spin up an instance and return a QR.
+ * Call the WhatsApp integration Edge Function
  */
-export async function connectInstance(companyId: string): Promise<WhatsAppInstance> {
-  const fakeQr =
-    'data:image/svg+xml;base64,' +
-    btoa(
-      `<svg xmlns="http://www.w3.org/2000/svg" width="240" height="240" viewBox="0 0 240 240">
-        <rect width="240" height="240" fill="#ffffff"/>
-        <g fill="#000000">
-          ${Array.from({ length: 144 })
-            .map((_, i) => {
-              const x = (i % 12) * 18 + 12;
-              const y = Math.floor(i / 12) * 18 + 12;
-              return Math.random() > 0.5 ? `<rect x="${x}" y="${y}" width="16" height="16"/>` : '';
-            })
-            .join('')}
-        </g>
-      </svg>`,
-    );
-  return upsertInstance(companyId, {
-    status: 'connecting',
-    qr_code: fakeQr,
-    instance_id: `mock-${companyId.slice(0, 8)}`,
-    session_name: `agendae-${companyId.slice(0, 8)}`,
+async function callEdgeFunction(action: string, companyId: string, params: any = {}) {
+  const { data, error } = await supabase.functions.invoke('whatsapp-integration', {
+    body: { action, companyId, ...params },
   });
+  if (error) throw error;
+  return data;
 }
 
-export async function disconnectInstance(companyId: string): Promise<WhatsAppInstance> {
-  return upsertInstance(companyId, {
-    status: 'disconnected',
-    qr_code: null,
-    phone: null,
-    connected_at: null,
-  });
+export async function connectInstance(companyId: string): Promise<WhatsAppInstance> {
+  return callEdgeFunction('create', companyId);
+}
+
+export async function getQrCode(companyId: string): Promise<{ qr_code: string }> {
+  return callEdgeFunction('get-qr', companyId);
+}
+
+export async function getStatus(companyId: string): Promise<WhatsAppInstance & { mappedStatus: WhatsAppStatus }> {
+  return callEdgeFunction('get-status', companyId);
+}
+
+export async function disconnectInstance(companyId: string): Promise<void> {
+  await callEdgeFunction('logout', companyId);
 }
 
 export async function setInstanceStatus(
@@ -81,6 +71,7 @@ export async function setInstanceStatus(
   status: WhatsAppStatus,
   phone?: string,
 ): Promise<WhatsAppInstance> {
+  // This was used for demo simulation, now it's mostly handled by getStatus or webhooks
   const patch: Partial<WhatsAppInstance> = { status };
   if (status === 'connected') {
     patch.connected_at = new Date().toISOString();

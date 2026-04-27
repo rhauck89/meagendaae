@@ -20,7 +20,7 @@ import {
   Smartphone, Sparkles, Inbox, MessageCircle, Loader2,
 } from 'lucide-react';
 import {
-  getInstance, connectInstance, disconnectInstance, setInstanceStatus, sendTest,
+  getInstance, connectInstance, disconnectInstance, setInstanceStatus, sendTest, getStatus, getQrCode,
   listAutomations, upsertAutomation, toggleAutomation,
   listTemplates, saveTemplate, deleteTemplate,
   listLogs, listMetrics,
@@ -39,7 +39,9 @@ const TEMPLATE_VARIABLES = [
 const STATUS_BADGE: Record<string, { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline' }> = {
   disconnected: { label: 'Desconectado', variant: 'secondary' },
   connecting: { label: 'Conectando', variant: 'outline' },
+  pending: { label: 'Pendente', variant: 'outline' },
   connected: { label: 'Conectado', variant: 'default' },
+  closed: { label: 'Fechado', variant: 'destructive' },
   error: { label: 'Erro', variant: 'destructive' },
 };
 
@@ -307,24 +309,57 @@ function ConnectionTab({ companyId, instance, loading, onChange }: { companyId: 
 
   const status = instance?.status ?? 'disconnected';
 
+  // Polling for status
+  useEffect(() => {
+    if (!companyId || status === 'disconnected' || status === 'connected' || status === 'error') return;
+
+    const interval = setInterval(async () => {
+      try {
+        const res = await getStatus(companyId);
+        // If status changed to connected or disconnected, refresh parent
+        if (res.mappedStatus !== status) {
+          onChange();
+        }
+        // If we have no QR and we are connecting, try to fetch it
+        if (res.mappedStatus === 'connecting' && !instance?.qr_code) {
+           await getQrCode(companyId);
+           onChange();
+        }
+      } catch (e) {
+        console.error('Error polling WhatsApp status:', e);
+      }
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, [status, companyId, instance?.qr_code]);
+
   const handleConnect = async () => {
     setBusy(true);
-    try { await connectInstance(companyId); toast.success('Gerando QR Code...', { description: 'Em instantes ele aparecerá na tela.' }); onChange(); }
-    catch (e) { handleError(e, { area: 'whatsapp.connect', onRetry: handleConnect }); }
+    try { 
+      await connectInstance(companyId); 
+      toast.success('Iniciando conexão...', { description: 'Gerando QR Code oficial Evolution API.' }); 
+      onChange(); 
+      // Try to get QR immediately after creation
+      setTimeout(async () => {
+        try {
+          await getQrCode(companyId);
+          onChange();
+        } catch (e) {
+          console.error('Failed to get QR code initially:', e);
+        }
+      }, 2000);
+    }
+    catch (e) { handleError(e, { area: 'whatsapp.connect' }); }
     finally { setBusy(false); }
   };
+
   const handleDisconnect = async () => {
     setBusy(true);
     try { await disconnectInstance(companyId); toast.success('WhatsApp desconectado'); onChange(); }
     catch (e) { handleError(e, { area: 'whatsapp.disconnect' }); }
     finally { setBusy(false); }
   };
-  const handleSimulateConnected = async () => {
-    setBusy(true);
-    try { await setInstanceStatus(companyId, 'connected', '+5511999999999'); toast.success('Conectado (modo demonstração)'); onChange(); }
-    catch (e) { handleError(e, { area: 'whatsapp.simulate' }); }
-    finally { setBusy(false); }
-  };
+
   const handleTest = async () => {
     if (!testPhone.trim()) { toast.error('Informe um telefone para testar'); return; }
     if (!testMsg.trim()) { toast.error('Digite uma mensagem'); return; }
@@ -372,7 +407,7 @@ function ConnectionTab({ companyId, instance, loading, onChange }: { companyId: 
           />
         )}
 
-        {status === 'connecting' && (
+        {(status === 'connecting' || status === 'pending') && (
           <div className="text-center py-6 space-y-4">
             <p className="font-medium">Escaneie o QR Code com seu WhatsApp</p>
             {instance?.qr_code ? (
@@ -388,9 +423,6 @@ function ConnectionTab({ companyId, instance, loading, onChange }: { companyId: 
             </p>
             <div className="flex flex-col sm:flex-row justify-center gap-2">
               <Button variant="outline" onClick={handleDisconnect} disabled={busy}>Cancelar</Button>
-              <Button variant="outline" onClick={handleSimulateConnected} disabled={busy} className="gap-2">
-                <Sparkles className="h-4 w-4" />Simular conexão (demo)
-              </Button>
             </div>
           </div>
         )}
@@ -410,7 +442,8 @@ function ConnectionTab({ companyId, instance, loading, onChange }: { companyId: 
 
         {status === 'connected' && (
           <div className="space-y-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              <InfoRow icon={<Users className="h-4 w-4" />} label="Nome do perfil" value={instance?.profile_name ?? '—'} />
               <InfoRow icon={<Smartphone className="h-4 w-4" />} label="Número conectado" value={instance?.phone ?? '—'} />
               <InfoRow
                 icon={<Clock className="h-4 w-4" />}

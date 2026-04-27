@@ -1,5 +1,5 @@
 // WhatsApp Center types
-export type WhatsAppStatus = 'disconnected' | 'connecting' | 'connected' | 'error';
+export type WhatsAppStatus = 'disconnected' | 'connecting' | 'connected' | 'error' | 'pending' | 'closed';
 export type WhatsAppMessageStatus = 'pending' | 'sent' | 'delivered' | 'read' | 'failed';
 export type WhatsAppAutomationTrigger =
   | 'appointment_confirmed'
@@ -16,8 +16,10 @@ export interface WhatsAppInstance {
   id: string;
   company_id: string;
   instance_id: string | null;
+  instance_name: string | null;
   session_name: string | null;
   phone: string | null;
+  profile_name: string | null;
   status: WhatsAppStatus;
   qr_code: string | null;
   last_seen_at: string | null;
