@@ -307,16 +307,31 @@ function ConnectionTab({ companyId, userId, instance, loading, onChange }: { com
   const [testPhone, setTestPhone] = useState('');
   const [testMsg, setTestMsg] = useState('Mensagem de teste do Agendaê 🚀');
   const [qrTimeout, setQrTimeout] = useState(false);
+  const [syncTimeout, setSyncTimeout] = useState(false);
 
   const status = instance?.status ?? 'disconnected';
 
-  // Polling for status
+  // Timeout for "Syncing information" state
   useEffect(() => {
-    if (!companyId || status === 'disconnected' || status === 'connected' || status === 'error') return;
+    let timer: NodeJS.Timeout;
+    if (status === 'connected' && (!instance?.profile_name || !instance?.phone)) {
+      timer = setTimeout(() => setSyncTimeout(true), 10000);
+    } else {
+      setSyncTimeout(false);
+    }
+    return () => clearTimeout(timer);
+  }, [status, instance?.profile_name, instance?.phone]);
+
+  // Polling for status and profile data
+  useEffect(() => {
+    if (!companyId || status === 'disconnected' || status === 'error') return;
+
+    // Even if connected, we might want to poll if profile data is missing
+    const shouldPoll = status !== 'connected' || !instance?.profile_name || !instance?.phone;
+    if (!shouldPoll) return;
 
     let timeoutId: NodeJS.Timeout;
     if (status === 'connecting' || status === 'pending') {
-      // Set a 60-second timeout to show retry if QR doesn't appear
       timeoutId = setTimeout(() => {
         if (!instance?.qr_code) setQrTimeout(true);
       }, 60000);
@@ -325,10 +340,15 @@ function ConnectionTab({ companyId, userId, instance, loading, onChange }: { com
     const interval = setInterval(async () => {
       try {
         const res = await getStatus(companyId);
-        // If status changed to connected or disconnected, refresh parent
-        if (res.mappedStatus !== status) {
+        
+        // Refresh parent if status or profile data changed
+        const statusChanged = res.mappedStatus !== status;
+        const profileDataFound = (res.profile_name && !instance?.profile_name) || (res.phone && !instance?.phone);
+        
+        if (statusChanged || profileDataFound) {
           onChange();
         }
+
         // If we have no QR and we are connecting, try to fetch it
         if (res.mappedStatus === 'connecting' && !instance?.qr_code) {
            await getQrCode(companyId);
@@ -336,10 +356,8 @@ function ConnectionTab({ companyId, userId, instance, loading, onChange }: { com
         }
       } catch (e: any) {
         console.error('Error polling WhatsApp status:', e);
-        // If we get a 404 or 403, it means the instance record is corrupted or gone
         if (e?.status === 404 || e?.status === 403) {
-          console.warn('Instance not found or forbidden, resetting state');
-          onChange(); // This will trigger a reload and clear the state
+          onChange();
         }
       }
     }, 5000);
@@ -348,7 +366,7 @@ function ConnectionTab({ companyId, userId, instance, loading, onChange }: { com
       clearInterval(interval);
       if (timeoutId) clearTimeout(timeoutId);
     };
-  }, [status, companyId, instance?.qr_code]);
+  }, [status, companyId, instance?.qr_code, instance?.profile_name, instance?.phone]);
 
   const handleConnect = async () => {
     if (busy) return;
