@@ -975,10 +975,13 @@ function TemplateEditor({ companyId, template, onClose, onSaved }: {
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="general">Geral</SelectItem>
-                  <SelectItem value="appointment">Agendamento</SelectItem>
+                  <SelectItem value="confirmation">Confirmação</SelectItem>
                   <SelectItem value="reminder">Lembrete</SelectItem>
                   <SelectItem value="review">Avaliação</SelectItem>
                   <SelectItem value="loyalty">Fidelidade</SelectItem>
+                  <SelectItem value="inactive">Inatividade</SelectItem>
+                  <SelectItem value="delay">Atraso</SelectItem>
+                  <SelectItem value="promotional">Promocional</SelectItem>
                 </SelectContent>
               </Select>
             </div>
