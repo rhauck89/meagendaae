@@ -470,8 +470,14 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
   }, [company?.id]);
 
   useEffect(() => {
-    if (slug) fetchCompany();
-  }, [slug]);
+    if (slug) {
+      fetchCompany().then(() => {
+        if (!professionalSlug && !promoIdRef.current) {
+          fetchProfessionals();
+        }
+      });
+    }
+  }, [slug, professionalSlug]);
 
   const fetchCompany = async () => {
     const { data: compArr } = await supabase.rpc('get_company_by_slug', { _slug: slug! });
@@ -737,7 +743,11 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
           }
         }
         if (autoLinks.length > 0) {
-          await supabase.from('service_professionals').insert(autoLinks as any);
+          try {
+            await supabase.from('service_professionals').insert(autoLinks as any);
+          } catch (e) {
+            console.warn('[Booking] Error auto-linking services to professionals:', e);
+          }
         }
       }
     } else {
@@ -746,7 +756,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
 
     setProfessionals(mappedProfs);
 
-    if (mappedProfs.length === 1) {
+    if (mappedProfs.length === 1 && !selectedProfessional) {
       setSelectedProfessional(mappedProfs[0].id);
       fetchProfessionalHours(mappedProfs[0].id);
     }
@@ -1540,74 +1550,56 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
         )}
       </header>
 
-      {/* Premium Header Fixo */}
-      <header 
-        className="sticky top-0 z-50 backdrop-blur-xl transition-all duration-500"
-        style={{ 
-          background: `${T.card}F2`, 
-          borderBottom: `2px solid ${T.accent}44`,
-          boxShadow: '0 15px 50px -12px rgba(0,0,0,0.6)'
-        }}
-      >
-        <div className="max-w-2xl mx-auto px-4 py-3 flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3 min-w-0">
-            <a href={companyPageUrl} className="shrink-0">
-              {displayLogoUrl ? (
-                <img src={displayLogoUrl} alt={company.name} className="h-10 w-10 rounded-xl object-contain bg-white/5 p-1" />
-              ) : (
-                <div className="w-10 h-10 rounded-xl flex items-center justify-center shadow-lg" style={{ background: T.accent }}>
-                  <Icon className="h-5 w-5 text-black" />
-                </div>
-              )}
-            </a>
-            <div className="min-w-0">
-              <h1 className="font-bold text-base tracking-tight truncate">{company.name}</h1>
-              <div className="flex items-center gap-1.5">
-                <StarRating rating={companyStats?.avgRating || 5} size={10} />
-                <span className="text-[10px] font-bold" style={{ color: T.accent }}>{companyStats?.avgRating?.toFixed(1) || '5.0'}</span>
-              </div>
-            </div>
-          </div>
-
-          {step !== 'success' && (
-            <div className="flex-1 max-w-[140px] hidden sm:block">
-              <div className="flex justify-between items-center mb-1">
-                <span className="text-[10px] font-bold uppercase tracking-wider opacity-60">Etapa {currentStepIdx + 1}/{stepList.length}</span>
-              </div>
-              <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
-                <div 
-                  className="h-full rounded-full transition-all duration-700 ease-out" 
-                  style={{ 
-                    background: `linear-gradient(90deg, ${T.accent}, #F4C752)`,
-                    width: `${((currentStepIdx + 1) / stepList.length) * 100}%` 
-                  }} 
-                />
-              </div>
-            </div>
-          )}
-
-          <button
-            onClick={() => setShowReviewModal(true)}
-            className="shrink-0 text-[10px] font-bold uppercase tracking-widest px-3 py-1.5 rounded-full border transition-all hover:scale-105 active:scale-95"
-            style={{ borderColor: `${T.accent}40`, color: T.accent, background: `${T.accent}05` }}
-          >
-            Avaliar
-          </button>
-        </div>
-        
-        {/* Mobile Progress Bar (pinned to bottom of header) */}
-        {step !== 'success' && (
-          <div className="h-0.5 w-full bg-white/5 sm:hidden">
+      {/* Persistent Professional Card */}
+      {selectedProfessional && professionals.length > 0 && step !== 'success' && step !== 'professional' && (() => {
+        const prof = professionals.find(p => p.id === selectedProfessional);
+        if (!prof) return null;
+        return (
+          <div className="max-w-2xl mx-auto px-4 pt-8">
             <div 
-              className="h-full transition-all duration-700 ease-out" 
+              className="flex items-center gap-5 p-5 rounded-[2.5rem] animate-in fade-in slide-in-from-top-6 duration-700 relative overflow-hidden group" 
               style={{ 
-                background: `linear-gradient(90deg, ${T.accent}, #F4C752)`,
-                width: `${((currentStepIdx + 1) / stepList.length) * 100}%` 
-              }} 
-            />
+                background: `linear-gradient(135deg, ${T.card}, ${T.bg})`, 
+                border: `2px solid ${T.accent}`, 
+                boxShadow: `0 20px 40px -12px ${T.accent}40` 
+              }}
+            >
+              <div className="absolute top-0 right-0 p-12 blur-3xl rounded-full -mr-10 -mt-10 opacity-10 pointer-events-none" style={{ background: T.accent }} />
+              
+              <div className="relative shrink-0">
+                {prof.avatar_url ? (
+                  <img src={prof.avatar_url} alt={prof.full_name} className="w-16 h-16 rounded-[1.5rem] object-cover shadow-2xl transition-transform group-hover:scale-105" style={{ border: `2px solid ${T.accent}` }} />
+                ) : (
+                  <div className="w-16 h-16 rounded-[1.5rem] flex items-center justify-center text-2xl font-black shadow-2xl" style={{ background: `${T.accent}15`, color: T.accent, border: `2px solid ${T.accent}` }}>
+                    {prof.full_name?.charAt(0)?.toUpperCase()}
+                  </div>
+                )}
+                <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-green-500 border-2 rounded-full flex items-center justify-center shadow-xl" style={{ borderColor: T.card }}>
+                  <div className="w-2 h-2 bg-white rounded-full animate-pulse" />
+                </div>
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2">
+                  <p className="font-black text-lg tracking-tight truncate uppercase" style={{ color: T.accent }}>{prof.full_name}</p>
+                  <Badge className="bg-amber-500 text-black border-none text-[8px] font-black h-4 py-0 px-2 rounded-full uppercase">Pro</Badge>
+                </div>
+                <div className="flex items-center gap-2 mt-1.5">
+                  <span className="text-[10px] font-black px-3 py-1 rounded-full bg-white/10 uppercase tracking-[0.1em] backdrop-blur-sm" style={{ color: T.textSec }}>
+                    {recentBookings && recentBookings > 0 ? `🔥 ${recentBookings} agendados hoje` : '⭐ Especialista'}
+                  </span>
+                </div>
+              </div>
+              <button 
+                onClick={() => setStep('professional')}
+                className="p-4 rounded-2xl bg-white/5 hover:bg-amber-500/20 transition-all border border-white/10 active:scale-90 shadow-lg group-hover:rotate-12"
+                style={{ color: T.accent }}
+              >
+                <RotateCcw className="h-5 w-5" />
+              </button>
+            </div>
           </div>
-        )}
-      </header>
+        );
+      })()}
 
       {/* Persistent Professional Card */}
       {selectedProfessional && professionals.length > 0 && step !== 'success' && step !== 'professional' && (() => {
@@ -1905,7 +1897,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                       setSelectedProfessional(p.id); 
                       fetchProfessionalHours(p.id); 
                       fetchRecentBookings(p.id); 
-                      setStep('services'); 
+                      setStep(selectedServices.length > 0 ? 'datetime' : 'services'); 
                     }}
                     className="p-6 rounded-[2.5rem] cursor-pointer transition-all duration-300 relative group overflow-hidden"
                     style={{
