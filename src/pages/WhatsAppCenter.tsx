@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
@@ -33,8 +34,10 @@ import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 
 const TEMPLATE_VARIABLES = [
-  '{{nome}}', '{{empresa}}', '{{servico}}', '{{profissional}}',
-  '{{data}}', '{{hora}}', '{{link_agendamento}}', '{{pontos}}', '{{cashback}}',
+  '{{nome}}', '{{empresa}}', '{{servico}}', '{{data}}', '{{hora}}', 
+  '{{profissional}}', '{{link_agendamento}}', '{{link_reagendar}}', 
+  '{{link_cancelar}}', '{{link_avaliacao}}', '{{cashback}}', '{{pontos}}',
+  '{{tempo_atraso}}', '{{nova_previsao}}', '{{logo}}'
 ];
 
 const STATUS_BADGE: Record<string, { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline'; className?: string }> = {
@@ -857,9 +860,22 @@ function TemplatesTab({ companyId, templates, loading, onChange }: { companyId: 
         <p className="text-sm text-muted-foreground">
           Crie modelos reutilizáveis com variáveis dinâmicas como nome, serviço e horário.
         </p>
-        <Button onClick={() => setEditing({ name: '', body: '', category: 'general' })} className="gap-2 w-full sm:w-auto">
-          <Plus className="h-4 w-4" />Novo Template
-        </Button>
+        <div className="flex flex-wrap gap-2 w-full sm:w-auto">
+          <Button variant="outline" onClick={async () => {
+            if (!confirm('Deseja restaurar os templates padrão? Isso não excluirá seus templates customizados.')) return;
+            try {
+              const { error } = await supabase.rpc('initialize_company_whatsapp_templates', { p_company_id: companyId });
+              if (error) throw error;
+              toast.success('Templates restaurados');
+              onChange();
+            } catch (e) { handleError(e, { area: 'whatsapp.templates.reset' }); }
+          }} className="gap-2 flex-1 sm:flex-none">
+            <RefreshCw className="h-4 w-4" />Restaurar Padrões
+          </Button>
+          <Button onClick={() => setEditing({ name: '', body: '', category: 'general' })} className="gap-2 flex-1 sm:flex-none">
+            <Plus className="h-4 w-4" />Novo Template
+          </Button>
+        </div>
       </div>
       {templates.length === 0 ? (
         <Card>
@@ -879,18 +895,23 @@ function TemplatesTab({ companyId, templates, loading, onChange }: { companyId: 
       ) : (
         <div className="grid sm:grid-cols-2 gap-3">
           {templates.map(t => (
-            <Card key={t.id}>
+            <Card key={t.id} className={cn(t.is_system && "border-primary/20 bg-primary/5")}>
               <CardContent className="p-4 space-y-2">
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
-                    <p className="font-medium truncate">{t.name}</p>
-                    <Badge variant="outline" className="text-xs mt-1">{t.category}</Badge>
+                    <div className="flex items-center gap-2">
+                      <p className="font-medium truncate">{t.name}</p>
+                      {t.is_system && <Badge variant="secondary" className="text-[10px] h-4">Sistema</Badge>}
+                    </div>
+                    <Badge variant="outline" className="text-xs mt-1 capitalize">{t.category}</Badge>
                   </div>
                   <div className="flex gap-1 shrink-0">
                     <Button size="sm" variant="ghost" onClick={() => setEditing(t)}>Editar</Button>
-                    <Button size="sm" variant="ghost" onClick={() => remove(t.id)} aria-label="Excluir template">
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                    {!t.is_system && (
+                      <Button size="sm" variant="ghost" onClick={() => remove(t.id)} aria-label="Excluir template">
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    )}
                   </div>
                 </div>
                 <p className="text-sm text-muted-foreground line-clamp-3 whitespace-pre-wrap">{t.body}</p>
@@ -930,8 +951,12 @@ function TemplateEditor({ companyId, template, onClose, onSaved }: {
     .replace(/\{\{data\}\}/g, '15/05')
     .replace(/\{\{hora\}\}/g, '14:00')
     .replace(/\{\{link_agendamento\}\}/g, 'https://...')
+    .replace(/\{\{link_avaliacao\}\}/g, 'https://...')
     .replace(/\{\{pontos\}\}/g, '120')
-    .replace(/\{\{cashback\}\}/g, 'R$ 25,00');
+    .replace(/\{\{cashback\}\}/g, 'R$ 25,00')
+    .replace(/\{\{tempo_atraso\}\}/g, '15')
+    .replace(/\{\{nova_previsao\}\}/g, '14:15')
+    .replace(/\{\{logo\}\}/g, '[Logo da Empresa]');
 
   const save = async () => {
     if (!name.trim()) { toast.error('Dê um nome ao template'); return; }
@@ -964,10 +989,13 @@ function TemplateEditor({ companyId, template, onClose, onSaved }: {
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="general">Geral</SelectItem>
-                  <SelectItem value="appointment">Agendamento</SelectItem>
+                  <SelectItem value="confirmation">Confirmação</SelectItem>
                   <SelectItem value="reminder">Lembrete</SelectItem>
                   <SelectItem value="review">Avaliação</SelectItem>
                   <SelectItem value="loyalty">Fidelidade</SelectItem>
+                  <SelectItem value="inactive">Inatividade</SelectItem>
+                  <SelectItem value="delay">Atraso</SelectItem>
+                  <SelectItem value="promotional">Promocional</SelectItem>
                 </SelectContent>
               </Select>
             </div>

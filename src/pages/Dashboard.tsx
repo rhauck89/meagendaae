@@ -965,10 +965,11 @@ const Dashboard = () => {
       const origin = typeof window !== 'undefined' ? window.location.origin : '';
       const { sendAppointmentRescheduledWebhook } = await import('@/lib/automations');
 
-      // Fire reschedule webhooks (non-blocking) — NO WhatsApp tabs.
+      // Fire reschedule notifications
       for (const a of affected) {
         const rescheduleUrl = a.id ? `${origin}/reschedule/${a.id}` : null;
 
+        // 1. Webhook (Make.com)
         sendAppointmentRescheduledWebhook({
           appointment_id: a.id,
           company_id: companyId || '',
@@ -987,6 +988,19 @@ const Dashboard = () => {
           delay_source_appointment_id: sourceAppointmentId,
           reschedule_url: rescheduleUrl,
         } as any);
+
+        // 2. WhatsApp Center (Professional Delay Notification)
+        if (a.client_whatsapp && companyId) {
+          supabase.functions.invoke('whatsapp-integration', {
+            body: {
+              action: 'send-delay-notification',
+              companyId,
+              appointmentId: a.id,
+              delayMinutes: minutes,
+              newTime: a.new_time
+            }
+          }).catch(err => console.error('[WhatsApp] Failed to send delay notification:', err));
+        }
       }
 
       fetchAppointments();

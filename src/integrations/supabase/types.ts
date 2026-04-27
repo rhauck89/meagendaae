@@ -225,6 +225,7 @@ export type Database = {
           updated_at: string
           user_id: string | null
           whatsapp_confirmation_sent: boolean | null
+          whatsapp_reminder_1d_sent: boolean | null
           whatsapp_reminder_sent: boolean | null
           whatsapp_review_sent: boolean | null
         }
@@ -260,6 +261,7 @@ export type Database = {
           updated_at?: string
           user_id?: string | null
           whatsapp_confirmation_sent?: boolean | null
+          whatsapp_reminder_1d_sent?: boolean | null
           whatsapp_reminder_sent?: boolean | null
           whatsapp_review_sent?: boolean | null
         }
@@ -295,6 +297,7 @@ export type Database = {
           updated_at?: string
           user_id?: string | null
           whatsapp_confirmation_sent?: boolean | null
+          whatsapp_reminder_1d_sent?: boolean | null
           whatsapp_reminder_sent?: boolean | null
           whatsapp_review_sent?: boolean | null
         }
@@ -5297,6 +5300,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      initialize_company_whatsapp_templates: {
+        Args: { p_company_id: string }
+        Returns: undefined
+      }
       is_admin: {
         Args: { _company_id: string; _user_id: string }
         Returns: boolean
@@ -5468,6 +5475,10 @@ export type Database = {
         | "appointment_rescheduled"
         | "loyalty_cashback"
         | "waitlist_slot_open"
+        | "appointment_reminder_1d"
+        | "appointment_reminder_2h"
+        | "professional_delay"
+        | "promotional"
       whatsapp_message_status:
         | "pending"
         | "sent"
@@ -5660,6 +5671,10 @@ export const Constants = {
         "appointment_rescheduled",
         "loyalty_cashback",
         "waitlist_slot_open",
+        "appointment_reminder_1d",
+        "appointment_reminder_2h",
+        "professional_delay",
+        "promotional",
       ],
       whatsapp_message_status: [
         "pending",

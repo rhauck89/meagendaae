@@ -4,13 +4,17 @@ export type WhatsAppMessageStatus = 'pending' | 'sent' | 'delivered' | 'read' | 
 export type WhatsAppAutomationTrigger =
   | 'appointment_confirmed'
   | 'appointment_reminder'
+  | 'appointment_reminder_1d'
+  | 'appointment_reminder_2h'
   | 'post_service_review'
   | 'inactive_client'
   | 'birthday'
   | 'appointment_cancelled'
   | 'appointment_rescheduled'
   | 'loyalty_cashback'
-  | 'waitlist_slot_open';
+  | 'waitlist_slot_open'
+  | 'professional_delay'
+  | 'promotional';
 
 export interface WhatsAppInstance {
   id: string;
@@ -94,14 +98,16 @@ export const AUTOMATION_DEFINITIONS: Array<{
   name: string;
   description: string;
   defaultDelayMinutes: number;
+  category: string;
 }> = [
-  { trigger: 'appointment_confirmed', name: 'Confirmação de agendamento', description: 'Envia mensagem assim que o cliente agenda.', defaultDelayMinutes: 0 },
-  { trigger: 'appointment_reminder', name: 'Lembrete antes do horário', description: 'Lembra o cliente algumas horas antes do atendimento.', defaultDelayMinutes: 120 },
-  { trigger: 'post_service_review', name: 'Pós-atendimento + avaliação', description: 'Solicita avaliação após o atendimento concluído.', defaultDelayMinutes: 60 },
-  { trigger: 'inactive_client', name: 'Cliente sem retorno', description: 'Reativa clientes que não voltam há 20 dias.', defaultDelayMinutes: 28800 },
-  { trigger: 'birthday', name: 'Aniversário', description: 'Mensagem de feliz aniversário com benefício.', defaultDelayMinutes: 0 },
-  { trigger: 'appointment_cancelled', name: 'Cancelamento', description: 'Confirma cancelamento e oferece reagendamento.', defaultDelayMinutes: 0 },
-  { trigger: 'appointment_rescheduled', name: 'Reagendamento', description: 'Confirma o novo horário do cliente.', defaultDelayMinutes: 0 },
-  { trigger: 'loyalty_cashback', name: 'Cashback / Pontos', description: 'Avisa o cliente sobre crédito ou pontos disponíveis.', defaultDelayMinutes: 0 },
-  { trigger: 'waitlist_slot_open', name: 'Lista de espera', description: 'Avisa quando uma vaga abre para a lista de espera.', defaultDelayMinutes: 0 },
+  { trigger: 'appointment_confirmed', name: 'Confirmação', description: 'Envia mensagem assim que o cliente agenda.', defaultDelayMinutes: 0, category: 'confirmation' },
+  { trigger: 'appointment_reminder_1d', name: 'Lembrete (1 dia)', description: 'Lembra o cliente um dia antes do atendimento.', defaultDelayMinutes: 1440, category: 'reminder' },
+  { trigger: 'appointment_reminder_2h', name: 'Lembrete (2 horas)', description: 'Lembra o cliente duas horas antes do atendimento.', defaultDelayMinutes: 120, category: 'reminder' },
+  { trigger: 'post_service_review', name: 'Avaliação', description: 'Solicita avaliação após o atendimento concluído.', defaultDelayMinutes: 60, category: 'review' },
+  { trigger: 'inactive_client', name: 'Cliente Sumido', description: 'Reativa clientes que não voltam há 20 dias.', defaultDelayMinutes: 28800, category: 'inactive' },
+  { trigger: 'professional_delay', name: 'Aviso de Atraso', description: 'Avisa os próximos clientes quando houver atraso.', defaultDelayMinutes: 0, category: 'delay' },
+  { trigger: 'loyalty_cashback', name: 'Cashback / Fidelidade', description: 'Avisa o cliente sobre crédito disponível.', defaultDelayMinutes: 0, category: 'loyalty' },
+  { trigger: 'promotional', name: 'Promoções', description: 'Envio manual de promoções para a base.', defaultDelayMinutes: 0, category: 'promotional' },
+  { trigger: 'appointment_cancelled', name: 'Cancelamento', description: 'Confirma o cancelamento do agendamento.', defaultDelayMinutes: 0, category: 'cancellation' },
+  { trigger: 'appointment_rescheduled', name: 'Reagendamento', description: 'Confirma o novo horário do cliente.', defaultDelayMinutes: 0, category: 'reschedule' },
 ];
