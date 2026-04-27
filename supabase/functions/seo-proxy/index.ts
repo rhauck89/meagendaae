@@ -74,6 +74,8 @@ Deno.serve(async (req) => {
     // 2. Professional Profile (/perfil/:tipo/:companySlug/:professionalSlug)
     const profMatch = path.match(/^\/perfil\/(barbearia|estetica|salao|clinica)\/([^\/]+)\/([^\/]+)(\/agendar)?$/);
     if (profMatch) {
+      console.log(`Professional match: ${profMatch[3]} in company ${profMatch[2]}`);
+
       const [_, tipo, companySlug, professionalSlug, isBooking] = profMatch;
       const { data: prof } = await supabase
         .from('collaborators')
