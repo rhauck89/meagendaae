@@ -477,7 +477,7 @@ function ConnectionTab({ companyId, userId, instance, loading, onChange }: { com
             <CardTitle>Conexão WhatsApp</CardTitle>
             <CardDescription>Conecte seu número escaneando o QR Code</CardDescription>
           </div>
-          <Badge variant={STATUS_BADGE[status].variant} className="self-start sm:self-auto">{STATUS_BADGE[status].label}</Badge>
+          <Badge variant={STATUS_BADGE[status].variant} className={cn(STATUS_BADGE[status].className, "self-start sm:self-auto")}>{STATUS_BADGE[status].label}</Badge>
         </div>
       </CardHeader>
       <CardContent className="space-y-6">
