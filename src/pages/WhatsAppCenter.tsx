@@ -608,11 +608,11 @@ function ConnectionTab({ companyId, userId, instance, loading, onChange }: { com
   );
 }
 
-function InfoRow({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
+function InfoRow({ icon, label, value, valueClassName }: { icon: React.ReactNode; label: string; value: string; valueClassName?: string }) {
   return (
     <div className="p-3 rounded-lg bg-muted/40">
       <div className="flex items-center gap-2 text-xs text-muted-foreground">{icon}{label}</div>
-      <p className="font-medium mt-1 truncate">{value}</p>
+      <p className={cn("font-medium mt-1 truncate", valueClassName)}>{value}</p>
     </div>
   );
 }
