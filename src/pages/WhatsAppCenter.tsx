@@ -543,7 +543,7 @@ function ConnectionTab({ companyId, instance, loading, onChange }: { companyId: 
               <Textarea value={testMsg} onChange={e => setTestMsg(e.target.value)} rows={2} placeholder="Sua mensagem..." />
             </div>
             <div className="flex flex-col sm:flex-row gap-2 pt-4 border-t">
-              <Button variant="outline" onClick={handleConnect} disabled={busy} className="gap-2">
+              <Button variant="outline" onClick={handleReconnect} disabled={busy} className="gap-2">
                 <RefreshCw className="h-4 w-4" />Reconectar
               </Button>
               <Button variant="destructive" onClick={handleDisconnect} disabled={busy} className="gap-2">
