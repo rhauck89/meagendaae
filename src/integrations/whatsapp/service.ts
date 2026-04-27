@@ -82,9 +82,12 @@ export async function setInstanceStatus(
   return upsertInstance(companyId, patch);
 }
 
-/** MOCK send a test message — logs it and returns a fake id. */
-export async function sendTest(companyId: string, phone: string, body: string): Promise<WhatsAppLog> {
-  return logMessage({
+/** Send a test message via Evolution API. */
+export async function sendTest(companyId: string, phone: string, body: string): Promise<any> {
+  const result = await callEdgeFunction('send-test', companyId, { phone, body });
+  
+  // Log message in local DB for history
+  await logMessage({
     company_id: companyId,
     phone,
     body,
@@ -92,6 +95,8 @@ export async function sendTest(companyId: string, phone: string, body: string): 
     source: 'whatsapp-center-test',
     status: 'sent',
   });
+
+  return result;
 }
 
 // ---------------------------------------------------------------------------
