@@ -285,13 +285,38 @@ Deno.serve(async (req) => {
         if (status === 'connected') {
           try {
             // Fetch detailed instance info to get phone/name
+            // In v2.3.7, /instance/fetchInstances returns an array. 
+            // We can also try /instance/connectionState as it sometimes contains the owner info in some sub-versions.
+            console.log(`[STATUS] Fetching detailed info for ${instanceData.instance_name}`);
             const infoResult = await fetchEvolution(`/instance/fetchInstances?instanceName=${instanceData.instance_name}`);
-            const inst = Array.isArray(infoResult) ? infoResult.find((i: any) => i.instanceName === instanceData.instance_name) : null;
+            
+            let inst = null;
+            if (Array.isArray(infoResult)) {
+              inst = infoResult.find((i: any) => i.instanceName === instanceData.instance_name || i.name === instanceData.instance_name);
+            } else if (infoResult && typeof infoResult === 'object') {
+              // Some versions might return a single object if instanceName is specified
+              inst = infoResult;
+            }
             
             if (inst) {
-              if (inst.owner) updateData.phone = inst.owner.split('@')[0];
-              if (inst.profileName) updateData.profile_name = inst.profileName;
+              console.log(`[STATUS] Found instance details:`, { profileName: inst.profileName, owner: inst.owner });
+              if (inst.owner) {
+                // Evolution returns owner as "number@s.whatsapp.net" or just "number"
+                updateData.phone = inst.owner.split('@')[0];
+              } else if (inst.number) {
+                updateData.phone = inst.number;
+              }
+              
+              if (inst.profileName) {
+                updateData.profile_name = inst.profileName;
+              } else if (inst.profilePicture) {
+                // If we have a picture but no name, maybe we can at least know it's active
+                console.log(`[STATUS] Profile name missing but found picture/other data`);
+              }
+              
               updateData.connected_at = new Date().toISOString();
+            } else {
+              console.warn(`[STATUS] Instance ${instanceData.instance_name} not found in fetchInstances response`);
             }
           } catch (e) {
             console.warn('[STATUS INFO ERROR] Could not fetch detailed instance info', e.message);
