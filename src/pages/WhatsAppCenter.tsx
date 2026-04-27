@@ -39,7 +39,9 @@ const TEMPLATE_VARIABLES = [
 const STATUS_BADGE: Record<string, { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline' }> = {
   disconnected: { label: 'Desconectado', variant: 'secondary' },
   connecting: { label: 'Conectando', variant: 'outline' },
+  pending: { label: 'Pendente', variant: 'outline' },
   connected: { label: 'Conectado', variant: 'default' },
+  closed: { label: 'Fechado', variant: 'destructive' },
   error: { label: 'Erro', variant: 'destructive' },
 };
 
