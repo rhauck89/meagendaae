@@ -334,8 +334,13 @@ function ConnectionTab({ companyId, instance, loading, onChange }: { companyId: 
            await getQrCode(companyId);
            onChange();
         }
-      } catch (e) {
+      } catch (e: any) {
         console.error('Error polling WhatsApp status:', e);
+        // If we get a 404 or 403, it means the instance record is corrupted or gone
+        if (e?.status === 404 || e?.status === 403) {
+          console.warn('Instance not found or forbidden, resetting state');
+          onChange(); // This will trigger a reload and clear the state
+        }
       }
     }, 5000);
 

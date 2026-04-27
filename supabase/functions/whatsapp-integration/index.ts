@@ -107,7 +107,7 @@ Deno.serve(async (req) => {
       try {
         const response = await fetch(url, { ...options, headers });
         const text = await response.text();
-        console.log(`[EVOLUTION RES] ${response.status} ${url}`, text.substring(0, 500));
+        console.log(`[EVOLUTION RES] ${response.status} ${url}`, text.substring(0, 1000));
         
         let json;
         try {
@@ -117,11 +117,13 @@ Deno.serve(async (req) => {
         }
         
         if (!response.ok) {
-          throw new Error(json.message || json.error || `HTTP ${response.status}`);
+          const errMsg = json.message || json.error || `HTTP ${response.status}`;
+          console.error(`[EVOLUTION API ERROR] ${url} -> ${errMsg}`, json);
+          throw new Error(errMsg);
         }
         return json;
       } catch (e: any) {
-        console.error(`[EVOLUTION ERROR] ${url}`, e.message);
+        console.error(`[EVOLUTION FETCH ERROR] ${url}`, e.message);
         throw e;
       }
     };
