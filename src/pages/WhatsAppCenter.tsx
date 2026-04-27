@@ -881,18 +881,23 @@ function TemplatesTab({ companyId, templates, loading, onChange }: { companyId: 
       ) : (
         <div className="grid sm:grid-cols-2 gap-3">
           {templates.map(t => (
-            <Card key={t.id}>
+            <Card key={t.id} className={cn(t.is_system && "border-primary/20 bg-primary/5")}>
               <CardContent className="p-4 space-y-2">
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
-                    <p className="font-medium truncate">{t.name}</p>
-                    <Badge variant="outline" className="text-xs mt-1">{t.category}</Badge>
+                    <div className="flex items-center gap-2">
+                      <p className="font-medium truncate">{t.name}</p>
+                      {t.is_system && <Badge variant="secondary" className="text-[10px] h-4">Sistema</Badge>}
+                    </div>
+                    <Badge variant="outline" className="text-xs mt-1 capitalize">{t.category}</Badge>
                   </div>
                   <div className="flex gap-1 shrink-0">
                     <Button size="sm" variant="ghost" onClick={() => setEditing(t)}>Editar</Button>
-                    <Button size="sm" variant="ghost" onClick={() => remove(t.id)} aria-label="Excluir template">
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                    {!t.is_system && (
+                      <Button size="sm" variant="ghost" onClick={() => remove(t.id)} aria-label="Excluir template">
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    )}
                   </div>
                 </div>
                 <p className="text-sm text-muted-foreground line-clamp-3 whitespace-pre-wrap">{t.body}</p>
