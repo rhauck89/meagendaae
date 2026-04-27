@@ -30,19 +30,20 @@ import {
 } from '@/integrations/whatsapp';
 import { format, subDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { cn } from '@/lib/utils';
 
 const TEMPLATE_VARIABLES = [
   '{{nome}}', '{{empresa}}', '{{servico}}', '{{profissional}}',
   '{{data}}', '{{hora}}', '{{link_agendamento}}', '{{pontos}}', '{{cashback}}',
 ];
 
-const STATUS_BADGE: Record<string, { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline' }> = {
-  disconnected: { label: 'Desconectado', variant: 'secondary' },
-  connecting: { label: 'Conectando', variant: 'outline' },
-  pending: { label: 'Pendente', variant: 'outline' },
-  connected: { label: 'Conectado', variant: 'default' },
-  closed: { label: 'Fechado', variant: 'destructive' },
-  error: { label: 'Erro', variant: 'destructive' },
+const STATUS_BADGE: Record<string, { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline'; className?: string }> = {
+  disconnected: { label: 'Desconectado', variant: 'destructive', className: 'bg-red-500 text-white hover:bg-red-600 border-none' },
+  connecting: { label: 'Conectando', variant: 'outline', className: 'bg-yellow-500 text-white hover:bg-yellow-600 border-none' },
+  pending: { label: 'Pendente', variant: 'outline', className: 'bg-yellow-500 text-white hover:bg-yellow-600 border-none' },
+  connected: { label: 'Conectado', variant: 'default', className: 'bg-green-600 text-white hover:bg-green-700 border-none' },
+  closed: { label: 'Fechado', variant: 'destructive', className: 'bg-red-500 text-white hover:bg-red-600 border-none' },
+  error: { label: 'Erro', variant: 'destructive', className: 'bg-red-500 text-white hover:bg-red-600 border-none' },
 };
 
 const STATUS_LABEL: Record<string, string> = {
@@ -51,6 +52,25 @@ const STATUS_LABEL: Record<string, string> = {
   delivered: 'Entregue',
   read: 'Lida',
   failed: 'Falhou',
+};
+
+const translateWhatsAppError = (err: any) => {
+  const message = String(err?.message || err?.error || err || '').toLowerCase();
+  
+  if (message.includes('not found') || message.includes('404')) {
+    return { title: 'Atenção', message: 'Número não encontrado no WhatsApp. Verifique o DDD e telefone.' };
+  }
+  if (message.includes('disconnected') || message.includes('logout') || message.includes('session_not_found')) {
+    return { title: 'Sessão desconectada', message: 'Sessão desconectada. Reconecte seu WhatsApp.' };
+  }
+  if (message.includes('bad_request') || message.includes('400')) {
+    return { title: 'Verifique os dados', message: 'Verifique se o DDD e o telefone estão corretos.' };
+  }
+  if (message.includes('fetch') || message.includes('network') || message.includes('500') || message.includes('non-2xx')) {
+    return { title: 'Serviço indisponível', message: 'Serviço temporariamente indisponível. Tente novamente em alguns instantes.' };
+  }
+  
+  return { title: 'Falha na conexão', message: 'Não foi possível completar a ação. Tente novamente.' };
 };
 
 export default function WhatsAppCenter() {
@@ -80,7 +100,11 @@ export default function WhatsAppCenter() {
       setLogs(l);
       setMetrics(m);
     } catch (e) {
-      handleError(e, { area: 'whatsapp.center.load', onRetry: reload, companyId, userId: user?.id });
+      const friendly = translateWhatsAppError(e);
+      toast.error(friendly.title, { 
+        description: friendly.message,
+        action: { label: 'Tentar novamente', onClick: reload }
+      });
     } finally {
       setLoading(false);
     }
@@ -218,9 +242,13 @@ function OverviewTab({ loading, instance, logs, metrics }: { loading: boolean; i
     <div className="space-y-4 md:space-y-6">
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 md:gap-4">
         <StatCard
-          icon={isConnected ? <CheckCircle2 className="h-5 w-5 text-primary" /> : <AlertCircle className="h-5 w-5 text-muted-foreground" />}
+          icon={isConnected ? <CheckCircle2 className="h-5 w-5 text-green-600" /> : <AlertCircle className="h-5 w-5 text-red-500" />}
           label="Status"
           value={statusInfo.label}
+          valueClassName={
+            status === 'connected' ? "text-green-600" : 
+            (status === 'connecting' || status === 'pending' ? "text-yellow-600" : "text-red-500")
+          }
         />
         <StatCard icon={<Send className="h-5 w-5 text-primary" />} label="Enviadas hoje" value={sentToday.toString()} />
         <StatCard icon={<TrendingUp className="h-5 w-5 text-primary" />} label="Este mês" value={sentMonth.toString()} />
@@ -287,13 +315,13 @@ function OverviewTab({ loading, instance, logs, metrics }: { loading: boolean; i
   );
 }
 
-function StatCard({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
+function StatCard({ icon, label, value, valueClassName }: { icon: React.ReactNode; label: string; value: string; valueClassName?: string }) {
   return (
     <Card>
       <CardContent className="p-3 md:p-4 space-y-1">
         <div className="flex items-center justify-between">{icon}</div>
         <p className="text-[11px] sm:text-xs text-muted-foreground leading-tight">{label}</p>
-        <p className="text-lg sm:text-xl font-bold truncate">{value}</p>
+        <p className={cn("text-lg sm:text-xl font-bold truncate", valueClassName)}>{value}</p>
       </CardContent>
     </Card>
   );
@@ -399,7 +427,8 @@ function ConnectionTab({ companyId, userId, instance, loading, onChange }: { com
     }
     catch (e) { 
       console.error('Connection flow failed:', e);
-      handleError(e, { area: 'whatsapp.connect', companyId, userId }); 
+      const friendly = translateWhatsAppError(e);
+      toast.error(friendly.title, { description: friendly.message });
     }
     finally { setBusy(false); }
   };
@@ -423,7 +452,8 @@ function ConnectionTab({ companyId, userId, instance, loading, onChange }: { com
       toast.success('Nova instância pronta', { description: 'Escaneie o novo QR Code.' });
       onChange();
     } catch (e) {
-      handleError(e, { area: 'whatsapp.reconnect', companyId, userId });
+      const friendly = translateWhatsAppError(e);
+      toast.error(friendly.title, { description: friendly.message });
     } finally {
       setBusy(false);
     }
@@ -432,7 +462,10 @@ function ConnectionTab({ companyId, userId, instance, loading, onChange }: { com
   const handleDisconnect = async () => {
     setBusy(true);
     try { await disconnectInstance(companyId); toast.success('WhatsApp desconectado'); onChange(); }
-    catch (e) { handleError(e, { area: 'whatsapp.disconnect', companyId, userId }); }
+    catch (e) {
+      const friendly = translateWhatsAppError(e);
+      toast.error(friendly.title, { description: friendly.message });
+    }
     finally { setBusy(false); }
   };
 
@@ -453,7 +486,10 @@ function ConnectionTab({ companyId, userId, instance, loading, onChange }: { com
       toast.success('Mensagem de teste enviada!', { description: 'Verifique o histórico para acompanhar a entrega.' }); 
       onChange(); 
     }
-    catch (e) { handleError(e, { area: 'whatsapp.sendTest', companyId, userId }); }
+    catch (e) {
+      const friendly = translateWhatsAppError(e);
+      toast.error(friendly.title, { description: friendly.message });
+    }
     finally { setBusy(false); }
   };
 
@@ -477,7 +513,7 @@ function ConnectionTab({ companyId, userId, instance, loading, onChange }: { com
             <CardTitle>Conexão WhatsApp</CardTitle>
             <CardDescription>Conecte seu número escaneando o QR Code</CardDescription>
           </div>
-          <Badge variant={STATUS_BADGE[status].variant} className="self-start sm:self-auto">{STATUS_BADGE[status].label}</Badge>
+          <Badge variant={STATUS_BADGE[status].variant} className={cn(STATUS_BADGE[status].className, "self-start sm:self-auto")}>{STATUS_BADGE[status].label}</Badge>
         </div>
       </CardHeader>
       <CardContent className="space-y-6">
@@ -552,13 +588,15 @@ function ConnectionTab({ companyId, userId, instance, loading, onChange }: { com
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
               <InfoRow 
                 icon={<Users className="h-4 w-4" />} 
-                label="Nome do perfil" 
-                value={instance?.profile_name ?? (syncTimeout ? 'WhatsApp conectado' : 'Sincronizando informações...')} 
+                label={instance?.profile_name ? "Nome do perfil" : "Conexão"} 
+                value={instance?.profile_name || '✔ WhatsApp conectado'} 
+                valueClassName={!instance?.profile_name ? "text-green-600 font-bold" : ""}
               />
               <InfoRow 
                 icon={<Smartphone className="h-4 w-4" />} 
-                label="Número conectado" 
-                value={instance?.phone ?? (syncTimeout ? 'Sessão ativa' : 'Sincronizando informações...')} 
+                label={instance?.phone ? "Número conectado" : "Sessão"} 
+                value={instance?.phone || '✔ Sessão ativa'} 
+                valueClassName={!instance?.phone ? "text-green-600 font-bold" : ""}
               />
               <InfoRow
                 icon={<Clock className="h-4 w-4" />}
@@ -605,11 +643,11 @@ function ConnectionTab({ companyId, userId, instance, loading, onChange }: { com
   );
 }
 
-function InfoRow({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
+function InfoRow({ icon, label, value, valueClassName }: { icon: React.ReactNode; label: string; value: string; valueClassName?: string }) {
   return (
     <div className="p-3 rounded-lg bg-muted/40">
       <div className="flex items-center gap-2 text-xs text-muted-foreground">{icon}{label}</div>
-      <p className="font-medium mt-1 truncate">{value}</p>
+      <p className={cn("font-medium mt-1 truncate", valueClassName)}>{value}</p>
     </div>
   );
 }
