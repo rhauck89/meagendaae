@@ -280,7 +280,14 @@ Deno.serve(async (req) => {
         else if (evolutionStatus === 'connecting') status = 'connecting';
         else if (evolutionStatus === 'close') status = 'closed';
 
-        const updateData: any = { status };
+        const updateData: any = { 
+          status,
+          updated_at: new Date().toISOString()
+        };
+        
+        if (status === 'connected') {
+          updateData.last_seen_at = new Date().toISOString();
+        }
 
         if (status === 'connected') {
           try {
