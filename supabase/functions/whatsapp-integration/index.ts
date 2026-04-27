@@ -102,7 +102,12 @@ Deno.serve(async (req) => {
       const { appointmentId } = params;
       const { data: appt, error: apptError } = await adminClient
         .from('appointments')
-        .select(`*, client:clients(name, whatsapp), service:services(name), professional:profiles!appointments_professional_id_fkey(full_name)`)
+        .select(`
+          *,
+          client:clients(name, whatsapp),
+          appointment_services(service:services(name)),
+          professional:profiles(full_name)
+        `)
         .eq('id', appointmentId).single();
 
       if (apptError) {
@@ -114,6 +119,10 @@ Deno.serve(async (req) => {
         console.error(`[ERROR] Appointment ${appointmentId} not found`);
         return new Response(JSON.stringify({ error: 'Appointment not found' }), { status: 404 });
       }
+
+      const clientPhone = appt.client?.whatsapp || appt.client_whatsapp;
+      const clientName = appt.client?.name || appt.client_name || 'Cliente';
+      const serviceName = appt.appointment_services?.[0]?.service?.name || 'Serviço';
 
       if (!clientPhone) {
         console.warn(`[WARN] No phone found for appointment ${appointmentId}`);
@@ -150,14 +159,12 @@ Deno.serve(async (req) => {
       }
 
       const date = new Date(appt.start_time);
-      // Format date/time manually to avoid locale issues in edge functions
       const day = String(date.getDate()).padStart(2, '0');
       const month = String(date.getMonth() + 1).padStart(2, '0');
       const hours = String(date.getHours()).padStart(2, '0');
       const minutes = String(date.getMinutes()).padStart(2, '0');
       
       const message = `Olá ${clientName} 👋\nSeu horário foi confirmado:\n\n📅 ${day}/${month}\n🕐 ${hours}:${minutes}\n✂️ ${serviceName}\n👤 ${appt.professional?.full_name || 'Profissional'}`;
-      
       const phone = clientPhone.replace(/\D/g, '').startsWith('55') ? clientPhone.replace(/\D/g, '') : '55' + clientPhone.replace(/\D/g, '');
 
       try {
@@ -205,7 +212,12 @@ Deno.serve(async (req) => {
 
       const { data: appts } = await adminClient
         .from('appointments')
-        .select(`*, client:clients(name, whatsapp), appointment_services(service:services(name)), professional:profiles(full_name)`)
+        .select(`
+          *,
+          client:clients(name, whatsapp),
+          appointment_services(service:services(name)),
+          professional:profiles(full_name)
+        `)
         .eq('whatsapp_reminder_sent', false)
         .gte('start_time', `${tomorrowStr}T00:00:00`)
         .lte('start_time', `${tomorrowStr}T23:59:59`);
@@ -213,11 +225,11 @@ Deno.serve(async (req) => {
       if (!appts) return new Response(JSON.stringify({ count: 0 }));
 
       for (const appt of appts) {
-        if (!appt.client?.phone) continue;
-        const inst = await getInstance(appt.company_id);
         const clientPhone = appt.client?.whatsapp || appt.client_whatsapp;
+        if (!clientPhone) continue;
         
-        if (!inst || inst.status !== 'connected' || !clientPhone) continue;
+        const inst = await getInstance(appt.company_id);
+        if (!inst || inst.status !== 'connected') continue;
 
         const date = new Date(appt.start_time);
         const day = String(date.getDate()).padStart(2, '0');
@@ -231,7 +243,7 @@ Deno.serve(async (req) => {
 
         try {
           await fetchEvolution(`/message/sendText/${inst.instance_name}`, { method: 'POST', body: JSON.stringify({ number: phone, text: message }) });
-          await adminClient.from('whatsapp_logs').insert({ company_id: appt.company_id, appointment_id: appt.id, client_name: appt.client.name, phone, message_type: 'appointment_reminder', body: message, status: 'sent', delivered_at: new Date().toISOString() });
+          await adminClient.from('whatsapp_logs').insert({ company_id: appt.company_id, appointment_id: appt.id, client_name: appt.client?.name || 'Cliente', phone, message_type: 'appointment_reminder', body: message, status: 'sent', delivered_at: new Date().toISOString() });
           await adminClient.from('appointments').update({ whatsapp_reminder_sent: true }).eq('id', appt.id);
         } catch (e) {}
       }
@@ -250,18 +262,18 @@ Deno.serve(async (req) => {
       if (!appts) return new Response(JSON.stringify({ count: 0 }));
 
       for (const appt of appts) {
-        if (!appt.client?.phone) continue;
-        const inst = await getInstance(appt.company_id);
         const clientPhone = appt.client?.whatsapp || appt.client_whatsapp;
+        if (!clientPhone) continue;
         
-        if (!inst || inst.status !== 'connected' || !clientPhone) continue;
+        const inst = await getInstance(appt.company_id);
+        if (!inst || inst.status !== 'connected') continue;
 
         const message = `Obrigado pela visita hoje, ${appt.client?.name || 'Cliente'}! 💛\nSua opinião é muito importante para nós.\n\nComo foi sua experiência?\n${appt.company?.review_url || 'Deixe sua avaliação!'}`;
         const phone = clientPhone.replace(/\D/g, '').startsWith('55') ? clientPhone.replace(/\D/g, '') : '55' + clientPhone.replace(/\D/g, '');
 
         try {
           await fetchEvolution(`/message/sendText/${inst.instance_name}`, { method: 'POST', body: JSON.stringify({ number: phone, text: message }) });
-          await adminClient.from('whatsapp_logs').insert({ company_id: appt.company_id, appointment_id: appt.id, client_name: appt.client.name, phone, message_type: 'post_service_review', body: message, status: 'sent', delivered_at: new Date().toISOString() });
+          await adminClient.from('whatsapp_logs').insert({ company_id: appt.company_id, appointment_id: appt.id, client_name: appt.client?.name || 'Cliente', phone, message_type: 'post_service_review', body: message, status: 'sent', delivered_at: new Date().toISOString() });
           await adminClient.from('appointments').update({ whatsapp_review_sent: true }).eq('id', appt.id);
         } catch (e) {}
       }
