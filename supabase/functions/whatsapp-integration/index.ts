@@ -153,7 +153,8 @@ Deno.serve(async (req) => {
         }
       }
 
-      const instanceName = `agendae-${company.slug}-${Math.random().toString(36).substring(2, 7)}`.toLowerCase();
+      const cleanSlug = company.slug.toLowerCase().replace(/[^a-z0-9]/g, '');
+      const instanceName = `agendae-${cleanSlug}-${Math.random().toString(36).substring(2, 7)}`.toLowerCase();
       console.log(`[CREATE] Creating new instance: ${instanceName}`);
 
       let result;
