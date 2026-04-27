@@ -15,9 +15,7 @@ Deno.serve(async (req) => {
   }
 
   const url = new URL(req.url);
-  // Get path from query param 'path' or from the actual path if proxied
   const path = url.searchParams.get('path') || url.pathname;
-  
   console.log(`Handling path: ${path}`);
   
   const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
@@ -37,92 +35,114 @@ Deno.serve(async (req) => {
     // 1. Review / Reschedule / Cancel (/review/:id, /reschedule/:id, /cancel/:id)
     const appointmentMatch = path.match(/^\/(review|reschedule|cancel)\/([^\/]+)$/);
     if (appointmentMatch) {
-      console.log(`Appointment match: ${appointmentMatch[1]}, id: ${appointmentMatch[2]}`);
-
       const [_, type, id] = appointmentMatch;
+      console.log(`Appointment match: ${type}, id: ${id}`);
+      
       const { data: appointment, error: apptError } = await supabase
         .from('appointments')
-        .select(`
-          id, start_time,
-          companies (name, logo_url, cover_url),
-          collaborators (
-            profiles (full_name, avatar_url)
-          )
-        `)
+        .select('id, company_id, professional_id')
         .eq('id', id)
-        .single();
+        .maybeSingle();
 
-      if (apptError) console.error('Appointment query error:', apptError);
-
-
-      if (appointment) {
-        console.log(`Found appointment for company: ${(appointment.companies as any)?.name}`);
-
-        const company = appointment.companies as any;
-        const prof = (appointment.collaborators as any)?.profiles;
+      if (apptError) {
+        console.error('Appointment query error:', apptError);
+      } else if (appointment) {
+        console.log(`Found appointment: ${appointment.id}, company_id: ${appointment.company_id}`);
         
-        if (type === 'review') {
-          meta.title = `${company?.name || 'Empresa'}`;
-          meta.description = "Avalie sua experiência conosco ⭐";
-        } else if (type === 'reschedule') {
-          meta.title = `Reagendar • ${company?.name || 'Empresa'}`;
-          meta.description = "Escolha um novo horário para seu agendamento.";
-        } else {
-          meta.title = `Cancelar • ${company?.name || 'Empresa'}`;
-          meta.description = "Deseja realmente cancelar seu agendamento?";
+        // Fetch company
+        const { data: company } = await supabase
+          .from('companies')
+          .select('name, logo_url, cover_url')
+          .eq('id', appointment.company_id)
+          .maybeSingle();
+          
+        // Fetch professional profile
+        let professionalProfile = null;
+        if (appointment.professional_id) {
+          const { data: collaborator } = await supabase
+            .from('collaborators')
+            .select('profile_id')
+            .eq('id', appointment.professional_id)
+            .maybeSingle();
+            
+          if (collaborator?.profile_id) {
+            const { data: profile } = await supabase
+              .from('profiles')
+              .select('full_name, avatar_url')
+              .eq('id', collaborator.profile_id)
+              .maybeSingle();
+            professionalProfile = profile;
+          }
         }
 
-        meta.image = prof?.avatar_url || company?.cover_url || company?.logo_url || DEFAULT_IMAGE;
+        if (company) {
+          if (type === 'review') {
+            meta.title = company.name;
+            meta.description = "Avalie sua experiência conosco ⭐";
+          } else if (type === 'reschedule') {
+            meta.title = `Reagendar • ${company.name}`;
+            meta.description = "Escolha um novo horário para seu agendamento.";
+          } else {
+            meta.title = `Cancelar • ${company.name}`;
+            meta.description = "Deseja realmente cancelar seu agendamento?";
+          }
+          meta.image = professionalProfile?.avatar_url || company.cover_url || company.logo_url || DEFAULT_IMAGE;
+        }
       }
     }
 
     // 2. Professional Profile (/perfil/:tipo/:companySlug/:professionalSlug)
     const profMatch = path.match(/^\/perfil\/(barbearia|estetica|salao|clinica)\/([^\/]+)\/([^\/]+)(\/agendar)?$/);
     if (profMatch) {
-      console.log(`Professional match: ${profMatch[3]} in company ${profMatch[2]}`);
-
       const [_, tipo, companySlug, professionalSlug, isBooking] = profMatch;
-      const { data: prof } = await supabase
+      console.log(`Professional match: ${professionalSlug} in company ${companySlug}`);
+      
+      const { data: collaborator } = await supabase
         .from('collaborators')
-        .select(`
-          slug,
-          profiles (full_name, avatar_url, bio),
-          companies (name, logo_url, cover_url)
-        `)
+        .select('profile_id, company_id')
         .eq('slug', professionalSlug)
-        .single();
+        .maybeSingle();
 
-      if (prof) {
-        const profile = prof.profiles as any;
-        const company = prof.companies as any;
-        
-        meta.title = isBooking 
-          ? `Agende com ${profile?.full_name} • ${company?.name}`
-          : `${profile?.full_name} • ${company?.name}`;
-        meta.description = isBooking
-          ? `Escolha seu melhor horário com ${profile?.full_name}.`
-          : (profile?.bio || `Profissional especializado em ${company?.name}.`);
-        meta.image = profile?.avatar_url || company?.cover_url || company?.logo_url || DEFAULT_IMAGE;
+      if (collaborator) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('full_name, avatar_url, bio')
+          .eq('id', collaborator.profile_id)
+          .maybeSingle();
+          
+        const { data: company } = await supabase
+          .from('companies')
+          .select('name, logo_url, cover_url')
+          .eq('id', collaborator.company_id)
+          .maybeSingle();
+
+        if (profile && company) {
+          meta.title = isBooking 
+            ? `Agende com ${profile.full_name} • ${company.name}`
+            : `${profile.full_name} • ${company.name}`;
+          meta.description = isBooking
+            ? `Escolha seu melhor horário com ${profile.full_name}.`
+            : (profile.bio || `Profissional especializado em ${company.name}.`);
+          meta.image = profile.avatar_url || company.cover_url || company.logo_url || DEFAULT_IMAGE;
+        }
       }
     }
 
     // 3. Company Profile (/:tipo/:slug or /:tipo/:slug/agendar)
-    // Avoid matching app-specific routes
     const reservedRoutes = ['app', 'auth', 'dashboard', 'admin', 'super-admin', 'my-appointments', 'minha-conta', 'cliente'];
     const companyMatch = path.match(/^\/(barbearia|estetica|salao|clinica)\/([^\/]+)(\/agendar)?$/);
     if (companyMatch && !reservedRoutes.includes(companyMatch[2])) {
-      console.log(`Company match: ${companyMatch[2]}`);
-
       const [_, tipo, slug, isBooking] = companyMatch;
+      console.log(`Company match: ${slug}`);
+      
       const { data: company } = await supabase
         .from('companies')
         .select('name, logo_url, cover_url')
         .eq('slug', slug)
-        .single();
+        .maybeSingle();
 
       if (company) {
         console.log(`Found company: ${company.name}`);
-
         meta.title = isBooking
           ? `Agende seu horário • ${company.name}`
           : company.name;
@@ -136,14 +156,17 @@ Deno.serve(async (req) => {
     console.error('Error fetching SEO data:', e);
   }
 
-  // Fetch the actual index.html from the main site
-  // We use the main site URL to get the latest build
+  // Fetch index.html from main site
   let html = "";
   try {
-    const response = await fetch(baseUrl);
+    const response = await fetch(baseUrl, {
+      headers: {
+        'User-Agent': 'Lovable-SEO-Bot/1.0',
+      }
+    });
     html = await response.text();
   } catch (e) {
-    // Fallback template if site is down
+    console.error('Error fetching base HTML:', e);
     html = `<!DOCTYPE html><html><head><title>${meta.title}</title></head><body><div id="root"></div></body></html>`;
   }
 
@@ -162,7 +185,7 @@ Deno.serve(async (req) => {
     <meta name="twitter:image" content="${meta.image}">
   `;
 
-  // Remove existing meta tags that we are replacing to avoid duplicates
+  // Remove existing to avoid duplicates
   const cleanHtml = html
     .replace(/<title>.*?<\/title>/gi, '')
     .replace(/<meta name="description" content=".*?">/gi, '')
@@ -181,7 +204,7 @@ Deno.serve(async (req) => {
     headers: {
       ...corsHeaders,
       'Content-Type': 'text/html; charset=utf-8',
-      'Cache-Control': 'public, max-age=300', // 5 minutes cache
+      'Cache-Control': 'public, max-age=300',
     },
   });
 });
