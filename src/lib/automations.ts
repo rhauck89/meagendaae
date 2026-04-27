@@ -91,7 +91,44 @@ async function dispatchWebhook(
 }
 
 /**
- * Sends the "appointment_created" event to the Make webhook.
+ * Sends a native WhatsApp confirmation using the Evolution API integration.
+ */
+async function sendNativeWhatsAppConfirmation(data: AppointmentWebhookData) {
+  try {
+    const { appointment_id, company_id, client_name, client_phone, professional_name, service_name, appointment_date, appointment_time } = data;
+    
+    if (!client_phone) return;
+
+    // Format date for display
+    const dateArr = appointment_date?.split('-') || [];
+    const displayDate = dateArr.length === 3 ? `${dateArr[2]}/${dateArr[1]}/${dateArr[0]}` : appointment_date;
+
+    const message = `Olá ${client_name} 👋\nSeu horário foi confirmado:\n\n📅 ${displayDate}\n🕐 ${appointment_time}\n✂️ ${service_name}\n👤 ${professional_name}`;
+
+    const { error } = await supabase.functions.invoke('whatsapp-integration', {
+      body: {
+        action: 'send-message',
+        companyId: company_id,
+        phone: client_phone,
+        message,
+        type: 'appointment_confirmed',
+        appointmentId: appointment_id,
+        clientName: client_name
+      }
+    });
+
+    if (error) {
+      console.warn('[automations] Native WhatsApp confirmation failed:', error);
+    } else {
+      console.info('[automations] Native WhatsApp confirmation sent');
+    }
+  } catch (err) {
+    console.warn('[automations] Native WhatsApp error (ignored):', err);
+  }
+}
+
+/**
+ * Sends the "appointment_created" event to the Make webhook and native WhatsApp.
  * Safe to call after the appointment row is persisted.
  */
 export function sendAppointmentCreatedWebhook(
@@ -102,8 +139,11 @@ export function sendAppointmentCreatedWebhook(
     created_at: new Date().toISOString(),
     ...data,
   };
-  // Fire and forget — do NOT await in caller.
+  // Fire and forget webhooks
   void dispatchWebhook(payload);
+  
+  // Fire and forget native WhatsApp
+  void sendNativeWhatsAppConfirmation(data);
 }
 
 /**
