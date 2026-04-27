@@ -2090,8 +2090,14 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                       <Button
                         variant="ghost"
                         size="icon"
-                        onClick={() => setCurrentWeekStart(subWeeks(currentWeekStart, 1))}
-                        className="rounded-full hover:bg-white/5"
+                        onClick={() => {
+                          const prev = subWeeks(currentWeekStart, 1);
+                          if (prev >= startOfWeek(new Date(), { locale: ptBR })) {
+                            setCurrentWeekStart(prev);
+                          }
+                        }}
+                        disabled={subWeeks(currentWeekStart, 1) < startOfWeek(new Date(), { locale: ptBR })}
+                        className="rounded-full hover:bg-white/5 disabled:opacity-20 disabled:cursor-not-allowed"
                       >
                         <ChevronLeft className="h-4 w-4" />
                       </Button>
@@ -2102,6 +2108,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                             start: currentWeekStart,
                             end: addDays(currentWeekStart, 6)
                           }).map((date) => {
+                            const isPast = date < startOfDay(new Date());
                             const isSel = selectedDate && isSameDay(date, selectedDate);
                             const isTod = isToday(date);
                             const dayName = format(date, "EEE", { locale: ptBR });
@@ -2111,10 +2118,15 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                               <button
                                 key={date.toISOString()}
                                 onClick={() => { 
+                                  if (isPast) return;
                                   setSelectedDate(date); 
                                   setSelectedTime(null); 
                                 }}
-                                className="flex flex-col items-center p-2 rounded-2xl min-w-[45px] transition-all relative group"
+                                disabled={isPast}
+                                className={cn(
+                                  "flex flex-col items-center p-2 rounded-2xl min-w-[45px] transition-all relative group",
+                                  isPast && "opacity-20 cursor-not-allowed"
+                                )}
                                 style={{
                                   background: isSel ? T.accent : 'transparent',
                                   color: isSel ? '#000' : (isTod ? T.accent : T.text),
