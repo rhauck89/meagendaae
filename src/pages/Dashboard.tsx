@@ -967,6 +967,8 @@ const Dashboard = () => {
 
       // Fire reschedule notifications
       for (const a of affected) {
+        const rescheduleUrl = a.id ? `${origin}/reschedule/${a.id}` : null;
+
         // 1. Webhook (Make.com)
         sendAppointmentRescheduledWebhook({
           appointment_id: a.id,
@@ -982,7 +984,10 @@ const Dashboard = () => {
           origin: 'dashboard',
           old_time: a.old_time ?? null,
           new_time: a.new_time ?? null,
-        });
+          delay_minutes: minutes,
+          delay_source_appointment_id: sourceAppointmentId,
+          reschedule_url: rescheduleUrl,
+        } as any);
 
         // 2. WhatsApp Center (Professional Delay Notification)
         if (a.client_whatsapp && companyId) {
@@ -996,11 +1001,6 @@ const Dashboard = () => {
             }
           }).catch(err => console.error('[WhatsApp] Failed to send delay notification:', err));
         }
-      }
-          delay_minutes: minutes,
-          delay_source_appointment_id: sourceAppointmentId,
-          reschedule_url: rescheduleUrl,
-        } as any);
       }
 
       fetchAppointments();
