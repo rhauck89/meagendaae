@@ -1312,10 +1312,22 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
       if (!appointmentId) throw new Error('Falha ao criar agendamento');
 
       const aptServicesPayload = selectedServices.map((sid) => {
-        const svc = services.find((s) => s.id === sid)!;
-        return { service_id: sid, price: Number(svc.price), duration_minutes: svc.duration_minutes };
+        const svc = services.find((s) => s.id === sid);
+        if (!svc) {
+          console.warn(`[Booking] Service ${sid} not found during link process. Using fallback.`);
+        }
+        return { 
+          service_id: sid, 
+          price: svc ? Number(svc.price) : 0, 
+          duration_minutes: svc ? Number(svc.duration_minutes) : 0 
+        };
       });
-      await supabase.rpc('create_appointment_services', { p_appointment_id: appointmentId, p_services: aptServicesPayload });
+      
+      try {
+        await supabase.rpc('create_appointment_services', { p_appointment_id: appointmentId, p_services: aptServicesPayload });
+      } catch (svcLinkError) {
+        console.error('[Booking] Error linking services (non-critical for UX):', svcLinkError);
+      }
 
       // Mark used cashback credits
       if (useCashback && cashbackCredits.length > 0 && cashbackDiscount > 0) {
@@ -1399,18 +1411,25 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
       } catch { /* non-critical */ }
 
       const professionalProfile = professionals.find((p) => p.id === selectedProfessional);
-      const bookedServiceNames = selectedServices.map((sid) => services.find((s) => s.id === sid)?.name).filter(Boolean) as string[];
+      const bookedServiceNames = selectedServices
+        .map((sid) => services.find((s) => s.id === sid)?.name)
+        .filter(Boolean) as string[];
+
       setBookingResult({
         appointmentId: appointmentId as string,
         professionalName: professionalProfile?.full_name || 'Profissional',
         professionalAvatar: professionalProfile?.avatar_url || null,
-        serviceNames: bookedServiceNames, date: selectedDate, time: selectedTime,
-        totalPrice: finalPrice, totalDuration, companyName: company.name,
-        companyPhone: (company as any).whatsapp || company.phone || companySettings?.whatsapp_number || null,
-        companyAddress: [(company as any).address, (company as any).address_number ? `${(company as any).address_number}` : null].filter(Boolean).join(', ') + ((company as any).district ? ` - ${(company as any).district}` : '') || null,
-        companyCity: (company as any).city || null,
-        companyState: (company as any).state || null,
-        companyPostalCode: (company as any).postal_code || null,
+        serviceNames: bookedServiceNames.length > 0 ? bookedServiceNames : ['Serviço'], 
+        date: selectedDate, 
+        time: selectedTime,
+        totalPrice: Number(finalPrice || 0), 
+        totalDuration: Number(totalDuration || 0), 
+        companyName: company?.name || 'Estabelecimento',
+        companyPhone: (company as any)?.whatsapp || company?.phone || companySettings?.whatsapp_number || null,
+        companyAddress: [(company as any)?.address, (company as any)?.address_number ? `${(company as any).address_number}` : null].filter(Boolean).join(', ') + ((company as any)?.district ? ` - ${(company as any).district}` : '') || null,
+        companyCity: (company as any)?.city || null,
+        companyState: (company as any)?.state || null,
+        companyPostalCode: (company as any)?.postal_code || null,
       });
 
       // Save last booking for smart rebooking
@@ -2695,7 +2714,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
 
           const calUrl = () => {
             const fmt = (d: Date) => d.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
-            return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(`${bookingResult.serviceNames.join(', ')} - ${bookingResult.companyName}`)}&dates=${fmt(st)}/${fmt(et)}&details=${encodeURIComponent(`Profissional: ${bookingResult.professionalName}\nValor: R$ ${bookingResult.totalPrice.toFixed(2)}`)}`;
+            return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(`${bookingResult.serviceNames.join(', ')} - ${bookingResult.companyName}`)}&dates=${fmt(st)}/${fmt(et)}&details=${encodeURIComponent(`Profissional: ${bookingResult.professionalName}\nValor: R$ ${(Number(bookingResult.totalPrice) || 0).toFixed(2)}`)}`;
           };
 
           const waUrl = () => {
@@ -2712,9 +2731,9 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
               '',
               `✂️ Serviço: ${bookingResult.serviceNames.join(', ')}`,
               '',
-              promoData.original_price != null ? `Preço normal: R$ ${Number(promoData.original_price).toFixed(2)}` : '',
-              promoData.promotion_price != null ? `Preço promocional: R$ ${Number(promoData.promotion_price).toFixed(2)}` : '',
-              savings > 0 ? `\n🔥 Você economizou R$ ${savings.toFixed(2)}` : '',
+              promoData.original_price != null ? `Preço normal: R$ ${(Number(promoData.original_price) || 0).toFixed(2)}` : '',
+              promoData.promotion_price != null ? `Preço promocional: R$ ${(Number(promoData.promotion_price) || 0).toFixed(2)}` : '',
+              savings > 0 ? `\n🔥 Você economizou R$ ${(Number(savings) || 0).toFixed(2)}` : '',
               '',
               '⚠ Promoção válida apenas para este horário.',
               '',
@@ -2729,7 +2748,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
               `⏰ Horário: ${bookingResult.time}`,
               ...(isPromoMode ? [] : [`✂️ Serviço: ${bookingResult.serviceNames.join(', ')}`]),
               `👤 Profissional: ${bookingResult.professionalName}`,
-              ...(isPromoMode ? [] : [`💰 Valor: R$ ${bookingResult.totalPrice.toFixed(2)}`]),
+              ...(isPromoMode ? [] : [`💰 Valor: R$ ${(Number(bookingResult.totalPrice) || 0).toFixed(2)}`]),
               '',
               `📍 Local: *${bookingResult.companyName}*`,
               ...addressLines,
