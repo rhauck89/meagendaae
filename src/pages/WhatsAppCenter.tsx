@@ -309,24 +309,57 @@ function ConnectionTab({ companyId, instance, loading, onChange }: { companyId: 
 
   const status = instance?.status ?? 'disconnected';
 
+  // Polling for status
+  useEffect(() => {
+    if (!companyId || status === 'disconnected' || status === 'connected' || status === 'error') return;
+
+    const interval = setInterval(async () => {
+      try {
+        const res = await getStatus(companyId);
+        // If status changed to connected or disconnected, refresh parent
+        if (res.mappedStatus !== status) {
+          onChange();
+        }
+        // If we have no QR and we are connecting, try to fetch it
+        if (res.mappedStatus === 'connecting' && !instance?.qr_code) {
+           await getQrCode(companyId);
+           onChange();
+        }
+      } catch (e) {
+        console.error('Error polling WhatsApp status:', e);
+      }
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, [status, companyId, instance?.qr_code]);
+
   const handleConnect = async () => {
     setBusy(true);
-    try { await connectInstance(companyId); toast.success('Gerando QR Code...', { description: 'Em instantes ele aparecerá na tela.' }); onChange(); }
-    catch (e) { handleError(e, { area: 'whatsapp.connect', onRetry: handleConnect }); }
+    try { 
+      await connectInstance(companyId); 
+      toast.success('Iniciando conexão...', { description: 'Gerando QR Code oficial Evolution API.' }); 
+      onChange(); 
+      // Try to get QR immediately after creation
+      setTimeout(async () => {
+        try {
+          await getQrCode(companyId);
+          onChange();
+        } catch (e) {
+          console.error('Failed to get QR code initially:', e);
+        }
+      }, 2000);
+    }
+    catch (e) { handleError(e, { area: 'whatsapp.connect' }); }
     finally { setBusy(false); }
   };
+
   const handleDisconnect = async () => {
     setBusy(true);
     try { await disconnectInstance(companyId); toast.success('WhatsApp desconectado'); onChange(); }
     catch (e) { handleError(e, { area: 'whatsapp.disconnect' }); }
     finally { setBusy(false); }
   };
-  const handleSimulateConnected = async () => {
-    setBusy(true);
-    try { await setInstanceStatus(companyId, 'connected', '+5511999999999'); toast.success('Conectado (modo demonstração)'); onChange(); }
-    catch (e) { handleError(e, { area: 'whatsapp.simulate' }); }
-    finally { setBusy(false); }
-  };
+
   const handleTest = async () => {
     if (!testPhone.trim()) { toast.error('Informe um telefone para testar'); return; }
     if (!testMsg.trim()) { toast.error('Digite uma mensagem'); return; }
