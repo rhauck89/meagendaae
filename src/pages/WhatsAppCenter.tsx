@@ -859,9 +859,22 @@ function TemplatesTab({ companyId, templates, loading, onChange }: { companyId: 
         <p className="text-sm text-muted-foreground">
           Crie modelos reutilizáveis com variáveis dinâmicas como nome, serviço e horário.
         </p>
-        <Button onClick={() => setEditing({ name: '', body: '', category: 'general' })} className="gap-2 w-full sm:w-auto">
-          <Plus className="h-4 w-4" />Novo Template
-        </Button>
+        <div className="flex flex-wrap gap-2 w-full sm:w-auto">
+          <Button variant="outline" onClick={async () => {
+            if (!confirm('Deseja restaurar os templates padrão? Isso não excluirá seus templates customizados.')) return;
+            try {
+              const { error } = await supabase.rpc('initialize_company_whatsapp_templates', { p_company_id: companyId });
+              if (error) throw error;
+              toast.success('Templates restaurados');
+              onChange();
+            } catch (e) { handleError(e, { area: 'whatsapp.templates.reset' }); }
+          }} className="gap-2 flex-1 sm:flex-none">
+            <RefreshCw className="h-4 w-4" />Restaurar Padrões
+          </Button>
+          <Button onClick={() => setEditing({ name: '', body: '', category: 'general' })} className="gap-2 flex-1 sm:flex-none">
+            <Plus className="h-4 w-4" />Novo Template
+          </Button>
+        </div>
       </div>
       {templates.length === 0 ? (
         <Card>
