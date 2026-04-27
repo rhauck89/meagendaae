@@ -1844,12 +1844,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                 <div className="h-px flex-1 bg-white/5" />
               </div>
             </div>
-            {/* DEBUG INFO */}
-            <div className="bg-white/5 p-4 rounded-2xl mb-4 text-[10px] font-mono opacity-50 space-y-1">
-              <p>Profissionais encontrados: {professionals.length}</p>
-              <p>Filtro Serviços: {selectedServices.length > 0 ? selectedServices.join(', ') : 'Nenhum'}</p>
-              <p>Empresa ID: {company?.id || 'null'}</p>
-            </div>
+            {/* Debug removido */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {professionals.map((p, idx) => {
                 const sel = selectedProfessional === p.id;
