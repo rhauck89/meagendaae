@@ -478,7 +478,10 @@ function ConnectionTab({ companyId, userId, instance, loading, onChange }: { com
       toast.success('Mensagem de teste enviada!', { description: 'Verifique o histórico para acompanhar a entrega.' }); 
       onChange(); 
     }
-    catch (e) { handleError(e, { area: 'whatsapp.sendTest', companyId, userId }); }
+    catch (e) {
+      const friendly = translateWhatsAppError(e);
+      toast.error(friendly.title, { description: friendly.message });
+    }
     finally { setBusy(false); }
   };
 
