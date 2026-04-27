@@ -242,9 +242,13 @@ function OverviewTab({ loading, instance, logs, metrics }: { loading: boolean; i
     <div className="space-y-4 md:space-y-6">
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 md:gap-4">
         <StatCard
-          icon={isConnected ? <CheckCircle2 className="h-5 w-5 text-primary" /> : <AlertCircle className="h-5 w-5 text-muted-foreground" />}
+          icon={isConnected ? <CheckCircle2 className="h-5 w-5 text-green-600" /> : <AlertCircle className="h-5 w-5 text-red-500" />}
           label="Status"
           value={statusInfo.label}
+          valueClassName={
+            status === 'connected' ? "text-green-600" : 
+            (status === 'connecting' || status === 'pending' ? "text-yellow-600" : "text-red-500")
+          }
         />
         <StatCard icon={<Send className="h-5 w-5 text-primary" />} label="Enviadas hoje" value={sentToday.toString()} />
         <StatCard icon={<TrendingUp className="h-5 w-5 text-primary" />} label="Este mês" value={sentMonth.toString()} />
