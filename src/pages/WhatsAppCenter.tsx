@@ -36,13 +36,13 @@ const TEMPLATE_VARIABLES = [
   '{{data}}', '{{hora}}', '{{link_agendamento}}', '{{pontos}}', '{{cashback}}',
 ];
 
-const STATUS_BADGE: Record<string, { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline' }> = {
-  disconnected: { label: 'Desconectado', variant: 'secondary' },
-  connecting: { label: 'Conectando', variant: 'outline' },
-  pending: { label: 'Pendente', variant: 'outline' },
-  connected: { label: 'Conectado', variant: 'default' },
-  closed: { label: 'Fechado', variant: 'destructive' },
-  error: { label: 'Erro', variant: 'destructive' },
+const STATUS_BADGE: Record<string, { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline'; className?: string }> = {
+  disconnected: { label: 'Desconectado', variant: 'destructive', className: 'bg-red-500 text-white hover:bg-red-600 border-none' },
+  connecting: { label: 'Conectando', variant: 'outline', className: 'bg-yellow-500 text-white hover:bg-yellow-600 border-none' },
+  pending: { label: 'Pendente', variant: 'outline', className: 'bg-yellow-500 text-white hover:bg-yellow-600 border-none' },
+  connected: { label: 'Conectado', variant: 'default', className: 'bg-green-600 text-white hover:bg-green-700 border-none' },
+  closed: { label: 'Fechado', variant: 'destructive', className: 'bg-red-500 text-white hover:bg-red-600 border-none' },
+  error: { label: 'Erro', variant: 'destructive', className: 'bg-red-500 text-white hover:bg-red-600 border-none' },
 };
 
 const STATUS_LABEL: Record<string, string> = {
