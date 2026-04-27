@@ -33,8 +33,10 @@ import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 
 const TEMPLATE_VARIABLES = [
-  '{{nome}}', '{{empresa}}', '{{servico}}', '{{profissional}}',
-  '{{data}}', '{{hora}}', '{{link_agendamento}}', '{{pontos}}', '{{cashback}}',
+  '{{nome}}', '{{empresa}}', '{{servico}}', '{{data}}', '{{hora}}', 
+  '{{profissional}}', '{{link_agendamento}}', '{{link_reagendar}}', 
+  '{{link_cancelar}}', '{{link_avaliacao}}', '{{cashback}}', '{{pontos}}',
+  '{{tempo_atraso}}', '{{nova_previsao}}', '{{logo}}'
 ];
 
 const STATUS_BADGE: Record<string, { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline'; className?: string }> = {
