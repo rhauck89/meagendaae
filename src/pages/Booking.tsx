@@ -471,13 +471,20 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
 
   useEffect(() => {
     if (slug) {
-      fetchCompany().then(() => {
-        if (!professionalSlug && !promoIdRef.current) {
-          fetchProfessionals();
+      fetchCompany().then((comp) => {
+        if (!professionalSlug && !promoIdRef.current && comp?.id) {
+          fetchProfessionals(comp.id);
         }
       });
     }
   }, [slug, professionalSlug]);
+
+  // Re-fetch professionals when services change to ensure availability
+  useEffect(() => {
+    if (company?.id && !professionalSlug && !promoIdRef.current) {
+      fetchProfessionals(company.id);
+    }
+  }, [selectedServices, company?.id]);
 
   const fetchCompany = async () => {
     const { data: compArr } = await supabase.rpc('get_company_by_slug', { _slug: slug! });
