@@ -442,7 +442,95 @@ Deno.serve(async (req) => {
       }
     }
 
-    return new Response(JSON.stringify({ error: 'Invalid action' }), {
+    if (action === 'send-message') {
+      const { phone, message, type, appointmentId, clientName, clientId } = params;
+
+      if (!phone || !message) {
+        return new Response(JSON.stringify({ error: 'phone and message required' }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      
+      if (!instanceData?.instance_name || instanceData.status !== 'connected') {
+        // Log the failure
+        await adminClient.from('whatsapp_logs').insert({
+          company_id: companyId,
+          appointment_id: appointmentId,
+          client_id: clientId,
+          client_name: clientName,
+          phone: phone,
+          message_type: type || 'other',
+          body: message,
+          status: 'failed',
+          error_message: 'WhatsApp not connected'
+        });
+
+        return new Response(JSON.stringify({ error: 'WhatsApp not connected' }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      try {
+        const result = await fetchEvolution(`/message/sendText/${instanceData.instance_name}`, {
+          method: 'POST',
+          body: JSON.stringify({
+            number: phone,
+            text: message,
+          }),
+        });
+
+        // Log the success
+        await adminClient.from('whatsapp_logs').insert({
+          company_id: companyId,
+          appointment_id: appointmentId,
+          client_id: clientId,
+          client_name: clientName,
+          phone: phone,
+          message_type: type || 'other',
+          body: message,
+          status: 'sent',
+          delivered_at: new Date().toISOString()
+        });
+
+        // Update appointment flag if applicable
+        if (appointmentId && type) {
+          const updateData: any = {};
+          if (type === 'appointment_confirmed') updateData.whatsapp_confirmation_sent = true;
+          if (type === 'appointment_reminder') updateData.whatsapp_reminder_sent = true;
+          if (type === 'post_service_review') updateData.whatsapp_review_sent = true;
+          
+          if (Object.keys(updateData).length > 0) {
+            await adminClient.from('appointments').update(updateData).eq('id', appointmentId);
+          }
+        }
+
+        return new Response(JSON.stringify(result), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      } catch (e) {
+        console.error('[SEND-MESSAGE ERROR]', e.message);
+        
+        await adminClient.from('whatsapp_logs').insert({
+          company_id: companyId,
+          appointment_id: appointmentId,
+          client_id: clientId,
+          client_name: clientName,
+          phone: phone,
+          message_type: type || 'other',
+          body: message,
+          status: 'error',
+          error_message: e.message
+        });
+
+        return new Response(JSON.stringify({ error: 'send failed', details: e.message }), {
+          status: 502,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+    }
+
       status: 400,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
