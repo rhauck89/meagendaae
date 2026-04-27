@@ -18,6 +18,8 @@ Deno.serve(async (req) => {
   // Get path from query param 'path' or from the actual path if proxied
   const path = url.searchParams.get('path') || url.pathname;
   
+  console.log(`Handling path: ${path}`);
+  
   const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
   const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
   const supabase = createClient(supabaseUrl, supabaseKey);
