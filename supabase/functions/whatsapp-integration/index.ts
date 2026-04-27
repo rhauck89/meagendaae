@@ -225,6 +225,31 @@ Deno.serve(async (req) => {
       });
     }
 
+    if (action === 'send-test') {
+      const { phone, body } = params;
+      if (!phone || !body) throw new Error('Phone and body are required');
+      if (!instanceData?.instance_name) throw new Error('No instance found');
+
+      const response = await fetch(`${EVOLUTION_API_URL}/message/sendText/${instanceData.instance_name}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': EVOLUTION_API_KEY,
+        },
+        body: JSON.stringify({
+          number: phone,
+          text: body,
+        }),
+      });
+
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.message || 'Failed to send message');
+
+      return new Response(JSON.stringify(result), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
     return new Response(JSON.stringify({ error: 'Invalid action' }), {
       status: 400,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
