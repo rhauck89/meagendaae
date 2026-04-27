@@ -111,7 +111,7 @@ Deno.serve(async (req) => {
       const [_, tipo, slug, isBooking] = companyMatch;
       const { data: company } = await supabase
         .from('companies')
-        .select('name, logo_url, banner_url')
+        .select('name, logo_url, cover_url')
         .eq('slug', slug)
         .single();
 
