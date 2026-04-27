@@ -53,6 +53,8 @@ Deno.serve(async (req) => {
         .single();
 
       if (appointment) {
+        console.log(`Found appointment for company: ${(appointment.companies as any)?.name}`);
+
         const company = appointment.companies as any;
         const prof = (appointment.collaborators as any)?.profiles;
         
