@@ -97,7 +97,7 @@ Deno.serve(async (req) => {
         meta.description = isBooking
           ? `Escolha seu melhor horário com ${profile?.full_name}.`
           : (profile?.bio || `Profissional especializado em ${company?.name}.`);
-        meta.image = profile?.avatar_url || company?.banner_url || company?.logo_url || DEFAULT_IMAGE;
+        meta.image = profile?.avatar_url || company?.cover_url || company?.logo_url || DEFAULT_IMAGE;
       }
     }
 
