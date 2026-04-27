@@ -454,7 +454,10 @@ function ConnectionTab({ companyId, userId, instance, loading, onChange }: { com
   const handleDisconnect = async () => {
     setBusy(true);
     try { await disconnectInstance(companyId); toast.success('WhatsApp desconectado'); onChange(); }
-    catch (e) { handleError(e, { area: 'whatsapp.disconnect', companyId, userId }); }
+    catch (e) {
+      const friendly = translateWhatsAppError(e);
+      toast.error(friendly.title, { description: friendly.message });
+    }
     finally { setBusy(false); }
   };
 
