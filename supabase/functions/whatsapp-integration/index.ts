@@ -20,13 +20,16 @@ Deno.serve(async (req) => {
 
     const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
     if (authError || !user) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+      console.error('[AUTH ERROR]', authError);
+      return new Response(JSON.stringify({ error: 'Unauthorized', details: authError?.message }), {
         status: 401,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    const { action, companyId, ...params } = await req.json();
+    const body = await req.json();
+    const { action, companyId, ...params } = body;
+    console.log(`[ACTION: ${action}] [COMPANY: ${companyId}]`, params);
 
     if (!companyId) {
       return new Response(JSON.stringify({ error: 'Missing companyId' }), {
@@ -35,15 +38,31 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Verify user belongs to company
+    // Verify user access
     const { data: profile, error: profileError } = await supabaseClient
       .from('profiles')
       .select('company_id, role')
       .eq('id', user.id)
       .single();
 
-    if (profileError || !profile || (profile.company_id !== companyId && profile.role !== 'super_admin')) {
-      return new Response(JSON.stringify({ error: 'Forbidden' }), {
+    if (profileError || !profile) {
+      console.error('[PROFILE ERROR]', profileError, user.id);
+      return new Response(JSON.stringify({ error: 'Forbidden', details: 'Profile not found or inaccessible' }), {
+        status: 403,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    const isSuperAdmin = profile.role === 'super_admin';
+    const belongsToCompany = profile.company_id === companyId;
+
+    if (!isSuperAdmin && !belongsToCompany) {
+      console.warn(`[FORBIDDEN] User ${user.id} tried to access company ${companyId}. Profile company: ${profile.company_id}, Role: ${profile.role}`);
+      return new Response(JSON.stringify({ 
+        error: 'Forbidden', 
+        details: 'User does not belong to this company',
+        debug: { profileCompany: profile.company_id, requestedCompany: companyId, role: profile.role } 
+      }), {
         status: 403,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
@@ -53,6 +72,7 @@ Deno.serve(async (req) => {
     const EVOLUTION_API_KEY = Deno.env.get('EVOLUTION_API_KEY');
 
     if (!EVOLUTION_API_URL || !EVOLUTION_API_KEY) {
+      console.error('[CONFIG ERROR] Missing EVOLUTION_API_BASE_URL or EVOLUTION_API_KEY');
       return new Response(JSON.stringify({ error: 'Evolution API configuration missing' }), {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -71,8 +91,39 @@ Deno.serve(async (req) => {
       .eq('company_id', companyId)
       .maybeSingle();
 
+    const fetchEvolution = async (endpoint: string, options: RequestInit = {}) => {
+      const url = `${EVOLUTION_API_URL}${endpoint}`;
+      const headers = {
+        'Content-Type': 'application/json',
+        'apikey': EVOLUTION_API_KEY,
+        ...(options.headers || {}),
+      };
+      
+      console.log(`[EVOLUTION REQ] ${options.method || 'GET'} ${url}`);
+      
+      try {
+        const response = await fetch(url, { ...options, headers });
+        const text = await response.text();
+        console.log(`[EVOLUTION RES] ${response.status} ${url}`, text.substring(0, 500));
+        
+        let json;
+        try {
+          json = JSON.parse(text);
+        } catch (e) {
+          json = { message: text };
+        }
+        
+        if (!response.ok) {
+          throw new Error(json.message || json.error || `HTTP ${response.status}`);
+        }
+        return json;
+      } catch (e: any) {
+        console.error(`[EVOLUTION ERROR] ${url}`, e.message);
+        throw e;
+      }
+    };
+
     if (action === 'create') {
-      // 1. Get company slug
       const { data: company } = await adminClient
         .from('companies')
         .select('slug')
@@ -83,13 +134,8 @@ Deno.serve(async (req) => {
 
       const instanceName = `${company.slug}-${Math.random().toString(36).substring(2, 7)}`;
 
-      // 2. Create instance in Evolution API
-      const response = await fetch(`${EVOLUTION_API_URL}/instance/create`, {
+      const result = await fetchEvolution('/instance/create', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'apikey': EVOLUTION_API_KEY,
-        },
         body: JSON.stringify({
           instanceName,
           token: Math.random().toString(36).substring(2, 15),
@@ -97,10 +143,6 @@ Deno.serve(async (req) => {
         }),
       });
 
-      const result = await response.json();
-      if (!response.ok) throw new Error(result.message || 'Failed to create instance');
-
-      // 3. Save to DB
       const { data: newInstance, error: dbError } = await adminClient
         .from('whatsapp_instances')
         .upsert({
@@ -123,25 +165,25 @@ Deno.serve(async (req) => {
     if (action === 'get-qr') {
       if (!instanceData?.instance_name) throw new Error('No instance found for this company');
 
-      const response = await fetch(`${EVOLUTION_API_URL}/instance/connect/${instanceData.instance_name}`, {
-        headers: { 'apikey': EVOLUTION_API_KEY },
-      });
+      const result = await fetchEvolution(`/instance/connect/${instanceData.instance_name}`);
 
-      const result = await response.json();
-      // Evolution returns base64 in some format, or error if already connected
-      if (result.base64) {
-        // Update DB with QR code
+      // Evolution returns base64 in some format
+      if (result.base64 || (result.code && typeof result.code === 'string' && result.code.startsWith('data:image'))) {
+        const qr = result.base64 || result.code;
+        
         await adminClient
           .from('whatsapp_instances')
-          .update({ qr_code: result.base64, status: 'connecting' })
+          .update({ qr_code: qr, status: 'connecting' })
           .eq('company_id', companyId);
         
-        return new Response(JSON.stringify({ qr_code: result.base64 }), {
+        return new Response(JSON.stringify({ qr_code: qr }), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
 
-      return new Response(JSON.stringify(result), {
+      console.warn('[QR NOT FOUND] Response did not contain valid QR base64', result);
+      return new Response(JSON.stringify({ error: 'QR Code not available yet. Try again in a few seconds.', original: result }), {
+        status: 404,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
@@ -149,14 +191,9 @@ Deno.serve(async (req) => {
     if (action === 'get-status') {
       if (!instanceData?.instance_name) throw new Error('No instance found for this company');
 
-      const response = await fetch(`${EVOLUTION_API_URL}/instance/connectionState/${instanceData.instance_name}`, {
-        headers: { 'apikey': EVOLUTION_API_KEY },
-      });
-
-      const result = await response.json();
+      const result = await fetchEvolution(`/instance/connectionState/${instanceData.instance_name}`);
       const evolutionStatus = result.instance?.state; // open, close, connecting, etc.
 
-      // Map Evolution status to our WhatsAppStatus
       let status: 'disconnected' | 'connecting' | 'connected' | 'error' | 'pending' | 'closed' = 'disconnected';
       if (evolutionStatus === 'open') status = 'connected';
       else if (evolutionStatus === 'connecting') status = 'connecting';
@@ -164,21 +201,19 @@ Deno.serve(async (req) => {
 
       const updateData: any = { status };
 
-      // If connected, try to get more info (phone, profile name)
       if (status === 'connected') {
-        // Some Evolution versions return profile info in connectionState or we might need another call
-        // For now, let's assume we can get basic info or it will be updated via webhook later
-        // But the user wants it now, so let's try to fetch instance info
-        const infoRes = await fetch(`${EVOLUTION_API_URL}/instance/fetchInstances?instanceName=${instanceData.instance_name}`, {
-          headers: { 'apikey': EVOLUTION_API_KEY },
-        });
-        const infoResult = await infoRes.json();
-        const inst = Array.isArray(infoResult) ? infoResult.find((i: any) => i.instanceName === instanceData.instance_name) : null;
-        
-        if (inst) {
-          if (inst.owner) updateData.phone = inst.owner;
-          if (inst.profileName) updateData.profile_name = inst.profileName;
-          updateData.connected_at = new Date().toISOString();
+        try {
+          // Fetch detailed instance info to get phone/name
+          const infoResult = await fetchEvolution(`/instance/fetchInstances?instanceName=${instanceData.instance_name}`);
+          const inst = Array.isArray(infoResult) ? infoResult.find((i: any) => i.instanceName === instanceData.instance_name) : null;
+          
+          if (inst) {
+            if (inst.owner) updateData.phone = inst.owner.split('@')[0];
+            if (inst.profileName) updateData.profile_name = inst.profileName;
+            updateData.connected_at = new Date().toISOString();
+          }
+        } catch (e) {
+          console.warn('[STATUS INFO ERROR] Could not fetch detailed instance info', e.message);
         }
       }
 
@@ -195,19 +230,18 @@ Deno.serve(async (req) => {
     if (action === 'logout' || action === 'delete') {
       if (!instanceData?.instance_name) throw new Error('No instance found');
 
-      // Logout
-      await fetch(`${EVOLUTION_API_URL}/instance/logout/${instanceData.instance_name}`, {
-        method: 'DELETE',
-        headers: { 'apikey': EVOLUTION_API_KEY },
-      });
+      try {
+        await fetchEvolution(`/instance/logout/${instanceData.instance_name}`, { method: 'DELETE' });
+      } catch (e) {
+        console.warn('[LOGOUT ERROR] Instance might already be logged out', e.message);
+      }
 
-      // Delete instance from Evolution to be clean
-      await fetch(`${EVOLUTION_API_URL}/instance/delete/${instanceData.instance_name}`, {
-        method: 'DELETE',
-        headers: { 'apikey': EVOLUTION_API_KEY },
-      });
+      try {
+        await fetchEvolution(`/instance/delete/${instanceData.instance_name}`, { method: 'DELETE' });
+      } catch (e) {
+        console.warn('[DELETE ERROR] Instance might already be deleted', e.message);
+      }
 
-      // Update DB
       await adminClient
         .from('whatsapp_instances')
         .update({
@@ -230,20 +264,13 @@ Deno.serve(async (req) => {
       if (!phone || !body) throw new Error('Phone and body are required');
       if (!instanceData?.instance_name) throw new Error('No instance found');
 
-      const response = await fetch(`${EVOLUTION_API_URL}/message/sendText/${instanceData.instance_name}`, {
+      const result = await fetchEvolution(`/message/sendText/${instanceData.instance_name}`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'apikey': EVOLUTION_API_KEY,
-        },
         body: JSON.stringify({
           number: phone,
           text: body,
         }),
       });
-
-      const result = await response.json();
-      if (!response.ok) throw new Error(result.message || 'Failed to send message');
 
       return new Response(JSON.stringify(result), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -256,6 +283,7 @@ Deno.serve(async (req) => {
     });
 
   } catch (error: any) {
+    console.error('[RUNTIME ERROR]', error.message);
     return new Response(JSON.stringify({ error: error.message }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
