@@ -68,7 +68,10 @@ Deno.serve(async (req) => {
       });
     }
 
-    const EVOLUTION_API_URL = Deno.env.get('EVOLUTION_API_BASE_URL')?.replace(/\/$/, '');
+    let EVOLUTION_API_URL = Deno.env.get('EVOLUTION_API_BASE_URL')?.replace(/\/$/, '');
+    if (EVOLUTION_API_URL?.endsWith('/manager')) {
+      EVOLUTION_API_URL = EVOLUTION_API_URL.replace('/manager', '');
+    }
     const EVOLUTION_API_KEY = Deno.env.get('EVOLUTION_API_KEY');
 
     if (!EVOLUTION_API_URL || !EVOLUTION_API_KEY) {
