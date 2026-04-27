@@ -702,8 +702,9 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
     if (typeof recentCount === 'number') setRecentBookings(recentCount);
   };
 
-  const fetchProfessionals = async (): Promise<any[]> => {
-    if (!company) return [];
+  const fetchProfessionals = async (compId?: string): Promise<any[]> => {
+    const targetCompanyId = compId || company?.id;
+    if (!targetCompanyId) return [];
 
     const { data: pubProfs } = await supabase
       .from('public_professionals' as any)
