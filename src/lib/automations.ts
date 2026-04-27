@@ -1,12 +1,12 @@
+import { supabase } from '@/integrations/supabase/client';
+
 /**
  * Centralized automations / outbound webhooks helper.
- * Fire-and-forget integration with Make.com (or other no-code platforms).
- *
+ * 
  * Rules:
- * - Never block the main flow on webhook failures.
+ * - Never block the main flow on automation failures.
  * - 5s timeout maximum.
  * - Silent try/catch with console logging only.
- * - No tokens are exposed in the frontend (public Make webhook URL only).
  */
 
 const MAKE_WEBHOOK_URL =
