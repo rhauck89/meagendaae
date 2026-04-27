@@ -223,7 +223,7 @@ Deno.serve(async (req) => {
           
           await adminClient
             .from('whatsapp_instances')
-            .update({ qr_code: qr, status: 'connecting' })
+            .update({ qr_code: qr, status: 'connecting', updated_at: new Date().toISOString() })
             .eq('company_id', companyId);
           
           return new Response(JSON.stringify({ qr_code: qr }), {
