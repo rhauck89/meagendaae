@@ -54,6 +54,25 @@ const STATUS_LABEL: Record<string, string> = {
   failed: 'Falhou',
 };
 
+const translateWhatsAppError = (err: any) => {
+  const message = String(err?.message || err?.error || err || '').toLowerCase();
+  
+  if (message.includes('not found') || message.includes('404')) {
+    return { title: 'Atenção', message: 'Número não encontrado no WhatsApp. Verifique o DDD e telefone.' };
+  }
+  if (message.includes('disconnected') || message.includes('logout') || message.includes('session_not_found')) {
+    return { title: 'Sessão desconectada', message: 'Sessão desconectada. Reconecte seu WhatsApp.' };
+  }
+  if (message.includes('bad_request') || message.includes('400')) {
+    return { title: 'Verifique os dados', message: 'Verifique se o DDD e o telefone estão corretos.' };
+  }
+  if (message.includes('fetch') || message.includes('network') || message.includes('500') || message.includes('non-2xx')) {
+    return { title: 'Serviço indisponível', message: 'Serviço temporariamente indisponível. Tente novamente em alguns instantes.' };
+  }
+  
+  return { title: 'Falha na conexão', message: 'Não foi possível completar a ação. Tente novamente.' };
+};
+
 export default function WhatsAppCenter() {
   const { companyId, user } = useAuth();
   const [tab, setTab] = useState('overview');
