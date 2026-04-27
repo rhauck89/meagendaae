@@ -225,6 +225,7 @@ export type Database = {
           updated_at: string
           user_id: string | null
           whatsapp_confirmation_sent: boolean | null
+          whatsapp_reminder_1d_sent: boolean | null
           whatsapp_reminder_sent: boolean | null
           whatsapp_review_sent: boolean | null
         }
@@ -260,6 +261,7 @@ export type Database = {
           updated_at?: string
           user_id?: string | null
           whatsapp_confirmation_sent?: boolean | null
+          whatsapp_reminder_1d_sent?: boolean | null
           whatsapp_reminder_sent?: boolean | null
           whatsapp_review_sent?: boolean | null
         }
@@ -295,6 +297,7 @@ export type Database = {
           updated_at?: string
           user_id?: string | null
           whatsapp_confirmation_sent?: boolean | null
+          whatsapp_reminder_1d_sent?: boolean | null
           whatsapp_reminder_sent?: boolean | null
           whatsapp_review_sent?: boolean | null
         }
