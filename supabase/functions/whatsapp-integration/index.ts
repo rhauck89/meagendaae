@@ -16,6 +16,9 @@ Deno.serve(async (req) => {
     const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY') ?? '';
     const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
 
+    // Initialize adminClient early to avoid ReferenceError
+    const adminClient = createClient(supabaseUrl, serviceRoleKey);
+
     const authHeader = req.headers.get('Authorization')!;
     const token = authHeader.replace('Bearer ', '');
     
@@ -50,8 +53,8 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Verify user access
-    if (!isServiceRole) {
+    // Verify user access (if not service role)
+    if (!isServiceRole && user) {
       const { data: profile, error: profileError } = await adminClient
         .from('profiles')
         .select('company_id, role')
@@ -96,11 +99,6 @@ Deno.serve(async (req) => {
       });
     }
 
-    const adminClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    );
-
     // Get current instance data
     const { data: instanceData } = await adminClient
       .from('whatsapp_instances')
@@ -133,7 +131,6 @@ Deno.serve(async (req) => {
         if (!response.ok) {
           const errMsg = json.message || json.error || `HTTP ${response.status}`;
           console.error(`[EVOLUTION API ERROR] ${url} -> ${response.status}`, json);
-          // Return the full error body for debugging
           throw new Error(JSON.stringify({ 
             status: response.status, 
             message: errMsg,
@@ -147,67 +144,139 @@ Deno.serve(async (req) => {
       }
     };
 
-    if (action === 'create') {
-      console.log(`[CREATE] Starting instance creation for company ${companyId}`);
-      
-      const { data: company } = await adminClient
-        .from('companies')
-        .select('slug')
-        .eq('id', companyId)
+    // Action: process-new-appointment (called by trigger)
+    if (action === 'send-confirmation') {
+      const { appointmentId } = params;
+      console.log(`[CONFIRMATION] Starting for appointment ${appointmentId}`);
+
+      // 1. Fetch detailed appointment data
+      const { data: appt, error: apptError } = await adminClient
+        .from('appointments')
+        .select(`
+          *,
+          client:clients(name, phone),
+          service:services(name),
+          professional:profiles!appointments_professional_id_fkey(full_name)
+        `)
+        .eq('id', appointmentId)
         .single();
 
-      if (!company) {
-        console.error('[CREATE ERROR] Company not found');
-        return new Response(JSON.stringify({ error: 'company not found' }), {
+      if (apptError || !appt) {
+        console.error('[CONFIRMATION ERROR] Appointment not found', apptError);
+        return new Response(JSON.stringify({ error: 'appointment not found' }), {
           status: 404,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
 
-      // 1. Cleanup old instance if it exists
-      if (instanceData?.instance_name) {
-        console.log(`[CREATE] Cleaning up existing instance: ${instanceData.instance_name}`);
-        try {
-          await fetchEvolution(`/instance/delete/${instanceData.instance_name}`, { method: 'DELETE' });
-        } catch (e) {
-          console.warn('[CREATE] Failed to delete old instance (may not exist in Evolution)', e.message);
-        }
-      }
-
-      const cleanSlug = company.slug.toLowerCase().replace(/[^a-z0-9]/g, '');
-      const instanceName = `agendae-${cleanSlug}-${Math.random().toString(36).substring(2, 7)}`.toLowerCase();
-      console.log(`[CREATE] Creating new instance: ${instanceName}`);
-
-      let result;
-      try {
-        result = await fetchEvolution('/instance/create', {
-          method: 'POST',
-          body: JSON.stringify({
-            instanceName,
-            qrcode: true,
-            integration: 'WHATSAPP-BAILEYS'
-          }),
-        });
-      } catch (e: any) {
-        console.error('[CREATE ERROR] Evolution API failed', e.message);
-        let errorDetails;
-        try {
-          errorDetails = JSON.parse(e.message);
-        } catch {
-          errorDetails = { message: e.message };
-        }
-        
-        return new Response(JSON.stringify({ 
-          error: 'create failed', 
-          details: errorDetails.message || 'Unknown error',
-          fullError: errorDetails
-        }), {
-          status: errorDetails.status || 502,
+      if (!appt.client?.phone) {
+        console.warn('[CONFIRMATION] No client phone, skipping');
+        return new Response(JSON.stringify({ success: true, message: 'no phone' }), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
 
-      console.log('[CREATE] Evolution instance created, updating database...');
+      // 2. Check if already sent
+      if (appt.whatsapp_confirmation_sent) {
+        console.log('[CONFIRMATION] Already sent, skipping');
+        return new Response(JSON.stringify({ success: true, message: 'already sent' }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      // 3. Format phone (ensure +55 and no non-digits)
+      let phone = appt.client.phone.replace(/\D/g, '');
+      if (phone.length === 11 && !phone.startsWith('55')) {
+        phone = '55' + phone;
+      } else if (phone.length === 9 || phone.length === 10) {
+        // Assume missing country code if too short
+        phone = '55' + phone;
+      }
+
+      // 4. Format message
+      const date = new Date(appt.start_time);
+      const displayDate = date.toLocaleDateString('pt-BR');
+      const displayTime = date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+      
+      const message = `Olá ${appt.client.name} 👋\nSeu horário foi confirmado:\n\n📅 ${displayDate}\n🕐 ${displayTime}\n✂️ ${appt.service?.name}\n👤 ${appt.professional?.full_name}`;
+
+      // 5. Check connection and send
+      if (!instanceData?.instance_name || instanceData.status !== 'connected') {
+        await adminClient.from('whatsapp_logs').insert({
+          company_id: companyId,
+          appointment_id: appointmentId,
+          client_id: appt.client_id,
+          client_name: appt.client.name,
+          phone: phone,
+          message_type: 'appointment_confirmed',
+          body: message,
+          status: 'failed',
+          error_message: 'WhatsApp not connected'
+        });
+        return new Response(JSON.stringify({ error: 'WhatsApp not connected' }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      try {
+        await fetchEvolution(`/message/sendText/${instanceData.instance_name}`, {
+          method: 'POST',
+          body: JSON.stringify({ number: phone, text: message }),
+        });
+
+        await adminClient.from('whatsapp_logs').insert({
+          company_id: companyId,
+          appointment_id: appointmentId,
+          client_id: appt.client_id,
+          client_name: appt.client.name,
+          phone: phone,
+          message_type: 'appointment_confirmed',
+          body: message,
+          status: 'sent',
+          delivered_at: new Date().toISOString()
+        });
+
+        await adminClient.from('appointments').update({ whatsapp_confirmation_sent: true }).eq('id', appointmentId);
+
+        return new Response(JSON.stringify({ success: true }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      } catch (e: any) {
+        console.error('[CONFIRMATION SEND ERROR]', e.message);
+        await adminClient.from('whatsapp_logs').insert({
+          company_id: companyId,
+          appointment_id: appointmentId,
+          client_id: appt.client_id,
+          client_name: appt.client.name,
+          phone: phone,
+          message_type: 'appointment_confirmed',
+          body: message,
+          status: 'error',
+          error_message: e.message
+        });
+        return new Response(JSON.stringify({ error: 'send failed' }), {
+          status: 502,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+    }
+
+    if (action === 'create') {
+      const { data: company } = await adminClient.from('companies').select('slug').eq('id', companyId).single();
+      if (!company) return new Response(JSON.stringify({ error: 'company not found' }), { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+
+      if (instanceData?.instance_name) {
+        try { await fetchEvolution(`/instance/delete/${instanceData.instance_name}`, { method: 'DELETE' }); } catch (e) {}
+      }
+
+      const cleanSlug = company.slug.toLowerCase().replace(/[^a-z0-9]/g, '');
+      const instanceName = `agendae-${cleanSlug}-${Math.random().toString(36).substring(2, 7)}`.toLowerCase();
+
+      const result = await fetchEvolution('/instance/create', {
+        method: 'POST',
+        body: JSON.stringify({ instanceName, qrcode: true, integration: 'WHATSAPP-BAILEYS' }),
+      });
 
       const { data: newInstance, error: dbError } = await adminClient
         .from('whatsapp_instances')
@@ -216,331 +285,80 @@ Deno.serve(async (req) => {
           instance_name: instanceName,
           instance_id: result.instance?.instanceId || instanceName,
           status: 'pending',
-          qr_code: null,
-          phone: null,
-          profile_name: null,
           updated_at: new Date().toISOString(),
         }, { onConflict: 'company_id' })
-        .select()
-        .single();
+        .select().single();
 
-      if (dbError) {
-        console.error('[CREATE ERROR] Database insert failed', dbError);
-        return new Response(JSON.stringify({ error: 'db insert failed', details: dbError.message }), {
-          status: 500,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
-      }
-
-      console.log('[CREATE] Success');
-      return new Response(JSON.stringify(newInstance), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+      if (dbError) return new Response(JSON.stringify({ error: 'db insert failed' }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      return new Response(JSON.stringify(newInstance), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
     if (action === 'get-qr') {
-      if (!instanceData?.instance_name) {
-        console.warn('[GET-QR] No instance name found in DB for company', companyId);
-        return new Response(JSON.stringify({ error: 'qr fetch failed', details: 'No instance name found. Please reconnect.' }), {
-          status: 404,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
+      if (!instanceData?.instance_name) return new Response(JSON.stringify({ error: 'No instance' }), { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      const result = await fetchEvolution(`/instance/connect/${instanceData.instance_name}`);
+      const qr = result.base64 || result.code;
+      if (qr) {
+        await adminClient.from('whatsapp_instances').update({ qr_code: qr, status: 'connecting' }).eq('company_id', companyId);
+        return new Response(JSON.stringify({ qr_code: qr }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
       }
-
-      try {
-        const result = await fetchEvolution(`/instance/connect/${instanceData.instance_name}`);
-
-        if (result.base64 || (result.code && typeof result.code === 'string' && result.code.startsWith('data:image'))) {
-          const qr = result.base64 || result.code;
-          
-          await adminClient
-            .from('whatsapp_instances')
-            .update({ qr_code: qr, status: 'connecting', updated_at: new Date().toISOString() })
-            .eq('company_id', companyId);
-          
-          return new Response(JSON.stringify({ qr_code: qr }), {
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          });
-        }
-
-        console.warn('[GET-QR] No QR base64 in response', result);
-        return new Response(JSON.stringify({ error: 'qr fetch failed', details: 'Evolution API did not return a QR code yet.' }), {
-          status: 404,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
-      } catch (e) {
-        console.error('[GET-QR ERROR]', e.message);
-        return new Response(JSON.stringify({ error: 'qr fetch failed', details: e.message }), {
-          status: 502,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
-      }
+      return new Response(JSON.stringify({ error: 'qr fetch failed' }), { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
     if (action === 'get-status') {
-      if (!instanceData?.instance_name) {
-        return new Response(JSON.stringify({ error: 'status fetch failed', details: 'No instance name found. Please reconnect.' }), {
-          status: 404,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
-      }
-
-      try {
-        const result = await fetchEvolution(`/instance/connectionState/${instanceData.instance_name}`);
-        const evolutionStatus = result.instance?.state; // open, close, connecting, etc.
-
-        let status: 'disconnected' | 'connecting' | 'connected' | 'error' | 'pending' | 'closed' = 'disconnected';
-        if (evolutionStatus === 'open') status = 'connected';
-        else if (evolutionStatus === 'connecting') status = 'connecting';
-        else if (evolutionStatus === 'close') status = 'closed';
-
-        const updateData: any = { 
-          status,
-          updated_at: new Date().toISOString()
-        };
-        
-        if (status === 'connected') {
-          updateData.last_seen_at = new Date().toISOString();
+      if (!instanceData?.instance_name) return new Response(JSON.stringify({ error: 'No instance' }), { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      const result = await fetchEvolution(`/instance/connectionState/${instanceData.instance_name}`);
+      const evolutionStatus = result.instance?.state;
+      let status = 'disconnected';
+      if (evolutionStatus === 'open') status = 'connected';
+      else if (evolutionStatus === 'connecting') status = 'connecting';
+      
+      const updateData: any = { status, updated_at: new Date().toISOString() };
+      if (status === 'connected') {
+        const infoResult = await fetchEvolution(`/instance/fetchInstances?instanceName=${instanceData.instance_name}`);
+        const inst = Array.isArray(infoResult) ? infoResult[0] : infoResult;
+        if (inst) {
+          updateData.phone = inst.owner?.split('@')[0] || inst.number;
+          updateData.profile_name = inst.profileName;
+          updateData.connected_at = new Date().toISOString();
         }
-
-        if (status === 'connected') {
-          try {
-            // Fetch detailed instance info to get phone/name
-            // In v2.3.7, /instance/fetchInstances returns an array. 
-            // We can also try /instance/connectionState as it sometimes contains the owner info in some sub-versions.
-            console.log(`[STATUS] Fetching detailed info for ${instanceData.instance_name}`);
-            const infoResult = await fetchEvolution(`/instance/fetchInstances?instanceName=${instanceData.instance_name}`);
-            
-            let inst = null;
-            if (Array.isArray(infoResult)) {
-              inst = infoResult.find((i: any) => i.instanceName === instanceData.instance_name || i.name === instanceData.instance_name);
-            } else if (infoResult && typeof infoResult === 'object') {
-              // Some versions might return a single object if instanceName is specified
-              inst = infoResult;
-            }
-            
-            if (inst) {
-              console.log(`[STATUS] Found instance details:`, { profileName: inst.profileName, owner: inst.owner });
-              if (inst.owner) {
-                // Evolution returns owner as "number@s.whatsapp.net" or just "number"
-                updateData.phone = inst.owner.split('@')[0];
-              } else if (inst.number) {
-                updateData.phone = inst.number;
-              }
-              
-              if (inst.profileName) {
-                updateData.profile_name = inst.profileName;
-              } else if (inst.profilePicture) {
-                // If we have a picture but no name, maybe we can at least know it's active
-                console.log(`[STATUS] Profile name missing but found picture/other data`);
-              }
-              
-              updateData.connected_at = new Date().toISOString();
-            } else {
-              console.warn(`[STATUS] Instance ${instanceData.instance_name} not found in fetchInstances response`);
-            }
-          } catch (e) {
-            console.warn('[STATUS INFO ERROR] Could not fetch detailed instance info', e.message);
-          }
-        }
-
-        await adminClient
-          .from('whatsapp_instances')
-          .update(updateData)
-          .eq('company_id', companyId);
-
-        return new Response(JSON.stringify({ ...result, mappedStatus: status, ...updateData }), {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
-      } catch (e) {
-        console.error('[GET-STATUS ERROR]', e.message);
-        return new Response(JSON.stringify({ error: 'status fetch failed', details: e.message }), {
-          status: 502,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
       }
+      await adminClient.from('whatsapp_instances').update(updateData).eq('company_id', companyId);
+      return new Response(JSON.stringify({ mappedStatus: status, ...updateData }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
     if (action === 'logout' || action === 'delete') {
-      if (!instanceData?.instance_name) {
-        return new Response(JSON.stringify({ error: 'No instance found to disconnect' }), {
-          status: 404,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
+      if (instanceData?.instance_name) {
+        try { await fetchEvolution(`/instance/logout/${instanceData.instance_name}`, { method: 'DELETE' }); } catch (e) {}
+        try { await fetchEvolution(`/instance/delete/${instanceData.instance_name}`, { method: 'DELETE' }); } catch (e) {}
       }
-
-      console.log(`[DISCONNECT] Logging out and deleting instance ${instanceData.instance_name}`);
-      
-      try {
-        await fetchEvolution(`/instance/logout/${instanceData.instance_name}`, { method: 'DELETE' });
-      } catch (e) {
-        console.warn('[LOGOUT ERROR] Instance might already be logged out', e.message);
-      }
-
-      try {
-        await fetchEvolution(`/instance/delete/${instanceData.instance_name}`, { method: 'DELETE' });
-      } catch (e) {
-        console.warn('[DELETE ERROR] Instance might already be deleted', e.message);
-      }
-
-      await adminClient
-        .from('whatsapp_instances')
-        .update({
-          status: 'disconnected',
-          qr_code: null,
-          phone: null,
-          profile_name: null,
-          connected_at: null,
-          instance_name: null,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('company_id', companyId);
-
-      return new Response(JSON.stringify({ success: true }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+      await adminClient.from('whatsapp_instances').update({ status: 'disconnected', qr_code: null, phone: null, profile_name: null, connected_at: null, instance_name: null }).eq('company_id', companyId);
+      return new Response(JSON.stringify({ success: true }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
     if (action === 'send-test') {
       const { phone, body, text } = params;
-      const messageText = text || body;
-
-      if (!phone || !messageText) {
-        return new Response(JSON.stringify({ error: 'phone and text/body required' }), {
-          status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
-      }
-      
-      if (!instanceData?.instance_name) {
-        return new Response(JSON.stringify({ error: 'No active instance found for sending messages' }), {
-          status: 404,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
-      }
-
-      console.log(`[SEND-TEST] Sending message to ${phone} from ${instanceData.instance_name}`);
-      
-      try {
-        const result = await fetchEvolution(`/message/sendText/${instanceData.instance_name}`, {
-          method: 'POST',
-          body: JSON.stringify({
-            number: phone,
-            text: messageText,
-          }),
-        });
-
-        return new Response(JSON.stringify(result), {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
-      } catch (e) {
-        console.error('[SEND-TEST ERROR]', e.message);
-        return new Response(JSON.stringify({ error: 'send failed', details: e.message }), {
-          status: 502,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
-      }
+      const result = await fetchEvolution(`/message/sendText/${instanceData.instance_name}`, {
+        method: 'POST',
+        body: JSON.stringify({ number: phone, text: text || body }),
+      });
+      return new Response(JSON.stringify(result), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
     if (action === 'send-message') {
       const { phone, message, type, appointmentId, clientName, clientId } = params;
-
-      if (!phone || !message) {
-        return new Response(JSON.stringify({ error: 'phone and message required' }), {
-          status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
-      }
-      
       if (!instanceData?.instance_name || instanceData.status !== 'connected') {
-        // Log the failure
-        await adminClient.from('whatsapp_logs').insert({
-          company_id: companyId,
-          appointment_id: appointmentId,
-          client_id: clientId,
-          client_name: clientName,
-          phone: phone,
-          message_type: type || 'other',
-          body: message,
-          status: 'failed',
-          error_message: 'WhatsApp not connected'
-        });
-
-        return new Response(JSON.stringify({ error: 'WhatsApp not connected' }), {
-          status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
+        await adminClient.from('whatsapp_logs').insert({ company_id: companyId, appointment_id: appointmentId, client_id: clientId, client_name: clientName, phone, message_type: type || 'other', body: message, status: 'failed', error_message: 'Not connected' });
+        return new Response(JSON.stringify({ error: 'Not connected' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
       }
-
-      try {
-        const result = await fetchEvolution(`/message/sendText/${instanceData.instance_name}`, {
-          method: 'POST',
-          body: JSON.stringify({
-            number: phone,
-            text: message,
-          }),
-        });
-
-        // Log the success
-        await adminClient.from('whatsapp_logs').insert({
-          company_id: companyId,
-          appointment_id: appointmentId,
-          client_id: clientId,
-          client_name: clientName,
-          phone: phone,
-          message_type: type || 'other',
-          body: message,
-          status: 'sent',
-          delivered_at: new Date().toISOString()
-        });
-
-        // Update appointment flag if applicable
-        if (appointmentId && type) {
-          const updateData: any = {};
-          if (type === 'appointment_confirmed') updateData.whatsapp_confirmation_sent = true;
-          if (type === 'appointment_reminder') updateData.whatsapp_reminder_sent = true;
-          if (type === 'post_service_review') updateData.whatsapp_review_sent = true;
-          
-          if (Object.keys(updateData).length > 0) {
-            await adminClient.from('appointments').update(updateData).eq('id', appointmentId);
-          }
-        }
-
-        return new Response(JSON.stringify(result), {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
-      } catch (e) {
-        console.error('[SEND-MESSAGE ERROR]', e.message);
-        
-        await adminClient.from('whatsapp_logs').insert({
-          company_id: companyId,
-          appointment_id: appointmentId,
-          client_id: clientId,
-          client_name: clientName,
-          phone: phone,
-          message_type: type || 'other',
-          body: message,
-          status: 'error',
-          error_message: e.message
-        });
-
-        return new Response(JSON.stringify({ error: 'send failed', details: e.message }), {
-          status: 502,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
-      }
+      const result = await fetchEvolution(`/message/sendText/${instanceData.instance_name}`, { method: 'POST', body: JSON.stringify({ number: phone, text: message }) });
+      await adminClient.from('whatsapp_logs').insert({ company_id: companyId, appointment_id: appointmentId, client_id: clientId, client_name: clientName, phone, message_type: type || 'other', body: message, status: 'sent', delivered_at: new Date().toISOString() });
+      return new Response(JSON.stringify(result), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
-    return new Response(JSON.stringify({ error: 'Invalid action' }), {
-      status: 400,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+    return new Response(JSON.stringify({ error: 'Invalid action' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 
   } catch (error: any) {
     console.error('[RUNTIME ERROR]', error.message);
-    return new Response(JSON.stringify({ error: error.message }), {
-      status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+    return new Response(JSON.stringify({ error: error.message }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
   }
 });
