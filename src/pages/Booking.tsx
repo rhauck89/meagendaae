@@ -2018,32 +2018,119 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                   </div>
                 )}
 
-                {/* Day Selection Horizontal */}
+                {/* Calendário Premium Horizontal */}
                 <div className="space-y-4">
-                  <div className="flex items-center gap-2">
-                    <Calendar className="h-4 w-4" style={{ color: T.accent }} />
-                    <span className="text-[10px] font-black uppercase tracking-widest opacity-60">Escolha o dia</span>
-                  </div>
-                  <div className="flex gap-3 overflow-x-auto pb-4 scrollbar-hide">
-                    {nextSlots.map(({ date }) => {
-                      const isSel = selectedDate && isSameDay(date, selectedDate);
-                      return (
-                        <button
-                          key={date.toISOString()}
-                          onClick={() => { setSelectedDate(date); setSelectedTime(null); }}
-                          className="flex flex-col items-center min-w-[75px] p-4 rounded-[2rem] transition-all duration-300"
-                          style={{
-                            background: isSel ? `linear-gradient(135deg, ${T.accent}, #F4C752)` : T.card,
-                            border: `2px solid ${isSel ? T.accent : T.border}`,
-                            color: isSel ? '#000' : T.text,
-                            boxShadow: isSel ? `0 15px 30px -10px ${T.accent}80` : 'none'
+                  <div className="flex flex-col gap-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Calendar className="h-4 w-4" style={{ color: T.accent }} />
+                        <span className="text-[10px] font-black uppercase tracking-widest opacity-60">Escolha o dia</span>
+                      </div>
+                      
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => {
+                            const today = startOfDay(new Date());
+                            setSelectedDate(today);
+                            setCurrentWeekStart(startOfWeek(today, { locale: ptBR }));
+                          }}
+                          className="h-8 px-3 text-[10px] font-black uppercase tracking-widest rounded-full hover:bg-white/5"
+                          style={{ color: T.accent }}
+                        >
+                          Hoje
+                        </Button>
+                        <Select 
+                          value={format(currentWeekStart, 'MM')} 
+                          onValueChange={(val) => {
+                            const newDate = setMonth(currentWeekStart, parseInt(val) - 1);
+                            setCurrentWeekStart(startOfWeek(newDate, { locale: ptBR }));
                           }}
                         >
-                          <span className="text-[10px] font-black uppercase opacity-60">{format(date, "EEE", { locale: ptBR })}</span>
-                          <span className="text-xl font-black mt-1">{format(date, "dd")}</span>
-                        </button>
-                      );
-                    })}
+                          <SelectTrigger className="h-8 bg-transparent border-none text-[10px] font-black uppercase tracking-widest focus:ring-0 w-auto gap-1">
+                            <SelectValue placeholder="Mês" />
+                          </SelectTrigger>
+                          <SelectContent className="bg-zinc-900 border-zinc-800">
+                            {eachMonthOfInterval({
+                              start: startOfMonth(new Date()),
+                              end: endOfMonth(addDays(new Date(), 365))
+                            }).map((month) => (
+                              <SelectItem 
+                                key={month.toISOString()} 
+                                value={format(month, 'MM')}
+                                className="text-white focus:bg-white/10"
+                              >
+                                {format(month, 'MMMM yyyy', { locale: ptBR })}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between bg-white/5 p-2 rounded-[2rem] border border-white/5">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => setCurrentWeekStart(subWeeks(currentWeekStart, 1))}
+                        className="rounded-full hover:bg-white/5"
+                      >
+                        <ChevronLeft className="h-4 w-4" />
+                      </Button>
+                      
+                      <div className="flex-1 overflow-hidden">
+                        <div className="flex justify-around">
+                          {eachDayOfInterval({
+                            start: currentWeekStart,
+                            end: addDays(currentWeekStart, 6)
+                          }).map((date) => {
+                            const isSel = selectedDate && isSameDay(date, selectedDate);
+                            const isTod = isToday(date);
+                            const dayName = format(date, "EEE", { locale: ptBR });
+                            const dayNum = format(date, "dd");
+                            
+                            return (
+                              <button
+                                key={date.toISOString()}
+                                onClick={() => { 
+                                  setSelectedDate(date); 
+                                  setSelectedTime(null); 
+                                }}
+                                className="flex flex-col items-center p-2 rounded-2xl min-w-[45px] transition-all relative group"
+                                style={{
+                                  background: isSel ? T.accent : 'transparent',
+                                  color: isSel ? '#000' : (isTod ? T.accent : T.text),
+                                }}
+                              >
+                                {isTod && !isSel && (
+                                  <span className="absolute -top-1 text-[8px] font-black uppercase tracking-tighter" style={{ color: T.accent }}>Hoje</span>
+                                )}
+                                <span className={cn(
+                                  "text-[9px] font-black uppercase opacity-60",
+                                  isSel && "opacity-100"
+                                )}>
+                                  {dayName}
+                                </span>
+                                <span className="text-sm font-black mt-0.5">{dayNum}</span>
+                                {isSel && (
+                                  <div className="absolute -bottom-1 w-1 h-1 rounded-full bg-black" />
+                                )}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => setCurrentWeekStart(addWeeks(currentWeekStart, 1))}
+                        className="rounded-full hover:bg-white/5"
+                      >
+                        <ChevronRight className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </div>
                 </div>
 
