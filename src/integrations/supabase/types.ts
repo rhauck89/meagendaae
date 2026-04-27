@@ -4582,9 +4582,11 @@ export type Database = {
           created_at: string
           id: string
           instance_id: string | null
+          instance_name: string | null
           last_seen_at: string | null
           metadata: Json
           phone: string | null
+          profile_name: string | null
           qr_code: string | null
           session_name: string | null
           status: Database["public"]["Enums"]["whatsapp_status"]
@@ -4596,9 +4598,11 @@ export type Database = {
           created_at?: string
           id?: string
           instance_id?: string | null
+          instance_name?: string | null
           last_seen_at?: string | null
           metadata?: Json
           phone?: string | null
+          profile_name?: string | null
           qr_code?: string | null
           session_name?: string | null
           status?: Database["public"]["Enums"]["whatsapp_status"]
@@ -4610,9 +4614,11 @@ export type Database = {
           created_at?: string
           id?: string
           instance_id?: string | null
+          instance_name?: string | null
           last_seen_at?: string | null
           metadata?: Json
           phone?: string | null
+          profile_name?: string | null
           qr_code?: string | null
           session_name?: string | null
           status?: Database["public"]["Enums"]["whatsapp_status"]
@@ -5449,7 +5455,13 @@ export type Database = {
         | "delivered"
         | "read"
         | "failed"
-      whatsapp_status: "disconnected" | "connecting" | "connected" | "error"
+      whatsapp_status:
+        | "disconnected"
+        | "connecting"
+        | "connected"
+        | "error"
+        | "pending"
+        | "closed"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -5637,7 +5649,14 @@ export const Constants = {
         "read",
         "failed",
       ],
-      whatsapp_status: ["disconnected", "connecting", "connected", "error"],
+      whatsapp_status: [
+        "disconnected",
+        "connecting",
+        "connected",
+        "error",
+        "pending",
+        "closed",
+      ],
     },
   },
 } as const
