@@ -40,7 +40,7 @@ Deno.serve(async (req) => {
       console.log(`Appointment match: ${appointmentMatch[1]}, id: ${appointmentMatch[2]}`);
 
       const [_, type, id] = appointmentMatch;
-      const { data: appointment } = await supabase
+      const { data: appointment, error: apptError } = await supabase
         .from('appointments')
         .select(`
           id, start_time,
@@ -51,6 +51,9 @@ Deno.serve(async (req) => {
         `)
         .eq('id', id)
         .single();
+
+      if (apptError) console.error('Appointment query error:', apptError);
+
 
       if (appointment) {
         console.log(`Found appointment for company: ${(appointment.companies as any)?.name}`);
