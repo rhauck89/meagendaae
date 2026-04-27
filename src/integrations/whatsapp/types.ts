@@ -4,13 +4,17 @@ export type WhatsAppMessageStatus = 'pending' | 'sent' | 'delivered' | 'read' | 
 export type WhatsAppAutomationTrigger =
   | 'appointment_confirmed'
   | 'appointment_reminder'
+  | 'appointment_reminder_1d'
+  | 'appointment_reminder_2h'
   | 'post_service_review'
   | 'inactive_client'
   | 'birthday'
   | 'appointment_cancelled'
   | 'appointment_rescheduled'
   | 'loyalty_cashback'
-  | 'waitlist_slot_open';
+  | 'waitlist_slot_open'
+  | 'professional_delay'
+  | 'promotional';
 
 export interface WhatsAppInstance {
   id: string;
