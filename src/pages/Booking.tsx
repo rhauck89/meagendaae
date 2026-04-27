@@ -1893,7 +1893,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                       setSelectedProfessional(p.id); 
                       fetchProfessionalHours(p.id); 
                       fetchRecentBookings(p.id); 
-                      setStep('services'); 
+                      setStep(selectedServices.length > 0 ? 'datetime' : 'services'); 
                     }}
                     className="p-6 rounded-[2.5rem] cursor-pointer transition-all duration-300 relative group overflow-hidden"
                     style={{
