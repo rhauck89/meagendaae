@@ -82,7 +82,7 @@ Deno.serve(async (req) => {
         .select(`
           slug,
           profiles (full_name, avatar_url, bio),
-          companies (name, logo_url, banner_url)
+          companies (name, logo_url, cover_url)
         `)
         .eq('slug', professionalSlug)
         .single();
