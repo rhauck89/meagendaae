@@ -12,19 +12,31 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const supabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-      { global: { headers: { Authorization: req.headers.get('Authorization')! } } }
-    );
+    const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
+    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY') ?? '';
+    const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
 
-    const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
-    if (authError || !user) {
-      console.error('[AUTH ERROR]', authError);
-      return new Response(JSON.stringify({ error: 'Unauthorized', details: authError?.message }), {
-        status: 401,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    const authHeader = req.headers.get('Authorization')!;
+    const token = authHeader.replace('Bearer ', '');
+    
+    let user = null;
+    let isServiceRole = false;
+
+    if (token === serviceRoleKey) {
+      isServiceRole = true;
+    } else {
+      const supabaseClient = createClient(supabaseUrl, supabaseAnonKey, {
+        global: { headers: { Authorization: authHeader } }
       });
+      const { data: { user: authUser }, error: authError } = await supabaseClient.auth.getUser();
+      if (authError || !authUser) {
+        console.error('[AUTH ERROR]', authError);
+        return new Response(JSON.stringify({ error: 'Unauthorized', details: authError?.message }), {
+          status: 401,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      user = authUser;
     }
 
     const body = await req.json();
@@ -39,33 +51,35 @@ Deno.serve(async (req) => {
     }
 
     // Verify user access
-    const { data: profile, error: profileError } = await supabaseClient
-      .from('profiles')
-      .select('company_id, role')
-      .eq('user_id', user.id)
-      .single();
+    if (!isServiceRole) {
+      const { data: profile, error: profileError } = await adminClient
+        .from('profiles')
+        .select('company_id, role')
+        .eq('user_id', user.id)
+        .single();
 
-    if (profileError || !profile) {
-      console.error('[PROFILE ERROR]', profileError, user.id);
-      return new Response(JSON.stringify({ error: 'Forbidden', details: 'Profile not found or inaccessible' }), {
-        status: 403,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
+      if (profileError || !profile) {
+        console.error('[PROFILE ERROR]', profileError, user?.id);
+        return new Response(JSON.stringify({ error: 'Forbidden', details: 'Profile not found or inaccessible' }), {
+          status: 403,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
 
-    const isSuperAdmin = profile.role === 'super_admin';
-    const belongsToCompany = profile.company_id === companyId;
+      const isSuperAdmin = profile.role === 'super_admin';
+      const belongsToCompany = profile.company_id === companyId;
 
-    if (!isSuperAdmin && !belongsToCompany) {
-      console.warn(`[FORBIDDEN] User ${user.id} tried to access company ${companyId}. Profile company: ${profile.company_id}, Role: ${profile.role}`);
-      return new Response(JSON.stringify({ 
-        error: 'Forbidden', 
-        details: 'User does not belong to this company',
-        debug: { profileCompany: profile.company_id, requestedCompany: companyId, role: profile.role } 
-      }), {
-        status: 403,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+      if (!isSuperAdmin && !belongsToCompany) {
+        console.warn(`[FORBIDDEN] User ${user?.id} tried to access company ${companyId}. Profile company: ${profile.company_id}, Role: ${profile.role}`);
+        return new Response(JSON.stringify({ 
+          error: 'Forbidden', 
+          details: 'User does not belong to this company',
+          debug: { profileCompany: profile.company_id, requestedCompany: companyId, role: profile.role } 
+        }), {
+          status: 403,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
     }
 
     let EVOLUTION_API_URL = Deno.env.get('EVOLUTION_API_BASE_URL')?.replace(/\/$/, '');
@@ -421,6 +435,95 @@ Deno.serve(async (req) => {
         });
       } catch (e) {
         console.error('[SEND-TEST ERROR]', e.message);
+        return new Response(JSON.stringify({ error: 'send failed', details: e.message }), {
+          status: 502,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+    }
+
+    if (action === 'send-message') {
+      const { phone, message, type, appointmentId, clientName, clientId } = params;
+
+      if (!phone || !message) {
+        return new Response(JSON.stringify({ error: 'phone and message required' }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      
+      if (!instanceData?.instance_name || instanceData.status !== 'connected') {
+        // Log the failure
+        await adminClient.from('whatsapp_logs').insert({
+          company_id: companyId,
+          appointment_id: appointmentId,
+          client_id: clientId,
+          client_name: clientName,
+          phone: phone,
+          message_type: type || 'other',
+          body: message,
+          status: 'failed',
+          error_message: 'WhatsApp not connected'
+        });
+
+        return new Response(JSON.stringify({ error: 'WhatsApp not connected' }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      try {
+        const result = await fetchEvolution(`/message/sendText/${instanceData.instance_name}`, {
+          method: 'POST',
+          body: JSON.stringify({
+            number: phone,
+            text: message,
+          }),
+        });
+
+        // Log the success
+        await adminClient.from('whatsapp_logs').insert({
+          company_id: companyId,
+          appointment_id: appointmentId,
+          client_id: clientId,
+          client_name: clientName,
+          phone: phone,
+          message_type: type || 'other',
+          body: message,
+          status: 'sent',
+          delivered_at: new Date().toISOString()
+        });
+
+        // Update appointment flag if applicable
+        if (appointmentId && type) {
+          const updateData: any = {};
+          if (type === 'appointment_confirmed') updateData.whatsapp_confirmation_sent = true;
+          if (type === 'appointment_reminder') updateData.whatsapp_reminder_sent = true;
+          if (type === 'post_service_review') updateData.whatsapp_review_sent = true;
+          
+          if (Object.keys(updateData).length > 0) {
+            await adminClient.from('appointments').update(updateData).eq('id', appointmentId);
+          }
+        }
+
+        return new Response(JSON.stringify(result), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      } catch (e) {
+        console.error('[SEND-MESSAGE ERROR]', e.message);
+        
+        await adminClient.from('whatsapp_logs').insert({
+          company_id: companyId,
+          appointment_id: appointmentId,
+          client_id: clientId,
+          client_name: clientName,
+          phone: phone,
+          message_type: type || 'other',
+          body: message,
+          status: 'error',
+          error_message: e.message
+        });
+
         return new Response(JSON.stringify({ error: 'send failed', details: e.message }), {
           status: 502,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },

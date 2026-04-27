@@ -224,6 +224,9 @@ export type Database = {
           total_price: number
           updated_at: string
           user_id: string | null
+          whatsapp_confirmation_sent: boolean | null
+          whatsapp_reminder_sent: boolean | null
+          whatsapp_review_sent: boolean | null
         }
         Insert: {
           cashback_used?: number | null
@@ -256,6 +259,9 @@ export type Database = {
           total_price?: number
           updated_at?: string
           user_id?: string | null
+          whatsapp_confirmation_sent?: boolean | null
+          whatsapp_reminder_sent?: boolean | null
+          whatsapp_review_sent?: boolean | null
         }
         Update: {
           cashback_used?: number | null
@@ -288,6 +294,9 @@ export type Database = {
           total_price?: number
           updated_at?: string
           user_id?: string | null
+          whatsapp_confirmation_sent?: boolean | null
+          whatsapp_reminder_sent?: boolean | null
+          whatsapp_review_sent?: boolean | null
         }
         Relationships: [
           {
@@ -4628,6 +4637,7 @@ export type Database = {
       }
       whatsapp_logs: {
         Row: {
+          appointment_id: string | null
           automation_id: string | null
           body: string
           client_id: string | null
@@ -4645,6 +4655,7 @@ export type Database = {
           template_id: string | null
         }
         Insert: {
+          appointment_id?: string | null
           automation_id?: string | null
           body: string
           client_id?: string | null
@@ -4662,6 +4673,7 @@ export type Database = {
           template_id?: string | null
         }
         Update: {
+          appointment_id?: string | null
           automation_id?: string | null
           body?: string
           client_id?: string | null
@@ -4679,6 +4691,13 @@ export type Database = {
           template_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "whatsapp_logs_appointment_id_fkey"
+            columns: ["appointment_id"]
+            isOneToOne: false
+            referencedRelation: "appointments"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "whatsapp_logs_automation_id_fkey"
             columns: ["automation_id"]
