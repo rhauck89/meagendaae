@@ -90,7 +90,7 @@ export async function sendTest(companyId: string, phone: string, text: string): 
   await logMessage({
     company_id: companyId,
     phone,
-    body,
+    body: text,
     message_type: 'test',
     source: 'whatsapp-center-test',
     status: 'sent',
