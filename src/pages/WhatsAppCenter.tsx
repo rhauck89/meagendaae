@@ -407,7 +407,7 @@ function ConnectionTab({ companyId, instance, loading, onChange }: { companyId: 
           />
         )}
 
-        {status === 'connecting' && (
+        {(status === 'connecting' || status === 'pending') && (
           <div className="text-center py-6 space-y-4">
             <p className="font-medium">Escaneie o QR Code com seu WhatsApp</p>
             {instance?.qr_code ? (
@@ -423,9 +423,6 @@ function ConnectionTab({ companyId, instance, loading, onChange }: { companyId: 
             </p>
             <div className="flex flex-col sm:flex-row justify-center gap-2">
               <Button variant="outline" onClick={handleDisconnect} disabled={busy}>Cancelar</Button>
-              <Button variant="outline" onClick={handleSimulateConnected} disabled={busy} className="gap-2">
-                <Sparkles className="h-4 w-4" />Simular conexão (demo)
-              </Button>
             </div>
           </div>
         )}
