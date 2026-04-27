@@ -5468,6 +5468,10 @@ export type Database = {
         | "appointment_rescheduled"
         | "loyalty_cashback"
         | "waitlist_slot_open"
+        | "appointment_reminder_1d"
+        | "appointment_reminder_2h"
+        | "professional_delay"
+        | "promotional"
       whatsapp_message_status:
         | "pending"
         | "sent"
@@ -5660,6 +5664,10 @@ export const Constants = {
         "appointment_rescheduled",
         "loyalty_cashback",
         "waitlist_slot_open",
+        "appointment_reminder_1d",
+        "appointment_reminder_2h",
+        "professional_delay",
+        "promotional",
       ],
       whatsapp_message_status: [
         "pending",
