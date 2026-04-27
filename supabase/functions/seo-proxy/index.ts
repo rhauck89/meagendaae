@@ -98,7 +98,7 @@ Deno.serve(async (req) => {
     // 3. Company Profile (/:tipo/:slug or /:tipo/:slug/agendar)
     // Avoid matching app-specific routes
     const reservedRoutes = ['app', 'auth', 'dashboard', 'admin', 'super-admin', 'my-appointments', 'minha-conta', 'cliente'];
-    const companyMatch = path.match(/^\/(barbearia|estetica)\/([^\/]+)(\/agendar)?$/);
+    const companyMatch = path.match(/^\/(barbearia|estetica|salao|clinica)\/([^\/]+)(\/agendar)?$/);
     if (companyMatch && !reservedRoutes.includes(companyMatch[2])) {
       const [_, tipo, slug, isBooking] = companyMatch;
       const { data: company } = await supabase
