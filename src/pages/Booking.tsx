@@ -1025,21 +1025,34 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
       const results: { date: Date; slots: string[] }[] = [];
       let suggestion: { date: Date; slot: string; reason: 'tight-fit' | 'first-available' } | null = null;
 
-      for (const res of dayResults) {
+      const getFirstSlot = (res: { date: Date; slots: string[] }) => {
         let slots = res.slots;
-        // Apply promo filters if any
         if (promoData) {
           if (promoData.start_time) slots = slots.filter(s => s >= promoData.start_time!);
           if (promoData.end_time) slots = slots.filter(s => s <= promoData.end_time!);
         }
+        return slots.length > 0 ? slots[0] : null;
+      };
 
-        if (slots.length > 0) {
-          if (!suggestion && (isToday(res.date) || res.date > new Date())) {
-            suggestion = { date: res.date, slot: slots[0], reason: 'first-available' };
+      for (const res of dayResults) {
+        results.push({ date: res.date, slots: res.slots });
+      }
+
+      // Bug 2 Fix: Intelligent Suggestion prioritization
+      if (selectedDate) {
+        const res = dayResults.find(r => isSameDay(r.date, selectedDate));
+        const slot = res ? getFirstSlot(res) : null;
+        if (slot) {
+          suggestion = { date: selectedDate, slot, reason: 'first-available' };
+        }
+      } else {
+        // Fallback for first entry
+        for (const res of dayResults) {
+          const slot = getFirstSlot(res);
+          if (slot && (isToday(res.date) || res.date > new Date())) {
+            suggestion = { date: res.date, slot, reason: 'first-available' };
+            break;
           }
-          results.push({ date: res.date, slots: slots });
-        } else {
-          results.push({ date: res.date, slots: [] });
         }
       }
 
