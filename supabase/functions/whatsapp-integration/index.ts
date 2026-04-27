@@ -124,6 +124,14 @@ Deno.serve(async (req) => {
       const clientName = appt.client?.name || appt.client_name || 'Cliente';
       const serviceName = appt.appointment_services?.[0]?.service?.name || 'Serviço';
 
+      // Construct message early to use in logs
+      const date = new Date(appt.start_time);
+      const day = String(date.getDate()).padStart(2, '0');
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const hours = String(date.getHours()).padStart(2, '0');
+      const minutes = String(date.getMinutes()).padStart(2, '0');
+      const message = `Olá ${clientName} 👋\nSeu horário foi confirmado:\n\n📅 ${day}/${month}\n🕐 ${hours}:${minutes}\n✂️ ${serviceName}\n👤 ${appt.professional?.full_name || 'Profissional'}`;
+
       if (!clientPhone) {
         console.warn(`[WARN] No phone found for appointment ${appointmentId}`);
         await adminClient.from('whatsapp_logs').insert({ 
@@ -131,6 +139,7 @@ Deno.serve(async (req) => {
           appointment_id: appointmentId, 
           client_name: clientName,
           message_type: 'appointment_confirmed', 
+          body: message,
           status: 'failed', 
           error_message: 'Telefone do cliente não encontrado' 
         });
@@ -152,19 +161,13 @@ Deno.serve(async (req) => {
           client_name: clientName,
           phone: clientPhone,
           message_type: 'appointment_confirmed', 
+          body: message,
           status: 'failed', 
           error_message: `WhatsApp não conectado (Status: ${status})` 
         });
         return new Response(JSON.stringify({ error: 'Not connected', status }));
       }
 
-      const date = new Date(appt.start_time);
-      const day = String(date.getDate()).padStart(2, '0');
-      const month = String(date.getMonth() + 1).padStart(2, '0');
-      const hours = String(date.getHours()).padStart(2, '0');
-      const minutes = String(date.getMinutes()).padStart(2, '0');
-      
-      const message = `Olá ${clientName} 👋\nSeu horário foi confirmado:\n\n📅 ${day}/${month}\n🕐 ${hours}:${minutes}\n✂️ ${serviceName}\n👤 ${appt.professional?.full_name || 'Profissional'}`;
       const phone = clientPhone.replace(/\D/g, '').startsWith('55') ? clientPhone.replace(/\D/g, '') : '55' + clientPhone.replace(/\D/g, '');
 
       try {
