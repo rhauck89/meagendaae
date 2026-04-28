@@ -4,9 +4,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { LogIn, MessageCircle, Mail, RotateCcw, X, AlertTriangle, KeyRound, ArrowRight, ShieldCheck } from 'lucide-react';
+import { LogIn, MessageCircle, Mail, RotateCcw, X, AlertTriangle, KeyRound, ArrowRight, ShieldCheck, UserX } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { OTPInput } from './auth/OTPInput';
 
 interface ExistingAccountModalProps {
   isOpen: boolean;
@@ -29,7 +30,7 @@ export function ExistingAccountModal({
   onUseDifferentEmail,
   mode = 'email_exists'
 }: ExistingAccountModalProps) {
-  const [view, setView] = useState<'options' | 'password' | 'otp' | 'forgot' | 'whatsapp-sent' | 'identify'>('options');
+  const [view, setView] = useState<'options' | 'password' | 'otp' | 'forgot' | 'identify'>('options');
   const [email, setEmail] = useState(initialEmail || '');
   const [whatsapp, setWhatsapp] = useState(initialWhatsapp || '');
   const [password, setPassword] = useState('');
@@ -58,7 +59,33 @@ export function ExistingAccountModal({
     return () => clearInterval(interval);
   }, [timer]);
 
+  const handleLogout = async () => {
+    setLoading(true);
+    try {
+      await supabase.auth.signOut();
+      localStorage.removeItem(`client_id_${companyId}`);
+      localStorage.removeItem(`client_data_${companyId}`);
+      localStorage.removeItem('meagendae_client_data');
+      localStorage.removeItem('booking_session_id');
+      
+      // Reset state
+      setEmail('');
+      setWhatsapp('');
+      setPassword('');
+      setOtpCode('');
+      
+      toast.success('Sessão encerrada');
+      onUseDifferentEmail();
+      onClose();
+    } catch (err) {
+      toast.error('Erro ao sair');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleLogin = async () => {
+    if (!email) return;
     setLoading(true);
     try {
       const { error } = await supabase.auth.signInWithPassword({
@@ -97,6 +124,7 @@ export function ExistingAccountModal({
           action: 'send-otp',
           companyId,
           phone: phoneToUse,
+          email: email || null
         }
       });
 
@@ -114,8 +142,10 @@ export function ExistingAccountModal({
     }
   };
 
-  const handleVerifyOTP = async () => {
-    if (otpCode.length !== 6) return;
+  const handleVerifyOTP = async (codeValue?: string) => {
+    const codeToVerify = codeValue || otpCode;
+    if (codeToVerify.length !== 6) return;
+    
     setLoading(true);
     try {
       const phoneToUse = whatsapp || initialWhatsapp;
@@ -123,8 +153,9 @@ export function ExistingAccountModal({
         body: {
           action: 'verify-otp',
           phone: phoneToUse,
-          email: email || initialEmail,
-          code: otpCode,
+          email: email || null,
+          code: codeToVerify,
+          companyId,
           redirectTo: window.location.href
         }
       });
@@ -137,18 +168,9 @@ export function ExistingAccountModal({
         toast.success('Identidade verificada! Acessando...');
         window.location.href = data.loginUrl;
       } else if (data.success) {
-        // Fallback case: if we verified but don't have a redirect yet, try magic link if email exists
-        if (email || initialEmail) {
-           const { error: authError } = await supabase.auth.signInWithOtp({
-             email: (email || initialEmail).trim().toLowerCase(),
-             options: { emailRedirectTo: window.location.href }
-           });
-           if (!authError) toast.success('Link de acesso enviado para seu e-mail!');
-        } else {
-           toast.success('Verificado! Continue seu agendamento.');
-           onLoginSuccess();
-           onClose();
-        }
+        toast.success('Verificado! Continue seu agendamento.');
+        onLoginSuccess();
+        onClose();
       }
     } catch (err: any) {
       toast.error(err.message || 'Erro ao verificar código');
@@ -158,6 +180,7 @@ export function ExistingAccountModal({
   };
 
   const handleForgotPassword = async () => {
+    if (!email) return;
     setLoading(true);
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(email.trim().toLowerCase(), {
@@ -173,31 +196,45 @@ export function ExistingAccountModal({
     }
   };
 
+  const getTitle = () => {
+    if (view === 'identify') return 'Localizar Cadastro';
+    if (view === 'otp') return 'Verificação WhatsApp';
+    return 'Conta encontrada 👋';
+  };
+
+  const getDescription = () => {
+    if (view === 'identify') return 'Informe seu WhatsApp para localizar seu cadastro.';
+    if (view === 'otp') return 'Digite o código de 6 dígitos que enviamos para você.';
+    if (!email || email.length < 5) return 'Conta encontrada para finalização rápida';
+    return 'Escolha como entrar para continuar seu agendamento.';
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="sm:max-w-[420px] rounded-[2.5rem] bg-[#0B132B] border-white/10 text-white p-0 overflow-hidden border-2 shadow-2xl">
         <div className="p-8">
-          <DialogHeader className="mb-6 bg-transparent border-none p-0 flex flex-col items-center">
-            <div className="w-16 h-16 bg-amber-500/10 rounded-2xl flex items-center justify-center mb-4 border border-amber-500/20">
-              <KeyRound className="w-8 h-8 text-amber-500" />
+          <DialogHeader className="mb-8 bg-transparent border-none p-0 flex flex-col items-center">
+            <div className="w-20 h-20 bg-emerald-500/10 rounded-[2rem] flex items-center justify-center mb-6 border border-emerald-500/20 shadow-[0_0_30px_rgba(16,185,129,0.1)]">
+              {view === 'otp' ? (
+                <ShieldCheck className="w-10 h-10 text-emerald-500" />
+              ) : view === 'password' ? (
+                <LogIn className="w-10 h-10 text-blue-500" />
+              ) : (
+                <KeyRound className="w-10 h-10 text-amber-500" />
+              )}
             </div>
-            <DialogTitle className="text-2xl font-black tracking-tight text-center text-white">
-              {mode === 'email_exists' ? 'E-mail já cadastrado' : 
-               mode === 'whatsapp_exists' ? 'WhatsApp já vinculado' : 
-               'Conta Identificada'}
+            <DialogTitle className="text-3xl font-black tracking-tight text-center text-white">
+              {getTitle()}
             </DialogTitle>
-            <DialogDescription className="text-slate-400 text-center text-sm font-medium mt-2">
-              {view === 'identify' ? 'Informe seu WhatsApp para localizar seu cadastro.' : 
-               mode === 'email_exists' ? `O e-mail ${email} já possui uma conta. Entre para continuar.` :
-               mode === 'whatsapp_exists' ? `O WhatsApp ${whatsapp} já está vinculado a outra conta. Entre nela para agendar.` :
-               `Encontramos sua conta vinculada ao e-mail ${email}. Como deseja continuar?`}
+            <DialogDescription className="text-slate-400 text-center text-base font-medium mt-3 px-4 leading-relaxed">
+              {getDescription()}
             </DialogDescription>
           </DialogHeader>
 
           {view === 'identify' && (
-            <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-300">
-              <div className="space-y-1.5">
-                <Label className="text-[10px] font-black uppercase tracking-widest opacity-40 ml-2">Seu WhatsApp</Label>
+            <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
+              <div className="space-y-2">
+                <Label className="text-[10px] font-black uppercase tracking-[0.2em] opacity-40 ml-4">Seu WhatsApp</Label>
                 <Input 
                   value={whatsapp}
                   onChange={(e) => {
@@ -208,20 +245,20 @@ export function ExistingAccountModal({
                     setWhatsapp(masked);
                   }}
                   placeholder="(11) 99999-9999"
-                  className="rounded-2xl h-16 bg-white/5 border-white/10 text-white font-bold"
+                  className="rounded-2xl h-16 bg-white/5 border-white/10 text-white font-bold text-lg px-6 focus:border-emerald-500/50"
                   autoFocus
                 />
               </div>
               <Button 
                 onClick={handleSendOTP}
                 disabled={loading || whatsapp.length < 14}
-                className="w-full h-14 rounded-full bg-green-500 hover:bg-green-600 text-black font-black text-lg transition-all"
+                className="w-full h-16 rounded-full bg-emerald-500 hover:bg-emerald-600 text-zinc-950 font-black text-lg transition-all shadow-lg shadow-emerald-500/20"
               >
-                {loading ? "Buscando..." : "Continuar via WhatsApp"}
+                {loading ? "Buscando..." : "Receber código no WhatsApp"}
               </Button>
               <button 
                 onClick={onClose}
-                className="w-full text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-white py-2"
+                className="w-full text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 hover:text-white py-2 transition-colors"
               >
                 Voltar
               </button>
@@ -229,116 +266,109 @@ export function ExistingAccountModal({
           )}
 
           {view === 'options' && (
-            <div className="space-y-3">
+            <div className="space-y-4">
               <Button 
                 onClick={handleSendOTP}
                 disabled={loading}
-                className="w-full h-16 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 text-white font-bold flex items-center justify-start gap-4 px-6 transition-all group"
+                className="w-full h-20 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 text-white font-bold flex items-center justify-start gap-5 px-6 transition-all group"
               >
-                <div className="w-11 h-11 bg-green-500/20 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
-                  <MessageCircle className="w-5 h-5 text-green-400" />
+                <div className="w-12 h-12 bg-emerald-500/20 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <MessageCircle className="w-6 h-6 text-emerald-400" />
                 </div>
                 <div className="text-left">
-                  <p className="text-sm font-black">Acesso via WhatsApp</p>
-                  <p className="text-[10px] opacity-40 uppercase tracking-widest">Código de 6 dígitos</p>
+                  <p className="text-base font-black">Receber código no WhatsApp</p>
+                  <p className="text-[10px] opacity-40 uppercase tracking-widest font-black">Acesso rápido sem senha</p>
                 </div>
-                <ArrowRight className="w-4 h-4 ml-auto opacity-20 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
+                <ArrowRight className="w-5 h-5 ml-auto opacity-20 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
               </Button>
 
               <Button 
                 onClick={() => setView('password')}
-                className="w-full h-16 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 text-white font-bold flex items-center justify-start gap-4 px-6 transition-all group"
+                className="w-full h-20 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 text-white font-bold flex items-center justify-start gap-5 px-6 transition-all group"
               >
-                <div className="w-11 h-11 bg-blue-500/20 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
-                  <LogIn className="w-5 h-5 text-blue-400" />
+                <div className="w-12 h-12 bg-blue-500/20 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <LogIn className="w-6 h-6 text-blue-400" />
                 </div>
                 <div className="text-left">
-                  <p className="text-sm font-black">Entrar com Senha</p>
-                  <p className="text-[10px] opacity-40 uppercase tracking-widest">Usar senha cadastrada</p>
+                  <p className="text-base font-black">Entrar com Senha</p>
+                  <p className="text-[10px] opacity-40 uppercase tracking-widest font-black">Usar senha cadastrada</p>
                 </div>
-                <ArrowRight className="w-4 h-4 ml-auto opacity-20 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
+                <ArrowRight className="w-5 h-5 ml-auto opacity-20 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
               </Button>
 
-              <div className="grid grid-cols-2 gap-3 mt-6">
+              <div className="pt-6 grid grid-cols-2 gap-4">
                 <Button 
                   variant="ghost" 
-                  onClick={() => setView('forgot')}
-                  className="text-[10px] uppercase tracking-widest font-black text-slate-400 hover:text-white hover:bg-transparent p-0 h-auto"
+                  onClick={handleLogout}
+                  className="h-12 rounded-xl bg-white/5 border border-white/5 hover:bg-red-500/10 hover:text-red-400 text-[10px] uppercase tracking-widest font-black text-slate-400 group"
                 >
-                  Recuperar senha
+                  <UserX className="w-3 h-3 mr-2 opacity-50 group-hover:opacity-100" />
+                  Trocar Conta
                 </Button>
                 <Button 
                   variant="ghost" 
-                  onClick={onUseDifferentEmail}
-                  className="text-[10px] uppercase tracking-widest font-black text-slate-400 hover:text-white hover:bg-transparent p-0 h-auto"
+                  onClick={onClose}
+                  className="h-12 rounded-xl bg-white/5 border border-white/5 hover:bg-white/10 text-[10px] uppercase tracking-widest font-black text-slate-400"
                 >
-                  Usar outro e-mail
+                  Voltar
                 </Button>
               </div>
             </div>
           )}
 
           {view === 'otp' && (
-            <div className="space-y-5 animate-in fade-in slide-in-from-bottom-4 duration-300">
-              <div className="text-center space-y-2">
-                <ShieldCheck className="w-12 h-12 text-green-500 mx-auto mb-2 opacity-50" />
-                <p className="text-sm text-slate-400">Digite o código de 6 dígitos enviado para seu WhatsApp.</p>
-              </div>
-              
-              <div className="space-y-1.5">
-                <Label className="text-[10px] font-black uppercase tracking-widest opacity-40 ml-2">Código de Verificação</Label>
-                <Input 
+            <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-300">
+              <div className="space-y-4">
+                <OTPInput 
                   value={otpCode}
-                  onChange={(e) => {
-                    const val = e.target.value.replace(/\D/g, '').slice(0, 6);
-                    setOtpCode(val);
-                  }}
-                  placeholder="0 0 0 0 0 0"
-                  className="rounded-2xl h-16 bg-white/5 border-white/10 text-white font-black text-center text-3xl tracking-[0.5em] placeholder:tracking-normal placeholder:text-sm"
-                  autoFocus
+                  onChange={setOtpCode}
+                  onComplete={(val) => handleVerifyOTP(val)}
+                  disabled={loading}
                 />
               </div>
 
               <Button 
-                onClick={handleVerifyOTP}
+                onClick={() => handleVerifyOTP()}
                 disabled={loading || otpCode.length !== 6}
-                className="w-full h-14 rounded-full bg-green-500 hover:bg-green-600 text-black font-black text-lg transition-all"
+                className="w-full h-16 rounded-full bg-emerald-500 hover:bg-emerald-600 text-zinc-950 font-black text-lg transition-all shadow-lg shadow-emerald-500/20"
               >
                 {loading ? "Verificando..." : "Verificar Código"}
               </Button>
 
               <div className="text-center">
                 {timer > 0 ? (
-                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">Reenviar em {timer}s</p>
+                  <p className="text-xs font-black uppercase tracking-widest text-slate-500">
+                    Reenviar em <span className="text-emerald-500">{timer}s</span>
+                  </p>
                 ) : (
                   <button 
                     onClick={handleSendOTP}
-                    className="text-[10px] font-black uppercase tracking-widest text-amber-500 hover:text-amber-400"
+                    className="text-xs font-black uppercase tracking-widest text-emerald-500 hover:text-emerald-400 transition-colors"
                   >
-                    Não recebi o código
+                    Reenviar código
                   </button>
                 )}
               </div>
 
               <button 
                 onClick={() => setView('options')}
-                className="w-full text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-white py-2"
+                className="w-full text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 hover:text-white py-2 transition-colors"
               >
-                Voltar às opções
+                Tentar outro método
               </button>
             </div>
           )}
 
           {view === 'password' && (
-            <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-300">
-              <div className="space-y-1.5">
-                <Label className="text-[10px] font-black uppercase tracking-widest opacity-40 ml-2">Sua Senha</Label>
+            <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
+              <div className="space-y-2">
+                <Label className="text-[10px] font-black uppercase tracking-[0.2em] opacity-40 ml-4">Sua Senha</Label>
                 <Input 
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Digite sua senha"
-                  className="rounded-2xl h-16 bg-white/5 border-white/10 text-white font-bold"
+                  placeholder="••••••••"
+                  className="rounded-2xl h-16 bg-white/5 border-white/10 text-white font-bold text-lg px-6 focus:border-blue-500/50"
                   autoFocus
                   onKeyDown={(e) => e.key === 'Enter' && handleLogin()}
                 />
@@ -346,37 +376,48 @@ export function ExistingAccountModal({
               <Button 
                 onClick={handleLogin}
                 disabled={loading || !password}
-                className="w-full h-14 rounded-full bg-amber-500 hover:bg-amber-600 text-black font-black text-lg transition-all"
+                className="w-full h-16 rounded-full bg-blue-500 hover:bg-blue-600 text-white font-black text-lg transition-all shadow-lg shadow-blue-500/20"
               >
                 {loading ? "Entrando..." : "Confirmar e Entrar"}
               </Button>
-              <button 
-                onClick={() => setView('options')}
-                className="w-full text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-white py-2"
-              >
-                Voltar às opções
-              </button>
+              <div className="flex flex-col gap-2">
+                <button 
+                  onClick={() => setView('forgot')}
+                  className="w-full text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 hover:text-white py-2 transition-colors"
+                >
+                  Esqueci minha senha
+                </button>
+                <button 
+                  onClick={() => setView('options')}
+                  className="w-full text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 hover:text-white py-2 transition-colors"
+                >
+                  Voltar às opções
+                </button>
+              </div>
             </div>
           )}
 
           {view === 'forgot' && (
-            <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-300 text-center">
-              <div className="w-12 h-12 bg-purple-500/10 rounded-full flex items-center justify-center mx-auto mb-2">
-                <RotateCcw className="w-6 h-6 text-purple-400" />
+            <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300 text-center">
+              <div className="w-16 h-16 bg-purple-500/10 rounded-full flex items-center justify-center mx-auto mb-2 border border-purple-500/20">
+                <RotateCcw className="w-8 h-8 text-purple-400" />
               </div>
-              <p className="text-sm text-slate-400 leading-relaxed">
-                Enviaremos um link de redefinição para <span className="text-white font-bold">{email}</span>
-              </p>
+              <div className="space-y-2">
+                <p className="text-base text-slate-400 leading-relaxed">
+                  Enviaremos um link de redefinição para:
+                </p>
+                <p className="text-lg text-white font-black">{email}</p>
+              </div>
               <Button 
                 onClick={handleForgotPassword}
                 disabled={loading}
-                className="w-full h-14 rounded-full bg-white text-black font-black text-lg transition-all"
+                className="w-full h-16 rounded-full bg-white text-black font-black text-lg transition-all shadow-lg shadow-white/10"
               >
-                {loading ? "Enviando..." : "Enviar E-mail"}
+                {loading ? "Enviando..." : "Enviar Link de Recuperação"}
               </Button>
               <button 
                 onClick={() => setView('options')}
-                className="w-full text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-white py-2"
+                className="w-full text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 hover:text-white py-2 transition-colors"
               >
                 Cancelar
               </button>
