@@ -1546,7 +1546,7 @@ export default function Promotions() {
             <div className="bg-primary/10 p-3 rounded-xl text-primary shrink-0 group-hover:bg-primary group-hover:text-white transition-all duration-300">
               <opt.icon className="h-5 w-5" />
             </div>
-            <div className="min-w-0 flex-1 pr-6">
+            <div className={`min-w-0 flex-1 ${opt.isPremium ? 'pr-16' : ''}`}>
               <h4 className="font-bold text-base leading-tight mb-1.5 break-words [overflow-wrap:anywhere] white-space-normal">
                 {opt.title}
               </h4>
@@ -1555,8 +1555,8 @@ export default function Promotions() {
               </p>
             </div>
             {opt.isPremium && (
-              <div className="absolute top-3 right-3">
-                <Badge variant="outline" className="text-[9px] uppercase font-bold text-primary border-primary/20 bg-primary/5 py-0 px-1.5 h-4">PREMIUM</Badge>
+              <div className="absolute top-4 right-4">
+                <Badge variant="outline" className="text-[9px] uppercase font-bold text-primary border-primary/20 bg-primary/5 py-0 px-1.5 h-4 shadow-sm">PREMIUM</Badge>
               </div>
             )}
           </Button>
