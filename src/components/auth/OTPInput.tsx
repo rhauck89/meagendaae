@@ -33,6 +33,7 @@ export function OTPInput({
     newDigits[index] = val;
     
     const newVal = newDigits.join('');
+    setDigits(newDigits); // Update local state immediately for visual feedback
     onChange(newVal);
 
     if (val && index < length - 1) {
@@ -40,7 +41,8 @@ export function OTPInput({
     }
     
     if (newVal.length === length) {
-      onComplete?.(newVal);
+      // Small delay to allow state to settle and digit to appear
+      setTimeout(() => onComplete?.(newVal), 100);
     }
   };
 
