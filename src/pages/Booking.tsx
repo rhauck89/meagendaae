@@ -82,7 +82,7 @@ const InteractiveStarRating = ({ rating, onRate, size = 32 }: { rating: number; 
   );
 };
 
-type Step = 'services' | 'professional' | 'datetime' | 'client' | 'benefits' | 'confirm' | 'success';
+type Step = 'services' | 'professional' | 'datetime' | 'benefits' | 'confirm' | 'success';
 type BusinessType = 'barbershop' | 'esthetic';
 
 interface BookingPageProps {
@@ -540,7 +540,15 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
     });
 
     return () => subscription.unsubscribe();
-  }, []);
+  }, [company?.id, isClientLoggedIn]); // Added company?.id to dependencies if needed, but [] was there
+
+  // NEW: Identification Gatekeeper - MUST happen before any step
+  useEffect(() => {
+    if (company && !isClientLoggedIn && clientLoaded && !authLoading) {
+      console.log('[BOOKING_GATEKEEPER] Identification required at start. Opening modal...');
+      setShowIdentityModal(true);
+    }
+  }, [company, isClientLoggedIn, clientLoaded, authLoading]);
 
   // Check whether a valid `clients` record exists for this user in this company.
   // Used to decide whether to show "Ver meus agendamentos" vs "Concluir cadastro".
@@ -1173,7 +1181,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
     if (professionals.length === 1 && selectedProfessional !== professionals[0].id) {
       setSelectedProfessional(professionals[0].id);
       fetchProfessionalHours(professionals[0].id);
-      if (step === 'professional') setStep(preselected.isActive() && selectedDate && selectedTime ? 'client' : 'datetime');
+      if (step === 'professional') setStep(preselected.isActive() && selectedDate && selectedTime ? 'confirm' : 'datetime');
     }
   }, [professionals, selectedProfessional, step]);
 
@@ -1261,7 +1269,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
   };
 
   useEffect(() => {
-    if (selectedProfessional && businessHours.length > 0 && totalDuration > 0 && step !== 'client' && step !== 'confirm') {
+    if (selectedProfessional && businessHours.length > 0 && totalDuration > 0 && step !== 'confirm') {
       fetchNextAvailableSlots();
     }
   }, [selectedProfessional, professionalHours, businessHours, totalDuration, currentWeekStart, selectedDate]);
@@ -1320,7 +1328,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
     }
     if (!clientForm.full_name.trim() || !clientForm.whatsapp || !isValidWhatsApp(clientForm.whatsapp)) {
       toast.error('Informe seu nome e número de WhatsApp para continuar.');
-      setStep('client');
+      setStep('confirm');
       setIsChangingData(true);
       return;
     }
@@ -2224,7 +2232,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                   </div>
                 </div>
                 <Button
-                  onClick={() => setStep('client')}
+                  onClick={() => setStep('confirm')}
                   className="w-full rounded-full py-8 font-black text-lg shadow-2xl transition-all hover:scale-[1.02] active:scale-[0.98] group"
                   style={{ background: `linear-gradient(135deg, ${T.accent}, #F4C752)`, color: '#000' }}
                 >
@@ -2422,11 +2430,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                             key={slot}
                             onClick={() => { 
                               setSelectedTime(slot); 
-                              if (isClientLoggedIn) {
-                                setStep('confirm');
-                              } else {
-                                setShowIdentityModal(true);
-                              }
+                              setStep('confirm');
                             }}
                             className="py-5 rounded-3xl text-sm font-black transition-all duration-300 border-2"
                             style={{ 
@@ -3019,7 +3023,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
         companyId={company?.id}
         supabaseClient={bookingSupabase}
         onLoginSuccess={async () => {
-          console.log('[OTP_SUCCESS_FRONTEND] IdentityModal success callback');
+          console.log('[OTP_SUCCESS_FRONTEND] IdentityModal success callback - STARTING FLOW FROM ZERO');
           
           setShowIdentityModal(false);
           setIsClientLoggedIn(true);
@@ -3051,8 +3055,8 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
             }
           }
 
-          // Advance step
-          setStep('confirm');
+          // Force flow to start from ZERO as requested
+          setStep(professionalSlug ? 'services' : 'professional');
         }}
       />
 

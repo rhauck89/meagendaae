@@ -18,6 +18,7 @@ import { AmenitiesDisplay } from '@/components/AmenitiesDisplay';
 import { motion, useScroll, useTransform } from 'framer-motion';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { toast } from 'sonner';
+import { IdentityModal } from '@/components/booking/IdentityModal';
 
 type BusinessType = 'barbershop' | 'esthetic';
 
@@ -69,6 +70,7 @@ export default function BarbershopLanding({ routeBusinessType, customSlug }: Bar
   const [allReviewsList, setAllReviewsList] = useState<any[]>([]);
   const [isWhitelabel, setIsWhitelabel] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [showIdentityModal, setShowIdentityModal] = useState(false);
   const [lastBooking, setLastBooking] = useState<{
     serviceIds: string[]; serviceNames: string[]; serviceDurations: number[];
     professionalId: string; professionalName: string; professionalAvatar: string | null;
@@ -276,6 +278,17 @@ export default function BarbershopLanding({ routeBusinessType, customSlug }: Bar
   }, [services]);
 
 
+  const handleStartBooking = () => {
+    console.log('[START_BOOKING] Checking identification...');
+    if (isLoggedIn) {
+      console.log('[START_BOOKING] User logged in, proceeding...');
+      navigate(`/${bookingBasePath}/${slug}/agendar`);
+    } else {
+      console.log('[START_BOOKING] Identification required, opening modal...');
+      setShowIdentityModal(true);
+    }
+  };
+
   const handleShare = async () => {
     if (navigator.share) {
       try {
@@ -465,7 +478,7 @@ export default function BarbershopLanding({ routeBusinessType, customSlug }: Bar
 
         {/* Primary CTA */}
         <Button
-          onClick={() => navigate(`/${bookingBasePath}/${slug}/agendar`)}
+          onClick={handleStartBooking}
           className="w-full h-14 text-base font-bold rounded-2xl shadow-xl flex items-center justify-between px-6 transition-all active:scale-[0.98]"
           style={{ background: T.accent, color: '#000' }}
         >
@@ -835,7 +848,7 @@ export default function BarbershopLanding({ routeBusinessType, customSlug }: Bar
           </button>
           {/* Floating booking button */}
           <button
-            onClick={() => navigate(`/${bookingBasePath}/${slug}/agendar`)}
+            onClick={handleStartBooking}
             className="flex flex-col items-center -mt-8"
           >
             <div
@@ -856,6 +869,16 @@ export default function BarbershopLanding({ routeBusinessType, customSlug }: Bar
           </button>
         </div>
       </nav>
+      <IdentityModal
+        isOpen={showIdentityModal}
+        onClose={() => setShowIdentityModal(false)}
+        companyId={company?.id}
+        onLoginSuccess={() => {
+          setShowIdentityModal(false);
+          setIsLoggedIn(true);
+          navigate(`/${bookingBasePath}/${slug}/agendar`);
+        }}
+      />
     </div>
   );
 }
