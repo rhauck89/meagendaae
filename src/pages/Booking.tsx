@@ -2420,7 +2420,14 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                         return (
                           <button
                             key={slot}
-                            onClick={() => { setSelectedTime(slot); setStep('client'); }}
+                            onClick={() => { 
+                              setSelectedTime(slot); 
+                              if (isClientLoggedIn) {
+                                setStep('confirm');
+                              } else {
+                                setShowIdentityModal(true);
+                              }
+                            }}
                             className="py-5 rounded-3xl text-sm font-black transition-all duration-300 border-2"
                             style={{ 
                               background: isSel ? T.accent : T.card, 
