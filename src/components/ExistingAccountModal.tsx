@@ -46,7 +46,7 @@ export function ExistingAccountModal({
     } else if (isOpen) {
       setView('options');
     }
-  }, [isOpen]);
+  }, [isOpen, initialEmail, initialWhatsapp]);
 
   useEffect(() => {
     let interval: any;
@@ -122,7 +122,7 @@ export function ExistingAccountModal({
           action: 'verify-otp',
           phone: phoneToUse,
           code: otpCode,
-          redirectTo: window.location.href // Use current URL to return exactly here
+          redirectTo: window.location.href
         }
       });
 
@@ -132,7 +132,6 @@ export function ExistingAccountModal({
 
       if (data.loginUrl) {
         toast.success('Identidade verificada! Acessando...');
-        // Supabase Magic Link will automatically sign in the user
         window.location.href = data.loginUrl;
       }
     } catch (err: any) {
@@ -208,9 +207,6 @@ export function ExistingAccountModal({
 
           {view === 'options' && (
             <div className="space-y-3">
-
-          {view === 'options' && (
-            <div className="space-y-3">
               <Button 
                 onClick={handleSendOTP}
                 disabled={loading}
@@ -263,7 +259,7 @@ export function ExistingAccountModal({
             <div className="space-y-5 animate-in fade-in slide-in-from-bottom-4 duration-300">
               <div className="text-center space-y-2">
                 <ShieldCheck className="w-12 h-12 text-green-500 mx-auto mb-2 opacity-50" />
-                <p className="text-sm text-slate-400">Digitou o código de 6 dígitos enviado para seu WhatsApp.</p>
+                <p className="text-sm text-slate-400">Digite o código de 6 dígitos enviado para seu WhatsApp.</p>
               </div>
               
               <div className="space-y-1.5">
@@ -273,9 +269,6 @@ export function ExistingAccountModal({
                   onChange={(e) => {
                     const val = e.target.value.replace(/\D/g, '').slice(0, 6);
                     setOtpCode(val);
-                    if (val.length === 6) {
-                      // Trigger automatic verification if 6 digits reached
-                    }
                   }}
                   placeholder="0 0 0 0 0 0"
                   className="rounded-2xl h-16 bg-white/5 border-white/10 text-white font-black text-center text-3xl tracking-[0.5em] placeholder:tracking-normal placeholder:text-sm"
