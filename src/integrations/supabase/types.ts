@@ -5623,6 +5623,7 @@ export type Database = {
           whatsapp: string
         }[]
       }
+      normalize_whatsapp_v2: { Args: { phone: string }; Returns: string }
       recalculate_client_return_stats: {
         Args: { _company_id: string }
         Returns: undefined
