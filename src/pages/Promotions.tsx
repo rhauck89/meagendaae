@@ -1552,7 +1552,7 @@ export default function Promotions() {
                 if (opt.id === 'professional_idle') {
                   resetForm(); setSmartMode('smart'); setSourceInsight(opt.id); setCreationMode('manual');
                 } else {
-                  applyInsight({ type: opt.id as any }); setCreationMode('manual');
+                  applyInsight({ type: opt.id } as any); setCreationMode('manual');
                 }
               }
             }}
