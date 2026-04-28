@@ -214,6 +214,7 @@ export function ExistingAccountModal({
       }
 
       setSuccess(true);
+      console.log('[OTP_SUCCESS_FRONTEND] OTP verified successfully');
       toast.success('Código confirmado! 👋');
 
       // Nubank-style direct login
@@ -231,18 +232,19 @@ export function ExistingAccountModal({
           throw sessionError;
         }
         
-        // Small delay to show success state
+        // Premium success flow: show check for 800ms, then close with fade-out effect
         setTimeout(() => {
+          console.log('[MODAL_CLOSED] Closing modal after successful login');
           onLoginSuccess();
           onClose();
-        }, 1500);
+        }, 800);
       } else if (data.loginUrl) {
         window.location.href = data.loginUrl;
       } else if (data.success) {
         setTimeout(() => {
           onLoginSuccess();
           onClose();
-        }, 1500);
+        }, 800);
       }
     } catch (err: any) {
       toast.error(err.message || 'Erro ao verificar código');
