@@ -4756,6 +4756,36 @@ export type Database = {
         }
         Relationships: []
       }
+      whatsapp_otp_codes: {
+        Row: {
+          code: string
+          created_at: string | null
+          email: string
+          expires_at: string
+          id: string
+          phone: string
+          verified: boolean | null
+        }
+        Insert: {
+          code: string
+          created_at?: string | null
+          email: string
+          expires_at: string
+          id?: string
+          phone: string
+          verified?: boolean | null
+        }
+        Update: {
+          code?: string
+          created_at?: string | null
+          email?: string
+          expires_at?: string
+          id?: string
+          phone?: string
+          verified?: boolean | null
+        }
+        Relationships: []
+      }
       whatsapp_templates: {
         Row: {
           body: string
@@ -5170,6 +5200,7 @@ export type Database = {
         Args: { p_client_id: string }
         Returns: boolean
       }
+      cleanup_expired_otp: { Args: never; Returns: undefined }
       complete_client_signup: {
         Args: {
           p_birth_date?: string
