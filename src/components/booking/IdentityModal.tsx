@@ -272,8 +272,10 @@ export function IdentityModal({
 
   const getDescription = () => {
     if (success) return 'Redirecionando...';
-    if (view === 'identify') return 'Informe seu WhatsApp para continuar.';
-    if (view === 'register') return 'Complete seus dados para seu primeiro agendamento.';
+    if (view === 'choice') return 'Identifique-se para iniciar seu agendamento.';
+    if (view === 'identify') return 'Informe seu WhatsApp para localizar seu cadastro.';
+    if (view === 'not_found') return 'Não localizamos uma conta com este número.';
+    if (view === 'register') return 'Preencha seus dados para seu primeiro agendamento.';
     if (view === 'otp') return `Digite o código enviado para ${whatsapp}`;
     if (view === 'password') return `Informe sua senha para o e-mail ${email}`;
     return 'Escolha como deseja acessar sua conta.';
