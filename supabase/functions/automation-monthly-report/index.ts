@@ -186,7 +186,7 @@ Deno.serve(async (req) => {
 
     for (const company of (companies ?? []) as any[]) {
       // Get owner email via auth admin
-      const { data: userData } = await supabase.auth.admin.getUserById(company.owner_id);
+      const { data: userData } = await supabase.auth.admin.getUserById(company.user_id);
       const ownerEmail = userData?.user?.email;
       if (!ownerEmail) { skipped++; continue; }
 
