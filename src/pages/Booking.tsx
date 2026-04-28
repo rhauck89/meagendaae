@@ -1408,6 +1408,15 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
       console.log('[Booking] Appointment created:', appointmentId);
       if (!appointmentId) throw new Error('Falha ao criar agendamento');
 
+      // Update client updated_at and potentially email/name
+      if (clientId) {
+        void supabase.from('clients').update({
+          updated_at: new Date().toISOString(),
+          email: clientForm.email || undefined,
+          full_name: clientForm.full_name || undefined,
+        }).eq('id', clientId);
+      }
+
       const aptServicesPayload = selectedServices.map((sid) => {
         const svc = services.find((s) => s.id === sid);
         if (!svc) {
