@@ -3024,7 +3024,6 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
         isOpen={showIdentityModal}
         onClose={() => setShowIdentityModal(false)}
         companyId={company?.id}
-        supabaseClient={supabase}
         onLoginSuccess={async (clientData) => {
           console.log('[LOGIN_SUCCESS] IdentityModal success callback triggered');
           

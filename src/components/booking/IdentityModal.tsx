@@ -10,23 +10,24 @@ import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { OTPInput } from '../auth/OTPInput';
 import { normalizePhone } from '@/lib/whatsapp';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface IdentityModalProps {
   isOpen: boolean;
   onClose: () => void;
   companyId: string;
   onLoginSuccess: (clientData?: any) => void;
-  supabaseClient?: any;
 }
 
 export function IdentityModal({ 
   isOpen, 
   onClose, 
   companyId,
-  onLoginSuccess,
-  supabaseClient: propSupabase
+  onLoginSuccess
 }: IdentityModalProps) {
-  const supabaseToUse = propSupabase || supabase;
+  const { updateAuthState, user } = useAuth();
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+
   
   // Views: 
   // identify -> Enter WhatsApp
@@ -94,7 +95,7 @@ export function IdentityModal({
     try {
       console.log(`[IDENTITY_MODAL] Identifying: ${phone} in company ${companyId}`);
       
-      const { data: client, error } = await supabaseToUse.rpc('lookup_client_globally', {
+      const { data: client, error } = await supabase.rpc('lookup_client_globally', {
         p_company_id: companyId,
         p_whatsapp: phone
       });
@@ -126,7 +127,7 @@ export function IdentityModal({
   const handleSendOTP = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabaseToUse.functions.invoke('whatsapp-integration', {
+      const { data, error } = await supabase.functions.invoke('whatsapp-integration', {
         body: {
           action: 'send-otp',
           companyId,
@@ -156,7 +157,7 @@ export function IdentityModal({
     setLoading(true);
     try {
       console.log(`[OTP_SUCCESS] Verifying OTP: ${codeToVerify}`);
-      const { data, error } = await supabaseToUse.functions.invoke('whatsapp-integration', {
+      const { data, error } = await supabase.functions.invoke('whatsapp-integration', {
         body: {
           action: 'verify-otp',
           phone: normalizePhone(whatsapp),
@@ -188,7 +189,7 @@ export function IdentityModal({
     }
     setLoading(true);
     try {
-      const { data, error } = await supabaseToUse.auth.signInWithPassword({
+      const { data, error } = await supabase.auth.signInWithPassword({
         email: email.trim().toLowerCase(),
         password,
       });
@@ -215,7 +216,7 @@ export function IdentityModal({
 
       // INTELLIGENT VALIDATION: Check if user exists before trying to signUp
       console.log(`[IDENTITY_MODAL] Checking existence for: ${formattedPhone} / ${normalizedEmail}`);
-      const { data: existence, error: existenceError } = await supabaseToUse.rpc('check_client_existence', {
+      const { data: existence, error: existenceError } = await supabase.rpc('check_client_existence', {
         p_whatsapp: formattedPhone,
         p_email: normalizedEmail
       });
@@ -236,7 +237,7 @@ export function IdentityModal({
         return;
       }
 
-      const { data, error } = await supabaseToUse.auth.signUp({
+      const { data, error } = await supabase.auth.signUp({
         email: normalizedEmail,
         password,
         options: {
@@ -260,7 +261,7 @@ export function IdentityModal({
 
       if (data.user) {
         // Link client record globally
-        await supabaseToUse.rpc('link_client_globally', {
+        await supabase.rpc('link_client_globally', {
           p_user_id: data.user.id,
           p_phone: formattedPhone,
           p_email: normalizedEmail,
@@ -280,11 +281,12 @@ export function IdentityModal({
 
   const handleSuccess = async (session: any) => {
     setSuccess(true);
-    console.log('[CLIENT_IDENTIFIED] Success! Closing modal...');
+    setIsAuthenticated(true);
+    console.log('[CLIENT_IDENTIFIED] Success! Manual update starting...');
     
     if (session) {
       console.log('[SESSION_APPLIED] Setting Supabase session', session);
-      const { data: setSessionData, error: setSessionError } = await supabaseToUse.auth.setSession({
+      const { error: setSessionError } = await supabase.auth.setSession({
         access_token: session.access_token,
         refresh_token: session.refresh_token
       });
@@ -293,24 +295,28 @@ export function IdentityModal({
         console.error('[SESSION_ERROR] Failed to set session:', setSessionError);
         toast.error('Erro ao estabelecer sessão. Tente novamente.');
         setSuccess(false);
+        setIsAuthenticated(false);
         setLoading(false);
         return;
       }
 
-      // Confirm session immediately
-      const { data: { session: confirmedSession } } = await supabaseToUse.auth.getSession();
-      console.log('[SESSION_CHECK]', confirmedSession);
-
-      if (!confirmedSession) {
+      // OBRIGATÓRIO: Manual update of AuthContext
+      const { data: { session: confirmedSession } } = await supabase.auth.getSession();
+      console.log('[SESSION_MANUAL_UPDATE] Updating AuthContext with:', confirmedSession?.user?.id);
+      
+      if (confirmedSession) {
+        await updateAuthState(confirmedSession);
+      } else {
         console.error('[SESSION_ERROR] Session confirmed as NULL after setSession');
-        toast.error('Sessão não persistida. Verifique os cookies/localStorage.');
+        toast.error('Sessão não persistida.');
         setSuccess(false);
+        setIsAuthenticated(false);
         setLoading(false);
         return;
       }
     }
 
-    console.log('[FORCED_LOGIN_STATE] Login identified and session established');
+    console.log('[FORCED_LOGIN_STATE] Login identified and state updated manually');
 
     // UX PREMIUM: Wait 800ms before closing
     setTimeout(() => {
@@ -322,6 +328,7 @@ export function IdentityModal({
       onClose();
     }, 800);
   };
+
 
   const getTitle = () => {
     if (success) return 'LOGIN OK';
