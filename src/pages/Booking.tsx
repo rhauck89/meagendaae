@@ -1740,6 +1740,13 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
   // ─── Render ───
   return (
     <div className="min-h-screen pb-20 sm:pb-0 font-sans tracking-tight" style={{ background: T.bg, color: T.text }}>
+      {/* DEBUG BANNER OBRIGATÓRIO */}
+      {isClientLoggedIn && (
+        <div className="fixed top-0 left-0 w-full z-[9999] bg-green-500 text-black py-1.5 text-[10px] font-black text-center uppercase tracking-[0.3em] shadow-2xl border-b border-black/20">
+          SESSÃO CLIENTE ATIVA | MODO 1-CLIQUE LIBERADO 👋
+        </div>
+      )}
+
       {/* Premium Header Fixo */}
       <header 
         className="sticky top-0 z-50 backdrop-blur-xl transition-all duration-500"
