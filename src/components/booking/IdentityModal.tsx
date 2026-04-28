@@ -10,23 +10,24 @@ import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { OTPInput } from '../auth/OTPInput';
 import { normalizePhone } from '@/lib/whatsapp';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface IdentityModalProps {
   isOpen: boolean;
   onClose: () => void;
   companyId: string;
   onLoginSuccess: (clientData?: any) => void;
-  supabaseClient?: any;
 }
 
 export function IdentityModal({ 
   isOpen, 
   onClose, 
   companyId,
-  onLoginSuccess,
-  supabaseClient: propSupabase
+  onLoginSuccess
 }: IdentityModalProps) {
-  const supabaseToUse = propSupabase || supabase;
+  const { updateAuthState, user } = useAuth();
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+
   
   // Views: 
   // identify -> Enter WhatsApp
