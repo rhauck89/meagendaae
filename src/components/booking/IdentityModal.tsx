@@ -50,7 +50,7 @@ export function IdentityModal({
   // Clear state when opening fresh
   useEffect(() => {
     if (isOpen) {
-      setView('identify');
+      setView('choice');
       setWhatsapp('');
       setEmail('');
       setFullName('');
