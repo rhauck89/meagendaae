@@ -159,23 +159,9 @@ interface PromotionInfo {
 }
 
 const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
-  const bookingSupabase = useMemo(() => {
-    return createClient<Database>(
-      import.meta.env.VITE_SUPABASE_URL,
-      import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-      {
-        auth: {
-          storageKey: 'booking_client_session',
-          persistSession: true,
-          autoRefreshToken: true
-        }
-      }
-    );
-  }, []);
-
-  // Shadow the global supabase client to ensure absolute session isolation
-  // This prevents admin/pro sessions from contaminating the public booking flow.
-  const supabase = bookingSupabase;
+  // Using the shared singleton supabase instance from @/integrations/supabase/client
+  // to ensure state consistency across the entire application.
+  // const supabase = bookingSupabase; // Removed local instance creation
 
   const { slug: paramSlug, professionalSlug } = useParams<{ slug: string; professionalSlug?: string }>();
   const slug = customSlug || paramSlug;
