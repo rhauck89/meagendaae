@@ -1274,36 +1274,58 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
 
     setLoading(true);
     try {
-      // In the new gatekeeper flow, the client_id is already set and validated
-      // as part of the initial login/registration.
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Usuário não autenticado');
 
-      // Get current client for this company
-      const { data: clientRecord, error: clientError } = await supabase
-        .from('clients')
-        .select('id, is_blocked')
-        .eq('user_id', user.id)
-        .eq('company_id', company.id)
-        .maybeSingle();
+      const normalizedPhone = clientForm.whatsapp ? normalizePhone(clientForm.whatsapp) : '';
 
-      if (clientError || !clientRecord) {
-        console.error('[Booking] Client validation error:', clientError);
-        toast.error('Não foi possível validar seu cadastro. Tente identificar-se novamente.');
-        setShowIdentityModal(true);
-        setLoading(false);
-        return;
+      // 1. Garantir Client Global (Upsert)
+      const { data: globalClient, error: globalError } = await (supabase
+        .from('clients_global')
+        .upsert({
+          user_id: user.id,
+          whatsapp: normalizedPhone || null,
+          name: clientForm.full_name || null,
+        }, { onConflict: 'user_id' })
+        .select()
+        .single() as any);
+
+      if (globalError || !globalClient) {
+        console.error("ERRO AO GERAR CLIENT GLOBAL:", globalError);
+        throw new Error("Erro ao vincular perfil global");
       }
 
-      if (clientRecord.is_blocked) {
+      console.log("GLOBAL CLIENT:", globalClient);
+
+      // 2. Garantir Client Local (Upsert)
+      const { data: localClient, error: localError } = await (supabase
+        .from('clients')
+        .upsert({
+          company_id: company.id,
+          user_id: user.id,
+          global_client_id: globalClient.id,
+          name: clientForm.full_name,
+          whatsapp: clientForm.whatsapp,
+          updated_at: new Date().toISOString()
+        }, { onConflict: 'company_id, user_id' })
+        .select()
+        .single() as any);
+
+      if (localError || !localClient) {
+        console.error("ERRO AO GERAR CLIENT LOCAL:", localError);
+        throw new Error("Erro ao vincular cliente à empresa");
+      }
+
+      if (localClient.is_blocked) {
         toast.error('Este cliente está bloqueado para realizar agendamentos.');
         setLoading(false);
         return;
       }
 
-      const clientId = clientRecord.id;
+      const clientId = localClient.id;
       setSavedClientId(clientId);
       const formattedWhatsapp = clientForm.whatsapp ? normalizePhone(clientForm.whatsapp) : null;
+
 
 
       if (!selectedSlotIsAvailable) {
