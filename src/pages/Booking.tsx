@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState, useMemo } from 'react';
-import { createClient } from '@supabase/supabase-js';
 import type { Database } from '@/integrations/supabase/types';
 import { useParams, useSearchParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -159,23 +158,9 @@ interface PromotionInfo {
 }
 
 const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
-  const bookingSupabase = useMemo(() => {
-    return createClient<Database>(
-      import.meta.env.VITE_SUPABASE_URL,
-      import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-      {
-        auth: {
-          storageKey: 'booking_client_session',
-          persistSession: true,
-          autoRefreshToken: true
-        }
-      }
-    );
-  }, []);
-
-  // Shadow the global supabase client to ensure absolute session isolation
-  // This prevents admin/pro sessions from contaminating the public booking flow.
-  const supabase = bookingSupabase;
+  // Using the shared singleton supabase instance from @/integrations/supabase/client
+  // to ensure state consistency across the entire application.
+  // const supabase = bookingSupabase; // Removed local instance creation
 
   const { slug: paramSlug, professionalSlug } = useParams<{ slug: string; professionalSlug?: string }>();
   const slug = customSlug || paramSlug;
@@ -482,7 +467,11 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
     let isMounted = true;
 
     const checkSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
+      console.log('[SESSION_LOCAL]', localStorage.getItem('booking_client_session'));
+      const runtimeSession = await supabase.auth.getSession();
+      console.log('[SESSION_RUNTIME]', runtimeSession);
+
+      const { data: { session } } = runtimeSession;
       if (!isMounted) return;
 
       if (!session?.user) {
@@ -532,6 +521,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
       
       if (isActuallyClient) {
         console.log('[LOGIN_SUCCESS] Auth state change recognized client');
+        // Do not force state if we are already logged in to avoid loops
         setIsClientLoggedIn(true);
         setHasValidClient(true);
         
@@ -554,10 +544,12 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
       isMounted = false;
       subscription.unsubscribe();
     };
-  }, [company?.id, step, professionalSlug, supabase.auth]);
+  }, [company?.id, step, professionalSlug]);
 
   // Identification Gatekeeper - Based ONLY on local isClientLoggedIn state
   useEffect(() => {
+    if (isClientLoggedIn) return;
+    
     if (company && !isClientLoggedIn && clientLoaded && !authLoading) {
       console.log('[BOOKING_GATEKEEPER] Identification required. Opening modal...');
       setShowIdentityModal(true);
@@ -2998,22 +2990,22 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
         isOpen={showIdentityModal}
         onClose={() => setShowIdentityModal(false)}
         companyId={company?.id}
-        supabaseClient={bookingSupabase}
+        supabaseClient={supabase}
         onLoginSuccess={async (clientData) => {
           console.log('[LOGIN_SUCCESS] IdentityModal success callback triggered');
           
           setIsClientLoggedIn(true);
-          console.log('[SESSION_SET] Client session is now active');
+          console.log('[FORCED_LOGIN_STATE] Client session is now active');
           
           setShowIdentityModal(false);
           setShowOneClickCard(true);
           setIsChangingData(false);
           
-          const { data: { user } } = await bookingSupabase.auth.getUser();
+          const { data: { user } } = await supabase.auth.getUser();
           
           if (user) {
             console.log('[CLIENT_SET] recognized user:', user.id);
-            const { data: client } = await bookingSupabase
+            const { data: client } = await supabase
               .from('clients')
               .select('*')
               .eq('user_id', user.id)
