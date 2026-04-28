@@ -29,11 +29,11 @@ Deno.serve(async (req) => {
     const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
     const { data: company } = await admin
       .from('companies')
-      .select('id, owner_id, paddle_subscription_id')
+      .select('id, user_id, paddle_subscription_id')
       .eq('id', companyId)
       .maybeSingle();
 
-    if (!company || company.owner_id !== userId) {
+    if (!company || company.user_id !== userId) {
       return new Response(JSON.stringify({ error: 'Forbidden' }), { status: 403, ...responseHeaders });
     }
     if (!company.paddle_subscription_id) {
