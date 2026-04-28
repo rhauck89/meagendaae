@@ -278,14 +278,35 @@ export default function BarbershopLanding({ routeBusinessType, customSlug }: Bar
   }, [services]);
 
 
-  const handleStartBooking = () => {
+  const handleStartBooking = async () => {
     console.log('[START_BOOKING] Checking identification...');
-    if (isLoggedIn) {
-      console.log('[START_BOOKING] User logged in, proceeding...');
-      navigate(`/${bookingBasePath}/${slug}/agendar`);
-    } else {
+    setLoading(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (session?.user) {
+        // Check if user has a client record in this company
+        const { data: client } = await supabase
+          .from('clients')
+          .select('id')
+          .eq('user_id', session.user.id)
+          .eq('company_id', company.id)
+          .maybeSingle();
+
+        if (client) {
+          console.log('[START_BOOKING] User logged in and linked, proceeding...');
+          navigate(`/${bookingBasePath}/${slug}/agendar`);
+          return;
+        }
+      }
+      
       console.log('[START_BOOKING] Identification required, opening modal...');
       setShowIdentityModal(true);
+    } catch (err) {
+      console.error('[START_BOOKING] Error checking session:', err);
+      setShowIdentityModal(true);
+    } finally {
+      setLoading(false);
     }
   };
 
