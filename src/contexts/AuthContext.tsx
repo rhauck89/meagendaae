@@ -52,17 +52,46 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const fetchUserData = useCallback(async (userId: string) => {
     try {
-      const [profileRes, rolesRes] = await Promise.all([
-        supabase.from('profiles').select('*').eq('user_id', userId).single(),
+      const { data: { user } } = await supabase.auth.getUser();
+      console.log("[AUTH_DEBUG] User:", user);
+
+      let { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('user_id', userId)
+        .single();
+
+      if (profileError && profileError.code === 'PGRST116') {
+        console.log("[AUTH_DEBUG] Profile not found, creating for:", userId);
+        const { data: newProfile, error: createError } = await supabase
+          .from('profiles')
+          .insert({ 
+            user_id: userId,
+            full_name: user?.user_metadata?.full_name || null 
+          })
+          .select()
+          .single();
+
+        if (createError) {
+          console.error("[AUTH_DEBUG] Error creating profile:", createError);
+        } else {
+          profileData = newProfile;
+          console.log("[AUTH_DEBUG] Profile created successfully:", profileData);
+        }
+      }
+
+      const [rolesRes] = await Promise.all([
         supabase.from('user_roles').select('role').eq('user_id', userId),
       ]);
 
-      if (profileRes.data) {
-        setProfile(profileRes.data);
-        setCompanyId(profileRes.data.company_id);
+      console.log("[AUTH_DEBUG] Profile:", profileData);
+
+      if (profileData) {
+        setProfile(profileData);
+        setCompanyId(profileData.company_id);
         
         // Sync with global client data if applicable
-        if (profileRes.data.role === 'client') {
+        if (profileData.role === 'client') {
           await supabase.from('clients_global').select('*').eq('user_id', userId).single();
         }
       }
@@ -72,11 +101,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setRoles(mappedRoles);
 
         const isAdminRole = mappedRoles.includes('professional') || mappedRoles.includes('super_admin');
-        if (isAdminRole && profileRes.data?.id) {
+        if (isAdminRole && profileData?.id) {
           const { data: collabData } = await supabase
             .from('collaborators')
             .select('id')
-            .eq('profile_id', profileRes.data.id)
+            .eq('profile_id', profileData.id)
             .eq('active', true)
             .limit(1);
           
@@ -85,8 +114,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
           if (!hasCollabRecord) {
             setLoginModeState('admin');
-          } else if (profileRes.data.last_login_mode) {
-            setLoginModeState(profileRes.data.last_login_mode as LoginMode);
+          } else if (profileData.last_login_mode) {
+            setLoginModeState(profileData.last_login_mode as LoginMode);
           }
         } else if (mappedRoles.includes('collaborator')) {
           setIsAlsoCollaborator(false);
