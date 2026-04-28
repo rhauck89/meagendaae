@@ -227,6 +227,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
   const [hasValidClient, setHasValidClient] = useState(false);
   const [showCompleteSignup, setShowCompleteSignup] = useState(false);
   const [showExistingAccountModal, setShowExistingAccountModal] = useState(false);
+  const [existingAccountMode, setExistingAccountMode] = useState<'email_exists' | 'whatsapp_exists' | 'both_exists'>('email_exists');
   const [currentWeekStart, setCurrentWeekStart] = useState<Date>(startOfWeek(new Date(), { locale: ptBR }));
 
   // Refined Premium Flow States
