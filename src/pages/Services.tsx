@@ -10,6 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Badge } from '@/components/ui/badge';
 import { Plus, Pencil, Trash2, Clock, DollarSign, RefreshCw, Zap, Grid3X3, FolderPlus, Tag } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -183,7 +184,7 @@ const Services = () => {
 
       setCatDialogOpen(false);
       setEditingCat(null);
-      setCatForm({ name: '' });
+      setCatForm({ name: '', global_category_id: '' });
       await refreshAll();
     } catch (err: any) {
       toast.error(err.message || 'Erro ao salvar categoria');
