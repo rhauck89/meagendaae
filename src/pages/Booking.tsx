@@ -2402,102 +2402,174 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                     setOptInWhatsapp(false);
                     setSavedClientId(null);
                     setClientDataWasAutoFilled(false);
+                    setIsChangingData(false);
                     if (company) {
                       localStorage.removeItem(`client_id_${company.id}`);
                       localStorage.removeItem(`client_data_${company.id}`);
                     }
                     localStorage.removeItem('meagendae_client_data');
-                    toast.success('Pronto para novos dados!');
+                    // Comprehensive clear for "Change Account"
+                    localStorage.removeItem('booking_session_id');
+                    supabase.auth.signOut();
+                    // Clear all meagendae related local storage
+                    Object.keys(localStorage).forEach(key => {
+                      if (key.includes('meagendae') || key.includes('client_')) {
+                        localStorage.removeItem(key);
+                      }
+                    });
+                    toast.success('Sessão encerrada com sucesso!');
                   }}
                   className="text-[10px] font-black uppercase tracking-widest opacity-60 hover:opacity-100"
                   style={{ color: T.textSec }}
                 >
-                  Alterar dados
+                  Trocar conta
                 </button>
               </div>
             )}
 
-            <div 
-              className="rounded-[2.5rem] p-6 space-y-5 relative overflow-hidden" 
-              style={{ background: T.card, border: `2px solid ${T.border}` }}
-            >
-              <div className="space-y-4">
-                <div className="space-y-1.5">
-                  <Label className="text-[10px] font-black uppercase tracking-widest opacity-40 ml-2" style={{ color: T.textSec }}>Seu Nome Completo</Label>
-                  <Input 
-                    value={clientForm.full_name} 
-                    onChange={(e) => setClientForm({ ...clientForm, full_name: e.target.value })} 
-                    placeholder="Ex: Raphael Silva" 
-                    className="rounded-2xl h-14 text-base font-bold bg-white/5 border-white/10 focus:border-amber-500 transition-all" 
-                  />
+            {showOneClickCard && !isChangingData ? (
+              <div 
+                className="rounded-[2.5rem] p-8 space-y-8 animate-in zoom-in-95 duration-500 relative overflow-hidden group shadow-2xl" 
+                style={{ background: T.card, border: `2px solid ${T.accent}40` }}
+              >
+                {/* Badge Premium */}
+                <div className="absolute top-6 right-6">
+                  <Badge className="bg-amber-500/20 text-amber-500 border-amber-500/30 font-black text-[9px] uppercase tracking-widest py-1 px-3">
+                    Cliente Premium
+                  </Badge>
                 </div>
-                <div className="space-y-1.5">
-                  <Label className="text-[10px] font-black uppercase tracking-widest opacity-40 ml-2" style={{ color: T.textSec }}>WhatsApp para Confirmação</Label>
-                  <Input
-                    value={clientForm.whatsapp}
-                    onChange={(e) => {
-                      const digits = e.target.value.replace(/\D/g, '').slice(0, 11);
-                      let masked = digits;
-                      if (digits.length > 7) masked = `(${digits.slice(0,2)}) ${digits.slice(2,7)}-${digits.slice(7)}`;
-                      else if (digits.length > 2) masked = `(${digits.slice(0,2)}) ${digits.slice(2)}`;
-                      setClientForm({ ...clientForm, whatsapp: masked });
-                    }}
-                    placeholder="(11) 99999-9999" 
-                    maxLength={15}
-                    className="rounded-2xl h-14 text-base font-bold bg-white/5 border-white/10 focus:border-amber-500 transition-all"
-                  />
-                  {clientForm.whatsapp && clientForm.whatsapp.replace(/\D/g, '').length > 0 && !isValidWhatsApp(clientForm.whatsapp) && (
-                    <p className="text-[10px] font-bold text-red-400 mt-1 uppercase tracking-tighter">Número incompleto. Use DDD + 9 dígitos.</p>
-                  )}
-                </div>
-                <div className="space-y-1.5">
-                  <Label className="text-[10px] font-black uppercase tracking-widest opacity-40 ml-2" style={{ color: T.textSec }}>Seu Melhor E-mail</Label>
-                  <Input 
-                    type="email" 
-                    value={clientForm.email} 
-                    onChange={(e) => setClientForm({ ...clientForm, email: e.target.value })} 
-                    placeholder="email@exemplo.com" 
-                    className="rounded-2xl h-14 text-base font-bold bg-white/5 border-white/10 focus:border-amber-500 transition-all" 
-                  />
-                </div>
-                {!isClientLoggedIn && (
-                  <div className="space-y-1.5 animate-in slide-in-from-top-2 duration-300">
-                    <Label className="text-[10px] font-black uppercase tracking-widest opacity-40 ml-2" style={{ color: T.textSec }}>Crie uma Senha Segura</Label>
-                    <Input 
-                      type="password" 
-                      value={clientPassword} 
-                      onChange={(e) => setClientPassword(e.target.value)} 
-                      placeholder="Mínimo 8 caracteres" 
-                      className="rounded-2xl h-14 text-base font-bold bg-white/5 border-white/10 focus:border-amber-500 transition-all" 
-                    />
-                    <p className="text-[9px] font-bold opacity-40 uppercase tracking-widest ml-2 leading-relaxed">
-                      Sua senha permite acompanhar cashback, pontos e histórico de agendamentos.
-                    </p>
+
+                <div className="space-y-6">
+                  <div className="space-y-2">
+                    <p className="text-[10px] font-black uppercase tracking-[0.2em] opacity-50" style={{ color: T.textSec }}>Reconhecido com sucesso</p>
+                    <h3 className="text-3xl font-black tracking-tight">Bem-vindo de volta, {clientForm.full_name.split(' ')[0]} 👋</h3>
+                    
+                    {lastProfessionalName && (
+                      <div className="flex items-center gap-2 mt-2 py-2 px-3 rounded-xl bg-white/5 border border-white/10 w-fit">
+                        <Scissors className="w-3 h-3 text-amber-500" />
+                        <span className="text-[10px] font-bold uppercase tracking-wider opacity-80">
+                          Seu último atendimento foi com <span style={{ color: T.accent }}>{lastProfessionalName}</span>
+                        </span>
+                      </div>
+                    )}
                   </div>
-                )}
-                <div className="space-y-1.5">
-                  <Label className="text-[10px] font-black uppercase tracking-widest opacity-40 ml-2" style={{ color: T.textSec }}>Data de Nascimento (Opcional)</Label>
-                  <Input 
-                    type="date" 
-                    value={clientForm.birth_date} 
-                    onChange={(e) => setClientForm({ ...clientForm, birth_date: e.target.value })} 
-                    className="rounded-2xl h-14 text-base font-bold bg-white/5 border-white/10 focus:border-amber-500 transition-all invert-calendar" 
-                  />
+
+                  {/* Detalhes do Perfil */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1">
+                      <Label className="text-[9px] font-black uppercase tracking-widest opacity-40 ml-1" style={{ color: T.textSec }}>WhatsApp</Label>
+                      <div className="flex items-center gap-2 p-3 rounded-2xl bg-white/5 border border-white/10">
+                        <MessageCircle className="w-4 h-4 text-green-500" />
+                        <span className="text-xs font-bold">{clientForm.whatsapp}</span>
+                      </div>
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-[9px] font-black uppercase tracking-widest opacity-40 ml-1" style={{ color: T.textSec }}>E-mail</Label>
+                      <div className="flex items-center gap-2 p-3 rounded-2xl bg-white/5 border border-white/10">
+                        <Mail className="w-4 h-4 text-amber-500" />
+                        <span className="text-xs font-bold truncate">{clientForm.email || 'Não informado'}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {!clientForm.email && (
+                    <div className="flex items-center gap-2 py-2 px-4 rounded-xl bg-amber-500/10 border border-amber-500/20 animate-pulse">
+                      <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0" />
+                      <p className="text-[10px] font-bold uppercase tracking-wide text-amber-500">
+                        Complete seu e-mail para liberar benefícios exclusivos
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Benefícios */}
+                  {(cashbackTotal > 0 || loyaltyPoints > 0) && (
+                    <div className="grid grid-cols-2 gap-4 pt-2 border-t border-white/5">
+                      {cashbackTotal > 0 && (
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-full bg-green-500/10 flex items-center justify-center shrink-0">
+                            <DollarSign className="w-5 h-5 text-green-500" />
+                          </div>
+                          <div>
+                            <p className="text-[9px] font-black uppercase tracking-widest opacity-40" style={{ color: T.textSec }}>Cashback</p>
+                            <p className="text-sm font-black text-green-500">R$ {cashbackTotal.toFixed(2)}</p>
+                          </div>
+                        </div>
+                      )}
+                      {loyaltyPoints > 0 && (
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-full bg-amber-500/10 flex items-center justify-center shrink-0">
+                            <Star className="w-5 h-5 text-amber-500" />
+                          </div>
+                          <div>
+                            <p className="text-[9px] font-black uppercase tracking-widest opacity-40" style={{ color: T.textSec }}>Pontos</p>
+                            <p className="text-sm font-black text-amber-500">{loyaltyPoints} pts</p>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Resumo do Agendamento */}
+                  <div className="p-5 rounded-[2rem] bg-white/5 border border-white/10 space-y-3">
+                    <div className="flex items-center justify-between border-b border-white/5 pb-3">
+                      <div className="flex items-center gap-2">
+                        <Clock className="w-4 h-4 text-amber-500" />
+                        <span className="text-xs font-black uppercase tracking-widest">{selectedTime}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Calendar className="w-4 h-4 text-amber-500" />
+                        <span className="text-xs font-black uppercase tracking-widest">{selectedDate && format(selectedDate, 'dd/MM')}</span>
+                      </div>
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-[10px] font-black uppercase tracking-widest opacity-40" style={{ color: T.textSec }}>Serviços Escolhidos</p>
+                      <p className="text-sm font-bold truncate">
+                        {selectedServices.map(sid => services.find(s => s.id === sid)?.name).join(' + ')}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-3">
+                    <Button 
+                      onClick={() => setIsChangingData(true)}
+                      variant="outline"
+                      className="flex-1 rounded-2xl h-14 border-white/10 font-bold uppercase text-[10px] tracking-widest"
+                    >
+                      Alterar Dados
+                    </Button>
+                    <Button 
+                      onClick={() => {
+                        setStep('datetime');
+                        setIsChangingData(false);
+                      }}
+                      variant="outline"
+                      className="flex-1 rounded-2xl h-14 border-white/10 font-bold uppercase text-[10px] tracking-widest"
+                    >
+                      Trocar Horário
+                    </Button>
+                  </div>
                 </div>
               </div>
-              
-              <div className="flex items-start gap-3 pt-2">
-                <Checkbox 
-                  id="opt-in-whatsapp" 
-                  checked={optInWhatsapp} 
-                  onCheckedChange={(v) => setOptInWhatsapp(v === true)} 
-                  className="mt-1 rounded-md border-white/20"
-                />
-                <label htmlFor="opt-in-whatsapp" className="text-[10px] font-bold uppercase tracking-widest leading-relaxed cursor-pointer opacity-60 hover:opacity-100 transition-opacity" style={{ color: T.textSec }}>
-                  Aceito receber lembretes de horário e novidades via WhatsApp.
-                </label>
+            ) : (
+              <div 
+                className="rounded-[2.5rem] p-6 space-y-5 relative overflow-hidden" 
+                style={{ background: T.card, border: `2px solid ${T.border}` }}
+              >
+                <div className="space-y-4">
+...
+                <div className="flex items-start gap-3 pt-2">
+                  <Checkbox 
+                    id="opt-in-whatsapp" 
+                    checked={optInWhatsapp} 
+                    onCheckedChange={(v) => setOptInWhatsapp(v === true)} 
+                    className="mt-1 rounded-md border-white/20"
+                  />
+                  <label htmlFor="opt-in-whatsapp" className="text-[10px] font-bold uppercase tracking-widest leading-relaxed cursor-pointer opacity-60 hover:opacity-100 transition-opacity" style={{ color: T.textSec }}>
+                    Aceito receber lembretes de horário e novidades via WhatsApp.
+                  </label>
+                </div>
               </div>
-            </div>
+            )}
 
             <Button
               onClick={async () => {
