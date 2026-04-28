@@ -128,16 +128,21 @@ export function ExistingAccountModal({
         }
       } else if (data.session) {
         setSuccess(true);
+        setIsAuthenticated(true);
         toast.success('Bem-vindo de volta! 👋');
         
-        // Use the same setSession logic to ensure storage compatibility
         await supabase.auth.setSession({
           access_token: data.session.access_token,
           refresh_token: data.session.refresh_token
         });
 
+        // OBRIGATÓRIO: Manual update
+        const { data: { session: confirmedSession } } = await supabase.auth.getSession();
+        if (confirmedSession) {
+          await updateAuthState(confirmedSession);
+        }
+
         setTimeout(() => {
-          console.log('[CLOSE_MODAL_START] Senha OK');
           onLoginSuccess();
           onClose();
         }, 800);
