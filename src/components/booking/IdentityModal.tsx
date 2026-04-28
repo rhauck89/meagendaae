@@ -33,7 +33,7 @@ export function IdentityModal({
   // otp -> Verify WhatsApp code
   // password -> Enter password
   // register -> Create new account
-  const [view, setView] = useState<'choice' | 'identify' | 'options' | 'otp' | 'password' | 'register' | 'forgot' | 'not_found'>('choice');
+  const [view, setView] = useState<'choice' | 'identify' | 'options' | 'otp' | 'password' | 'register' | 'forgot' | 'not_found' | 'account_found'>('choice');
   
   const [whatsapp, setWhatsapp] = useState('');
   const [email, setEmail] = useState('');
