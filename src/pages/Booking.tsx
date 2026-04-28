@@ -230,7 +230,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
   const [loyaltyPoints, setLoyaltyPoints] = useState(0);
   const [loyaltyPointValue, setLoyaltyPointValue] = useState(0);
   const slotRequestRef = useRef(0);
-  const { isAuthenticated, user, loading: authLoading } = useAuth();
+  const { isAuthenticated, user, profile, loading: authLoading } = useAuth();
   const [hasValidClient, setHasValidClient] = useState(false);
   const [showCompleteSignup, setShowCompleteSignup] = useState(false);
   const [showExistingAccountModal, setShowExistingAccountModal] = useState(false);
