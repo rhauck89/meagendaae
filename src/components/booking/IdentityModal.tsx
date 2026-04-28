@@ -79,7 +79,13 @@ export function IdentityModal({
     return masked;
   };
 
-  const cleanPhone = (val: string) => val.replace(/\D/g, '');
+  const cleanPhone = (val: string) => {
+    let cleaned = val.replace(/\D/g, '');
+    if (cleaned && !cleaned.startsWith('55')) {
+      cleaned = '55' + cleaned;
+    }
+    return cleaned;
+  };
 
   const handleIdentify = async () => {
     const phone = cleanPhone(whatsapp);
