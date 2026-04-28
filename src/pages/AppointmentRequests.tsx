@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { normalizePhone } from '@/lib/whatsapp';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUserRole } from '@/hooks/useUserRole';
 import { supabase } from '@/integrations/supabase/client';
