@@ -98,7 +98,7 @@ Deno.serve(async (req) => {
     const { data: ownerProfile } = await adminClient
       .from("profiles")
       .select("email, full_name")
-      .eq("user_id", company.owner_id)
+      .eq("user_id", company.user_id)
       .single();
 
     if (!ownerProfile?.email) {
