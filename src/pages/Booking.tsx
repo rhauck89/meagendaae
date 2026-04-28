@@ -396,17 +396,35 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
       }
       const { data, error } = await supabase
         .from('clients')
-        .select('id')
+        .select('*')
         .eq('user_id', user.id)
         .eq('company_id', company.id)
         .maybeSingle();
+      
       if (error) {
         console.warn('[Booking] hasValidClient check error:', error);
       }
-      setHasValidClient(!!data);
+      
+      if (data) {
+        setHasValidClient(true);
+        // Automatic recognition: Pre-fill form if not already filled or if it was just auto-filled
+        if (!clientForm.full_name || clientDataWasAutoFilled) {
+          setClientForm({
+            full_name: data.name || '',
+            email: data.email || '',
+            whatsapp: displayWhatsApp(data.whatsapp || ''),
+            birth_date: data.birth_date || '',
+          });
+          setOptInWhatsapp(data.opt_in_whatsapp || false);
+          setSavedClientId(data.id);
+          setClientDataWasAutoFilled(true);
+        }
+      } else {
+        setHasValidClient(false);
+      }
     };
     checkValidClient();
-  }, [isClientLoggedIn, company?.id, bookingResult?.appointmentId, savedClientId]);
+  }, [isClientLoggedIn, company?.id, bookingResult?.appointmentId]);
 
   // Check if company has cashback or loyalty active
   // Load last booking for smart rebooking
@@ -2275,11 +2293,24 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
             }} className="flex items-center gap-1 text-xs font-black uppercase tracking-widest opacity-60 hover:opacity-100 transition-opacity" style={{ color: T.textSec }}>
               <ChevronLeft className="h-4 w-4" /> Voltar
             </button>
-            <div className="space-y-1">
-              <h2 className="text-2xl font-black tracking-tight">{savedClientId ? 'Bem-vindo de volta!' : 'Só mais um passo...'}</h2>
-              <p className="text-sm opacity-70" style={{ color: T.textSec }}>
-                {savedClientId ? 'Confirme seus dados para finalizar' : 'Complete sua identificação para agendar'}
-              </p>
+            <div className="flex items-center justify-between">
+              <div className="space-y-1">
+                <h2 className="text-2xl font-black tracking-tight">{isClientLoggedIn ? `Bem-vindo de volta, ${clientForm.full_name.split(' ')[0]}!` : 'Só mais um passo...'}</h2>
+                <p className="text-sm opacity-70" style={{ color: T.textSec }}>
+                  {isClientLoggedIn ? 'Confirme seus dados para finalizar' : 'Complete sua identificação para agendar'}
+                </p>
+              </div>
+              {!isClientLoggedIn && (
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => setShowExistingAccountModal(true)}
+                  className="rounded-xl border-white/10 bg-white/5 font-bold text-[10px] uppercase tracking-widest h-10 px-4 flex items-center gap-2 hover:bg-white/10 transition-all"
+                >
+                  <MessageCircle className="w-3 h-3 text-green-400" />
+                  Já tenho conta
+                </Button>
+              )}
             </div>
 
             {clientDataWasAutoFilled && (
