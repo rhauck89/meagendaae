@@ -78,7 +78,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    if (!company.owner_id) {
+    if (!company.user_id) {
       return new Response(JSON.stringify({ error: "Company has no owner" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
