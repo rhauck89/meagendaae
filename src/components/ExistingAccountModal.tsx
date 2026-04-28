@@ -373,16 +373,33 @@ export function ExistingAccountModal({
                   value={otpCode}
                   onChange={setOtpCode}
                   onComplete={(val) => handleVerifyOTP(val)}
-                  disabled={loading}
+                  disabled={loading || success}
                 />
               </div>
 
               <Button 
                 onClick={() => handleVerifyOTP()}
-                disabled={loading || otpCode.length !== 6}
-                className="w-full h-16 rounded-full bg-emerald-500 hover:bg-emerald-600 text-zinc-950 font-black text-lg transition-all shadow-lg shadow-emerald-500/20"
+                disabled={loading || success || otpCode.length !== 6}
+                className={cn(
+                  "w-full h-16 rounded-full font-black text-lg transition-all shadow-lg",
+                  success 
+                    ? "bg-emerald-500 text-zinc-950 shadow-emerald-500/40" 
+                    : "bg-emerald-500 hover:bg-emerald-600 text-zinc-950 shadow-emerald-500/20"
+                )}
               >
-                {loading ? "Verificando..." : "Verificar Código"}
+                {loading ? (
+                  <div className="flex items-center gap-2">
+                    <div className="w-5 h-5 border-2 border-zinc-950/20 border-t-zinc-950 animate-spin rounded-full" />
+                    <span>Verificando...</span>
+                  </div>
+                ) : success ? (
+                  <div className="flex items-center gap-2">
+                    <ShieldCheck className="w-6 h-6 animate-bounce" />
+                    <span>Código Confirmado</span>
+                  </div>
+                ) : (
+                  "Verificar Código"
+                )}
               </Button>
 
               <div className="text-center">
@@ -393,7 +410,8 @@ export function ExistingAccountModal({
                 ) : (
                   <button 
                     onClick={handleSendOTP}
-                    className="text-xs font-black uppercase tracking-widest text-emerald-500 hover:text-emerald-400 transition-colors"
+                    disabled={loading || success}
+                    className="text-xs font-black uppercase tracking-widest text-emerald-500 hover:text-emerald-400 transition-colors disabled:opacity-50"
                   >
                     Reenviar código
                   </button>
@@ -402,7 +420,8 @@ export function ExistingAccountModal({
 
               <button 
                 onClick={() => setView('options')}
-                className="w-full text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 hover:text-white py-2 transition-colors"
+                disabled={loading || success}
+                className="w-full text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 hover:text-white py-2 transition-colors disabled:opacity-50"
               >
                 Tentar outro método
               </button>
