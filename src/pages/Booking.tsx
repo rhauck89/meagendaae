@@ -3042,8 +3042,6 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
             setHasValidClient(true);
             console.log('[BOOKING_UNLOCKED] Client identified without user session');
           }
-            }
-          }
 
           // START FLOW FROM ZERO as requested
           setStep(professionalSlug ? 'services' : 'professional');
