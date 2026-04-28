@@ -120,11 +120,11 @@ Deno.serve(async (req) => {
       const targetCompanyId = companyId;
       
       if (!targetCompanyId) {
-        console.error('[ERROR] send-otp: Missing companyId');
-        throw new Error('Missing companyId');
+        console.error('[OTP_ERROR_REAL] send-otp: Missing companyId');
+        throw new Error('ID da empresa não informado.');
       }
       
-      console.log(`[OTP] Generating for Phone: ${phone}, Email: ${targetEmail}, Company: ${targetCompanyId}`);
+      console.log(`[OTP_GENERATE] Phone: ${phone}, Email: ${targetEmail}, Company: ${targetCompanyId}`);
       
       const code = Math.floor(100000 + Math.random() * 900000).toString();
       const expiresAt = new Date(Date.now() + 5 * 60 * 1000).toISOString();
@@ -141,30 +141,30 @@ Deno.serve(async (req) => {
         .gt('created_at', oneHourAgo);
 
       if (recentAttempts && recentAttempts >= 10) {
-        console.warn(`[OTP] Rate limit hit for ${cleanPhone || userIp}`);
-        throw new Error('Muitas tentativas em curto período. Tente novamente mais tarde.');
+        console.warn(`[OTP_GENERATE] Rate limit hit for ${cleanPhone || userIp}`);
+        throw new Error('Muitas tentativas em curto período. Tente novamente em 1 hora.');
       }
 
-      // Invalidate old codes for this phone/email in this company
+      // Invalidate old UNUSED codes for this phone in this company
       await adminClient
         .from('auth_otps')
-        .update({ expires_at: new Date().toISOString() })
-        .match({ company_id: targetCompanyId, phone: cleanPhone })
-        .gt('expires_at', new Date().toISOString());
+        .update({ used: true, metadata: { invalidated_by_new_request: true } })
+        .match({ company_id: targetCompanyId, phone: cleanPhone, used: false });
 
       const { error: insertError } = await adminClient.from('auth_otps').insert({
         company_id: targetCompanyId,
         phone: cleanPhone,
         email: targetEmail || null,
         code,
+        used: false,
         expires_at: expiresAt,
         ip_address: userIp,
         metadata: { user_agent: req.headers.get('user-agent') }
       });
 
       if (insertError) {
-        console.error('[OTP] Database insert error:', insertError);
-        throw new Error('Erro ao registrar código de verificação.');
+        console.error('[OTP_ERROR_REAL] Database insert error:', insertError);
+        throw new Error(`Erro ao registrar código: ${insertError.message}`);
       }
 
       const instance = await getInstance(targetCompanyId);
