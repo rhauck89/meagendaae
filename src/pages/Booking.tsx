@@ -2529,23 +2529,57 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                     </div>
                   </div>
 
-                  <div className="flex gap-3">
+                  <div className="space-y-3">
                     <Button 
-                      onClick={() => setIsChangingData(true)}
-                      variant="outline"
-                      className="flex-1 rounded-2xl h-14 border-white/10 font-bold uppercase text-[10px] tracking-widest"
+                      onClick={() => handleBook()}
+                      disabled={loading}
+                      className="w-full rounded-2xl h-16 font-black text-lg shadow-xl transition-all hover:scale-[1.02] active:scale-[0.98] group"
+                      style={{ background: `linear-gradient(135deg, #10B981, #34D399)`, color: '#000' }}
                     >
-                      Alterar Dados
+                      {loading ? (
+                        <div className="flex items-center gap-3">
+                          <div className="w-5 h-5 border-4 rounded-full animate-spin border-black/20 border-t-black" />
+                          Processando...
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-2">
+                          <CheckCircle2 className="h-6 w-6" />
+                          Confirmar Agendamento
+                        </div>
+                      )}
                     </Button>
+
+                    <div className="flex gap-3">
+                      <Button 
+                        onClick={() => setIsChangingData(true)}
+                        className="flex-1 rounded-2xl h-14 bg-zinc-900 text-white border border-white/10 font-bold uppercase text-[10px] tracking-widest hover:bg-zinc-800 transition-all"
+                      >
+                        Alterar Dados
+                      </Button>
+                      <Button 
+                        onClick={() => {
+                          setStep('datetime');
+                          setIsChangingData(false);
+                        }}
+                        className="flex-1 rounded-2xl h-14 bg-zinc-900 text-white border border-white/10 font-bold uppercase text-[10px] tracking-widest hover:bg-zinc-800 transition-all"
+                      >
+                        Trocar Horário
+                      </Button>
+                    </div>
+                    
                     <Button 
-                      onClick={() => {
-                        setStep('datetime');
-                        setIsChangingData(false);
+                      onClick={async () => {
+                        localStorage.removeItem(`client_id_${company.id}`);
+                        localStorage.removeItem(`client_data_${company.id}`);
+                        localStorage.removeItem('meagendae_client_data');
+                        localStorage.removeItem('booking_session_id');
+                        await supabase.auth.signOut();
+                        window.location.reload();
                       }}
-                      variant="outline"
-                      className="flex-1 rounded-2xl h-14 border-white/10 font-bold uppercase text-[10px] tracking-widest"
+                      variant="ghost"
+                      className="w-full rounded-xl h-10 text-[9px] font-bold uppercase tracking-widest opacity-50 hover:opacity-100 transition-opacity text-white hover:bg-white/5"
                     >
-                      Trocar Horário
+                      Trocar Conta / Sair
                     </Button>
                   </div>
                 </div>
@@ -2970,7 +3004,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
             <Button
               onClick={() => handleBook()}
               className="w-full rounded-full py-8 font-black text-lg shadow-2xl transition-all hover:scale-[1.02] active:scale-[0.98] group"
-              style={{ background: `linear-gradient(135deg, ${T.accent}, #F4C752)`, color: '#000' }}
+              style={{ background: `linear-gradient(135deg, #10B981, #34D399)`, color: '#000' }}
               disabled={loading}
             >
               {loading ? (
