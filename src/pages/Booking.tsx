@@ -508,6 +508,20 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
         setHasValidClient(false);
         return;
       }
+
+      // Check role again to be absolutely sure
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('user_id', user.id)
+        .single();
+      
+      if (profile && ['admin', 'professional', 'company', 'super_admin'].includes(profile.role)) {
+        setHasValidClient(false);
+        setIsClientLoggedIn(false);
+        return;
+      }
+
       const { data, error } = await supabase
         .from('clients')
         .select('*')
