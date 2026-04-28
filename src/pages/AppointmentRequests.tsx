@@ -173,14 +173,14 @@ const AppointmentRequests = () => {
       // 1. Garantir Client Global (Upsert com prioridade para user_id se existisse, mas aqui usamos o whatsapp)
       // Como estamos no painel admin aceitando uma solicitação, o "user" logado é o admin, não o cliente.
       // Buscamos se já existe um global_client com este whatsapp.
-      const { data: globalClient, error: globalError } = await supabase
+      const { data: globalClient, error: globalError } = await (supabase
         .from('clients_global' as any)
         .upsert({
           whatsapp: normPhone,
           name: selectedRequest.client_name,
         }, { onConflict: 'whatsapp' })
         .select()
-        .single();
+        .single() as any);
 
       if (globalError || !globalClient) {
         console.error("ERRO AO GERAR CLIENT GLOBAL:", globalError);
@@ -191,7 +191,7 @@ const AppointmentRequests = () => {
       console.log("GLOBAL CLIENT:", gClient);
 
       // 2. Garantir Client Local (Upsert)
-      const { data: localClient, error: localError } = await supabase
+      const { data: localClient, error: localError } = await (supabase
         .from('clients' as any)
         .upsert({
           company_id: companyId!,
@@ -202,7 +202,8 @@ const AppointmentRequests = () => {
           updated_at: new Date().toISOString()
         }, { onConflict: 'company_id, whatsapp' })
         .select()
-        .single();
+        .single() as any);
+
 
       if (localError || !localClient) {
         console.error("ERRO AO GERAR CLIENT LOCAL:", localError);
