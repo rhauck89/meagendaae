@@ -97,32 +97,6 @@ Deno.serve(async (req) => {
       return clean.startsWith('55') ? clean : '55' + clean;
     };
 
-    const replaceVariables = (text: string, data: any) => {
-      let result = text;
-      const vars: any = {
-        '{{nome}}': data.client_name || 'Cliente',
-        '{{empresa}}': data.company_name || 'Nossa Empresa',
-        '{{servico}}': data.service_name || 'Serviço',
-        '{{data}}': data.date || '',
-        '{{hora}}': data.time || '',
-        '{{profissional}}': data.professional_name || 'Profissional',
-        '{{link_agendamento}}': data.booking_link || '',
-        '{{link_reagendar}}': data.reschedule_link || '',
-        '{{link_cancelar}}': data.cancel_link || '',
-        '{{link_avaliacao}}': data.review_link || '',
-        '{{cashback}}': data.cashback || 'R$ 0,00',
-        '{{pontos}}': data.points || '0',
-        '{{tempo_atraso}}': data.delay_minutes || '0',
-        '{{nova_previsao}}': data.new_time || '',
-        '{{logo}}': '', // Placeholder
-      };
-
-      for (const [key, value] of Object.entries(vars)) {
-        result = result.replace(new RegExp(key, 'g'), String(value));
-      }
-      return result;
-    };
-
     const sendWhatsApp = async (instanceName: string, phone: string, text: string, imageUrl?: string) => {
       const number = formatPhone(phone);
       if (imageUrl && (text.includes('{{logo}}') || imageUrl)) {
@@ -142,10 +116,10 @@ Deno.serve(async (req) => {
 
     if (action === 'send-otp') {
       const { phone, email: targetEmail } = params;
-      const targetCompanyId = companyId; // Use companyId from destructuring at line 39
+      const targetCompanyId = companyId; // Use companyId from body destructuring
       
       if (!targetCompanyId) {
-        console.error('[ERROR] send-otp: Missing targetCompanyId');
+        console.error('[ERROR] send-otp: Missing companyId');
         throw new Error('Missing companyId');
       }
       
@@ -155,7 +129,7 @@ Deno.serve(async (req) => {
       const expiresAt = new Date(Date.now() + 5 * 60 * 1000).toISOString();
       const userIp = req.headers.get('x-real-ip') || req.headers.get('cf-connecting-ip') || 'unknown';
 
-      // Check for abuse (max 5 attempts in last hour for this IP/Phone)
+      // Check for abuse (max 10 attempts in last hour for this IP/Phone)
       const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
       const cleanPhone = phone ? formatPhone(phone) : null;
       
@@ -196,20 +170,19 @@ Deno.serve(async (req) => {
           return new Response(JSON.stringify({ success: true, method: 'whatsapp' }), { headers: corsHeaders });
         } catch (waError: any) {
           console.error('[OTP] WhatsApp send failure:', waError.message);
-          // Fallback if WhatsApp fails but email is available
         }
       } 
       
       if (targetEmail) {
         console.log(`[OTP] Falling back to Magic Link for ${targetEmail}`);
-        const { error: mailError } = await adminClient.auth.admin.generateLink({
+        const { data, error: linkError } = await adminClient.auth.admin.generateLink({
           type: 'magiclink',
           email: targetEmail,
           options: { redirectTo: params.redirectTo || 'https://app.agendae.io/' }
         });
-        if (mailError) {
-          console.error('[OTP] Magic Link error:', mailError);
-          throw mailError;
+        if (linkError) {
+          console.error('[OTP] Magic Link error:', linkError);
+          throw linkError;
         }
         return new Response(JSON.stringify({ success: true, method: 'email' }), { headers: corsHeaders });
       } else {
@@ -220,8 +193,10 @@ Deno.serve(async (req) => {
     }
 
     if (action === 'verify-otp') {
-      const { phone, email, code } = params;
-      const { data: otp } = await adminClient
+      const { phone, email: targetEmail, code, redirectTo } = params;
+      console.log(`[VERIFY] Checking OTP for Phone: ${phone}, Email: ${targetEmail}, Code: ${code}`);
+
+      const { data: otp, error: fetchError } = await adminClient
         .from('auth_otps')
         .select('*')
         .eq('code', code)
@@ -230,13 +205,29 @@ Deno.serve(async (req) => {
         .limit(1)
         .maybeSingle();
 
-      if (!otp) throw new Error('Código inválido ou expirado.');
-      if (otp.attempts >= otp.max_attempts) throw new Error('Máximo de tentativas excedido.');
+      if (fetchError) {
+        console.error('[VERIFY] DB Error:', fetchError);
+        throw new Error('Erro ao consultar código.');
+      }
 
-      if ((phone && otp.phone !== formatPhone(phone)) || (email && otp.email !== email)) {
-        await adminClient.from('auth_otps').update({ attempts: otp.attempts + 1 }).eq('id', otp.id);
+      if (!otp) {
+        console.warn(`[VERIFY] Invalid/Expired code: ${code}`);
+        throw new Error('Código inválido ou expirado.');
+      }
+
+      if (otp.attempts >= otp.max_attempts) {
+        console.warn(`[VERIFY] Max attempts reached for OTP ${otp.id}`);
+        throw new Error('Máximo de tentativas excedido. Solicite um novo código.');
+      }
+
+      const cleanPhone = phone ? formatPhone(phone) : null;
+      if ((cleanPhone && otp.phone !== cleanPhone) || (targetEmail && otp.email !== targetEmail)) {
+        await adminClient.from('auth_otps').update({ attempts: (otp.attempts || 0) + 1 }).eq('id', otp.id);
+        console.warn(`[VERIFY] Dest mismatch: OTP ${otp.id} intended for ${otp.phone || otp.email}`);
         throw new Error('Código não confere com o destinatário.');
       }
+
+      console.log(`[VERIFY] Success for OTP ${otp.id}. Generating access link...`);
 
       // Track metric
       await adminClient.rpc('track_booking_metric', { 
@@ -244,9 +235,44 @@ Deno.serve(async (req) => {
         p_metric_type: 'otp_login' 
       });
 
-      // Generate actual login link
-      const targetEmail = email || otp.email; 
-      // Note: If we only have phone, we'd need to find the user's email first.
+      // Mark as used
+      await adminClient.from('auth_otps').update({ expires_at: new Date(0).toISOString() }).eq('id', otp.id);
+
+      // Find user email
+      let userEmail = targetEmail || otp.email;
+      if (!userEmail && cleanPhone) {
+        const { data: client } = await adminClient
+          .from('clients')
+          .select('email')
+          .eq('phone', cleanPhone)
+          .not('email', 'is', null)
+          .maybeSingle();
+        
+        if (client?.email) {
+          userEmail = client.email;
+          console.log(`[VERIFY] Found email for phone ${cleanPhone}: ${userEmail}`);
+        }
+      }
+
+      if (userEmail) {
+        const { data, error: linkError } = await adminClient.auth.admin.generateLink({
+          type: 'magiclink',
+          email: userEmail,
+          options: { redirectTo: redirectTo || 'https://app.agendae.io/booking' }
+        });
+
+        if (linkError) {
+          console.error('[VERIFY] Magic Link generation error:', linkError);
+          return new Response(JSON.stringify({ success: true, email: userEmail }), { headers: corsHeaders });
+        }
+
+        console.log(`[VERIFY] Login link generated for ${userEmail}`);
+        return new Response(JSON.stringify({ 
+          success: true, 
+          email: userEmail, 
+          loginUrl: data.properties.action_link 
+        }), { headers: corsHeaders });
+      }
       
       return new Response(JSON.stringify({ success: true }), { headers: corsHeaders });
     }
@@ -266,7 +292,6 @@ Deno.serve(async (req) => {
         status: 'pending'
       }, { onConflict: 'session_id, company_id' }).select().single();
 
-      // Track metric
       await adminClient.rpc('track_booking_metric', { 
         p_company_id: companyId, 
         p_metric_type: 'abandonment' 
@@ -275,16 +300,7 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ success: true, id: abandonment.id }), { headers: corsHeaders });
     }
 
-    if (action === 'process-abandonment') {
-      // Logic for CRON job to check abandonments after 15 mins
-      // Check availability and send WhatsApp or Email
-      return new Response(JSON.stringify({ success: true }), { headers: corsHeaders });
-    }
-
-    // ... handle other existing actions (send-message, create, get-qr, etc.)
-    // For brevity, keeping core logic. In real execution, I'd merge carefully.
-    
-    return new Response(JSON.stringify({ error: 'Action not implemented in this refactor version' }), { 
+    return new Response(JSON.stringify({ error: 'Action not implemented' }), { 
       status: 400, 
       headers: corsHeaders 
     });
