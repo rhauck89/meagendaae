@@ -479,8 +479,12 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
 
   // Check if client is logged in - Refined to ignore admin sessions
   useEffect(() => {
+    let isMounted = true;
+
     const checkSession = async () => {
       const { data: { session } } = await supabase.auth.getSession();
+      if (!isMounted) return;
+
       if (!session?.user) {
         setIsClientLoggedIn(false);
         return;
@@ -493,11 +497,14 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
         .eq('user_id', session.user.id)
         .single();
       
+      if (!isMounted) return;
+
       const isActuallyClient = profile?.role === 'client';
       setIsClientLoggedIn(isActuallyClient);
       
       if (isActuallyClient) {
         console.log('[SESSION_SET] Client session recognized from existing session');
+        setHasValidClient(true);
       } else {
         console.log('[BOOKING_SESSION_SOURCE] active session is admin, treating as guest');
       }
@@ -509,7 +516,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
       console.log(`[BOOKING_SESSION_SOURCE] auth_state_changed: ${event}`);
       
       if (!session?.user) {
-        setIsClientLoggedIn(false);
+        if (isMounted) setIsClientLoggedIn(false);
         return;
       }
 
@@ -519,12 +526,14 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
         .eq('user_id', session.user.id)
         .single();
       
+      if (!isMounted) return;
+
       const isActuallyClient = profile?.role === 'client';
       
       if (isActuallyClient) {
         console.log('[LOGIN_SUCCESS] Auth state change recognized client');
         setIsClientLoggedIn(true);
-        setHasValidClient(true); // Trust the session
+        setHasValidClient(true);
         
         if (step === 'identifying') {
           setStep(professionalSlug ? 'services' : 'professional');
@@ -534,14 +543,18 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
           console.log('[SESSION_SET] Enabling active booking mode');
           setShowOneClickCard(true);
           setIsChangingData(false);
+          setShowIdentityModal(false);
         }
       } else {
         setIsClientLoggedIn(false);
       }
     });
 
-    return () => subscription.unsubscribe();
-  }, [company?.id, step]);
+    return () => {
+      isMounted = false;
+      subscription.unsubscribe();
+    };
+  }, [company?.id, step, professionalSlug, supabase.auth]);
 
   // Identification Gatekeeper - Based ONLY on local isClientLoggedIn state
   useEffect(() => {
