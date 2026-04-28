@@ -2451,30 +2451,22 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                       });
                       if (signUpError) {
                         const { diagnoseAuthError } = await import('@/lib/auth-errors');
-                        toast.error(diagnoseAuthError(signUpError));
+                        const errorMsg = diagnoseAuthError(signUpError);
+                        
+                        // Check if it's "User already exists" to show the friendly modal
+                        const isAlreadyRegistered = /already registered|already exists|user.*exists|email.*taken/i.test(signUpError.message) || 
+                                                  signUpError.code === 'user_already_exists' ||
+                                                  signUpError.status === 422; // 422 is often returned when user enumeration protection is on
+
+                        if (isAlreadyRegistered) {
+                          setShowExistingAccountModal(true);
+                        } else {
+                          toast.error(errorMsg);
+                        }
+                        
                         setAuthLoading(false);
                         return;
                       }
-                      if (signUpData.user) {
-                        toast.success('Conta criada com sucesso! 🎁');
-                        await supabase.rpc('link_client_to_user', {
-                          p_user_id: signUpData.user.id,
-                          p_phone: formattedPhone || null,
-                          p_email: emailTrimmed,
-                        } as any);
-                        try {
-                          const { sendWelcomeClientEmail } = await import('@/lib/email');
-                          void sendWelcomeClientEmail({ email: emailTrimmed, name: clientForm.full_name.trim() });
-                        } catch (e) { console.warn('[email] welcome failed', e); }
-                      }
-                    }
-                  } catch (err: any) {
-                    toast.error(err?.message || 'Erro ao autenticar');
-                    setAuthLoading(false);
-                    return;
-                  }
-                  setAuthLoading(false);
-                }
 
                 const hasBenefits = (loyaltyPointValue > 0) || (isPromoMode && promoData?.promotion_type === 'cashback');
                 if (hasBenefits && !savedClientId) {
