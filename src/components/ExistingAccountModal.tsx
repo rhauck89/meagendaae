@@ -546,7 +546,8 @@ export function ExistingAccountModal({
               </button>
             </div>
           )}
-        </div>
+          </div>
+        )}
       </DialogContent>
     </Dialog>
   );
