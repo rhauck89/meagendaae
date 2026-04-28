@@ -70,6 +70,7 @@ export default function BarbershopLanding({ routeBusinessType, customSlug }: Bar
   const [allReviewsList, setAllReviewsList] = useState<any[]>([]);
   const [isWhitelabel, setIsWhitelabel] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [showIdentityModal, setShowIdentityModal] = useState(false);
   const [lastBooking, setLastBooking] = useState<{
     serviceIds: string[]; serviceNames: string[]; serviceDurations: number[];
     professionalId: string; professionalName: string; professionalAvatar: string | null;
