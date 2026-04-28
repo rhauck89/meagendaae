@@ -168,7 +168,7 @@ const AppointmentRequests = () => {
       const startTime = new Date(`${selectedRequest.requested_date}T${selectedRequest.requested_time}`);
       const endTime = new Date(startTime.getTime() + serviceInfo.duration * 60 * 1000);
 
-      const normalizedPhone = selectedRequest.client_whatsapp.replace(/\D/g, '');
+      const normPhone = normalizePhone(selectedRequest.client_whatsapp);
 
       // 1. Garantir Client Global (Upsert com prioridade para user_id se existisse, mas aqui usamos o whatsapp)
       // Como estamos no painel admin aceitando uma solicitação, o "user" logado é o admin, não o cliente.
