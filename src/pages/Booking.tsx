@@ -41,6 +41,7 @@ import { getCompanyBranding, buildThemeFromBranding } from '@/hooks/useCompanyBr
 import { usePreselectedSlot } from '@/hooks/usePreselectedSlot';
 import { Lock } from 'lucide-react';
 import { CompleteSignupModal } from '@/components/CompleteSignupModal';
+import { ExistingAccountModal } from '@/components/ExistingAccountModal';
 import { BookingErrorDialog, translateBookingError, type BookingErrorInfo } from '@/components/BookingErrorDialog';
 
 const StarRating = ({ rating, size = 14 }: { rating: number; size?: number }) => {
@@ -225,8 +226,9 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
   const [isClientLoggedIn, setIsClientLoggedIn] = useState(false);
   const [hasValidClient, setHasValidClient] = useState(false);
   const [showCompleteSignup, setShowCompleteSignup] = useState(false);
+  const [showExistingAccountModal, setShowExistingAccountModal] = useState(false);
   const [currentWeekStart, setCurrentWeekStart] = useState<Date>(startOfWeek(new Date(), { locale: ptBR }));
-  
+
   const [hasBenefitsActive, setHasBenefitsActive] = useState(false);
   const [lastBooking, setLastBooking] = useState<{
     serviceIds: string[]; serviceNames: string[]; serviceDurations: number[];
@@ -2416,6 +2418,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                       email: emailTrimmed,
                       password: clientPassword,
                     });
+                    
                     if (!signInError) {
                       toast.success('Bem-vindo de volta!');
                       const formattedPhone = clientForm.whatsapp ? formatWhatsApp(clientForm.whatsapp) : '';
@@ -2434,6 +2437,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                         setAuthLoading(false);
                         return;
                       }
+                      
                       const formattedPhone = clientForm.whatsapp ? formatWhatsApp(clientForm.whatsapp) : '';
                       const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
                         email: emailTrimmed,
@@ -2447,13 +2451,24 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                           },
                         },
                       });
+
                       if (signUpError) {
                         const { diagnoseAuthError } = await import('@/lib/auth-errors');
-                        toast.error(diagnoseAuthError(signUpError));
+                        const errorMsg = diagnoseAuthError(signUpError);
+                        const isAlreadyRegistered = /already registered|already exists|user.*exists|email.*taken/i.test(signUpError.message) || 
+                                                  signUpError.code === 'user_already_exists' ||
+                                                  signUpError.status === 422;
+
+                        if (isAlreadyRegistered) {
+                          setShowExistingAccountModal(true);
+                        } else {
+                          toast.error(errorMsg);
+                        }
                         setAuthLoading(false);
                         return;
                       }
-                      if (signUpData.user) {
+
+                      if (signUpData?.user) {
                         toast.success('Conta criada com sucesso! 🎁');
                         await supabase.rpc('link_client_to_user', {
                           p_user_id: signUpData.user.id,
@@ -3018,6 +3033,28 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
           </div>
         </DialogContent>
       </Dialog>
+
+      <ExistingAccountModal
+        isOpen={showExistingAccountModal}
+        onClose={() => setShowExistingAccountModal(false)}
+        email={clientForm.email}
+        whatsapp={clientForm.whatsapp}
+        companyId={company?.id}
+        onLoginSuccess={() => {
+          setIsClientLoggedIn(true);
+          const hasBenefits = (loyaltyPointValue > 0) || (isPromoMode && promoData?.promotion_type === 'cashback');
+          if (hasBenefits && !savedClientId) {
+            setStep('benefits');
+          } else {
+            setStep('confirm');
+          }
+          setShowExistingAccountModal(false);
+        }}
+        onUseDifferentEmail={() => {
+          setClientForm(prev => ({ ...prev, email: '' }));
+          setShowExistingAccountModal(false);
+        }}
+      />
     </div>
   );
 };
