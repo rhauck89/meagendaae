@@ -208,7 +208,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
   const [promoData, setPromoData] = useState<PromotionInfo | null>(null);
   const isPromoMode = !!promoData;
 
-  const [step, setStep] = useState<Step>(professionalSlug ? 'services' : 'professional');
+  const [step, setStep] = useState<Step>('identifying');
   const [selectedServices, setSelectedServices] = useState<string[]>([]);
   const [selectedProfessional, setSelectedProfessional] = useState<string | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
