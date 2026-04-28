@@ -1326,91 +1326,45 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
       setStep('services');
       return;
     }
-    if (!clientForm.full_name.trim() || !clientForm.whatsapp || !isValidWhatsApp(clientForm.whatsapp)) {
-      toast.error('Informe seu nome e número de WhatsApp para continuar.');
-      setStep('confirm');
-      setIsChangingData(true);
+    if (!isClientLoggedIn) {
+      toast.error('Sessão expirada. Por favor, identifique-se novamente.');
+      setShowIdentityModal(true);
+      setLoading(false);
       return;
     }
+
     setLoading(true);
     try {
-      const formattedWhatsapp = clientForm.whatsapp ? formatWhatsApp(clientForm.whatsapp) : null;
-      console.log('[Booking] Creating client:', { name: clientForm.full_name, company_id: company.id });
-      let clientIdFromRpc: string | null = null;
-      const firstAttempt = await supabase.rpc('create_client', {
-        p_name: clientForm.full_name, p_whatsapp: formattedWhatsapp || '',
-        p_email: clientForm.email || '', p_company_id: company.id,
-        p_birth_date: clientForm.birth_date || null,
-      } as any);
-      if (firstAttempt.error) {
-        console.error('[Booking] Client creation error:', firstAttempt.error);
-        const msg = String(firstAttempt.error.message || '');
-        if (/duplicate key|unique constraint|idx_clients_user_company|conflict|409/i.test(msg)) {
-          // Should be rare now (RPC is get-or-create), but retry once just in case.
-          toast.info('Já encontramos seu cadastro, continuando...');
-          const retry = await supabase.rpc('create_client', {
-            p_name: clientForm.full_name, p_whatsapp: formattedWhatsapp || '',
-            p_email: clientForm.email || '', p_company_id: company.id,
-            p_birth_date: clientForm.birth_date || null,
-          } as any);
-          if (retry.error || !retry.data) {
-            toast.error('Não foi possível identificar seu cadastro. Tente novamente em instantes.');
-            setLoading(false);
-            return;
-          }
-          clientIdFromRpc = retry.data as string;
-        } else {
-          toast.error('Não foi possível salvar seus dados. Verifique o WhatsApp e e-mail informados e tente novamente.');
-          setLoading(false);
-          return;
-        }
-      } else {
-        clientIdFromRpc = (firstAttempt.data as string) ?? null;
-      }
-      const clientId = clientIdFromRpc;
-      console.log('[Booking] Client ID:', clientId);
+      // In the new gatekeeper flow, the client_id is already set and validated
+      // as part of the initial login/registration.
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Usuário não autenticado');
 
-      // Ensure client data is updated (email and timestamp)
-      if (clientId) {
-        await supabase
-          .from('clients')
-          .update({
-            email: clientForm.email || null,
-            updated_at: new Date().toISOString()
-          } as any)
-          .eq('id', clientId);
+      // Get current client for this company
+      const { data: clientRecord, error: clientError } = await supabase
+        .from('clients')
+        .select('id, is_blocked')
+        .eq('user_id', user.id)
+        .eq('company_id', company.id)
+        .maybeSingle();
+
+      if (clientError || !clientRecord) {
+        console.error('[Booking] Client validation error:', clientError);
+        toast.error('Não foi possível validar seu cadastro. Tente identificar-se novamente.');
+        setShowIdentityModal(true);
+        setLoading(false);
+        return;
       }
 
-      // Check if client is blocked
-      if (clientId) {
-        const { data: clientRecord } = await supabase
-          .from('clients')
-          .select('is_blocked')
-          .eq('id', clientId)
-          .single();
-        if (clientRecord && (clientRecord as any).is_blocked) {
-          toast.error('Este cliente está bloqueado para realizar agendamentos. Entre em contato com o estabelecimento.');
-          setLoading(false);
-          return;
-        }
+      if (clientRecord.is_blocked) {
+        toast.error('Este cliente está bloqueado para realizar agendamentos.');
+        setLoading(false);
+        return;
       }
 
-      if (clientId) {
-        const clientDataJson = JSON.stringify({
-          full_name: clientForm.full_name, email: clientForm.email || '', whatsapp: clientForm.whatsapp || '',
-          opt_in_whatsapp: optInWhatsapp,
-        });
-        // Always save client_id for this company (needed for rebooking logic)
-        localStorage.setItem(`client_id_${company.id}`, clientId);
-        // Data will be persisted/cleared on success screen based on user choice
-        localStorage.setItem(`client_data_${company.id}`, clientDataJson);
-        localStorage.setItem('meagendae_client_data', clientDataJson);
-        setSavedClientId(clientId);
-        // Track booking count
-        const countKey = 'meagendae_booking_count';
-        const currentCount = parseInt(localStorage.getItem(countKey) || '0', 10);
-        localStorage.setItem(countKey, String(currentCount + 1));
-      }
+      const clientId = clientRecord.id;
+      setSavedClientId(clientId);
+
 
       if (!selectedSlotIsAvailable) {
         setBookingError({
