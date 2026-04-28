@@ -223,7 +223,7 @@ const CompanySetup = ({ onComplete }: CompanySetupProps) => {
         console.warn('[email] welcome company failed', e);
       }
 
-      setStep('hours');
+      setStep('categories');
     } catch (err: any) {
       toast.error('Erro ao criar empresa. Tente novamente.');
       console.error('Company creation error:', err);
