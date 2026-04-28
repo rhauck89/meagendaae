@@ -83,13 +83,18 @@ export function ExistingAccountModal({
   };
 
   const handleSendOTP = async () => {
+    const phoneToUse = whatsapp || initialWhatsapp;
+    if (!phoneToUse) {
+      setView('identify');
+      return;
+    }
     setLoading(true);
     try {
       const { data, error } = await supabase.functions.invoke('whatsapp-integration', {
         body: {
           action: 'send-otp',
           companyId,
-          phone: whatsapp,
+          phone: phoneToUse,
         }
       });
 
@@ -111,12 +116,13 @@ export function ExistingAccountModal({
     if (otpCode.length !== 6) return;
     setLoading(true);
     try {
+      const phoneToUse = whatsapp || initialWhatsapp;
       const { data, error } = await supabase.functions.invoke('whatsapp-integration', {
         body: {
           action: 'verify-otp',
-          phone: whatsapp,
+          phone: phoneToUse,
           code: otpCode,
-          redirectTo: window.location.origin
+          redirectTo: window.location.href // Use current URL to return exactly here
         }
       });
 
