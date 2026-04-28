@@ -3050,5 +3050,15 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
           }
           setShowExistingAccountModal(false);
         }}
+        onUseDifferentEmail={() => {
+          setClientForm(prev => ({ ...prev, email: '' }));
+          setShowExistingAccountModal(false);
+        }}
+      />
+    </div>
+  );
+};
+
+export default BookingPage;
 
 export default BookingPage;
