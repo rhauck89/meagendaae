@@ -51,16 +51,13 @@ export default function ProfessionalPublicProfile() {
   const [companySettings, setCompanySettings] = useState<any>(null);
   const [activeCashback, setActiveCashback] = useState<string | null>(null);
   const [lastBooking, setLastBooking] = useState<any>(null);
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const { isAuthenticated } = useAuth();
 
   const { amenities: companyAmenities } = useCompanyAmenities(company?.id);
   const { scrollY } = useScroll();
   const y1 = useTransform(scrollY, [0, 500], [0, 200]);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => setIsLoggedIn(!!session?.user));
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, session) => setIsLoggedIn(!!session?.user));
-    return () => subscription.unsubscribe();
   }, []);
 
   useEffect(() => { if (slug && professionalSlug) load(); }, [slug, professionalSlug]);
@@ -91,7 +88,7 @@ export default function ProfessionalPublicProfile() {
     });
 
     // Check for last booking if logged in
-    if (isLoggedIn) {
+    if (isAuthenticated) {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
         const { data: appt } = await supabase

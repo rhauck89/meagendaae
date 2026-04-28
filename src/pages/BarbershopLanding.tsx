@@ -69,7 +69,7 @@ export default function BarbershopLanding({ routeBusinessType, customSlug }: Bar
   const [showAllReviews, setShowAllReviews] = useState(false);
   const [allReviewsList, setAllReviewsList] = useState<any[]>([]);
   const [isWhitelabel, setIsWhitelabel] = useState(false);
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const { isAuthenticated } = useAuth();
   const [showIdentityModal, setShowIdentityModal] = useState(false);
   const [lastBooking, setLastBooking] = useState<{
     serviceIds: string[]; serviceNames: string[]; serviceDurations: number[];
@@ -84,9 +84,6 @@ export default function BarbershopLanding({ routeBusinessType, customSlug }: Bar
 
   // Detect logged-in user
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => setIsLoggedIn(!!session?.user));
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, session) => setIsLoggedIn(!!session?.user));
-    return () => subscription.unsubscribe();
   }, []);
 
   // Load last booking for smart rebooking on landing
@@ -97,7 +94,7 @@ export default function BarbershopLanding({ routeBusinessType, customSlug }: Bar
       setRebookDismissed(dismissed);
     } catch { /* ignore */ }
 
-    if (!isLoggedIn) {
+    if (!isAuthenticated) {
       try {
         const stored = localStorage.getItem(`last_booking_${company.id}`);
         if (stored) setLastBooking(JSON.parse(stored));
@@ -158,7 +155,7 @@ export default function BarbershopLanding({ routeBusinessType, customSlug }: Bar
         });
       } catch { /* ignore */ }
     })();
-  }, [company?.id, isLoggedIn]);
+  }, [company?.id, isAuthenticated]);
 
   const handleDismissRebook = () => {
     if (!company?.id) return;
@@ -542,7 +539,7 @@ export default function BarbershopLanding({ routeBusinessType, customSlug }: Bar
         </div>
 
         {/* Smart Rebooking */}
-        {isLoggedIn && lastBooking && !rebookDismissed && (() => {
+        {isAuthenticated && lastBooking && !rebookDismissed && (() => {
           const formattedDate = format(new Date(lastBooking.bookedAt), "d 'de' MMMM 'de' yyyy 'às' HH:mm", { locale: ptBR });
           return (
             <motion.section
