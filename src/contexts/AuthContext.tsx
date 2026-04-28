@@ -1,6 +1,7 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 type LoginMode = 'admin' | 'professional' | null;
 
@@ -16,6 +17,9 @@ interface AuthContextType {
   isAlsoCollaborator: boolean;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
+  setUser: (user: User | null) => void;
+  setSession: (session: Session | null) => void;
+  updateAuthState: (session: Session | null) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -30,6 +34,9 @@ const AuthContext = createContext<AuthContextType>({
   isAlsoCollaborator: false,
   signOut: async () => {},
   refreshProfile: async () => {},
+  setUser: () => {},
+  setSession: () => {},
+  updateAuthState: async () => {},
 });
 
 export const useAuth = () => useContext(AuthContext);
@@ -47,105 +54,124 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const setLoginMode = async (mode: LoginMode) => {
     setLoginModeState(mode);
     if (mode && user) {
-      // Save preference to profile
       await supabase.from('profiles').update({ last_login_mode: mode }).eq('user_id', user.id);
     }
   };
 
-  const fetchUserData = async (userId: string) => {
-    const [profileRes, rolesRes] = await Promise.all([
-      supabase.from('profiles').select('*').eq('user_id', userId).single(),
-      supabase.from('user_roles').select('role').eq('user_id', userId),
-    ]);
+  const fetchUserData = useCallback(async (userId: string) => {
+    try {
+      const [profileRes, rolesRes] = await Promise.all([
+        supabase.from('profiles').select('*').eq('user_id', userId).single(),
+        supabase.from('user_roles').select('role').eq('user_id', userId),
+      ]);
 
-    let savedMode: LoginMode = null;
-    if (profileRes.data) {
-      setProfile(profileRes.data);
-      setCompanyId(profileRes.data.company_id);
-      savedMode = profileRes.data.last_login_mode as LoginMode;
-    }
+      let savedMode: LoginMode = null;
+      if (profileRes.data) {
+        setProfile(profileRes.data);
+        setCompanyId(profileRes.data.company_id);
+        savedMode = profileRes.data.last_login_mode as LoginMode;
 
-    if (rolesRes.data) {
-      const mappedRoles = rolesRes.data.map((r) => r.role);
-      setRoles(mappedRoles);
-
-      // Check if admin user also has a collaborator record
-      const isAdminRole = mappedRoles.includes('professional');
-      if (isAdminRole && profileRes.data?.id) {
-        const { data: collabData } = await supabase
-          .from('collaborators')
-          .select('id')
-          .eq('profile_id', profileRes.data.id)
-          .eq('active', true)
-          .limit(1);
-        const hasCollabRecord = !!(collabData && collabData.length > 0);
-        setIsAlsoCollaborator(hasCollabRecord);
-
-        // Only restore saved mode if user actually has dual roles
-        if (hasCollabRecord && savedMode) {
-          setLoginModeState(savedMode);
-        } else if (!hasCollabRecord) {
-          // Single role admin — force admin mode
-          setLoginModeState('admin');
-        }
-        // If hasCollabRecord && !savedMode → leave null so dialog shows
-      } else if (mappedRoles.includes('collaborator')) {
-        // Pure collaborator — force professional mode
-        setIsAlsoCollaborator(false);
-        setLoginModeState('professional');
-      } else {
-        setIsAlsoCollaborator(false);
-        if (isAdminRole) {
-          setLoginModeState('admin');
+        // CLIENT_GLOBAL_SYNC: If user is a client, ensure we have their global data synced
+        if (profileRes.data.role === 'client') {
+          const { data: globalClient } = await supabase
+            .from('clients_global')
+            .select('*')
+            .eq('user_id', userId)
+            .single();
+          
+          if (globalClient) {
+            console.log('[AUTH_CONTEXT] Synced with clients_global:', globalClient.id);
+          }
         }
       }
+
+      if (rolesRes.data) {
+        const mappedRoles = rolesRes.data.map((r) => r.role);
+        setRoles(mappedRoles);
+
+        const isAdminRole = mappedRoles.includes('professional') || mappedRoles.includes('admin');
+        if (isAdminRole && profileRes.data?.id) {
+          const { data: collabData } = await supabase
+            .from('collaborators')
+            .select('id')
+            .eq('profile_id', profileRes.data.id)
+            .eq('active', true)
+            .limit(1);
+          const hasCollabRecord = !!(collabData && collabData.length > 0);
+          setIsAlsoCollaborator(hasCollabRecord);
+
+          if (hasCollabRecord && savedMode) {
+            setLoginModeState(savedMode);
+          } else if (!hasCollabRecord) {
+            setLoginModeState('admin');
+          }
+        } else if (mappedRoles.includes('collaborator')) {
+          setIsAlsoCollaborator(false);
+          setLoginModeState('professional');
+        } else {
+          setIsAlsoCollaborator(false);
+          if (isAdminRole) {
+            setLoginModeState('admin');
+          }
+        }
+      }
+    } catch (error) {
+      console.error('[AUTH_CONTEXT] Error fetching user data:', error);
     }
-  };
+  }, []);
+
+  const updateAuthState = useCallback(async (newSession: Session | null) => {
+    setSession(newSession);
+    const newUser = newSession?.user ?? null;
+    setUser(newUser);
+
+    if (newUser) {
+      await fetchUserData(newUser.id);
+    } else {
+      setProfile(null);
+      setCompanyId(null);
+      setRoles([]);
+      setLoginModeState(null);
+      setIsAlsoCollaborator(false);
+    }
+    setLoading(false);
+  }, [fetchUserData]);
 
   useEffect(() => {
     let cancelled = false;
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (_event, session) => {
-        if (cancelled) return;
-        setSession(session);
-        setUser(session?.user ?? null);
+    // Get initial session
+    supabase.auth.getSession().then(({ data: { session: initialSession } }) => {
+      if (cancelled) return;
+      updateAuthState(initialSession);
+    });
 
-        if (session?.user) {
-          setTimeout(async () => {
-            if (cancelled) return;
-            await fetchUserData(session.user.id);
-            if (!cancelled) setLoading(false);
-          }, 0);
-        } else {
-          setProfile(null);
-          setCompanyId(null);
-          setRoles([]);
-          setLoginModeState(null);
-          setIsAlsoCollaborator(false);
-          setLoading(false);
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, currentSession) => {
+        if (cancelled) return;
+        console.log(`[AUTH_CONTEXT] onAuthStateChange: ${event}`);
+        
+        // We still use this as a backup, but manual updates are preferred after login
+        if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') {
+          updateAuthState(currentSession);
+        } else if (event === 'SIGNED_OUT') {
+          updateAuthState(null);
         }
       }
     );
-
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!cancelled && !session) setLoading(false);
-    });
 
     return () => {
       cancelled = true;
       subscription.unsubscribe();
     };
-  }, []);
+  }, [updateAuthState]);
 
   const signOut = async () => {
-    // Clear sensitive keys before signing out
     const sensitiveKeys = [
       'selectedClient', 'clientId', 'guestClient', 'cachedAppointments', 
       'clientPhone', 'clientProfile', 'client_portal_'
     ];
     
-    // Clear specific keys and any starting with client_portal_
     Object.keys(localStorage).forEach(key => {
       if (sensitiveKeys.some(sk => key.startsWith(sk))) {
         localStorage.removeItem(key);
@@ -153,7 +179,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
 
     await supabase.auth.signOut();
-    // Use replace to avoid back button issues and force state reset
     window.location.replace('/');
   };
 
@@ -164,7 +189,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   return (
-    <AuthContext.Provider value={{ user, session, loading, profile, companyId, roles, loginMode, setLoginMode, isAlsoCollaborator, signOut, refreshProfile }}>
+    <AuthContext.Provider value={{ 
+      user, 
+      session, 
+      loading, 
+      profile, 
+      companyId, 
+      roles, 
+      loginMode, 
+      setLoginMode, 
+      isAlsoCollaborator, 
+      signOut, 
+      refreshProfile,
+      setUser,
+      setSession,
+      updateAuthState
+    }}>
       {children}
     </AuthContext.Provider>
   );
