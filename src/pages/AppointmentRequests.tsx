@@ -167,32 +167,83 @@ const AppointmentRequests = () => {
       const startTime = new Date(`${selectedRequest.requested_date}T${selectedRequest.requested_time}`);
       const endTime = new Date(startTime.getTime() + serviceInfo.duration * 60 * 1000);
 
-      // 1. Create appointment
+      const normalizedPhone = selectedRequest.client_whatsapp.replace(/\D/g, '');
+
+      // 1. Garantir Client Global (Upsert com prioridade para user_id se existisse, mas aqui usamos o whatsapp)
+      // Como estamos no painel admin aceitando uma solicitação, o "user" logado é o admin, não o cliente.
+      // Buscamos se já existe um global_client com este whatsapp.
+      const { data: globalClient, error: globalError } = await supabase
+        .from('clients_global')
+        .upsert({
+          whatsapp: normalizedPhone,
+          name: selectedRequest.client_name,
+        }, { onConflict: 'whatsapp' })
+        .select()
+        .single();
+
+      if (globalError || !globalClient) {
+        console.error("ERRO AO GERAR CLIENT GLOBAL:", globalError);
+        throw new Error("Erro ao vincular perfil global do cliente");
+      }
+
+      console.log("GLOBAL CLIENT:", globalClient);
+
+      // 2. Garantir Client Local (Upsert)
+      const { data: localClient, error: localError } = await supabase
+        .from('clients' as any)
+        .upsert({
+          company_id: companyId!,
+          global_client_id: globalClient.id,
+          user_id: globalClient.user_id, // Se o global já tiver user_id vinculado
+          name: selectedRequest.client_name,
+          whatsapp: selectedRequest.client_whatsapp,
+          updated_at: new Date().toISOString()
+        }, { onConflict: 'company_id, whatsapp' })
+        .select()
+        .single();
+
+      if (localError || !localClient) {
+        console.error("ERRO AO GERAR CLIENT LOCAL:", localError);
+        throw new Error("Erro ao vincular cliente à empresa");
+      }
+
+      console.log("LOCAL CLIENT:", localClient);
+
+      // 3. Criar agendamento com IDs garantidos
+      const insertData = {
+        company_id: companyId!,
+        client_id: localClient.id,
+        user_id: globalClient.user_id,
+        professional_id: selectedRequest.professional_id || Object.keys(professionals)[0],
+        client_name: selectedRequest.client_name,
+        client_whatsapp: selectedRequest.client_whatsapp,
+        start_time: startTime.toISOString(),
+        end_time: endTime.toISOString(),
+        total_price: finalPrice,
+        original_price: finalPrice,
+        extra_fee: extraFee,
+        extra_fee_type: feeType,
+        extra_fee_value: feeType === 'fixed' ? parseFloat(fixedFeeValue) : (feeType === 'none' ? 0 : parseInt(feeType)),
+        final_price: finalPrice,
+        special_schedule: true,
+        status: 'confirmed' as any,
+        notes: selectedRequest.message || null,
+      };
+
+      console.log("INSERT DATA:", insertData);
+
       const { data: apptData, error: apptError } = await supabase
         .from('appointments')
-        .insert({
-          company_id: companyId!,
-          professional_id: selectedRequest.professional_id || Object.keys(professionals)[0],
-          client_name: selectedRequest.client_name,
-          client_whatsapp: selectedRequest.client_whatsapp,
-          start_time: startTime.toISOString(),
-          end_time: endTime.toISOString(),
-          total_price: finalPrice,
-          original_price: finalPrice,
-          extra_fee: extraFee,
-          extra_fee_type: feeType,
-          extra_fee_value: feeType === 'fixed' ? parseFloat(fixedFeeValue) : (feeType === 'none' ? 0 : parseInt(feeType)),
-          final_price: finalPrice,
-          special_schedule: true,
-          status: 'confirmed' as any,
-          notes: selectedRequest.message || null,
-        })
+        .insert(insertData)
         .select('id')
         .single();
 
-      if (apptError) throw apptError;
+      if (apptError) {
+        console.error("ERRO AO SALVAR AGENDAMENTO:", apptError);
+        throw apptError;
+      }
 
-      // 2. Link service
+      // 4. Link service
       if (selectedRequest.service_id && apptData?.id) {
         await supabase.from('appointment_services').insert({
           appointment_id: apptData.id,
@@ -202,7 +253,7 @@ const AppointmentRequests = () => {
         });
       }
 
-      // 3. Update request status
+      // 5. Update request status
       await supabase
         .from('appointment_requests' as any)
         .update({ status: 'accepted', updated_at: new Date().toISOString() })
