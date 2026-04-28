@@ -1885,6 +1885,14 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
           </div>
         )}
 
+        {/* ═══ IDENTIFYING / GATE ═══ */}
+        {step === 'identifying' && (
+          <div className="flex flex-col items-center justify-center py-20 animate-pulse">
+            <div className="w-16 h-16 border-4 border-amber-500/20 border-t-amber-500 rounded-full animate-spin mb-4" />
+            <p className="text-sm font-black uppercase tracking-widest opacity-60">Identificando seu acesso...</p>
+          </div>
+        )}
+
         {/* ═══ SERVICES ═══ */}
         {step === 'services' && (
           <div className="space-y-5 animate-fade-in">
