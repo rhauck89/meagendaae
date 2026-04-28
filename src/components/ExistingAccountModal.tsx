@@ -4,7 +4,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { LogIn, MessageCircle, Mail, RotateCcw, X, AlertTriangle, KeyRound, ArrowRight, ShieldCheck, UserX } from 'lucide-react';
+import { LogIn, MessageCircle, Mail, RotateCcw, X, AlertTriangle, KeyRound, ArrowRight, ShieldCheck, UserX, CheckCircle2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -109,10 +109,12 @@ export function ExistingAccountModal({
   };
 
   const handleLogin = async () => {
-    if (!email) return;
+    if (!email || !password) return;
     setLoading(true);
+    setSuccess(false);
     try {
-      const { error } = await supabaseToUse.auth.signInWithPassword({
+      console.log(`[BOOKING_SESSION_SOURCE] signing_in_with_password: ${email}`);
+      const { data, error } = await supabaseToUse.auth.signInWithPassword({
         email: email.trim().toLowerCase(),
         password,
       });
@@ -123,10 +125,20 @@ export function ExistingAccountModal({
         } else {
           toast.error(error.message);
         }
-      } else {
-        toast.success('Bem-vindo de volta!');
-        onLoginSuccess();
-        onClose();
+      } else if (data.session) {
+        setSuccess(true);
+        toast.success('Bem-vindo de volta! 👋');
+        
+        // Use the same setSession logic to ensure storage compatibility
+        await supabaseToUse.auth.setSession({
+          access_token: data.session.access_token,
+          refresh_token: data.session.refresh_token
+        });
+
+        setTimeout(() => {
+          onLoginSuccess();
+          onClose();
+        }, 1500);
       }
     } catch (err: any) {
       toast.error('Erro ao realizar login');
@@ -207,8 +219,17 @@ export function ExistingAccountModal({
       // Nubank-style direct login
       if (data.session) {
         console.log('[BOOKING_SESSION_SOURCE] otp_verified_by_phone - setting session');
-        const { error: sessionError } = await supabaseToUse.auth.setSession(data.session);
-        if (sessionError) throw sessionError;
+        
+        // Use setSession with the access_token and refresh_token
+        const { error: sessionError } = await supabaseToUse.auth.setSession({
+          access_token: data.session.access_token,
+          refresh_token: data.session.refresh_token
+        });
+        
+        if (sessionError) {
+          console.error('[BOOKING_SESSION_SOURCE] setSession error:', sessionError);
+          throw sessionError;
+        }
         
         // Small delay to show success state
         setTimeout(() => {
@@ -443,12 +464,29 @@ export function ExistingAccountModal({
                   onKeyDown={(e) => e.key === 'Enter' && handleLogin()}
                 />
               </div>
-              <Button 
+                <Button 
                 onClick={handleLogin}
-                disabled={loading || !password}
-                className="w-full h-16 rounded-full bg-blue-500 hover:bg-blue-600 text-white font-black text-lg transition-all shadow-lg shadow-blue-500/20"
+                disabled={loading || success || !password}
+                className={cn(
+                  "w-full h-16 rounded-full font-black text-lg transition-all shadow-lg",
+                  success 
+                    ? "bg-blue-500 text-white shadow-blue-500/40" 
+                    : "bg-blue-500 hover:bg-blue-600 text-white shadow-blue-500/20"
+                )}
               >
-                {loading ? "Entrando..." : "Confirmar e Entrar"}
+                {loading ? (
+                  <div className="flex items-center gap-2">
+                    <div className="w-5 h-5 border-2 border-white/20 border-t-white animate-spin rounded-full" />
+                    <span>Entrando...</span>
+                  </div>
+                ) : success ? (
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 className="w-6 h-6 animate-bounce" />
+                    <span>Acesso Autorizado</span>
+                  </div>
+                ) : (
+                  "Confirmar e Entrar"
+                )}
               </Button>
               <div className="flex flex-col gap-2">
                 <button 
