@@ -16,6 +16,7 @@ interface ExistingAccountModalProps {
   companyId: string;
   onLoginSuccess: () => void;
   onUseDifferentEmail: () => void;
+  mode?: 'email_exists' | 'whatsapp_exists' | 'both_exists';
 }
 
 export function ExistingAccountModal({ 
