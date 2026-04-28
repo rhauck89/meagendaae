@@ -13,7 +13,7 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { Badge } from '@/components/ui/badge';
 import {
   Scissors, Sparkles, ChevronRight, ChevronLeft, Clock, Upload, Palette,
-  CheckCircle2, Copy, Link2, Building2, Phone, ChevronsUpDown, Check, MapPin, X
+  CheckCircle2, Copy, Link2, Building2, Phone, ChevronsUpDown, Check, MapPin, X, Grid3X3
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
