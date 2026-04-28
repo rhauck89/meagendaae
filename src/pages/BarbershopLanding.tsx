@@ -869,6 +869,16 @@ export default function BarbershopLanding({ routeBusinessType, customSlug }: Bar
           </button>
         </div>
       </nav>
+      <IdentityModal
+        isOpen={showIdentityModal}
+        onClose={() => setShowIdentityModal(false)}
+        companyId={company?.id}
+        onLoginSuccess={() => {
+          setShowIdentityModal(false);
+          setIsLoggedIn(true);
+          navigate(`/${bookingBasePath}/${slug}/agendar`);
+        }}
+      />
     </div>
   );
 }
