@@ -1,3 +1,4 @@
+
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
 
 const corsHeaders = {
@@ -116,7 +117,7 @@ Deno.serve(async (req) => {
 
     if (action === 'send-otp') {
       const { phone, email: targetEmail } = params;
-      const targetCompanyId = companyId; // Use companyId from body destructuring
+      const targetCompanyId = companyId;
       
       if (!targetCompanyId) {
         console.error('[ERROR] send-otp: Missing companyId');
@@ -143,6 +144,13 @@ Deno.serve(async (req) => {
         console.warn(`[OTP] Rate limit hit for ${cleanPhone || userIp}`);
         throw new Error('Muitas tentativas em curto período. Tente novamente mais tarde.');
       }
+
+      // Invalidate old codes for this phone/email in this company
+      await adminClient
+        .from('auth_otps')
+        .update({ expires_at: new Date().toISOString() })
+        .match({ company_id: targetCompanyId, phone: cleanPhone })
+        .gt('expires_at', new Date().toISOString());
 
       const { error: insertError } = await adminClient.from('auth_otps').insert({
         company_id: targetCompanyId,
@@ -193,13 +201,24 @@ Deno.serve(async (req) => {
     }
 
     if (action === 'verify-otp') {
-      const { phone, email: targetEmail, code, redirectTo } = params;
-      console.log(`[VERIFY] Checking OTP for Phone: ${phone}, Email: ${targetEmail}, Code: ${code}`);
+      const { phone, email: targetEmail, code: rawCode, redirectTo, companyId: targetCompanyId } = params;
+      const code = rawCode?.toString().trim();
+      
+      console.log(`[VERIFY] Checking OTP for Phone: ${phone}, Email: ${targetEmail}, Code: ${code}, Company: ${targetCompanyId}`);
 
+      if (!code || code.length !== 6) {
+        throw new Error('Código inválido.');
+      }
+
+      const cleanPhone = phone ? formatPhone(phone) : null;
+
+      // Find the most recent active OTP for this phone/company
       const { data: otp, error: fetchError } = await adminClient
         .from('auth_otps')
         .select('*')
         .eq('code', code)
+        .eq('company_id', targetCompanyId)
+        .eq('phone', cleanPhone)
         .gt('expires_at', new Date().toISOString())
         .order('created_at', { ascending: false })
         .limit(1)
@@ -211,21 +230,20 @@ Deno.serve(async (req) => {
       }
 
       if (!otp) {
-        console.warn(`[VERIFY] Invalid/Expired code: ${code}`);
+        console.warn(`[VERIFY] Invalid/Expired code: ${code} for phone ${cleanPhone}`);
         throw new Error('Código inválido ou expirado.');
       }
 
-      if (otp.attempts >= otp.max_attempts) {
+      if (otp.attempts >= (otp.max_attempts || 5)) {
         console.warn(`[VERIFY] Max attempts reached for OTP ${otp.id}`);
         throw new Error('Máximo de tentativas excedido. Solicite um novo código.');
       }
 
-      const cleanPhone = phone ? formatPhone(phone) : null;
-      if ((cleanPhone && otp.phone !== cleanPhone) || (targetEmail && otp.email !== targetEmail)) {
-        await adminClient.from('auth_otps').update({ attempts: (otp.attempts || 0) + 1 }).eq('id', otp.id);
-        console.warn(`[VERIFY] Dest mismatch: OTP ${otp.id} intended for ${otp.phone || otp.email}`);
-        throw new Error('Código não confere com o destinatário.');
-      }
+      // Mark as used immediately by expiring it
+      await adminClient.from('auth_otps').update({ 
+        expires_at: new Date(0).toISOString(),
+        attempts: (otp.attempts || 0) + 1
+      }).eq('id', otp.id);
 
       console.log(`[VERIFY] Success for OTP ${otp.id}. Generating access link...`);
 
@@ -235,22 +253,28 @@ Deno.serve(async (req) => {
         p_metric_type: 'otp_login' 
       });
 
-      // Mark as used
-      await adminClient.from('auth_otps').update({ expires_at: new Date(0).toISOString() }).eq('id', otp.id);
-
-      // Find user email
+      // Find user email ONLY for this company
       let userEmail = targetEmail || otp.email;
       if (!userEmail && cleanPhone) {
         const { data: client } = await adminClient
           .from('clients')
           .select('email')
           .eq('phone', cleanPhone)
+          .eq('company_id', targetCompanyId)
           .not('email', 'is', null)
           .maybeSingle();
         
         if (client?.email) {
           userEmail = client.email;
-          console.log(`[VERIFY] Found email for phone ${cleanPhone}: ${userEmail}`);
+          console.log(`[VERIFY] Found client email for phone ${cleanPhone} in company ${targetCompanyId}: ${userEmail}`);
+        } else {
+            // Fallback: check auth.users if metadata has it
+            const { data: { users } } = await adminClient.auth.admin.listUsers();
+            const foundUser = users.find(u => u.phone === cleanPhone || u.user_metadata?.whatsapp === cleanPhone);
+            if (foundUser?.email) {
+                userEmail = foundUser.email;
+                console.log(`[VERIFY] Found auth email for phone ${cleanPhone}: ${userEmail}`);
+            }
         }
       }
 
