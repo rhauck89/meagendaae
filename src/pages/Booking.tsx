@@ -16,6 +16,7 @@ import { fromZonedTime, toZonedTime } from 'date-fns-tz';
 import { sendAppointmentCreatedWebhook } from '@/lib/automations';
 import { isPromoActive } from '@/lib/promotion-period';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useAuth } from '@/contexts/AuthContext';
 
 // TZ-aware Hoje/Amanhã helpers — compare dates in America/Sao_Paulo, not the
 // browser's local zone. Without this, a user in another timezone (or whose
