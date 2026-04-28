@@ -88,7 +88,8 @@ const Dashboard = () => {
   const [appointments, setAppointments] = useState<any[]>([]);
   const [stats, setStats] = useState({ total: 0, revenue: 0, revenueCompleted: 0, clients: 0 });
   const [monthlyStats, setMonthlyStats] = useState({ revenue: 0, revenueCompleted: 0, clients: 0, completedAppointments: 0, cancellations: 0, occupancyRate: 0, avgTicket: 0, topClient: { name: '', count: 0 } });
-  
+  const [premiumMetrics, setPremiumMetrics] = useState({ abandonments: 0, recoveries: 0, otpLogins: 0, oneClickBookings: 0, recoveredRevenue: 0 });
+
   const [dailyTrends, setDailyTrends] = useState<{ date: string; revenue: number; clients: number; cancellations: number; occupancy: number }[]>([]);
   const [waitlistCount, setWaitlistCount] = useState(0);
   const [waitlistServiceBreakdown, setWaitlistServiceBreakdown] = useState<Record<string, number>>({});
@@ -222,7 +223,34 @@ const Dashboard = () => {
     fetchBlockedTimes();
     fetchMonthlyStats();
     fetchUpcomingAppointments();
+    fetchPremiumMetrics();
   }, [companyId, currentDate, viewMode, filterProfessional, isAdmin, profileId]);
+
+  const fetchPremiumMetrics = async () => {
+    if (!companyId) return;
+    const { data: metrics } = await supabase
+      .from('booking_metrics')
+      .select('metric_type, value')
+      .eq('company_id', companyId);
+    
+    if (metrics) {
+      const counts = metrics.reduce((acc: any, m) => {
+        acc[m.metric_type] = (acc[m.metric_type] || 0) + 1;
+        if (m.metric_type === 'recovery') {
+           acc.recoveredRevenue += Number(m.value || 0);
+        }
+        return acc;
+      }, { abandonment: 0, recovery: 0, otp_login: 0, one_click_booking: 0, recoveredRevenue: 0 });
+
+      setPremiumMetrics({
+        abandonments: counts.abandonment,
+        recoveries: counts.recovery,
+        otpLogins: counts.otp_login,
+        oneClickBookings: counts.one_click_booking,
+        recoveredRevenue: counts.recoveredRevenue
+      });
+    }
+  };
 
 
   // Listen for external refresh events (e.g. from other pages)
