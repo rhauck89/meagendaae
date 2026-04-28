@@ -44,6 +44,7 @@ import { usePreselectedSlot } from '@/hooks/usePreselectedSlot';
 import { Lock } from 'lucide-react';
 import { CompleteSignupModal } from '@/components/CompleteSignupModal';
 import { ExistingAccountModal } from '@/components/ExistingAccountModal';
+import { IdentityModal } from '@/components/booking/IdentityModal';
 import { BookingErrorDialog, translateBookingError, type BookingErrorInfo } from '@/components/BookingErrorDialog';
 
 const StarRating = ({ rating, size = 14 }: { rating: number; size?: number }) => {
