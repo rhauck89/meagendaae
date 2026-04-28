@@ -502,6 +502,15 @@ export function IdentityModal({
                     />
                   </div>
                   <div className="space-y-1.5">
+                    <Label className="text-[10px] font-black uppercase tracking-widest opacity-40 ml-2">WhatsApp (Obrigatório)</Label>
+                    <Input 
+                      value={whatsapp} 
+                      onChange={(e) => setWhatsapp(formatPhone(e.target.value))} 
+                      placeholder="(11) 99999-9999" 
+                      className="rounded-2xl h-14 bg-white/5 border-white/10 text-white font-bold" 
+                    />
+                  </div>
+                  <div className="space-y-1.5">
                     <Label className="text-[10px] font-black uppercase tracking-widest opacity-40 ml-2">E-mail</Label>
                     <Input 
                       type="email" 
@@ -534,7 +543,7 @@ export function IdentityModal({
 
                 <Button 
                   onClick={handleRegister}
-                  disabled={loading || !fullName || !email || password.length < 8}
+                  disabled={loading || !fullName || !whatsapp || !email || password.length < 8}
                   className="w-full h-16 rounded-full bg-emerald-500 hover:bg-emerald-600 text-zinc-950 font-black text-lg transition-all shadow-lg shadow-emerald-500/20"
                 >
                   {loading ? "Criando..." : "Criar Conta e Continuar"}
@@ -542,7 +551,7 @@ export function IdentityModal({
 
                 <Button 
                   variant="ghost" 
-                  onClick={() => setView('identify')}
+                  onClick={() => setView('choice')}
                   className="w-full h-10 text-[10px] uppercase tracking-widest font-black text-slate-400"
                 >
                   Voltar
