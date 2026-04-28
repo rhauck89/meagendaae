@@ -2556,7 +2556,70 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                 style={{ background: T.card, border: `2px solid ${T.border}` }}
               >
                 <div className="space-y-4">
-...
+                  <div className="space-y-1.5">
+                    <Label className="text-[10px] font-black uppercase tracking-widest opacity-40 ml-2" style={{ color: T.textSec }}>Seu Nome Completo</Label>
+                    <Input 
+                      value={clientForm.full_name} 
+                      onChange={(e) => setClientForm({ ...clientForm, full_name: e.target.value })} 
+                      placeholder="Ex: Raphael Silva" 
+                      className="rounded-2xl h-14 text-base font-bold bg-white/5 border-white/10 focus:border-amber-500 transition-all" 
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-[10px] font-black uppercase tracking-widest opacity-40 ml-2" style={{ color: T.textSec }}>WhatsApp para Confirmação</Label>
+                    <Input
+                      value={clientForm.whatsapp}
+                      onChange={(e) => {
+                        const digits = e.target.value.replace(/\D/g, '').slice(0, 11);
+                        let masked = digits;
+                        if (digits.length > 7) masked = `(${digits.slice(0,2)}) ${digits.slice(2,7)}-${digits.slice(7)}`;
+                        else if (digits.length > 2) masked = `(${digits.slice(0,2)}) ${digits.slice(2)}`;
+                        setClientForm({ ...clientForm, whatsapp: masked });
+                      }}
+                      placeholder="(11) 99999-9999" 
+                      maxLength={15}
+                      className="rounded-2xl h-14 text-base font-bold bg-white/5 border-white/10 focus:border-amber-500 transition-all"
+                    />
+                    {clientForm.whatsapp && clientForm.whatsapp.replace(/\D/g, '').length > 0 && !isValidWhatsApp(clientForm.whatsapp) && (
+                      <p className="text-[10px] font-bold text-red-400 mt-1 uppercase tracking-tighter">Número incompleto. Use DDD + 9 dígitos.</p>
+                    )}
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-[10px] font-black uppercase tracking-widest opacity-40 ml-2" style={{ color: T.textSec }}>Seu Melhor E-mail</Label>
+                    <Input 
+                      type="email" 
+                      value={clientForm.email} 
+                      onChange={(e) => setClientForm({ ...clientForm, email: e.target.value })} 
+                      placeholder="email@exemplo.com" 
+                      className="rounded-2xl h-14 text-base font-bold bg-white/5 border-white/10 focus:border-amber-500 transition-all" 
+                    />
+                  </div>
+                  {!isClientLoggedIn && (
+                    <div className="space-y-1.5 animate-in slide-in-from-top-2 duration-300">
+                      <Label className="text-[10px] font-black uppercase tracking-widest opacity-40 ml-2" style={{ color: T.textSec }}>Crie uma Senha Segura</Label>
+                      <Input 
+                        type="password" 
+                        value={clientPassword} 
+                        onChange={(e) => setClientPassword(e.target.value)} 
+                        placeholder="Mínimo 8 caracteres" 
+                        className="rounded-2xl h-14 text-base font-bold bg-white/5 border-white/10 focus:border-amber-500 transition-all" 
+                      />
+                      <p className="text-[9px] font-bold opacity-40 uppercase tracking-widest ml-2 leading-relaxed">
+                        Sua senha permite acompanhar cashback, pontos e histórico de agendamentos.
+                      </p>
+                    </div>
+                  )}
+                  <div className="space-y-1.5">
+                    <Label className="text-[10px] font-black uppercase tracking-widest opacity-40 ml-2" style={{ color: T.textSec }}>Data de Nascimento (Opcional)</Label>
+                    <Input 
+                      type="date" 
+                      value={clientForm.birth_date} 
+                      onChange={(e) => setClientForm({ ...clientForm, birth_date: e.target.value })} 
+                      className="rounded-2xl h-14 text-base font-bold bg-white/5 border-white/10 focus:border-amber-500 transition-all invert-calendar" 
+                    />
+                  </div>
+                </div>
+                
                 <div className="flex items-start gap-3 pt-2">
                   <Checkbox 
                     id="opt-in-whatsapp" 
@@ -2570,6 +2633,9 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                 </div>
               </div>
             )}
+
+            {/* Fixed Footer Button on Mobile */}
+            <div className="md:relative md:bg-transparent md:p-0 fixed bottom-0 left-0 right-0 p-4 bg-[#0B132B]/95 backdrop-blur-md border-t border-white/10 z-50 md:z-auto">
 
             <Button
               onClick={async () => {
