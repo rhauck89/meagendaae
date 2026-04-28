@@ -19,6 +19,7 @@ import { motion, useScroll, useTransform } from 'framer-motion';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { toast } from 'sonner';
 import { IdentityModal } from '@/components/booking/IdentityModal';
+import { useAuth } from '@/contexts/AuthContext';
 
 type BusinessType = 'barbershop' | 'esthetic';
 
@@ -893,7 +894,7 @@ export default function BarbershopLanding({ routeBusinessType, customSlug }: Bar
         companyId={company?.id}
         onLoginSuccess={() => {
           setShowIdentityModal(false);
-          setIsLoggedIn(true);
+          // O hook useAuth já atualizará o estado isAuthenticated
           navigate(`/${bookingBasePath}/${slug}/agendar`);
         }}
       />
