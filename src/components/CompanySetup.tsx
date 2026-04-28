@@ -10,9 +10,10 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
+import { Badge } from '@/components/ui/badge';
 import {
   Scissors, Sparkles, ChevronRight, ChevronLeft, Clock, Upload, Palette,
-  CheckCircle2, Copy, Link2, Building2, Phone, ChevronsUpDown, Check, MapPin,
+  CheckCircle2, Copy, Link2, Building2, Phone, ChevronsUpDown, Check, MapPin, X, Grid3X3
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -24,17 +25,20 @@ interface CompanySetupProps {
   onComplete: () => void;
 }
 
-type OnboardingStep = 'company' | 'hours' | 'branding' | 'theme' | 'done';
+type OnboardingStep = 'company' | 'categories' | 'hours' | 'branding' | 'theme' | 'done';
 
-const STEPS: OnboardingStep[] = ['company', 'hours', 'branding', 'theme', 'done'];
+const STEPS: OnboardingStep[] = ['company', 'categories', 'hours', 'branding', 'theme', 'done'];
 
 const stepMeta: Record<OnboardingStep, { icon: any; title: string; desc: string }> = {
   company: { icon: Building2, title: 'Seu negócio', desc: 'Tipo, nome e localização do seu estabelecimento' },
+  categories: { icon: Grid3X3, title: 'Segmento', desc: 'Escolha as categorias que melhor definem seu negócio' },
   hours: { icon: Clock, title: 'Horários', desc: 'Defina o funcionamento semanal' },
   branding: { icon: Palette, title: 'Identidade visual', desc: 'Logo do seu negócio (opcional)' },
   theme: { icon: Palette, title: 'Tema da sua marca', desc: 'Escolha um estilo visual personalizado' },
   done: { icon: CheckCircle2, title: 'Tudo pronto!', desc: 'Compartilhe seu link de agendamento' },
 };
+
+
 
 const dayNames = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
 
@@ -61,7 +65,13 @@ const CompanySetup = ({ onComplete }: CompanySetupProps) => {
   const [citySearch, setCitySearch] = useState('');
   const [loadingCities, setLoadingCities] = useState(false);
 
-  // Step 2: Hours
+  // Step 2: Categories
+  const [categories, setCategories] = useState<any[]>([]);
+  const [subcategories, setSubcategories] = useState<any[]>([]);
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string>('');
+  const [selectedSubcategoryIds, setSelectedSubcategoryIds] = useState<string[]>([]);
+
+  // Step 3: Hours
   const [hours, setHours] = useState(
     Array.from({ length: 7 }, (_, i) => ({
       day_of_week: i,
@@ -74,11 +84,11 @@ const CompanySetup = ({ onComplete }: CompanySetupProps) => {
     }))
   );
 
-  // Step 3: Branding
+  // Step 4: Branding
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
 
-  // Step 4: Theme
+  // Step 5: Theme
   const [themeOpen, setThemeOpen] = useState(false);
   const [selectedTheme, setSelectedTheme] = useState<ThemeVariation | null>(null);
   const [savingTheme, setSavingTheme] = useState(false);
@@ -103,6 +113,24 @@ const CompanySetup = ({ onComplete }: CompanySetupProps) => {
       setLoadingCities(false);
     });
   }, [selectedState, brStates]);
+
+  // Load categories
+  useEffect(() => {
+    supabase.from('categories').select('*').order('name').then(({ data }) => {
+      if (data) setCategories(data);
+    });
+  }, []);
+
+  // Load subcategories when category changes
+  useEffect(() => {
+    if (!selectedCategoryId) {
+      setSubcategories([]);
+      return;
+    }
+    supabase.from('subcategories').select('*').eq('category_id', selectedCategoryId).order('name').then(({ data }) => {
+      if (data) setSubcategories(data);
+    });
+  }, [selectedCategoryId]);
 
   // Filter cities for search
   const filteredCities = useMemo(() => {
@@ -195,10 +223,93 @@ const CompanySetup = ({ onComplete }: CompanySetupProps) => {
         console.warn('[email] welcome company failed', e);
       }
 
-      setStep('hours');
+      setStep('categories');
     } catch (err: any) {
       toast.error('Erro ao criar empresa. Tente novamente.');
       console.error('Company creation error:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSaveCategories = async () => {
+    if (!companyId || !selectedCategoryId || selectedSubcategoryIds.length === 0) {
+      toast.error('Selecione uma categoria e pelo menos uma subcategoria');
+      return;
+    }
+    setLoading(true);
+    try {
+      // 1. Save company categories
+      const categoryRows = selectedSubcategoryIds.map(subId => ({
+        company_id: companyId,
+        category_id: selectedCategoryId,
+        subcategory_id: subId,
+      }));
+      await supabase.from('company_categories').insert(categoryRows);
+
+      // 2. Auto-create service categories and services
+      const category = categories.find(c => c.id === selectedCategoryId);
+      if (category) {
+        if (category.name === 'Barbearia') {
+          // Create Service Categories
+          const { data: catCorte } = await supabase.from('service_categories').insert({ company_id: companyId, name: 'Corte' }).select().single();
+          const { data: catBarba } = await supabase.from('service_categories').insert({ company_id: companyId, name: 'Barba' }).select().single();
+          const { data: catCombo } = await supabase.from('service_categories').insert({ company_id: companyId, name: 'Combo' }).select().single();
+
+          if (catCorte) {
+            await supabase.from('services').insert([
+              { company_id: companyId, category_id: catCorte.id, name: 'Corte Tradicional', duration_minutes: 30, price: 40, active: true },
+              { company_id: companyId, category_id: catCorte.id, name: 'Corte Degradê', duration_minutes: 40, price: 50, active: true },
+              { company_id: companyId, category_id: catCorte.id, name: 'Corte Social', duration_minutes: 30, price: 35, active: true },
+            ]);
+          }
+          if (catBarba) {
+            await supabase.from('services').insert([
+              { company_id: companyId, category_id: catBarba.id, name: 'Barba Simples', duration_minutes: 20, price: 25, active: true },
+              { company_id: companyId, category_id: catBarba.id, name: 'Barba Completa', duration_minutes: 30, price: 35, active: true },
+            ]);
+          }
+          if (catCombo) {
+            await supabase.from('services').insert([
+              { company_id: companyId, category_id: catCombo.id, name: 'Corte + Barba', duration_minutes: 60, price: 75, active: true },
+            ]);
+          }
+        } else if (category.name === 'Estética') {
+          const { data: catCabelo } = await supabase.from('service_categories').insert({ company_id: companyId, name: 'Cabelo' }).select().single();
+          const { data: catUnhas } = await supabase.from('service_categories').insert({ company_id: companyId, name: 'Unhas' }).select().single();
+          const { data: catSobrancelha } = await supabase.from('service_categories').insert({ company_id: companyId, name: 'Sobrancelha' }).select().single();
+          const { data: catPele } = await supabase.from('service_categories').insert({ company_id: companyId, name: 'Pele' }).select().single();
+
+          if (catCabelo) {
+            await supabase.from('services').insert([
+              { company_id: companyId, category_id: catCabelo.id, name: 'Corte Feminino', duration_minutes: 60, price: 80, active: true },
+              { company_id: companyId, category_id: catCabelo.id, name: 'Escova', duration_minutes: 45, price: 50, active: true },
+            ]);
+          }
+          if (catUnhas) {
+            await supabase.from('services').insert([
+              { company_id: companyId, category_id: catUnhas.id, name: 'Manicure', duration_minutes: 30, price: 30, active: true },
+              { company_id: companyId, category_id: catUnhas.id, name: 'Pedicure', duration_minutes: 40, price: 35, active: true },
+            ]);
+          }
+          if (catSobrancelha) {
+            await supabase.from('services').insert([
+              { company_id: companyId, category_id: catSobrancelha.id, name: 'Design de Sobrancelha', duration_minutes: 30, price: 40, active: true },
+            ]);
+          }
+          if (catPele) {
+            await supabase.from('services').insert([
+              { company_id: companyId, category_id: catPele.id, name: 'Limpeza de Pele', duration_minutes: 60, price: 120, active: true },
+            ]);
+          }
+        }
+      }
+
+      toast.success('Categorias e serviços iniciais criados!');
+      setStep('hours');
+    } catch (err: any) {
+      toast.error('Erro ao salvar categorias. Tente novamente.');
+      console.error('Categories save error:', err);
     } finally {
       setLoading(false);
     }
@@ -451,7 +562,94 @@ const CompanySetup = ({ onComplete }: CompanySetupProps) => {
               </>
             )}
 
-            {/* ───── Step 2: Hours ───── */}
+            {/* ───── Step 2: Categories ───── */}
+            {step === 'categories' && (
+              <>
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label>Categoria Principal</Label>
+                    <Select value={selectedCategoryId} onValueChange={setSelectedCategoryId}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione o tipo de negócio" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {categories.map((cat) => (
+                          <SelectItem key={cat.id} value={cat.id}>
+                            {cat.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {selectedCategoryId && (
+                    <div className="space-y-3">
+                      <Label>Subcategorias (Escolha uma ou mais)</Label>
+                      <div className="grid grid-cols-1 gap-2 max-h-48 overflow-y-auto pr-2">
+                        {subcategories.map((sub) => (
+                          <div
+                            key={sub.id}
+                            className={cn(
+                              "flex items-center justify-between p-3 rounded-lg border cursor-pointer transition-colors",
+                              selectedSubcategoryIds.includes(sub.id)
+                                ? "bg-primary/5 border-primary"
+                                : "hover:bg-muted border-transparent"
+                            )}
+                            onClick={() => {
+                              setSelectedSubcategoryIds(prev =>
+                                prev.includes(sub.id)
+                                  ? prev.filter(id => id !== sub.id)
+                                  : [...prev, sub.id]
+                              );
+                            }}
+                          >
+                            <span className="text-sm">{sub.name}</span>
+                            {selectedSubcategoryIds.includes(sub.id) && (
+                              <Check className="h-4 w-4 text-primary" />
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {selectedSubcategoryIds.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5 pt-2">
+                      {selectedSubcategoryIds.map(id => {
+                        const sub = subcategories.find(s => s.id === id);
+                        return sub ? (
+                          <Badge key={id} variant="secondary" className="gap-1 px-2 py-1">
+                            {sub.name}
+                            <X 
+                              className="h-3 w-3 cursor-pointer hover:text-destructive" 
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedSubcategoryIds(prev => prev.filter(sid => sid !== id));
+                              }}
+                            />
+                          </Badge>
+                        ) : null;
+                      })}
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex gap-3 pt-4">
+                  <Button variant="ghost" className="flex-1" onClick={() => setStep('company')}>
+                    <ChevronLeft className="h-4 w-4 mr-1" /> Voltar
+                  </Button>
+                  <Button 
+                    className="flex-1" 
+                    disabled={loading || !selectedCategoryId || selectedSubcategoryIds.length === 0} 
+                    onClick={handleSaveCategories}
+                  >
+                    {loading ? 'Salvando...' : 'Continuar'} <ChevronRight className="h-4 w-4 ml-1" />
+                  </Button>
+                </div>
+              </>
+            )}
+
+            {/* ───── Step 3: Hours ───── */}
             {step === 'hours' && (
               <>
                 <div className="space-y-2 max-h-80 overflow-y-auto pr-1">
