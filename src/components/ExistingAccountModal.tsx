@@ -65,11 +65,29 @@ export function ExistingAccountModal({
   const handleLogout = async () => {
     setLoading(true);
     try {
-      await supabase.auth.signOut();
+      // Check session role before signing out to avoid killing admin session
+      const { data: { session } } = await supabaseToUse.auth.getSession();
+      if (session?.user) {
+        const { data: profile } = await supabaseToUse
+          .from('profiles')
+          .select('role')
+          .eq('user_id', session.user.id)
+          .single();
+        
+        if (profile?.role === 'client') {
+          await supabaseToUse.auth.signOut();
+          console.log('[BOOKING_SESSION_SOURCE] client_session_ended');
+        } else {
+          console.log('[BOOKING_SESSION_SOURCE] admin_session_preserved');
+        }
+      }
+
+      // Limpar namespaces separados do cliente
       localStorage.removeItem(`client_id_${companyId}`);
       localStorage.removeItem(`client_data_${companyId}`);
       localStorage.removeItem('meagendae_client_data');
       localStorage.removeItem('booking_session_id');
+      localStorage.removeItem('booking_client_session');
       
       // Reset state
       setEmail('');
@@ -77,7 +95,7 @@ export function ExistingAccountModal({
       setPassword('');
       setOtpCode('');
       
-      toast.success('Sessão encerrada');
+      toast.success('Identificação limpa');
       onUseDifferentEmail();
       onClose();
     } catch (err) {
@@ -91,7 +109,7 @@ export function ExistingAccountModal({
     if (!email) return;
     setLoading(true);
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      const { error } = await supabaseToUse.auth.signInWithPassword({
         email: email.trim().toLowerCase(),
         password,
       });
