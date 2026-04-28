@@ -67,7 +67,7 @@ Deno.serve(async (req) => {
     // Validate company exists
     const { data: company } = await adminClient
       .from("companies")
-      .select("id, name, owner_id")
+      .select("id, name, user_id")
       .eq("id", companyId)
       .single();
 
