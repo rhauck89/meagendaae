@@ -152,7 +152,7 @@ const Team = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('companies')
-        .select('slug, business_type, booking_mode, fixed_slot_interval, owner_id, prof_perm_booking_mode, prof_perm_grid_interval')
+        .select('slug, business_type, booking_mode, fixed_slot_interval, user_id, prof_perm_booking_mode, prof_perm_grid_interval')
         .eq('id', companyId!)
         .single();
       if (error) throw error;
@@ -671,7 +671,7 @@ const Team = () => {
     const profileLink = getCollaboratorProfileLink(collaborator);
     const hasAccess = (collaborator as any).has_system_access !== false;
     const isAbsent = !isDisabled && isCurrentlyAbsent(collaborator);
-    const isOwner = collaborator.profile?.user_id === company?.owner_id;
+    const isOwner = collaborator.profile?.user_id === company?.user_id;
     const agg = (appointmentsAgg as any)[collaborator.profile_id] as { todayCount: number; next: string | null } | undefined;
     const todayCount = agg?.todayCount ?? 0;
     const nextTime = agg?.next

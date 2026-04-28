@@ -35,7 +35,7 @@ interface CompanyWithOwner {
   state: string | null;
   subscription_status: string;
   created_at: string;
-  owner_id: string | null;
+  user_id: string | null;
   owner_email?: string;
   phone: string | null;
   whatsapp: string | null;
@@ -80,34 +80,34 @@ const SuperAdminCompanies = () => {
   const fetchCompanies = async () => {
     const { data: companiesData } = await supabase
       .from('companies')
-      .select('id, name, slug, city, state, subscription_status, created_at, owner_id, phone, whatsapp, business_type, address, district, instagram, logo_url, plan_id, billing_cycle, trial_active, trial_end_date')
+      .select('id, name, slug, city, state, subscription_status, created_at, user_id, phone, whatsapp, business_type, address, district, instagram, logo_url, plan_id, billing_cycle, trial_active, trial_end_date')
       .order('created_at', { ascending: false });
 
     if (!companiesData) { setLoading(false); return; }
 
-    const ownerIds = companiesData.map(c => c.owner_id).filter(Boolean) as string[];
+    const userIds = (companiesData as any[]).map(c => c.user_id).filter(Boolean) as string[];
     let ownerMap: Record<string, string> = {};
-    if (ownerIds.length > 0) {
+    if (userIds.length > 0) {
       const { data: profiles } = await supabase
         .from('profiles')
         .select('user_id, email')
-        .in('user_id', ownerIds);
+        .in('user_id', userIds);
       if (profiles) {
         ownerMap = Object.fromEntries(profiles.map(p => [p.user_id, p.email || '']));
       }
     }
 
     // Fetch plan names
-    const planIds = [...new Set(companiesData.map(c => c.plan_id).filter(Boolean))] as string[];
+    const planIds = [...new Set((companiesData as any[]).map(c => c.plan_id).filter(Boolean))] as string[];
     let planMap: Record<string, string> = {};
     if (planIds.length > 0) {
       const { data: plans } = await supabase.from('plans').select('id, name').in('id', planIds);
       if (plans) planMap = Object.fromEntries(plans.map(p => [p.id, p.name]));
     }
 
-    setCompanies(companiesData.map(c => ({
+    setCompanies((companiesData as any[]).map(c => ({
       ...c,
-      owner_email: c.owner_id ? ownerMap[c.owner_id] || '' : '',
+      owner_email: c.user_id ? ownerMap[c.user_id] || '' : '',
       plan_name: c.plan_id ? planMap[c.plan_id] || '—' : '—',
       billing_cycle: (c as any).billing_cycle || 'monthly',
       trial_active: (c as any).trial_active ?? false,
@@ -188,7 +188,7 @@ const SuperAdminCompanies = () => {
   };
 
   const handleLoginAs = async (company: CompanyWithOwner) => {
-    if (!company.owner_id) {
+    if (!company.user_id) {
       toast.error('Empresa não possui um proprietário cadastrado');
       return;
     }

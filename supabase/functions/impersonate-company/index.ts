@@ -67,7 +67,7 @@ Deno.serve(async (req) => {
     // Validate company exists
     const { data: company } = await adminClient
       .from("companies")
-      .select("id, name, owner_id")
+      .select("id, name, user_id")
       .eq("id", companyId)
       .single();
 
@@ -78,7 +78,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    if (!company.owner_id) {
+    if (!company.user_id) {
       return new Response(JSON.stringify({ error: "Company has no owner" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -98,7 +98,7 @@ Deno.serve(async (req) => {
     const { data: ownerProfile } = await adminClient
       .from("profiles")
       .select("email, full_name")
-      .eq("user_id", company.owner_id)
+      .eq("user_id", company.user_id)
       .single();
 
     if (!ownerProfile?.email) {

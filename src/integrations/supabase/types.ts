@@ -1520,7 +1520,6 @@ export type Database = {
           longitude: number | null
           marketplace_active: boolean
           name: string
-          owner_id: string | null
           paddle_customer_id: string | null
           paddle_subscription_id: string | null
           pending_billing_cycle: string | null
@@ -1548,6 +1547,7 @@ export type Database = {
           trial_plan_id: string | null
           trial_start_date: string | null
           updated_at: string
+          user_id: string | null
           website: string | null
           whatsapp: string | null
         }
@@ -1584,7 +1584,6 @@ export type Database = {
           longitude?: number | null
           marketplace_active?: boolean
           name: string
-          owner_id?: string | null
           paddle_customer_id?: string | null
           paddle_subscription_id?: string | null
           pending_billing_cycle?: string | null
@@ -1612,6 +1611,7 @@ export type Database = {
           trial_plan_id?: string | null
           trial_start_date?: string | null
           updated_at?: string
+          user_id?: string | null
           website?: string | null
           whatsapp?: string | null
         }
@@ -1648,7 +1648,6 @@ export type Database = {
           longitude?: number | null
           marketplace_active?: boolean
           name?: string
-          owner_id?: string | null
           paddle_customer_id?: string | null
           paddle_subscription_id?: string | null
           pending_billing_cycle?: string | null
@@ -1676,6 +1675,7 @@ export type Database = {
           trial_plan_id?: string | null
           trial_start_date?: string | null
           updated_at?: string
+          user_id?: string | null
           website?: string | null
           whatsapp?: string | null
         }
