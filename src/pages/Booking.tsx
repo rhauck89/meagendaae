@@ -3010,7 +3010,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
             }
           }
 
-          // Force flow to start from ZERO as requested
+          // START FLOW FROM ZERO as requested
           setStep(professionalSlug ? 'services' : 'professional');
         }}
       />
