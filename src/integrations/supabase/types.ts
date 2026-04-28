@@ -5420,6 +5420,10 @@ export type Database = {
         Args: { p_client_id: string }
         Returns: boolean
       }
+      check_identification: {
+        Args: { p_email: string; p_whatsapp: string }
+        Returns: Json
+      }
       cleanup_expired_otp: { Args: never; Returns: undefined }
       complete_client_signup: {
         Args: {
