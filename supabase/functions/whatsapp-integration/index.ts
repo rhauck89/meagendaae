@@ -148,7 +148,16 @@ Deno.serve(async (req) => {
       const expiresAt = new Date(Date.now() + 5 * 60 * 1000).toISOString();
 
       // Check for abuse (max 5 attempts in last hour for this IP/Phone)
-      // Implementation omitted for brevity but recommended
+      const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+      const { count: recentAttempts } = await adminClient
+        .from('auth_otps')
+        .select('*', { count: 'exact', head: true })
+        .eq('phone', phone ? formatPhone(phone) : null)
+        .gt('created_at', oneHourAgo);
+
+      if (recentAttempts && recentAttempts >= 5) {
+        throw new Error('Muitas tentativas em curto período. Tente novamente mais tarde.');
+      }
 
       await adminClient.from('auth_otps').insert({
         company_id: targetCompanyId,
