@@ -247,7 +247,7 @@ const AppointmentRequests = () => {
       }
 
       // 4. Link service
-      if (selectedRequest.service_id && apptData?.id) {
+      if (selectedRequest.service_id && (apptData as any)?.id) {
         await supabase.from('appointment_services').insert({
           appointment_id: apptData.id,
           service_id: selectedRequest.service_id,
