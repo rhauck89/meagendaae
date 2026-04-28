@@ -3032,6 +3032,23 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
           </div>
         </DialogContent>
       </Dialog>
+
+      <ExistingAccountModal
+        isOpen={showExistingAccountModal}
+        onClose={() => setShowExistingAccountModal(false)}
+        email={clientForm.email}
+        whatsapp={clientForm.whatsapp}
+        companyId={company?.id}
+        onLoginSuccess={() => {
+          setIsClientLoggedIn(true);
+          // Flow continues automatically because isClientLoggedIn changes
+          // but we can also set the step if needed
+        }}
+        onUseDifferentEmail={() => {
+          setClientForm(prev => ({ ...prev, email: '' }));
+          setShowExistingAccountModal(false);
+        }}
+      />
     </div>
   );
 };
