@@ -107,9 +107,8 @@ export function IdentityModal({
         setIsNewUser(false);
         setView('options');
       } else {
-        console.log('[IDENTITY_MODAL] Client not found, going to registration');
-        setIsNewUser(true);
-        setView('register');
+        console.log('[IDENTITY_MODAL] Client not found');
+        setView('not_found');
       }
     } catch (err: any) {
       console.error('[IDENTITY_MODAL] Identification error:', err);
