@@ -5723,8 +5723,9 @@ export type Database = {
       lookup_client_globally: {
         Args: { p_company_id: string; p_whatsapp: string }
         Returns: {
+          client_global_id: string
+          client_legacy_id: string
           email: string
-          id: string
           name: string
           whatsapp: string
         }[]
