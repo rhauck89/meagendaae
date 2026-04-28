@@ -1522,10 +1522,11 @@ export default function Promotions() {
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 py-4">
         {smartOptions.map((opt) => (
-          <Button
+          <div
             key={opt.id}
-            variant="outline"
-            className="h-full min-h-[120px] items-start justify-start p-6 gap-4 hover:border-primary hover:bg-primary/5 transition-all text-left group whitespace-normal relative"
+            role="button"
+            tabIndex={0}
+            className="h-full min-h-[120px] flex items-start p-6 gap-4 rounded-2xl border border-border bg-card hover:border-primary hover:bg-primary/5 transition-all group relative cursor-pointer"
             onClick={() => {
               if (opt.id === 'professional_idle') {
                 resetForm();
@@ -1546,12 +1547,22 @@ export default function Promotions() {
                 setCreationMode('manual');
               }
             }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                // Same logic as onClick
+                if (opt.id === 'professional_idle') {
+                  resetForm(); setSmartMode('smart'); setSourceInsight(opt.id); setCreationMode('manual');
+                } else {
+                  applyInsight({ type: opt.id }); setCreationMode('manual');
+                }
+              }
+            }}
           >
-            <div className="bg-primary/10 p-3 rounded-xl text-primary shrink-0 group-hover:bg-primary group-hover:text-white transition-all duration-300">
+            <div className="bg-primary/10 p-3 rounded-xl text-primary shrink-0 group-hover:bg-primary group-hover:text-white transition-all duration-300 flex items-center justify-center w-12 h-12">
               <opt.icon className="h-5 w-5" />
             </div>
-            <div className={`min-w-0 flex-1 ${opt.isPremium ? 'pr-16' : ''}`}>
-              <h4 className="font-bold text-base leading-tight mb-1.5 break-words [overflow-wrap:anywhere] white-space-normal">
+            <div className={`min-w-0 flex-1 overflow-hidden pt-0.5 ${opt.isPremium ? 'pr-12' : ''}`}>
+              <h4 className="font-bold text-base leading-tight mb-1.5 break-words [overflow-wrap:anywhere]">
                 {opt.title}
               </h4>
               <p className="text-xs text-muted-foreground font-normal line-clamp-2 leading-relaxed break-words [overflow-wrap:anywhere] white-space-normal">
@@ -1563,7 +1574,7 @@ export default function Promotions() {
                 <Badge variant="outline" className="text-[9px] uppercase font-bold text-primary border-primary/20 bg-primary/5 py-0 px-1.5 h-4 shadow-sm">PREMIUM</Badge>
               </div>
             )}
-          </Button>
+          </div>
         ))}
       </div>
     );
