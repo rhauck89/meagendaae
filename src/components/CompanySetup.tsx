@@ -562,7 +562,94 @@ const CompanySetup = ({ onComplete }: CompanySetupProps) => {
               </>
             )}
 
-            {/* ───── Step 2: Hours ───── */}
+            {/* ───── Step 2: Categories ───── */}
+            {step === 'categories' && (
+              <>
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label>Categoria Principal</Label>
+                    <Select value={selectedCategoryId} onValueChange={setSelectedCategoryId}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione o tipo de negócio" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {categories.map((cat) => (
+                          <SelectItem key={cat.id} value={cat.id}>
+                            {cat.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {selectedCategoryId && (
+                    <div className="space-y-3">
+                      <Label>Subcategorias (Escolha uma ou mais)</Label>
+                      <div className="grid grid-cols-1 gap-2 max-h-48 overflow-y-auto pr-2">
+                        {subcategories.map((sub) => (
+                          <div
+                            key={sub.id}
+                            className={cn(
+                              "flex items-center justify-between p-3 rounded-lg border cursor-pointer transition-colors",
+                              selectedSubcategoryIds.includes(sub.id)
+                                ? "bg-primary/5 border-primary"
+                                : "hover:bg-muted border-transparent"
+                            )}
+                            onClick={() => {
+                              setSelectedSubcategoryIds(prev =>
+                                prev.includes(sub.id)
+                                  ? prev.filter(id => id !== sub.id)
+                                  : [...prev, sub.id]
+                              );
+                            }}
+                          >
+                            <span className="text-sm">{sub.name}</span>
+                            {selectedSubcategoryIds.includes(sub.id) && (
+                              <Check className="h-4 w-4 text-primary" />
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {selectedSubcategoryIds.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5 pt-2">
+                      {selectedSubcategoryIds.map(id => {
+                        const sub = subcategories.find(s => s.id === id);
+                        return sub ? (
+                          <Badge key={id} variant="secondary" className="gap-1 px-2 py-1">
+                            {sub.name}
+                            <X 
+                              className="h-3 w-3 cursor-pointer hover:text-destructive" 
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedSubcategoryIds(prev => prev.filter(sid => sid !== id));
+                              }}
+                            />
+                          </Badge>
+                        ) : null;
+                      })}
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex gap-3 pt-4">
+                  <Button variant="ghost" className="flex-1" onClick={() => setStep('company')}>
+                    <ChevronLeft className="h-4 w-4 mr-1" /> Voltar
+                  </Button>
+                  <Button 
+                    className="flex-1" 
+                    disabled={loading || !selectedCategoryId || selectedSubcategoryIds.length === 0} 
+                    onClick={handleSaveCategories}
+                  >
+                    {loading ? 'Salvando...' : 'Continuar'} <ChevronRight className="h-4 w-4 ml-1" />
+                  </Button>
+                </div>
+              </>
+            )}
+
+            {/* ───── Step 3: Hours ───── */}
             {step === 'hours' && (
               <>
                 <div className="space-y-2 max-h-80 overflow-y-auto pr-1">
