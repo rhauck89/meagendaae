@@ -176,7 +176,7 @@ const CompanySetup = ({ onComplete }: CompanySetupProps) => {
         .insert({
           name: companyName.trim(),
           slug,
-          owner_id: user.id,
+          user_id: user.id,
           business_type: businessType,
           phone,
           timezone: 'America/Sao_Paulo',
