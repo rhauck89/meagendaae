@@ -152,7 +152,7 @@ const Team = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('companies')
-        .select('slug, business_type, booking_mode, fixed_slot_interval, owner_id, prof_perm_booking_mode, prof_perm_grid_interval')
+        .select('slug, business_type, booking_mode, fixed_slot_interval, user_id, prof_perm_booking_mode, prof_perm_grid_interval')
         .eq('id', companyId!)
         .single();
       if (error) throw error;
