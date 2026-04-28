@@ -385,12 +385,14 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
   }, [savedClientId, company?.id, isClientLoggedIn]);
 
   useEffect(() => {
-    if (clientLoaded && clientDataWasAutoFilled && !isChangingData) {
+    // Show one-click card if data exists AND we're not explicitly changing data,
+    // OR if the client is logged in.
+    if (clientLoaded && (clientDataWasAutoFilled || isClientLoggedIn) && !isChangingData) {
       setShowOneClickCard(true);
     } else {
       setShowOneClickCard(false);
     }
-  }, [clientLoaded, clientDataWasAutoFilled, isChangingData]);
+  }, [clientLoaded, clientDataWasAutoFilled, isChangingData, isClientLoggedIn]);
 
   // Check for cashback credits when client is identified
   useEffect(() => {
@@ -499,17 +501,40 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
 
     checkSession();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log(`[BOOKING_SESSION_SOURCE] auth_state_changed: ${event}`);
+      
       if (!session?.user) {
         setIsClientLoggedIn(false);
         return;
       }
+
       const { data: profile } = await supabase
         .from('profiles')
         .select('role')
         .eq('user_id', session.user.id)
         .single();
-      setIsClientLoggedIn(profile?.role === 'client');
+      
+      const isActuallyClient = profile?.role === 'client';
+      setIsClientLoggedIn(isActuallyClient);
+      
+      if (isActuallyClient) {
+        console.log('[CLIENT_LOADED] Client session recognized');
+        // If we just logged in via OTP, show the one-click card and scroll to it
+        if (event === 'SIGNED_IN') {
+          console.log('[ONE_CLICK_ENABLED] Enabling one-click booking mode');
+          setShowOneClickCard(true);
+          setIsChangingData(false);
+          
+          // Smooth scroll to the one-click card after a small delay to allow UI to render
+          setTimeout(() => {
+            const clientSection = document.getElementById('booking-client-step');
+            if (clientSection) {
+              clientSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+          }, 300);
+        }
+      }
     });
 
     return () => subscription.unsubscribe();
@@ -2452,7 +2477,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
 
         {/* ═══ CLIENT INFO ═══ */}
         {step === 'client' && (
-          <div className="space-y-6 animate-in slide-in-from-right duration-500">
+          <div id="booking-client-step" className="space-y-6 animate-in slide-in-from-right duration-500">
             <button onClick={() => {
               if (preselected.isActive()) {
                 setStep('services');
