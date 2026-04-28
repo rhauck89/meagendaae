@@ -1507,21 +1507,21 @@ export default function Promotions() {
 
   const renderSmartScreen = () => {
     const smartOptions = [
-      { id: 'low_occupancy', title: 'Horários vagos amanhã', desc: 'Preencha horários livres', icon: TrendingUp },
-      { id: 'lunch_time', title: 'Promo almoço', desc: 'Baixa ocupação 11h às 14h', icon: Clock },
-      { id: 'afternoon_low', title: 'Fim de tarde vazio', desc: 'Atraia clientes fim de tarde', icon: Flame },
-      { id: 'reactivation', title: 'Clientes inativos', desc: 'Traga clientes de volta', icon: RefreshCw },
-      { id: 'birthdays', title: 'Aniversariantes', desc: 'Campanha do mês', icon: Users },
-      { id: 'professional_idle', title: 'Profissional ocioso', desc: 'Agenda fraca esta semana', icon: Users },
+      { id: 'low_occupancy', title: 'Horários vagos amanhã', desc: 'Preencha horários livres com promoções rápidas', icon: TrendingUp, isPremium: true },
+      { id: 'lunch_time', title: 'Promo almoço', desc: 'Aumente o movimento entre 11h às 14h', icon: Clock },
+      { id: 'afternoon_low', title: 'Fim de tarde vazio', desc: 'Atraia clientes para o final do expediente', icon: Flame },
+      { id: 'reactivation', title: 'Clientes inativos', desc: 'Recupere clientes que não agendam há 30 dias', icon: RefreshCw, isPremium: true },
+      { id: 'birthdays', title: 'Aniversariantes', desc: 'Campanha especial para os aniversariantes do mês', icon: Users },
+      { id: 'professional_idle', title: 'Profissional ocioso', desc: 'Impulsione a agenda de profissionais com poucas vagas', icon: Users },
     ];
 
     return (
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 py-2">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 py-4">
         {smartOptions.map((opt) => (
           <Button
             key={opt.id}
             variant="outline"
-            className="h-auto min-h-[100px] items-start justify-start p-5 gap-3 hover:border-primary hover:bg-primary/5 transition-all text-left group whitespace-normal overflow-hidden"
+            className="h-full min-h-[120px] items-start justify-start p-6 gap-4 hover:border-primary hover:bg-primary/5 transition-all text-left group whitespace-normal relative"
             onClick={() => {
               if (opt.id === 'professional_idle') {
                 resetForm();
@@ -1543,13 +1543,22 @@ export default function Promotions() {
               }
             }}
           >
-            <div className="bg-primary/10 p-2.5 rounded-lg text-primary shrink-0 group-hover:bg-primary group-hover:text-white transition-all">
+            <div className="bg-primary/10 p-3 rounded-xl text-primary shrink-0 group-hover:bg-primary group-hover:text-white transition-all duration-300">
               <opt.icon className="h-5 w-5" />
             </div>
-            <div className="min-w-0">
-              <h4 className="font-bold text-sm leading-tight mb-1 truncate">{opt.title}</h4>
-              <p className="text-xs text-muted-foreground font-normal line-clamp-2 leading-relaxed break-words [overflow-wrap:anywhere]">{opt.desc}</p>
+            <div className="min-w-0 flex-1 pr-6">
+              <h4 className="font-bold text-base leading-tight mb-1.5 break-words [overflow-wrap:anywhere] white-space-normal">
+                {opt.title}
+              </h4>
+              <p className="text-xs text-muted-foreground font-normal line-clamp-2 leading-relaxed break-words [overflow-wrap:anywhere] white-space-normal">
+                {opt.desc}
+              </p>
             </div>
+            {opt.isPremium && (
+              <div className="absolute top-3 right-3">
+                <Badge variant="outline" className="text-[9px] uppercase font-bold text-primary border-primary/20 bg-primary/5 py-0 px-1.5 h-4">PREMIUM</Badge>
+              </div>
+            )}
           </Button>
         ))}
       </div>
