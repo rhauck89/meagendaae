@@ -172,6 +172,10 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
     );
   }, []);
 
+  // Shadow the global supabase client to ensure absolute session isolation
+  // This prevents admin/pro sessions from contaminating the public booking flow.
+  const supabase = bookingSupabase;
+
   const { slug: paramSlug, professionalSlug } = useParams<{ slug: string; professionalSlug?: string }>();
   const slug = customSlug || paramSlug;
   const [searchParams] = useSearchParams();
