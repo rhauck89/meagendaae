@@ -1725,10 +1725,10 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
   const displayLogoUrl = company.logo_url || companySettings?.logo_url;
 
   const stepList: Step[] = skipProfessionalStep
-    ? ['services', 'datetime', 'client', 'confirm']
-    : ['services', 'professional', 'datetime', 'client', 'confirm'];
+    ? ['services', 'datetime', 'confirm']
+    : ['services', 'professional', 'datetime', 'confirm'];
   const stepLabels: Record<string, string> = {
-    services: 'Serviços', professional: 'Profissional', datetime: 'Horário', client: 'Dados', confirm: 'Confirmar',
+    services: 'Serviços', professional: 'Profissional', datetime: 'Horário', confirm: 'Confirmar',
   };
   const currentStepIdx = stepList.indexOf(step);
 
