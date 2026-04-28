@@ -496,8 +496,10 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
       const isActuallyClient = profile?.role === 'client';
       setIsClientLoggedIn(isActuallyClient);
       
-      if (!isActuallyClient && session.user) {
-        console.log('[BOOKING_SESSION_SOURCE] active session is admin, treating as guest in booking');
+      if (isActuallyClient) {
+        console.log('[SESSION_SET] Client session recognized from existing session');
+      } else {
+        console.log('[BOOKING_SESSION_SOURCE] active session is admin, treating as guest');
       }
     };
 
@@ -518,37 +520,33 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
         .single();
       
       const isActuallyClient = profile?.role === 'client';
-      setIsClientLoggedIn(isActuallyClient);
       
       if (isActuallyClient) {
-        console.log('[CLIENT_LOADED] Client session recognized');
+        console.log('[LOGIN_SUCCESS] Auth state change recognized client');
+        setIsClientLoggedIn(true);
+        setHasValidClient(true); // Trust the session
+        
         if (step === 'identifying') {
           setStep(professionalSlug ? 'services' : 'professional');
         }
-        // If we just logged in via OTP, show the one-click card and scroll to it
-        if (event === 'SIGNED_IN') {
-          console.log('[ONE_CLICK_ENABLED] Enabling one-click booking mode');
+        
+        if (event === 'SIGNED_IN' || event === 'INITIAL_SESSION') {
+          console.log('[SESSION_SET] Enabling active booking mode');
           setShowOneClickCard(true);
           setIsChangingData(false);
-          
-          // Smooth scroll to the one-click card after a small delay to allow UI to render
-          setTimeout(() => {
-            const clientSection = document.getElementById('booking-client-step');
-            if (clientSection) {
-              clientSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            }
-          }, 300);
         }
+      } else {
+        setIsClientLoggedIn(false);
       }
     });
 
     return () => subscription.unsubscribe();
-  }, [company?.id, isClientLoggedIn]); // Added company?.id to dependencies if needed, but [] was there
+  }, [company?.id, step]);
 
-  // NEW: Identification Gatekeeper - MUST happen before any step
+  // Identification Gatekeeper - Based ONLY on local isClientLoggedIn state
   useEffect(() => {
-    if (company && (!isClientLoggedIn || !hasValidClient) && clientLoaded && !authLoading) {
-      console.log('[BOOKING_GATEKEEPER] Identification required at start. Opening modal...');
+    if (company && !isClientLoggedIn && clientLoaded && !authLoading) {
+      console.log('[BOOKING_GATEKEEPER] Identification required. Opening modal...');
       setShowIdentityModal(true);
     }
   }, [company, isClientLoggedIn, clientLoaded, authLoading]);
@@ -2988,18 +2986,20 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
         onClose={() => setShowIdentityModal(false)}
         companyId={company?.id}
         supabaseClient={bookingSupabase}
-        onLoginSuccess={async () => {
-          console.log('[OTP_SUCCESS_FRONTEND] IdentityModal success callback - STARTING FLOW FROM ZERO');
+        onLoginSuccess={async (clientData) => {
+          console.log('[LOGIN_SUCCESS] IdentityModal success callback triggered');
+          
+          setIsClientLoggedIn(true);
+          console.log('[SESSION_SET] Client session is now active');
           
           setShowIdentityModal(false);
-          setIsClientLoggedIn(true);
           setShowOneClickCard(true);
           setIsChangingData(false);
           
           const { data: { user } } = await bookingSupabase.auth.getUser();
           
           if (user) {
-            console.log('CLIENT SET: recognized', user.id);
+            console.log('[CLIENT_SET] recognized user:', user.id);
             const { data: client } = await bookingSupabase
               .from('clients')
               .select('*')
@@ -3017,8 +3017,28 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
               setSavedClientId(client.id);
               setHasValidClient(true);
               setClientDataWasAutoFilled(true);
-              setShowOneClickCard(true);
+              console.log('[BOOKING_UNLOCKED] Client record found and loaded');
+            } else if (clientData) {
+              // Fallback if client record is still being created/synced
+              setClientForm({
+                full_name: clientData.full_name || '',
+                email: clientData.email || '',
+                whatsapp: displayWhatsApp(clientData.whatsapp || ''),
+                birth_date: '',
+              });
+              setHasValidClient(true);
+              console.log('[BOOKING_UNLOCKED] Using provided client data as fallback');
             }
+          } else if (clientData) {
+            setClientForm({
+              full_name: clientData.full_name || '',
+              email: clientData.email || '',
+              whatsapp: displayWhatsApp(clientData.whatsapp || ''),
+              birth_date: '',
+            });
+            setIsClientLoggedIn(true);
+            setHasValidClient(true);
+            console.log('[BOOKING_UNLOCKED] Client identified without user session');
           }
 
           // START FLOW FROM ZERO as requested

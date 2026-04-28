@@ -9,6 +9,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { OTPInput } from '../auth/OTPInput';
+import { normalizePhone } from '@/lib/whatsapp';
 
 interface IdentityModalProps {
   isOpen: boolean;
@@ -79,16 +80,11 @@ export function IdentityModal({
     return masked;
   };
 
-  const cleanPhone = (val: string) => {
-    let cleaned = val.replace(/\D/g, '');
-    if (cleaned && !cleaned.startsWith('55')) {
-      cleaned = '55' + cleaned;
-    }
-    return cleaned;
-  };
 
   const handleIdentify = async () => {
-    const phone = cleanPhone(whatsapp);
+    const phone = normalizePhone(whatsapp);
+    console.log('[LOOKUP_PHONE_NORMALIZED]', phone);
+    
     if (phone.length < 10) {
       toast.error('Informe um WhatsApp válido');
       return;
@@ -98,7 +94,6 @@ export function IdentityModal({
     try {
       console.log(`[IDENTITY_MODAL] Identifying: ${phone} in company ${companyId}`);
       
-      // NEW GLOBAL FLOW: Search globally and get both IDs
       const { data: client, error } = await supabaseToUse.rpc('lookup_client_globally', {
         p_company_id: companyId,
         p_whatsapp: phone
@@ -106,17 +101,15 @@ export function IdentityModal({
 
       if (error) throw error;
 
-      if (client && client.client_global_id) {
-        console.log('[IDENTITY_MODAL] Client found globally:', client);
-        
-        // Store both IDs for consistent session handling
+      if (client && client.length > 0) {
         const clientData = Array.isArray(client) ? client[0] : client;
+        console.log('[IDENTITY_MODAL] Client found globally:', clientData);
+        
         setEmail(clientData.email || '');
         setFullName(clientData.name || '');
         setIsNewUser(false);
         setView('options');
         
-        // Premium logging of session IDs
         console.log(`[SESSION] Global ID: ${clientData.client_global_id}, Legacy ID: ${clientData.client_legacy_id}`);
       } else {
         console.log('[IDENTITY_MODAL] Client not found globally');
@@ -137,7 +130,7 @@ export function IdentityModal({
         body: {
           action: 'send-otp',
           companyId,
-          phone: cleanPhone(whatsapp),
+          phone: normalizePhone(whatsapp),
           email: email || null
         }
       });
@@ -162,11 +155,11 @@ export function IdentityModal({
     
     setLoading(true);
     try {
-      console.log(`[IDENTITY_MODAL] Verifying OTP: ${codeToVerify}`);
+      console.log(`[OTP_SUCCESS] Verifying OTP: ${codeToVerify}`);
       const { data, error } = await supabaseToUse.functions.invoke('whatsapp-integration', {
         body: {
           action: 'verify-otp',
-          phone: cleanPhone(whatsapp),
+          phone: normalizePhone(whatsapp),
           email: email || null,
           code: codeToVerify,
           companyId,
@@ -178,6 +171,7 @@ export function IdentityModal({
         throw new Error(data?.error || 'Código inválido ou expirado.');
       }
 
+      console.log('[SESSION_APPLIED] OTP Verified, applying session');
       handleSuccess(data.session);
     } catch (err: any) {
       toast.error(err.message || 'Código inválido');
@@ -216,7 +210,7 @@ export function IdentityModal({
 
     setLoading(true);
     try {
-      const formattedPhone = cleanPhone(whatsapp);
+      const formattedPhone = normalizePhone(whatsapp);
       const normalizedEmail = email.trim().toLowerCase();
 
       // INTELLIGENT VALIDATION: Check if user exists before trying to signUp
@@ -286,18 +280,25 @@ export function IdentityModal({
 
   const handleSuccess = async (session: any) => {
     setSuccess(true);
-    console.log('[IDENTITY_MODAL] Success! Closing modal...');
+    console.log('[CLIENT_IDENTIFIED] Success! Closing modal...');
     
     if (session) {
+      console.log('[SESSION_APPLIED] Setting Supabase session');
       await supabaseToUse.auth.setSession({
         access_token: session.access_token,
         refresh_token: session.refresh_token
       });
     }
 
+    console.log('[BOOKING_READY] Flow unlocked for client');
+
     // UX PREMIUM: Wait 800ms before closing
     setTimeout(() => {
-      onLoginSuccess();
+      onLoginSuccess({
+        full_name: fullName,
+        whatsapp: normalizePhone(whatsapp),
+        email: email
+      });
       onClose();
     }, 800);
   };
@@ -584,7 +585,7 @@ export function IdentityModal({
 
                 <Button 
                   onClick={handleRegister}
-                  disabled={loading || !fullName || cleanPhone(whatsapp).length < 10 || !email || password.length < 8}
+                  disabled={loading || !fullName || normalizePhone(whatsapp).length < 10 || !email || password.length < 8}
                   className="w-full h-16 rounded-full bg-emerald-500 hover:bg-emerald-600 text-zinc-950 font-black text-lg transition-all shadow-lg shadow-emerald-500/20"
                 >
                   {loading ? "Criando..." : "Criar Conta e Continuar"}
