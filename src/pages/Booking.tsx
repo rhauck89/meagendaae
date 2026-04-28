@@ -1299,7 +1299,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
       const { error } = await supabase.rpc('join_public_waitlist', {
         p_company_id: company.id,
         p_client_name: waitlistForm.name.trim(),
-        p_client_whatsapp: formatWhatsApp(waitlistForm.whatsapp),
+        p_client_whatsapp: waitlistForm.whatsapp.replace(/\D/g, ''),
         p_email: waitlistForm.email.trim() || null,
         p_service_ids: selectedServices,
         p_desired_date: format(selectedDate, 'yyyy-MM-dd'),
