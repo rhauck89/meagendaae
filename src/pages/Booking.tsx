@@ -496,8 +496,10 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
       const isActuallyClient = profile?.role === 'client';
       setIsClientLoggedIn(isActuallyClient);
       
-      if (!isActuallyClient && session.user) {
-        console.log('[BOOKING_SESSION_SOURCE] active session is admin, treating as guest in booking');
+      if (isActuallyClient) {
+        console.log('[SESSION_SET] Client session recognized from existing session');
+      } else {
+        console.log('[BOOKING_SESSION_SOURCE] active session is admin, treating as guest');
       }
     };
 
@@ -518,32 +520,28 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
         .single();
       
       const isActuallyClient = profile?.role === 'client';
-      setIsClientLoggedIn(isActuallyClient);
       
       if (isActuallyClient) {
-        console.log('[CLIENT_LOADED] Client session recognized');
+        console.log('[LOGIN_SUCCESS] Auth state change recognized client');
+        setIsClientLoggedIn(true);
+        setHasValidClient(true); // Trust the session
+        
         if (step === 'identifying') {
           setStep(professionalSlug ? 'services' : 'professional');
         }
-        // If we just logged in via OTP, show the one-click card and scroll to it
-        if (event === 'SIGNED_IN') {
-          console.log('[ONE_CLICK_ENABLED] Enabling one-click booking mode');
+        
+        if (event === 'SIGNED_IN' || event === 'INITIAL_SESSION') {
+          console.log('[SESSION_SET] Enabling active booking mode');
           setShowOneClickCard(true);
           setIsChangingData(false);
-          
-          // Smooth scroll to the one-click card after a small delay to allow UI to render
-          setTimeout(() => {
-            const clientSection = document.getElementById('booking-client-step');
-            if (clientSection) {
-              clientSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            }
-          }, 300);
         }
+      } else {
+        setIsClientLoggedIn(false);
       }
     });
 
     return () => subscription.unsubscribe();
-  }, [company?.id, isClientLoggedIn]); // Added company?.id to dependencies if needed, but [] was there
+  }, [company?.id, step]);
 
   // NEW: Identification Gatekeeper - MUST happen before any step
   useEffect(() => {
