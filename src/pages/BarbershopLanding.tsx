@@ -848,7 +848,7 @@ export default function BarbershopLanding({ routeBusinessType, customSlug }: Bar
           </button>
           {/* Floating booking button */}
           <button
-            onClick={() => navigate(`/${bookingBasePath}/${slug}/agendar`)}
+            onClick={handleStartBooking}
             className="flex flex-col items-center -mt-8"
           >
             <div
