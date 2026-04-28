@@ -540,7 +540,15 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
     });
 
     return () => subscription.unsubscribe();
-  }, []);
+  }, [company?.id, isClientLoggedIn]); // Added company?.id to dependencies if needed, but [] was there
+
+  // NEW: Identification Gatekeeper - MUST happen before any step
+  useEffect(() => {
+    if (company && !isClientLoggedIn && clientLoaded && !authLoading) {
+      console.log('[BOOKING_GATEKEEPER] Identification required at start. Opening modal...');
+      setShowIdentityModal(true);
+    }
+  }, [company, isClientLoggedIn, clientLoaded, authLoading]);
 
   // Check whether a valid `clients` record exists for this user in this company.
   // Used to decide whether to show "Ver meus agendamentos" vs "Concluir cadastro".
