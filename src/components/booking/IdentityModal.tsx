@@ -388,7 +388,7 @@ export function IdentityModal({
                     onClick={() => setView('register')}
                     className="w-full h-16 rounded-full bg-amber-500 hover:bg-amber-600 text-zinc-950 font-black text-lg transition-all shadow-lg shadow-amber-500/20"
                   >
-                    Criar meu cadastro agora
+                    Criar cadastro
                   </Button>
                   <Button 
                     variant="ghost"
