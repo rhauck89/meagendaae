@@ -1539,7 +1539,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
         const serviceNames = selectedServices.map((sid) => services.find((s) => s.id === sid)?.name).filter(Boolean);
         const createdPayload = {
           event: 'appointment_created', appointment_id: appointmentId, company_id: company.id,
-          client_name: clientForm.full_name, client_whatsapp: clientForm.whatsapp.replace(/\D/g, ''),
+          client_name: clientForm.full_name, client_whatsapp: normalizePhone(clientForm.whatsapp),
           client_email: clientForm.email, professional_name: professionalProfile?.full_name || '',
           service_name: serviceNames.join(', '), services: serviceNames,
           appointment_date: format(startTime, 'yyyy-MM-dd'), appointment_time: format(startTime, 'HH:mm'),
