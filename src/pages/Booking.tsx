@@ -2530,6 +2530,25 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                   </div>
 
                   <div className="space-y-3">
+                    <Button 
+                      onClick={() => handleBook()}
+                      disabled={loading}
+                      className="w-full rounded-2xl h-16 font-black text-lg shadow-xl transition-all hover:scale-[1.02] active:scale-[0.98] group"
+                      style={{ background: `linear-gradient(135deg, #10B981, #34D399)`, color: '#000' }}
+                    >
+                      {loading ? (
+                        <div className="flex items-center gap-3">
+                          <div className="w-5 h-5 border-4 rounded-full animate-spin border-black/20 border-t-black" />
+                          Processando...
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-2">
+                          <CheckCircle2 className="h-6 w-6" />
+                          Confirmar Agendamento
+                        </div>
+                      )}
+                    </Button>
+
                     <div className="flex gap-3">
                       <Button 
                         onClick={() => setIsChangingData(true)}
