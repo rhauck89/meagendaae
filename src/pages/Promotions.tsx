@@ -1539,7 +1539,7 @@ export default function Promotions() {
                 setDialogOpen(true);
                 setCreationMode('manual');
               } else {
-                const mockInsight: any = { type: opt.id };
+                const mockInsight: any = { type: opt.id as any };
                 if (opt.id === 'lunch_time' || opt.id === 'afternoon_low') {
                   mockInsight.data = { isTomorrow: new Date().getHours() >= 14 };
                 }
@@ -1549,11 +1549,10 @@ export default function Promotions() {
             }}
             onKeyDown={(e) => {
               if (e.key === 'Enter') {
-                // Same logic as onClick
                 if (opt.id === 'professional_idle') {
                   resetForm(); setSmartMode('smart'); setSourceInsight(opt.id); setCreationMode('manual');
                 } else {
-                  applyInsight({ type: opt.id }); setCreationMode('manual');
+                  applyInsight({ type: opt.id as any }); setCreationMode('manual');
                 }
               }
             }}
