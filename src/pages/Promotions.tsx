@@ -1468,32 +1468,36 @@ export default function Promotions() {
 
   const renderChoiceScreen = () => (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-5 py-4">
-      <Button 
-        variant="outline" 
-        className="h-full min-h-[160px] flex-row items-start justify-start p-7 gap-5 hover:border-primary hover:bg-primary/5 transition-all group text-left whitespace-normal"
+      <div 
+        role="button"
+        tabIndex={0}
+        className="h-full min-h-[160px] flex items-start p-7 gap-5 rounded-2xl border border-border bg-card hover:border-primary hover:bg-primary/5 transition-all group cursor-pointer"
         onClick={() => setCreationMode('manual')}
+        onKeyDown={(e) => e.key === 'Enter' && setCreationMode('manual')}
       >
-        <div className="bg-muted p-3.5 rounded-xl group-hover:bg-primary/10 group-hover:text-primary transition-all duration-300 shrink-0">
+        <div className="bg-muted p-3.5 rounded-xl group-hover:bg-primary/10 group-hover:text-primary transition-all duration-300 shrink-0 flex items-center justify-center w-14 h-14">
           <Edit2 className="h-6 w-6" />
         </div>
-        <div className="flex flex-col gap-1.5 min-w-0">
-          <h3 className="font-bold text-lg leading-tight">Manual</h3>
+        <div className="flex flex-col gap-1.5 min-w-0 overflow-hidden pt-1">
+          <h3 className="font-bold text-lg leading-tight break-words [overflow-wrap:anywhere]">Manual</h3>
           <p className="text-sm text-muted-foreground font-normal line-clamp-2 break-words [overflow-wrap:anywhere] white-space-normal leading-relaxed">
             Crie promoções do zero, definindo cada detalhe da sua campanha.
           </p>
         </div>
-      </Button>
+      </div>
 
-      <Button 
-        variant="outline" 
-        className="h-full min-h-[160px] flex-row items-start justify-start p-7 gap-5 border-primary/30 bg-primary/5 hover:bg-primary/10 transition-all group relative text-left whitespace-normal"
+      <div 
+        role="button"
+        tabIndex={0}
+        className="h-full min-h-[160px] flex items-start p-7 gap-5 rounded-2xl border border-primary/30 bg-primary/5 hover:bg-primary/10 transition-all group relative cursor-pointer"
         onClick={() => setCreationMode('smart')}
+        onKeyDown={(e) => e.key === 'Enter' && setCreationMode('smart')}
       >
-        <div className="bg-primary/10 text-primary p-3.5 rounded-xl group-hover:bg-primary/20 transition-all duration-300 shrink-0">
+        <div className="bg-primary/10 text-primary p-3.5 rounded-xl group-hover:bg-primary/20 transition-all duration-300 shrink-0 flex items-center justify-center w-14 h-14">
           <Zap className="h-6 w-6" />
         </div>
-        <div className="flex flex-col gap-1.5 min-w-0 pr-8">
-          <h3 className="font-bold text-lg leading-tight">Inteligente</h3>
+        <div className="flex flex-col gap-1.5 min-w-0 overflow-hidden pr-8 pt-1">
+          <h3 className="font-bold text-lg leading-tight break-words [overflow-wrap:anywhere]">Inteligente</h3>
           <p className="text-sm text-muted-foreground font-normal line-clamp-2 break-words [overflow-wrap:anywhere] white-space-normal leading-relaxed">
             IA encontra oportunidades e monta campanhas prontas para você.
           </p>
@@ -1501,7 +1505,7 @@ export default function Promotions() {
         <div className="absolute top-4 right-4">
           <Badge className="bg-primary text-primary-foreground text-[10px] uppercase px-2 py-0.5 shadow-sm border-none font-bold">IA</Badge>
         </div>
-      </Button>
+      </div>
     </div>
   );
 
