@@ -5710,6 +5710,15 @@ export type Database = {
           whatsapp: string
         }[]
       }
+      lookup_client_globally: {
+        Args: { p_company_id: string; p_whatsapp: string }
+        Returns: {
+          email: string
+          id: string
+          name: string
+          whatsapp: string
+        }[]
+      }
       normalize_whatsapp_v2: { Args: { phone: string }; Returns: string }
       recalculate_client_return_stats: {
         Args: { _company_id: string }
