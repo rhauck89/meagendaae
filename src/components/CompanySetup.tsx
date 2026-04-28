@@ -248,7 +248,7 @@ const CompanySetup = ({ onComplete }: CompanySetupProps) => {
       await supabase.from('company_categories').insert(categoryRows);
 
       // 2. Auto-create service categories and services from templates
-      const { data: globalCategories } = await supabase.from('service_categories_global').select('id, slug');
+      const { data: globalCategories } = await supabase.from('service_categories_global').select('id, slug, name');
       const { data: templates } = await supabase.from('service_templates').select('*').eq('business_category_id', selectedCategoryId);
 
       if (templates && templates.length > 0 && globalCategories) {
@@ -261,39 +261,71 @@ const CompanySetup = ({ onComplete }: CompanySetupProps) => {
 
         for (const globalCatId of Object.keys(templatesByGlobalCat)) {
           const globalCat = globalCategories.find(gc => gc.id === globalCatId);
-          const firstTemplate = templatesByGlobalCat[globalCatId][0];
           
-          // Use the template's name or global category name as local category name
-          const localCatName = globalCat ? (globalCat.slug.charAt(0).toUpperCase() + globalCat.slug.slice(1)) : 'Serviços';
+          // Use the global category name as local category name (idempotent lookup/creation)
+          const localCatName = globalCat ? globalCat.name : 'Serviços';
           
-          const { data: localCat } = await supabase.from('service_categories').insert({
-            company_id: companyId,
-            name: localCatName,
-            global_category_id: globalCatId
-          }).select().single();
+          // Use upsert or find first to ensure idempotency
+          let { data: localCat, error: catError } = await supabase
+            .from('service_categories')
+            .select('id')
+            .eq('company_id', companyId)
+            .eq('global_category_id', globalCatId)
+            .maybeSingle();
+
+          if (!localCat) {
+            const { data: newCat, error: insertError } = await supabase.from('service_categories').insert({
+              company_id: companyId,
+              name: localCatName,
+              global_category_id: globalCatId
+            }).select().single();
+            if (insertError) throw insertError;
+            localCat = newCat;
+          }
 
           if (localCat) {
-            const servicesToInsert = templatesByGlobalCat[globalCatId].map((t: any) => ({
-              company_id: companyId,
-              category_id: localCat.id,
-              global_category_id: globalCatId,
-              name: t.name,
-              duration_minutes: t.duration_minutes,
-              price: Number(t.suggested_price),
-              active: true
-            }));
-            await supabase.from('services').insert(servicesToInsert);
+            // Create services if they don't exist (idempotent)
+            for (const t of templatesByGlobalCat[globalCatId]) {
+              const { data: existingService } = await supabase
+                .from('services')
+                .select('id')
+                .eq('company_id', companyId)
+                .eq('category_id', localCat.id)
+                .eq('name', t.name)
+                .maybeSingle();
+
+              if (!existingService) {
+                await supabase.from('services').insert({
+                  company_id: companyId,
+                  category_id: localCat.id,
+                  global_category_id: globalCatId,
+                  name: t.name,
+                  duration_minutes: t.duration_minutes,
+                  price: Number(t.suggested_price),
+                  active: true
+                });
+              }
+            }
           }
         }
       } else {
         // Fallback for case where no templates are found (safety)
         const { data: otherCat } = await supabase.from('service_categories_global').select('id').eq('slug', 'outros').single();
         if (otherCat) {
-          await supabase.from('service_categories').insert({
-            company_id: companyId,
-            name: 'Serviços',
-            global_category_id: otherCat.id
-          });
+          const { data: existingLocalCat } = await supabase
+            .from('service_categories')
+            .select('id')
+            .eq('company_id', companyId)
+            .eq('global_category_id', otherCat.id)
+            .maybeSingle();
+
+          if (!existingLocalCat) {
+            await supabase.from('service_categories').insert({
+              company_id: companyId,
+              name: 'Serviços',
+              global_category_id: otherCat.id
+            });
+          }
         }
       }
 
