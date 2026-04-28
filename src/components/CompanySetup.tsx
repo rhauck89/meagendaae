@@ -38,7 +38,7 @@ const stepMeta: Record<OnboardingStep, { icon: any; title: string; desc: string 
   done: { icon: CheckCircle2, title: 'Tudo pronto!', desc: 'Compartilhe seu link de agendamento' },
 };
 
-import { Grid3X3 } from 'lucide-react';
+
 
 const dayNames = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
 
