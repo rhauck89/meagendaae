@@ -22,6 +22,19 @@ export function formatWhatsApp(raw: string): string {
 }
 
 /**
+ * Normalizes a phone number to international format (starting with 55).
+ * Enforces digits-only and prepends 55 if missing.
+ */
+export function normalizePhone(phone: string): string {
+  if (!phone) return '';
+  let cleaned = phone.replace(/\D/g, '');
+  if (cleaned && !cleaned.startsWith('55')) {
+    cleaned = '55' + cleaned;
+  }
+  return cleaned;
+}
+
+/**
  * Display mask: 5531999999999 → (31) 99999-9999
  */
 export function displayWhatsApp(digits: string): string {

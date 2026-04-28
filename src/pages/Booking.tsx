@@ -34,7 +34,7 @@ const isTomorrowTz = (d: Date, tz = 'America/Sao_Paulo') => {
 import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
-import { formatWhatsApp, displayWhatsApp, isValidWhatsApp, buildWhatsAppUrl, trackWhatsAppClick } from '@/lib/whatsapp';
+import { formatWhatsApp, displayWhatsApp, isValidWhatsApp, buildWhatsAppUrl, trackWhatsAppClick, normalizePhone } from '@/lib/whatsapp';
 import { type BusinessHours, type BusinessException, type ExistingAppointment, type BookingMode } from '@/lib/availability-engine';
 import { getAvailableSlots } from '@/lib/availability-service';
 import { PlatformBranding } from '@/components/PlatformBranding';
@@ -1299,7 +1299,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
       const { error } = await supabase.rpc('join_public_waitlist', {
         p_company_id: company.id,
         p_client_name: waitlistForm.name.trim(),
-        p_client_whatsapp: waitlistForm.whatsapp.replace(/\D/g, ''),
+        p_client_whatsapp: normalizePhone(waitlistForm.whatsapp),
         p_email: waitlistForm.email.trim() || null,
         p_service_ids: selectedServices,
         p_desired_date: format(selectedDate, 'yyyy-MM-dd'),
@@ -1367,7 +1367,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
 
       const clientId = clientRecord.id;
       setSavedClientId(clientId);
-      const formattedWhatsapp = clientForm.whatsapp ? clientForm.whatsapp.replace(/\D/g, '') : null;
+      const formattedWhatsapp = clientForm.whatsapp ? normalizePhone(clientForm.whatsapp) : null;
 
 
       if (!selectedSlotIsAvailable) {
@@ -1539,7 +1539,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
         const serviceNames = selectedServices.map((sid) => services.find((s) => s.id === sid)?.name).filter(Boolean);
         const createdPayload = {
           event: 'appointment_created', appointment_id: appointmentId, company_id: company.id,
-          client_name: clientForm.full_name, client_whatsapp: clientForm.whatsapp.replace(/\D/g, ''),
+          client_name: clientForm.full_name, client_whatsapp: normalizePhone(clientForm.whatsapp),
           client_email: clientForm.email, professional_name: professionalProfile?.full_name || '',
           service_name: serviceNames.join(', '), services: serviceNames,
           appointment_date: format(startTime, 'yyyy-MM-dd'), appointment_time: format(startTime, 'HH:mm'),
