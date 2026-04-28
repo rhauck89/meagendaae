@@ -120,11 +120,11 @@ Deno.serve(async (req) => {
       const targetCompanyId = companyId;
       
       if (!targetCompanyId) {
-        console.error('[ERROR] send-otp: Missing companyId');
-        throw new Error('Missing companyId');
+        console.error('[OTP_ERROR_REAL] send-otp: Missing companyId');
+        throw new Error('ID da empresa não informado.');
       }
       
-      console.log(`[OTP] Generating for Phone: ${phone}, Email: ${targetEmail}, Company: ${targetCompanyId}`);
+      console.log(`[OTP_GENERATE] Phone: ${phone}, Email: ${targetEmail}, Company: ${targetCompanyId}`);
       
       const code = Math.floor(100000 + Math.random() * 900000).toString();
       const expiresAt = new Date(Date.now() + 5 * 60 * 1000).toISOString();
@@ -141,30 +141,30 @@ Deno.serve(async (req) => {
         .gt('created_at', oneHourAgo);
 
       if (recentAttempts && recentAttempts >= 10) {
-        console.warn(`[OTP] Rate limit hit for ${cleanPhone || userIp}`);
-        throw new Error('Muitas tentativas em curto período. Tente novamente mais tarde.');
+        console.warn(`[OTP_GENERATE] Rate limit hit for ${cleanPhone || userIp}`);
+        throw new Error('Muitas tentativas em curto período. Tente novamente em 1 hora.');
       }
 
-      // Invalidate old codes for this phone/email in this company
+      // Invalidate old UNUSED codes for this phone in this company
       await adminClient
         .from('auth_otps')
-        .update({ expires_at: new Date().toISOString() })
-        .match({ company_id: targetCompanyId, phone: cleanPhone })
-        .gt('expires_at', new Date().toISOString());
+        .update({ used: true, metadata: { invalidated_by_new_request: true } })
+        .match({ company_id: targetCompanyId, phone: cleanPhone, used: false });
 
       const { error: insertError } = await adminClient.from('auth_otps').insert({
         company_id: targetCompanyId,
         phone: cleanPhone,
         email: targetEmail || null,
         code,
+        used: false,
         expires_at: expiresAt,
         ip_address: userIp,
         metadata: { user_agent: req.headers.get('user-agent') }
       });
 
       if (insertError) {
-        console.error('[OTP] Database insert error:', insertError);
-        throw new Error('Erro ao registrar código de verificação.');
+        console.error('[OTP_ERROR_REAL] Database insert error:', insertError);
+        throw new Error(`Erro ao registrar código: ${insertError.message}`);
       }
 
       const instance = await getInstance(targetCompanyId);
@@ -201,51 +201,86 @@ Deno.serve(async (req) => {
     }
 
     if (action === 'verify-otp') {
-      const { phone, email: targetEmail, code: rawCode, redirectTo, companyId: targetCompanyId } = params;
+      const { phone, email: targetEmail, code: rawCode, redirectTo } = params;
+      const targetCompanyId = companyId; // Use companyId from body destructuring
       const code = rawCode?.toString().trim();
       
-      console.log(`[VERIFY] Checking OTP for Phone: ${phone}, Email: ${targetEmail}, Code: ${code}, Company: ${targetCompanyId}`);
+      console.log(`[OTP_VERIFY_START] phone=${phone}, email=${targetEmail}, code=${code}, companyId=${targetCompanyId}`);
 
       if (!code || code.length !== 6) {
-        throw new Error('Código inválido.');
+        console.error(`[OTP_ERROR_REAL] Invalid code format: ${code}`);
+        throw new Error('Código deve ter 6 dígitos.');
+      }
+
+      if (!targetCompanyId) {
+        console.error(`[OTP_ERROR_REAL] Missing company_id in verify-otp request`);
+        throw new Error('ID da empresa não informado.');
       }
 
       const cleanPhone = phone ? formatPhone(phone) : null;
 
       // Find the most recent active OTP for this phone/company
+      console.log(`[OTP_QUERY] Looking for unused OTP: company=${targetCompanyId}, phone=${cleanPhone}, code=${code}`);
+      
       const { data: otp, error: fetchError } = await adminClient
         .from('auth_otps')
         .select('*')
         .eq('code', code)
         .eq('company_id', targetCompanyId)
         .eq('phone', cleanPhone)
+        .eq('used', false)
         .gt('expires_at', new Date().toISOString())
         .order('created_at', { ascending: false })
         .limit(1)
         .maybeSingle();
 
       if (fetchError) {
-        console.error('[VERIFY] DB Error:', fetchError);
-        throw new Error('Erro ao consultar código.');
+        console.error('[OTP_ERROR_REAL] DB Fetch Error:', fetchError);
+        throw new Error(`Erro ao consultar código: ${fetchError.message}`);
       }
 
       if (!otp) {
-        console.warn(`[VERIFY] Invalid/Expired code: ${code} for phone ${cleanPhone}`);
-        throw new Error('Código inválido ou expirado.');
+        console.warn(`[OTP_ERROR_REAL] No valid/unused/non-expired OTP found for ${cleanPhone} with code ${code} in company ${targetCompanyId}`);
+        // Log if there was ANY otp found regardless of expiration/used status to give better feedback
+        const { data: anyOtp } = await adminClient
+          .from('auth_otps')
+          .select('used, expires_at, code')
+          .eq('phone', cleanPhone)
+          .eq('company_id', targetCompanyId)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        
+        if (anyOtp) {
+          console.log(`[OTP_ROW_FOUND] But invalid state: code_match=${anyOtp.code === code}, used=${anyOtp.used}, expired=${new Date(anyOtp.expires_at) < new Date()}`);
+          if (anyOtp.used) throw new Error('Este código já foi utilizado.');
+          if (new Date(anyOtp.expires_at) < new Date()) throw new Error('Este código expirou.');
+          if (anyOtp.code !== code) throw new Error('Código incorreto.');
+        }
+        
+        throw new Error('Código inválido ou não encontrado.');
       }
 
+      console.log(`[OTP_ROW_FOUND] ID: ${otp.id}, attempts: ${otp.attempts}`);
+
       if (otp.attempts >= (otp.max_attempts || 5)) {
-        console.warn(`[VERIFY] Max attempts reached for OTP ${otp.id}`);
+        console.warn(`[OTP_ERROR_REAL] Max attempts reached for OTP ${otp.id}`);
         throw new Error('Máximo de tentativas excedido. Solicite um novo código.');
       }
 
-      // Mark as used immediately by expiring it
-      await adminClient.from('auth_otps').update({ 
-        expires_at: new Date(0).toISOString(),
+      // Mark as used immediately
+      console.log(`[OTP_MARK_USED] Marking OTP ${otp.id} as used...`);
+      const { error: updateError } = await adminClient.from('auth_otps').update({ 
+        used: true,
         attempts: (otp.attempts || 0) + 1
       }).eq('id', otp.id);
 
-      console.log(`[VERIFY] Success for OTP ${otp.id}. Generating access link...`);
+      if (updateError) {
+        console.error(`[OTP_ERROR_REAL] Failed to mark OTP as used:`, updateError);
+        throw new Error('Erro ao atualizar estado do código.');
+      }
+
+      console.log(`[OTP_SUCCESS] OTP ${otp.id} verified. Starting login process...`);
 
       // Track metric
       await adminClient.rpc('track_booking_metric', { 
@@ -256,9 +291,10 @@ Deno.serve(async (req) => {
       // Find user email ONLY for this company
       let userEmail = targetEmail || otp.email;
       if (!userEmail && cleanPhone) {
+        console.log(`[OTP_LOGIN_CREATE] Searching for client email for phone ${cleanPhone}...`);
         const { data: client } = await adminClient
           .from('clients')
-          .select('email')
+          .select('email, name')
           .eq('phone', cleanPhone)
           .eq('company_id', targetCompanyId)
           .not('email', 'is', null)
@@ -266,19 +302,24 @@ Deno.serve(async (req) => {
         
         if (client?.email) {
           userEmail = client.email;
-          console.log(`[VERIFY] Found client email for phone ${cleanPhone} in company ${targetCompanyId}: ${userEmail}`);
+          console.log(`[OTP_LOGIN_CREATE] Found client: ${client.name} (${userEmail})`);
         } else {
-            // Fallback: check auth.users if metadata has it
-            const { data: { users } } = await adminClient.auth.admin.listUsers();
-            const foundUser = users.find(u => u.phone === cleanPhone || u.user_metadata?.whatsapp === cleanPhone);
-            if (foundUser?.email) {
-                userEmail = foundUser.email;
-                console.log(`[VERIFY] Found auth email for phone ${cleanPhone}: ${userEmail}`);
+            console.log(`[OTP_LOGIN_CREATE] No client email found in table. Checking auth.users...`);
+            const { data: { users }, error: listError } = await adminClient.auth.admin.listUsers();
+            if (listError) {
+              console.error(`[OTP_ERROR_REAL] Error listing users:`, listError);
+            } else {
+              const foundUser = users.find(u => u.phone === cleanPhone || u.user_metadata?.whatsapp === cleanPhone);
+              if (foundUser?.email) {
+                  userEmail = foundUser.email;
+                  console.log(`[OTP_LOGIN_CREATE] Found auth email: ${userEmail}`);
+              }
             }
         }
       }
 
       if (userEmail) {
+        console.log(`[OTP_LOGIN_CREATE] Generating magic link for ${userEmail}...`);
         const { data, error: linkError } = await adminClient.auth.admin.generateLink({
           type: 'magiclink',
           email: userEmail,
@@ -286,47 +327,48 @@ Deno.serve(async (req) => {
         });
 
         if (linkError) {
-          console.error('[VERIFY] Magic Link generation error:', linkError);
-          return new Response(JSON.stringify({ success: true, email: userEmail }), { headers: corsHeaders });
+          console.error('[OTP_ERROR_REAL] Magic Link generation error:', linkError);
+          // Don't fail the whole request if only the link generation fails but OTP was correct
+          return new Response(JSON.stringify({ 
+            success: true, 
+            email: userEmail,
+            message: 'Código verificado, mas houve erro ao gerar sessão automática.' 
+          }), { headers: corsHeaders });
         }
 
-        // To avoid session contamination, we can try to exchange the link for tokens right here
-        // or just return the link and let the client handle it.
-        // Given the request for Nubank-style direct login, we'll return the tokens if possible.
-        
-        const loginUrl = data.properties.action_link;
-        console.log(`[VERIFY] Login link generated for ${userEmail}. Exchanging for tokens...`);
+        const verificationToken = data.properties.verification_token;
+        console.log(`[OTP_LOGIN_CREATE] Link generated. Exchanging token...`);
         
         try {
-          // Verify the token directly to get a session without redirecting the user's browser
           const { data: sessionData, error: verifyError } = await adminClient.auth.verifyOtp({
             email: userEmail,
-            token: data.properties.verification_token,
+            token: verificationToken,
             type: 'magiclink'
           });
 
           if (verifyError) {
+            console.error('[OTP_ERROR_REAL] verifyOtp error:', verifyError);
             throw verifyError;
           }
 
-          console.log(`[VERIFY] Session generated successfully for ${userEmail}`);
+          console.log(`[OTP_SUCCESS] Session generated successfully for ${userEmail}`);
           return new Response(JSON.stringify({ 
             success: true, 
             email: userEmail, 
             session: sessionData.session
           }), { headers: corsHeaders });
         } catch (exchangeError: any) {
-          console.error('[VERIFY] Token exchange error:', exchangeError.message);
-          // Fallback to returning the loginUrl if direct exchange fails
+          console.error('[OTP_ERROR_REAL] Token exchange error:', exchangeError.message);
           return new Response(JSON.stringify({ 
             success: true, 
             email: userEmail, 
-            loginUrl: loginUrl 
+            loginUrl: data.properties.action_link 
           }), { headers: corsHeaders });
         }
       }
       
-      return new Response(JSON.stringify({ success: true }), { headers: corsHeaders });
+      console.log(`[OTP_SUCCESS] Verified but no email associated with this phone yet.`);
+      return new Response(JSON.stringify({ success: true, needsEmail: true }), { headers: corsHeaders });
     }
 
     if (action === 'track-abandonment') {
