@@ -35,7 +35,7 @@ interface CompanyWithOwner {
   state: string | null;
   subscription_status: string;
   created_at: string;
-  owner_id: string | null;
+  user_id: string | null;
   owner_email?: string;
   phone: string | null;
   whatsapp: string | null;
