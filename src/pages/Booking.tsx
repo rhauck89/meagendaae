@@ -2418,6 +2418,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                       email: emailTrimmed,
                       password: clientPassword,
                     });
+                    
                     if (!signInError) {
                       toast.success('Bem-vindo de volta!');
                       const formattedPhone = clientForm.whatsapp ? formatWhatsApp(clientForm.whatsapp) : '';
@@ -2436,6 +2437,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                         setAuthLoading(false);
                         return;
                       }
+                      
                       const formattedPhone = clientForm.whatsapp ? formatWhatsApp(clientForm.whatsapp) : '';
                       const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
                         email: emailTrimmed,
@@ -2449,24 +2451,23 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                           },
                         },
                       });
+
                       if (signUpError) {
                         const { diagnoseAuthError } = await import('@/lib/auth-errors');
                         const errorMsg = diagnoseAuthError(signUpError);
-                        
-                        // Check if it's "User already exists" to show the friendly modal
                         const isAlreadyRegistered = /already registered|already exists|user.*exists|email.*taken/i.test(signUpError.message) || 
                                                   signUpError.code === 'user_already_exists' ||
-                                                  signUpError.status === 422; // 422 is often returned when user enumeration protection is on
+                                                  signUpError.status === 422;
 
                         if (isAlreadyRegistered) {
                           setShowExistingAccountModal(true);
                         } else {
                           toast.error(errorMsg);
                         }
-                        
                         setAuthLoading(false);
                         return;
                       }
+
                       if (signUpData?.user) {
                         toast.success('Conta criada com sucesso! 🎁');
                         await supabase.rpc('link_client_to_user', {
