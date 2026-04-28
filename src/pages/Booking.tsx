@@ -1364,6 +1364,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
 
       const clientId = clientRecord.id;
       setSavedClientId(clientId);
+      const formattedWhatsapp = clientForm.whatsapp ? formatWhatsApp(clientForm.whatsapp) : null;
 
 
       if (!selectedSlotIsAvailable) {
