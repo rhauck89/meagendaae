@@ -436,7 +436,7 @@ export function IdentityModal({
 
                 <Button 
                   variant="ghost" 
-                  onClick={() => setView('identify')}
+                  onClick={() => setView('choice')}
                   className="w-full h-12 text-[10px] uppercase tracking-widest font-black text-slate-400"
                 >
                   Voltar
