@@ -105,6 +105,25 @@ const Services = () => {
     });
   };
 
+  const getSmartSuggestion = (name: string) => {
+    if (!name.trim()) return '';
+    const normalized = name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    
+    // Exact match by slug or name
+    let match = globalCategories.find((gc: any) => 
+      normalized === gc.slug || normalized === gc.name.toLowerCase()
+    );
+
+    // Partial match (keyword)
+    if (!match) {
+      match = globalCategories
+        .filter((gc: any) => gc.slug !== 'outros')
+        .find((gc: any) => normalized.includes(gc.name.toLowerCase()));
+    }
+
+    return match?.id || globalCategories.find((gc: any) => gc.slug === 'outros')?.id || '';
+  };
+
   const handleSave = async () => {
     if (!form.name.trim()) return toast.error('Nome é obrigatório');
     if (!companyId) return toast.error('Empresa não encontrada');
@@ -118,19 +137,8 @@ const Services = () => {
         recommended_return_days: form.recommended_return_days ? Number(form.recommended_return_days) : null,
         booking_mode: form.booking_mode,
         category_id: form.category_id || null,
-        global_category_id: form.global_category_id || null,
+        global_category_id: form.global_category_id || getSmartSuggestion(form.name),
       };
-
-      // Ensure global_category_id is provided
-      if (!serviceData.global_category_id) {
-        // Try to inherit from local category if possible
-        const localCat = categories.find((c: any) => c.id === serviceData.category_id);
-        if (localCat?.global_category_id) {
-          serviceData.global_category_id = localCat.global_category_id;
-        } else {
-          return toast.error('Vínculo global é obrigatório para o marketplace');
-        }
-      }
 
       if (editing) {
         const { error } = await supabase
