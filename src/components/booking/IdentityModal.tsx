@@ -287,18 +287,25 @@ export function IdentityModal({
 
   const handleSuccess = async (session: any) => {
     setSuccess(true);
-    console.log('[IDENTITY_MODAL] Success! Closing modal...');
+    console.log('[CLIENT_IDENTIFIED] Success! Closing modal...');
     
     if (session) {
+      console.log('[SESSION_APPLIED] Setting Supabase session');
       await supabaseToUse.auth.setSession({
         access_token: session.access_token,
         refresh_token: session.refresh_token
       });
     }
 
+    console.log('[BOOKING_READY] Flow unlocked for client');
+
     // UX PREMIUM: Wait 800ms before closing
     setTimeout(() => {
-      onLoginSuccess();
+      onLoginSuccess({
+        full_name: fullName,
+        whatsapp: normalizePhone(whatsapp),
+        email: email
+      });
       onClose();
     }, 800);
   };
