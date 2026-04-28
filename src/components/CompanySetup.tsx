@@ -10,9 +10,10 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
+import { Badge } from '@/components/ui/badge';
 import {
   Scissors, Sparkles, ChevronRight, ChevronLeft, Clock, Upload, Palette,
-  CheckCircle2, Copy, Link2, Building2, Phone, ChevronsUpDown, Check, MapPin,
+  CheckCircle2, Copy, Link2, Building2, Phone, ChevronsUpDown, Check, MapPin, X
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -24,17 +25,20 @@ interface CompanySetupProps {
   onComplete: () => void;
 }
 
-type OnboardingStep = 'company' | 'hours' | 'branding' | 'theme' | 'done';
+type OnboardingStep = 'company' | 'categories' | 'hours' | 'branding' | 'theme' | 'done';
 
-const STEPS: OnboardingStep[] = ['company', 'hours', 'branding', 'theme', 'done'];
+const STEPS: OnboardingStep[] = ['company', 'categories', 'hours', 'branding', 'theme', 'done'];
 
 const stepMeta: Record<OnboardingStep, { icon: any; title: string; desc: string }> = {
   company: { icon: Building2, title: 'Seu negócio', desc: 'Tipo, nome e localização do seu estabelecimento' },
+  categories: { icon: Grid3X3, title: 'Segmento', desc: 'Escolha as categorias que melhor definem seu negócio' },
   hours: { icon: Clock, title: 'Horários', desc: 'Defina o funcionamento semanal' },
   branding: { icon: Palette, title: 'Identidade visual', desc: 'Logo do seu negócio (opcional)' },
   theme: { icon: Palette, title: 'Tema da sua marca', desc: 'Escolha um estilo visual personalizado' },
   done: { icon: CheckCircle2, title: 'Tudo pronto!', desc: 'Compartilhe seu link de agendamento' },
 };
+
+import { Grid3X3 } from 'lucide-react';
 
 const dayNames = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
 
@@ -61,7 +65,13 @@ const CompanySetup = ({ onComplete }: CompanySetupProps) => {
   const [citySearch, setCitySearch] = useState('');
   const [loadingCities, setLoadingCities] = useState(false);
 
-  // Step 2: Hours
+  // Step 2: Categories
+  const [categories, setCategories] = useState<any[]>([]);
+  const [subcategories, setSubcategories] = useState<any[]>([]);
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string>('');
+  const [selectedSubcategoryIds, setSelectedSubcategoryIds] = useState<string[]>([]);
+
+  // Step 3: Hours
   const [hours, setHours] = useState(
     Array.from({ length: 7 }, (_, i) => ({
       day_of_week: i,
@@ -74,11 +84,11 @@ const CompanySetup = ({ onComplete }: CompanySetupProps) => {
     }))
   );
 
-  // Step 3: Branding
+  // Step 4: Branding
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
 
-  // Step 4: Theme
+  // Step 5: Theme
   const [themeOpen, setThemeOpen] = useState(false);
   const [selectedTheme, setSelectedTheme] = useState<ThemeVariation | null>(null);
   const [savingTheme, setSavingTheme] = useState(false);
