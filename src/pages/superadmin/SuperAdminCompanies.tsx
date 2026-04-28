@@ -188,7 +188,7 @@ const SuperAdminCompanies = () => {
   };
 
   const handleLoginAs = async (company: CompanyWithOwner) => {
-    if (!company.owner_id) {
+    if (!company.user_id) {
       toast.error('Empresa não possui um proprietário cadastrado');
       return;
     }
