@@ -549,6 +549,8 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
 
   // Identification Gatekeeper - Based ONLY on local isClientLoggedIn state
   useEffect(() => {
+    if (isClientLoggedIn) return;
+    
     if (company && !isClientLoggedIn && clientLoaded && !authLoading) {
       console.log('[BOOKING_GATEKEEPER] Identification required. Opening modal...');
       setShowIdentityModal(true);
