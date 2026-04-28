@@ -350,7 +350,14 @@ const Services = () => {
                   <Label>Nome do Serviço</Label>
                   <Input
                     value={form.name}
-                    onChange={(e) => setForm({ ...form, name: e.target.value })}
+                    onChange={(e) => {
+                      const newName = e.target.value;
+                      const updates: any = { name: newName };
+                      if (!form.global_category_id || form.global_category_id === (globalCategories.find((gc: any) => gc.slug === 'outros')?.id)) {
+                        updates.global_category_id = getSmartSuggestion(newName);
+                      }
+                      setForm({ ...form, ...updates });
+                    }}
                     placeholder="Ex: Corte masculino"
                   />
                 </div>
