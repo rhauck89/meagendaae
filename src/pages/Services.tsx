@@ -10,7 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Pencil, Trash2, Clock, DollarSign, RefreshCw, Zap, Grid3X3 } from 'lucide-react';
+import { Plus, Pencil, Trash2, Clock, DollarSign, RefreshCw, Zap, Grid3X3, FolderPlus, Tag } from 'lucide-react';
 import { toast } from 'sonner';
 
 const Services = () => {
@@ -18,8 +18,18 @@ const Services = () => {
   const queryClient = useQueryClient();
   const { refresh } = useRefreshData();
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [catDialogOpen, setCatDialogOpen] = useState(false);
   const [editing, setEditing] = useState<any | null>(null);
-  const [form, setForm] = useState({ name: '', duration_minutes: '' as string | number, price: '' as string | number, recommended_return_days: '' as string | number, booking_mode: 'company_default' });
+  const [editingCat, setEditingCat] = useState<any | null>(null);
+  const [form, setForm] = useState({ 
+    name: '', 
+    duration_minutes: '' as string | number, 
+    price: '' as string | number, 
+    recommended_return_days: '' as string | number, 
+    booking_mode: 'company_default',
+    category_id: ''
+  });
+  const [catForm, setCatForm] = useState({ name: '' });
   const [companyBookingMode, setCompanyBookingMode] = useState<string>('fixed_grid');
 
   useEffect(() => {
@@ -31,8 +41,24 @@ const Services = () => {
   }, [companyId]);
 
   const servicesQueryKey = ['services', companyId];
+  const categoriesQueryKey = ['service_categories', companyId];
 
-  const { data: services = [], refetch } = useQuery({
+  const { data: categories = [], refetch: refetchCategories } = useQuery({
+    queryKey: categoriesQueryKey,
+    enabled: Boolean(companyId),
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('service_categories')
+        .select('*')
+        .eq('company_id', companyId!)
+        .order('name');
+
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  const { data: services = [], refetch: refetchServices } = useQuery({
     queryKey: servicesQueryKey,
     enabled: Boolean(companyId),
     queryFn: async () => {
@@ -47,20 +73,21 @@ const Services = () => {
     },
   });
 
-  useEffect(() => {
-    if (companyId) {
-      refetch();
-    }
-  }, [companyId, refetch]);
-
-  const refreshServices = async () => {
+  const refreshAll = async () => {
     refresh('services');
-    await refetch();
+    await Promise.all([refetchServices(), refetchCategories()]);
   };
 
   const resetForm = () => {
     setEditing(null);
-    setForm({ name: '', duration_minutes: '', price: '', recommended_return_days: '', booking_mode: 'company_default' });
+    setForm({ 
+      name: '', 
+      duration_minutes: '', 
+      price: '', 
+      recommended_return_days: '', 
+      booking_mode: 'company_default',
+      category_id: categories[0]?.id || ''
+    });
   };
 
   const handleSave = async () => {
@@ -68,40 +95,68 @@ const Services = () => {
     if (!companyId) return toast.error('Empresa não encontrada');
 
     try {
+      const serviceData = {
+        company_id: companyId,
+        name: form.name.trim(),
+        duration_minutes: Number(form.duration_minutes) || 0,
+        price: Number(form.price) || 0,
+        recommended_return_days: form.recommended_return_days ? Number(form.recommended_return_days) : null,
+        booking_mode: form.booking_mode,
+        category_id: form.category_id || null,
+      };
+
       if (editing) {
         const { error } = await supabase
           .from('services')
-          .update({
-            name: form.name.trim(),
-            duration_minutes: Number(form.duration_minutes) || 0,
-            price: Number(form.price) || 0,
-            recommended_return_days: form.recommended_return_days ? Number(form.recommended_return_days) : null,
-            booking_mode: form.booking_mode,
-          } as any)
+          .update(serviceData as any)
           .eq('id', editing.id)
           .eq('company_id', companyId);
 
         if (error) throw error;
         toast.success('Serviço atualizado');
       } else {
-        const { error } = await supabase.from('services').insert({
-          company_id: companyId,
-          name: form.name.trim(),
-          duration_minutes: Number(form.duration_minutes) || 0,
-          price: Number(form.price) || 0,
-          recommended_return_days: form.recommended_return_days ? Number(form.recommended_return_days) : null,
-          booking_mode: form.booking_mode,
-        } as any);
-
+        const { error } = await supabase.from('services').insert(serviceData as any);
         if (error) throw error;
         toast.success('Serviço criado');
       }
 
       setDialogOpen(false);
       resetForm();
-      await refreshServices();
+      await refreshAll();
     } catch (err: any) {
       toast.error(err.message || 'Erro ao salvar serviço');
+    }
+  };
+
+  const handleSaveCategory = async () => {
+    if (!catForm.name.trim()) return toast.error('Nome é obrigatório');
+    if (!companyId) return toast.error('Empresa não encontrada');
+
+    try {
+      if (editingCat) {
+        const { error } = await supabase
+          .from('service_categories')
+          .update({ name: catForm.name.trim() })
+          .eq('id', editingCat.id)
+          .eq('company_id', companyId);
+
+        if (error) throw error;
+        toast.success('Categoria atualizada');
+      } else {
+        const { error } = await supabase.from('service_categories').insert({
+          company_id: companyId,
+          name: catForm.name.trim(),
+        });
+        if (error) throw error;
+        toast.success('Categoria criada');
+      }
+
+      setCatDialogOpen(false);
+      setEditingCat(null);
+      setCatForm({ name: '' });
+      await refreshAll();
+    } catch (err: any) {
+      toast.error(err.message || 'Erro ao salvar categoria');
     }
   };
 
@@ -117,10 +172,11 @@ const Services = () => {
       return;
     }
 
-    await refreshServices();
+    await refreshAll();
   };
 
   const deleteService = async (id: string) => {
+    if (!confirm('Tem certeza que deseja excluir este serviço?')) return;
     const { error } = await supabase
       .from('services')
       .delete()
@@ -133,7 +189,30 @@ const Services = () => {
     }
 
     toast.success('Serviço removido');
-    await refreshServices();
+    await refreshAll();
+  };
+
+  const deleteCategory = async (id: string) => {
+    const count = services.filter((s: any) => s.category_id === id).length;
+    if (count > 0) {
+      return toast.error(`Esta categoria possui ${count} serviços vinculados. Mova-os ou exclua-os primeiro.`);
+    }
+    
+    if (!confirm('Tem certeza que deseja excluir esta categoria?')) return;
+
+    const { error } = await supabase
+      .from('service_categories')
+      .delete()
+      .eq('id', id)
+      .eq('company_id', companyId!);
+
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+
+    toast.success('Categoria removida');
+    await refreshAll();
   };
 
   const openEdit = (service: any) => {
@@ -144,106 +223,227 @@ const Services = () => {
       price: Number(service.price),
       recommended_return_days: service.recommended_return_days || '',
       booking_mode: (service as any).booking_mode || 'company_default',
+      category_id: service.category_id || '',
     });
     setDialogOpen(true);
   };
 
+  const groupedServices = categories.map((cat: any) => ({
+    ...cat,
+    services: services.filter((s: any) => s.category_id === cat.id)
+  }));
+
+  const uncategorizedServices = services.filter((s: any) => !s.category_id);
+
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="space-y-8">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h2 className="text-xl font-display font-bold">Serviços</h2>
-          <p className="text-sm text-muted-foreground">Gerencie os serviços do seu estabelecimento</p>
+          <h2 className="text-2xl font-display font-bold">Serviços</h2>
+          <p className="text-sm text-muted-foreground">Gerencie as categorias e serviços do seu estabelecimento</p>
         </div>
-        <Dialog
-          open={dialogOpen}
-          onOpenChange={(open) => {
-            setDialogOpen(open);
-            if (!open) resetForm();
-          }}
-        >
-          <DialogTrigger asChild>
-            <Button>
-              <Plus className="mr-2 h-4 w-4" /> Novo Serviço
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>{editing ? 'Editar Serviço' : 'Novo Serviço'}</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label>Nome</Label>
-                <Input
-                  value={form.name}
-                  onChange={(e) => setForm({ ...form, name: e.target.value })}
-                  placeholder="Ex: Corte masculino"
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Duração (min)</Label>
-                   <Input
-                    type="number"
-                    value={form.duration_minutes}
-                    onChange={(e) => setForm({ ...form, duration_minutes: e.target.value })}
-                    placeholder="Ex: 40"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Preço (R$)</Label>
-                  <Input
-                    type="number"
-                    step="0.01"
-                    value={form.price}
-                    onChange={(e) => setForm({ ...form, price: e.target.value })}
-                    placeholder="Ex: 45.00"
-                  />
-                </div>
-              </div>
-              <Button onClick={handleSave} className="w-full">
-                {editing ? 'Salvar' : 'Criar'}
+        <div className="flex gap-2">
+          <Dialog
+            open={catDialogOpen}
+            onOpenChange={(open) => {
+              setCatDialogOpen(open);
+              if (!open) { setEditingCat(null); setCatForm({ name: '' }); }
+            }}
+          >
+            <DialogTrigger asChild>
+              <Button variant="outline">
+                <FolderPlus className="mr-2 h-4 w-4" /> Nova Categoria
               </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>{editingCat ? 'Editar Categoria' : 'Nova Categoria'}</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label>Nome da Categoria</Label>
+                  <Input
+                    value={catForm.name}
+                    onChange={(e) => setCatForm({ ...catForm, name: e.target.value })}
+                    placeholder="Ex: Cabelo, Barba, Unhas..."
+                  />
+                </div>
+                <Button onClick={handleSaveCategory} className="w-full">
+                  {editingCat ? 'Salvar' : 'Criar'}
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+
+          <Dialog
+            open={dialogOpen}
+            onOpenChange={(open) => {
+              setDialogOpen(open);
+              if (!open) resetForm();
+            }}
+          >
+            <DialogTrigger asChild>
+              <Button>
+                <Plus className="mr-2 h-4 w-4" /> Novo Serviço
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>{editing ? 'Editar Serviço' : 'Novo Serviço'}</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label>Nome do Serviço</Label>
+                  <Input
+                    value={form.name}
+                    onChange={(e) => setForm({ ...form, name: e.target.value })}
+                    placeholder="Ex: Corte masculino"
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label>Categoria</Label>
+                  <Select value={form.category_id} onValueChange={(v) => setForm({ ...form, category_id: v })}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione uma categoria" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {categories.map((cat: any) => (
+                        <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
+                      ))}
+                      <SelectItem value="">Sem Categoria</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Duração (min)</Label>
+                    <Input
+                      type="number"
+                      value={form.duration_minutes}
+                      onChange={(e) => setForm({ ...form, duration_minutes: e.target.value })}
+                      placeholder="Ex: 40"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Preço (R$)</Label>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      value={form.price}
+                      onChange={(e) => setForm({ ...form, price: e.target.value })}
+                      placeholder="Ex: 45.00"
+                    />
+                  </div>
+                </div>
+                <Button onClick={handleSave} className="w-full">
+                  {editing ? 'Salvar' : 'Criar'}
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {services.map((service) => (
-          <Card key={service.id} className={!service.active ? 'opacity-50' : ''}>
-            <CardContent className="p-5">
-              <div className="mb-3 flex items-start justify-between">
-                <h3 className="text-lg font-semibold">{service.name}</h3>
-                <Switch checked={service.active} onCheckedChange={() => toggleActive(service.id, service.active)} />
-              </div>
-              <div className="mb-4 flex flex-wrap gap-4 text-sm text-muted-foreground">
-                <span className="flex items-center gap-1">
-                  <Clock className="h-4 w-4" /> {service.duration_minutes} min
-                </span>
-                <span className="flex items-center gap-1">
-                  <DollarSign className="h-4 w-4" /> R$ {Number(service.price).toFixed(2)}
-                </span>
+      <div className="space-y-12">
+        {groupedServices.map((cat) => (
+          <div key={cat.id} className="space-y-4">
+            <div className="flex items-center justify-between border-b pb-2">
+              <div className="flex items-center gap-2">
+                <Tag className="h-5 w-5 text-primary" />
+                <h3 className="text-xl font-semibold">{cat.name}</h3>
+                <span className="text-sm text-muted-foreground">({cat.services.length})</span>
               </div>
               <div className="flex gap-2">
-                <Button variant="outline" size="sm" onClick={() => openEdit(service)}>
-                  <Pencil className="mr-1 h-3 w-3" /> Editar
+                <Button variant="ghost" size="sm" onClick={() => { setEditingCat(cat); setCatForm({ name: cat.name }); setCatDialogOpen(true); }}>
+                  <Pencil className="h-4 w-4" />
                 </Button>
-                <Button variant="ghost" size="sm" className="text-destructive" onClick={() => deleteService(service.id)}>
-                  <Trash2 className="mr-1 h-3 w-3" /> Excluir
+                <Button variant="ghost" size="sm" className="text-destructive" onClick={() => deleteCategory(cat.id)}>
+                  <Trash2 className="h-4 w-4" />
                 </Button>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+            
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {cat.services.map((service: any) => (
+                <ServiceCard 
+                  key={service.id} 
+                  service={service} 
+                  onEdit={openEdit} 
+                  onToggle={toggleActive} 
+                  onDelete={deleteService} 
+                />
+              ))}
+              {cat.services.length === 0 && (
+                <div className="col-span-full py-6 text-center text-muted-foreground border-2 border-dashed rounded-lg">
+                  <p>Nenhum serviço nesta categoria</p>
+                </div>
+              )}
+            </div>
+          </div>
         ))}
-        {services.length === 0 && (
-          <div className="col-span-full py-12 text-center text-muted-foreground">
-            <p>Nenhum serviço cadastrado ainda</p>
+
+        {uncategorizedServices.length > 0 && (
+          <div className="space-y-4">
+            <div className="flex items-center gap-2 border-b pb-2">
+              <Tag className="h-5 w-5 text-muted-foreground" />
+              <h3 className="text-xl font-semibold">Sem Categoria</h3>
+              <span className="text-sm text-muted-foreground">({uncategorizedServices.length})</span>
+            </div>
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {uncategorizedServices.map((service: any) => (
+                <ServiceCard 
+                  key={service.id} 
+                  service={service} 
+                  onEdit={openEdit} 
+                  onToggle={toggleActive} 
+                  onDelete={deleteService} 
+                />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {categories.length === 0 && services.length === 0 && (
+          <div className="py-20 text-center text-muted-foreground">
+            <div className="mx-auto w-16 h-16 bg-muted rounded-full flex items-center justify-center mb-4">
+              <Grid3X3 className="h-8 w-8" />
+            </div>
+            <p className="text-lg font-medium">Nenhum serviço ou categoria cadastrada</p>
+            <p>Comece criando uma categoria ou seu primeiro serviço.</p>
           </div>
         )}
       </div>
     </div>
   );
 };
+
+const ServiceCard = ({ service, onEdit, onToggle, onDelete }: any) => (
+  <Card className={!service.active ? 'opacity-50' : 'hover:shadow-md transition-shadow'}>
+    <CardContent className="p-5">
+      <div className="mb-3 flex items-start justify-between">
+        <h3 className="text-lg font-semibold line-clamp-1">{service.name}</h3>
+        <Switch checked={service.active} onCheckedChange={() => onToggle(service.id, service.active)} />
+      </div>
+      <div className="mb-4 flex flex-wrap gap-4 text-sm text-muted-foreground">
+        <span className="flex items-center gap-1">
+          <Clock className="h-4 w-4" /> {service.duration_minutes} min
+        </span>
+        <span className="flex items-center gap-1">
+          <DollarSign className="h-4 w-4" /> R$ {Number(service.price).toFixed(2)}
+        </span>
+      </div>
+      <div className="flex gap-2">
+        <Button variant="outline" size="sm" className="flex-1" onClick={() => onEdit(service)}>
+          <Pencil className="mr-1 h-3 w-3" /> Editar
+        </Button>
+        <Button variant="ghost" size="sm" className="text-destructive" onClick={() => onDelete(service.id)}>
+          <Trash2 className="h-3 w-3" />
+        </Button>
+      </div>
+    </CardContent>
+  </Card>
+);
 
 export default Services;
