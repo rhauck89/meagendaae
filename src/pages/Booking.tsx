@@ -543,10 +543,10 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
     return () => subscription.unsubscribe();
   }, [company?.id, step]);
 
-  // NEW: Identification Gatekeeper - MUST happen before any step
+  // Identification Gatekeeper - Based ONLY on local isClientLoggedIn state
   useEffect(() => {
-    if (company && (!isClientLoggedIn || !hasValidClient) && clientLoaded && !authLoading) {
-      console.log('[BOOKING_GATEKEEPER] Identification required at start. Opening modal...');
+    if (company && !isClientLoggedIn && clientLoaded && !authLoading) {
+      console.log('[BOOKING_GATEKEEPER] Identification required. Opening modal...');
       setShowIdentityModal(true);
     }
   }, [company, isClientLoggedIn, clientLoaded, authLoading]);
