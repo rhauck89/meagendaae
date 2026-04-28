@@ -671,7 +671,7 @@ const Team = () => {
     const profileLink = getCollaboratorProfileLink(collaborator);
     const hasAccess = (collaborator as any).has_system_access !== false;
     const isAbsent = !isDisabled && isCurrentlyAbsent(collaborator);
-    const isOwner = collaborator.profile?.user_id === company?.owner_id;
+    const isOwner = collaborator.profile?.user_id === company?.user_id;
     const agg = (appointmentsAgg as any)[collaborator.profile_id] as { todayCount: number; next: string | null } | undefined;
     const todayCount = agg?.todayCount ?? 0;
     const nextTime = agg?.next
