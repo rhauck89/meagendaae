@@ -2659,12 +2659,26 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                     
                     <Button 
                       onClick={async () => {
+                        // Limpar sessão CLIENTE isolada sem afetar sessão ADMIN
                         localStorage.removeItem(`client_id_${company.id}`);
                         localStorage.removeItem(`client_data_${company.id}`);
                         localStorage.removeItem('meagendae_client_data');
                         localStorage.removeItem('booking_session_id');
-                        await supabase.auth.signOut();
-                        window.location.reload();
+                        localStorage.removeItem('booking_client_session');
+                        
+                        await bookingSupabase.auth.signOut();
+                        
+                        // Reset local state
+                        setSavedClientId(null);
+                        setClientForm({ full_name: '', email: '', whatsapp: '', birth_date: '' });
+                        setIsClientLoggedIn(false);
+                        setHasValidClient(false);
+                        setShowOneClickCard(false);
+                        setIsChangingData(true);
+                        setStep('client');
+                        
+                        toast.success('Identificação removida');
+                        console.log('[BOOKING_SESSION_SOURCE] client_session_cleared');
                       }}
                       variant="ghost"
                       className="w-full rounded-xl h-10 text-[9px] font-bold uppercase tracking-widest opacity-50 hover:opacity-100 transition-opacity text-white hover:bg-white/5"
