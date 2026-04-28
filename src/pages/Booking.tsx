@@ -2453,79 +2453,105 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                 }
 
                 if (!isClientLoggedIn) {
-                  if (!clientPassword || clientPassword.length < 8) {
-                    toast.error('A senha deve ter no mínimo 8 caracteres para sua segurança.');
-                    return;
-                  }
                   setAuthLoading(true);
                   try {
                     const emailTrimmed = clientForm.email.trim().toLowerCase();
-                    const { error: signInError } = await supabase.auth.signInWithPassword({
-                      email: emailTrimmed,
-                      password: clientPassword,
-                    });
+                    const formattedPhone = clientForm.whatsapp ? formatWhatsApp(clientForm.whatsapp) : '';
                     
-                    if (!signInError) {
-                      toast.success('Bem-vindo de volta!');
-                      const formattedPhone = clientForm.whatsapp ? formatWhatsApp(clientForm.whatsapp) : '';
-                      const { data: { user } } = await supabase.auth.getUser();
-                      if (user) {
-                        await supabase.rpc('link_client_to_user', {
-                          p_user_id: user.id,
-                          p_phone: formattedPhone || null,
-                          p_email: emailTrimmed,
-                        } as any);
-                      }
-                    } else {
-                      const isInvalidCreds = /invalid login|invalid credentials/i.test(signInError.message);
-                      if (!isInvalidCreds) {
-                        toast.error(signInError.message);
+                    // 1. Precise Identification Check via RPC
+                    const { data: idCheck, error: idError } = await supabase.rpc('check_identification', {
+                      p_email: emailTrimmed,
+                      p_whatsapp: formattedPhone
+                    });
+
+                    if (idError) {
+                      console.error('[AUTH_CHECK] Error:', idError);
+                    } else if (idCheck) {
+                      const { email_exists, whatsapp_exists, same_user } = idCheck as any;
+                      
+                      if (email_exists || whatsapp_exists) {
+                        if (same_user) {
+                          setExistingAccountMode('both_exists');
+                        } else if (email_exists) {
+                          setExistingAccountMode('email_exists');
+                        } else {
+                          setExistingAccountMode('whatsapp_exists');
+                        }
+                        setShowExistingAccountModal(true);
                         setAuthLoading(false);
                         return;
                       }
-                      
-                      const formattedPhone = clientForm.whatsapp ? formatWhatsApp(clientForm.whatsapp) : '';
-                      const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+                    }
+
+                    // 2. Try simple sign in if user provided password (legacy flow support)
+                    if (clientPassword && clientPassword.length >= 8) {
+                      const { error: signInError } = await supabase.auth.signInWithPassword({
                         email: emailTrimmed,
                         password: clientPassword,
-                        options: {
-                          emailRedirectTo: `${window.location.origin}/`,
-                          data: {
-                            full_name: clientForm.full_name.trim(),
-                            whatsapp: formattedPhone,
-                            role: 'client',
-                          },
-                        },
                       });
-
-                      if (signUpError) {
-                        const { diagnoseAuthError } = await import('@/lib/auth-errors');
-                        const errorMsg = diagnoseAuthError(signUpError);
-                        const isAlreadyRegistered = /already registered|already exists|user.*exists|email.*taken/i.test(signUpError.message) || 
-                                                  signUpError.code === 'user_already_exists' ||
-                                                  signUpError.status === 422;
-
-                        if (isAlreadyRegistered) {
-                          setShowExistingAccountModal(true);
-                        } else {
-                          toast.error(errorMsg);
+                      
+                      if (!signInError) {
+                        toast.success('Bem-vindo de volta!');
+                        const { data: { user } } = await supabase.auth.getUser();
+                        if (user) {
+                          await supabase.rpc('link_client_to_user', {
+                            p_user_id: user.id,
+                            p_phone: formattedPhone || null,
+                            p_email: emailTrimmed,
+                          } as any);
                         }
-                        setAuthLoading(false);
-                        return;
-                      }
+                      } else {
+                        // 3. Register New User
+                        const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+                          email: emailTrimmed,
+                          password: clientPassword,
+                          options: {
+                            emailRedirectTo: `${window.location.origin}/`,
+                            data: {
+                              full_name: clientForm.full_name.trim(),
+                              whatsapp: formattedPhone,
+                              role: 'client',
+                            },
+                          },
+                        });
 
-                      if (signUpData?.user) {
-                        toast.success('Conta criada com sucesso! 🎁');
-                        await supabase.rpc('link_client_to_user', {
-                          p_user_id: signUpData.user.id,
-                          p_phone: formattedPhone || null,
-                          p_email: emailTrimmed,
-                        } as any);
-                        try {
-                          const { sendWelcomeClientEmail } = await import('@/lib/email');
-                          void sendWelcomeClientEmail({ email: emailTrimmed, name: clientForm.full_name.trim() });
-                        } catch (e) { console.warn('[email] welcome failed', e); }
+                        if (signUpError) {
+                          const { diagnoseAuthError } = await import('@/lib/auth-errors');
+                          const errorMsg = diagnoseAuthError(signUpError);
+                          
+                          // Fallback check if RPC somehow missed it
+                          const isAlreadyRegistered = /already registered|already exists|user.*exists|email.*taken/i.test(signUpError.message) || 
+                                                    signUpError.code === 'user_already_exists' ||
+                                                    signUpError.status === 422;
+
+                          if (isAlreadyRegistered) {
+                            setExistingAccountMode('email_exists');
+                            setShowExistingAccountModal(true);
+                          } else {
+                            toast.error(errorMsg);
+                          }
+                          setAuthLoading(false);
+                          return;
+                        }
+
+                        if (signUpData?.user) {
+                          toast.success('Conta criada com sucesso! 🎁');
+                          await supabase.rpc('link_client_to_user', {
+                            p_user_id: signUpData.user.id,
+                            p_phone: formattedPhone || null,
+                            p_email: emailTrimmed,
+                          } as any);
+                          try {
+                            const { sendWelcomeClientEmail } = await import('@/lib/email');
+                            void sendWelcomeClientEmail({ email: emailTrimmed, name: clientForm.full_name.trim() });
+                          } catch (e) { console.warn('[email] welcome failed', e); }
+                        }
                       }
+                    } else {
+                      // No password provided but user doesn't exist, we need a password or OTP
+                      toast.error('Crie uma senha para garantir seus benefícios e finalizar o agendamento.');
+                      setAuthLoading(false);
+                      return;
                     }
                   } catch (err: any) {
                     toast.error(err?.message || 'Erro ao autenticar');
