@@ -114,6 +114,24 @@ const CompanySetup = ({ onComplete }: CompanySetupProps) => {
     });
   }, [selectedState, brStates]);
 
+  // Load categories
+  useEffect(() => {
+    supabase.from('categories').select('*').order('name').then(({ data }) => {
+      if (data) setCategories(data);
+    });
+  }, []);
+
+  // Load subcategories when category changes
+  useEffect(() => {
+    if (!selectedCategoryId) {
+      setSubcategories([]);
+      return;
+    }
+    supabase.from('subcategories').select('*').eq('category_id', selectedCategoryId).order('name').then(({ data }) => {
+      if (data) setSubcategories(data);
+    });
+  }, [selectedCategoryId]);
+
   // Filter cities for search
   const filteredCities = useMemo(() => {
     const unique = brCities.filter(
