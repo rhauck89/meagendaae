@@ -90,16 +90,27 @@ import WhatsAppCenter from "./pages/WhatsAppCenter";
 const queryClient = new QueryClient();
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
-  const { user, loading } = useAuth();
+  const { user, loading, profile } = useAuth();
+  
   if (loading) return (
     <div className="min-h-screen flex items-center justify-center bg-background">
       <div className="flex flex-col items-center gap-3">
         <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
-        <p className="text-sm text-muted-foreground">Carregando...</p>
+        <p className="text-sm font-black uppercase tracking-widest opacity-60">Identificando seu acesso...</p>
       </div>
     </div>
   );
-  if (!user) return <Navigate to="/auth" replace />;
+
+  if (!user) {
+    return <Navigate to="/auth" replace />;
+  }
+
+  // Se o usuário está autenticado mas o profile sumiu (inconsistência crítica)
+  if (!profile) {
+    console.log("[AUTH_CHECK] User authenticated but profile missing. Redirecting to app...");
+    return <Navigate to="/app" replace />;
+  }
+
   return <>{children}</>;
 };
 
