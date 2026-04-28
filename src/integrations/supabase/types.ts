@@ -6286,6 +6286,10 @@ export type Database = {
         }
         Returns: string
       }
+      delete_user_completely: {
+        Args: { target_user_id: string }
+        Returns: undefined
+      }
       expire_old_waitlist_entries: { Args: never; Returns: undefined }
       expire_pending_redemptions: {
         Args: { p_minutes?: number }

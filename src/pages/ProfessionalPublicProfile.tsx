@@ -17,6 +17,7 @@ import { getCompanyBranding, buildThemeFromBranding, useApplyBranding } from '@/
 import { useCompanyAmenities } from '@/hooks/useCompanyAmenities';
 import { motion, AnimatePresence, useScroll, useTransform } from 'framer-motion';
 import { toast } from 'sonner';
+import { useAuth } from '@/contexts/AuthContext';
 
 type BusinessType = 'barbershop' | 'esthetic';
 
