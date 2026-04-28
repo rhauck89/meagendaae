@@ -177,11 +177,11 @@ export function ExistingAccountModal({
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="sm:max-w-[420px] rounded-[2.5rem] bg-[#0B132B] border-white/10 text-white p-0 overflow-hidden border-2 shadow-2xl">
         <div className="p-8">
-          <DialogHeader className="mb-6">
-            <div className="w-16 h-16 bg-amber-500/10 rounded-2xl flex items-center justify-center mb-4 mx-auto border border-amber-500/20">
+          <DialogHeader className="mb-6 bg-transparent border-none p-0 flex flex-col items-center">
+            <div className="w-16 h-16 bg-amber-500/10 rounded-2xl flex items-center justify-center mb-4 border border-amber-500/20">
               <KeyRound className="w-8 h-8 text-amber-500" />
             </div>
-            <DialogTitle className="text-2xl font-black tracking-tight text-center">
+            <DialogTitle className="text-2xl font-black tracking-tight text-center text-white">
               {mode === 'email_exists' ? 'E-mail já cadastrado' : 
                mode === 'whatsapp_exists' ? 'WhatsApp já vinculado' : 
                'Conta Identificada'}
