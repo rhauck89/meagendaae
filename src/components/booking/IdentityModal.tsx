@@ -283,11 +283,31 @@ export function IdentityModal({
     console.log('[CLIENT_IDENTIFIED] Success! Closing modal...');
     
     if (session) {
-      console.log('[SESSION_APPLIED] Setting Supabase session');
-      await supabaseToUse.auth.setSession({
+      console.log('[SESSION_APPLIED] Setting Supabase session', session);
+      const { data: setSessionData, error: setSessionError } = await supabaseToUse.auth.setSession({
         access_token: session.access_token,
         refresh_token: session.refresh_token
       });
+
+      if (setSessionError) {
+        console.error('[SESSION_ERROR] Failed to set session:', setSessionError);
+        toast.error('Erro ao estabelecer sessão. Tente novamente.');
+        setSuccess(false);
+        setLoading(false);
+        return;
+      }
+
+      // Confirm session immediately
+      const { data: { session: confirmedSession } } = await supabaseToUse.auth.getSession();
+      console.log('[SESSION_CHECK]', confirmedSession);
+
+      if (!confirmedSession) {
+        console.error('[SESSION_ERROR] Session confirmed as NULL after setSession');
+        toast.error('Sessão não persistida. Verifique os cookies/localStorage.');
+        setSuccess(false);
+        setLoading(false);
+        return;
+      }
     }
 
     console.log('[BOOKING_READY] Flow unlocked for client');
