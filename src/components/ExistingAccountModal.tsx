@@ -136,9 +136,10 @@ export function ExistingAccountModal({
         });
 
         setTimeout(() => {
+          console.log('[CLOSE_MODAL_START] Senha OK');
           onLoginSuccess();
           onClose();
-        }, 1500);
+        }, 800);
       }
     } catch (err: any) {
       toast.error('Erro ao realizar login');
@@ -234,7 +235,7 @@ export function ExistingAccountModal({
         
         // Premium success flow: show check for 800ms, then close with fade-out effect
         setTimeout(() => {
-          console.log('[MODAL_CLOSED] Closing modal after successful login');
+          console.log('[CLOSE_MODAL_START] OTP OK');
           onLoginSuccess();
           onClose();
         }, 800);
@@ -242,6 +243,7 @@ export function ExistingAccountModal({
         window.location.href = data.loginUrl;
       } else if (data.success) {
         setTimeout(() => {
+          console.log('[CLOSE_MODAL_START] Generic Success OK');
           onLoginSuccess();
           onClose();
         }, 800);

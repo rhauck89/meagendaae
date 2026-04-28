@@ -3500,15 +3500,16 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
         supabaseClient={bookingSupabase}
         onLoginSuccess={async () => {
           console.log('[OTP_SUCCESS_FRONTEND] handleOtpSuccess TRIGGERED');
-          window.dispatchEvent(new CustomEvent('otp-success')); // Global event for debugging
+          
+          // FORÇA FECHAMENTO IMEDIATO NO PAI
+          setShowExistingAccountModal(false);
+          console.log('[MODAL_CLOSED] Forced from Booking.tsx');
           
           setIsClientLoggedIn(true);
-          setShowExistingAccountModal(false);
           setShowOneClickCard(true);
           setIsChangingData(false);
           
           console.log('OTP RESPONSE: success');
-          console.log('MODAL CLOSED: true');
           console.log('ONE CLICK TRUE: true');
 
 
