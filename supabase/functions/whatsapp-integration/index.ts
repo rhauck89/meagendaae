@@ -141,49 +141,81 @@ Deno.serve(async (req) => {
     // --- ACTIONS ---
 
     if (action === 'send-otp') {
-      const { phone, email, companyId: targetCompanyId } = params;
-      if (!targetCompanyId) throw new Error('Missing companyId');
+      const { phone, email: targetEmail } = params;
+      const targetCompanyId = companyId; // Use companyId from destructuring at line 39
+      
+      if (!targetCompanyId) {
+        console.error('[ERROR] send-otp: Missing targetCompanyId');
+        throw new Error('Missing companyId');
+      }
+      
+      console.log(`[OTP] Generating for Phone: ${phone}, Email: ${targetEmail}, Company: ${targetCompanyId}`);
       
       const code = Math.floor(100000 + Math.random() * 900000).toString();
       const expiresAt = new Date(Date.now() + 5 * 60 * 1000).toISOString();
+      const userIp = req.headers.get('x-real-ip') || req.headers.get('cf-connecting-ip') || 'unknown';
 
       // Check for abuse (max 5 attempts in last hour for this IP/Phone)
       const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+      const cleanPhone = phone ? formatPhone(phone) : null;
+      
       const { count: recentAttempts } = await adminClient
         .from('auth_otps')
         .select('*', { count: 'exact', head: true })
-        .eq('phone', phone ? formatPhone(phone) : null)
+        .or(`phone.eq.${cleanPhone},ip_address.eq.${userIp}`)
         .gt('created_at', oneHourAgo);
 
-      if (recentAttempts && recentAttempts >= 5) {
+      if (recentAttempts && recentAttempts >= 10) {
+        console.warn(`[OTP] Rate limit hit for ${cleanPhone || userIp}`);
         throw new Error('Muitas tentativas em curto período. Tente novamente mais tarde.');
       }
 
-      await adminClient.from('auth_otps').insert({
+      const { error: insertError } = await adminClient.from('auth_otps').insert({
         company_id: targetCompanyId,
-        phone: phone ? formatPhone(phone) : null,
-        email: email || null,
+        phone: cleanPhone,
+        email: targetEmail || null,
         code,
         expires_at: expiresAt,
-        metadata: { ip: req.headers.get('x-real-ip') || 'unknown' }
+        ip_address: userIp,
+        metadata: { user_agent: req.headers.get('user-agent') }
       });
 
+      if (insertError) {
+        console.error('[OTP] Database insert error:', insertError);
+        throw new Error('Erro ao registrar código de verificação.');
+      }
+
       const instance = await getInstance(targetCompanyId);
+      console.log(`[OTP] Instance for company ${targetCompanyId}:`, instance ? `${instance.instance_name} (${instance.status})` : 'None');
+
       if (phone && instance && instance.status === 'connected') {
-        const message = `Seu código de acesso para Agendae é: *${code}*\n\nEste código expira em 5 minutos.`;
-        await sendWhatsApp(instance.instance_name, phone, message);
-        return new Response(JSON.stringify({ success: true, method: 'whatsapp' }), { headers: corsHeaders });
-      } else if (email) {
-        // Fallback to Magic Link
+        try {
+          const message = `Seu código de acesso para Agendae é: *${code}*\n\nEste código expira em 5 minutos.`;
+          await sendWhatsApp(instance.instance_name, phone, message);
+          console.log(`[OTP] Sent via WhatsApp to ${phone}`);
+          return new Response(JSON.stringify({ success: true, method: 'whatsapp' }), { headers: corsHeaders });
+        } catch (waError: any) {
+          console.error('[OTP] WhatsApp send failure:', waError.message);
+          // Fallback if WhatsApp fails but email is available
+        }
+      } 
+      
+      if (targetEmail) {
+        console.log(`[OTP] Falling back to Magic Link for ${targetEmail}`);
         const { error: mailError } = await adminClient.auth.admin.generateLink({
           type: 'magiclink',
-          email: email,
+          email: targetEmail,
           options: { redirectTo: params.redirectTo || 'https://app.agendae.io/' }
         });
-        if (mailError) throw mailError;
+        if (mailError) {
+          console.error('[OTP] Magic Link error:', mailError);
+          throw mailError;
+        }
         return new Response(JSON.stringify({ success: true, method: 'email' }), { headers: corsHeaders });
       } else {
-        throw new Error('Nenhum método de envio disponível (WhatsApp desconectado e sem e-mail).');
+        const statusMsg = instance ? (instance.status !== 'connected' ? 'WhatsApp desconectado' : 'Falha no envio') : 'WhatsApp não configurado';
+        console.error(`[OTP] No delivery method available: ${statusMsg}`);
+        throw new Error(`Não foi possível enviar código via WhatsApp (${statusMsg}). Tente outro método ou entre em contato.`);
       }
     }
 
