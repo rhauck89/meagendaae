@@ -232,6 +232,8 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
 
   // Refined Premium Flow States
   const [showOneClickCard, setShowOneClickCard] = useState(false);
+  const [isChangingData, setIsChangingData] = useState(false);
+  const [lastProfessionalName, setLastProfessionalName] = useState<string | null>(null);
   const [lastServicePerformed, setLastServicePerformed] = useState<string | null>(null);
   const [abandonmentId, setAbandonmentId] = useState<string | null>(null);
   const sessionId = useMemo(() => {
