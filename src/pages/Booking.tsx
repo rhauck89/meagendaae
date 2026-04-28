@@ -3492,10 +3492,20 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
         mode={existingAccountMode}
         supabaseClient={bookingSupabase}
         onLoginSuccess={async () => {
+          console.log('[OTP_SUCCESS_FRONTEND] handleOtpSuccess triggered');
+          
           setIsClientLoggedIn(true);
+          setShowExistingAccountModal(false);
+          setShowOneClickCard(true);
+          setIsChangingData(false);
+          
+          console.log('OTP RESPONSE: success');
+          console.log('MODAL CLOSED: true');
+
           const { data: { user } } = await bookingSupabase.auth.getUser();
           
           if (user) {
+            console.log('CLIENT SET: recognized', user.id);
             // Force a refresh of client data immediately after login
             const { data: client } = await bookingSupabase
               .from('clients')
@@ -3513,20 +3523,31 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
               });
               setSavedClientId(client.id);
               setHasValidClient(true);
-              setShowOneClickCard(true); // Show the "Welcome back" card
+              setClientDataWasAutoFilled(true);
+              setShowOneClickCard(true);
+              console.log('ONE CLICK TRUE: active');
             }
           }
 
+          // Advance the step if everything is valid
           const hasBenefits = (loyaltyPointValue > 0) || (isPromoMode && promoData?.promotion_type === 'cashback');
           if (hasBenefits && !savedClientId) {
             setStep('benefits');
           } else {
             setStep('confirm');
           }
-          setShowExistingAccountModal(false);
+
+          // Smooth scroll to the one-click card
+          setTimeout(() => {
+            const clientSection = document.getElementById('booking-client-step');
+            if (clientSection) {
+              clientSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+          }, 100);
         }}
         onUseDifferentEmail={() => {
-          setClientForm(prev => ({ ...prev, email: '' }));
+          console.log('[OTP_FRONTEND] Switch account triggered');
+          setClientForm(prev => ({ ...prev, email: '', full_name: '', whatsapp: '' }));
           setShowExistingAccountModal(false);
           setIsChangingData(true);
         }}
