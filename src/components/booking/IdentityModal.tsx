@@ -275,6 +275,7 @@ export function IdentityModal({
     if (view === 'choice') return 'Como deseja acessar?';
     if (view === 'identify') return 'Já sou cliente';
     if (view === 'not_found') return 'Não encontramos seu cadastro 😕';
+    if (view === 'account_found') return 'Conta encontrada 👋';
     if (view === 'register') return 'Criar Conta';
     if (view === 'otp') return 'Verificação';
     if (view === 'password') return 'Entrar com Senha';
@@ -286,6 +287,7 @@ export function IdentityModal({
     if (view === 'choice') return 'Identifique-se para iniciar seu agendamento.';
     if (view === 'identify') return 'Informe seu WhatsApp para localizar seu cadastro.';
     if (view === 'not_found') return 'Parece que você ainda não tem uma conta com este número.';
+    if (view === 'account_found') return 'Como deseja entrar?';
     if (view === 'register') return 'Preencha seus dados para seu primeiro agendamento.';
     if (view === 'otp') return `Digite o código enviado para ${whatsapp}`;
     if (view === 'password') return `Informe sua senha para o e-mail ${email}`;
