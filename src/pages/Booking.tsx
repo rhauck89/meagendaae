@@ -522,6 +522,9 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
       
       if (isActuallyClient) {
         console.log('[CLIENT_LOADED] Client session recognized');
+        if (step === 'identifying') {
+          setStep(professionalSlug ? 'services' : 'professional');
+        }
         // If we just logged in via OTP, show the one-click card and scroll to it
         if (event === 'SIGNED_IN') {
           console.log('[ONE_CLICK_ENABLED] Enabling one-click booking mode');
