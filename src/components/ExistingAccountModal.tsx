@@ -39,6 +39,8 @@ export function ExistingAccountModal({
   const [password, setPassword] = useState('');
   const [otpCode, setOtpCode] = useState('');
   const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
+  const [attempts, setAttempts] = useState(0);
   const [timer, setTimer] = useState(0);
 
   useEffect(() => {
