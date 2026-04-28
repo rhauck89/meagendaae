@@ -1740,6 +1740,13 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
   // ─── Render ───
   return (
     <div className="min-h-screen pb-20 sm:pb-0 font-sans tracking-tight" style={{ background: T.bg, color: T.text }}>
+      {/* DEBUG BANNER OBRIGATÓRIO */}
+      {isClientLoggedIn && (
+        <div className="fixed top-0 left-0 w-full z-[9999] bg-green-500 text-black py-1.5 text-[10px] font-black text-center uppercase tracking-[0.3em] shadow-2xl border-b border-black/20">
+          SESSÃO CLIENTE ATIVA | MODO 1-CLIQUE LIBERADO 👋
+        </div>
+      )}
+
       {/* Premium Header Fixo */}
       <header 
         className="sticky top-0 z-50 backdrop-blur-xl transition-all duration-500"
@@ -3492,7 +3499,8 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
         mode={existingAccountMode}
         supabaseClient={bookingSupabase}
         onLoginSuccess={async () => {
-          console.log('[OTP_SUCCESS_FRONTEND] handleOtpSuccess triggered');
+          console.log('[OTP_SUCCESS_FRONTEND] handleOtpSuccess TRIGGERED');
+          window.dispatchEvent(new CustomEvent('otp-success')); // Global event for debugging
           
           setIsClientLoggedIn(true);
           setShowExistingAccountModal(false);
@@ -3501,6 +3509,8 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
           
           console.log('OTP RESPONSE: success');
           console.log('MODAL CLOSED: true');
+          console.log('ONE CLICK TRUE: true');
+
 
           const { data: { user } } = await bookingSupabase.auth.getUser();
           

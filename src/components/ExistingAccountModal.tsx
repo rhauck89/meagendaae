@@ -286,24 +286,37 @@ export function ExistingAccountModal({
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="sm:max-w-[420px] rounded-[2.5rem] bg-[#0B132B] border-white/10 text-white p-0 overflow-hidden border-2 shadow-2xl">
-        <div className="p-8">
-          <DialogHeader className="mb-8 bg-transparent border-none p-0 flex flex-col items-center">
-            <div className="w-20 h-20 bg-emerald-500/10 rounded-[2rem] flex items-center justify-center mb-6 border border-emerald-500/20 shadow-[0_0_30px_rgba(16,185,129,0.1)]">
-              {view === 'otp' ? (
-                <ShieldCheck className="w-10 h-10 text-emerald-500" />
-              ) : view === 'password' ? (
-                <LogIn className="w-10 h-10 text-blue-500" />
-              ) : (
-                <KeyRound className="w-10 h-10 text-amber-500" />
-              )}
+        {success ? (
+          <div className="p-12 flex flex-col items-center justify-center space-y-6 animate-in fade-in zoom-in duration-500">
+            <div className="w-24 h-24 bg-emerald-500 rounded-full flex items-center justify-center shadow-[0_0_50px_rgba(16,185,129,0.4)]">
+              <ShieldCheck className="w-12 h-12 text-zinc-950" />
             </div>
-            <DialogTitle className="text-3xl font-black tracking-tight text-center text-white">
-              {getTitle()}
-            </DialogTitle>
-            <DialogDescription className="text-slate-400 text-center text-base font-medium mt-3 px-4 leading-relaxed">
-              {getDescription()}
-            </DialogDescription>
-          </DialogHeader>
+            <h1 className="text-4xl font-black tracking-tighter text-center">LOGIN OK</h1>
+            <p className="text-emerald-400 font-bold uppercase tracking-widest text-xs">REDIRECIONANDO...</p>
+          </div>
+        ) : (
+          <div className="p-8">
+            <div className="absolute top-4 left-4 text-[8px] font-black opacity-30 text-emerald-500 tracking-tighter uppercase">
+              BUILD OTP TESTE 01
+            </div>
+            <DialogHeader className="mb-8 bg-transparent border-none p-0 flex flex-col items-center">
+              <div className="w-20 h-20 bg-emerald-500/10 rounded-[2rem] flex items-center justify-center mb-6 border border-emerald-500/20 shadow-[0_0_30px_rgba(16,185,129,0.1)]">
+                {view === 'otp' ? (
+                  <ShieldCheck className="w-10 h-10 text-emerald-500" />
+                ) : view === 'password' ? (
+                  <LogIn className="w-10 h-10 text-blue-500" />
+                ) : (
+                  <KeyRound className="w-10 h-10 text-amber-500" />
+                )}
+              </div>
+              <DialogTitle className="text-3xl font-black tracking-tight text-center text-white">
+                {getTitle()}
+              </DialogTitle>
+              <DialogDescription className="text-slate-400 text-center text-base font-medium mt-3 px-4 leading-relaxed">
+                {getDescription()}
+              </DialogDescription>
+            </DialogHeader>
+
 
           {view === 'identify' && (
             <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
@@ -533,7 +546,8 @@ export function ExistingAccountModal({
               </button>
             </div>
           )}
-        </div>
+          </div>
+        )}
       </DialogContent>
     </Dialog>
   );
