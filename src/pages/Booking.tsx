@@ -3112,6 +3112,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
         email={clientForm.email}
         whatsapp={clientForm.whatsapp}
         companyId={company?.id}
+        mode={existingAccountMode}
         onLoginSuccess={() => {
           setIsClientLoggedIn(true);
           const hasBenefits = (loyaltyPointValue > 0) || (isPromoMode && promoData?.promotion_type === 'cashback');
