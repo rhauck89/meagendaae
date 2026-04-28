@@ -1074,6 +1074,7 @@ export type Database = {
           registration_complete: boolean
           state: string | null
           street: string | null
+          updated_at: string | null
           user_id: string | null
           whatsapp: string | null
         }
@@ -1095,6 +1096,7 @@ export type Database = {
           registration_complete?: boolean
           state?: string | null
           street?: string | null
+          updated_at?: string | null
           user_id?: string | null
           whatsapp?: string | null
         }
@@ -1116,6 +1118,7 @@ export type Database = {
           registration_complete?: boolean
           state?: string | null
           street?: string | null
+          updated_at?: string | null
           user_id?: string | null
           whatsapp?: string | null
         }
