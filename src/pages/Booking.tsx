@@ -82,7 +82,7 @@ const InteractiveStarRating = ({ rating, onRate, size = 32 }: { rating: number; 
   );
 };
 
-type Step = 'services' | 'professional' | 'datetime' | 'benefits' | 'confirm' | 'success';
+type Step = 'identifying' | 'services' | 'professional' | 'datetime' | 'benefits' | 'confirm' | 'success';
 type BusinessType = 'barbershop' | 'esthetic';
 
 interface BookingPageProps {
