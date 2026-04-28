@@ -18,6 +18,7 @@ interface ExistingAccountModalProps {
   onLoginSuccess: () => void;
   onUseDifferentEmail: () => void;
   mode?: 'email_exists' | 'whatsapp_exists' | 'both_exists';
+  supabaseClient?: any;
 }
 
 export function ExistingAccountModal({ 
@@ -28,8 +29,10 @@ export function ExistingAccountModal({
   companyId,
   onLoginSuccess,
   onUseDifferentEmail,
-  mode = 'email_exists'
+  mode = 'email_exists',
+  supabaseClient: propSupabase
 }: ExistingAccountModalProps) {
+  const supabaseToUse = propSupabase || supabase;
   const [view, setView] = useState<'options' | 'password' | 'otp' | 'forgot' | 'identify'>('options');
   const [email, setEmail] = useState(initialEmail || '');
   const [whatsapp, setWhatsapp] = useState(initialWhatsapp || '');
@@ -62,11 +65,29 @@ export function ExistingAccountModal({
   const handleLogout = async () => {
     setLoading(true);
     try {
-      await supabase.auth.signOut();
+      // Check session role before signing out to avoid killing admin session
+      const { data: { session } } = await supabaseToUse.auth.getSession();
+      if (session?.user) {
+        const { data: profile } = await supabaseToUse
+          .from('profiles')
+          .select('role')
+          .eq('user_id', session.user.id)
+          .single();
+        
+        if (profile?.role === 'client') {
+          await supabaseToUse.auth.signOut();
+          console.log('[BOOKING_SESSION_SOURCE] client_session_ended');
+        } else {
+          console.log('[BOOKING_SESSION_SOURCE] admin_session_preserved');
+        }
+      }
+
+      // Limpar namespaces separados do cliente
       localStorage.removeItem(`client_id_${companyId}`);
       localStorage.removeItem(`client_data_${companyId}`);
       localStorage.removeItem('meagendae_client_data');
       localStorage.removeItem('booking_session_id');
+      localStorage.removeItem('booking_client_session');
       
       // Reset state
       setEmail('');
@@ -74,7 +95,7 @@ export function ExistingAccountModal({
       setPassword('');
       setOtpCode('');
       
-      toast.success('Sessão encerrada');
+      toast.success('Identificação limpa');
       onUseDifferentEmail();
       onClose();
     } catch (err) {
@@ -88,7 +109,7 @@ export function ExistingAccountModal({
     if (!email) return;
     setLoading(true);
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      const { error } = await supabaseToUse.auth.signInWithPassword({
         email: email.trim().toLowerCase(),
         password,
       });
@@ -119,7 +140,7 @@ export function ExistingAccountModal({
     }
     setLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke('whatsapp-integration', {
+      const { data, error } = await supabaseToUse.functions.invoke('whatsapp-integration', {
         body: {
           action: 'send-otp',
           companyId,
@@ -149,7 +170,7 @@ export function ExistingAccountModal({
     setLoading(true);
     try {
       const phoneToUse = whatsapp || initialWhatsapp;
-      const { data, error } = await supabase.functions.invoke('whatsapp-integration', {
+      const { data, error } = await supabaseToUse.functions.invoke('whatsapp-integration', {
         body: {
           action: 'verify-otp',
           phone: phoneToUse,
@@ -164,7 +185,17 @@ export function ExistingAccountModal({
         throw new Error(data?.error || 'Código inválido ou expirado.');
       }
 
-      if (data.loginUrl) {
+      // Nubank-style direct login if session is returned
+      if (data.session) {
+        console.log('[BOOKING_SESSION_SOURCE] otp_verified_by_phone - setting session');
+        const { error: sessionError } = await supabaseToUse.auth.setSession(data.session);
+        if (sessionError) throw sessionError;
+        
+        toast.success('Acesso autorizado! 👋');
+        onLoginSuccess();
+        onClose();
+      } else if (data.loginUrl) {
+        // Fallback for magic link
         toast.success('Identidade verificada! Acessando...');
         window.location.href = data.loginUrl;
       } else if (data.success) {
@@ -183,7 +214,7 @@ export function ExistingAccountModal({
     if (!email) return;
     setLoading(true);
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email.trim().toLowerCase(), {
+      const { error } = await supabaseToUse.auth.resetPasswordForEmail(email.trim().toLowerCase(), {
         redirectTo: `${window.location.origin}/reset-password`,
       });
       if (error) throw error;

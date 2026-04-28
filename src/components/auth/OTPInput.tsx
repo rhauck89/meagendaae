@@ -76,12 +76,14 @@ export function OTPInput({
           maxLength={1}
           value={digit}
           disabled={disabled}
+          autoFocus={i === 0}
           onChange={(e) => handleInput(i, e)}
           onKeyDown={(e) => handleKeyDown(i, e)}
           className={cn(
             "w-full h-14 sm:h-16 text-center text-2xl font-black rounded-2xl border-2 transition-all outline-none",
             "bg-white/5 border-white/10 text-white placeholder:text-white/20",
             "focus:border-emerald-500/50 focus:bg-emerald-500/5 focus:ring-4 focus:ring-emerald-500/10",
+            digit ? "border-emerald-500/30 bg-emerald-500/5" : "border-white/10",
             disabled && "opacity-50 cursor-not-allowed"
           )}
         />
