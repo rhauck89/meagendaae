@@ -242,7 +242,7 @@ const Waitlist = () => {
 
       // 1. Garantir Client Global
       const { data: globalClient, error: globalError } = await (supabase
-        .from('clients_global')
+        .from('clients_global' as any)
         .upsert({
           whatsapp: normalizedPhone || null,
           name: bookingTarget.client_name,
@@ -259,17 +259,18 @@ const Waitlist = () => {
 
       // 2. Garantir Client Local
       const { data: localClient, error: localError } = await (supabase
-        .from('clients')
+        .from('clients' as any)
         .upsert({
           company_id: companyId!,
-          global_client_id: globalClient.id,
-          user_id: globalClient.user_id,
+          global_client_id: (globalClient as any).id,
+          user_id: (globalClient as any).user_id,
           name: bookingTarget.client_name,
           whatsapp: bookingTarget.client_whatsapp,
           updated_at: new Date().toISOString()
         }, { onConflict: 'company_id, whatsapp' })
         .select()
         .single() as any);
+
 
       if (localError || !localClient) {
         console.error("ERRO AO GERAR CLIENT LOCAL:", localError);
