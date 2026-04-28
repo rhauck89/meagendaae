@@ -204,9 +204,7 @@ export function IdentityModal({
 
     setLoading(true);
     try {
-      const formattedPhone = cleanPhone(whatsapp).startsWith('55') 
-        ? cleanPhone(whatsapp) 
-        : '55' + cleanPhone(whatsapp);
+      const formattedPhone = cleanPhone(whatsapp);
 
       const { data, error } = await supabaseToUse.auth.signUp({
         email: email.trim().toLowerCase(),
