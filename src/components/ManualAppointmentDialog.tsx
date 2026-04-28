@@ -219,7 +219,8 @@ export function ManualAppointmentDialog({
         p_client_name: selectedClient.name,
         p_client_whatsapp: selectedClient.whatsapp || '',
         p_notes: 'Agendamento manual',
-      });
+      } as any);
+
 
       if (error) throw error;
 
