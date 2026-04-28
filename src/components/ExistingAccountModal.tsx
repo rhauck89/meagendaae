@@ -121,6 +121,7 @@ export function ExistingAccountModal({
         body: {
           action: 'verify-otp',
           phone: phoneToUse,
+          email: email || initialEmail,
           code: otpCode,
           redirectTo: window.location.href
         }
@@ -133,6 +134,19 @@ export function ExistingAccountModal({
       if (data.loginUrl) {
         toast.success('Identidade verificada! Acessando...');
         window.location.href = data.loginUrl;
+      } else if (data.success) {
+        // Fallback case: if we verified but don't have a redirect yet, try magic link if email exists
+        if (email || initialEmail) {
+           const { error: authError } = await supabase.auth.signInWithOtp({
+             email: (email || initialEmail).trim().toLowerCase(),
+             options: { emailRedirectTo: window.location.href }
+           });
+           if (!authError) toast.success('Link de acesso enviado para seu e-mail!');
+        } else {
+           toast.success('Verificado! Continue seu agendamento.');
+           onLoginSuccess();
+           onClose();
+        }
       }
     } catch (err: any) {
       toast.error(err.message || 'Erro ao verificar código');
