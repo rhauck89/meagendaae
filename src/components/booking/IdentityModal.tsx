@@ -592,7 +592,7 @@ export function IdentityModal({
 
                 <Button 
                   onClick={handleRegister}
-                  disabled={loading || !fullName || cleanPhone(whatsapp).length < 10 || !email || password.length < 8}
+                  disabled={loading || !fullName || normalizePhone(whatsapp).length < 10 || !email || password.length < 8}
                   className="w-full h-16 rounded-full bg-emerald-500 hover:bg-emerald-600 text-zinc-950 font-black text-lg transition-all shadow-lg shadow-emerald-500/20"
                 >
                   {loading ? "Criando..." : "Criar Conta e Continuar"}
