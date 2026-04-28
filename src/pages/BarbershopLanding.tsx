@@ -18,6 +18,7 @@ import { AmenitiesDisplay } from '@/components/AmenitiesDisplay';
 import { motion, useScroll, useTransform } from 'framer-motion';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { toast } from 'sonner';
+import { IdentityModal } from '@/components/booking/IdentityModal';
 
 type BusinessType = 'barbershop' | 'esthetic';
 
