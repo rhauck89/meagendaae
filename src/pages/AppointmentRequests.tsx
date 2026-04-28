@@ -176,7 +176,7 @@ const AppointmentRequests = () => {
       const { data: globalClient, error: globalError } = await supabase
         .from('clients_global' as any)
         .upsert({
-          whatsapp: normalizedPhone,
+          whatsapp: normPhone,
           name: selectedRequest.client_name,
         }, { onConflict: 'whatsapp' })
         .select()
