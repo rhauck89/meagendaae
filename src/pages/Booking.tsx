@@ -385,12 +385,14 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
   }, [savedClientId, company?.id, isClientLoggedIn]);
 
   useEffect(() => {
-    if (clientLoaded && clientDataWasAutoFilled && !isChangingData) {
+    // Show one-click card if data exists AND we're not explicitly changing data,
+    // OR if the client is logged in.
+    if (clientLoaded && (clientDataWasAutoFilled || isClientLoggedIn) && !isChangingData) {
       setShowOneClickCard(true);
     } else {
       setShowOneClickCard(false);
     }
-  }, [clientLoaded, clientDataWasAutoFilled, isChangingData]);
+  }, [clientLoaded, clientDataWasAutoFilled, isChangingData, isClientLoggedIn]);
 
   // Check for cashback credits when client is identified
   useEffect(() => {
