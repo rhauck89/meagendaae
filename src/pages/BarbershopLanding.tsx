@@ -478,7 +478,7 @@ export default function BarbershopLanding({ routeBusinessType, customSlug }: Bar
 
         {/* Primary CTA */}
         <Button
-          onClick={() => navigate(`/${bookingBasePath}/${slug}/agendar`)}
+          onClick={handleStartBooking}
           className="w-full h-14 text-base font-bold rounded-2xl shadow-xl flex items-center justify-between px-6 transition-all active:scale-[0.98]"
           style={{ background: T.accent, color: '#000' }}
         >
