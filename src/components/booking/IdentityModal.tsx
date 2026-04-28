@@ -217,7 +217,7 @@ export function IdentityModal({
 
     setLoading(true);
     try {
-      const formattedPhone = cleanPhone(whatsapp);
+      const formattedPhone = normalizePhone(whatsapp);
       const normalizedEmail = email.trim().toLowerCase();
 
       // INTELLIGENT VALIDATION: Check if user exists before trying to signUp
