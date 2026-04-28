@@ -2988,18 +2988,20 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
         onClose={() => setShowIdentityModal(false)}
         companyId={company?.id}
         supabaseClient={bookingSupabase}
-        onLoginSuccess={async () => {
-          console.log('[OTP_SUCCESS_FRONTEND] IdentityModal success callback - STARTING FLOW FROM ZERO');
+        onLoginSuccess={async (clientData) => {
+          console.log('[LOGIN_SUCCESS] IdentityModal success callback triggered');
+          
+          setIsClientLoggedIn(true);
+          console.log('[SESSION_SET] Client session is now active');
           
           setShowIdentityModal(false);
-          setIsClientLoggedIn(true);
           setShowOneClickCard(true);
           setIsChangingData(false);
           
           const { data: { user } } = await bookingSupabase.auth.getUser();
           
           if (user) {
-            console.log('CLIENT SET: recognized', user.id);
+            console.log('[CLIENT_SET] recognized user:', user.id);
             const { data: client } = await bookingSupabase
               .from('clients')
               .select('*')
@@ -3017,7 +3019,29 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
               setSavedClientId(client.id);
               setHasValidClient(true);
               setClientDataWasAutoFilled(true);
-              setShowOneClickCard(true);
+              console.log('[BOOKING_UNLOCKED] Client record found and loaded');
+            } else if (clientData) {
+              // Fallback if client record is still being created/synced
+              setClientForm({
+                full_name: clientData.full_name || '',
+                email: clientData.email || '',
+                whatsapp: displayWhatsApp(clientData.whatsapp || ''),
+                birth_date: '',
+              });
+              setHasValidClient(true);
+              console.log('[BOOKING_UNLOCKED] Using provided client data as fallback');
+            }
+          } else if (clientData) {
+            setClientForm({
+              full_name: clientData.full_name || '',
+              email: clientData.email || '',
+              whatsapp: displayWhatsApp(clientData.whatsapp || ''),
+              birth_date: '',
+            });
+            setIsClientLoggedIn(true);
+            setHasValidClient(true);
+            console.log('[BOOKING_UNLOCKED] Client identified without user session');
+          }
             }
           }
 
