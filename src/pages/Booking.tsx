@@ -1410,10 +1410,10 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
 
       // Update client updated_at and potentially email/name
       if (clientId) {
-        void supabase.from('clients').update({
+        void (supabase.from('clients') as any).update({
           updated_at: new Date().toISOString(),
           email: clientForm.email || undefined,
-          full_name: clientForm.full_name || undefined,
+          name: clientForm.full_name || undefined,
         }).eq('id', clientId);
       }
 
