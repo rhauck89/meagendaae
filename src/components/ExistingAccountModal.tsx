@@ -172,6 +172,8 @@ export function ExistingAccountModal({
     setLoading(true);
     try {
       const phoneToUse = whatsapp || initialWhatsapp;
+      console.log(`[OTP_VERIFY_FRONTEND] Attempt ${attempts + 1} for ${phoneToUse}`);
+      
       const { data, error } = await supabaseToUse.functions.invoke('whatsapp-integration', {
         body: {
           action: 'verify-otp',
@@ -184,26 +186,41 @@ export function ExistingAccountModal({
       });
 
       if (error || (data && data.error)) {
+        const newAttempts = attempts + 1;
+        setAttempts(newAttempts);
+        setOtpCode(''); // Clear code on error
+        
+        if (newAttempts >= 3) {
+          toast.error('Muitas tentativas. Enviando novo código...');
+          setAttempts(0);
+          handleSendOTP();
+          return;
+        }
+        
         throw new Error(data?.error || 'Código inválido ou expirado.');
       }
 
-      // Nubank-style direct login if session is returned
+      setSuccess(true);
+      toast.success('Código confirmado! 👋');
+
+      // Nubank-style direct login
       if (data.session) {
         console.log('[BOOKING_SESSION_SOURCE] otp_verified_by_phone - setting session');
         const { error: sessionError } = await supabaseToUse.auth.setSession(data.session);
         if (sessionError) throw sessionError;
         
-        toast.success('Acesso autorizado! 👋');
-        onLoginSuccess();
-        onClose();
+        // Small delay to show success state
+        setTimeout(() => {
+          onLoginSuccess();
+          onClose();
+        }, 1500);
       } else if (data.loginUrl) {
-        // Fallback for magic link
-        toast.success('Identidade verificada! Acessando...');
         window.location.href = data.loginUrl;
       } else if (data.success) {
-        toast.success('Verificado! Continue seu agendamento.');
-        onLoginSuccess();
-        onClose();
+        setTimeout(() => {
+          onLoginSuccess();
+          onClose();
+        }, 1500);
       }
     } catch (err: any) {
       toast.error(err.message || 'Erro ao verificar código');
