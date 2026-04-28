@@ -2467,6 +2467,26 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                         setAuthLoading(false);
                         return;
                       }
+                      if (signUpData?.user) {
+                        toast.success('Conta criada com sucesso! 🎁');
+                        await supabase.rpc('link_client_to_user', {
+                          p_user_id: signUpData.user.id,
+                          p_phone: formattedPhone || null,
+                          p_email: emailTrimmed,
+                        } as any);
+                        try {
+                          const { sendWelcomeClientEmail } = await import('@/lib/email');
+                          void sendWelcomeClientEmail({ email: emailTrimmed, name: clientForm.full_name.trim() });
+                        } catch (e) { console.warn('[email] welcome failed', e); }
+                      }
+                    }
+                  } catch (err: any) {
+                    toast.error(err?.message || 'Erro ao autenticar');
+                    setAuthLoading(false);
+                    return;
+                  }
+                  setAuthLoading(false);
+                }
 
                 const hasBenefits = (loyaltyPointValue > 0) || (isPromoMode && promoData?.promotion_type === 'cashback');
                 if (hasBenefits && !savedClientId) {
