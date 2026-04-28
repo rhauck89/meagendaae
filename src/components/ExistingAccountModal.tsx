@@ -207,8 +207,17 @@ export function ExistingAccountModal({
       // Nubank-style direct login
       if (data.session) {
         console.log('[BOOKING_SESSION_SOURCE] otp_verified_by_phone - setting session');
-        const { error: sessionError } = await supabaseToUse.auth.setSession(data.session);
-        if (sessionError) throw sessionError;
+        
+        // Use setSession with the access_token and refresh_token
+        const { error: sessionError } = await supabaseToUse.auth.setSession({
+          access_token: data.session.access_token,
+          refresh_token: data.session.refresh_token
+        });
+        
+        if (sessionError) {
+          console.error('[BOOKING_SESSION_SOURCE] setSession error:', sessionError);
+          throw sessionError;
+        }
         
         // Small delay to show success state
         setTimeout(() => {
