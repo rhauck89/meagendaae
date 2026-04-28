@@ -448,6 +448,46 @@ export function IdentityModal({
               </div>
             )}
 
+            {view === 'account_found' && (
+              <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-300">
+                <Button 
+                  onClick={handleSendOTP}
+                  disabled={loading}
+                  className="w-full h-20 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 text-white font-bold flex items-center justify-start gap-5 px-6 transition-all group"
+                >
+                  <div className="w-12 h-12 bg-emerald-500/20 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
+                    <MessageCircle className="w-6 h-6 text-emerald-400" />
+                  </div>
+                  <div className="text-left">
+                    <p className="text-base font-black">Entrar via WhatsApp</p>
+                    <p className="text-[10px] opacity-40 uppercase tracking-widest font-black">Acesso rápido sem senha</p>
+                  </div>
+                  <ArrowRight className="w-5 h-5 ml-auto opacity-20 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
+                </Button>
+
+                <Button 
+                  onClick={() => setView('password')}
+                  className="w-full h-20 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 text-white font-bold flex items-center justify-start gap-5 px-6 transition-all group"
+                >
+                  <div className="w-12 h-12 bg-blue-500/20 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
+                    <LogIn className="w-6 h-6 text-blue-400" />
+                  </div>
+                  <div className="text-left">
+                    <p className="text-base font-black">Entrar com Senha</p>
+                    <p className="text-[10px] opacity-40 uppercase tracking-widest font-black">Usar senha cadastrada</p>
+                  </div>
+                  <ArrowRight className="w-5 h-5 ml-auto opacity-20 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
+                </Button>
+
+                <Button 
+                  variant="ghost" 
+                  onClick={() => setView('register')}
+                  className="w-full h-10 text-[10px] uppercase tracking-widest font-black text-slate-400"
+                >
+                  Voltar
+                </Button>
+              </div>
+
             {view === 'options' && (
               <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-300">
                 <Button 
