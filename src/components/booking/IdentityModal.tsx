@@ -261,7 +261,7 @@ export function IdentityModal({
     if (success) return 'LOGIN OK';
     if (view === 'choice') return 'Como deseja acessar?';
     if (view === 'identify') return 'Já sou cliente';
-    if (view === 'not_found') return 'Cadastro não encontrado';
+    if (view === 'not_found') return 'Não encontramos seu cadastro 😕';
     if (view === 'register') return 'Criar Conta';
     if (view === 'otp') return 'Verificação';
     if (view === 'password') return 'Entrar com Senha';
