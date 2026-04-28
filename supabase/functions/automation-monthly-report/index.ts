@@ -177,8 +177,8 @@ Deno.serve(async (req) => {
     // Active companies with owner
     const { data: companies, error } = await supabase
       .from("companies")
-      .select("id, name, slug, owner_id")
-      .not("owner_id", "is", null);
+      .select("id, name, slug, user_id")
+      .not("user_id", "is", null);
 
     if (error) throw error;
 
