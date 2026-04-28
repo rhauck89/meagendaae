@@ -217,9 +217,33 @@ export function IdentityModal({
     setLoading(true);
     try {
       const formattedPhone = cleanPhone(whatsapp);
+      const normalizedEmail = email.trim().toLowerCase();
+
+      // INTELLIGENT VALIDATION: Check if user exists before trying to signUp
+      console.log(`[IDENTITY_MODAL] Checking existence for: ${formattedPhone} / ${normalizedEmail}`);
+      const { data: existence, error: existenceError } = await supabaseToUse.rpc('check_client_existence', {
+        p_whatsapp: formattedPhone,
+        p_email: normalizedEmail
+      });
+
+      if (existenceError) {
+        console.error('[IDENTITY_MODAL] Existence check error:', existenceError);
+      }
+
+      const existResult = Array.isArray(existence) ? existence[0] : existence;
+
+      if (existResult?.exists_globally) {
+        console.log('[IDENTITY_MODAL] Account already exists globally, switching to login options');
+        setEmail(existResult.client_email || email);
+        setWhatsapp(formatPhone(existResult.client_whatsapp || formattedPhone));
+        setFullName(existResult.client_name || fullName);
+        setView('account_found');
+        setLoading(false);
+        return;
+      }
 
       const { data, error } = await supabaseToUse.auth.signUp({
-        email: email.trim().toLowerCase(),
+        email: normalizedEmail,
         password,
         options: {
           data: {
@@ -230,14 +254,22 @@ export function IdentityModal({
         }
       });
 
-      if (error) throw error;
+      if (error) {
+        // If still somehow get "User already registered", handle it gracefully
+        if (error.message.includes('already registered') || error.status === 400) {
+          console.log('[IDENTITY_MODAL] Auth signUp returned already registered');
+          setView('account_found');
+          return;
+        }
+        throw error;
+      }
 
       if (data.user) {
         // Link client record globally
         await supabaseToUse.rpc('link_client_globally', {
           p_user_id: data.user.id,
           p_phone: formattedPhone,
-          p_email: email.trim().toLowerCase(),
+          p_email: normalizedEmail,
           p_company_id: companyId,
           p_name: fullName.trim()
         });
