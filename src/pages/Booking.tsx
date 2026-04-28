@@ -396,17 +396,35 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
       }
       const { data, error } = await supabase
         .from('clients')
-        .select('id')
+        .select('*')
         .eq('user_id', user.id)
         .eq('company_id', company.id)
         .maybeSingle();
+      
       if (error) {
         console.warn('[Booking] hasValidClient check error:', error);
       }
-      setHasValidClient(!!data);
+      
+      if (data) {
+        setHasValidClient(true);
+        // Automatic recognition: Pre-fill form if not already filled or if it was just auto-filled
+        if (!clientForm.full_name || clientDataWasAutoFilled) {
+          setClientForm({
+            full_name: data.name || '',
+            email: data.email || '',
+            whatsapp: displayWhatsApp(data.whatsapp || ''),
+            birth_date: data.birth_date || '',
+          });
+          setOptInWhatsapp(data.opt_in_whatsapp || false);
+          setSavedClientId(data.id);
+          setClientDataWasAutoFilled(true);
+        }
+      } else {
+        setHasValidClient(false);
+      }
     };
     checkValidClient();
-  }, [isClientLoggedIn, company?.id, bookingResult?.appointmentId, savedClientId]);
+  }, [isClientLoggedIn, company?.id, bookingResult?.appointmentId]);
 
   // Check if company has cashback or loyalty active
   // Load last booking for smart rebooking
