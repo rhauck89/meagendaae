@@ -25,12 +25,25 @@ export function formatWhatsApp(raw: string): string {
  * Normalizes a phone number to international format (starting with 55).
  * Enforces digits-only and prepends 55 if missing.
  */
+/**
+ * Normalizes a phone number to strictly digits-only starting with 55 (E.164-ish as used in this project).
+ * Enforces digits-only and prepends 55 if missing.
+ */
 export function normalizePhone(phone: string): string {
   if (!phone) return '';
+  // Remove all non-digits
   let cleaned = phone.replace(/\D/g, '');
-  if (cleaned && !cleaned.startsWith('55')) {
+  
+  // If it doesn't start with 55 and looks like a Brazilian number (10 or 11 digits)
+  if (cleaned.length >= 10 && cleaned.length <= 11 && !cleaned.startsWith('55')) {
     cleaned = '55' + cleaned;
   }
+  
+  // If it has 55 but also a 0 before the DDD (common error)
+  if (cleaned.startsWith('550') && cleaned.length > 11) {
+    cleaned = '55' + cleaned.substring(3);
+  }
+
   return cleaned;
 }
 
