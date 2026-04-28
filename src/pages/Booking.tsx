@@ -204,7 +204,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
   const [bookingError, setBookingError] = useState<BookingErrorInfo | null>(null);
   const [clientForm, setClientForm] = useState({ full_name: '', email: '', whatsapp: '', birth_date: '' });
   const [clientPassword, setClientPassword] = useState('');
-  const [authLoading, setAuthLoading] = useState(false);
+  const [isAuthLoading, setIsAuthLoading] = useState(false);
   const skipTimeResetRef = useRef(false);
   const [optInWhatsapp, setOptInWhatsapp] = useState(false);
   const [savedClientId, setSavedClientId] = useState<string | null>(null);
