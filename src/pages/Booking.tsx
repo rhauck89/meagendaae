@@ -1261,7 +1261,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
   };
 
   useEffect(() => {
-    if (selectedProfessional && businessHours.length > 0 && totalDuration > 0 && step !== 'client' && step !== 'confirm') {
+    if (selectedProfessional && businessHours.length > 0 && totalDuration > 0 && step !== 'confirm') {
       fetchNextAvailableSlots();
     }
   }, [selectedProfessional, professionalHours, businessHours, totalDuration, currentWeekStart, selectedDate]);
