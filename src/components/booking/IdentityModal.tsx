@@ -95,7 +95,7 @@ export function IdentityModal({
       // Check if client exists for this company
       const { data: client, error } = await supabaseToUse.rpc('lookup_client_by_whatsapp', {
         p_company_id: companyId,
-        p_whatsapp: phone.startsWith('55') ? phone : '55' + phone
+        p_whatsapp: phone // Always use normalized phone without prefix here
       });
 
       if (error) throw error;
