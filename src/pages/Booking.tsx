@@ -378,13 +378,31 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
       const { data: { session } } = await supabase.auth.getSession();
       const currentUserId = session?.user?.id;
       
-      if (!currentUserId && !savedClientId) {
+      // Determine if the current session is an admin/pro session that should be ignored for booking
+      let ignoreSession = false;
+      if (currentUserId) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('user_id', currentUserId)
+          .single();
+        
+        if (profile && ['admin', 'professional', 'company', 'super_admin'].includes(profile.role)) {
+          console.log('[BOOKING_SESSION_SOURCE] admin_session_ignored:', profile.role);
+          ignoreSession = true;
+        }
+      }
+
+      const effectiveUserId = ignoreSession ? null : currentUserId;
+      
+      if (!effectiveUserId && !savedClientId) {
         setCashbackCredits([]);
         setLoyaltyPoints(0);
         return;
       }
 
       if (company?.id) {
+        console.log('[BOOKING_SESSION_SOURCE] client_session_loaded:', effectiveUserId ? 'auth_session' : 'local_storage');
         // Query cashback using direct user_id for isolation if logged in, or fallback to savedClientId
         const cashbackQuery = supabase
           .from('client_cashback')
@@ -393,8 +411,8 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
           .eq('status', 'active')
           .gt('expires_at', new Date().toISOString());
 
-        if (currentUserId) {
-          cashbackQuery.eq('user_id', currentUserId);
+        if (effectiveUserId) {
+          cashbackQuery.eq('user_id', effectiveUserId);
         } else {
           cashbackQuery.eq('client_id', savedClientId);
         }
@@ -410,8 +428,8 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
           .order('created_at', { ascending: false })
           .limit(1);
 
-        if (currentUserId) {
-          loyaltyQuery.eq('user_id', currentUserId);
+        if (effectiveUserId) {
+          loyaltyQuery.eq('user_id', effectiveUserId);
         } else {
           loyaltyQuery.eq('client_id', savedClientId);
         }
@@ -435,14 +453,45 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
     checkBenefits();
   }, [savedClientId, company?.id, isClientLoggedIn]);
 
-  // Check if client is logged in
+  // Check if client is logged in - Refined to ignore admin sessions
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setIsClientLoggedIn(!!session?.user);
+    const checkSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user) {
+        setIsClientLoggedIn(false);
+        return;
+      }
+
+      // Verify if it's a client or admin
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('user_id', session.user.id)
+        .single();
+      
+      const isActuallyClient = profile?.role === 'client';
+      setIsClientLoggedIn(isActuallyClient);
+      
+      if (!isActuallyClient && session.user) {
+        console.log('[BOOKING_SESSION_SOURCE] active session is admin, treating as guest in booking');
+      }
+    };
+
+    checkSession();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      if (!session?.user) {
+        setIsClientLoggedIn(false);
+        return;
+      }
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('user_id', session.user.id)
+        .single();
+      setIsClientLoggedIn(profile?.role === 'client');
     });
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setIsClientLoggedIn(!!session?.user);
-    });
+
     return () => subscription.unsubscribe();
   }, []);
 
