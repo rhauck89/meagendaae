@@ -464,118 +464,14 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
   }, [savedClientId, company?.id, isAuthenticated]);
 
   // Check if client is logged in - Refined to ignore admin sessions
-  useEffect(() => {
-    let isMounted = true;
-
-    const checkSession = async () => {
-      // 1. PROTECT LOGIN STATE: Never overwrite if already logged in via callback
-      if (isAuthenticated) {
-        console.log('[LOGIN_STATE_PROTECTED] User already marked as logged in, skipping checkSession');
-        return;
-      }
-
-      console.log('[SESSION_LOCAL]', localStorage.getItem('booking_client_session'));
-      const runtimeSession = await supabase.auth.getSession();
-      console.log('[SESSION_RUNTIME]', runtimeSession);
-
-      const { data: { session } } = runtimeSession;
-      if (!isMounted) return;
-
-      if (!session?.user) {
-        console.log('[SESSION_CHECK] No user session found');
-        return;
-      }
-
-      // Verify if it's a client or admin
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('user_id', session.user.id)
-        .single();
-      
-      if (!isMounted) return;
-
-      const isActuallyClient = profile?.role === 'client';
-      console.log('[SESSION_CHECK] User role:', profile?.role, 'isActuallyClient:', isActuallyClient);
-      
-      if (isActuallyClient) {
-        console.log('[SESSION_SET] Client session recognized from existing session');
-        setHasValidClient(true);
-      } else {
-        console.log('[BOOKING_SESSION_SOURCE] active session is admin or other role, treating as guest');
-      }
-    };
-
-    checkSession();
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log(`[BOOKING_SESSION_SOURCE] auth_state_changed: ${event}`, { hasSession: !!session?.user, isAuthenticated });
-      
-      // 1. PROTECT LOGIN STATE: If we just signed in or handled this via modal success, 
-      // be careful about resetting.
-      if (isAuthenticated && (event === 'INITIAL_SESSION' || event === 'SIGNED_IN')) {
-        console.log('[AUTH_STATE_PROTECTED] isAuthenticated is already true, skipping reset check');
-        return;
-      }
-
-      if (!session?.user) {
-        // Only reset if we were previously logged in AND the event is explicitly SIGNED_OUT
-        // or if we are mounting and truly have no session.
-        if (isMounted) {
-          if (isAuthenticated && event !== 'SIGNED_OUT') {
-            console.log('[AUTH_STATE_PROTECTED] Session null but event is not SIGNED_OUT, keeping isAuthenticated=true');
-            return;
-          }
-          console.log('[AUTH_STATE_CHANGED] Setting isAuthenticated to false');
-        }
-        return;
-      }
-
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('user_id', session.user.id)
-        .single();
-      
-      if (!isMounted) return;
-
-      const isActuallyClient = profile?.role === 'client';
-      
-      if (isActuallyClient) {
-        console.log('[LOGIN_SUCCESS] Auth state change recognized client');
-        // Do not force state if we are already logged in to avoid loops
-        setHasValidClient(true);
-        
-        if (step === 'identifying') {
-          setStep(professionalSlug ? 'services' : 'professional');
-        }
-        
-        if (event === 'SIGNED_IN' || event === 'INITIAL_SESSION') {
-          console.log('[SESSION_SET] Enabling active booking mode');
-          setShowOneClickCard(true);
-          setIsChangingData(false);
-          setShowIdentityModal(false);
-        }
-      } else {
-        console.log('[LOGIN_FAILURE] User is not a client, role:', profile?.role);
-        // Only reset if not already protected
-        if (!isAuthenticated) {
-        }
-      }
-    });
-
-    return () => {
-      isMounted = false;
-      subscription.unsubscribe();
-    };
-  }, [company?.id, step, professionalSlug, isAuthenticated]);
-
-  // Identification Gatekeeper - Based ONLY on local isAuthenticated state
+  // Identification Gatekeeper - Based ONLY on AuthContext state
   useEffect(() => {
     console.log('[BOOKING_GATEKEEPER_STATE]', { isAuthenticated, clientLoaded, authLoading, hasCompany: !!company });
     
+    // Rule 3: Modal should open only if not authenticated
     if (isAuthenticated) {
       console.log('[BOOKING_GATEKEEPER] Already logged in, ignoring gatekeeper');
+      setShowIdentityModal(false);
       return;
     }
     
@@ -584,6 +480,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
       setShowIdentityModal(true);
     }
   }, [company, isAuthenticated, clientLoaded, authLoading]);
+
 
   // Check whether a valid `clients` record exists for this user in this company.
   // Used to decide whether to show "Ver meus agendamentos" vs "Concluir cadastro".
