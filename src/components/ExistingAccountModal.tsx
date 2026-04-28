@@ -11,8 +11,8 @@ import { toast } from 'sonner';
 interface ExistingAccountModalProps {
   isOpen: boolean;
   onClose: () => void;
-  email: string;
-  whatsapp: string;
+  email?: string;
+  whatsapp?: string;
   companyId: string;
   onLoginSuccess: () => void;
   onUseDifferentEmail: () => void;
