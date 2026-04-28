@@ -310,7 +310,7 @@ export function IdentityModal({
       }
     }
 
-    console.log('[BOOKING_READY] Flow unlocked for client');
+    console.log('[FORCED_LOGIN_STATE] Login identified and session established');
 
     // UX PREMIUM: Wait 800ms before closing
     setTimeout(() => {
