@@ -467,6 +467,12 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
     let isMounted = true;
 
     const checkSession = async () => {
+      // 1. PROTECT LOGIN STATE: Never overwrite if already logged in via callback
+      if (isClientLoggedIn) {
+        console.log('[LOGIN_STATE_PROTECTED] User already marked as logged in, skipping checkSession');
+        return;
+      }
+
       console.log('[SESSION_LOCAL]', localStorage.getItem('booking_client_session'));
       const runtimeSession = await supabase.auth.getSession();
       console.log('[SESSION_RUNTIME]', runtimeSession);
@@ -475,6 +481,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
       if (!isMounted) return;
 
       if (!session?.user) {
+        console.log('[SESSION_CHECK] No user session found');
         setIsClientLoggedIn(false);
         return;
       }
@@ -489,13 +496,15 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
       if (!isMounted) return;
 
       const isActuallyClient = profile?.role === 'client';
-      setIsClientLoggedIn(isActuallyClient);
+      console.log('[SESSION_CHECK] User role:', profile?.role, 'isActuallyClient:', isActuallyClient);
       
       if (isActuallyClient) {
         console.log('[SESSION_SET] Client session recognized from existing session');
+        setIsClientLoggedIn(true);
         setHasValidClient(true);
       } else {
-        console.log('[BOOKING_SESSION_SOURCE] active session is admin, treating as guest');
+        console.log('[BOOKING_SESSION_SOURCE] active session is admin or other role, treating as guest');
+        setIsClientLoggedIn(false);
       }
     };
 
@@ -504,8 +513,18 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log(`[BOOKING_SESSION_SOURCE] auth_state_changed: ${event}`);
       
+      // 1. PROTECT LOGIN STATE: If we just signed in or handled this via modal success, 
+      // be careful about resetting.
+      if (isClientLoggedIn && event === 'INITIAL_SESSION') {
+        console.log('[AUTH_STATE_PROTECTED] isClientLoggedIn is already true, ignoring INITIAL_SESSION reset');
+        return;
+      }
+
       if (!session?.user) {
-        if (isMounted) setIsClientLoggedIn(false);
+        if (isMounted) {
+          console.log('[AUTH_STATE_CHANGED] No session, setting isClientLoggedIn to false');
+          setIsClientLoggedIn(false);
+        }
         return;
       }
 
@@ -536,6 +555,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
           setShowIdentityModal(false);
         }
       } else {
+        console.log('[LOGIN_FAILURE] User is not a client, role:', profile?.role);
         setIsClientLoggedIn(false);
       }
     });
@@ -544,7 +564,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
       isMounted = false;
       subscription.unsubscribe();
     };
-  }, [company?.id, step, professionalSlug]);
+  }, [company?.id, step, professionalSlug, isClientLoggedIn]);
 
   // Identification Gatekeeper - Based ONLY on local isClientLoggedIn state
   useEffect(() => {
