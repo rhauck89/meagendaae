@@ -1467,39 +1467,39 @@ export default function Promotions() {
   );
 
   const renderChoiceScreen = () => (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 py-4">
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-5 py-4">
       <Button 
         variant="outline" 
-        className="h-auto min-h-[140px] flex-row items-start justify-start p-6 gap-4 hover:border-primary hover:bg-primary/5 transition-all group text-left whitespace-normal overflow-hidden"
+        className="h-full min-h-[160px] flex-row items-start justify-start p-7 gap-5 hover:border-primary hover:bg-primary/5 transition-all group text-left whitespace-normal"
         onClick={() => setCreationMode('manual')}
       >
-        <div className="bg-muted p-3 rounded-xl group-hover:bg-primary/10 group-hover:text-primary transition-all duration-300 shrink-0">
+        <div className="bg-muted p-3.5 rounded-xl group-hover:bg-primary/10 group-hover:text-primary transition-all duration-300 shrink-0">
           <Edit2 className="h-6 w-6" />
         </div>
-        <div className="flex flex-col gap-1 min-w-0">
-          <h3 className="font-bold text-lg">Manual</h3>
-          <p className="text-sm text-muted-foreground font-normal line-clamp-2 break-words [overflow-wrap:anywhere]">
-            Crie promoções do zero.
+        <div className="flex flex-col gap-1.5 min-w-0">
+          <h3 className="font-bold text-lg leading-tight">Manual</h3>
+          <p className="text-sm text-muted-foreground font-normal line-clamp-2 break-words [overflow-wrap:anywhere] white-space-normal leading-relaxed">
+            Crie promoções do zero, definindo cada detalhe da sua campanha.
           </p>
         </div>
       </Button>
 
       <Button 
         variant="outline" 
-        className="h-auto min-h-[140px] flex-row items-start justify-start p-6 gap-4 border-primary/30 bg-primary/5 hover:bg-primary/10 transition-all group relative overflow-hidden text-left whitespace-normal"
+        className="h-full min-h-[160px] flex-row items-start justify-start p-7 gap-5 border-primary/30 bg-primary/5 hover:bg-primary/10 transition-all group relative text-left whitespace-normal"
         onClick={() => setCreationMode('smart')}
       >
-        <div className="bg-primary/10 text-primary p-3 rounded-xl group-hover:bg-primary/20 transition-all duration-300 shrink-0">
+        <div className="bg-primary/10 text-primary p-3.5 rounded-xl group-hover:bg-primary/20 transition-all duration-300 shrink-0">
           <Zap className="h-6 w-6" />
         </div>
-        <div className="flex flex-col gap-1 min-w-0 pr-10">
-          <h3 className="font-bold text-lg">Inteligente</h3>
-          <p className="text-sm text-muted-foreground font-normal line-clamp-2 break-words [overflow-wrap:anywhere]">
-            IA encontra oportunidades e monta campanhas prontas.
+        <div className="flex flex-col gap-1.5 min-w-0 pr-8">
+          <h3 className="font-bold text-lg leading-tight">Inteligente</h3>
+          <p className="text-sm text-muted-foreground font-normal line-clamp-2 break-words [overflow-wrap:anywhere] white-space-normal leading-relaxed">
+            IA encontra oportunidades e monta campanhas prontas para você.
           </p>
         </div>
-        <div className="absolute top-3 right-3">
-          <Badge className="bg-primary text-primary-foreground text-[9px] uppercase px-1.5 py-0 shadow-sm border-none font-bold">IA</Badge>
+        <div className="absolute top-4 right-4">
+          <Badge className="bg-primary text-primary-foreground text-[10px] uppercase px-2 py-0.5 shadow-sm border-none font-bold">IA</Badge>
         </div>
       </Button>
     </div>
