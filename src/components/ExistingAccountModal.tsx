@@ -207,6 +207,7 @@ export function ExistingAccountModal({
           )}
 
           {view === 'options' && (
+            <div className="space-y-3">
 
           {view === 'options' && (
             <div className="space-y-3">
