@@ -26,7 +26,8 @@ export function ExistingAccountModal({
   whatsapp: initialWhatsapp,
   companyId,
   onLoginSuccess,
-  onUseDifferentEmail 
+  onUseDifferentEmail,
+  mode = 'email_exists'
 }: ExistingAccountModalProps) {
   const [view, setView] = useState<'options' | 'password' | 'otp' | 'forgot' | 'whatsapp-sent' | 'identify'>('options');
   const [email, setEmail] = useState(initialEmail || '');
