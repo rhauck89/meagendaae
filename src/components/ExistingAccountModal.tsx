@@ -168,9 +168,45 @@ export function ExistingAccountModal({
             </div>
             <DialogTitle className="text-2xl font-black tracking-tight text-center">Identidade Reconhecida</DialogTitle>
             <DialogDescription className="text-slate-400 text-center text-sm font-medium mt-2">
-              O e-mail <span className="text-white font-bold">{email}</span> já está em nossa rede. Como deseja continuar?
+              {view === 'identify' ? 'Informe seu WhatsApp para localizar seu cadastro.' : `O e-mail ${email} já está em nossa rede. Como deseja continuar?`}
             </DialogDescription>
           </DialogHeader>
+
+          {view === 'identify' && (
+            <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-300">
+              <div className="space-y-1.5">
+                <Label className="text-[10px] font-black uppercase tracking-widest opacity-40 ml-2">Seu WhatsApp</Label>
+                <Input 
+                  value={whatsapp}
+                  onChange={(e) => {
+                    const digits = e.target.value.replace(/\D/g, '').slice(0, 11);
+                    let masked = digits;
+                    if (digits.length > 7) masked = `(${digits.slice(0,2)}) ${digits.slice(2,7)}-${digits.slice(7)}`;
+                    else if (digits.length > 2) masked = `(${digits.slice(0,2)}) ${digits.slice(2)}`;
+                    setWhatsapp(masked);
+                  }}
+                  placeholder="(11) 99999-9999"
+                  className="rounded-2xl h-16 bg-white/5 border-white/10 text-white font-bold"
+                  autoFocus
+                />
+              </div>
+              <Button 
+                onClick={handleSendOTP}
+                disabled={loading || whatsapp.length < 14}
+                className="w-full h-14 rounded-full bg-green-500 hover:bg-green-600 text-black font-black text-lg transition-all"
+              >
+                {loading ? "Buscando..." : "Continuar via WhatsApp"}
+              </Button>
+              <button 
+                onClick={onClose}
+                className="w-full text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-white py-2"
+              >
+                Voltar
+              </button>
+            </div>
+          )}
+
+          {view === 'options' && (
 
           {view === 'options' && (
             <div className="space-y-3">
