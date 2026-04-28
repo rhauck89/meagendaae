@@ -511,18 +511,24 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
     checkSession();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log(`[BOOKING_SESSION_SOURCE] auth_state_changed: ${event}`);
+      console.log(`[BOOKING_SESSION_SOURCE] auth_state_changed: ${event}`, { hasSession: !!session?.user, isClientLoggedIn });
       
       // 1. PROTECT LOGIN STATE: If we just signed in or handled this via modal success, 
       // be careful about resetting.
-      if (isClientLoggedIn && event === 'INITIAL_SESSION') {
-        console.log('[AUTH_STATE_PROTECTED] isClientLoggedIn is already true, ignoring INITIAL_SESSION reset');
+      if (isClientLoggedIn && (event === 'INITIAL_SESSION' || event === 'SIGNED_IN')) {
+        console.log('[AUTH_STATE_PROTECTED] isClientLoggedIn is already true, skipping reset check');
         return;
       }
 
       if (!session?.user) {
+        // Only reset if we were previously logged in AND the event is explicitly SIGNED_OUT
+        // or if we are mounting and truly have no session.
         if (isMounted) {
-          console.log('[AUTH_STATE_CHANGED] No session, setting isClientLoggedIn to false');
+          if (isClientLoggedIn && event !== 'SIGNED_OUT') {
+            console.log('[AUTH_STATE_PROTECTED] Session null but event is not SIGNED_OUT, keeping isClientLoggedIn=true');
+            return;
+          }
+          console.log('[AUTH_STATE_CHANGED] Setting isClientLoggedIn to false');
           setIsClientLoggedIn(false);
         }
         return;
@@ -556,7 +562,10 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
         }
       } else {
         console.log('[LOGIN_FAILURE] User is not a client, role:', profile?.role);
-        setIsClientLoggedIn(false);
+        // Only reset if not already protected
+        if (!isClientLoggedIn) {
+          setIsClientLoggedIn(false);
+        }
       }
     });
 
