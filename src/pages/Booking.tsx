@@ -34,7 +34,7 @@ const isTomorrowTz = (d: Date, tz = 'America/Sao_Paulo') => {
 import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
-import { formatWhatsApp, displayWhatsApp, isValidWhatsApp, buildWhatsAppUrl, trackWhatsAppClick } from '@/lib/whatsapp';
+import { formatWhatsApp, displayWhatsApp, isValidWhatsApp, buildWhatsAppUrl, trackWhatsAppClick, normalizePhone } from '@/lib/whatsapp';
 import { type BusinessHours, type BusinessException, type ExistingAppointment, type BookingMode } from '@/lib/availability-engine';
 import { getAvailableSlots } from '@/lib/availability-service';
 import { PlatformBranding } from '@/components/PlatformBranding';
