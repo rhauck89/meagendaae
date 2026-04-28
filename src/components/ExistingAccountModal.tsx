@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -34,7 +33,6 @@ export function ExistingAccountModal({
 }: ExistingAccountModalProps) {
   const { updateAuthState } = useAuth();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-
   const [view, setView] = useState<'options' | 'password' | 'otp' | 'forgot' | 'identify'>('options');
   const [email, setEmail] = useState(initialEmail || '');
   const [whatsapp, setWhatsapp] = useState(initialWhatsapp || '');
@@ -55,6 +53,7 @@ export function ExistingAccountModal({
       setView('identify');
     } else if (isOpen) {
       setView('options');
+      setIsAuthenticated(false); // Reset authentication state when modal opens
     }
   }, [isOpen, initialEmail, initialWhatsapp]);
 
@@ -69,7 +68,6 @@ export function ExistingAccountModal({
   const handleLogout = async () => {
     setLoading(true);
     try {
-      // Check session role before signing out to avoid killing admin session
       const { data: { session } } = await supabase.auth.getSession();
       if (session?.user) {
         const { data: profile } = await supabase
@@ -80,20 +78,15 @@ export function ExistingAccountModal({
         
         if (profile?.role === 'client') {
           await supabase.auth.signOut();
-          console.log('[BOOKING_SESSION_SOURCE] client_session_ended');
-        } else {
-          console.log('[BOOKING_SESSION_SOURCE] admin_session_preserved');
         }
       }
 
-      // Limpar namespaces separados do cliente
       localStorage.removeItem(`client_id_${companyId}`);
       localStorage.removeItem(`client_data_${companyId}`);
       localStorage.removeItem('meagendae_client_data');
       localStorage.removeItem('booking_session_id');
       localStorage.removeItem('booking_client_session');
       
-      // Reset state
       setEmail('');
       setWhatsapp('');
       setPassword('');
@@ -114,7 +107,6 @@ export function ExistingAccountModal({
     setLoading(true);
     setSuccess(false);
     try {
-      console.log(`[BOOKING_SESSION_SOURCE] signing_in_with_password: ${email}`);
       const { data, error } = await supabase.auth.signInWithPassword({
         email: email.trim().toLowerCase(),
         password,
@@ -192,8 +184,6 @@ export function ExistingAccountModal({
     setLoading(true);
     try {
       const phoneToUse = whatsapp || initialWhatsapp;
-      console.log(`[OTP_VERIFY_FRONTEND] Attempt ${attempts + 1} for ${phoneToUse}`);
-      
       const { data, error } = await supabase.functions.invoke('whatsapp-integration', {
         body: {
           action: 'verify-otp',
@@ -208,7 +198,7 @@ export function ExistingAccountModal({
       if (error || (data && data.error)) {
         const newAttempts = attempts + 1;
         setAttempts(newAttempts);
-        setOtpCode(''); // Clear code on error
+        setOtpCode('');
         
         if (newAttempts >= 3) {
           toast.error('Muitas tentativas. Enviando novo código...');
@@ -221,27 +211,22 @@ export function ExistingAccountModal({
       }
 
       setSuccess(true);
-      console.log('[OTP_SUCCESS_FRONTEND] OTP verified successfully');
+      setIsAuthenticated(true);
       toast.success('Código confirmado! 👋');
 
-      // Nubank-style direct login
       if (data.session) {
-        console.log('[BOOKING_SESSION_SOURCE] otp_verified_by_phone - setting session');
-        
-        // Use setSession with the access_token and refresh_token
-        const { error: sessionError } = await supabase.auth.setSession({
+        await supabase.auth.setSession({
           access_token: data.session.access_token,
           refresh_token: data.session.refresh_token
         });
         
-        if (sessionError) {
-          console.error('[BOOKING_SESSION_SOURCE] setSession error:', sessionError);
-          throw sessionError;
+        // OBRIGATÓRIO: Manual update
+        const { data: { session: confirmedSession } } = await supabase.auth.getSession();
+        if (confirmedSession) {
+          await updateAuthState(confirmedSession);
         }
         
-        // Premium success flow: show check for 800ms, then close with fade-out effect
         setTimeout(() => {
-          console.log('[CLOSE_MODAL_START] OTP OK');
           onLoginSuccess();
           onClose();
         }, 800);
@@ -249,7 +234,6 @@ export function ExistingAccountModal({
         window.location.href = data.loginUrl;
       } else if (data.success) {
         setTimeout(() => {
-          console.log('[CLOSE_MODAL_START] Generic Success OK');
           onLoginSuccess();
           onClose();
         }, 800);
@@ -269,7 +253,7 @@ export function ExistingAccountModal({
         redirectTo: `${window.location.origin}/reset-password`,
       });
       if (error) throw error;
-      toast.success('E-mail de recuperação enviado! Verifique sua caixa de entrada.');
+      toast.success('E-mail de recuperação enviado!');
       setView('options');
     } catch (err: any) {
       toast.error(err.message || 'Erro ao enviar e-mail de recuperação');
@@ -282,13 +266,6 @@ export function ExistingAccountModal({
     if (view === 'identify') return 'Localizar Cadastro';
     if (view === 'otp') return 'Verificação WhatsApp';
     return 'Conta encontrada 👋';
-  };
-
-  const getDescription = () => {
-    if (view === 'identify') return 'Informe seu WhatsApp para localizar seu cadastro.';
-    if (view === 'otp') return 'Digite o código de 6 dígitos que enviamos para você.';
-    if (!email || email.length < 5) return 'Conta encontrada para finalização rápida';
-    return 'Escolha como entrar para continuar seu agendamento.';
   };
 
   return (
@@ -304,9 +281,6 @@ export function ExistingAccountModal({
           </div>
         ) : (
           <div className="p-8">
-            <div className="absolute top-4 left-4 text-[8px] font-black opacity-30 text-emerald-500 tracking-tighter uppercase">
-              BUILD OTP TESTE 01
-            </div>
             <DialogHeader className="mb-8 bg-transparent border-none p-0 flex flex-col items-center">
               <div className="w-20 h-20 bg-emerald-500/10 rounded-[2rem] flex items-center justify-center mb-6 border border-emerald-500/20 shadow-[0_0_30px_rgba(16,185,129,0.1)]">
                 {view === 'otp' ? (
@@ -321,239 +295,154 @@ export function ExistingAccountModal({
                 {getTitle()}
               </DialogTitle>
               <DialogDescription className="text-slate-400 text-center text-base font-medium mt-3 px-4 leading-relaxed">
-                {getDescription()}
+                {view === 'otp' ? 'Digite o código de 6 dígitos que enviamos para você.' : 'Escolha como entrar para continuar seu agendamento.'}
               </DialogDescription>
             </DialogHeader>
 
-
-          {view === 'identify' && (
-            <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
-              <div className="space-y-2">
-                <Label className="text-[10px] font-black uppercase tracking-[0.2em] opacity-40 ml-4">Seu WhatsApp</Label>
-                <Input 
-                  value={whatsapp}
-                  onChange={(e) => {
-                    const digits = e.target.value.replace(/\D/g, '').slice(0, 11);
-                    let masked = digits;
-                    if (digits.length > 7) masked = `(${digits.slice(0,2)}) ${digits.slice(2,7)}-${digits.slice(7)}`;
-                    else if (digits.length > 2) masked = `(${digits.slice(0,2)}) ${digits.slice(2)}`;
-                    setWhatsapp(masked);
-                  }}
-                  placeholder="(11) 99999-9999"
-                  className="rounded-2xl h-16 bg-white/5 border-white/10 text-white font-bold text-lg px-6 focus:border-emerald-500/50"
-                  autoFocus
-                />
-              </div>
-              <Button 
-                onClick={handleSendOTP}
-                disabled={loading || whatsapp.length < 14}
-                className="w-full h-16 rounded-full bg-emerald-500 hover:bg-emerald-600 text-zinc-950 font-black text-lg transition-all shadow-lg shadow-emerald-500/20"
-              >
-                {loading ? "Buscando..." : "Receber código no WhatsApp"}
-              </Button>
-              <button 
-                onClick={onClose}
-                className="w-full text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 hover:text-white py-2 transition-colors"
-              >
-                Voltar
-              </button>
-            </div>
-          )}
-
-          {view === 'options' && (
-            <div className="space-y-4">
-              <Button 
-                onClick={handleSendOTP}
-                disabled={loading}
-                className="w-full h-20 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 text-white font-bold flex items-center justify-start gap-5 px-6 transition-all group"
-              >
-                <div className="w-12 h-12 bg-emerald-500/20 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
-                  <MessageCircle className="w-6 h-6 text-emerald-400" />
+            {view === 'identify' && (
+              <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
+                <div className="space-y-2">
+                  <Label className="text-[10px] font-black uppercase tracking-[0.2em] opacity-40 ml-4">Seu WhatsApp</Label>
+                  <Input 
+                    value={whatsapp}
+                    onChange={(e) => {
+                      const digits = e.target.value.replace(/\D/g, '').slice(0, 11);
+                      let masked = digits;
+                      if (digits.length > 7) masked = `(${digits.slice(0,2)}) ${digits.slice(2,7)}-${digits.slice(7)}`;
+                      else if (digits.length > 2) masked = `(${digits.slice(0,2)}) ${digits.slice(2)}`;
+                      setWhatsapp(masked);
+                    }}
+                    placeholder="(11) 99999-9999"
+                    className="rounded-2xl h-16 bg-white/5 border-white/10 text-white font-bold text-lg px-6 focus:border-emerald-500/50"
+                    autoFocus
+                  />
                 </div>
-                <div className="text-left">
-                  <p className="text-base font-black">Receber código no WhatsApp</p>
-                  <p className="text-[10px] opacity-40 uppercase tracking-widest font-black">Acesso rápido sem senha</p>
-                </div>
-                <ArrowRight className="w-5 h-5 ml-auto opacity-20 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
-              </Button>
-
-              <Button 
-                onClick={() => setView('password')}
-                className="w-full h-20 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 text-white font-bold flex items-center justify-start gap-5 px-6 transition-all group"
-              >
-                <div className="w-12 h-12 bg-blue-500/20 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
-                  <LogIn className="w-6 h-6 text-blue-400" />
-                </div>
-                <div className="text-left">
-                  <p className="text-base font-black">Entrar com Senha</p>
-                  <p className="text-[10px] opacity-40 uppercase tracking-widest font-black">Usar senha cadastrada</p>
-                </div>
-                <ArrowRight className="w-5 h-5 ml-auto opacity-20 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
-              </Button>
-
-              <div className="pt-6 grid grid-cols-2 gap-4">
                 <Button 
-                  variant="ghost" 
-                  onClick={handleLogout}
-                  className="h-12 rounded-xl bg-white/5 border border-white/5 hover:bg-red-500/10 hover:text-red-400 text-[10px] uppercase tracking-widest font-black text-slate-400 group"
+                  onClick={handleSendOTP}
+                  disabled={loading || whatsapp.length < 14}
+                  className="w-full h-16 rounded-full bg-emerald-500 hover:bg-emerald-600 text-zinc-950 font-black text-lg transition-all shadow-lg shadow-emerald-500/20"
                 >
-                  <UserX className="w-3 h-3 mr-2 opacity-50 group-hover:opacity-100" />
-                  Trocar Conta
+                  {loading ? "Buscando..." : "Receber código no WhatsApp"}
                 </Button>
-                <Button 
-                  variant="ghost" 
+                <button 
                   onClick={onClose}
-                  className="h-12 rounded-xl bg-white/5 border border-white/5 hover:bg-white/10 text-[10px] uppercase tracking-widest font-black text-slate-400"
+                  className="w-full text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 hover:text-white py-2 transition-colors"
                 >
                   Voltar
-                </Button>
+                </button>
               </div>
-            </div>
-          )}
+            )}
 
-          {view === 'otp' && (
-            <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-300">
+            {view === 'options' && (
               <div className="space-y-4">
+                <Button 
+                  onClick={handleSendOTP}
+                  disabled={loading}
+                  className="w-full h-20 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 text-white font-bold flex items-center justify-start gap-5 px-6 transition-all group"
+                >
+                  <div className="w-12 h-12 bg-emerald-500/20 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
+                    <MessageCircle className="w-6 h-6 text-emerald-400" />
+                  </div>
+                  <div className="text-left">
+                    <p className="text-base font-black">Receber código no WhatsApp</p>
+                    <p className="text-[10px] opacity-40 uppercase tracking-widest font-black">Acesso rápido sem senha</p>
+                  </div>
+                  <ArrowRight className="w-5 h-5 ml-auto opacity-20 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
+                </Button>
+
+                <Button 
+                  onClick={() => setView('password')}
+                  className="w-full h-20 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 text-white font-bold flex items-center justify-start gap-5 px-6 transition-all group"
+                >
+                  <div className="w-12 h-12 bg-blue-500/20 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
+                    <LogIn className="w-6 h-6 text-blue-400" />
+                  </div>
+                  <div className="text-left">
+                    <p className="text-base font-black">Entrar com Senha</p>
+                    <p className="text-[10px] opacity-40 uppercase tracking-widest font-black">Usar senha cadastrada</p>
+                  </div>
+                  <ArrowRight className="w-5 h-5 ml-auto opacity-20 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
+                </Button>
+
+                <div className="pt-6 grid grid-cols-2 gap-4">
+                  <Button 
+                    variant="ghost" 
+                    onClick={handleLogout}
+                    className="h-12 rounded-xl bg-white/5 border border-white/5 hover:bg-red-500/10 hover:text-red-400 text-[10px] uppercase tracking-widest font-black text-slate-400 group"
+                  >
+                    <UserX className="w-3 h-3 mr-2 opacity-50 group-hover:opacity-100" />
+                    Trocar Conta
+                  </Button>
+                  <Button 
+                    variant="ghost" 
+                    onClick={onClose}
+                    className="h-12 rounded-xl bg-white/5 border border-white/5 hover:bg-white/10 text-[10px] uppercase tracking-widest font-black text-slate-400"
+                  >
+                    Voltar
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {view === 'otp' && (
+              <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-300">
                 <OTPInput 
                   value={otpCode}
                   onChange={setOtpCode}
                   onComplete={(val) => handleVerifyOTP(val)}
                   disabled={loading || success}
                 />
-              </div>
-
-              <Button 
-                onClick={() => handleVerifyOTP()}
-                disabled={loading || success || otpCode.length !== 6}
-                className={cn(
-                  "w-full h-16 rounded-full font-black text-lg transition-all shadow-lg",
-                  success 
-                    ? "bg-emerald-500 text-zinc-950 shadow-emerald-500/40" 
-                    : "bg-emerald-500 hover:bg-emerald-600 text-zinc-950 shadow-emerald-500/20"
-                )}
-              >
-                {loading ? (
-                  <div className="flex items-center gap-2">
-                    <div className="w-5 h-5 border-2 border-zinc-950/20 border-t-zinc-950 animate-spin rounded-full" />
-                    <span>Verificando...</span>
-                  </div>
-                ) : success ? (
-                  <div className="flex items-center gap-2">
-                    <ShieldCheck className="w-6 h-6 animate-bounce" />
-                    <span>Código Confirmado</span>
-                  </div>
-                ) : (
-                  "Verificar Código"
-                )}
-              </Button>
-
-              <div className="text-center">
-                {timer > 0 ? (
-                  <p className="text-xs font-black uppercase tracking-widest text-slate-500">
-                    Reenviar em <span className="text-emerald-500">{timer}s</span>
-                  </p>
-                ) : (
-                  <button 
-                    onClick={handleSendOTP}
-                    disabled={loading || success}
-                    className="text-xs font-black uppercase tracking-widest text-emerald-500 hover:text-emerald-400 transition-colors disabled:opacity-50"
-                  >
-                    Reenviar código
-                  </button>
-                )}
-              </div>
-
-              <button 
-                onClick={() => setView('options')}
-                disabled={loading || success}
-                className="w-full text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 hover:text-white py-2 transition-colors disabled:opacity-50"
-              >
-                Tentar outro método
-              </button>
-            </div>
-          )}
-
-          {view === 'password' && (
-            <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
-              <div className="space-y-2">
-                <Label className="text-[10px] font-black uppercase tracking-[0.2em] opacity-40 ml-4">Sua Senha</Label>
-                <Input 
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
-                  className="rounded-2xl h-16 bg-white/5 border-white/10 text-white font-bold text-lg px-6 focus:border-blue-500/50"
-                  autoFocus
-                  onKeyDown={(e) => e.key === 'Enter' && handleLogin()}
-                />
-              </div>
                 <Button 
-                onClick={handleLogin}
-                disabled={loading || success || !password}
-                className={cn(
-                  "w-full h-16 rounded-full font-black text-lg transition-all shadow-lg",
-                  success 
-                    ? "bg-blue-500 text-white shadow-blue-500/40" 
-                    : "bg-blue-500 hover:bg-blue-600 text-white shadow-blue-500/20"
-                )}
-              >
-                {loading ? (
-                  <div className="flex items-center gap-2">
-                    <div className="w-5 h-5 border-2 border-white/20 border-t-white animate-spin rounded-full" />
-                    <span>Entrando...</span>
-                  </div>
-                ) : success ? (
-                  <div className="flex items-center gap-2">
-                    <CheckCircle2 className="w-6 h-6 animate-bounce" />
-                    <span>Acesso Autorizado</span>
-                  </div>
-                ) : (
-                  "Confirmar e Entrar"
-                )}
-              </Button>
-              <div className="flex flex-col gap-2">
-                <button 
-                  onClick={() => setView('forgot')}
-                  className="w-full text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 hover:text-white py-2 transition-colors"
+                  onClick={() => handleVerifyOTP()}
+                  disabled={loading || success || otpCode.length !== 6}
+                  className="w-full h-16 rounded-full font-black text-lg transition-all shadow-lg bg-emerald-500 hover:bg-emerald-600 text-zinc-950 shadow-emerald-500/20"
                 >
-                  Esqueci minha senha
-                </button>
-                <button 
-                  onClick={() => setView('options')}
-                  className="w-full text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 hover:text-white py-2 transition-colors"
-                >
-                  Voltar às opções
-                </button>
+                  {loading ? "Verificando..." : "Verificar Código"}
+                </Button>
+                <div className="text-center">
+                  {timer > 0 ? (
+                    <p className="text-xs font-black uppercase tracking-widest text-slate-500">
+                      Reenviar em <span className="text-emerald-500">{timer}s</span>
+                    </p>
+                  ) : (
+                    <button onClick={handleSendOTP} className="text-xs font-black uppercase tracking-widest text-emerald-500 hover:text-emerald-400">
+                      Reenviar código
+                    </button>
+                  )}
+                </div>
               </div>
-            </div>
-          )}
+            )}
 
-          {view === 'forgot' && (
-            <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300 text-center">
-              <div className="w-16 h-16 bg-purple-500/10 rounded-full flex items-center justify-center mx-auto mb-2 border border-purple-500/20">
-                <RotateCcw className="w-8 h-8 text-purple-400" />
+            {view === 'password' && (
+              <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
+                <div className="space-y-2">
+                  <Label className="text-[10px] font-black uppercase tracking-[0.2em] opacity-40 ml-4">Sua Senha</Label>
+                  <Input 
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="••••••••"
+                    className="rounded-2xl h-16 bg-white/5 border-white/10 text-white font-bold text-lg px-6 focus:border-blue-500/50"
+                    autoFocus
+                  />
+                </div>
+                <Button 
+                  onClick={handleLogin}
+                  disabled={loading || success || !password}
+                  className="w-full h-16 rounded-full font-black text-lg transition-all shadow-lg bg-blue-500 hover:bg-blue-600 text-white shadow-blue-500/20"
+                >
+                  {loading ? "Entrando..." : "Confirmar e Entrar"}
+                </Button>
+                <div className="flex flex-col gap-2">
+                  <button onClick={() => setView('forgot')} className="text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-white">
+                    Esqueci minha senha
+                  </button>
+                  <button onClick={() => setView('options')} className="text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-white">
+                    Voltar
+                  </button>
+                </div>
               </div>
-              <div className="space-y-2">
-                <p className="text-base text-slate-400 leading-relaxed">
-                  Enviaremos um link de redefinição para:
-                </p>
-                <p className="text-lg text-white font-black">{email}</p>
-              </div>
-              <Button 
-                onClick={handleForgotPassword}
-                disabled={loading}
-                className="w-full h-16 rounded-full bg-white text-black font-black text-lg transition-all shadow-lg shadow-white/10"
-              >
-                {loading ? "Enviando..." : "Enviar Link de Recuperação"}
-              </Button>
-              <button 
-                onClick={() => setView('options')}
-                className="w-full text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 hover:text-white py-2 transition-colors"
-              >
-                Cancelar
-              </button>
-            </div>
-          )}
+            )}
           </div>
         )}
       </DialogContent>
