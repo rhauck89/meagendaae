@@ -2784,6 +2784,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                 </div>
               )}
             </Button>
+            </div>
           </div>
         )}
 
