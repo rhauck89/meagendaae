@@ -21,17 +21,32 @@ interface ExistingAccountModalProps {
 export function ExistingAccountModal({ 
   isOpen, 
   onClose, 
-  email, 
-  whatsapp,
+  email: initialEmail, 
+  whatsapp: initialWhatsapp,
   companyId,
   onLoginSuccess,
   onUseDifferentEmail 
 }: ExistingAccountModalProps) {
-  const [view, setView] = useState<'options' | 'password' | 'otp' | 'forgot' | 'whatsapp-sent'>('options');
+  const [view, setView] = useState<'options' | 'password' | 'otp' | 'forgot' | 'whatsapp-sent' | 'identify'>('options');
+  const [email, setEmail] = useState(initialEmail || '');
+  const [whatsapp, setWhatsapp] = useState(initialWhatsapp || '');
   const [password, setPassword] = useState('');
   const [otpCode, setOtpCode] = useState('');
   const [loading, setLoading] = useState(false);
   const [timer, setTimer] = useState(0);
+
+  useEffect(() => {
+    if (initialEmail) setEmail(initialEmail);
+    if (initialWhatsapp) setWhatsapp(initialWhatsapp);
+  }, [initialEmail, initialWhatsapp]);
+
+  useEffect(() => {
+    if (isOpen && !initialEmail && !initialWhatsapp) {
+      setView('identify');
+    } else if (isOpen) {
+      setView('options');
+    }
+  }, [isOpen]);
 
   useEffect(() => {
     let interval: any;
