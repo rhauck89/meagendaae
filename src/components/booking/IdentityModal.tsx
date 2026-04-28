@@ -98,8 +98,7 @@ export function IdentityModal({
     try {
       console.log(`[IDENTITY_MODAL] Identifying: ${phone} in company ${companyId}`);
       
-      // Check if client exists for this company
-      // NEW GLOBAL FLOW: Search globally and ensure link exists
+      // NEW GLOBAL FLOW: Search globally and get both IDs
       const { data: client, error } = await supabaseToUse.rpc('lookup_client_globally', {
         p_company_id: companyId,
         p_whatsapp: phone
@@ -107,14 +106,20 @@ export function IdentityModal({
 
       if (error) throw error;
 
-      if (client && client.id) {
-        console.log('[IDENTITY_MODAL] Client found:', client);
-        setEmail(client.email || '');
-        setFullName(client.name || '');
+      if (client && client.client_global_id) {
+        console.log('[IDENTITY_MODAL] Client found globally:', client);
+        
+        // Store both IDs for consistent session handling
+        const clientData = Array.isArray(client) ? client[0] : client;
+        setEmail(clientData.email || '');
+        setFullName(clientData.name || '');
         setIsNewUser(false);
         setView('options');
+        
+        // Premium logging of session IDs
+        console.log(`[SESSION] Global ID: ${clientData.client_global_id}, Legacy ID: ${clientData.client_legacy_id}`);
       } else {
-        console.log('[IDENTITY_MODAL] Client not found');
+        console.log('[IDENTITY_MODAL] Client not found globally');
         setView('not_found');
       }
     } catch (err: any) {
