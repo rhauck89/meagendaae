@@ -9,6 +9,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { OTPInput } from './auth/OTPInput';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface ExistingAccountModalProps {
   isOpen: boolean;
@@ -19,7 +20,6 @@ interface ExistingAccountModalProps {
   onLoginSuccess: () => void;
   onUseDifferentEmail: () => void;
   mode?: 'email_exists' | 'whatsapp_exists' | 'both_exists';
-  supabaseClient?: any;
 }
 
 export function ExistingAccountModal({ 
@@ -31,9 +31,10 @@ export function ExistingAccountModal({
   onLoginSuccess,
   onUseDifferentEmail,
   mode = 'email_exists',
-  supabaseClient: propSupabase
 }: ExistingAccountModalProps) {
-  const supabaseToUse = propSupabase || supabase;
+  const { updateAuthState } = useAuth();
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+
   const [view, setView] = useState<'options' | 'password' | 'otp' | 'forgot' | 'identify'>('options');
   const [email, setEmail] = useState(initialEmail || '');
   const [whatsapp, setWhatsapp] = useState(initialWhatsapp || '');
