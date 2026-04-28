@@ -2984,22 +2984,22 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
         isOpen={showIdentityModal}
         onClose={() => setShowIdentityModal(false)}
         companyId={company?.id}
-        supabaseClient={bookingSupabase}
+        supabaseClient={supabase}
         onLoginSuccess={async (clientData) => {
           console.log('[LOGIN_SUCCESS] IdentityModal success callback triggered');
           
           setIsClientLoggedIn(true);
-          console.log('[SESSION_SET] Client session is now active');
+          console.log('[FORCED_LOGIN_STATE] Client session is now active');
           
           setShowIdentityModal(false);
           setShowOneClickCard(true);
           setIsChangingData(false);
           
-          const { data: { user } } = await bookingSupabase.auth.getUser();
+          const { data: { user } } = await supabase.auth.getUser();
           
           if (user) {
             console.log('[CLIENT_SET] recognized user:', user.id);
-            const { data: client } = await bookingSupabase
+            const { data: client } = await supabase
               .from('clients')
               .select('*')
               .eq('user_id', user.id)
