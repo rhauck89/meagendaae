@@ -173,7 +173,7 @@ const AppointmentRequests = () => {
       // Como estamos no painel admin aceitando uma solicitação, o "user" logado é o admin, não o cliente.
       // Buscamos se já existe um global_client com este whatsapp.
       const { data: globalClient, error: globalError } = await supabase
-        .from('clients_global')
+        .from('clients_global' as any)
         .upsert({
           whatsapp: normalizedPhone,
           name: selectedRequest.client_name,
@@ -186,15 +186,16 @@ const AppointmentRequests = () => {
         throw new Error("Erro ao vincular perfil global do cliente");
       }
 
-      console.log("GLOBAL CLIENT:", globalClient);
+      const gClient = globalClient as any;
+      console.log("GLOBAL CLIENT:", gClient);
 
       // 2. Garantir Client Local (Upsert)
       const { data: localClient, error: localError } = await supabase
         .from('clients' as any)
         .upsert({
           company_id: companyId!,
-          global_client_id: globalClient.id,
-          user_id: globalClient.user_id, // Se o global já tiver user_id vinculado
+          global_client_id: gClient.id,
+          user_id: gClient.user_id, // Se o global já tiver user_id vinculado
           name: selectedRequest.client_name,
           whatsapp: selectedRequest.client_whatsapp,
           updated_at: new Date().toISOString()
@@ -207,13 +208,14 @@ const AppointmentRequests = () => {
         throw new Error("Erro ao vincular cliente à empresa");
       }
 
-      console.log("LOCAL CLIENT:", localClient);
+      const lClient = localClient as any;
+      console.log("LOCAL CLIENT:", lClient);
 
       // 3. Criar agendamento com IDs garantidos
       const insertData = {
         company_id: companyId!,
-        client_id: localClient.id,
-        user_id: globalClient.user_id,
+        client_id: lClient.id,
+        user_id: gClient.user_id,
         professional_id: selectedRequest.professional_id || Object.keys(professionals)[0],
         client_name: selectedRequest.client_name,
         client_whatsapp: selectedRequest.client_whatsapp,
@@ -232,11 +234,12 @@ const AppointmentRequests = () => {
 
       console.log("INSERT DATA:", insertData);
 
-      const { data: apptData, error: apptError } = await supabase
+      const { data: apptData, error: apptError } = await (supabase
         .from('appointments')
         .insert(insertData)
         .select('id')
-        .single();
+        .single() as any);
+
 
       if (apptError) {
         console.error("ERRO AO SALVAR AGENDAMENTO:", apptError);
