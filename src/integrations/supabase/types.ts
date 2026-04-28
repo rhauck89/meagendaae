@@ -5615,8 +5615,13 @@ export type Database = {
             Returns: number
           }
       lookup_client_by_whatsapp: {
-        Args: { _company_id: string; _whatsapp: string }
-        Returns: string
+        Args: { p_company_id: string; p_whatsapp: string }
+        Returns: {
+          email: string
+          id: string
+          name: string
+          whatsapp: string
+        }[]
       }
       recalculate_client_return_stats: {
         Args: { _company_id: string }
