@@ -99,9 +99,10 @@ export function IdentityModal({
       console.log(`[IDENTITY_MODAL] Identifying: ${phone} in company ${companyId}`);
       
       // Check if client exists for this company
-      const { data: client, error } = await supabaseToUse.rpc('lookup_client_by_whatsapp', {
+      // NEW GLOBAL FLOW: Search globally and ensure link exists
+      const { data: client, error } = await supabaseToUse.rpc('lookup_client_globally', {
         p_company_id: companyId,
-        p_whatsapp: phone // Always use normalized phone without prefix here
+        p_whatsapp: phone
       });
 
       if (error) throw error;
