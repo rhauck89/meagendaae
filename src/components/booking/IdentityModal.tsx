@@ -487,6 +487,7 @@ export function IdentityModal({
                   Voltar
                 </Button>
               </div>
+            )}
 
             {view === 'options' && (
               <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-300">
