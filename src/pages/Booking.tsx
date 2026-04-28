@@ -16,6 +16,7 @@ import { fromZonedTime, toZonedTime } from 'date-fns-tz';
 import { sendAppointmentCreatedWebhook } from '@/lib/automations';
 import { isPromoActive } from '@/lib/promotion-period';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useAuth } from '@/contexts/AuthContext';
 
 // TZ-aware Hoje/Amanhã helpers — compare dates in America/Sao_Paulo, not the
 // browser's local zone. Without this, a user in another timezone (or whose
@@ -203,7 +204,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
   const [bookingError, setBookingError] = useState<BookingErrorInfo | null>(null);
   const [clientForm, setClientForm] = useState({ full_name: '', email: '', whatsapp: '', birth_date: '' });
   const [clientPassword, setClientPassword] = useState('');
-  const [authLoading, setAuthLoading] = useState(false);
+  const [isAuthLoading, setAuthLoading] = useState(false);
   const skipTimeResetRef = useRef(false);
   const [optInWhatsapp, setOptInWhatsapp] = useState(false);
   const [savedClientId, setSavedClientId] = useState<string | null>(null);
@@ -229,7 +230,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
   const [loyaltyPoints, setLoyaltyPoints] = useState(0);
   const [loyaltyPointValue, setLoyaltyPointValue] = useState(0);
   const slotRequestRef = useRef(0);
-  const [isClientLoggedIn, setIsClientLoggedIn] = useState(false);
+  const { isAuthenticated, user, loading: authLoading } = useAuth();
   const [hasValidClient, setHasValidClient] = useState(false);
   const [showCompleteSignup, setShowCompleteSignup] = useState(false);
   const [showExistingAccountModal, setShowExistingAccountModal] = useState(false);
@@ -369,17 +370,17 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
     };
 
     fetchLastProfessional();
-  }, [savedClientId, company?.id, isClientLoggedIn]);
+  }, [savedClientId, company?.id, isAuthenticated]);
 
   useEffect(() => {
     // Show one-click card if data exists AND we're not explicitly changing data,
     // OR if the client is logged in.
-    if (clientLoaded && (clientDataWasAutoFilled || isClientLoggedIn) && !isChangingData) {
+    if (clientLoaded && (clientDataWasAutoFilled || isAuthenticated) && !isChangingData) {
       setShowOneClickCard(true);
     } else {
       setShowOneClickCard(false);
     }
-  }, [clientLoaded, clientDataWasAutoFilled, isChangingData, isClientLoggedIn]);
+  }, [clientLoaded, clientDataWasAutoFilled, isChangingData, isAuthenticated]);
 
   // Check for cashback credits when client is identified
   useEffect(() => {
@@ -460,141 +461,32 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
     };
     
     checkBenefits();
-  }, [savedClientId, company?.id, isClientLoggedIn]);
+  }, [savedClientId, company?.id, isAuthenticated]);
 
   // Check if client is logged in - Refined to ignore admin sessions
+  // Identification Gatekeeper - Based ONLY on AuthContext state
   useEffect(() => {
-    let isMounted = true;
-
-    const checkSession = async () => {
-      // 1. PROTECT LOGIN STATE: Never overwrite if already logged in via callback
-      if (isClientLoggedIn) {
-        console.log('[LOGIN_STATE_PROTECTED] User already marked as logged in, skipping checkSession');
-        return;
-      }
-
-      console.log('[SESSION_LOCAL]', localStorage.getItem('booking_client_session'));
-      const runtimeSession = await supabase.auth.getSession();
-      console.log('[SESSION_RUNTIME]', runtimeSession);
-
-      const { data: { session } } = runtimeSession;
-      if (!isMounted) return;
-
-      if (!session?.user) {
-        console.log('[SESSION_CHECK] No user session found');
-        setIsClientLoggedIn(false);
-        return;
-      }
-
-      // Verify if it's a client or admin
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('user_id', session.user.id)
-        .single();
-      
-      if (!isMounted) return;
-
-      const isActuallyClient = profile?.role === 'client';
-      console.log('[SESSION_CHECK] User role:', profile?.role, 'isActuallyClient:', isActuallyClient);
-      
-      if (isActuallyClient) {
-        console.log('[SESSION_SET] Client session recognized from existing session');
-        setIsClientLoggedIn(true);
-        setHasValidClient(true);
-      } else {
-        console.log('[BOOKING_SESSION_SOURCE] active session is admin or other role, treating as guest');
-        setIsClientLoggedIn(false);
-      }
-    };
-
-    checkSession();
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log(`[BOOKING_SESSION_SOURCE] auth_state_changed: ${event}`, { hasSession: !!session?.user, isClientLoggedIn });
-      
-      // 1. PROTECT LOGIN STATE: If we just signed in or handled this via modal success, 
-      // be careful about resetting.
-      if (isClientLoggedIn && (event === 'INITIAL_SESSION' || event === 'SIGNED_IN')) {
-        console.log('[AUTH_STATE_PROTECTED] isClientLoggedIn is already true, skipping reset check');
-        return;
-      }
-
-      if (!session?.user) {
-        // Only reset if we were previously logged in AND the event is explicitly SIGNED_OUT
-        // or if we are mounting and truly have no session.
-        if (isMounted) {
-          if (isClientLoggedIn && event !== 'SIGNED_OUT') {
-            console.log('[AUTH_STATE_PROTECTED] Session null but event is not SIGNED_OUT, keeping isClientLoggedIn=true');
-            return;
-          }
-          console.log('[AUTH_STATE_CHANGED] Setting isClientLoggedIn to false');
-          setIsClientLoggedIn(false);
-        }
-        return;
-      }
-
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('user_id', session.user.id)
-        .single();
-      
-      if (!isMounted) return;
-
-      const isActuallyClient = profile?.role === 'client';
-      
-      if (isActuallyClient) {
-        console.log('[LOGIN_SUCCESS] Auth state change recognized client');
-        // Do not force state if we are already logged in to avoid loops
-        setIsClientLoggedIn(true);
-        setHasValidClient(true);
-        
-        if (step === 'identifying') {
-          setStep(professionalSlug ? 'services' : 'professional');
-        }
-        
-        if (event === 'SIGNED_IN' || event === 'INITIAL_SESSION') {
-          console.log('[SESSION_SET] Enabling active booking mode');
-          setShowOneClickCard(true);
-          setIsChangingData(false);
-          setShowIdentityModal(false);
-        }
-      } else {
-        console.log('[LOGIN_FAILURE] User is not a client, role:', profile?.role);
-        // Only reset if not already protected
-        if (!isClientLoggedIn) {
-          setIsClientLoggedIn(false);
-        }
-      }
-    });
-
-    return () => {
-      isMounted = false;
-      subscription.unsubscribe();
-    };
-  }, [company?.id, step, professionalSlug, isClientLoggedIn]);
-
-  // Identification Gatekeeper - Based ONLY on local isClientLoggedIn state
-  useEffect(() => {
-    console.log('[BOOKING_GATEKEEPER_STATE]', { isClientLoggedIn, clientLoaded, authLoading, hasCompany: !!company });
+    console.log('[BOOKING_GATEKEEPER_STATE]', { isAuthenticated, clientLoaded, authLoading, hasCompany: !!company });
     
-    if (isClientLoggedIn) {
+    // Rule 3: Modal should open only if not authenticated
+    if (isAuthenticated) {
       console.log('[BOOKING_GATEKEEPER] Already logged in, ignoring gatekeeper');
+      setShowIdentityModal(false);
       return;
     }
     
-    if (company && !isClientLoggedIn && clientLoaded && !authLoading) {
+    if (company && !isAuthenticated && clientLoaded && !authLoading) {
       console.log('[BOOKING_GATEKEEPER] Identification required. Opening modal...');
       setShowIdentityModal(true);
     }
-  }, [company, isClientLoggedIn, clientLoaded, authLoading]);
+  }, [company, isAuthenticated, clientLoaded, authLoading]);
+
 
   // Check whether a valid `clients` record exists for this user in this company.
   // Used to decide whether to show "Ver meus agendamentos" vs "Concluir cadastro".
   useEffect(() => {
     const checkValidClient = async () => {
-      if (!isClientLoggedIn || !company?.id) {
+      if (!isAuthenticated || !company?.id) {
         setHasValidClient(false);
         return;
       }
@@ -613,7 +505,6 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
       
       if (profile && ['admin', 'professional', 'company', 'super_admin'].includes(profile.role)) {
         setHasValidClient(false);
-        setIsClientLoggedIn(false);
         return;
       }
 
@@ -647,7 +538,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
       }
     };
     checkValidClient();
-  }, [isClientLoggedIn, company?.id, bookingResult?.appointmentId]);
+  }, [isAuthenticated, company?.id, bookingResult?.appointmentId]);
 
   // Check if company has cashback or loyalty active
   // Load last booking for smart rebooking
@@ -1366,7 +1257,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
       setStep('services');
       return;
     }
-    if (!isClientLoggedIn) {
+    if (!isAuthenticated) {
       toast.error('Sessão expirada. Por favor, identifique-se novamente.');
       setShowIdentityModal(true);
       setLoading(false);
@@ -1746,7 +1637,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
   return (
     <div className="min-h-screen pb-20 sm:pb-0 font-sans tracking-tight" style={{ background: T.bg, color: T.text }}>
       {/* DEBUG BANNER OBRIGATÓRIO */}
-      {isClientLoggedIn && (
+      {isAuthenticated && (
         <div className="fixed top-0 left-0 w-full z-[9999] bg-green-500 text-black py-1.5 text-[10px] font-black text-center uppercase tracking-[0.3em] shadow-2xl border-b border-black/20">
           SESSÃO CLIENTE ATIVA | MODO 1-CLIQUE LIBERADO 👋
         </div>
@@ -2889,7 +2780,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
       </div>
 
       {/* Floating Meus Agendamentos Button */}
-      {step !== 'success' && isClientLoggedIn && hasValidClient && (
+      {step !== 'success' && isAuthenticated && hasValidClient && (
         <button
           onClick={() => window.location.href = '/minha-conta'}
           className="fixed bottom-6 left-6 z-50 flex items-center gap-2 px-4 py-3 rounded-full shadow-xl transition-transform hover:scale-105 text-sm font-semibold"
@@ -3027,7 +2918,6 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
         onLoginSuccess={async (clientData) => {
           console.log('[LOGIN_SUCCESS] IdentityModal success callback triggered');
           
-          setIsClientLoggedIn(true);
           console.log('[FORCED_LOGIN_STATE] Client session is now active');
           
           setShowIdentityModal(false);
@@ -3074,7 +2964,6 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
               whatsapp: displayWhatsApp(clientData.whatsapp || ''),
               birth_date: '',
             });
-            setIsClientLoggedIn(true);
             setHasValidClient(true);
             console.log('[BOOKING_UNLOCKED] Client identified without user session');
           }

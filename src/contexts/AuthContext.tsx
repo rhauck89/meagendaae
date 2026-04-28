@@ -1,13 +1,13 @@
-import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
+import React, { createContext, useContext, useEffect, useState, useCallback, useMemo } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
 
 type LoginMode = 'admin' | 'professional' | null;
 
 interface AuthContextType {
   user: User | null;
   session: Session | null;
+  isAuthenticated: boolean;
   loading: boolean;
   profile: any | null;
   companyId: string | null;
@@ -17,14 +17,13 @@ interface AuthContextType {
   isAlsoCollaborator: boolean;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
-  setUser: (user: User | null) => void;
-  setSession: (session: Session | null) => void;
   updateAuthState: (session: Session | null) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType>({
   user: null,
   session: null,
+  isAuthenticated: false,
   loading: true,
   profile: null,
   companyId: null,
@@ -34,8 +33,6 @@ const AuthContext = createContext<AuthContextType>({
   isAlsoCollaborator: false,
   signOut: async () => {},
   refreshProfile: async () => {},
-  setUser: () => {},
-  setSession: () => {},
   updateAuthState: async () => {},
 });
 
@@ -51,12 +48,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loginMode, setLoginModeState] = useState<LoginMode>(null);
   const [isAlsoCollaborator, setIsAlsoCollaborator] = useState(false);
 
-  const setLoginMode = async (mode: LoginMode) => {
-    setLoginModeState(mode);
-    if (mode && user) {
-      await supabase.from('profiles').update({ last_login_mode: mode }).eq('user_id', user.id);
-    }
-  };
+  const isAuthenticated = useMemo(() => !!session, [session]);
 
   const fetchUserData = useCallback(async (userId: string) => {
     try {
@@ -65,23 +57,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         supabase.from('user_roles').select('role').eq('user_id', userId),
       ]);
 
-      let savedMode: LoginMode = null;
       if (profileRes.data) {
         setProfile(profileRes.data);
         setCompanyId(profileRes.data.company_id);
-        savedMode = profileRes.data.last_login_mode as LoginMode;
-
-        // CLIENT_GLOBAL_SYNC: If user is a client, ensure we have their global data synced
+        
+        // Sync with global client data if applicable
         if (profileRes.data.role === 'client') {
-          const { data: globalClient } = await supabase
-            .from('clients_global')
-            .select('*')
-            .eq('user_id', userId)
-            .single();
-          
-          if (globalClient) {
-            console.log('[AUTH_CONTEXT] Synced with clients_global:', globalClient.id);
-          }
+          await supabase.from('clients_global').select('*').eq('user_id', userId).single();
         }
       }
 
@@ -97,22 +79,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             .eq('profile_id', profileRes.data.id)
             .eq('active', true)
             .limit(1);
+          
           const hasCollabRecord = !!(collabData && collabData.length > 0);
           setIsAlsoCollaborator(hasCollabRecord);
 
-          if (hasCollabRecord && savedMode) {
-            setLoginModeState(savedMode);
-          } else if (!hasCollabRecord) {
+          if (!hasCollabRecord) {
             setLoginModeState('admin');
+          } else if (profileRes.data.last_login_mode) {
+            setLoginModeState(profileRes.data.last_login_mode as LoginMode);
           }
         } else if (mappedRoles.includes('collaborator')) {
           setIsAlsoCollaborator(false);
           setLoginModeState('professional');
-        } else {
-          setIsAlsoCollaborator(false);
-          if (isAdminRole) {
-            setLoginModeState('admin');
-          }
         }
       }
     } catch (error) {
@@ -121,6 +99,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const updateAuthState = useCallback(async (newSession: Session | null) => {
+    console.log('[AUTH_CONTEXT] Manual updateAuthState triggered');
     setSession(newSession);
     const newUser = newSession?.user ?? null;
     setUser(newUser);
@@ -140,25 +119,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     let cancelled = false;
 
-    // Get initial session
-    supabase.auth.getSession().then(({ data: { session: initialSession } }) => {
-      if (cancelled) return;
-      updateAuthState(initialSession);
-    });
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, currentSession) => {
-        if (cancelled) return;
-        console.log(`[AUTH_CONTEXT] onAuthStateChange: ${event}`);
-        
-        // We still use this as a backup, but manual updates are preferred after login
-        if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') {
-          updateAuthState(currentSession);
-        } else if (event === 'SIGNED_OUT') {
-          updateAuthState(null);
-        }
+    // Rule 6: Initial session fetch
+    const initSession = async () => {
+      const { data: { session: initialSession } } = await supabase.auth.getSession();
+      if (!cancelled) {
+        await updateAuthState(initialSession);
       }
-    );
+    };
+
+    initSession();
+
+    // Rule 4: Use onAuthStateChange ONLY for backup initialization (e.g. tab switches)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, currentSession) => {
+      if (cancelled) return;
+      console.log(`[AUTH_CONTEXT] onAuthStateChange (Backup): ${event}`);
+      
+      if (event === 'SIGNED_OUT') {
+        await updateAuthState(null);
+      } else if (event === 'TOKEN_REFRESHED') {
+        await updateAuthState(currentSession);
+      }
+    });
 
     return () => {
       cancelled = true;
@@ -166,7 +147,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
   }, [updateAuthState]);
 
+  const setLoginMode = async (mode: LoginMode) => {
+    setLoginModeState(mode);
+    if (mode && user) {
+      await supabase.from('profiles').update({ last_login_mode: mode }).eq('user_id', user.id);
+    }
+  };
+
   const signOut = async () => {
+    console.log('[AUTH_CONTEXT] SignOut triggered');
     const sensitiveKeys = [
       'selectedClient', 'clientId', 'guestClient', 'cachedAppointments', 
       'clientPhone', 'clientProfile', 'client_portal_'
@@ -178,7 +167,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     });
 
+    // Rule 5: Explicit cleanup
     await supabase.auth.signOut();
+    setSession(null);
+    setUser(null);
+    setProfile(null);
+    setCompanyId(null);
+    setRoles([]);
+    
     window.location.replace('/');
   };
 
@@ -192,6 +188,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     <AuthContext.Provider value={{ 
       user, 
       session, 
+      isAuthenticated,
       loading, 
       profile, 
       companyId, 
@@ -201,8 +198,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       isAlsoCollaborator, 
       signOut, 
       refreshProfile,
-      setUser,
-      setSession,
       updateAuthState
     }}>
       {children}
