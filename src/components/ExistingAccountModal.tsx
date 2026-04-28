@@ -70,16 +70,16 @@ export function ExistingAccountModal({
     setLoading(true);
     try {
       // Check session role before signing out to avoid killing admin session
-      const { data: { session } } = await supabaseToUse.auth.getSession();
+      const { data: { session } } = await supabase.auth.getSession();
       if (session?.user) {
-        const { data: profile } = await supabaseToUse
+        const { data: profile } = await supabase
           .from('profiles')
           .select('role')
           .eq('user_id', session.user.id)
           .single();
         
         if (profile?.role === 'client') {
-          await supabaseToUse.auth.signOut();
+          await supabase.auth.signOut();
           console.log('[BOOKING_SESSION_SOURCE] client_session_ended');
         } else {
           console.log('[BOOKING_SESSION_SOURCE] admin_session_preserved');
@@ -115,7 +115,7 @@ export function ExistingAccountModal({
     setSuccess(false);
     try {
       console.log(`[BOOKING_SESSION_SOURCE] signing_in_with_password: ${email}`);
-      const { data, error } = await supabaseToUse.auth.signInWithPassword({
+      const { data, error } = await supabase.auth.signInWithPassword({
         email: email.trim().toLowerCase(),
         password,
       });
@@ -131,7 +131,7 @@ export function ExistingAccountModal({
         toast.success('Bem-vindo de volta! 👋');
         
         // Use the same setSession logic to ensure storage compatibility
-        await supabaseToUse.auth.setSession({
+        await supabase.auth.setSession({
           access_token: data.session.access_token,
           refresh_token: data.session.refresh_token
         });
@@ -157,7 +157,7 @@ export function ExistingAccountModal({
     }
     setLoading(true);
     try {
-      const { data, error } = await supabaseToUse.functions.invoke('whatsapp-integration', {
+      const { data, error } = await supabase.functions.invoke('whatsapp-integration', {
         body: {
           action: 'send-otp',
           companyId,
@@ -189,7 +189,7 @@ export function ExistingAccountModal({
       const phoneToUse = whatsapp || initialWhatsapp;
       console.log(`[OTP_VERIFY_FRONTEND] Attempt ${attempts + 1} for ${phoneToUse}`);
       
-      const { data, error } = await supabaseToUse.functions.invoke('whatsapp-integration', {
+      const { data, error } = await supabase.functions.invoke('whatsapp-integration', {
         body: {
           action: 'verify-otp',
           phone: phoneToUse,
@@ -224,7 +224,7 @@ export function ExistingAccountModal({
         console.log('[BOOKING_SESSION_SOURCE] otp_verified_by_phone - setting session');
         
         // Use setSession with the access_token and refresh_token
-        const { error: sessionError } = await supabaseToUse.auth.setSession({
+        const { error: sessionError } = await supabase.auth.setSession({
           access_token: data.session.access_token,
           refresh_token: data.session.refresh_token
         });
@@ -260,7 +260,7 @@ export function ExistingAccountModal({
     if (!email) return;
     setLoading(true);
     try {
-      const { error } = await supabaseToUse.auth.resetPasswordForEmail(email.trim().toLowerCase(), {
+      const { error } = await supabase.auth.resetPasswordForEmail(email.trim().toLowerCase(), {
         redirectTo: `${window.location.origin}/reset-password`,
       });
       if (error) throw error;
