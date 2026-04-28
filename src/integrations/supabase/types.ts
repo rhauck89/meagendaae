@@ -453,6 +453,80 @@ export type Database = {
         }
         Relationships: []
       }
+      auth_otps: {
+        Row: {
+          attempts: number | null
+          code: string
+          company_id: string | null
+          created_at: string | null
+          email: string | null
+          expires_at: string
+          id: string
+          ip_address: string | null
+          last_sent_at: string | null
+          max_attempts: number | null
+          metadata: Json | null
+          phone: string | null
+        }
+        Insert: {
+          attempts?: number | null
+          code: string
+          company_id?: string | null
+          created_at?: string | null
+          email?: string | null
+          expires_at: string
+          id?: string
+          ip_address?: string | null
+          last_sent_at?: string | null
+          max_attempts?: number | null
+          metadata?: Json | null
+          phone?: string | null
+        }
+        Update: {
+          attempts?: number | null
+          code?: string
+          company_id?: string | null
+          created_at?: string | null
+          email?: string | null
+          expires_at?: string
+          id?: string
+          ip_address?: string | null
+          last_sent_at?: string | null
+          max_attempts?: number | null
+          metadata?: Json | null
+          phone?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "auth_otps_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "auth_otps_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies_billing"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "auth_otps_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "public_company"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "auth_otps_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "public_company_view"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       blocked_times: {
         Row: {
           block_date: string
@@ -485,6 +559,152 @@ export type Database = {
           start_time?: string
         }
         Relationships: []
+      }
+      booking_abandonments: {
+        Row: {
+          client_id: string | null
+          company_id: string | null
+          converted_at: string | null
+          created_at: string | null
+          customer_email: string | null
+          customer_name: string | null
+          customer_phone: string | null
+          id: string
+          last_sent_at: string | null
+          metadata: Json | null
+          professional_id: string | null
+          service_ids: string[] | null
+          session_id: string | null
+          start_time: string | null
+          status: string | null
+        }
+        Insert: {
+          client_id?: string | null
+          company_id?: string | null
+          converted_at?: string | null
+          created_at?: string | null
+          customer_email?: string | null
+          customer_name?: string | null
+          customer_phone?: string | null
+          id?: string
+          last_sent_at?: string | null
+          metadata?: Json | null
+          professional_id?: string | null
+          service_ids?: string[] | null
+          session_id?: string | null
+          start_time?: string | null
+          status?: string | null
+        }
+        Update: {
+          client_id?: string | null
+          company_id?: string | null
+          converted_at?: string | null
+          created_at?: string | null
+          customer_email?: string | null
+          customer_name?: string | null
+          customer_phone?: string | null
+          id?: string
+          last_sent_at?: string | null
+          metadata?: Json | null
+          professional_id?: string | null
+          service_ids?: string[] | null
+          session_id?: string | null
+          start_time?: string | null
+          status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "booking_abandonments_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "booking_abandonments_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "booking_abandonments_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies_billing"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "booking_abandonments_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "public_company"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "booking_abandonments_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "public_company_view"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      booking_metrics: {
+        Row: {
+          company_id: string | null
+          created_at: string | null
+          id: string
+          metadata: Json | null
+          metric_type: string
+          value: number | null
+        }
+        Insert: {
+          company_id?: string | null
+          created_at?: string | null
+          id?: string
+          metadata?: Json | null
+          metric_type: string
+          value?: number | null
+        }
+        Update: {
+          company_id?: string | null
+          created_at?: string | null
+          id?: string
+          metadata?: Json | null
+          metric_type?: string
+          value?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "booking_metrics_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "booking_metrics_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies_billing"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "booking_metrics_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "public_company"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "booking_metrics_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "public_company_view"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       brazilian_cities: {
         Row: {
@@ -5453,6 +5673,15 @@ export type Database = {
       }
       switch_active_company: {
         Args: { _company_id: string }
+        Returns: undefined
+      }
+      track_booking_metric: {
+        Args: {
+          p_company_id: string
+          p_metadata?: Json
+          p_metric_type: string
+          p_value?: number
+        }
         Returns: undefined
       }
       validate_reward_redemption: { Args: { p_code: string }; Returns: Json }

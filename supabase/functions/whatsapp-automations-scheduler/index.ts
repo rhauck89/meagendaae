@@ -107,6 +107,32 @@ Deno.serve(async (req) => {
       }
     }
 
+    // 4. Abandonment Recovery
+    const fifteenMinsAgo = new Date(Date.now() - 15 * 60 * 1000).toISOString();
+    const { data: abandonments } = await supabase
+      .from('booking_abandonments')
+      .select('*')
+      .eq('status', 'pending')
+      .lt('created_at', fifteenMinsAgo);
+
+    for (const ab of abandonments || []) {
+      const { data: instance } = await supabase
+        .from('whatsapp_instances')
+        .select('*')
+        .eq('company_id', ab.company_id)
+        .eq('status', 'connected')
+        .maybeSingle();
+
+      if (instance) {
+        const message = `Oi ${ab.customer_name}, notamos que você não finalizou seu agendamento. Quer garantir seu horário?`;
+        await supabase.functions.invoke('whatsapp-integration', {
+          body: { action: 'send-message', companyId: ab.company_id, phone: ab.customer_phone, message }
+        });
+      }
+      await supabase.from('booking_abandonments').update({ status: 'notified', last_sent_at: new Date().toISOString() }).eq('id', ab.id);
+      totalProcessed++;
+    }
+
     return new Response(JSON.stringify({ success: true, processed: totalProcessed }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (error) {
     return new Response(JSON.stringify({ error: error.message }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });

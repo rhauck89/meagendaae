@@ -229,6 +229,20 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
   const [showExistingAccountModal, setShowExistingAccountModal] = useState(false);
   const [currentWeekStart, setCurrentWeekStart] = useState<Date>(startOfWeek(new Date(), { locale: ptBR }));
 
+  // Refined Premium Flow States
+  const [showOneClickCard, setShowOneClickCard] = useState(false);
+  const [lastServicePerformed, setLastServicePerformed] = useState<string | null>(null);
+  const [abandonmentId, setAbandonmentId] = useState<string | null>(null);
+  const sessionId = useMemo(() => {
+    let id = localStorage.getItem('booking_session_id');
+    if (!id) {
+      id = crypto.randomUUID();
+      localStorage.setItem('booking_session_id', id);
+    }
+    return id;
+  }, []);
+
+
   const [hasBenefitsActive, setHasBenefitsActive] = useState(false);
   const [lastBooking, setLastBooking] = useState<{
     serviceIds: string[]; serviceNames: string[]; serviceDurations: number[];
