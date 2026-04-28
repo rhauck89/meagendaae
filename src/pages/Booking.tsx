@@ -2422,11 +2422,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                             key={slot}
                             onClick={() => { 
                               setSelectedTime(slot); 
-                              if (isClientLoggedIn) {
-                                setStep('confirm');
-                              } else {
-                                setShowIdentityModal(true);
-                              }
+                              setStep('confirm');
                             }}
                             className="py-5 rounded-3xl text-sm font-black transition-all duration-300 border-2"
                             style={{ 
