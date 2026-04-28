@@ -128,21 +128,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const updateAuthState = useCallback(async (newSession: Session | null) => {
-    console.log('[AUTH_CONTEXT] Manual updateAuthState triggered');
-    setSession(newSession);
-    const newUser = newSession?.user ?? null;
-    setUser(newUser);
+    console.log('[AUTH_CONTEXT] Manual updateAuthState triggered', { hasSession: !!newSession });
+    try {
+      setSession(newSession);
+      const newUser = newSession?.user ?? null;
+      setUser(newUser);
 
-    if (newUser) {
-      await fetchUserData(newUser.id);
-    } else {
-      setProfile(null);
-      setCompanyId(null);
-      setRoles([]);
-      setLoginModeState(null);
-      setIsAlsoCollaborator(false);
+      if (newUser) {
+        await fetchUserData(newUser.id);
+      } else {
+        setProfile(null);
+        setCompanyId(null);
+        setRoles([]);
+        setLoginModeState(null);
+        setIsAlsoCollaborator(false);
+      }
+    } catch (error) {
+      console.error('[AUTH_CONTEXT] Critical error in updateAuthState:', error);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   }, [fetchUserData]);
 
   useEffect(() => {
