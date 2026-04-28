@@ -3060,5 +3060,3 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
 };
 
 export default BookingPage;
-
-export default BookingPage;
