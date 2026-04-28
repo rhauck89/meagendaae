@@ -265,6 +265,75 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ success: true }), { headers: corsHeaders });
     }
 
+    if (action === 'send-otp') {
+      const { phone, companyId: targetCompanyId } = params;
+      if (!phone || !targetCompanyId) throw new Error('Missing phone or companyId');
+      
+      const { data: client } = await adminClient
+        .from('clients')
+        .select('email, name')
+        .eq('company_id', targetCompanyId)
+        .eq('whatsapp', phone.replace(/\D/g, '').startsWith('55') ? phone.replace(/\D/g, '') : '55' + phone.replace(/\D/g, ''))
+        .maybeSingle();
+      
+      if (!client || !client.email) {
+        throw new Error('Número não encontrado ou sem e-mail vinculado no cadastro desta empresa.');
+      }
+
+      const code = Math.floor(100000 + Math.random() * 900000).toString();
+      const expiresAt = new Date(Date.now() + 5 * 60 * 1000).toISOString();
+
+      await adminClient.from('whatsapp_otp_codes').insert({
+        phone: formatPhone(phone),
+        email: client.email,
+        code,
+        expires_at: expiresAt
+      });
+
+      const instance = await getInstance(targetCompanyId);
+      if (instance && instance.status === 'connected') {
+        const message = `Olá ${client.name}! Seu código de acesso para Agendae é: *${code}*\n\nEste código expira em 5 minutos.`;
+        await sendWhatsApp(instance.instance_name, phone, message);
+      } else {
+        // Fallback or error
+        throw new Error('O WhatsApp desta empresa não está conectado para enviar o código.');
+      }
+
+      return new Response(JSON.stringify({ success: true }), { headers: corsHeaders });
+    }
+
+    if (action === 'verify-otp') {
+      const { phone, code, redirectTo } = params;
+      if (!phone || !code) throw new Error('Missing phone or code');
+
+      const { data: otp } = await adminClient
+        .from('whatsapp_otp_codes')
+        .select('*')
+        .eq('phone', formatPhone(phone))
+        .eq('code', code)
+        .eq('verified', false)
+        .gt('expires_at', new Date().toISOString())
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (!otp) {
+        throw new Error('Código inválido ou expirado.');
+      }
+
+      await adminClient.from('whatsapp_otp_codes').update({ verified: true }).eq('id', otp.id);
+
+      const { data: linkData, error: linkError } = await adminClient.auth.admin.generateLink({
+        type: 'magiclink',
+        email: otp.email,
+        options: { redirectTo: redirectTo || 'https://app.agendae.io/' }
+      });
+
+      if (linkError) throw linkError;
+
+      return new Response(JSON.stringify({ success: true, loginUrl: linkData.properties.action_link }), { headers: corsHeaders });
+    }
+
     return new Response(JSON.stringify({ error: 'Invalid action' }), { status: 400, headers: corsHeaders });
 
   } catch (error: any) {
