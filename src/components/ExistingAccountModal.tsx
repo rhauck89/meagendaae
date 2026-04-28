@@ -464,12 +464,29 @@ export function ExistingAccountModal({
                   onKeyDown={(e) => e.key === 'Enter' && handleLogin()}
                 />
               </div>
-              <Button 
+                <Button 
                 onClick={handleLogin}
-                disabled={loading || !password}
-                className="w-full h-16 rounded-full bg-blue-500 hover:bg-blue-600 text-white font-black text-lg transition-all shadow-lg shadow-blue-500/20"
+                disabled={loading || success || !password}
+                className={cn(
+                  "w-full h-16 rounded-full font-black text-lg transition-all shadow-lg",
+                  success 
+                    ? "bg-blue-500 text-white shadow-blue-500/40" 
+                    : "bg-blue-500 hover:bg-blue-600 text-white shadow-blue-500/20"
+                )}
               >
-                {loading ? "Entrando..." : "Confirmar e Entrar"}
+                {loading ? (
+                  <div className="flex items-center gap-2">
+                    <div className="w-5 h-5 border-2 border-white/20 border-t-white animate-spin rounded-full" />
+                    <span>Entrando...</span>
+                  </div>
+                ) : success ? (
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 className="w-6 h-6 animate-bounce" />
+                    <span>Acesso Autorizado</span>
+                  </div>
+                ) : (
+                  "Confirmar e Entrar"
+                )}
               </Button>
               <div className="flex flex-col gap-2">
                 <button 
