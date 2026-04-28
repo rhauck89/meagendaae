@@ -1058,6 +1058,63 @@ export type Database = {
           },
         ]
       }
+      client_companies: {
+        Row: {
+          client_global_id: string | null
+          company_id: string | null
+          created_at: string | null
+          id: string
+        }
+        Insert: {
+          client_global_id?: string | null
+          company_id?: string | null
+          created_at?: string | null
+          id?: string
+        }
+        Update: {
+          client_global_id?: string | null
+          company_id?: string | null
+          created_at?: string | null
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_companies_client_global_id_fkey"
+            columns: ["client_global_id"]
+            isOneToOne: false
+            referencedRelation: "clients_global"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_companies_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_companies_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies_billing"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_companies_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "public_company"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_companies_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "public_company_view"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       clients: {
         Row: {
           address_number: string | null
@@ -1155,6 +1212,36 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      clients_global: {
+        Row: {
+          created_at: string | null
+          email: string | null
+          id: string
+          name: string | null
+          updated_at: string | null
+          user_id: string | null
+          whatsapp: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          email?: string | null
+          id?: string
+          name?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+          whatsapp?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          email?: string | null
+          id?: string
+          name?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+          whatsapp?: string | null
+        }
+        Relationships: []
       }
       collaborators: {
         Row: {
