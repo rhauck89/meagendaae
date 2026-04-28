@@ -468,7 +468,11 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
     let isMounted = true;
 
     const checkSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
+      console.log('[SESSION_LOCAL]', localStorage.getItem('booking_client_session'));
+      const runtimeSession = await supabase.auth.getSession();
+      console.log('[SESSION_RUNTIME]', runtimeSession);
+
+      const { data: { session } } = runtimeSession;
       if (!isMounted) return;
 
       if (!session?.user) {
@@ -518,6 +522,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
       
       if (isActuallyClient) {
         console.log('[LOGIN_SUCCESS] Auth state change recognized client');
+        // Do not force state if we are already logged in to avoid loops
         setIsClientLoggedIn(true);
         setHasValidClient(true);
         
@@ -540,7 +545,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
       isMounted = false;
       subscription.unsubscribe();
     };
-  }, [company?.id, step, professionalSlug, supabase.auth]);
+  }, [company?.id, step, professionalSlug]);
 
   // Identification Gatekeeper - Based ONLY on local isClientLoggedIn state
   useEffect(() => {
