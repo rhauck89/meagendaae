@@ -2548,7 +2548,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
         {step === 'confirm' && (
           <div className="space-y-6 animate-in slide-in-from-right duration-500">
             <button 
-              onClick={() => setStep('client')} 
+              onClick={() => setStep('datetime')} 
               className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest opacity-60 hover:opacity-100 transition-opacity" 
               style={{ color: T.textSec }}
             >
