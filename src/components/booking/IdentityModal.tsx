@@ -162,11 +162,11 @@ export function IdentityModal({
     
     setLoading(true);
     try {
-      console.log(`[IDENTITY_MODAL] Verifying OTP: ${codeToVerify}`);
+      console.log(`[OTP_SUCCESS] Verifying OTP: ${codeToVerify}`);
       const { data, error } = await supabaseToUse.functions.invoke('whatsapp-integration', {
         body: {
           action: 'verify-otp',
-          phone: cleanPhone(whatsapp),
+          phone: normalizePhone(whatsapp),
           email: email || null,
           code: codeToVerify,
           companyId,
@@ -178,6 +178,7 @@ export function IdentityModal({
         throw new Error(data?.error || 'Código inválido ou expirado.');
       }
 
+      console.log('[SESSION_APPLIED] OTP Verified, applying session');
       handleSuccess(data.session);
     } catch (err: any) {
       toast.error(err.message || 'Código inválido');
