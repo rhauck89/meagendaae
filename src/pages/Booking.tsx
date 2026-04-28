@@ -1259,7 +1259,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
           .update({
             email: clientForm.email || null,
             updated_at: new Date().toISOString()
-          })
+          } as any)
           .eq('id', clientId);
       }
 
