@@ -18,6 +18,7 @@ interface ExistingAccountModalProps {
   onLoginSuccess: () => void;
   onUseDifferentEmail: () => void;
   mode?: 'email_exists' | 'whatsapp_exists' | 'both_exists';
+  supabaseClient?: any;
 }
 
 export function ExistingAccountModal({ 
@@ -28,8 +29,10 @@ export function ExistingAccountModal({
   companyId,
   onLoginSuccess,
   onUseDifferentEmail,
-  mode = 'email_exists'
+  mode = 'email_exists',
+  supabaseClient: propSupabase
 }: ExistingAccountModalProps) {
+  const supabaseToUse = propSupabase || supabase;
   const [view, setView] = useState<'options' | 'password' | 'otp' | 'forgot' | 'identify'>('options');
   const [email, setEmail] = useState(initialEmail || '');
   const [whatsapp, setWhatsapp] = useState(initialWhatsapp || '');
