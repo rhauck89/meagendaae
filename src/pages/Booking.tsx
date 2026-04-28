@@ -2538,27 +2538,29 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                     </div>
                   </div>
 
-                  <div className="space-y-3">
-                    <Button 
-                      onClick={() => handleBook()}
-                      disabled={loading}
-                      className="w-full rounded-2xl h-16 font-black text-lg shadow-xl transition-all hover:scale-[1.02] active:scale-[0.98] group"
-                      style={{ background: `linear-gradient(135deg, #10B981, #34D399)`, color: '#000' }}
-                    >
-                      {loading ? (
-                        <div className="flex items-center gap-3">
-                          <div className="w-5 h-5 border-4 rounded-full animate-spin border-black/20 border-t-black" />
-                          Processando...
-                        </div>
-                      ) : (
-                        <div className="flex items-center gap-2">
-                          <CheckCircle2 className="h-6 w-6" />
-                          Confirmar Agendamento
-                        </div>
-                      )}
-                    </Button>
+                  <div className="space-y-3 pt-4 sm:pt-0">
+                    <div className="fixed bottom-0 left-0 right-0 p-4 bg-[#0B132B]/80 backdrop-blur-lg border-t border-white/10 sm:relative sm:p-0 sm:bg-transparent sm:border-0 z-50">
+                      <Button 
+                        onClick={() => handleBook()}
+                        disabled={loading}
+                        className="w-full rounded-full sm:rounded-2xl h-16 font-black text-lg shadow-2xl transition-all hover:scale-[1.02] active:scale-[0.98] group"
+                        style={{ background: `linear-gradient(135deg, #10B981, #34D399)`, color: '#000' }}
+                      >
+                        {loading ? (
+                          <div className="flex items-center gap-3">
+                            <div className="w-5 h-5 border-4 rounded-full animate-spin border-black/20 border-t-black" />
+                            Processando...
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-2">
+                            <CheckCircle2 className="h-6 w-6" />
+                            Confirmar Agendamento
+                          </div>
+                        )}
+                      </Button>
+                    </div>
 
-                    <div className="flex gap-3">
+                    <div className="flex gap-3 pb-20 sm:pb-0">
                       <Button 
                         onClick={() => setIsChangingData(true)}
                         className="flex-1 rounded-2xl h-14 bg-zinc-900 text-white border border-white/10 font-bold uppercase text-[10px] tracking-widest hover:bg-zinc-800 transition-all"
