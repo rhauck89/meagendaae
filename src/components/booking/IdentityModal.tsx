@@ -314,6 +314,38 @@ export function IdentityModal({
               </DialogDescription>
             </DialogHeader>
 
+            {view === 'choice' && (
+              <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-300">
+                <Button 
+                  onClick={() => setView('identify')}
+                  className="w-full h-20 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 text-white font-bold flex items-center justify-start gap-5 px-6 transition-all group"
+                >
+                  <div className="w-12 h-12 bg-emerald-500/20 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
+                    <CheckCircle2 className="w-6 h-6 text-emerald-400" />
+                  </div>
+                  <div className="text-left">
+                    <p className="text-base font-black">Já sou cliente</p>
+                    <p className="text-[10px] opacity-40 uppercase tracking-widest font-black">Entrar com WhatsApp ou Senha</p>
+                  </div>
+                  <ArrowRight className="w-5 h-5 ml-auto opacity-20 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
+                </Button>
+
+                <Button 
+                  onClick={() => setView('register')}
+                  className="w-full h-20 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 text-white font-bold flex items-center justify-start gap-5 px-6 transition-all group"
+                >
+                  <div className="w-12 h-12 bg-amber-500/20 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
+                    <UserPlus className="w-6 h-6 text-amber-400" />
+                  </div>
+                  <div className="text-left">
+                    <p className="text-base font-black">Sou novo por aqui</p>
+                    <p className="text-[10px] opacity-40 uppercase tracking-widest font-black">Criar meu primeiro cadastro</p>
+                  </div>
+                  <ArrowRight className="w-5 h-5 ml-auto opacity-20 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
+                </Button>
+              </div>
+            )}
+
             {view === 'identify' && (
               <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
                 <div className="space-y-2">
@@ -326,13 +358,48 @@ export function IdentityModal({
                     autoFocus
                   />
                 </div>
-                <Button 
-                  onClick={handleIdentify}
-                  disabled={loading || whatsapp.length < 14}
-                  className="w-full h-16 rounded-full bg-emerald-500 hover:bg-emerald-600 text-zinc-950 font-black text-lg transition-all shadow-lg shadow-emerald-500/20"
-                >
-                  {loading ? "Buscando..." : "Continuar"}
-                </Button>
+                <div className="flex gap-3">
+                  <Button 
+                    variant="ghost"
+                    onClick={() => setView('choice')}
+                    className="h-16 px-6 rounded-2xl border border-white/10 text-white font-bold"
+                  >
+                    Voltar
+                  </Button>
+                  <Button 
+                    onClick={handleIdentify}
+                    disabled={loading || whatsapp.length < 14}
+                    className="flex-1 h-16 rounded-full bg-emerald-500 hover:bg-emerald-600 text-zinc-950 font-black text-lg transition-all shadow-lg shadow-emerald-500/20"
+                  >
+                    {loading ? "Buscando..." : "Continuar"}
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {view === 'not_found' && (
+              <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300 text-center">
+                <div className="w-20 h-20 bg-amber-500/10 rounded-full flex items-center justify-center mx-auto border border-amber-500/20">
+                  <AlertTriangle className="w-10 h-10 text-amber-500" />
+                </div>
+                <div className="space-y-2">
+                  <p className="text-white/60 text-sm">O número <span className="text-white font-bold">{whatsapp}</span> não possui um cadastro nesta empresa.</p>
+                </div>
+                <div className="space-y-3">
+                  <Button 
+                    onClick={() => setView('register')}
+                    className="w-full h-16 rounded-full bg-amber-500 hover:bg-amber-600 text-zinc-950 font-black text-lg transition-all shadow-lg shadow-amber-500/20"
+                  >
+                    Criar meu cadastro agora
+                  </Button>
+                  <Button 
+                    variant="ghost"
+                    onClick={() => setView('identify')}
+                    className="w-full h-12 text-[10px] uppercase tracking-widest font-black text-slate-400"
+                  >
+                    Tentar outro número
+                  </Button>
+                </div>
               </div>
             )}
 
