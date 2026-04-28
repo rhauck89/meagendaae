@@ -2695,15 +2695,24 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                     // 1. Precise Identification Check via RPC
                     const { data: idCheck, error: idError } = await supabase.rpc('check_identification', {
                       p_email: emailTrimmed,
-                      p_whatsapp: formattedPhone
+                      p_whatsapp: formattedPhone,
+                      p_company_id: company?.id
                     });
 
                     if (idError) {
                       console.error('[AUTH_CHECK] Error:', idError);
                     } else if (idCheck) {
-                      const { email_exists, whatsapp_exists, same_user } = idCheck as any;
+                      const { email_exists, whatsapp_exists, same_user, email: identifiedEmail, name: identifiedName } = idCheck as any;
                       
                       if (email_exists || whatsapp_exists) {
+                        // Update form with real identified data if possible to avoid partial/incorrect data display
+                        if (identifiedEmail) {
+                          setClientForm(prev => ({ ...prev, email: identifiedEmail }));
+                        }
+                        if (identifiedName && !clientForm.full_name) {
+                          setClientForm(prev => ({ ...prev, full_name: identifiedName }));
+                        }
+
                         if (same_user) {
                           setExistingAccountMode('both_exists');
                         } else if (email_exists) {
