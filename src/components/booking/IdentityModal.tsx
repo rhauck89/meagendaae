@@ -137,7 +137,7 @@ export function IdentityModal({
         body: {
           action: 'send-otp',
           companyId,
-          phone: cleanPhone(whatsapp),
+          phone: normalizePhone(whatsapp),
           email: email || null
         }
       });
