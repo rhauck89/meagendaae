@@ -2529,23 +2529,38 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                     </div>
                   </div>
 
-                  <div className="flex gap-3">
+                  <div className="space-y-3">
+                    <div className="flex gap-3">
+                      <Button 
+                        onClick={() => setIsChangingData(true)}
+                        className="flex-1 rounded-2xl h-14 bg-zinc-900 text-white border border-white/10 font-bold uppercase text-[10px] tracking-widest hover:bg-zinc-800 transition-all"
+                      >
+                        Alterar Dados
+                      </Button>
+                      <Button 
+                        onClick={() => {
+                          setStep('datetime');
+                          setIsChangingData(false);
+                        }}
+                        className="flex-1 rounded-2xl h-14 bg-zinc-900 text-white border border-white/10 font-bold uppercase text-[10px] tracking-widest hover:bg-zinc-800 transition-all"
+                      >
+                        Trocar Horário
+                      </Button>
+                    </div>
+                    
                     <Button 
-                      onClick={() => setIsChangingData(true)}
-                      variant="outline"
-                      className="flex-1 rounded-2xl h-14 border-white/10 font-bold uppercase text-[10px] tracking-widest"
-                    >
-                      Alterar Dados
-                    </Button>
-                    <Button 
-                      onClick={() => {
-                        setStep('datetime');
-                        setIsChangingData(false);
+                      onClick={async () => {
+                        localStorage.removeItem(`client_id_${company.id}`);
+                        localStorage.removeItem(`client_data_${company.id}`);
+                        localStorage.removeItem('meagendae_client_data');
+                        localStorage.removeItem('booking_session_id');
+                        await supabase.auth.signOut();
+                        window.location.reload();
                       }}
-                      variant="outline"
-                      className="flex-1 rounded-2xl h-14 border-white/10 font-bold uppercase text-[10px] tracking-widest"
+                      variant="ghost"
+                      className="w-full rounded-xl h-10 text-[9px] font-bold uppercase tracking-widest opacity-50 hover:opacity-100 transition-opacity text-white hover:bg-white/5"
                     >
-                      Trocar Horário
+                      Trocar Conta / Sair
                     </Button>
                   </div>
                 </div>
