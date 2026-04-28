@@ -2880,7 +2880,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                 try {
                   const { error } = await supabase.from('reviews').insert({
                     company_id: company.id,
-                    professional_id: company.owner_id || selectedProfessional || professionals[0]?.id,
+                    professional_id: company.user_id || selectedProfessional || professionals[0]?.id,
                     appointment_id: null as any,
                     rating: reviewRating,
                     comment: reviewComment.trim() || null,
