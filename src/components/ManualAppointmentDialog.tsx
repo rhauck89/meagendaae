@@ -210,7 +210,43 @@ export function ManualAppointmentDialog({
       }
 
       // Create appointment via RPC
-      const { error } = await supabase.rpc('create_appointment', {
+      // Garante vínculo global e IDs consistentes antes de agendar
+      const normPhone = normalizePhone(selectedClient.whatsapp || '');
+      
+      const { data: globalClient, error: globalError } = await (supabase
+        .from('clients_global' as any)
+        .upsert({
+          whatsapp: normPhone || null,
+          name: selectedClient.name,
+        }, { onConflict: 'whatsapp' })
+        .select()
+        .single() as any);
+
+      if (globalError || !globalClient) {
+        console.error("ERRO AO GERAR CLIENT GLOBAL:", globalError);
+        throw new Error("Erro ao vincular perfil global");
+      }
+
+      const gClient = globalClient as any;
+
+      // Atualiza cliente local com global_client_id
+      const { data: updatedLocal, error: updateError } = await (supabase
+        .from('clients' as any)
+        .update({
+          global_client_id: gClient.id,
+          user_id: gClient.user_id || selectedClient.user_id,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', selectedClient.id)
+        .select()
+        .single() as any);
+
+      if (updateError) {
+        console.warn("AVISO: Falha ao atualizar vínculo global do cliente local:", updateError);
+      }
+
+      // Create appointment via RPC
+      const { error } = await (supabase.rpc('create_appointment', {
         p_professional_id: selectedProfessional,
         p_client_id: selectedClient.id,
         p_start_time: startTime,
@@ -219,7 +255,8 @@ export function ManualAppointmentDialog({
         p_client_name: selectedClient.name,
         p_client_whatsapp: selectedClient.whatsapp || '',
         p_notes: 'Agendamento manual',
-      } as any);
+      } as any) as any);
+
 
 
       if (error) throw error;
