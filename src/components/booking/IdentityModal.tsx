@@ -228,12 +228,13 @@ export function IdentityModal({
       if (error) throw error;
 
       if (data.user) {
-        // Link client record
-        await supabaseToUse.rpc('link_client_to_user', {
+        // Link client record globally
+        await supabaseToUse.rpc('link_client_globally', {
           p_user_id: data.user.id,
           p_phone: formattedPhone,
           p_email: email.trim().toLowerCase(),
-          p_company_id: companyId
+          p_company_id: companyId,
+          p_name: fullName.trim()
         });
 
         toast.success('Conta criada com sucesso!');
