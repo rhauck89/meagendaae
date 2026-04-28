@@ -1320,7 +1320,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
     }
     if (!clientForm.full_name.trim() || !clientForm.whatsapp || !isValidWhatsApp(clientForm.whatsapp)) {
       toast.error('Informe seu nome e número de WhatsApp para continuar.');
-      setStep('client');
+      setStep('confirm');
       setIsChangingData(true);
       return;
     }
