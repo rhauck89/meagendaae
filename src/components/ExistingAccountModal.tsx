@@ -1,10 +1,10 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { LogIn, MessageCircle, Mail, RotateCcw, X, AlertTriangle, KeyRound } from 'lucide-react';
+import { LogIn, MessageCircle, Mail, RotateCcw, X, AlertTriangle, KeyRound, ArrowRight, ShieldCheck } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -27,9 +27,19 @@ export function ExistingAccountModal({
   onLoginSuccess,
   onUseDifferentEmail 
 }: ExistingAccountModalProps) {
-  const [view, setView] = useState<'options' | 'password' | 'forgot' | 'whatsapp-sent'>('options');
+  const [view, setView] = useState<'options' | 'password' | 'otp' | 'forgot' | 'whatsapp-sent'>('options');
   const [password, setPassword] = useState('');
+  const [otpCode, setOtpCode] = useState('');
   const [loading, setLoading] = useState(false);
+  const [timer, setTimer] = useState(0);
+
+  useEffect(() => {
+    let interval: any;
+    if (timer > 0) {
+      interval = setInterval(() => setTimer(prev => prev - 1), 1000);
+    }
+    return () => clearInterval(interval);
+  }, [timer]);
 
   const handleLogin = async () => {
     setLoading(true);
@@ -57,6 +67,60 @@ export function ExistingAccountModal({
     }
   };
 
+  const handleSendOTP = async () => {
+    setLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('whatsapp-integration', {
+        body: {
+          action: 'send-otp',
+          companyId,
+          phone: whatsapp,
+        }
+      });
+
+      if (error || (data && data.error)) {
+        throw new Error(data?.error || 'Erro ao enviar código via WhatsApp');
+      }
+
+      toast.success('Código enviado com sucesso!');
+      setView('otp');
+      setTimer(60);
+    } catch (err: any) {
+      toast.error(err.message || 'Erro ao enviar código');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleVerifyOTP = async () => {
+    if (otpCode.length !== 6) return;
+    setLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('whatsapp-integration', {
+        body: {
+          action: 'verify-otp',
+          phone: whatsapp,
+          code: otpCode,
+          redirectTo: window.location.origin
+        }
+      });
+
+      if (error || (data && data.error)) {
+        throw new Error(data?.error || 'Código inválido ou expirado.');
+      }
+
+      if (data.loginUrl) {
+        toast.success('Identidade verificada! Acessando...');
+        // Supabase Magic Link will automatically sign in the user
+        window.location.href = data.loginUrl;
+      }
+    } catch (err: any) {
+      toast.error(err.message || 'Erro ao verificar código');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleForgotPassword = async () => {
     setLoading(true);
     try {
@@ -73,80 +137,52 @@ export function ExistingAccountModal({
     }
   };
 
-  const handleWhatsAppCode = async () => {
-    setLoading(true);
-    try {
-      // For now, we'll send a magic link to email and notify that they can check there
-      // In a real production setup, we'd trigger a WhatsApp message with the magic link or OTP
-      const { error } = await supabase.auth.signInWithOtp({
-        email: email.trim().toLowerCase(),
-        options: {
-          emailRedirectTo: window.location.origin,
-        }
-      });
-      
-      if (error) throw error;
-      
-      // Attempt to send WhatsApp notification via Edge Function if possible
-      try {
-        await supabase.functions.invoke('whatsapp-integration', {
-          body: {
-            action: 'send-message',
-            companyId,
-            phone: whatsapp,
-            message: `Olá! Notamos que você está tentando agendar. Para facilitar seu acesso, enviamos um link de login para seu e-mail ${email}. Basta clicar nele para continuar seu agendamento.`
-          }
-        });
-      } catch (e) {
-        console.warn('Failed to send WhatsApp notification:', e);
-      }
-
-      setView('whatsapp-sent');
-    } catch (err: any) {
-      toast.error(err.message || 'Erro ao solicitar acesso rápido');
-    } finally {
-      setLoading(false);
-    }
-  };
-
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-[400px] rounded-[2.5rem] bg-[#0B132B] border-white/10 text-white p-0 overflow-hidden border-2 shadow-2xl">
+      <DialogContent className="sm:max-w-[420px] rounded-[2.5rem] bg-[#0B132B] border-white/10 text-white p-0 overflow-hidden border-2 shadow-2xl">
         <div className="p-8">
           <DialogHeader className="mb-6">
             <div className="w-16 h-16 bg-amber-500/10 rounded-2xl flex items-center justify-center mb-4 mx-auto border border-amber-500/20">
               <KeyRound className="w-8 h-8 text-amber-500" />
             </div>
-            <DialogTitle className="text-2xl font-black tracking-tight text-center">Já encontramos sua conta</DialogTitle>
+            <DialogTitle className="text-2xl font-black tracking-tight text-center">Identidade Reconhecida</DialogTitle>
             <DialogDescription className="text-slate-400 text-center text-sm font-medium mt-2">
-              O e-mail <span className="text-white font-bold">{email}</span> já está cadastrado em nossa rede.
+              O e-mail <span className="text-white font-bold">{email}</span> já está em nossa rede. Como deseja continuar?
             </DialogDescription>
           </DialogHeader>
 
           {view === 'options' && (
             <div className="space-y-3">
               <Button 
-                onClick={() => setView('password')}
-                className="w-full h-14 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 text-white font-bold flex items-center justify-start gap-4 px-6 transition-all"
+                onClick={handleSendOTP}
+                disabled={loading}
+                className="w-full h-16 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 text-white font-bold flex items-center justify-start gap-4 px-6 transition-all group"
               >
-                <div className="w-10 h-10 bg-blue-500/20 rounded-xl flex items-center justify-center">
-                  <LogIn className="w-5 h-5 text-blue-400" />
+                <div className="w-11 h-11 bg-green-500/20 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <MessageCircle className="w-5 h-5 text-green-400" />
                 </div>
-                Entrar com senha
+                <div className="text-left">
+                  <p className="text-sm font-black">Acesso via WhatsApp</p>
+                  <p className="text-[10px] opacity-40 uppercase tracking-widest">Código de 6 dígitos</p>
+                </div>
+                <ArrowRight className="w-4 h-4 ml-auto opacity-20 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
               </Button>
 
               <Button 
-                onClick={handleWhatsAppCode}
-                disabled={loading}
-                className="w-full h-14 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 text-white font-bold flex items-center justify-start gap-4 px-6 transition-all"
+                onClick={() => setView('password')}
+                className="w-full h-16 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 text-white font-bold flex items-center justify-start gap-4 px-6 transition-all group"
               >
-                <div className="w-10 h-10 bg-green-500/20 rounded-xl flex items-center justify-center">
-                  <MessageCircle className="w-5 h-5 text-green-400" />
+                <div className="w-11 h-11 bg-blue-500/20 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <LogIn className="w-5 h-5 text-blue-400" />
                 </div>
-                Acesso rápido via WhatsApp
+                <div className="text-left">
+                  <p className="text-sm font-black">Entrar com Senha</p>
+                  <p className="text-[10px] opacity-40 uppercase tracking-widest">Usar senha cadastrada</p>
+                </div>
+                <ArrowRight className="w-4 h-4 ml-auto opacity-20 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
               </Button>
 
-              <div className="grid grid-cols-2 gap-3 mt-4">
+              <div className="grid grid-cols-2 gap-3 mt-6">
                 <Button 
                   variant="ghost" 
                   onClick={() => setView('forgot')}
@@ -165,6 +201,60 @@ export function ExistingAccountModal({
             </div>
           )}
 
+          {view === 'otp' && (
+            <div className="space-y-5 animate-in fade-in slide-in-from-bottom-4 duration-300">
+              <div className="text-center space-y-2">
+                <ShieldCheck className="w-12 h-12 text-green-500 mx-auto mb-2 opacity-50" />
+                <p className="text-sm text-slate-400">Digitou o código de 6 dígitos enviado para seu WhatsApp.</p>
+              </div>
+              
+              <div className="space-y-1.5">
+                <Label className="text-[10px] font-black uppercase tracking-widest opacity-40 ml-2">Código de Verificação</Label>
+                <Input 
+                  value={otpCode}
+                  onChange={(e) => {
+                    const val = e.target.value.replace(/\D/g, '').slice(0, 6);
+                    setOtpCode(val);
+                    if (val.length === 6) {
+                      // Trigger automatic verification if 6 digits reached
+                    }
+                  }}
+                  placeholder="0 0 0 0 0 0"
+                  className="rounded-2xl h-16 bg-white/5 border-white/10 text-white font-black text-center text-3xl tracking-[0.5em] placeholder:tracking-normal placeholder:text-sm"
+                  autoFocus
+                />
+              </div>
+
+              <Button 
+                onClick={handleVerifyOTP}
+                disabled={loading || otpCode.length !== 6}
+                className="w-full h-14 rounded-full bg-green-500 hover:bg-green-600 text-black font-black text-lg transition-all"
+              >
+                {loading ? "Verificando..." : "Verificar Código"}
+              </Button>
+
+              <div className="text-center">
+                {timer > 0 ? (
+                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">Reenviar em {timer}s</p>
+                ) : (
+                  <button 
+                    onClick={handleSendOTP}
+                    className="text-[10px] font-black uppercase tracking-widest text-amber-500 hover:text-amber-400"
+                  >
+                    Não recebi o código
+                  </button>
+                )}
+              </div>
+
+              <button 
+                onClick={() => setView('options')}
+                className="w-full text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-white py-2"
+              >
+                Voltar às opções
+              </button>
+            </div>
+          )}
+
           {view === 'password' && (
             <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-300">
               <div className="space-y-1.5">
@@ -174,7 +264,7 @@ export function ExistingAccountModal({
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Digite sua senha"
-                  className="rounded-2xl h-14 bg-white/5 border-white/10 text-white font-bold"
+                  className="rounded-2xl h-16 bg-white/5 border-white/10 text-white font-bold"
                   autoFocus
                   onKeyDown={(e) => e.key === 'Enter' && handleLogin()}
                 />
@@ -216,26 +306,6 @@ export function ExistingAccountModal({
               >
                 Cancelar
               </button>
-            </div>
-          )}
-
-          {view === 'whatsapp-sent' && (
-            <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-300 text-center">
-              <div className="w-12 h-12 bg-green-500/10 rounded-full flex items-center justify-center mx-auto mb-2">
-                <MessageCircle className="w-6 h-6 text-green-400" />
-              </div>
-              <p className="text-sm text-slate-400 leading-relaxed">
-                Enviamos instruções de acesso para seu <span className="text-white font-bold">WhatsApp</span> e <span className="text-white font-bold">E-mail</span>.
-              </p>
-              <p className="text-[10px] text-slate-500 italic">
-                Verifique seu WhatsApp e sua caixa de entrada para continuar.
-              </p>
-              <Button 
-                onClick={onClose}
-                className="w-full h-14 rounded-full bg-green-500 hover:bg-green-600 text-black font-black text-lg transition-all"
-              >
-                Entendi
-              </Button>
             </div>
           )}
         </div>
