@@ -75,7 +75,7 @@ const Clients = () => {
 
     setAddClientSaving(true);
     try {
-      const normalizedWa = whatsapp.replace(/\D/g, '');
+      const normalizedWa = normalizePhone(whatsapp);
       const { data: existing } = await supabase
         .from('clients')
         .select('id, name, whatsapp')
