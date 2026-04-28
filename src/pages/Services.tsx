@@ -27,9 +27,10 @@ const Services = () => {
     price: '' as string | number, 
     recommended_return_days: '' as string | number, 
     booking_mode: 'company_default',
-    category_id: ''
+    category_id: '',
+    global_category_id: ''
   });
-  const [catForm, setCatForm] = useState({ name: '' });
+  const [catForm, setCatForm] = useState({ name: '', global_category_id: '' });
   const [companyBookingMode, setCompanyBookingMode] = useState<string>('fixed_grid');
 
   useEffect(() => {
@@ -43,13 +44,25 @@ const Services = () => {
   const servicesQueryKey = ['services', companyId];
   const categoriesQueryKey = ['service_categories', companyId];
 
+  const { data: globalCategories = [] } = useQuery({
+    queryKey: ['service_categories_global'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('service_categories_global')
+        .select('*')
+        .order('name');
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
   const { data: categories = [], refetch: refetchCategories } = useQuery({
     queryKey: categoriesQueryKey,
     enabled: Boolean(companyId),
     queryFn: async () => {
       const { data, error } = await supabase
         .from('service_categories')
-        .select('*')
+        .select('*, global:service_categories_global(name)')
         .eq('company_id', companyId!)
         .order('name');
 
@@ -86,7 +99,8 @@ const Services = () => {
       price: '', 
       recommended_return_days: '', 
       booking_mode: 'company_default',
-      category_id: categories[0]?.id || ''
+      category_id: categories[0]?.id || '',
+      global_category_id: ''
     });
   };
 
@@ -103,7 +117,19 @@ const Services = () => {
         recommended_return_days: form.recommended_return_days ? Number(form.recommended_return_days) : null,
         booking_mode: form.booking_mode,
         category_id: form.category_id || null,
+        global_category_id: form.global_category_id || null,
       };
+
+      // Ensure global_category_id is provided
+      if (!serviceData.global_category_id) {
+        // Try to inherit from local category if possible
+        const localCat = categories.find((c: any) => c.id === serviceData.category_id);
+        if (localCat?.global_category_id) {
+          serviceData.global_category_id = localCat.global_category_id;
+        } else {
+          return toast.error('Vínculo global é obrigatório para o marketplace');
+        }
+      }
 
       if (editing) {
         const { error } = await supabase
@@ -136,7 +162,10 @@ const Services = () => {
       if (editingCat) {
         const { error } = await supabase
           .from('service_categories')
-          .update({ name: catForm.name.trim() })
+          .update({ 
+            name: catForm.name.trim(),
+            global_category_id: catForm.global_category_id || null
+          })
           .eq('id', editingCat.id)
           .eq('company_id', companyId);
 
@@ -146,6 +175,7 @@ const Services = () => {
         const { error } = await supabase.from('service_categories').insert({
           company_id: companyId,
           name: catForm.name.trim(),
+          global_category_id: catForm.global_category_id || null,
         });
         if (error) throw error;
         toast.success('Categoria criada');
@@ -224,6 +254,7 @@ const Services = () => {
       recommended_return_days: service.recommended_return_days || '',
       booking_mode: (service as any).booking_mode || 'company_default',
       category_id: service.category_id || '',
+      global_category_id: service.global_category_id || '',
     });
     setDialogOpen(true);
   };
@@ -247,7 +278,7 @@ const Services = () => {
             open={catDialogOpen}
             onOpenChange={(open) => {
               setCatDialogOpen(open);
-              if (!open) { setEditingCat(null); setCatForm({ name: '' }); }
+              if (!open) { setEditingCat(null); setCatForm({ name: '', global_category_id: '' }); }
             }}
           >
             <DialogTrigger asChild>
@@ -267,6 +298,20 @@ const Services = () => {
                     onChange={(e) => setCatForm({ ...catForm, name: e.target.value })}
                     placeholder="Ex: Cabelo, Barba, Unhas..."
                   />
+                </div>
+                <div className="space-y-2">
+                  <Label>Vínculo Global (Marketplace)</Label>
+                  <Select value={catForm.global_category_id} onValueChange={(v) => setCatForm({ ...catForm, global_category_id: v })}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione categoria padrão" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {globalCategories.map((gc: any) => (
+                        <SelectItem key={gc.id} value={gc.id}>{gc.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-[10px] text-muted-foreground italic">Ajuda a organizar seus serviços no marketplace</p>
                 </div>
                 <Button onClick={handleSaveCategory} className="w-full">
                   {editingCat ? 'Salvar' : 'Criar'}
@@ -316,6 +361,20 @@ const Services = () => {
                   </Select>
                 </div>
 
+                <div className="space-y-2">
+                  <Label>Vínculo Global (Obrigatório)</Label>
+                  <Select value={form.global_category_id} onValueChange={(v) => setForm({ ...form, global_category_id: v })}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Padrão para marketplace" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {globalCategories.map((gc: any) => (
+                        <SelectItem key={gc.id} value={gc.id}>{gc.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label>Duração (min)</Label>
@@ -353,10 +412,15 @@ const Services = () => {
               <div className="flex items-center gap-2">
                 <Tag className="h-5 w-5 text-primary" />
                 <h3 className="text-xl font-semibold">{cat.name}</h3>
+                {cat.global?.name && (
+                  <Badge variant="outline" className="text-[10px] font-normal py-0">
+                    {cat.global.name}
+                  </Badge>
+                )}
                 <span className="text-sm text-muted-foreground">({cat.services.length})</span>
               </div>
               <div className="flex gap-2">
-                <Button variant="ghost" size="sm" onClick={() => { setEditingCat(cat); setCatForm({ name: cat.name }); setCatDialogOpen(true); }}>
+                <Button variant="ghost" size="sm" onClick={() => { setEditingCat(cat); setCatForm({ name: cat.name, global_category_id: cat.global_category_id || '' }); setCatDialogOpen(true); }}>
                   <Pencil className="h-4 w-4" />
                 </Button>
                 <Button variant="ghost" size="sm" className="text-destructive" onClick={() => deleteCategory(cat.id)}>
@@ -442,6 +506,11 @@ const ServiceCard = ({ service, onEdit, onToggle, onDelete }: any) => (
           <Trash2 className="h-3 w-3" />
         </Button>
       </div>
+      {service.global_category_id && (
+        <div className="mt-3 text-[10px] text-muted-foreground flex items-center gap-1 opacity-70">
+          <Zap className="h-2 w-2" /> Marketplace pronto
+        </div>
+      )}
     </CardContent>
   </Card>
 );
