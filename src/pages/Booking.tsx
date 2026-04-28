@@ -3013,34 +3013,23 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
         </DialogContent>
       </Dialog>
 
-      <ExistingAccountModal
-        isOpen={showExistingAccountModal}
-        onClose={() => setShowExistingAccountModal(false)}
-        email={clientForm.email}
-        whatsapp={clientForm.whatsapp}
+      <IdentityModal
+        isOpen={showIdentityModal}
+        onClose={() => setShowIdentityModal(false)}
         companyId={company?.id}
-        mode={existingAccountMode}
         supabaseClient={bookingSupabase}
         onLoginSuccess={async () => {
-          console.log('[OTP_SUCCESS_FRONTEND] handleOtpSuccess TRIGGERED');
+          console.log('[OTP_SUCCESS_FRONTEND] IdentityModal success callback');
           
-          // FORÇA FECHAMENTO IMEDIATO NO PAI
-          setShowExistingAccountModal(false);
-          console.log('[MODAL_CLOSED] Forced from Booking.tsx');
-          
+          setShowIdentityModal(false);
           setIsClientLoggedIn(true);
           setShowOneClickCard(true);
           setIsChangingData(false);
           
-          console.log('OTP RESPONSE: success');
-          console.log('ONE CLICK TRUE: true');
-
-
           const { data: { user } } = await bookingSupabase.auth.getUser();
           
           if (user) {
             console.log('CLIENT SET: recognized', user.id);
-            // Force a refresh of client data immediately after login
             const { data: client } = await bookingSupabase
               .from('clients')
               .select('*')
@@ -3059,33 +3048,14 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
               setHasValidClient(true);
               setClientDataWasAutoFilled(true);
               setShowOneClickCard(true);
-              console.log('ONE CLICK TRUE: active');
             }
           }
 
-          // Advance the step if everything is valid
-          const hasBenefits = (loyaltyPointValue > 0) || (isPromoMode && promoData?.promotion_type === 'cashback');
-          if (hasBenefits && !savedClientId) {
-            setStep('benefits');
-          } else {
-            setStep('confirm');
-          }
-
-          // Smooth scroll to the one-click card
-          setTimeout(() => {
-            const clientSection = document.getElementById('booking-client-step');
-            if (clientSection) {
-              clientSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            }
-          }, 100);
-        }}
-        onUseDifferentEmail={() => {
-          console.log('[OTP_FRONTEND] Switch account triggered');
-          setClientForm(prev => ({ ...prev, email: '', full_name: '', whatsapp: '' }));
-          setShowExistingAccountModal(false);
-          setIsChangingData(true);
+          // Advance step
+          setStep('confirm');
         }}
       />
+
     </div>
   );
 };
