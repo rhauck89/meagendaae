@@ -467,6 +467,7 @@ export type Database = {
           max_attempts: number | null
           metadata: Json | null
           phone: string | null
+          used: boolean | null
         }
         Insert: {
           attempts?: number | null
@@ -481,6 +482,7 @@ export type Database = {
           max_attempts?: number | null
           metadata?: Json | null
           phone?: string | null
+          used?: boolean | null
         }
         Update: {
           attempts?: number | null
@@ -495,6 +497,7 @@ export type Database = {
           max_attempts?: number | null
           metadata?: Json | null
           phone?: string | null
+          used?: boolean | null
         }
         Relationships: [
           {
