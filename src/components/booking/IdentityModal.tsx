@@ -95,7 +95,7 @@ export function IdentityModal({
       // Check if client exists for this company
       const { data: client, error } = await supabaseToUse.rpc('lookup_client_by_whatsapp', {
         p_company_id: companyId,
-        p_whatsapp: phone.startsWith('55') ? phone : '55' + phone
+        p_whatsapp: phone // Always use normalized phone without prefix here
       });
 
       if (error) throw error;
@@ -204,9 +204,7 @@ export function IdentityModal({
 
     setLoading(true);
     try {
-      const formattedPhone = cleanPhone(whatsapp).startsWith('55') 
-        ? cleanPhone(whatsapp) 
-        : '55' + cleanPhone(whatsapp);
+      const formattedPhone = cleanPhone(whatsapp);
 
       const { data, error } = await supabaseToUse.auth.signUp({
         email: email.trim().toLowerCase(),
@@ -263,7 +261,7 @@ export function IdentityModal({
     if (success) return 'LOGIN OK';
     if (view === 'choice') return 'Como deseja acessar?';
     if (view === 'identify') return 'Já sou cliente';
-    if (view === 'not_found') return 'Cadastro não encontrado';
+    if (view === 'not_found') return 'Não encontramos seu cadastro 😕';
     if (view === 'register') return 'Criar Conta';
     if (view === 'otp') return 'Verificação';
     if (view === 'password') return 'Entrar com Senha';
@@ -274,7 +272,7 @@ export function IdentityModal({
     if (success) return 'Redirecionando...';
     if (view === 'choice') return 'Identifique-se para iniciar seu agendamento.';
     if (view === 'identify') return 'Informe seu WhatsApp para localizar seu cadastro.';
-    if (view === 'not_found') return 'Não localizamos uma conta com este número.';
+    if (view === 'not_found') return 'Parece que você ainda não tem uma conta com este número.';
     if (view === 'register') return 'Preencha seus dados para seu primeiro agendamento.';
     if (view === 'otp') return `Digite o código enviado para ${whatsapp}`;
     if (view === 'password') return `Informe sua senha para o e-mail ${email}`;
@@ -390,7 +388,7 @@ export function IdentityModal({
                     onClick={() => setView('register')}
                     className="w-full h-16 rounded-full bg-amber-500 hover:bg-amber-600 text-zinc-950 font-black text-lg transition-all shadow-lg shadow-amber-500/20"
                   >
-                    Criar meu cadastro agora
+                    Criar cadastro
                   </Button>
                   <Button 
                     variant="ghost"
