@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { LogIn, MessageCircle, Mail, RotateCcw, X, AlertTriangle, KeyRound, ArrowRight, ShieldCheck, UserX } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { OTPInput } from './auth/OTPInput';
 
@@ -39,6 +40,8 @@ export function ExistingAccountModal({
   const [password, setPassword] = useState('');
   const [otpCode, setOtpCode] = useState('');
   const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
+  const [attempts, setAttempts] = useState(0);
   const [timer, setTimer] = useState(0);
 
   useEffect(() => {
@@ -170,6 +173,8 @@ export function ExistingAccountModal({
     setLoading(true);
     try {
       const phoneToUse = whatsapp || initialWhatsapp;
+      console.log(`[OTP_VERIFY_FRONTEND] Attempt ${attempts + 1} for ${phoneToUse}`);
+      
       const { data, error } = await supabaseToUse.functions.invoke('whatsapp-integration', {
         body: {
           action: 'verify-otp',
@@ -182,26 +187,41 @@ export function ExistingAccountModal({
       });
 
       if (error || (data && data.error)) {
+        const newAttempts = attempts + 1;
+        setAttempts(newAttempts);
+        setOtpCode(''); // Clear code on error
+        
+        if (newAttempts >= 3) {
+          toast.error('Muitas tentativas. Enviando novo código...');
+          setAttempts(0);
+          handleSendOTP();
+          return;
+        }
+        
         throw new Error(data?.error || 'Código inválido ou expirado.');
       }
 
-      // Nubank-style direct login if session is returned
+      setSuccess(true);
+      toast.success('Código confirmado! 👋');
+
+      // Nubank-style direct login
       if (data.session) {
         console.log('[BOOKING_SESSION_SOURCE] otp_verified_by_phone - setting session');
         const { error: sessionError } = await supabaseToUse.auth.setSession(data.session);
         if (sessionError) throw sessionError;
         
-        toast.success('Acesso autorizado! 👋');
-        onLoginSuccess();
-        onClose();
+        // Small delay to show success state
+        setTimeout(() => {
+          onLoginSuccess();
+          onClose();
+        }, 1500);
       } else if (data.loginUrl) {
-        // Fallback for magic link
-        toast.success('Identidade verificada! Acessando...');
         window.location.href = data.loginUrl;
       } else if (data.success) {
-        toast.success('Verificado! Continue seu agendamento.');
-        onLoginSuccess();
-        onClose();
+        setTimeout(() => {
+          onLoginSuccess();
+          onClose();
+        }, 1500);
       }
     } catch (err: any) {
       toast.error(err.message || 'Erro ao verificar código');
@@ -354,16 +374,33 @@ export function ExistingAccountModal({
                   value={otpCode}
                   onChange={setOtpCode}
                   onComplete={(val) => handleVerifyOTP(val)}
-                  disabled={loading}
+                  disabled={loading || success}
                 />
               </div>
 
               <Button 
                 onClick={() => handleVerifyOTP()}
-                disabled={loading || otpCode.length !== 6}
-                className="w-full h-16 rounded-full bg-emerald-500 hover:bg-emerald-600 text-zinc-950 font-black text-lg transition-all shadow-lg shadow-emerald-500/20"
+                disabled={loading || success || otpCode.length !== 6}
+                className={cn(
+                  "w-full h-16 rounded-full font-black text-lg transition-all shadow-lg",
+                  success 
+                    ? "bg-emerald-500 text-zinc-950 shadow-emerald-500/40" 
+                    : "bg-emerald-500 hover:bg-emerald-600 text-zinc-950 shadow-emerald-500/20"
+                )}
               >
-                {loading ? "Verificando..." : "Verificar Código"}
+                {loading ? (
+                  <div className="flex items-center gap-2">
+                    <div className="w-5 h-5 border-2 border-zinc-950/20 border-t-zinc-950 animate-spin rounded-full" />
+                    <span>Verificando...</span>
+                  </div>
+                ) : success ? (
+                  <div className="flex items-center gap-2">
+                    <ShieldCheck className="w-6 h-6 animate-bounce" />
+                    <span>Código Confirmado</span>
+                  </div>
+                ) : (
+                  "Verificar Código"
+                )}
               </Button>
 
               <div className="text-center">
@@ -374,7 +411,8 @@ export function ExistingAccountModal({
                 ) : (
                   <button 
                     onClick={handleSendOTP}
-                    className="text-xs font-black uppercase tracking-widest text-emerald-500 hover:text-emerald-400 transition-colors"
+                    disabled={loading || success}
+                    className="text-xs font-black uppercase tracking-widest text-emerald-500 hover:text-emerald-400 transition-colors disabled:opacity-50"
                   >
                     Reenviar código
                   </button>
@@ -383,7 +421,8 @@ export function ExistingAccountModal({
 
               <button 
                 onClick={() => setView('options')}
-                className="w-full text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 hover:text-white py-2 transition-colors"
+                disabled={loading || success}
+                className="w-full text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 hover:text-white py-2 transition-colors disabled:opacity-50"
               >
                 Tentar outro método
               </button>

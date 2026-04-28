@@ -3466,8 +3466,32 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
         companyId={company?.id}
         mode={existingAccountMode}
         supabaseClient={bookingSupabase}
-        onLoginSuccess={() => {
+        onLoginSuccess={async () => {
           setIsClientLoggedIn(true);
+          const { data: { user } } = await bookingSupabase.auth.getUser();
+          
+          if (user) {
+            // Force a refresh of client data immediately after login
+            const { data: client } = await bookingSupabase
+              .from('clients')
+              .select('*')
+              .eq('user_id', user.id)
+              .eq('company_id', company?.id)
+              .maybeSingle();
+
+            if (client) {
+              setClientForm({
+                full_name: client.name || '',
+                email: client.email || '',
+                whatsapp: displayWhatsApp(client.whatsapp || ''),
+                birth_date: client.birth_date || '',
+              });
+              setSavedClientId(client.id);
+              setHasValidClient(true);
+              setShowOneClickCard(true); // Show the "Welcome back" card
+            }
+          }
+
           const hasBenefits = (loyaltyPointValue > 0) || (isPromoMode && promoData?.promotion_type === 'cashback');
           if (hasBenefits && !savedClientId) {
             setStep('benefits');
@@ -3479,6 +3503,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
         onUseDifferentEmail={() => {
           setClientForm(prev => ({ ...prev, email: '' }));
           setShowExistingAccountModal(false);
+          setIsChangingData(true);
         }}
       />
     </div>
