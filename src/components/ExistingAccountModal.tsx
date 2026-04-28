@@ -181,9 +181,16 @@ export function ExistingAccountModal({
             <div className="w-16 h-16 bg-amber-500/10 rounded-2xl flex items-center justify-center mb-4 mx-auto border border-amber-500/20">
               <KeyRound className="w-8 h-8 text-amber-500" />
             </div>
-            <DialogTitle className="text-2xl font-black tracking-tight text-center">Identidade Reconhecida</DialogTitle>
+            <DialogTitle className="text-2xl font-black tracking-tight text-center">
+              {mode === 'email_exists' ? 'E-mail já cadastrado' : 
+               mode === 'whatsapp_exists' ? 'WhatsApp já vinculado' : 
+               'Conta Identificada'}
+            </DialogTitle>
             <DialogDescription className="text-slate-400 text-center text-sm font-medium mt-2">
-              {view === 'identify' ? 'Informe seu WhatsApp para localizar seu cadastro.' : `O e-mail ${email} já está em nossa rede. Como deseja continuar?`}
+              {view === 'identify' ? 'Informe seu WhatsApp para localizar seu cadastro.' : 
+               mode === 'email_exists' ? `O e-mail ${email} já possui uma conta. Entre para continuar.` :
+               mode === 'whatsapp_exists' ? `O WhatsApp ${whatsapp} já está vinculado a outra conta. Entre nela para agendar.` :
+               `Encontramos sua conta vinculada ao e-mail ${email}. Como deseja continuar?`}
             </DialogDescription>
           </DialogHeader>
 
