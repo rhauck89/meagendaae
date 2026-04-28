@@ -33,7 +33,7 @@ export function IdentityModal({
   // otp -> Verify WhatsApp code
   // password -> Enter password
   // register -> Create new account
-  const [view, setView] = useState<'choice' | 'identify' | 'options' | 'otp' | 'password' | 'register' | 'forgot' | 'not_found'>('choice');
+  const [view, setView] = useState<'choice' | 'identify' | 'options' | 'otp' | 'password' | 'register' | 'forgot' | 'not_found' | 'account_found'>('choice');
   
   const [whatsapp, setWhatsapp] = useState('');
   const [email, setEmail] = useState('');
@@ -217,9 +217,33 @@ export function IdentityModal({
     setLoading(true);
     try {
       const formattedPhone = cleanPhone(whatsapp);
+      const normalizedEmail = email.trim().toLowerCase();
+
+      // INTELLIGENT VALIDATION: Check if user exists before trying to signUp
+      console.log(`[IDENTITY_MODAL] Checking existence for: ${formattedPhone} / ${normalizedEmail}`);
+      const { data: existence, error: existenceError } = await supabaseToUse.rpc('check_client_existence', {
+        p_whatsapp: formattedPhone,
+        p_email: normalizedEmail
+      });
+
+      if (existenceError) {
+        console.error('[IDENTITY_MODAL] Existence check error:', existenceError);
+      }
+
+      const existResult = Array.isArray(existence) ? existence[0] : existence;
+
+      if (existResult?.exists_globally) {
+        console.log('[IDENTITY_MODAL] Account already exists globally, switching to login options');
+        setEmail(existResult.client_email || email);
+        setWhatsapp(formatPhone(existResult.client_whatsapp || formattedPhone));
+        setFullName(existResult.client_name || fullName);
+        setView('account_found');
+        setLoading(false);
+        return;
+      }
 
       const { data, error } = await supabaseToUse.auth.signUp({
-        email: email.trim().toLowerCase(),
+        email: normalizedEmail,
         password,
         options: {
           data: {
@@ -230,14 +254,22 @@ export function IdentityModal({
         }
       });
 
-      if (error) throw error;
+      if (error) {
+        // If still somehow get "User already registered", handle it gracefully
+        if (error.message.includes('already registered') || error.status === 400) {
+          console.log('[IDENTITY_MODAL] Auth signUp returned already registered');
+          setView('account_found');
+          return;
+        }
+        throw error;
+      }
 
       if (data.user) {
         // Link client record globally
         await supabaseToUse.rpc('link_client_globally', {
           p_user_id: data.user.id,
           p_phone: formattedPhone,
-          p_email: email.trim().toLowerCase(),
+          p_email: normalizedEmail,
           p_company_id: companyId,
           p_name: fullName.trim()
         });
@@ -275,6 +307,7 @@ export function IdentityModal({
     if (view === 'choice') return 'Como deseja acessar?';
     if (view === 'identify') return 'Já sou cliente';
     if (view === 'not_found') return 'Não encontramos seu cadastro 😕';
+    if (view === 'account_found') return 'Conta encontrada 👋';
     if (view === 'register') return 'Criar Conta';
     if (view === 'otp') return 'Verificação';
     if (view === 'password') return 'Entrar com Senha';
@@ -286,6 +319,7 @@ export function IdentityModal({
     if (view === 'choice') return 'Identifique-se para iniciar seu agendamento.';
     if (view === 'identify') return 'Informe seu WhatsApp para localizar seu cadastro.';
     if (view === 'not_found') return 'Parece que você ainda não tem uma conta com este número.';
+    if (view === 'account_found') return 'Como deseja entrar?';
     if (view === 'register') return 'Preencha seus dados para seu primeiro agendamento.';
     if (view === 'otp') return `Digite o código enviado para ${whatsapp}`;
     if (view === 'password') return `Informe sua senha para o e-mail ${email}`;
@@ -414,6 +448,47 @@ export function IdentityModal({
               </div>
             )}
 
+            {view === 'account_found' && (
+              <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-300">
+                <Button 
+                  onClick={handleSendOTP}
+                  disabled={loading}
+                  className="w-full h-20 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 text-white font-bold flex items-center justify-start gap-5 px-6 transition-all group"
+                >
+                  <div className="w-12 h-12 bg-emerald-500/20 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
+                    <MessageCircle className="w-6 h-6 text-emerald-400" />
+                  </div>
+                  <div className="text-left">
+                    <p className="text-base font-black">Entrar via WhatsApp</p>
+                    <p className="text-[10px] opacity-40 uppercase tracking-widest font-black">Acesso rápido sem senha</p>
+                  </div>
+                  <ArrowRight className="w-5 h-5 ml-auto opacity-20 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
+                </Button>
+
+                <Button 
+                  onClick={() => setView('password')}
+                  className="w-full h-20 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 text-white font-bold flex items-center justify-start gap-5 px-6 transition-all group"
+                >
+                  <div className="w-12 h-12 bg-blue-500/20 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
+                    <LogIn className="w-6 h-6 text-blue-400" />
+                  </div>
+                  <div className="text-left">
+                    <p className="text-base font-black">Entrar com Senha</p>
+                    <p className="text-[10px] opacity-40 uppercase tracking-widest font-black">Usar senha cadastrada</p>
+                  </div>
+                  <ArrowRight className="w-5 h-5 ml-auto opacity-20 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
+                </Button>
+
+                <Button 
+                  variant="ghost" 
+                  onClick={() => setView('register')}
+                  className="w-full h-10 text-[10px] uppercase tracking-widest font-black text-slate-400"
+                >
+                  Voltar
+                </Button>
+              </div>
+            )}
+
             {view === 'options' && (
               <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-300">
                 <Button 
@@ -468,6 +543,15 @@ export function IdentityModal({
                     />
                   </div>
                   <div className="space-y-1.5">
+                    <Label className="text-[10px] font-black uppercase tracking-widest opacity-40 ml-2">WhatsApp (Obrigatório)</Label>
+                    <Input 
+                      value={whatsapp} 
+                      onChange={(e) => setWhatsapp(formatPhone(e.target.value))} 
+                      placeholder="(11) 99999-9999" 
+                      className="rounded-2xl h-14 bg-white/5 border-white/10 text-white font-bold" 
+                    />
+                  </div>
+                  <div className="space-y-1.5">
                     <Label className="text-[10px] font-black uppercase tracking-widest opacity-40 ml-2">E-mail</Label>
                     <Input 
                       type="email" 
@@ -500,7 +584,7 @@ export function IdentityModal({
 
                 <Button 
                   onClick={handleRegister}
-                  disabled={loading || !fullName || !email || password.length < 8}
+                  disabled={loading || !fullName || cleanPhone(whatsapp).length < 10 || !email || password.length < 8}
                   className="w-full h-16 rounded-full bg-emerald-500 hover:bg-emerald-600 text-zinc-950 font-black text-lg transition-all shadow-lg shadow-emerald-500/20"
                 >
                   {loading ? "Criando..." : "Criar Conta e Continuar"}
@@ -508,7 +592,7 @@ export function IdentityModal({
 
                 <Button 
                   variant="ghost" 
-                  onClick={() => setView('identify')}
+                  onClick={() => setView('choice')}
                   className="w-full h-10 text-[10px] uppercase tracking-widest font-black text-slate-400"
                 >
                   Voltar
