@@ -278,6 +278,17 @@ export default function BarbershopLanding({ routeBusinessType, customSlug }: Bar
   }, [services]);
 
 
+  const handleStartBooking = () => {
+    console.log('[START_BOOKING] Checking identification...');
+    if (isLoggedIn) {
+      console.log('[START_BOOKING] User logged in, proceeding...');
+      navigate(`/${bookingBasePath}/${slug}/agendar`);
+    } else {
+      console.log('[START_BOOKING] Identification required, opening modal...');
+      setShowIdentityModal(true);
+    }
+  };
+
   const handleShare = async () => {
     if (navigator.share) {
       try {
