@@ -89,7 +89,9 @@ export function IdentityModal({
   };
 
   const handleIdentify = async () => {
-    const phone = cleanPhone(whatsapp);
+    const phone = normalizePhone(whatsapp);
+    console.log('[LOOKUP_PHONE_NORMALIZED]', phone);
+    
     if (phone.length < 10) {
       toast.error('Informe um WhatsApp válido');
       return;
@@ -99,7 +101,6 @@ export function IdentityModal({
     try {
       console.log(`[IDENTITY_MODAL] Identifying: ${phone} in company ${companyId}`);
       
-      // NEW GLOBAL FLOW: Search globally and get both IDs
       const { data: client, error } = await supabaseToUse.rpc('lookup_client_globally', {
         p_company_id: companyId,
         p_whatsapp: phone
@@ -107,17 +108,15 @@ export function IdentityModal({
 
       if (error) throw error;
 
-      if (client && client.client_global_id) {
-        console.log('[IDENTITY_MODAL] Client found globally:', client);
-        
-        // Store both IDs for consistent session handling
+      if (client && client.length > 0) {
         const clientData = Array.isArray(client) ? client[0] : client;
+        console.log('[IDENTITY_MODAL] Client found globally:', clientData);
+        
         setEmail(clientData.email || '');
         setFullName(clientData.name || '');
         setIsNewUser(false);
         setView('options');
         
-        // Premium logging of session IDs
         console.log(`[SESSION] Global ID: ${clientData.client_global_id}, Legacy ID: ${clientData.client_legacy_id}`);
       } else {
         console.log('[IDENTITY_MODAL] Client not found globally');
