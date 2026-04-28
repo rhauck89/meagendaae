@@ -238,16 +238,46 @@ const Waitlist = () => {
       const startTime = fromZonedTime(`${dateStr} ${selectedSlot}:00`, 'America/Sao_Paulo');
       const endTime = addMinutes(startTime, totalDuration);
 
-      const { data: clientId, error: clientErr } = await supabase.rpc('create_client', {
-        p_company_id: companyId,
-        p_name: bookingTarget.client_name,
-        p_whatsapp: bookingTarget.client_whatsapp || '',
-        p_email: '',
-      } as any);
-      if (clientErr) throw clientErr;
+      const normalizedPhone = (bookingTarget.client_whatsapp || '').replace(/\D/g, '');
 
-      const { data: appointmentId, error: aptErr } = await supabase.rpc('create_appointment', {
-        p_client_id: clientId,
+      // 1. Garantir Client Global
+      const { data: globalClient, error: globalError } = await (supabase
+        .from('clients_global')
+        .upsert({
+          whatsapp: normalizedPhone || null,
+          name: bookingTarget.client_name,
+        }, { onConflict: 'whatsapp' })
+        .select()
+        .single() as any);
+
+      if (globalError || !globalClient) {
+        console.error("ERRO AO GERAR CLIENT GLOBAL:", globalError);
+        throw new Error("Erro ao vincular perfil global");
+      }
+
+      console.log("GLOBAL CLIENT:", globalClient);
+
+      // 2. Garantir Client Local
+      const { data: localClient, error: localError } = await (supabase
+        .from('clients')
+        .upsert({
+          company_id: companyId!,
+          global_client_id: globalClient.id,
+          user_id: globalClient.user_id,
+          name: bookingTarget.client_name,
+          whatsapp: bookingTarget.client_whatsapp,
+          updated_at: new Date().toISOString()
+        }, { onConflict: 'company_id, whatsapp' })
+        .select()
+        .single() as any);
+
+      if (localError || !localClient) {
+        console.error("ERRO AO GERAR CLIENT LOCAL:", localError);
+        throw new Error("Erro ao vincular cliente à empresa");
+      }
+
+      const { data: appointmentId, error: aptErr } = await (supabase.rpc('create_appointment', {
+        p_client_id: localClient.id,
         p_professional_id: selectedProfessional,
         p_start_time: startTime.toISOString(),
         p_end_time: endTime.toISOString(),
@@ -255,8 +285,9 @@ const Waitlist = () => {
         p_client_name: bookingTarget.client_name,
         p_client_whatsapp: bookingTarget.client_whatsapp || '',
         p_notes: 'Agendado via lista de espera',
-      });
+      }) as any);
       if (aptErr) throw aptErr;
+
 
       if (bookingTarget.service_ids && bookingTarget.service_ids.length > 0) {
         const servicesPayload = bookingTarget.service_ids.map((sid: string) => ({
