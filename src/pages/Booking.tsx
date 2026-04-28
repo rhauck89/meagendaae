@@ -44,6 +44,7 @@ import { usePreselectedSlot } from '@/hooks/usePreselectedSlot';
 import { Lock } from 'lucide-react';
 import { CompleteSignupModal } from '@/components/CompleteSignupModal';
 import { ExistingAccountModal } from '@/components/ExistingAccountModal';
+import { IdentityModal } from '@/components/booking/IdentityModal';
 import { BookingErrorDialog, translateBookingError, type BookingErrorInfo } from '@/components/BookingErrorDialog';
 
 const StarRating = ({ rating, size = 14 }: { rating: number; size?: number }) => {
@@ -248,6 +249,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
   const [showCompleteSignup, setShowCompleteSignup] = useState(false);
   const [showExistingAccountModal, setShowExistingAccountModal] = useState(false);
   const [existingAccountMode, setExistingAccountMode] = useState<'email_exists' | 'whatsapp_exists' | 'both_exists'>('email_exists');
+  const [showIdentityModal, setShowIdentityModal] = useState(false);
   const [currentWeekStart, setCurrentWeekStart] = useState<Date>(startOfWeek(new Date(), { locale: ptBR }));
 
   // Refined Premium Flow States
@@ -1723,10 +1725,10 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
   const displayLogoUrl = company.logo_url || companySettings?.logo_url;
 
   const stepList: Step[] = skipProfessionalStep
-    ? ['services', 'datetime', 'client', 'confirm']
-    : ['services', 'professional', 'datetime', 'client', 'confirm'];
+    ? ['services', 'datetime', 'confirm']
+    : ['services', 'professional', 'datetime', 'confirm'];
   const stepLabels: Record<string, string> = {
-    services: 'Serviços', professional: 'Profissional', datetime: 'Horário', client: 'Dados', confirm: 'Confirmar',
+    services: 'Serviços', professional: 'Profissional', datetime: 'Horário', confirm: 'Confirmar',
   };
   const currentStepIdx = stepList.indexOf(step);
 
@@ -2418,7 +2420,14 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                         return (
                           <button
                             key={slot}
-                            onClick={() => { setSelectedTime(slot); setStep('client'); }}
+                            onClick={() => { 
+                              setSelectedTime(slot); 
+                              if (isClientLoggedIn) {
+                                setStep('confirm');
+                              } else {
+                                setShowIdentityModal(true);
+                              }
+                            }}
                             className="py-5 rounded-3xl text-sm font-black transition-all duration-300 border-2"
                             style={{ 
                               background: isSel ? T.accent : T.card, 
@@ -2482,499 +2491,13 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
           </div>
         )}
 
-        {/* ═══ CLIENT INFO ═══ */}
-        {step === 'client' && (
-          <div id="booking-client-step" className="space-y-6 animate-in slide-in-from-right duration-500">
-            <button onClick={() => {
-              if (preselected.isActive()) {
-                setStep('services');
-              } else {
-                setStep('datetime');
-              }
-            }} className="flex items-center gap-1 text-xs font-black uppercase tracking-widest opacity-60 hover:opacity-100 transition-opacity" style={{ color: T.textSec }}>
-              <ChevronLeft className="h-4 w-4" /> Voltar
-            </button>
-            <div className="flex items-center justify-between">
-              <div className="space-y-1">
-                <h2 className="text-2xl font-black tracking-tight">{isClientLoggedIn ? `Bem-vindo de volta, ${clientForm.full_name.split(' ')[0]}!` : 'Só mais um passo...'}</h2>
-                <p className="text-sm opacity-70" style={{ color: T.textSec }}>
-                  {isClientLoggedIn ? 'Confirme seus dados para finalizar' : 'Complete sua identificação para agendar'}
-                </p>
-              </div>
-              {!isClientLoggedIn && (
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => setShowExistingAccountModal(true)}
-                  className="rounded-xl border-white/10 bg-white/5 font-bold text-[10px] uppercase tracking-widest h-10 px-4 flex items-center gap-2 hover:bg-white/10 transition-all"
-                >
-                  <MessageCircle className="w-3 h-3 text-green-400" />
-                  Já tenho conta
-                </Button>
-              )}
-            </div>
+        {/* CLIENT INFO REMOVED - NOW USES IDENTITY MODAL */}
 
-            {clientDataWasAutoFilled && (
-              <div className="rounded-2xl p-4 flex items-center justify-between animate-in fade-in duration-500" style={{ background: `${T.accent}10`, border: `1px solid ${T.accent}30` }}>
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-                  <span className="text-[10px] font-black uppercase tracking-widest" style={{ color: T.accent }}>Dados Carregados</span>
-                </div>
-                <button
-                  onClick={() => {
-                    setClientForm({ full_name: '', email: '', whatsapp: '', birth_date: '' });
-                    setOptInWhatsapp(false);
-                    setSavedClientId(null);
-                    setClientDataWasAutoFilled(false);
-                    setIsChangingData(false);
-                    if (company) {
-                      localStorage.removeItem(`client_id_${company.id}`);
-                      localStorage.removeItem(`client_data_${company.id}`);
-                    }
-                    localStorage.removeItem('meagendae_client_data');
-                    // Comprehensive clear for "Change Account"
-                    localStorage.removeItem('booking_session_id');
-                    supabase.auth.signOut();
-                    // Clear all meagendae related local storage
-                    Object.keys(localStorage).forEach(key => {
-                      if (key.includes('meagendae') || key.includes('client_')) {
-                        localStorage.removeItem(key);
-                      }
-                    });
-                    toast.success('Sessão encerrada com sucesso!');
-                  }}
-                  className="text-[10px] font-black uppercase tracking-widest opacity-60 hover:opacity-100"
-                  style={{ color: T.textSec }}
-                >
-                  Trocar conta
-                </button>
-              </div>
-            )}
-
-            {showOneClickCard && !isChangingData ? (
-              <div 
-                className="rounded-[2.5rem] p-8 space-y-8 animate-in zoom-in-95 duration-500 relative overflow-hidden group shadow-2xl" 
-                style={{ background: T.card, border: `2px solid ${T.accent}40` }}
-              >
-                {/* Badge Premium */}
-                <div className="absolute top-6 right-6">
-                  <Badge className="bg-amber-500/20 text-amber-500 border-amber-500/30 font-black text-[9px] uppercase tracking-widest py-1 px-3">
-                    Cliente Premium
-                  </Badge>
-                </div>
-
-                <div className="space-y-6">
-                  <div className="space-y-2">
-                    <p className="text-[10px] font-black uppercase tracking-[0.2em] opacity-50" style={{ color: T.textSec }}>Reconhecido com sucesso</p>
-                    <h3 className="text-3xl font-black tracking-tight">Bem-vindo de volta, {clientForm.full_name.split(' ')[0]} 👋</h3>
-                    
-                    {lastProfessionalName && (
-                      <div className="flex items-center gap-2 mt-2 py-2 px-3 rounded-xl bg-white/5 border border-white/10 w-fit">
-                        <Scissors className="w-3 h-3 text-amber-500" />
-                        <span className="text-[10px] font-bold uppercase tracking-wider opacity-80">
-                          Seu último atendimento foi com <span style={{ color: T.accent }}>{lastProfessionalName}</span>
-                        </span>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Detalhes do Perfil */}
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-1">
-                      <Label className="text-[9px] font-black uppercase tracking-widest opacity-40 ml-1" style={{ color: T.textSec }}>WhatsApp</Label>
-                      <div className="flex items-center gap-2 p-3 rounded-2xl bg-white/5 border border-white/10">
-                        <MessageCircle className="w-4 h-4 text-green-500" />
-                        <span className="text-xs font-bold">{clientForm.whatsapp}</span>
-                      </div>
-                    </div>
-                    <div className="space-y-1">
-                      <Label className="text-[9px] font-black uppercase tracking-widest opacity-40 ml-1" style={{ color: T.textSec }}>E-mail</Label>
-                      <div className="flex items-center gap-2 p-3 rounded-2xl bg-white/5 border border-white/10">
-                        <Mail className="w-4 h-4 text-amber-500" />
-                        <span className="text-xs font-bold truncate">{clientForm.email || 'Não informado'}</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {!clientForm.email && (
-                    <div className="flex items-center gap-2 py-2 px-4 rounded-xl bg-amber-500/10 border border-amber-500/20 animate-pulse">
-                      <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0" />
-                      <p className="text-[10px] font-bold uppercase tracking-wide text-amber-500">
-                        Complete seu e-mail para liberar benefícios exclusivos
-                      </p>
-                    </div>
-                  )}
-
-                  {/* Benefícios */}
-                  {(cashbackTotal > 0 || loyaltyPoints > 0) && (
-                    <div className="grid grid-cols-2 gap-4 pt-2 border-t border-white/5">
-                      {cashbackTotal > 0 && (
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-full bg-green-500/10 flex items-center justify-center shrink-0">
-                            <DollarSign className="w-5 h-5 text-green-500" />
-                          </div>
-                          <div>
-                            <p className="text-[9px] font-black uppercase tracking-widest opacity-40" style={{ color: T.textSec }}>Cashback</p>
-                            <p className="text-sm font-black text-green-500">R$ {cashbackTotal.toFixed(2)}</p>
-                          </div>
-                        </div>
-                      )}
-                      {loyaltyPoints > 0 && (
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-full bg-amber-500/10 flex items-center justify-center shrink-0">
-                            <Star className="w-5 h-5 text-amber-500" />
-                          </div>
-                          <div>
-                            <p className="text-[9px] font-black uppercase tracking-widest opacity-40" style={{ color: T.textSec }}>Pontos</p>
-                            <p className="text-sm font-black text-amber-500">{loyaltyPoints} pts</p>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {/* Resumo do Agendamento */}
-                  <div className="p-5 rounded-[2rem] bg-white/5 border border-white/10 space-y-3">
-                    <div className="flex items-center justify-between border-b border-white/5 pb-3">
-                      <div className="flex items-center gap-2">
-                        <Clock className="w-4 h-4 text-amber-500" />
-                        <span className="text-xs font-black uppercase tracking-widest">{selectedTime}</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Calendar className="w-4 h-4 text-amber-500" />
-                        <span className="text-xs font-black uppercase tracking-widest">{selectedDate && format(selectedDate, 'dd/MM')}</span>
-                      </div>
-                    </div>
-                    <div className="space-y-1">
-                      <p className="text-[10px] font-black uppercase tracking-widest opacity-40" style={{ color: T.textSec }}>Serviços Escolhidos</p>
-                      <p className="text-sm font-bold truncate">
-                        {selectedServices.map(sid => services.find(s => s.id === sid)?.name).join(' + ')}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="space-y-3 pt-4 sm:pt-0">
-                    <div className="fixed bottom-0 left-0 right-0 p-4 bg-[#0B132B]/80 backdrop-blur-lg border-t border-white/10 sm:relative sm:p-0 sm:bg-transparent sm:border-0 z-50">
-                      <Button 
-                        onClick={() => handleBook()}
-                        disabled={loading}
-                        className="w-full rounded-full sm:rounded-2xl h-16 font-black text-lg shadow-2xl transition-all hover:scale-[1.02] active:scale-[0.98] group"
-                        style={{ background: `linear-gradient(135deg, #10B981, #34D399)`, color: '#000' }}
-                      >
-                        {loading ? (
-                          <div className="flex items-center gap-3">
-                            <div className="w-5 h-5 border-4 rounded-full animate-spin border-black/20 border-t-black" />
-                            Processando...
-                          </div>
-                        ) : (
-                          <div className="flex items-center gap-2">
-                            <CheckCircle2 className="h-6 w-6" />
-                            Confirmar Agendamento
-                          </div>
-                        )}
-                      </Button>
-                    </div>
-
-                    <div className="flex gap-3 pb-20 sm:pb-0">
-                      <Button 
-                        onClick={() => setIsChangingData(true)}
-                        className="flex-1 rounded-2xl h-14 bg-zinc-900 text-white border border-white/10 font-bold uppercase text-[10px] tracking-widest hover:bg-zinc-800 transition-all"
-                      >
-                        Alterar Dados
-                      </Button>
-                      <Button 
-                        onClick={() => {
-                          setStep('datetime');
-                          setIsChangingData(false);
-                        }}
-                        className="flex-1 rounded-2xl h-14 bg-zinc-900 text-white border border-white/10 font-bold uppercase text-[10px] tracking-widest hover:bg-zinc-800 transition-all"
-                      >
-                        Trocar Horário
-                      </Button>
-                    </div>
-                    
-                    <Button 
-                      onClick={async () => {
-                        // Limpar sessão CLIENTE isolada sem afetar sessão ADMIN
-                        localStorage.removeItem(`client_id_${company.id}`);
-                        localStorage.removeItem(`client_data_${company.id}`);
-                        localStorage.removeItem('meagendae_client_data');
-                        localStorage.removeItem('booking_session_id');
-                        localStorage.removeItem('booking_client_session');
-                        
-                        await bookingSupabase.auth.signOut();
-                        
-                        // Reset local state
-                        setSavedClientId(null);
-                        setClientForm({ full_name: '', email: '', whatsapp: '', birth_date: '' });
-                        setIsClientLoggedIn(false);
-                        setHasValidClient(false);
-                        setShowOneClickCard(false);
-                        setIsChangingData(true);
-                        setStep('client');
-                        
-                        toast.success('Identificação removida');
-                        console.log('[BOOKING_SESSION_SOURCE] client_session_cleared');
-                      }}
-                      variant="ghost"
-                      className="w-full rounded-xl h-10 text-[9px] font-bold uppercase tracking-widest opacity-50 hover:opacity-100 transition-opacity text-white hover:bg-white/5"
-                    >
-                      Trocar Conta / Sair
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <div 
-                className="rounded-[2.5rem] p-6 space-y-5 relative overflow-hidden" 
-                style={{ background: T.card, border: `2px solid ${T.border}` }}
-              >
-                <div className="space-y-4">
-                  <div className="space-y-1.5">
-                    <Label className="text-[10px] font-black uppercase tracking-widest opacity-40 ml-2" style={{ color: T.textSec }}>Seu Nome Completo</Label>
-                    <Input 
-                      value={clientForm.full_name} 
-                      onChange={(e) => setClientForm({ ...clientForm, full_name: e.target.value })} 
-                      placeholder="Ex: Raphael Silva" 
-                      className="rounded-2xl h-14 text-base font-bold bg-white/5 border-white/10 focus:border-amber-500 transition-all" 
-                    />
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label className="text-[10px] font-black uppercase tracking-widest opacity-40 ml-2" style={{ color: T.textSec }}>WhatsApp para Confirmação</Label>
-                    <Input
-                      value={clientForm.whatsapp}
-                      onChange={(e) => {
-                        const digits = e.target.value.replace(/\D/g, '').slice(0, 11);
-                        let masked = digits;
-                        if (digits.length > 7) masked = `(${digits.slice(0,2)}) ${digits.slice(2,7)}-${digits.slice(7)}`;
-                        else if (digits.length > 2) masked = `(${digits.slice(0,2)}) ${digits.slice(2)}`;
-                        setClientForm({ ...clientForm, whatsapp: masked });
-                      }}
-                      placeholder="(11) 99999-9999" 
-                      maxLength={15}
-                      className="rounded-2xl h-14 text-base font-bold bg-white/5 border-white/10 focus:border-amber-500 transition-all"
-                    />
-                    {clientForm.whatsapp && clientForm.whatsapp.replace(/\D/g, '').length > 0 && !isValidWhatsApp(clientForm.whatsapp) && (
-                      <p className="text-[10px] font-bold text-red-400 mt-1 uppercase tracking-tighter">Número incompleto. Use DDD + 9 dígitos.</p>
-                    )}
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label className="text-[10px] font-black uppercase tracking-widest opacity-40 ml-2" style={{ color: T.textSec }}>Seu Melhor E-mail</Label>
-                    <Input 
-                      type="email" 
-                      value={clientForm.email} 
-                      onChange={(e) => setClientForm({ ...clientForm, email: e.target.value })} 
-                      placeholder="email@exemplo.com" 
-                      className="rounded-2xl h-14 text-base font-bold bg-white/5 border-white/10 focus:border-amber-500 transition-all" 
-                    />
-                  </div>
-                  {!isClientLoggedIn && (
-                    <div className="space-y-1.5 animate-in slide-in-from-top-2 duration-300">
-                      <Label className="text-[10px] font-black uppercase tracking-widest opacity-40 ml-2" style={{ color: T.textSec }}>Crie uma Senha Segura</Label>
-                      <Input 
-                        type="password" 
-                        value={clientPassword} 
-                        onChange={(e) => setClientPassword(e.target.value)} 
-                        placeholder="Mínimo 8 caracteres" 
-                        className="rounded-2xl h-14 text-base font-bold bg-white/5 border-white/10 focus:border-amber-500 transition-all" 
-                      />
-                      <p className="text-[9px] font-bold opacity-40 uppercase tracking-widest ml-2 leading-relaxed">
-                        Sua senha permite acompanhar cashback, pontos e histórico de agendamentos.
-                      </p>
-                    </div>
-                  )}
-                  <div className="space-y-1.5">
-                    <Label className="text-[10px] font-black uppercase tracking-widest opacity-40 ml-2" style={{ color: T.textSec }}>Data de Nascimento (Opcional)</Label>
-                    <Input 
-                      type="date" 
-                      value={clientForm.birth_date} 
-                      onChange={(e) => setClientForm({ ...clientForm, birth_date: e.target.value })} 
-                      className="rounded-2xl h-14 text-base font-bold bg-white/5 border-white/10 focus:border-amber-500 transition-all invert-calendar" 
-                    />
-                  </div>
-                </div>
-                
-                <div className="flex items-start gap-3 pt-2">
-                  <Checkbox 
-                    id="opt-in-whatsapp" 
-                    checked={optInWhatsapp} 
-                    onCheckedChange={(v) => setOptInWhatsapp(v === true)} 
-                    className="mt-1 rounded-md border-white/20"
-                  />
-                  <label htmlFor="opt-in-whatsapp" className="text-[10px] font-bold uppercase tracking-widest leading-relaxed cursor-pointer opacity-60 hover:opacity-100 transition-opacity" style={{ color: T.textSec }}>
-                    Aceito receber lembretes de horário e novidades via WhatsApp.
-                  </label>
-                </div>
-              </div>
-            )}
-
-            {/* Fixed Footer Button on Mobile */}
-            <div className="md:relative md:bg-transparent md:p-0 fixed bottom-0 left-0 right-0 p-4 bg-[#0B132B]/95 backdrop-blur-md border-t border-white/10 z-50 md:z-auto">
-
-            <Button
-              onClick={async () => {
-                if (!clientForm.whatsapp || !isValidWhatsApp(clientForm.whatsapp)) {
-                  toast.error('Informe seu WhatsApp válido para continuar.');
-                  return;
-                }
-                if (!clientForm.full_name.trim()) {
-                  toast.error('Informe seu nome completo para continuar.');
-                  return;
-                }
-                if (!clientForm.email?.trim()) {
-                  toast.error('Informe seu e-mail para continuar.');
-                  return;
-                }
-
-                if (!isClientLoggedIn) {
-                  setAuthLoading(true);
-                  try {
-                    const emailTrimmed = clientForm.email.trim().toLowerCase();
-                    const formattedPhone = clientForm.whatsapp ? formatWhatsApp(clientForm.whatsapp) : '';
-                    
-                    // 1. Precise Identification Check via RPC
-                    const { data: idCheck, error: idError } = await supabase.rpc('check_identification', {
-                      p_email: emailTrimmed,
-                      p_whatsapp: formattedPhone,
-                      p_company_id: company?.id
-                    });
-
-                    if (idError) {
-                      console.error('[AUTH_CHECK] Error:', idError);
-                    } else if (idCheck) {
-                      const { email_exists, whatsapp_exists, same_user, email: identifiedEmail, name: identifiedName } = idCheck as any;
-                      
-                      if (email_exists || whatsapp_exists) {
-                        // Update form with real identified data if possible to avoid partial/incorrect data display
-                        if (identifiedEmail) {
-                          setClientForm(prev => ({ ...prev, email: identifiedEmail }));
-                        }
-                        if (identifiedName && !clientForm.full_name) {
-                          setClientForm(prev => ({ ...prev, full_name: identifiedName }));
-                        }
-
-                        if (same_user) {
-                          setExistingAccountMode('both_exists');
-                        } else if (email_exists) {
-                          setExistingAccountMode('email_exists');
-                        } else {
-                          setExistingAccountMode('whatsapp_exists');
-                        }
-                        setShowExistingAccountModal(true);
-                        setAuthLoading(false);
-                        return;
-                      }
-                    }
-
-                    // 2. Try simple sign in if user provided password (legacy flow support)
-                    if (clientPassword && clientPassword.length >= 8) {
-                      const { error: signInError } = await supabase.auth.signInWithPassword({
-                        email: emailTrimmed,
-                        password: clientPassword,
-                      });
-                      
-                      if (!signInError) {
-                        toast.success('Bem-vindo de volta!');
-                        const { data: { user } } = await supabase.auth.getUser();
-                        if (user) {
-                          await supabase.rpc('link_client_to_user', {
-                            p_user_id: user.id,
-                            p_phone: formattedPhone || null,
-                            p_email: emailTrimmed,
-                          } as any);
-                        }
-                      } else {
-                        // 3. Register New User
-                        const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-                          email: emailTrimmed,
-                          password: clientPassword,
-                          options: {
-                            emailRedirectTo: `${window.location.origin}/`,
-                            data: {
-                              full_name: clientForm.full_name.trim(),
-                              whatsapp: formattedPhone,
-                              role: 'client',
-                            },
-                          },
-                        });
-
-                        if (signUpError) {
-                          const { diagnoseAuthError } = await import('@/lib/auth-errors');
-                          const errorMsg = diagnoseAuthError(signUpError);
-                          
-                          // Fallback check if RPC somehow missed it
-                          const isAlreadyRegistered = /already registered|already exists|user.*exists|email.*taken/i.test(signUpError.message) || 
-                                                    signUpError.code === 'user_already_exists' ||
-                                                    signUpError.status === 422;
-
-                          if (isAlreadyRegistered) {
-                            setExistingAccountMode('email_exists');
-                            setShowExistingAccountModal(true);
-                          } else {
-                            toast.error(errorMsg);
-                          }
-                          setAuthLoading(false);
-                          return;
-                        }
-
-                        if (signUpData?.user) {
-                          toast.success('Conta criada com sucesso! 🎁');
-                          await supabase.rpc('link_client_to_user', {
-                            p_user_id: signUpData.user.id,
-                            p_phone: formattedPhone || null,
-                            p_email: emailTrimmed,
-                          } as any);
-                          try {
-                            const { sendWelcomeClientEmail } = await import('@/lib/email');
-                            void sendWelcomeClientEmail({ email: emailTrimmed, name: clientForm.full_name.trim() });
-                          } catch (e) { console.warn('[email] welcome failed', e); }
-                        }
-                      }
-                    } else {
-                      // No password provided but user doesn't exist, we need a password or OTP
-                      toast.error('Crie uma senha para garantir seus benefícios e finalizar o agendamento.');
-                      setAuthLoading(false);
-                      return;
-                    }
-                  } catch (err: any) {
-                    toast.error(err?.message || 'Erro ao autenticar');
-                    setAuthLoading(false);
-                    return;
-                  }
-                  setAuthLoading(false);
-                }
-
-                const hasBenefits = (loyaltyPointValue > 0) || (isPromoMode && promoData?.promotion_type === 'cashback');
-                if (hasBenefits && !savedClientId) {
-                  setStep('benefits');
-                } else {
-                  setStep('confirm');
-                }
-              }}
-              className="w-full rounded-full py-8 font-black text-lg shadow-2xl transition-all hover:scale-[1.02] active:scale-[0.98] group"
-              style={{ background: `linear-gradient(135deg, ${T.accent}, #F4C752)`, color: '#000' }}
-              disabled={authLoading || !clientForm.full_name.trim() || !clientForm.whatsapp || !isValidWhatsApp(clientForm.whatsapp) || !clientForm.email?.trim() || (!isClientLoggedIn && clientPassword.length < 8)}
-            >
-              {authLoading ? (
-                <div className="flex items-center gap-3">
-                  <div className="w-5 h-5 border-4 rounded-full animate-spin" style={{ borderColor: '#000 transparent transparent transparent' }} />
-                  Preparando seu Acesso...
-                </div>
-              ) : (
-                <div className="flex items-center gap-2">
-                  Revisar Agendamento
-                  <ChevronRight className="h-6 w-6 ml-1 transition-transform group-hover:translate-x-1" />
-                </div>
-              )}
-            </Button>
-            </div>
-          </div>
-        )}
 
         {/* ═══ BENEFITS CHOICE ═══ */}
         {step === 'benefits' && (
           <div className="space-y-8 animate-in slide-in-from-right duration-500">
-            <button onClick={() => setStep('client')} className="flex items-center gap-1 text-xs font-black uppercase tracking-widest opacity-60 hover:opacity-100 transition-opacity" style={{ color: T.textSec }}>
+            <button onClick={() => setStep('datetime')} className="flex items-center gap-1 text-xs font-black uppercase tracking-widest opacity-60 hover:opacity-100 transition-opacity" style={{ color: T.textSec }}>
               <ChevronLeft className="h-4 w-4" /> Voltar
             </button>
             <div className="text-center space-y-4">
@@ -3025,7 +2548,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
         {step === 'confirm' && (
           <div className="space-y-6 animate-in slide-in-from-right duration-500">
             <button 
-              onClick={() => setStep('client')} 
+              onClick={() => setStep('datetime')} 
               className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest opacity-60 hover:opacity-100 transition-opacity" 
               style={{ color: T.textSec }}
             >
@@ -3490,34 +3013,23 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
         </DialogContent>
       </Dialog>
 
-      <ExistingAccountModal
-        isOpen={showExistingAccountModal}
-        onClose={() => setShowExistingAccountModal(false)}
-        email={clientForm.email}
-        whatsapp={clientForm.whatsapp}
+      <IdentityModal
+        isOpen={showIdentityModal}
+        onClose={() => setShowIdentityModal(false)}
         companyId={company?.id}
-        mode={existingAccountMode}
         supabaseClient={bookingSupabase}
         onLoginSuccess={async () => {
-          console.log('[OTP_SUCCESS_FRONTEND] handleOtpSuccess TRIGGERED');
+          console.log('[OTP_SUCCESS_FRONTEND] IdentityModal success callback');
           
-          // FORÇA FECHAMENTO IMEDIATO NO PAI
-          setShowExistingAccountModal(false);
-          console.log('[MODAL_CLOSED] Forced from Booking.tsx');
-          
+          setShowIdentityModal(false);
           setIsClientLoggedIn(true);
           setShowOneClickCard(true);
           setIsChangingData(false);
           
-          console.log('OTP RESPONSE: success');
-          console.log('ONE CLICK TRUE: true');
-
-
           const { data: { user } } = await bookingSupabase.auth.getUser();
           
           if (user) {
             console.log('CLIENT SET: recognized', user.id);
-            // Force a refresh of client data immediately after login
             const { data: client } = await bookingSupabase
               .from('clients')
               .select('*')
@@ -3536,33 +3048,14 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
               setHasValidClient(true);
               setClientDataWasAutoFilled(true);
               setShowOneClickCard(true);
-              console.log('ONE CLICK TRUE: active');
             }
           }
 
-          // Advance the step if everything is valid
-          const hasBenefits = (loyaltyPointValue > 0) || (isPromoMode && promoData?.promotion_type === 'cashback');
-          if (hasBenefits && !savedClientId) {
-            setStep('benefits');
-          } else {
-            setStep('confirm');
-          }
-
-          // Smooth scroll to the one-click card
-          setTimeout(() => {
-            const clientSection = document.getElementById('booking-client-step');
-            if (clientSection) {
-              clientSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            }
-          }, 100);
-        }}
-        onUseDifferentEmail={() => {
-          console.log('[OTP_FRONTEND] Switch account triggered');
-          setClientForm(prev => ({ ...prev, email: '', full_name: '', whatsapp: '' }));
-          setShowExistingAccountModal(false);
-          setIsChangingData(true);
+          // Advance step
+          setStep('confirm');
         }}
       />
+
     </div>
   );
 };
