@@ -467,6 +467,12 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
     let isMounted = true;
 
     const checkSession = async () => {
+      // 1. PROTECT LOGIN STATE: Never overwrite if already logged in via callback
+      if (isClientLoggedIn) {
+        console.log('[LOGIN_STATE_PROTECTED] User already marked as logged in, skipping checkSession');
+        return;
+      }
+
       console.log('[SESSION_LOCAL]', localStorage.getItem('booking_client_session'));
       const runtimeSession = await supabase.auth.getSession();
       console.log('[SESSION_RUNTIME]', runtimeSession);
@@ -475,6 +481,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
       if (!isMounted) return;
 
       if (!session?.user) {
+        console.log('[SESSION_CHECK] No user session found');
         setIsClientLoggedIn(false);
         return;
       }
@@ -489,23 +496,41 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
       if (!isMounted) return;
 
       const isActuallyClient = profile?.role === 'client';
-      setIsClientLoggedIn(isActuallyClient);
+      console.log('[SESSION_CHECK] User role:', profile?.role, 'isActuallyClient:', isActuallyClient);
       
       if (isActuallyClient) {
         console.log('[SESSION_SET] Client session recognized from existing session');
+        setIsClientLoggedIn(true);
         setHasValidClient(true);
       } else {
-        console.log('[BOOKING_SESSION_SOURCE] active session is admin, treating as guest');
+        console.log('[BOOKING_SESSION_SOURCE] active session is admin or other role, treating as guest');
+        setIsClientLoggedIn(false);
       }
     };
 
     checkSession();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log(`[BOOKING_SESSION_SOURCE] auth_state_changed: ${event}`);
+      console.log(`[BOOKING_SESSION_SOURCE] auth_state_changed: ${event}`, { hasSession: !!session?.user, isClientLoggedIn });
       
+      // 1. PROTECT LOGIN STATE: If we just signed in or handled this via modal success, 
+      // be careful about resetting.
+      if (isClientLoggedIn && (event === 'INITIAL_SESSION' || event === 'SIGNED_IN')) {
+        console.log('[AUTH_STATE_PROTECTED] isClientLoggedIn is already true, skipping reset check');
+        return;
+      }
+
       if (!session?.user) {
-        if (isMounted) setIsClientLoggedIn(false);
+        // Only reset if we were previously logged in AND the event is explicitly SIGNED_OUT
+        // or if we are mounting and truly have no session.
+        if (isMounted) {
+          if (isClientLoggedIn && event !== 'SIGNED_OUT') {
+            console.log('[AUTH_STATE_PROTECTED] Session null but event is not SIGNED_OUT, keeping isClientLoggedIn=true');
+            return;
+          }
+          console.log('[AUTH_STATE_CHANGED] Setting isClientLoggedIn to false');
+          setIsClientLoggedIn(false);
+        }
         return;
       }
 
@@ -536,7 +561,11 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
           setShowIdentityModal(false);
         }
       } else {
-        setIsClientLoggedIn(false);
+        console.log('[LOGIN_FAILURE] User is not a client, role:', profile?.role);
+        // Only reset if not already protected
+        if (!isClientLoggedIn) {
+          setIsClientLoggedIn(false);
+        }
       }
     });
 
@@ -544,11 +573,16 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
       isMounted = false;
       subscription.unsubscribe();
     };
-  }, [company?.id, step, professionalSlug]);
+  }, [company?.id, step, professionalSlug, isClientLoggedIn]);
 
   // Identification Gatekeeper - Based ONLY on local isClientLoggedIn state
   useEffect(() => {
-    if (isClientLoggedIn) return;
+    console.log('[BOOKING_GATEKEEPER_STATE]', { isClientLoggedIn, clientLoaded, authLoading, hasCompany: !!company });
+    
+    if (isClientLoggedIn) {
+      console.log('[BOOKING_GATEKEEPER] Already logged in, ignoring gatekeeper');
+      return;
+    }
     
     if (company && !isClientLoggedIn && clientLoaded && !authLoading) {
       console.log('[BOOKING_GATEKEEPER] Identification required. Opening modal...');
