@@ -261,7 +261,9 @@ export function IdentityModal({
 
   const getTitle = () => {
     if (success) return 'LOGIN OK';
-    if (view === 'identify') return 'Identificação';
+    if (view === 'choice') return 'Como deseja acessar?';
+    if (view === 'identify') return 'Já sou cliente';
+    if (view === 'not_found') return 'Cadastro não encontrado';
     if (view === 'register') return 'Criar Conta';
     if (view === 'otp') return 'Verificação';
     if (view === 'password') return 'Entrar com Senha';
