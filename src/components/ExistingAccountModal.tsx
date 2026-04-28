@@ -109,10 +109,12 @@ export function ExistingAccountModal({
   };
 
   const handleLogin = async () => {
-    if (!email) return;
+    if (!email || !password) return;
     setLoading(true);
+    setSuccess(false);
     try {
-      const { error } = await supabaseToUse.auth.signInWithPassword({
+      console.log(`[BOOKING_SESSION_SOURCE] signing_in_with_password: ${email}`);
+      const { data, error } = await supabaseToUse.auth.signInWithPassword({
         email: email.trim().toLowerCase(),
         password,
       });
@@ -123,10 +125,20 @@ export function ExistingAccountModal({
         } else {
           toast.error(error.message);
         }
-      } else {
-        toast.success('Bem-vindo de volta!');
-        onLoginSuccess();
-        onClose();
+      } else if (data.session) {
+        setSuccess(true);
+        toast.success('Bem-vindo de volta! 👋');
+        
+        // Use the same setSession logic to ensure storage compatibility
+        await supabaseToUse.auth.setSession({
+          access_token: data.session.access_token,
+          refresh_token: data.session.refresh_token
+        });
+
+        setTimeout(() => {
+          onLoginSuccess();
+          onClose();
+        }, 1500);
       }
     } catch (err: any) {
       toast.error('Erro ao realizar login');
