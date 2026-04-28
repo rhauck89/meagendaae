@@ -324,6 +324,54 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
     loadSavedClient();
   }, [company]);
 
+  // Fetch last professional and decide on one-click flow
+  useEffect(() => {
+    const fetchLastProfessional = async () => {
+      if (!company?.id) return;
+      const targetClientId = savedClientId;
+      const { data: { session } } = await supabase.auth.getSession();
+      const currentUserId = session?.user?.id;
+
+      if (!targetClientId && !currentUserId) return;
+
+      const query = supabase
+        .from('appointments')
+        .select(`
+          professional:profiles!appointments_professional_id_fkey(full_name),
+          appointment_services(service:services(name))
+        `)
+        .eq('company_id', company.id)
+        .eq('status', 'completed')
+        .order('start_time', { ascending: false })
+        .limit(1);
+
+      if (currentUserId) {
+        query.eq('user_id', currentUserId);
+      } else {
+        query.eq('client_id', targetClientId);
+      }
+
+      const { data } = await query.maybeSingle();
+      if (data) {
+        setLastProfessionalName((data.professional as any)?.full_name || null);
+        const servicesList = (data.appointment_services as any[])?.map(s => s.service?.name).filter(Boolean);
+        if (servicesList?.length > 0) {
+          setLastServicePerformed(servicesList.join(', '));
+        }
+      }
+    };
+
+    fetchLastProfessional();
+  }, [savedClientId, company?.id, isClientLoggedIn]);
+
+  useEffect(() => {
+    if (clientLoaded && clientDataWasAutoFilled && !isChangingData) {
+      setShowOneClickCard(true);
+    } else {
+      setShowOneClickCard(false);
+    }
+  }, [clientLoaded, clientDataWasAutoFilled, isChangingData]);
+
   // Check for cashback credits when client is identified
   useEffect(() => {
     const checkBenefits = async () => {
