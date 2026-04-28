@@ -3023,7 +3023,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
         companyId={company?.id}
         supabaseClient={bookingSupabase}
         onLoginSuccess={async () => {
-          console.log('[OTP_SUCCESS_FRONTEND] IdentityModal success callback');
+          console.log('[OTP_SUCCESS_FRONTEND] IdentityModal success callback - STARTING FLOW FROM ZERO');
           
           setShowIdentityModal(false);
           setIsClientLoggedIn(true);
@@ -3055,8 +3055,8 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
             }
           }
 
-          // Advance step
-          setStep('confirm');
+          // Force flow to start from ZERO as requested
+          setStep(professionalSlug ? 'services' : 'professional');
         }}
       />
 
