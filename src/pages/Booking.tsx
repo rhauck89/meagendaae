@@ -1252,6 +1252,17 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
       const clientId = clientIdFromRpc;
       console.log('[Booking] Client ID:', clientId);
 
+      // Ensure client data is updated (email and timestamp)
+      if (clientId) {
+        await supabase
+          .from('clients')
+          .update({
+            email: clientForm.email || null,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', clientId);
+      }
+
       // Check if client is blocked
       if (clientId) {
         const { data: clientRecord } = await supabase
