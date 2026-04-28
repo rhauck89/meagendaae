@@ -1230,6 +1230,7 @@ export type Database = {
           created_at: string
           district: string | null
           email: string | null
+          global_client_id: string | null
           id: string
           is_blocked: boolean
           name: string
@@ -1252,6 +1253,7 @@ export type Database = {
           created_at?: string
           district?: string | null
           email?: string | null
+          global_client_id?: string | null
           id?: string
           is_blocked?: boolean
           name: string
@@ -1274,6 +1276,7 @@ export type Database = {
           created_at?: string
           district?: string | null
           email?: string | null
+          global_client_id?: string | null
           id?: string
           is_blocked?: boolean
           name?: string
@@ -1321,6 +1324,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "public_company_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "clients_global_client_id_fkey"
+            columns: ["global_client_id"]
+            isOneToOne: false
+            referencedRelation: "clients_global"
             referencedColumns: ["id"]
           },
         ]
