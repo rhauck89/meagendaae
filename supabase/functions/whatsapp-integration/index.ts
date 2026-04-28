@@ -290,12 +290,40 @@ Deno.serve(async (req) => {
           return new Response(JSON.stringify({ success: true, email: userEmail }), { headers: corsHeaders });
         }
 
-        console.log(`[VERIFY] Login link generated for ${userEmail}`);
-        return new Response(JSON.stringify({ 
-          success: true, 
-          email: userEmail, 
-          loginUrl: data.properties.action_link 
-        }), { headers: corsHeaders });
+        // To avoid session contamination, we can try to exchange the link for tokens right here
+        // or just return the link and let the client handle it.
+        // Given the request for Nubank-style direct login, we'll return the tokens if possible.
+        
+        const loginUrl = data.properties.action_link;
+        console.log(`[VERIFY] Login link generated for ${userEmail}. Exchanging for tokens...`);
+        
+        try {
+          // Verify the token directly to get a session without redirecting the user's browser
+          const { data: sessionData, error: verifyError } = await adminClient.auth.verifyOtp({
+            email: userEmail,
+            token: data.properties.verification_token,
+            type: 'magiclink'
+          });
+
+          if (verifyError) {
+            throw verifyError;
+          }
+
+          console.log(`[VERIFY] Session generated successfully for ${userEmail}`);
+          return new Response(JSON.stringify({ 
+            success: true, 
+            email: userEmail, 
+            session: sessionData.session
+          }), { headers: corsHeaders });
+        } catch (exchangeError: any) {
+          console.error('[VERIFY] Token exchange error:', exchangeError.message);
+          // Fallback to returning the loginUrl if direct exchange fails
+          return new Response(JSON.stringify({ 
+            success: true, 
+            email: userEmail, 
+            loginUrl: loginUrl 
+          }), { headers: corsHeaders });
+        }
       }
       
       return new Response(JSON.stringify({ success: true }), { headers: corsHeaders });
