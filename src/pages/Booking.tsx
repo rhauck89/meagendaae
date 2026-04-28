@@ -1281,7 +1281,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
 
       // 1. Garantir Client Global (Upsert)
       const { data: globalClient, error: globalError } = await (supabase
-        .from('clients_global')
+        .from('clients_global' as any)
         .upsert({
           user_id: user.id,
           whatsapp: normalizedPhone || null,
@@ -1299,17 +1299,18 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
 
       // 2. Garantir Client Local (Upsert)
       const { data: localClient, error: localError } = await (supabase
-        .from('clients')
+        .from('clients' as any)
         .upsert({
           company_id: company.id,
           user_id: user.id,
-          global_client_id: globalClient.id,
+          global_client_id: (globalClient as any).id,
           name: clientForm.full_name,
           whatsapp: clientForm.whatsapp,
           updated_at: new Date().toISOString()
         }, { onConflict: 'company_id, user_id' })
         .select()
         .single() as any);
+
 
       if (localError || !localClient) {
         console.error("ERRO AO GERAR CLIENT LOCAL:", localError);
