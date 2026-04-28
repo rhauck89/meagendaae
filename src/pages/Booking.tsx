@@ -2493,10 +2493,6 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
 
         {/* CLIENT INFO REMOVED - NOW USES IDENTITY MODAL */}
 
-            </Button>
-            </div>
-          </div>
-        )}
 
         {/* ═══ BENEFITS CHOICE ═══ */}
         {step === 'benefits' && (
