@@ -232,6 +232,89 @@ const CompanySetup = ({ onComplete }: CompanySetupProps) => {
     }
   };
 
+  const handleSaveCategories = async () => {
+    if (!companyId || !selectedCategoryId || selectedSubcategoryIds.length === 0) {
+      toast.error('Selecione uma categoria e pelo menos uma subcategoria');
+      return;
+    }
+    setLoading(true);
+    try {
+      // 1. Save company categories
+      const categoryRows = selectedSubcategoryIds.map(subId => ({
+        company_id: companyId,
+        category_id: selectedCategoryId,
+        subcategory_id: subId,
+      }));
+      await supabase.from('company_categories').insert(categoryRows);
+
+      // 2. Auto-create service categories and services
+      const category = categories.find(c => c.id === selectedCategoryId);
+      if (category) {
+        if (category.name === 'Barbearia') {
+          // Create Service Categories
+          const { data: catCorte } = await supabase.from('service_categories').insert({ company_id: companyId, name: 'Corte' }).select().single();
+          const { data: catBarba } = await supabase.from('service_categories').insert({ company_id: companyId, name: 'Barba' }).select().single();
+          const { data: catCombo } = await supabase.from('service_categories').insert({ company_id: companyId, name: 'Combo' }).select().single();
+
+          if (catCorte) {
+            await supabase.from('services').insert([
+              { company_id: companyId, category_id: catCorte.id, name: 'Corte Tradicional', duration_minutes: 30, price: 40, active: true },
+              { company_id: companyId, category_id: catCorte.id, name: 'Corte Degradê', duration_minutes: 40, price: 50, active: true },
+              { company_id: companyId, category_id: catCorte.id, name: 'Corte Social', duration_minutes: 30, price: 35, active: true },
+            ]);
+          }
+          if (catBarba) {
+            await supabase.from('services').insert([
+              { company_id: companyId, category_id: catBarba.id, name: 'Barba Simples', duration_minutes: 20, price: 25, active: true },
+              { company_id: companyId, category_id: catBarba.id, name: 'Barba Completa', duration_minutes: 30, price: 35, active: true },
+            ]);
+          }
+          if (catCombo) {
+            await supabase.from('services').insert([
+              { company_id: companyId, category_id: catCombo.id, name: 'Corte + Barba', duration_minutes: 60, price: 75, active: true },
+            ]);
+          }
+        } else if (category.name === 'Estética') {
+          const { data: catCabelo } = await supabase.from('service_categories').insert({ company_id: companyId, name: 'Cabelo' }).select().single();
+          const { data: catUnhas } = await supabase.from('service_categories').insert({ company_id: companyId, name: 'Unhas' }).select().single();
+          const { data: catSobrancelha } = await supabase.from('service_categories').insert({ company_id: companyId, name: 'Sobrancelha' }).select().single();
+          const { data: catPele } = await supabase.from('service_categories').insert({ company_id: companyId, name: 'Pele' }).select().single();
+
+          if (catCabelo) {
+            await supabase.from('services').insert([
+              { company_id: companyId, category_id: catCabelo.id, name: 'Corte Feminino', duration_minutes: 60, price: 80, active: true },
+              { company_id: companyId, category_id: catCabelo.id, name: 'Escova', duration_minutes: 45, price: 50, active: true },
+            ]);
+          }
+          if (catUnhas) {
+            await supabase.from('services').insert([
+              { company_id: companyId, category_id: catUnhas.id, name: 'Manicure', duration_minutes: 30, price: 30, active: true },
+              { company_id: companyId, category_id: catUnhas.id, name: 'Pedicure', duration_minutes: 40, price: 35, active: true },
+            ]);
+          }
+          if (catSobrancelha) {
+            await supabase.from('services').insert([
+              { company_id: companyId, category_id: catSobrancelha.id, name: 'Design de Sobrancelha', duration_minutes: 30, price: 40, active: true },
+            ]);
+          }
+          if (catPele) {
+            await supabase.from('services').insert([
+              { company_id: companyId, category_id: catPele.id, name: 'Limpeza de Pele', duration_minutes: 60, price: 120, active: true },
+            ]);
+          }
+        }
+      }
+
+      toast.success('Categorias e serviços iniciais criados!');
+      setStep('hours');
+    } catch (err: any) {
+      toast.error('Erro ao salvar categorias. Tente novamente.');
+      console.error('Categories save error:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleSaveHours = async () => {
     if (!companyId) return;
     setLoading(true);
