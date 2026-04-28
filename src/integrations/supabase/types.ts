@@ -5509,6 +5509,17 @@ export type Database = {
         Args: { p_appointment_id: string }
         Returns: Json
       }
+      check_client_existence: {
+        Args: { p_email: string; p_whatsapp: string }
+        Returns: {
+          client_email: string
+          client_name: string
+          client_whatsapp: string
+          email_found: boolean
+          exists_globally: boolean
+          whatsapp_found: boolean
+        }[]
+      }
       check_client_registration: {
         Args: { p_client_id: string }
         Returns: boolean
