@@ -4049,18 +4049,21 @@ export type Database = {
         Row: {
           company_id: string
           created_at: string | null
+          global_category_id: string | null
           id: string
           name: string
         }
         Insert: {
           company_id: string
           created_at?: string | null
+          global_category_id?: string | null
           id?: string
           name: string
         }
         Update: {
           company_id?: string
           created_at?: string | null
+          global_category_id?: string | null
           id?: string
           name?: string
         }
@@ -4093,7 +4096,35 @@ export type Database = {
             referencedRelation: "public_company_view"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "service_categories_global_category_id_fkey"
+            columns: ["global_category_id"]
+            isOneToOne: false
+            referencedRelation: "service_categories_global"
+            referencedColumns: ["id"]
+          },
         ]
+      }
+      service_categories_global: {
+        Row: {
+          created_at: string | null
+          id: string
+          name: string
+          slug: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          name: string
+          slug: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          name?: string
+          slug?: string
+        }
+        Relationships: []
       }
       service_professionals: {
         Row: {
@@ -4176,6 +4207,51 @@ export type Database = {
           },
         ]
       }
+      service_templates: {
+        Row: {
+          business_category_id: string | null
+          created_at: string | null
+          duration_minutes: number
+          global_category_id: string | null
+          id: string
+          name: string
+          suggested_price: number
+        }
+        Insert: {
+          business_category_id?: string | null
+          created_at?: string | null
+          duration_minutes: number
+          global_category_id?: string | null
+          id?: string
+          name: string
+          suggested_price: number
+        }
+        Update: {
+          business_category_id?: string | null
+          created_at?: string | null
+          duration_minutes?: number
+          global_category_id?: string | null
+          id?: string
+          name?: string
+          suggested_price?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "service_templates_business_category_id_fkey"
+            columns: ["business_category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "service_templates_global_category_id_fkey"
+            columns: ["global_category_id"]
+            isOneToOne: false
+            referencedRelation: "service_categories_global"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       services: {
         Row: {
           active: boolean
@@ -4184,6 +4260,7 @@ export type Database = {
           company_id: string
           created_at: string
           duration_minutes: number
+          global_category_id: string
           id: string
           name: string
           price: number
@@ -4197,6 +4274,7 @@ export type Database = {
           company_id: string
           created_at?: string
           duration_minutes: number
+          global_category_id: string
           id?: string
           name: string
           price: number
@@ -4210,6 +4288,7 @@ export type Database = {
           company_id?: string
           created_at?: string
           duration_minutes?: number
+          global_category_id?: string
           id?: string
           name?: string
           price?: number
@@ -4250,6 +4329,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "public_company_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "services_global_category_id_fkey"
+            columns: ["global_category_id"]
+            isOneToOne: false
+            referencedRelation: "service_categories_global"
             referencedColumns: ["id"]
           },
         ]
