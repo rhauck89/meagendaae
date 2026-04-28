@@ -3042,16 +3042,13 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
         companyId={company?.id}
         onLoginSuccess={() => {
           setIsClientLoggedIn(true);
-          // Flow continues automatically because isClientLoggedIn changes
-          // but we can also set the step if needed
-        }}
-        onUseDifferentEmail={() => {
-          setClientForm(prev => ({ ...prev, email: '' }));
+          const hasBenefits = (loyaltyPointValue > 0) || (isPromoMode && promoData?.promotion_type === 'cashback');
+          if (hasBenefits && !savedClientId) {
+            setStep('benefits');
+          } else {
+            setStep('confirm');
+          }
           setShowExistingAccountModal(false);
         }}
-      />
-    </div>
-  );
-};
 
 export default BookingPage;
