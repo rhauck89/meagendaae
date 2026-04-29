@@ -339,6 +339,8 @@ function ConnectionTab({ companyId, userId, instance, loading, onChange }: { com
   const [testMsg, setTestMsg] = useState('Mensagem de teste do Agendaê 🚀');
   const [qrTimeout, setQrTimeout] = useState(false);
   const [syncTimeout, setSyncTimeout] = useState(false);
+  const [localQrCode, setLocalQrCode] = useState<string | null>(null);
+
 
   const status = instance?.status ?? 'disconnected';
 
@@ -381,8 +383,10 @@ function ConnectionTab({ companyId, userId, instance, loading, onChange }: { com
         }
 
         // If we have no QR and we are connecting, try to fetch it
-        if (res.mappedStatus === 'connecting' && !instance?.qr_code) {
-           await getQrCode(companyId);
+        if (res.mappedStatus === 'connecting' && (!instance?.qr_code && !localQrCode)) {
+           const qrRes = await getQrCode(companyId);
+           // @ts-ignore - The response from Edge Function returns qrcode for consistency
+           if (qrRes?.qrcode) setLocalQrCode(qrRes.qrcode);
            onChange();
         }
       } catch (e: any) {
@@ -407,9 +411,16 @@ function ConnectionTab({ companyId, userId, instance, loading, onChange }: { com
       // Step 1: Create instance in Evolution API and Save to DB
       // The Edge Function already handles destroying old instance if action='create'
       console.log('Step 1: Creating instance...');
-      await connectInstance(companyId); 
+      const res = await connectInstance(companyId); 
       
-      // Step 2: Immediate UI refresh to show "Generating QR..."
+      // If the create action already returned a qrcode, use it
+      // @ts-ignore
+      if (res?.instance?.qr_code) {
+        // @ts-ignore
+        setLocalQrCode(res.instance.qr_code);
+      }
+      
+      // Step 2: Immediate UI refresh
       onChange();
       
       // Step 3: Fetch the actual QR code base64
@@ -420,7 +431,9 @@ function ConnectionTab({ companyId, userId, instance, loading, onChange }: { com
       await new Promise(resolve => setTimeout(resolve, 3000));
       
       try {
-        await getQrCode(companyId);
+        const qrRes = await getQrCode(companyId);
+        // @ts-ignore
+        if (qrRes?.qrcode) setLocalQrCode(qrRes.qrcode);
         toast.success('QR Code gerado!', { description: 'Escaneie agora para conectar.' });
       } catch (qrError) {
         console.warn('QR Code fetch failed initially, polling will handle it:', qrError);
@@ -451,7 +464,9 @@ function ConnectionTab({ companyId, userId, instance, loading, onChange }: { com
       
       // Wait for initialization
       await new Promise(resolve => setTimeout(resolve, 4000));
-      await getQrCode(companyId);
+      const qrRes = await getQrCode(companyId);
+      // @ts-ignore
+      if (qrRes?.qrcode) setLocalQrCode(qrRes.qrcode);
       toast.success('Nova instância pronta', { description: 'Escaneie o novo QR Code.' });
       onChange();
     } catch (e) {
@@ -537,10 +552,10 @@ function ConnectionTab({ companyId, userId, instance, loading, onChange }: { com
         {(status === 'connecting' || status === 'pending') && (
           <div className="text-center py-6 space-y-4">
             <p className="font-medium">
-              {!instance?.qr_code ? 'Gerando QR Code...' : 'Escaneie o QR Code com seu WhatsApp'}
+              {!(instance?.qr_code || localQrCode) ? 'Gerando QR Code...' : 'Escaneie o QR Code com seu WhatsApp'}
             </p>
-            {instance?.qr_code ? (
-              <img src={instance.qr_code} alt="QR Code de conexão" className="mx-auto h-48 w-48 sm:h-60 sm:w-60 border rounded-lg shadow-sm" />
+            {(instance?.qr_code || localQrCode) ? (
+              <img src={instance?.qr_code || localQrCode || ''} alt="QR Code de conexão" className="mx-auto h-48 w-48 sm:h-60 sm:w-60 border rounded-lg shadow-sm" />
             ) : (
               <div className="mx-auto h-48 w-48 sm:h-60 sm:w-60 border rounded-lg flex flex-col items-center justify-center gap-2 bg-muted/30">
                 {qrTimeout ? (
