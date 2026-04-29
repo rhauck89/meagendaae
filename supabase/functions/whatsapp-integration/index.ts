@@ -152,13 +152,15 @@ Deno.serve(async (req) => {
           method: 'POST',
           body: JSON.stringify({
             instanceName,
-            token: EVOLUTION_API_KEY, // Optional: use the same key or generate one
+            token: EVOLUTION_API_KEY,
             qrcode: true,
             number: null
           })
         });
 
         const instanceData = evolution.instance || evolution;
+        const qrcodeFromCreate = evolution.qrcode?.base64 || evolution.qrcode?.code || evolution.base64 || evolution.code;
+        const finalQrFromCreate = qrcodeFromCreate ? (qrcodeFromCreate.startsWith('data:image') ? qrcodeFromCreate : `data:image/png;base64,${qrcodeFromCreate}`) : null;
 
         // 2. Save to DB
         const { data: instance, error: dbError } = await adminClient
@@ -168,7 +170,7 @@ Deno.serve(async (req) => {
             instance_name: instanceName,
             instance_id: instanceData.instanceId || instanceData.id,
             status: 'connecting',
-            qr_code: null,
+            qr_code: finalQrFromCreate,
             updated_at: new Date().toISOString()
           }, { onConflict: 'company_id' })
           .select()
@@ -192,22 +194,30 @@ Deno.serve(async (req) => {
       try {
         console.log(`[GET_QR] instance: ${instance.instance_name}`);
         // Evolution API usually returns base64 in the 'code' or 'base64' field
-        const res = await fetchEvolution(`/instance/connect/${instance.instance_name}`);
+        let res;
+        try {
+          res = await fetchEvolution(`/instance/connect/${instance.instance_name}`);
+        } catch (e) {
+          console.log(`[GET_QR] Fallback to /instance/qrcode/`);
+          res = await fetchEvolution(`/instance/qrcode/${instance.instance_name}`);
+        }
         
-        const qrcode = res.base64 || res.code || res.qrcode;
+        const qrcode = res.base64 || res.code || res.qrcode || (res.qrcode && res.qrcode.base64);
 
         if (qrcode) {
+          const finalQr = qrcode.startsWith('data:image') ? qrcode : `data:image/png;base64,${qrcode}`;
+          
           // Update DB with the QR code
           await adminClient
             .from('whatsapp_instances')
             .update({ 
-              qr_code: qrcode,
+              qr_code: finalQr,
               status: 'connecting',
               updated_at: new Date().toISOString()
             })
             .eq('company_id', companyId);
 
-          return new Response(JSON.stringify({ success: true, qrcode }), { headers: corsHeaders });
+          return new Response(JSON.stringify({ success: true, qrcode: finalQr }), { headers: corsHeaders });
         }
 
         return new Response(JSON.stringify({ success: false, message: 'QR Code not generated yet' }), { headers: corsHeaders });
