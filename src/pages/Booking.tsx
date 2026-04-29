@@ -526,9 +526,46 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
         .eq('company_id', company.id)
         .maybeSingle();
       
-      if (error) {
-        console.warn('[Booking] hasValidClient check error:', error);
+      // 1. Verificar se existe uma sessão de identidade local (WhatsApp Session) válida
+      const localIdentityStr = localStorage.getItem(`whatsapp_session_${company.id}`);
+      if (localIdentityStr) {
+        try {
+          const identity = JSON.parse(localIdentityStr);
+          const expiresAt = new Date(identity.expiresAt);
+          
+          if (expiresAt > new Date()) {
+            console.log('[Booking] Valid local identity found:', identity.whatsapp);
+            
+            // Se já temos a identidade no formulário e no estado, não precisamos fazer nada
+            // Mas vamos garantir que o hasValidClient esteja true
+            setHasValidClient(true);
+            
+            // Preencher formulário se estiver vazio
+            if (!clientForm.full_name || clientDataWasAutoFilled) {
+              setClientForm({
+                full_name: identity.fullName || '',
+                email: identity.email || '',
+                whatsapp: displayWhatsApp(identity.whatsapp || ''),
+                birth_date: identity.birth_date || '',
+              });
+              setClientDataWasAutoFilled(true);
+            }
+            
+            // Se já tem identidade válida via WhatsApp Session, não precisamos checar Supabase Auth
+            // a menos que queiramos vincular. Mas o pedido é NÃO misturar.
+            // No entanto, para o agendamento real, precisamos do isAuthenticated do useAuth.
+            // Para agendamentos recorrentes com a mesma identidade, permitimos prosseguir.
+            return;
+          } else {
+            console.log('[Booking] Local identity expired');
+            localStorage.removeItem(`whatsapp_session_${company.id}`);
+          }
+        } catch (e) {
+          console.error('[Booking] Error parsing local identity:', e);
+        }
       }
+
+      // 2. Se não houver identidade local válida, verificar Supabase Auth (Admin/Cliente Logado)
       
       // AUTO-CREATE local client if authenticated but no client record exists for this company
       // SEPARAÇÃO: Não criamos automaticamente se o usuário for ADMIN
@@ -1308,8 +1345,21 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
       setStep('services');
       return;
     }
-    if (!isAuthenticated) {
-      toast.error('Sessão expirada. Por favor, identifique-se novamente.');
+    // Verificar se existe uma identidade válida (seja via Auth ou via WhatsApp Session local)
+    const localIdentityStr = localStorage.getItem(`whatsapp_session_${company.id}`);
+    let hasValidLocalIdentity = false;
+    
+    if (localIdentityStr) {
+      try {
+        const identity = JSON.parse(localIdentityStr);
+        if (new Date(identity.expiresAt) > new Date()) {
+          hasValidLocalIdentity = true;
+        }
+      } catch (e) { /* ignore */ }
+    }
+
+    if (!isAuthenticated && !hasValidLocalIdentity) {
+      toast.error('Por favor, identifique-se para concluir o agendamento.');
       setShowIdentityModal(true);
       setLoading(false);
       return;
@@ -1317,14 +1367,32 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
 
     setLoading(true);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      let { data: { user } } = await supabase.auth.getUser();
+      
+      // Se não houver usuário autenticado no Supabase, mas houver sessão de identidade local válida,
+      // podemos prosseguir usando a identidade local. 
+      // Nota: Algumas operações podem falhar se exigirem auth.uid() no banco.
+      // O sistema deve ser capaz de lidar com "Anonymous Guest" se a política permitir.
+      
+      const localIdentityStr = localStorage.getItem(`whatsapp_session_${company.id}`);
+      let localIdentity: any = null;
+      if (localIdentityStr) {
+        try {
+          const parsed = JSON.parse(localIdentityStr);
+          if (new Date(parsed.expiresAt) > new Date()) {
+            localIdentity = parsed;
+          }
+        } catch (e) { /* ignore */ }
+      }
+
+      // OBRIGATÓRIO: Verificar se o usuário é admin
       // OBRIGATÓRIO: Verificar se o usuário é admin
       const userRole = profile?.role || 'client';
       const isAdmin = ['admin', 'professional', 'company', 'super_admin'].includes(userRole);
 
-      const normalizedPhone = clientForm.whatsapp ? normalizePhone(clientForm.whatsapp) : '';
-      const clientName = clientForm.full_name || user?.user_metadata?.full_name || user?.user_metadata?.name || 'Cliente';
-      const clientEmail = clientForm.email || user?.email || null;
+      const normalizedPhone = clientForm.whatsapp ? normalizePhone(clientForm.whatsapp) : (localIdentity?.whatsapp || '');
+      const clientName = clientForm.full_name || localIdentity?.fullName || user?.user_metadata?.full_name || user?.user_metadata?.name || 'Cliente';
+      const clientEmail = clientForm.email || localIdentity?.email || user?.email || null;
 
       console.log('[BOOKING_FLOW] Starting book process:', { 
         normalizedPhone, 
