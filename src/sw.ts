@@ -57,7 +57,7 @@ self.addEventListener('push', (event) => {
     console.log('[Service Worker] Push data:', data);
     
     const title = data.title || 'Me Agendaê';
-    const options: NotificationOptions = {
+    const options = {
       body: data.body || '',
       icon: '/icons/icon-192.png',
       badge: '/icons/icon-192.png',
@@ -70,7 +70,7 @@ self.addEventListener('push', (event) => {
         { action: 'open', title: 'Ver agora' },
         { action: 'close', title: 'Fechar' }
       ]
-    };
+    } as NotificationOptions & { vibrate?: number[] };
 
     event.waitUntil(self.registration.showNotification(title, options));
   } catch (err) {
