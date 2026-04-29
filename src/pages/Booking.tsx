@@ -264,19 +264,20 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
   const selectedSlotIsAvailable = selectedTime ? generatedSlots.includes(selectedTime) : false;
   const [bookingResult, setBookingResult] = useState<{
     appointmentId: string;
-    professionalName: string;
-    professionalAvatar: string | null;
-    serviceNames: string[];
-    date: Date;
-    time: string;
-    totalPrice: number;
-    totalDuration: number;
-    companyName: string;
-    companyPhone: string | null;
-    companyAddress: string | null;
-    companyCity: string | null;
-    companyState: string | null;
-    companyPostalCode: string | null;
+    success?: boolean;
+    professionalName?: string;
+    professionalAvatar?: string | null;
+    serviceNames?: string[];
+    date?: Date;
+    time?: string;
+    totalPrice?: number;
+    totalDuration?: number;
+    companyName?: string;
+    companyPhone?: string | null;
+    companyAddress?: string | null;
+    companyCity?: string | null;
+    companyState?: string | null;
+    companyPostalCode?: string | null;
   } | null>(null);
 
   const isDark = businessType === 'barbershop';
