@@ -7,28 +7,37 @@ const corsHeaders = {
   'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
 }
 
-// Utility to sleep
 const delay = (ms: number) => new Promise(res => setTimeout(res, ms));
 
 serve(async (req) => {
-  console.log("WHATSAPP FUNCTION VERSION: V2 - CORS FIX");
+  const debugLogs: string[] = [];
+  const log = (msg: any) => {
+    const message = typeof msg === 'object' ? JSON.stringify(msg, null, 2) : String(msg);
+    console.log(message);
+    debugLogs.push(message);
+  };
+
+  log("WHATSAPP FUNCTION VERSION: V2 - FULL DEBUG");
   
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
   }
 
   try {
+    log("Iniciando criação do cliente Supabase...");
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
+    log("Cliente Supabase criado.");
 
-    // TESTE SELECT IMEDIATO PARA DIAGNÓSTICO
+    log("Executando TESTE SELECT inicial...");
     const testSelect = await supabaseClient.from('whatsapp_otp_codes').select('*').limit(1);
-    console.log("TESTE SELECT:", JSON.stringify(testSelect));
+    log({ testSelect });
 
     const requestBody = await req.json()
-    console.log("REQUEST RECEBIDA:", JSON.stringify(requestBody));
+    log({ requestBody });
+
     
     const { action, companyId, phone, message, text } = requestBody
     
