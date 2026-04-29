@@ -4315,29 +4315,119 @@ export type Database = {
           },
         ]
       }
+      push_logs: {
+        Row: {
+          body: string | null
+          company_id: string | null
+          created_at: string | null
+          error_message: string | null
+          event_type: string
+          failed_count: number | null
+          id: string
+          sent_count: number | null
+          status: string | null
+          title: string
+          url: string | null
+          user_id: string | null
+        }
+        Insert: {
+          body?: string | null
+          company_id?: string | null
+          created_at?: string | null
+          error_message?: string | null
+          event_type: string
+          failed_count?: number | null
+          id?: string
+          sent_count?: number | null
+          status?: string | null
+          title: string
+          url?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          body?: string | null
+          company_id?: string | null
+          created_at?: string | null
+          error_message?: string | null
+          event_type?: string
+          failed_count?: number | null
+          id?: string
+          sent_count?: number | null
+          status?: string | null
+          title?: string
+          url?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "push_logs_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "push_logs_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies_billing"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "push_logs_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "marketplace_active_services"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "push_logs_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "public_company"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "push_logs_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "public_company_view"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       push_subscriptions: {
         Row: {
           auth: string
           created_at: string
+          device_name: string | null
           endpoint: string
           id: string
+          last_seen_at: string | null
           p256dh: string
+          user_agent: string | null
           user_id: string
         }
         Insert: {
           auth: string
           created_at?: string
+          device_name?: string | null
           endpoint: string
           id?: string
+          last_seen_at?: string | null
           p256dh: string
+          user_agent?: string | null
           user_id: string
         }
         Update: {
           auth?: string
           created_at?: string
+          device_name?: string | null
           endpoint?: string
           id?: string
+          last_seen_at?: string | null
           p256dh?: string
+          user_agent?: string | null
           user_id?: string
         }
         Relationships: []

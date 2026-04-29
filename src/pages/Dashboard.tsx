@@ -43,7 +43,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { motion, AnimatePresence } from 'framer-motion';
 import { getProfessionalColor } from '@/utils/calendarLayout';
 import { OccupancyDrawer } from '@/components/OccupancyDrawer';
-
+import { usePushNotifications } from '@/hooks/usePushNotifications';
 
 
 type ViewMode = 'day' | 'week' | 'month';
@@ -79,6 +79,7 @@ const statusFilterMap: Record<StatusTab, (apt: any) => boolean> = {
 
 const Dashboard = () => {
   const { companyId, user } = useAuth();
+  const { isSubscribed, subscribe, permission, isSupported } = usePushNotifications();
   const { isAdmin, profileId } = useUserRole();
   const isMobile = useIsMobile();
   const { maskValue } = useFinancialPrivacy();
@@ -1431,27 +1432,42 @@ const Dashboard = () => {
 
                 console.log('Push subscription found:', subscription.endpoint);
 
+              try {
+                toast.info('Enviando notificação de teste...');
+                
+                // First ensure we have a subscription
+                let currentSubscribed = isSubscribed;
+                if (!currentSubscribed) {
+                  toast.info('Pedindo permissão para notificações...');
+                  const success = await subscribe();
+                  if (!success) {
+                    toast.error('Não foi possível ativar as notificações. Verifique as permissões do navegador.');
+                    return;
+                  }
+                  currentSubscribed = true;
+                }
+
                 const { data, error } = await supabase.functions.invoke('send-push', {
                   body: {
                     user_id: user?.id,
-                    title: 'Notificação de Teste',
-                    body: 'Push notifications estão funcionando corretamente! 🎉',
+                    title: 'Notificação de Teste 🔔',
+                    body: 'Push notifications estão funcionando corretamente na Agendaê! 🎉',
                     url: '/dashboard',
                   },
                 });
 
-                console.log('Push response:', JSON.stringify(data, null, 2), 'Error:', error);
-
                 if (error) {
-                  toast.error('Erro ao enviar: ' + error.message);
-                } else if (data?.results) {
-                  data.results.forEach((r: any) => {
-                    console.log(`[Push Result] id=${r.id} status=${r.status} endpoint=${r.endpoint} error=${r.error || 'none'}`);
-                  });
-                  toast.success(`Push: sent=${data.sent}, failed=${data.failed}. Veja console para detalhes.`);
+                  toast.error('Erro ao enviar push: ' + error.message);
+                } else if (data?.sent > 0) {
+                  toast.success(`Push enviado com sucesso para ${data.sent} dispositivo(s)!`);
                 } else {
-                  toast.success(`Push enviado! Sent: ${data?.sent}, Failed: ${data?.failed}`);
+                  toast.error('Push não enviado. Nenhum dispositivo ativo encontrado.');
+                  console.log('Push details:', data);
                 }
+              } catch (err: any) {
+                console.error('Test push error:', err);
+                toast.error('Erro no teste: ' + err.message);
+              }
               } catch (err: any) {
                 console.error('Test push error:', err);
                 toast.error('Erro: ' + err.message);

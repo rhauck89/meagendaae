@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 
-const VAPID_PUBLIC_KEY = 'BIPFeJrWoM1bA_nacd2yXPTIlJQsBdtm_f3ecwBtZ_9C9w5XU9T7E0-9omNwghDNFV3RSKVdNEvrff_IxiIU134';
+const VAPID_PUBLIC_KEY = 'BMMM2-HgXKJ5db00JRldeIKkKDU_ydN79_vt7vawFC90mmZo13zRR0VhFZ6xEuEuIuiIsL--Y2UaSXIppOf3_p0';
 
 function urlBase64ToUint8Array(base64String: string): Uint8Array {
   const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
@@ -35,6 +35,15 @@ export function usePushNotifications() {
       return false;
     }
 
+    const userAgent = navigator.userAgent;
+    let deviceName = 'Navegador';
+    
+    if (/android/i.test(userAgent)) deviceName = 'Android';
+    else if (/iphone|ipad|ipod/i.test(userAgent)) deviceName = 'iOS';
+    else if (/mac/i.test(userAgent)) deviceName = 'macOS';
+    else if (/windows/i.test(userAgent)) deviceName = 'Windows';
+    else if (/linux/i.test(userAgent)) deviceName = 'Linux';
+
     const { error } = await supabase
       .from('push_subscriptions')
       .upsert(
@@ -43,6 +52,9 @@ export function usePushNotifications() {
           endpoint,
           p256dh,
           auth,
+          user_agent: userAgent,
+          device_name: deviceName,
+          last_seen_at: new Date().toISOString()
         },
         { onConflict: 'user_id,endpoint' }
       );

@@ -64,25 +64,8 @@ const CancelAppointment = () => {
       if (res.success) {
         setResult('success');
 
-        // Send push notification to professional
-        try {
-          const apt = appointment as any;
-          const { data: profProfile } = await supabase
-            .from('profiles')
-            .select('user_id')
-            .eq('id', apt.professional_id)
-            .single();
-          if (profProfile?.user_id) {
-            supabase.functions.invoke('send-push', {
-              body: {
-                user_id: profProfile.user_id,
-                title: 'Agendamento cancelado',
-                body: `${apt.client_name} cancelou horário das ${format(parseISO(apt.start_time), 'HH:mm')}`,
-                url: '/dashboard',
-              },
-            }).catch(() => {});
-          }
-        } catch { /* non-critical */ }
+        // Notificação push agora é disparada automaticamente pelo backend via trigger
+        console.log('Cancel push notification scheduled via backend');
 
         // Trigger waitlist check
         try {
