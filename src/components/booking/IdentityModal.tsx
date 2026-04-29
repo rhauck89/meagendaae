@@ -328,13 +328,23 @@ export function IdentityModal({
       console.log('[IDENTITY_ONLY] Admin is logged in, skipping session update to keep admin context');
     }
 
+    console.log('[CLIENT_IDENTIFIED] Persisting local identity session');
+    
+    // OBRIGATÓRIO: Salvar sessão de identidade local (WhatsApp Session)
+    // Tempo de expiração: 7 dias
+    const identitySession = {
+      fullName,
+      whatsapp: normalizePhone(whatsapp),
+      email: email || '',
+      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+    };
+    
+    localStorage.setItem(`whatsapp_session_${companyId}`, JSON.stringify(identitySession));
+    console.log('[IDENTITY_PERSISTED] Saved to localStorage');
+
     // UX PREMIUM: Wait 800ms before closing
     setTimeout(() => {
-      onLoginSuccess({
-        full_name: fullName,
-        whatsapp: normalizePhone(whatsapp),
-        email: email
-      });
+      onLoginSuccess(identitySession);
       onClose();
     }, 800);
   };
