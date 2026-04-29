@@ -79,7 +79,7 @@ const statusFilterMap: Record<StatusTab, (apt: any) => boolean> = {
 
 const Dashboard = () => {
   const { companyId, user } = useAuth();
-  const { isSubscribed, subscribe, permission, isSupported } = usePushNotifications();
+  const { isSubscribed, subscribe, permission, isSupported, loading: pushLoading } = usePushNotifications();
   const { isAdmin, profileId } = useUserRole();
   const isMobile = useIsMobile();
   const { maskValue } = useFinancialPrivacy();
@@ -1417,36 +1417,38 @@ const Dashboard = () => {
             variant="outline"
             size="sm"
             className="gap-2"
+            disabled={pushLoading}
             onClick={async () => {
               try {
-                toast.info('Enviando notificação de teste...');
+                toast.info('Iniciando teste de notificação...');
                 
-                // First ensure we have a subscription
-                const registration = await navigator.serviceWorker?.ready;
-                const subscription = await registration?.pushManager?.getSubscription();
+                // 1. Ensure permission and subscription
+                if (!isSubscribed) {
+                  toast.info('Ativando notificações primeiro...');
+                  const subResult = await subscribe();
+                  if (!subResult.success) {
+                    toast.error('Ativação falhou: ' + subResult.error);
+                    return;
+                  }
+                }
+
+                // 2. Double check SW is ready and get subscription
+                const registration = await Promise.race([
+                  navigator.serviceWorker.ready,
+                  new Promise<ServiceWorkerRegistration>((_, reject) => setTimeout(() => reject(new Error('SW_TIMEOUT')), 5000))
+                ]);
+                
+                const subscription = await registration.pushManager.getSubscription();
                 
                 if (!subscription) {
-                  toast.error('Nenhuma inscrição push encontrada. Aceite as notificações primeiro.');
+                  toast.error('Nenhuma inscrição encontrada mesmo após ativação.');
                   return;
                 }
 
-                console.log('Push subscription found:', subscription.endpoint);
+                console.log('Push subscription verified for test:', subscription.endpoint);
 
-              try {
-                toast.info('Enviando notificação de teste...');
-                
-                // First ensure we have a subscription
-                let currentSubscribed = isSubscribed;
-                if (!currentSubscribed) {
-                  toast.info('Pedindo permissão para notificações...');
-                  const success = await subscribe();
-                  if (!success) {
-                    toast.error('Não foi possível ativar as notificações. Verifique as permissões do navegador.');
-                    return;
-                  }
-                  currentSubscribed = true;
-                }
-
+                // 3. Call Edge Function
+                toast.info('Enviando sinal para o servidor...');
                 const { data, error } = await supabase.functions.invoke('send-push', {
                   body: {
                     user_id: user?.id,
@@ -1457,25 +1459,23 @@ const Dashboard = () => {
                 });
 
                 if (error) {
-                  toast.error('Erro ao enviar push: ' + error.message);
+                  console.error('Edge Function error:', error);
+                  toast.error('Erro na função do servidor: ' + error.message);
                 } else if (data?.sent > 0) {
-                  toast.success(`Push enviado com sucesso para ${data.sent} dispositivo(s)!`);
+                  toast.success(`Sucesso! Push enviado para ${data.sent} dispositivo(s).`);
                 } else {
-                  toast.error('Push não enviado. Nenhum dispositivo ativo encontrado.');
-                  console.log('Push details:', data);
+                  const reason = data?.message || 'Nenhum dispositivo encontrado';
+                  toast.error('O servidor não conseguiu enviar: ' + reason);
+                  console.log('Server response details:', data);
                 }
               } catch (err: any) {
-                console.error('Test push error:', err);
-                toast.error('Erro no teste: ' + err.message);
-              }
-              } catch (err: any) {
-                console.error('Test push error:', err);
-                toast.error('Erro: ' + err.message);
+                console.error('Test push critical error:', err);
+                toast.error('Erro no teste: ' + (err.message === 'SW_TIMEOUT' ? 'Service Worker não respondeu.' : err.message));
               }
             }}
           >
-            <Send className="h-4 w-4" />
-            Enviar Teste
+            <Send className={cn("h-4 w-4", pushLoading && "animate-spin")} />
+            {pushLoading ? 'Ativando...' : 'Enviar Teste'}
           </Button>
         </CardContent>
       </Card>
