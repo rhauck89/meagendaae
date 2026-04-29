@@ -153,10 +153,13 @@ export function ExistingAccountModal({
       return;
     }
     setLoading(true);
+    const action = 'send-message';
+    console.log("ACTION ENVIADA:", action);
     try {
       const { data, error } = await supabase.functions.invoke('whatsapp-integration', {
         body: {
-          action: 'send-otp',
+          action: action,
+          type: 'otp',
           companyId,
           phone: phoneToUse,
           email: email || null
@@ -182,11 +185,13 @@ export function ExistingAccountModal({
     if (codeToVerify.length !== 6) return;
     
     setLoading(true);
+    const action = 'verify-otp';
+    console.log("ACTION ENVIADA:", action);
     try {
       const phoneToUse = whatsapp || initialWhatsapp;
       const { data, error } = await supabase.functions.invoke('whatsapp-integration', {
         body: {
-          action: 'verify-otp',
+          action: action,
           phone: phoneToUse,
           email: email || null,
           code: codeToVerify,
