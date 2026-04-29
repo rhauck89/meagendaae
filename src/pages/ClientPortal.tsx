@@ -180,8 +180,12 @@ const ClientPortal = () => {
     if (!isRevalidation) setLoading(true);
     try {
       // Step 1: Link any potential orphan clients to this user if not already done
-      const { data: profileData } = await supabase
-        .from('profiles').select('whatsapp').eq('user_id', user!.id).single();
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles').select('whatsapp').eq('user_id', user!.id).maybeSingle();
+
+      if (profileError && profileError.code !== 'PGRST116') {
+        console.error('[ClientPortal] Profile fetch error:', profileError);
+      }
 
       if (profileData?.whatsapp || user!.email) {
         await supabase.rpc('link_client_to_user', {
@@ -192,7 +196,6 @@ const ClientPortal = () => {
       }
 
       // Step 2: Fetch all data using user_id for strict isolation
-      // This is the CRITICAL change: we no longer rely solely on client_id lists
       const [
         clientRes,
         cashbackRes,
@@ -208,17 +211,17 @@ const ClientPortal = () => {
         
         supabase.from('client_cashback')
           .select('id, amount, status, expires_at, created_at, company_id, promotion:promotions!client_cashback_promotion_id_fkey(title)')
-          .eq('user_id', user!.id) // Direct isolation
+          .eq('user_id', user!.id)
           .order('created_at', { ascending: false }),
         
         supabase.from('cashback_transactions')
           .select('*')
-          .eq('user_id', user!.id) // Direct isolation
+          .eq('user_id', user!.id)
           .order('created_at', { ascending: false }).limit(300),
         
         supabase.from('loyalty_points_transactions')
           .select('*')
-          .eq('user_id', user!.id) // Direct isolation
+          .eq('user_id', user!.id)
           .order('created_at', { ascending: false }).limit(300),
         
         supabase.from('loyalty_reward_items')
@@ -230,7 +233,7 @@ const ClientPortal = () => {
         
         supabase.from('loyalty_redemptions')
           .select('id, redemption_code, status, created_at, total_points, reward_id, company_id, client_id')
-          .eq('user_id', user!.id) // Direct isolation
+          .eq('user_id', user!.id)
           .order('created_at', { ascending: false })
           .limit(50),
 
@@ -242,7 +245,7 @@ const ClientPortal = () => {
             professional:profiles!appointments_professional_id_fkey(id, full_name, avatar_url),
             appointment_services(price, service:services(id, name))
           `)
-          .eq('user_id', user!.id) // Direct isolation
+          .or(`user_id.eq.${user!.id}`)
           .order('start_time', { ascending: false }).limit(200)
       ]);
 
