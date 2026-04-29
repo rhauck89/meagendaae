@@ -139,5 +139,33 @@ export const templates = {
       <p>Para evitar a suspensão dos seus serviços, por favor verifique seus dados de pagamento.</p>
       <a href="https://app.meagendae.com.br/settings/subscription" class="button">Atualizar pagamento</a>
     `, "Houve um problema ao processar seu pagamento.")
+  }),
+
+  password_reset: (data: { link: string }) => ({
+    subject: "Recuperação de Senha - Agendaê",
+    html: getEmailLayout(`
+      <h1>Esqueceu sua senha?</h1>
+      <p>Não se preocupe! Clique no botão abaixo para escolher uma nova senha.</p>
+      <a href="${data.link}" class="button">Redefinir minha senha</a>
+      <p style="margin-top: 20px; font-size: 12px; color: #6b7280;">Se você não solicitou isso, pode ignorar este e-mail.</p>
+    `, "Link para redefinir sua senha na Agendaê.")
+  }),
+
+  email_confirmation: (data: { link: string, name: string }) => ({
+    subject: "Bem-vindo! Confirme seu e-mail 📧",
+    html: getEmailLayout(`
+      <h1>Olá, ${data.name}!</h1>
+      <p>Ficamos felizes com seu cadastro. Para começar a usar a Agendaê, confirme seu e-mail clicando abaixo:</p>
+      <a href="${data.link}" class="button">Confirmar meu e-mail</a>
+    `, "Confirme seu e-mail para ativar sua conta na Agendaê.")
+  }),
+
+  ticket_status_changed: (data: { protocol: string, status: string }) => ({
+    subject: `Atualização no Ticket: ${data.protocol}`,
+    html: getEmailLayout(`
+      <h1>Seu ticket foi atualizado!</h1>
+      <p>O status do seu ticket <strong>${data.protocol}</strong> foi alterado para: <strong>${data.status}</strong>.</p>
+      <a href="https://app.meagendae.com.br/support" class="button">Ver detalhes</a>
+    `, "Seu ticket de suporte tem uma nova atualização de status.")
   })
 };
