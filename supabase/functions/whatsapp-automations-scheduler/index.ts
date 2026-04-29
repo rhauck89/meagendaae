@@ -103,11 +103,14 @@ Deno.serve(async (req) => {
         if (!isAutomationEnabled(apt.company_id, 'post_service_review')) continue;
         if (!apt.client_whatsapp) continue;
 
-        await supabase.functions.invoke('whatsapp-integration', {
+        const { data: response } = await supabase.functions.invoke('whatsapp-integration', {
           body: { action: 'send-message', companyId: apt.company_id, appointmentId: apt.id, type: 'post_service_review' }
         });
-        await supabase.from("appointments").update({ whatsapp_review_sent: true }).eq("id", apt.id);
-        totalProcessed++;
+
+        if (response?.success) {
+          await supabase.from("appointments").update({ whatsapp_review_sent: true }).eq("id", apt.id);
+          totalProcessed++;
+        }
       }
     }
 
