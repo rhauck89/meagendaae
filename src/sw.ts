@@ -45,35 +45,51 @@ registerRoute(
 
 // Push notification handler
 self.addEventListener('push', (event) => {
-  if (!event.data) return;
+  console.log('[Service Worker] Push Received.');
+  
+  if (!event.data) {
+    console.log('[Service Worker] Push event but no data');
+    return;
+  }
 
   try {
     const data = event.data.json();
+    console.log('[Service Worker] Push data:', data);
+    
     const title = data.title || 'Me Agendaê';
-    const options = {
+    const options: NotificationOptions = {
       body: data.body || '',
       icon: '/icons/icon-192.png',
       badge: '/icons/icon-192.png',
       data: { url: data.url || '/dashboard' },
       vibrate: [200, 100, 200],
-      tag: `meagendae-${Date.now()}`,
-    } as NotificationOptions & { vibrate?: number[] };
+      tag: data.tag || `meagendae-${Date.now()}`,
+      renotify: true,
+      requireInteraction: true,
+      actions: [
+        { action: 'open', title: 'Ver agora' },
+        { action: 'close', title: 'Fechar' }
+      ]
+    };
 
     event.waitUntil(self.registration.showNotification(title, options));
   } catch (err) {
-    console.error('Push event error:', err);
+    console.error('[Service Worker] Push event error:', err);
   }
 });
 
 // Notification click handler
 self.addEventListener('notificationclick', (event) => {
+  console.log('[Service Worker] Notification click Received.', event.action);
   event.notification.close();
+
+  if (event.action === 'close') return;
 
   const url = event.notification.data?.url || '/dashboard';
 
   event.waitUntil(
     self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
-      // Focus existing window if available
+      // If a window is already open with the same URL, focus it
       for (const client of clientList) {
         if (client.url.includes(url) && 'focus' in client) {
           return client.focus();
