@@ -3,14 +3,14 @@ import { usePushNotifications } from '@/hooks/usePushNotifications';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Bell, X } from 'lucide-react';
+import { toast } from 'sonner';
 
 const DISMISSED_KEY = 'push_prompt_dismissed';
 
 export function PushNotificationPrompt() {
   const { user } = useAuth();
-  const { isSupported, permission, isSubscribed, subscribe } = usePushNotifications();
+  const { isSupported, permission, isSubscribed, subscribe, loading: pushLoading } = usePushNotifications();
   const [visible, setVisible] = useState(false);
-  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (!user || !isSupported || isSubscribed || permission === 'denied') {
@@ -34,10 +34,13 @@ export function PushNotificationPrompt() {
   }, [user, isSupported, isSubscribed, permission]);
 
   const handleAllow = async () => {
-    setLoading(true);
-    await subscribe();
-    setLoading(false);
-    setVisible(false);
+    const result = await subscribe();
+    if (result.success) {
+      toast.success('Notificações ativadas com sucesso!');
+      setVisible(false);
+    } else {
+      toast.error(result.error || 'Erro ao ativar notificações');
+    }
   };
 
   const handleDismiss = () => {
@@ -62,8 +65,8 @@ export function PushNotificationPrompt() {
               Receba alertas de novos agendamentos, cancelamentos e reagendamentos em tempo real.
             </p>
             <div className="flex gap-2 mt-3">
-              <Button size="sm" onClick={handleAllow} disabled={loading}>
-                {loading ? 'Ativando...' : 'Permitir'}
+              <Button size="sm" onClick={handleAllow} disabled={pushLoading}>
+                {pushLoading ? 'Ativando...' : 'Permitir'}
               </Button>
               <Button size="sm" variant="ghost" onClick={handleDismiss}>
                 Agora não
