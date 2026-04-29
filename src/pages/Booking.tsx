@@ -1607,24 +1607,8 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
         });
       } catch { /* silent */ }
 
-      // Send push notification to professional
-      try {
-        const { data: profProfile } = await supabase
-          .from('profiles')
-          .select('user_id')
-          .eq('id', selectedProfessional)
-          .single();
-        if (profProfile?.user_id) {
-          supabase.functions.invoke('send-push', {
-            body: {
-              user_id: profProfile.user_id,
-              title: 'Novo agendamento',
-              body: `${clientForm.full_name} marcou horário às ${selectedTime}`,
-              url: '/dashboard',
-            },
-          }).catch(() => {});
-        }
-      } catch { /* non-critical */ }
+      // Notificação push agora é disparada automaticamente pelo backend via trigger
+      console.log('Push notification scheduled via backend');
 
       const professionalProfile = professionals.find((p) => p.id === selectedProfessional);
       const bookedServiceNames = selectedServices
