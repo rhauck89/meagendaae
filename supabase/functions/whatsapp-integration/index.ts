@@ -11,6 +11,7 @@ const delay = (ms: number) => new Promise(res => setTimeout(res, ms));
 
 serve(async (req) => {
   console.log("WHATSAPP FUNCTION VERSION: V2 - OTP DEBUG ATIVO");
+  throw new Error("TESTE FORÇADO: Se você vê isso, a função whatsapp-integration foi chamada com sucesso.");
   
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
