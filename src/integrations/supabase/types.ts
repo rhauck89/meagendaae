@@ -5742,7 +5742,7 @@ export type Database = {
           code: string
           company_id: string | null
           created_at: string | null
-          email: string
+          email: string | null
           expires_at: string
           id: string
           phone: string
@@ -5752,7 +5752,7 @@ export type Database = {
           code: string
           company_id?: string | null
           created_at?: string | null
-          email: string
+          email?: string | null
           expires_at: string
           id?: string
           phone: string
@@ -5762,7 +5762,7 @@ export type Database = {
           code?: string
           company_id?: string | null
           created_at?: string | null
-          email?: string
+          email?: string | null
           expires_at?: string
           id?: string
           phone?: string
