@@ -19,21 +19,53 @@ serve(async (req) => {
   );
 
   try {
-    const { email, type } = await req.json();
+    const { email, password, fullName, type } = await req.json();
 
     if (!email || !type) {
       throw new Error("Email and type are required");
     }
 
-    // Gerar o link oficial do Supabase Auth sem enviar o e-mail automático
-    const { data, error } = await supabaseAdmin.auth.admin.generateLink({
-      type: type === 'reset' ? 'recovery' : 'signup',
-      email: email,
-    });
+    let link = "";
+    let userName = fullName || email.split('@')[0];
 
-    if (error) throw error;
+    if (type === 'signup') {
+      // 1. Criar o usuário via Admin API para ter controle total
+      const { data: userData, error: createError } = await supabaseAdmin.auth.admin.createUser({
+        email: email,
+        password: password,
+        email_confirm: false,
+        user_metadata: { full_name: fullName }
+      });
 
-    const link = data.properties.action_link;
+      if (createError) {
+        // Se o usuário já existe, podemos apenas reenviar o link
+        if (createError.message.includes('already registered')) {
+          const { data: existingLink, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
+            type: 'signup',
+            email: email,
+          });
+          if (linkError) throw linkError;
+          link = existingLink.properties.action_link;
+        } else {
+          throw createError;
+        }
+      } else {
+        // 2. Gerar o link de confirmação
+        const { data: signupLink, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
+          type: 'signup',
+          email: email,
+        });
+        if (linkError) throw linkError;
+        link = signupLink.properties.action_link;
+      }
+    } else if (type === 'reset') {
+      const { data, error } = await supabaseAdmin.auth.admin.generateLink({
+        type: 'recovery',
+        email: email,
+      });
+      if (error) throw error;
+      link = data.properties.action_link;
+    }
 
     // Disparar o e-mail via nossa função send-email centralizada
     const emailResp = await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/send-email`, {
@@ -47,7 +79,7 @@ serve(async (req) => {
         type: type === 'reset' ? 'password_reset' : 'email_confirmation',
         data: { 
           link: link,
-          name: email.split('@')[0] // Fallback para nome
+          name: userName
         }
       }),
     });
