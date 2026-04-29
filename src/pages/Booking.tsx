@@ -2594,7 +2594,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                     <Label className="text-[10px] uppercase font-bold opacity-40 ml-2">WhatsApp</Label>
                     <Input 
                       value={clientForm.whatsapp}
-                      onChange={(e) => setClientForm({ ...clientForm, whatsapp: formatPhone(e.target.value) })}
+                      onChange={(e) => setClientForm({ ...clientForm, whatsapp: displayWhatsApp(e.target.value) })}
                       placeholder="(00) 00000-0000"
                       className="rounded-2xl h-12 bg-white/5 border-white/10 text-white font-bold"
                     />
