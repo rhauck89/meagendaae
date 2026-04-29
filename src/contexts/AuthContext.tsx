@@ -220,6 +220,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const isAdmin = useMemo(() => {
+    return roles.some(r => ['super_admin', 'professional', 'collaborator'].includes(r));
+  }, [roles]);
+
   return (
     <AuthContext.Provider value={{ 
       user, 
@@ -229,6 +233,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       profile, 
       companyId, 
       roles, 
+      isAdmin,
       loginMode, 
       setLoginMode, 
       isAlsoCollaborator, 
