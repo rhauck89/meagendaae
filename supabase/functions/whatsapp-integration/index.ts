@@ -88,9 +88,36 @@ Deno.serve(async (req) => {
       return json;
     };
 
-    const getInstance = async (id: string) => {
+    const getInstance = async (id?: string) => {
+      if (!id) return null;
       const { data } = await adminClient.from('whatsapp_instances').select('*').eq('company_id', id).maybeSingle();
       return data;
+    };
+
+    const getEffectiveInstance = async (companyId?: string) => {
+      const SYSTEM_INSTANCE_NAME = Deno.env.get('SYSTEM_WHATSAPP_INSTANCE') || 'agendae';
+      
+      // 1. Tenta instância da empresa
+      const companyInstance = await getInstance(companyId);
+      if (companyInstance && companyInstance.status === 'connected') {
+        return { instance: companyInstance, isFallback: false };
+      }
+
+      // 2. FALLBACK: Tenta instância global do sistema
+      const { data: systemInstance } = await adminClient
+        .from('whatsapp_instances')
+        .select('*')
+        .eq('instance_name', SYSTEM_INSTANCE_NAME)
+        .eq('status', 'connected')
+        .maybeSingle();
+
+      if (systemInstance) {
+        console.log(`[FALLBACK] Usando instância do sistema: ${SYSTEM_INSTANCE_NAME} para empresa ${companyId}`);
+        return { instance: systemInstance, isFallback: true };
+      }
+
+      console.log(`[NO_INSTANCE] Nenhuma instância conectada encontrada para empresa ${companyId} ou sistema ${SYSTEM_INSTANCE_NAME}`);
+      return { instance: null, isFallback: false };
     };
 
     const formatPhone = (phone: string) => {
@@ -121,7 +148,7 @@ Deno.serve(async (req) => {
       
       if (!targetCompanyId) {
         console.error('[OTP_ERROR_REAL] send-otp: Missing companyId');
-        throw new Error('ID da empresa não informado.');
+        return new Response(JSON.stringify({ success: false, reason: 'MISSING_PARAMS', message: 'ID da empresa não informado.' }), { headers: corsHeaders });
       }
       
       console.log(`[OTP_GENERATE] Phone: ${phone}, Email: ${targetEmail}, Company: ${targetCompanyId}`);
@@ -142,7 +169,7 @@ Deno.serve(async (req) => {
 
       if (recentAttempts && recentAttempts >= 10) {
         console.warn(`[OTP_GENERATE] Rate limit hit for ${cleanPhone || userIp}`);
-        throw new Error('Muitas tentativas em curto período. Tente novamente em 1 hora.');
+        return new Response(JSON.stringify({ success: false, reason: 'RATE_LIMIT', message: 'Muitas tentativas em curto período. Tente novamente em 1 hora.' }), { headers: corsHeaders });
       }
 
       // Invalidate old UNUSED codes for this phone in this company
@@ -164,39 +191,52 @@ Deno.serve(async (req) => {
 
       if (insertError) {
         console.error('[OTP_ERROR_REAL] Database insert error:', insertError);
-        throw new Error(`Erro ao registrar código: ${insertError.message}`);
+        return new Response(JSON.stringify({ success: false, reason: 'DB_ERROR', error: insertError.message }), { headers: corsHeaders });
       }
 
-      const instance = await getInstance(targetCompanyId);
-      console.log(`[OTP] Instance for company ${targetCompanyId}:`, instance ? `${instance.instance_name} (${instance.status})` : 'None');
-
-      if (phone && instance && instance.status === 'connected') {
+      const { instance, isFallback } = await getEffectiveInstance(targetCompanyId);
+      
+      if (phone && instance) {
         try {
           const message = `Seu código de acesso para Agendae é: *${code}*\n\nEste código expira em 5 minutos.`;
           await sendWhatsApp(instance.instance_name, phone, message);
-          console.log(`[OTP] Sent via WhatsApp to ${phone}`);
-          return new Response(JSON.stringify({ success: true, method: 'whatsapp' }), { headers: corsHeaders });
+          console.log(`[OTP] Enviado via WhatsApp (${instance.instance_name}) para ${phone}. Fallback: ${isFallback}`);
+          return new Response(JSON.stringify({ 
+            success: true, 
+            method: 'whatsapp', 
+            isFallback,
+            instance: instance.instance_name 
+          }), { headers: corsHeaders });
         } catch (waError: any) {
-          console.error('[OTP] WhatsApp send failure:', waError.message);
+          console.error('[OTP] Falha no envio WhatsApp:', waError.message);
+          // Continua para o fallback de e-mail se o WhatsApp falhar
         }
       } 
       
       if (targetEmail) {
-        console.log(`[OTP] Falling back to Magic Link for ${targetEmail}`);
+        console.log(`[OTP] Seguindo para Magic Link para ${targetEmail}`);
         const { data, error: linkError } = await adminClient.auth.admin.generateLink({
           type: 'magiclink',
           email: targetEmail,
           options: { redirectTo: params.redirectTo || 'https://app.agendae.io/' }
         });
         if (linkError) {
-          console.error('[OTP] Magic Link error:', linkError);
-          throw linkError;
+          console.error('[OTP] Erro no Magic Link:', linkError);
+          return new Response(JSON.stringify({ 
+            success: false, 
+            reason: 'EMAIL_ERROR', 
+            error: linkError.message 
+          }), { headers: corsHeaders });
         }
         return new Response(JSON.stringify({ success: true, method: 'email' }), { headers: corsHeaders });
       } else {
-        const statusMsg = instance ? (instance.status !== 'connected' ? 'WhatsApp desconectado' : 'Falha no envio') : 'WhatsApp não configurado';
-        console.error(`[OTP] No delivery method available: ${statusMsg}`);
-        throw new Error(`Não foi possível enviar código via WhatsApp (${statusMsg}). Tente outro método ou entre em contato.`);
+        const reason = !instance ? 'NO_INSTANCE' : 'SEND_FAILURE';
+        console.error(`[OTP] Nenhum método de entrega disponível: ${reason}`);
+        return new Response(JSON.stringify({ 
+          success: false, 
+          reason,
+          message: 'Não foi possível enviar o código. WhatsApp indisponível e e-mail não informado.'
+        }), { headers: corsHeaders });
       }
     }
 
@@ -209,12 +249,12 @@ Deno.serve(async (req) => {
 
       if (!code || code.length !== 6) {
         console.error(`[OTP_ERROR_REAL] Invalid code format: ${code}`);
-        throw new Error('Código deve ter 6 dígitos.');
+        return new Response(JSON.stringify({ success: false, reason: 'INVALID_FORMAT', message: 'Código deve ter 6 dígitos.' }), { headers: corsHeaders });
       }
 
       if (!targetCompanyId) {
         console.error(`[OTP_ERROR_REAL] Missing company_id in verify-otp request`);
-        throw new Error('ID da empresa não informado.');
+        return new Response(JSON.stringify({ success: false, reason: 'MISSING_COMPANY', message: 'ID da empresa não informado.' }), { headers: corsHeaders });
       }
 
       const cleanPhone = phone ? formatPhone(phone) : null;
@@ -236,7 +276,7 @@ Deno.serve(async (req) => {
 
       if (fetchError) {
         console.error('[OTP_ERROR_REAL] DB Fetch Error:', fetchError);
-        throw new Error(`Erro ao consultar código: ${fetchError.message}`);
+        return new Response(JSON.stringify({ success: false, reason: 'DB_ERROR', error: fetchError.message }), { headers: corsHeaders });
       }
 
       if (!otp) {
@@ -253,19 +293,19 @@ Deno.serve(async (req) => {
         
         if (anyOtp) {
           console.log(`[OTP_ROW_FOUND] But invalid state: code_match=${anyOtp.code === code}, used=${anyOtp.used}, expired=${new Date(anyOtp.expires_at) < new Date()}`);
-          if (anyOtp.used) throw new Error('Este código já foi utilizado.');
-          if (new Date(anyOtp.expires_at) < new Date()) throw new Error('Este código expirou.');
-          if (anyOtp.code !== code) throw new Error('Código incorreto.');
+          if (anyOtp.used) return new Response(JSON.stringify({ success: false, reason: 'ALREADY_USED', message: 'Este código já foi utilizado.' }), { headers: corsHeaders });
+          if (new Date(anyOtp.expires_at) < new Date()) return new Response(JSON.stringify({ success: false, reason: 'EXPIRED', message: 'Este código expirou.' }), { headers: corsHeaders });
+          if (anyOtp.code !== code) return new Response(JSON.stringify({ success: false, reason: 'INCORRECT_CODE', message: 'Código incorreto.' }), { headers: corsHeaders });
         }
         
-        throw new Error('Código inválido ou não encontrado.');
+        return new Response(JSON.stringify({ success: false, reason: 'NOT_FOUND', message: 'Código inválido ou não encontrado.' }), { headers: corsHeaders });
       }
 
       console.log(`[OTP_ROW_FOUND] ID: ${otp.id}, attempts: ${otp.attempts}`);
 
       if (otp.attempts >= (otp.max_attempts || 5)) {
         console.warn(`[OTP_ERROR_REAL] Max attempts reached for OTP ${otp.id}`);
-        throw new Error('Máximo de tentativas excedido. Solicite um novo código.');
+        return new Response(JSON.stringify({ success: false, reason: 'MAX_ATTEMPTS', message: 'Máximo de tentativas excedido. Solicite um novo código.' }), { headers: corsHeaders });
       }
 
       // Mark as used immediately
@@ -277,7 +317,7 @@ Deno.serve(async (req) => {
 
       if (updateError) {
         console.error(`[OTP_ERROR_REAL] Failed to mark OTP as used:`, updateError);
-        throw new Error('Erro ao atualizar estado do código.');
+        return new Response(JSON.stringify({ success: false, reason: 'UPDATE_ERROR', message: 'Erro ao atualizar estado do código.' }), { headers: corsHeaders });
       }
 
       console.log(`[OTP_SUCCESS] OTP ${otp.id} verified. Starting login process...`);
@@ -371,6 +411,42 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ success: true, needsEmail: true }), { headers: corsHeaders });
     }
 
+    if (action === 'send-message') {
+      const { phone, message, imageUrl } = params;
+      
+      if (!phone || !message) {
+        return new Response(JSON.stringify({ success: false, reason: 'INVALID_PARAMS', message: 'Telefone e mensagem são obrigatórios.' }), { headers: corsHeaders });
+      }
+
+      const { instance, isFallback } = await getEffectiveInstance(companyId);
+      
+      if (!instance) {
+        return new Response(JSON.stringify({ 
+          success: false, 
+          reason: 'NO_INSTANCE',
+          message: 'Nenhuma instância de WhatsApp disponível (empresa ou sistema).' 
+        }), { headers: corsHeaders });
+      }
+
+      console.log(`[SEND_MESSAGE] Usando instância: ${instance.instance_name} (Fallback: ${isFallback}) para ${phone}`);
+      
+      try {
+        await sendWhatsApp(instance.instance_name, phone, message, imageUrl);
+        return new Response(JSON.stringify({ 
+          success: true, 
+          instance: instance.instance_name, 
+          isFallback 
+        }), { headers: corsHeaders });
+      } catch (err: any) {
+        console.error(`[SEND_MESSAGE] Erro no envio: ${err.message}`);
+        return new Response(JSON.stringify({ 
+          success: false, 
+          reason: 'SEND_FAILURE', 
+          error: err.message 
+        }), { headers: corsHeaders });
+      }
+    }
+
     if (action === 'track-abandonment') {
       const { companyId, clientData, slotData, sessionId } = params;
       
@@ -394,13 +470,24 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ success: true, id: abandonment.id }), { headers: corsHeaders });
     }
 
-    return new Response(JSON.stringify({ error: 'Action not implemented' }), { 
-      status: 400, 
-      headers: corsHeaders 
+    return new Response(JSON.stringify({ 
+      success: false, 
+      reason: 'NOT_IMPLEMENTED',
+      message: `Ação '${action}' não implementada.` 
+    }), { 
+      status: 200, 
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
     });
 
   } catch (error: any) {
-    console.error(`[ERROR] ${error.message}`);
-    return new Response(JSON.stringify({ error: error.message }), { status: 500, headers: corsHeaders });
+    console.error(`[FATAL_ERROR] ${error.message}`);
+    return new Response(JSON.stringify({ 
+      success: false, 
+      reason: 'SERVER_ERROR',
+      error: error.message 
+    }), { 
+      status: 200, // Nunca retorna 500 conforme solicitado
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+    });
   }
 });
