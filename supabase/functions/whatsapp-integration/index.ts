@@ -263,9 +263,9 @@ serve(async (req) => {
         '{{hora}}': formattedTime,
         '{{servico}}': serviceNames,
         '{{profissional}}': appointment.professional?.full_name || 'Profissional',
-        '{{link_agendamento}}': `${webBaseUrl}/${companySlug}`,
-        '{{link_cancelamento}}': `${webBaseUrl}/${companySlug}/meus-agendamentos`,
-        '{{link_reagendamento}}': `${webBaseUrl}/${companySlug}/meus-agendamentos`,
+        '{{link_agendamento}}': `${webBaseUrl}/${companySlug || ''}`,
+        '{{link_cancelamento}}': `${webBaseUrl}/cancel/${appointmentId}`,
+        '{{link_reagendamento}}': `${webBaseUrl}/reschedule/${appointmentId}`,
         '{{link_avaliacao}}': `${webBaseUrl}/review/${appointmentId}`,
         '{{cashback}}': 'R$ 0,00' // Placeholder for now
       };
