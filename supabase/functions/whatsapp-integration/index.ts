@@ -470,13 +470,24 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ success: true, id: abandonment.id }), { headers: corsHeaders });
     }
 
-    return new Response(JSON.stringify({ error: 'Action not implemented' }), { 
-      status: 400, 
-      headers: corsHeaders 
+    return new Response(JSON.stringify({ 
+      success: false, 
+      reason: 'NOT_IMPLEMENTED',
+      message: `Ação '${action}' não implementada.` 
+    }), { 
+      status: 200, 
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
     });
 
   } catch (error: any) {
-    console.error(`[ERROR] ${error.message}`);
-    return new Response(JSON.stringify({ error: error.message }), { status: 500, headers: corsHeaders });
+    console.error(`[FATAL_ERROR] ${error.message}`);
+    return new Response(JSON.stringify({ 
+      success: false, 
+      reason: 'SERVER_ERROR',
+      error: error.message 
+    }), { 
+      status: 200, // Nunca retorna 500 conforme solicitado
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+    });
   }
 });
