@@ -265,7 +265,7 @@ serve(async (req) => {
         '{{link_agendamento}}': `${webBaseUrl}/${companySlug}`,
         '{{link_cancelamento}}': `${webBaseUrl}/${companySlug}/meus-agendamentos`,
         '{{link_reagendamento}}': `${webBaseUrl}/${companySlug}/meus-agendamentos`,
-        '{{link_avaliacao}}': `${webBaseUrl}/${companySlug}/avaliar/${appointmentId}`,
+        '{{link_avaliacao}}': `${webBaseUrl}/review/${appointmentId}`,
         '{{cashback}}': 'R$ 0,00' // Placeholder for now
       };
 
