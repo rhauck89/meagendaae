@@ -517,7 +517,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
         return;
       }
 
-      const { data, error } = await supabase
+      let { data, error } = await supabase
         .from('clients')
         .select('*')
         .eq('user_id', user.id)
@@ -528,6 +528,45 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
         console.warn('[Booking] hasValidClient check error:', error);
       }
       
+      // AUTO-CREATE local client if authenticated but no client record exists for this company
+      if (!data && !error && user) {
+        console.log('[Booking] Authenticated user has no client record for this company. Creating automatically...');
+        const normalizedPhone = normalizePhone(user.user_metadata?.whatsapp || user.phone || '');
+        const clientName = user.user_metadata?.full_name || user.user_metadata?.name || 'Cliente';
+        
+        // 1. Ensure Global Client
+        const { data: globalClient } = await (supabase
+          .from('clients_global' as any)
+          .upsert({
+            user_id: user.id,
+            whatsapp: normalizedPhone || null,
+            name: clientName,
+            email: user.email,
+          }, { onConflict: 'whatsapp' })
+          .select()
+          .single() as any);
+
+        // 2. Create Local Client
+        const { data: newClient, error: createError } = await (supabase
+          .from('clients' as any)
+          .upsert({
+            company_id: company.id,
+            user_id: user.id,
+            global_client_id: globalClient?.id,
+            name: clientName,
+            whatsapp: normalizedPhone || null,
+            email: user.email,
+          }, { onConflict: 'company_id, user_id' })
+          .select()
+          .single() as any);
+
+        if (createError) {
+          console.error('[Booking] Failed to auto-create client:', createError);
+        } else {
+          data = newClient;
+        }
+      }
+
       if (data) {
         setHasValidClient(true);
         // Automatic recognition: Pre-fill form if not already filled or if it was just auto-filled
