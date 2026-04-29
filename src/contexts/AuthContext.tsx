@@ -15,6 +15,7 @@ interface AuthContextType {
   loginMode: LoginMode;
   setLoginMode: (mode: LoginMode) => void;
   isAlsoCollaborator: boolean;
+  isAdmin: boolean;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
   updateAuthState: (session: Session | null) => Promise<void>;
