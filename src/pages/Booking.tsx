@@ -264,19 +264,20 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
   const selectedSlotIsAvailable = selectedTime ? generatedSlots.includes(selectedTime) : false;
   const [bookingResult, setBookingResult] = useState<{
     appointmentId: string;
-    professionalName: string;
-    professionalAvatar: string | null;
-    serviceNames: string[];
-    date: Date;
-    time: string;
-    totalPrice: number;
-    totalDuration: number;
-    companyName: string;
-    companyPhone: string | null;
-    companyAddress: string | null;
-    companyCity: string | null;
-    companyState: string | null;
-    companyPostalCode: string | null;
+    success?: boolean;
+    professionalName?: string;
+    professionalAvatar?: string | null;
+    serviceNames?: string[];
+    date?: Date;
+    time?: string;
+    totalPrice?: number;
+    totalDuration?: number;
+    companyName?: string;
+    companyPhone?: string | null;
+    companyAddress?: string | null;
+    companyCity?: string | null;
+    companyState?: string | null;
+    companyPostalCode?: string | null;
   } | null>(null);
 
   const isDark = businessType === 'barbershop';
@@ -1437,15 +1438,23 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
         return;
       }
 
-      console.log('[Booking] Creating appointment:', appointmentPayload);
+      console.log('[BOOKING_PAYLOAD]', JSON.stringify(appointmentPayload, null, 2));
       const { data: appointmentId, error: aptError } = await supabase
         .rpc('create_appointment' as any, appointmentPayload as any);
+
+      console.log('[BOOKING_RESULT]', { appointmentId, error: aptError });
+
       if (aptError) {
-        console.error('[Booking] Appointment creation error:', aptError);
+        console.error('[BOOKING_SUPABASE_ERROR]', JSON.stringify(aptError, null, 2));
         throw aptError;
       }
-      console.log('[Booking] Appointment created:', appointmentId);
-      if (!appointmentId) throw new Error('Falha ao criar agendamento');
+      
+      if (!appointmentId) {
+        console.error('[BOOKING_ERROR] No appointment ID returned');
+        throw new Error('Falha ao criar agendamento no servidor');
+      }
+      
+      console.log('[BOOKING_SUCCESS] ID:', appointmentId);
 
       // Update client updated_at and potentially email/name
       if (clientId) {
@@ -1595,6 +1604,18 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
 
       setStep('success');
     } catch (err: any) {
+      console.error('[BOOKING_FATAL_ERROR]', err);
+      
+      // Detailed error log for Supabase
+      if (err.code || err.message) {
+        console.error('[BOOKING_ERROR_DETAILS]', {
+          code: err.code,
+          message: err.message,
+          hint: err.hint,
+          details: err.details
+        });
+      }
+
       const info = translateBookingError(err);
       if ((info.kind === 'conflict' || info.kind === 'invalid_slot') && company && selectedDate && selectedProfessional) {
         const freshAvailability = await getAvailableSlots({
@@ -1615,6 +1636,10 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
       } else {
         setBookingError(info);
       }
+      
+      // Prevent success message if it failed
+      setBookingResult({ appointmentId: '', success: false });
+      toast.error(err.message || 'Ocorreu um erro ao processar seu agendamento.');
     } finally {
       setLoading(false);
     }
