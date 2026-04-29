@@ -3041,24 +3041,44 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
         onClose={() => setShowIdentityModal(false)}
         companyId={company?.id}
         onLoginSuccess={async (clientData) => {
-          console.log('[LOGIN_SUCCESS] IdentityModal success callback triggered');
-          
-          console.log('[FORCED_LOGIN_STATE] Client session is now active');
+          console.log('[LOGIN_SUCCESS] IdentityModal success callback triggered', clientData);
           
           setShowIdentityModal(false);
           setShowOneClickCard(true);
           setIsChangingData(false);
           
+          // Se o clientData foi passado (do IdentityModal), usamos ele para preencher o formulário
+          if (clientData) {
+            setClientForm({
+              full_name: clientData.full_name || '',
+              whatsapp: displayWhatsApp(clientData.whatsapp || ''),
+              email: clientData.email || '',
+              birth_date: clientData.birth_date || '',
+            });
+          }
+
           const { data: { user } } = await supabase.auth.getUser();
+          const userRole = profile?.role || 'client';
+          const isAdmin = ['admin', 'professional', 'company', 'super_admin'].includes(userRole);
           
           if (user) {
-            console.log('[CLIENT_SET] recognized user:', user.id);
-            let { data: client } = await supabase
+            console.log('[CLIENT_SET] current user:', user.id, 'Role:', userRole);
+            
+            // Busca o registro local do cliente
+            let query = supabase
               .from('clients')
               .select('*')
-              .eq('user_id', user.id)
-              .eq('company_id', company?.id)
-              .maybeSingle();
+              .eq('company_id', company?.id);
+            
+            if (isAdmin && clientData?.whatsapp) {
+              // Se for admin, busca pelo whatsapp do cliente identificado
+              query = query.eq('whatsapp', normalizePhone(clientData.whatsapp));
+            } else {
+              // Se for cliente, busca pelo user_id
+              query = query.eq('user_id', user.id);
+            }
+
+            let { data: client } = await query.maybeSingle();
 
             if (!client && company?.id) {
               console.log('[Booking] Post-login: auto-creating local client record...');
