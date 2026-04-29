@@ -258,6 +258,9 @@ serve(async (req) => {
         renderedBody = renderedBody.split(key).join(val);
       });
 
+      // Normalize line breaks: convert literal \n or \r\n to real newlines
+      renderedBody = renderedBody.replace(/\\r\\n/g, '\n').replace(/\\n/g, '\n');
+
       // 5. Send Message
       const targetPhone = String(appointment.client_whatsapp || appointment.client?.whatsapp || "").replace(/\D/g, '');
       if (!targetPhone) {
