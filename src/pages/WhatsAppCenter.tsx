@@ -411,9 +411,16 @@ function ConnectionTab({ companyId, userId, instance, loading, onChange }: { com
       // Step 1: Create instance in Evolution API and Save to DB
       // The Edge Function already handles destroying old instance if action='create'
       console.log('Step 1: Creating instance...');
-      await connectInstance(companyId); 
+      const res = await connectInstance(companyId); 
       
-      // Step 2: Immediate UI refresh to show "Generating QR..."
+      // If the create action already returned a qrcode, use it
+      // @ts-ignore
+      if (res?.instance?.qr_code) {
+        // @ts-ignore
+        setLocalQrCode(res.instance.qr_code);
+      }
+      
+      // Step 2: Immediate UI refresh
       onChange();
       
       // Step 3: Fetch the actual QR code base64
