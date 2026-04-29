@@ -7,47 +7,55 @@ const corsHeaders = {
   'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
 }
 
-// Utility to sleep
 const delay = (ms: number) => new Promise(res => setTimeout(res, ms));
 
 serve(async (req) => {
-  console.log("WHATSAPP FUNCTION VERSION: V2 - CORS FIX");
+  const debugLogs: string[] = [];
+  const log = (msg: any) => {
+    const message = typeof msg === 'object' ? JSON.stringify(msg, null, 2) : String(msg);
+    console.log(message);
+    debugLogs.push(message);
+  };
+
+  log("WHATSAPP FUNCTION VERSION: V2 - FULL DEBUG");
   
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
   }
 
   try {
+    log("Iniciando criação do cliente Supabase...");
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
+    log("Cliente Supabase criado.");
 
-    // TESTE SELECT IMEDIATO PARA DIAGNÓSTICO
+    log("Executando TESTE SELECT inicial...");
     const testSelect = await supabaseClient.from('whatsapp_otp_codes').select('*').limit(1);
-    console.log("TESTE SELECT:", JSON.stringify(testSelect));
+    log({ testSelect });
 
     const requestBody = await req.json()
-    console.log("REQUEST RECEBIDA:", JSON.stringify(requestBody));
+    log({ requestBody });
+
     
     const { action, companyId, phone, message, text } = requestBody
-    
-    console.log("ACTION RECEBIDA:", action);
+    log(`ACTION RECEBIDA: ${action}`);
 
     const EVOLUTION_API_URL = "https://apiwpp.meagendae.com.br"
     const EVOLUTION_API_KEY = Deno.env.get('EVOLUTION_API_KEY')
 
     if (!EVOLUTION_API_URL) {
-      console.log("ERRO: BASE_URL_UNDEFINED");
-      return new Response(JSON.stringify({ success: false, error: "BASE_URL_UNDEFINED" }), { 
+      log("ERRO: BASE_URL_UNDEFINED");
+      return new Response(JSON.stringify({ success: false, error: "BASE_URL_UNDEFINED", debug: debugLogs }), { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 200 
       })
     }
 
     if (!EVOLUTION_API_KEY) {
-      console.log("ERRO: API_KEY_UNDEFINED");
-      return new Response(JSON.stringify({ success: false, error: "API_KEY_UNDEFINED" }), { 
+      log("ERRO: API_KEY_UNDEFINED");
+      return new Response(JSON.stringify({ success: false, error: "API_KEY_UNDEFINED", debug: debugLogs }), { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 200 
       })
@@ -56,10 +64,9 @@ serve(async (req) => {
     const baseUrl = EVOLUTION_API_URL.replace(/\/+$/, '')
     const instanceName = `company_${companyId}`
 
-    // LOGS CRÍTICOS ANTES DE QUALQUER FETCH
-    console.log("BASE URL FINAL:", baseUrl)
-    console.log("API KEY:", EVOLUTION_API_KEY ? "OK" : "MISSING")
-    console.log("INSTANCE NAME:", instanceName)
+    log(`BASE URL FINAL: ${baseUrl}`);
+    log(`INSTANCE NAME: ${instanceName}`);
+
 
     const callEvolution = async (endpoint: string, method = 'GET', body: any = null) => {
       const url = `${baseUrl}${endpoint}`
@@ -287,10 +294,9 @@ serve(async (req) => {
       }
 
       if (isOtp) {
-        console.log("INICIANDO FLUXO OTP...");
+        log("INICIANDO FLUXO OTP...");
         
-        // TESTE DE INSERT FIXO PARA DIAGNÓSTICO
-        console.log("EXECUTANDO TESTE DE INSERT FIXO...");
+        log("EXECUTANDO TESTE DE INSERT FIXO...");
         const fixedTest = await supabaseClient.from('whatsapp_otp_codes').insert({
           phone: "5511999999999",
           code: "123456",
@@ -298,19 +304,14 @@ serve(async (req) => {
           expires_at: new Date(Date.now() + 5 * 60 * 1000).toISOString()
         }).select();
         
-        console.log("RESULTADO TESTE FIXO:", JSON.stringify(fixedTest));
-        if (fixedTest.error) {
-          console.error("ERRO TESTE FIXO:", JSON.stringify(fixedTest.error));
-        }
+        log({ fixedTest });
 
-        console.log("PHONE:", phone);
-        console.log("COMPANY_ID:", companyId);
+        log(`PHONE: ${phone}`);
+        log(`COMPANY_ID: ${companyId}`);
         
         const code = Math.floor(100000 + Math.random() * 900000).toString();
-        console.log("CODIGO GERADO:", code);
+        log(`CODIGO GERADO: ${code}`);
         targetMessage = `Seu código de acesso para MeAgendae é: ${code}`;
-        
-        console.log("COMPANY_ID RECEBIDO NO PAYLOAD:", companyId);
         
         const otpPayload = {
           phone: targetPhone,
@@ -321,7 +322,8 @@ serve(async (req) => {
           verified: false
         };
 
-        console.log("PAYLOAD OTP:", JSON.stringify(otpPayload));
+        log("PAYLOAD OTP:");
+        log(otpPayload);
 
         const { data: savedOtp, error: otpError } = await supabaseClient
           .from('whatsapp_otp_codes')
@@ -330,19 +332,21 @@ serve(async (req) => {
           .single();
 
         if (otpError) {
-          console.log("ERRO REAL DO SUPABASE:", JSON.stringify(otpError, null, 2));
+          log("ERRO REAL DO SUPABASE:");
+          log(otpError);
 
           return new Response(JSON.stringify({
             success: false,
             error: "OTP_SAVE_FAILED",
-            supabase_error: otpError
+            supabase_error: otpError,
+            debug: debugLogs
           }), { 
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
             status: 200 
           });
         }
         
-        console.log("OTP SALVO COM SUCESSO");
+        log("OTP SALVO COM SUCESSO");
       }
 
       console.log("MENSAGEM FINAL:", targetMessage);
@@ -352,16 +356,17 @@ serve(async (req) => {
         text: targetMessage
       };
 
-      console.log("ENVIANDO WHATSAPP OTP/MESSAGE...");
+      log("ENVIANDO WHATSAPP OTP/MESSAGE...");
       const res = await callEvolution(`/message/sendText/${instanceName}`, 'POST', payload);
       
-      console.log("WHATSAPP ENVIADO. RESPOSTA EVOLUTION:", JSON.stringify(res.data));
+      log(`WHATSAPP ENVIADO. RESPOSTA EVOLUTION: ${JSON.stringify(res.data)}`);
 
       return new Response(JSON.stringify({ 
         success: true,
         message: isOtp ? "OTP enviado" : "Mensagem enviada",
         data: res.data,
-        state: state
+        state: state,
+        debug: debugLogs
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 200
@@ -372,11 +377,10 @@ serve(async (req) => {
       const targetPhone = normalizePhone(phone);
       const { code } = requestBody
 
-      console.log("PHONE BUSCADO:", targetPhone);
-      console.log("COMPANY_ID:", companyId);
-      console.log("OTP DIGITADO:", code);
+      log(`PHONE BUSCADO: ${targetPhone}`);
+      log(`COMPANY_ID: ${companyId}`);
+      log(`OTP DIGITADO: ${code}`);
 
-      // Buscar o último código gerado para este telefone e empresa
       const { data: otpData, error: otpError } = await supabaseClient
         .from('whatsapp_otp_codes')
         .select('*')
@@ -386,14 +390,16 @@ serve(async (req) => {
         .limit(1)
         .maybeSingle();
 
-      console.log("OTP ENCONTRADO NO BANCO:", JSON.stringify(otpData));
+      log("OTP ENCONTRADO NO BANCO:");
+      log(otpData);
 
       if (otpError || !otpData) {
-        console.log("ERRO: OTP_NOT_FOUND");
+        log("ERRO: OTP_NOT_FOUND");
         return new Response(JSON.stringify({ 
           success: false, 
           error: "OTP_NOT_FOUND",
-          detail: "Nenhum código encontrado para esse telefone e empresa"
+          detail: "Nenhum código encontrado para esse telefone e empresa",
+          debug: debugLogs
         }), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           status: 200
