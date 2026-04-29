@@ -32,6 +32,7 @@ const AuthContext = createContext<AuthContextType>({
   loginMode: null,
   setLoginMode: () => {},
   isAlsoCollaborator: false,
+  isAdmin: false,
   signOut: async () => {},
   refreshProfile: async () => {},
   updateAuthState: async () => {},
