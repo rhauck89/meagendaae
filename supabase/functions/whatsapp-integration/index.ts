@@ -249,8 +249,10 @@ serve(async (req) => {
       });
     }
 
+    const normalizePhone = (p: string) => String(p || "").replace(/\D/g, '');
+
     if (action === 'send-message' || action === 'send-test' || action === 'send-otp') {
-      const targetPhone = String(phone || "").replace(/\D/g, '')
+      const targetPhone = normalizePhone(phone);
       const isOtp = action === 'send-otp' || requestBody.type === 'otp'
       let targetMessage = message || text || requestBody.message
 
@@ -281,37 +283,44 @@ serve(async (req) => {
         targetMessage = `Seu código de acesso para MeAgendae é: ${code}`;
         
         console.log("SALVANDO OTP PARA:", targetPhone);
-        const { error: otpError } = await supabaseClient.from('whatsapp_otp_codes').insert({
+        const { data: savedOtp, error: otpError } = await supabaseClient.from('whatsapp_otp_codes').insert({
           phone: targetPhone,
           code,
+          company_id: companyId,
           expires_at: new Date(Date.now() + 5 * 60 * 1000).toISOString(),
-          email: requestBody.email || null
-        });
+          email: requestBody.email || null,
+          verified: false
+        }).select().single();
 
         if (otpError) {
-          console.error("ERRO AO SALVAR OTP (NÃO BLOQUEANTE):", otpError);
-        } else {
-          console.log("OTP SALVO COM SUCESSO");
+          console.error("ERRO CRÍTICO AO SALVAR OTP:", otpError);
+          return new Response(JSON.stringify({ 
+            success: false, 
+            error: "OTP_SAVE_FAILED", 
+            detail: otpError.message 
+          }), {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            status: 200
+          });
         }
+        
+        console.log("OTP SALVO COM SUCESSO:", JSON.stringify(savedOtp));
       }
 
       console.log("MENSAGEM FINAL:", targetMessage);
 
-      // Payload simplificado e normalizado conforme requisitos
       const payload = {
         number: targetPhone,
         text: targetMessage
       };
 
       console.log("ENVIANDO WHATSAPP OTP/MESSAGE...");
-      console.log("PAYLOAD FINAL:", JSON.stringify(payload));
-
       const res = await callEvolution(`/message/sendText/${instanceName}`, 'POST', payload);
       
       console.log("WHATSAPP ENVIADO. RESPOSTA EVOLUTION:", JSON.stringify(res.data));
 
       return new Response(JSON.stringify({ 
-        success: true, // Forçamos success true se chegou até aqui para evitar travamentos no front
+        success: true,
         message: isOtp ? "OTP enviado" : "Mensagem enviada",
         data: res.data,
         state: state
@@ -322,34 +331,38 @@ serve(async (req) => {
     }
 
     if (action === 'verify-otp') {
-      const normalizePhone = (p: string) => String(p || "").replace(/\D/g, '');
       const targetPhone = normalizePhone(phone);
       const { code } = requestBody
 
       console.log("PHONE BUSCADO:", targetPhone);
-      console.log("CÓDIGO DIGITADO:", code);
+      console.log("COMPANY_ID:", companyId);
+      console.log("OTP DIGITADO:", code);
 
-      // Buscar o último código gerado para este telefone
+      // Buscar o último código gerado para este telefone e empresa
       const { data: otpData, error: otpError } = await supabaseClient
         .from('whatsapp_otp_codes')
         .select('*')
         .eq('phone', targetPhone)
+        .eq('company_id', companyId)
         .order('created_at', { ascending: false })
         .limit(1)
         .maybeSingle();
 
-      console.log("OTP ENCONTRADO:", JSON.stringify(otpData));
+      console.log("OTP ENCONTRADO NO BANCO:", JSON.stringify(otpData));
 
       if (otpError || !otpData) {
-        console.log("ERRO: Código não encontrado");
-        return new Response(JSON.stringify({ success: false, error: "Código não encontrado" }), {
+        console.log("ERRO: OTP_NOT_FOUND");
+        return new Response(JSON.stringify({ 
+          success: false, 
+          error: "OTP_NOT_FOUND",
+          detail: "Nenhum código encontrado para esse telefone e empresa"
+        }), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           status: 200
         });
       }
 
       if (otpData.verified) {
-        console.log("ERRO: Código já utilizado");
         return new Response(JSON.stringify({ success: false, error: "Código já utilizado" }), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           status: 200
@@ -357,7 +370,6 @@ serve(async (req) => {
       }
 
       if (otpData.code !== String(code)) {
-        console.log("ERRO: Código inválido");
         return new Response(JSON.stringify({ success: false, error: "Código inválido" }), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           status: 200
@@ -365,7 +377,6 @@ serve(async (req) => {
       }
 
       if (new Date(otpData.expires_at) < new Date()) {
-        console.log("ERRO: Código expirado");
         return new Response(JSON.stringify({ success: false, error: "Código expirado" }), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           status: 200
@@ -384,7 +395,6 @@ serve(async (req) => {
       }
 
       if (!user && otpData.email) {
-        // Tentar buscar por email se não achou por whatsapp
         const { data: userByEmail } = await supabaseClient.auth.admin.getUserByEmail(otpData.email);
         if (userByEmail?.user) user = userByEmail.user;
       }
