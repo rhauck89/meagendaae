@@ -552,10 +552,10 @@ function ConnectionTab({ companyId, userId, instance, loading, onChange }: { com
         {(status === 'connecting' || status === 'pending') && (
           <div className="text-center py-6 space-y-4">
             <p className="font-medium">
-              {!instance?.qr_code ? 'Gerando QR Code...' : 'Escaneie o QR Code com seu WhatsApp'}
+              {!(instance?.qr_code || localQrCode) ? 'Gerando QR Code...' : 'Escaneie o QR Code com seu WhatsApp'}
             </p>
-            {instance?.qr_code ? (
-              <img src={instance.qr_code} alt="QR Code de conexão" className="mx-auto h-48 w-48 sm:h-60 sm:w-60 border rounded-lg shadow-sm" />
+            {(instance?.qr_code || localQrCode) ? (
+              <img src={instance?.qr_code || localQrCode || ''} alt="QR Code de conexão" className="mx-auto h-48 w-48 sm:h-60 sm:w-60 border rounded-lg shadow-sm" />
             ) : (
               <div className="mx-auto h-48 w-48 sm:h-60 sm:w-60 border rounded-lg flex flex-col items-center justify-center gap-2 bg-muted/30">
                 {qrTimeout ? (
