@@ -1803,7 +1803,7 @@ const Dashboard = () => {
           </CardTitle>
           <div className="flex flex-wrap items-center justify-between gap-3 min-w-0">
             <div className="flex items-center gap-2">
-              <Button variant="outline" size="icon" onClick={() => navigate(-1)}>
+              <Button variant="outline" size="icon" onClick={() => setCurrentDate(prev => addDays(prev, viewMode === 'day' ? -1 : viewMode === 'week' ? -7 : -30))}>
                 <ChevronLeft className="h-4 w-4" />
               </Button>
               <h2 className="text-lg font-display font-semibold sm:min-w-[200px] text-center">
@@ -1812,7 +1812,7 @@ const Dashboard = () => {
                   `${format(startOfWeek(currentDate, { locale: ptBR }), 'dd/MM')} - ${format(endOfWeek(currentDate, { locale: ptBR }), 'dd/MM')}`}
                 {viewMode === 'month' && format(currentDate, "MMMM 'de' yyyy", { locale: ptBR })}
               </h2>
-              <Button variant="outline" size="icon" onClick={() => navigate(1)}>
+              <Button variant="outline" size="icon" onClick={() => setCurrentDate(prev => addDays(prev, viewMode === 'day' ? 1 : viewMode === 'week' ? 7 : 30))}>
                 <ChevronRight className="h-4 w-4" />
               </Button>
               <Button variant="ghost" size="sm" onClick={() => setCurrentDate(new Date())}>
