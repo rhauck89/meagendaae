@@ -1437,15 +1437,23 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
         return;
       }
 
-      console.log('[Booking] Creating appointment:', appointmentPayload);
+      console.log('[BOOKING_PAYLOAD]', JSON.stringify(appointmentPayload, null, 2));
       const { data: appointmentId, error: aptError } = await supabase
         .rpc('create_appointment' as any, appointmentPayload as any);
+
+      console.log('[BOOKING_RESULT]', { appointmentId, error: aptError });
+
       if (aptError) {
-        console.error('[Booking] Appointment creation error:', aptError);
+        console.error('[BOOKING_SUPABASE_ERROR]', JSON.stringify(aptError, null, 2));
         throw aptError;
       }
-      console.log('[Booking] Appointment created:', appointmentId);
-      if (!appointmentId) throw new Error('Falha ao criar agendamento');
+      
+      if (!appointmentId) {
+        console.error('[BOOKING_ERROR] No appointment ID returned');
+        throw new Error('Falha ao criar agendamento no servidor');
+      }
+      
+      console.log('[BOOKING_SUCCESS] ID:', appointmentId);
 
       // Update client updated_at and potentially email/name
       if (clientId) {
