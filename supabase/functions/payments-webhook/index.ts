@@ -190,6 +190,33 @@ async function handlePaymentSuccess(data: any, env: PaddleEnv, eventId: string |
     updated_at: new Date().toISOString(),
   }).eq('id', companyId).in('subscription_status', ['past_due', 'unpaid', 'trialing', 'expired_trial']);
 
+  // Buscar e-mails dos usuários da empresa para notificar
+  const { data: profiles } = await supabase.from('profiles').select('email, user_id').eq('company_id', companyId);
+  
+  if (profiles && profiles.length > 0) {
+    for (const profile of profiles) {
+      if (!profile.email) continue;
+      try {
+        await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/send-email`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
+          },
+          body: JSON.stringify({
+            to: profile.email,
+            type: 'subscription_success',
+            data: { plan_name: 'Premium' }, // Idealmente pegar o nome real do plano
+            company_id: companyId,
+            user_id: profile.user_id
+          })
+        });
+      } catch (e) {
+        console.error('Failed to send success email', e);
+      }
+    }
+  }
+
   await supabase.from('subscription_events').insert({
     company_id: companyId,
     event_type: 'transaction.completed',
