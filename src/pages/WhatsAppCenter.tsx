@@ -383,8 +383,9 @@ function ConnectionTab({ companyId, userId, instance, loading, onChange }: { com
         }
 
         // If we have no QR and we are connecting, try to fetch it
-        if (res.mappedStatus === 'connecting' && !instance?.qr_code) {
-           await getQrCode(companyId);
+        if (res.mappedStatus === 'connecting' && (!instance?.qr_code && !localQrCode)) {
+           const qrRes = await getQrCode(companyId);
+           if (qrRes?.qrcode) setLocalQrCode(qrRes.qrcode);
            onChange();
         }
       } catch (e: any) {
