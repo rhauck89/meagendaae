@@ -1286,7 +1286,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
           user_id: user.id,
           whatsapp: normalizedPhone || null,
           name: clientForm.full_name || null,
-        }, { onConflict: 'user_id' })
+        }, { onConflict: 'whatsapp' })
         .select()
         .single() as any);
 
