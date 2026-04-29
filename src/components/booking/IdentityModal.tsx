@@ -358,11 +358,11 @@ export function IdentityModal({
     localStorage.setItem(`whatsapp_session_${companyId}`, JSON.stringify(identitySession));
     console.log('[IDENTITY_PERSISTED] Saved to localStorage');
 
-    // UX PREMIUM: Wait 800ms before closing
+    // UX PREMIUM: Close quickly after success
     setTimeout(() => {
       onLoginSuccess(identitySession);
       onClose();
-    }, 800);
+    }, 400);
   };
 
 
