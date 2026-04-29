@@ -10,6 +10,8 @@ const corsHeaders = {
 const delay = (ms: number) => new Promise(res => setTimeout(res, ms));
 
 serve(async (req) => {
+  console.log("WHATSAPP FUNCTION VERSION: V2 - OTP DEBUG ATIVO");
+  
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
   }
@@ -21,6 +23,8 @@ serve(async (req) => {
     )
 
     const requestBody = await req.json()
+    console.log("REQUEST RECEBIDA:", JSON.stringify(requestBody));
+    
     const { action, companyId, phone, message, text } = requestBody
     
     console.log("ACTION RECEBIDA:", action);
