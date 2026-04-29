@@ -88,9 +88,36 @@ Deno.serve(async (req) => {
       return json;
     };
 
-    const getInstance = async (id: string) => {
+    const getInstance = async (id?: string) => {
+      if (!id) return null;
       const { data } = await adminClient.from('whatsapp_instances').select('*').eq('company_id', id).maybeSingle();
       return data;
+    };
+
+    const getEffectiveInstance = async (companyId?: string) => {
+      const SYSTEM_INSTANCE_NAME = Deno.env.get('SYSTEM_WHATSAPP_INSTANCE') || 'agendae';
+      
+      // 1. Tenta instância da empresa
+      const companyInstance = await getInstance(companyId);
+      if (companyInstance && companyInstance.status === 'connected') {
+        return { instance: companyInstance, isFallback: false };
+      }
+
+      // 2. FALLBACK: Tenta instância global do sistema
+      const { data: systemInstance } = await adminClient
+        .from('whatsapp_instances')
+        .select('*')
+        .eq('instance_name', SYSTEM_INSTANCE_NAME)
+        .eq('status', 'connected')
+        .maybeSingle();
+
+      if (systemInstance) {
+        console.log(`[FALLBACK] Usando instância do sistema: ${SYSTEM_INSTANCE_NAME} para empresa ${companyId}`);
+        return { instance: systemInstance, isFallback: true };
+      }
+
+      console.log(`[NO_INSTANCE] Nenhuma instância conectada encontrada para empresa ${companyId} ou sistema ${SYSTEM_INSTANCE_NAME}`);
+      return { instance: null, isFallback: false };
     };
 
     const formatPhone = (phone: string) => {
