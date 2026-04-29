@@ -438,31 +438,31 @@ export default function ProfessionalPublicProfile() {
         </button>
 
         {/* BOTÕES SECUNDÁRIOS */}
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-2 gap-2 sm:gap-3">
           {whatsappDigits ? (
             <a
               href={buildWhatsAppUrl(whatsappDigits, `Olá ${professional.name}!`)}
               onClick={() => trackWhatsAppClick('professional-profile')}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center justify-center gap-2 h-12 rounded-xl border font-bold text-sm transition-colors"
+              className="flex items-center justify-center gap-1 sm:gap-2 h-12 rounded-xl border font-bold text-xs sm:text-sm transition-colors px-2 text-center"
               style={{ borderColor: '#25D36680', background: 'transparent', color: '#25D366' }}
             >
-              <MessageCircle className="w-4 h-4" />
-              Chamar no WhatsApp
+              <MessageCircle className="w-4 h-4 shrink-0" />
+              <span className="truncate">WhatsApp</span>
             </a>
           ) : (
-            <button onClick={handleShare} className="flex items-center justify-center gap-2 h-12 rounded-xl border font-bold text-sm" style={{ borderColor: T.border, background: 'transparent', color: T.text }}>
-              <Share2 className="w-4 h-4" /> Compartilhar
+            <button onClick={handleShare} className="flex items-center justify-center gap-2 h-12 rounded-xl border font-bold text-xs sm:text-sm px-2" style={{ borderColor: T.border, background: 'transparent', color: T.text }}>
+              <Share2 className="w-4 h-4 shrink-0" /> Compartilhar
             </button>
           )}
           <button
             onClick={() => navigate(`${bookingUrl}?request=true`)}
-            className="flex items-center justify-center gap-2 h-12 rounded-xl border font-bold text-sm"
+            className="flex items-center justify-center gap-1 sm:gap-2 h-12 rounded-xl border font-bold text-xs sm:text-sm px-2 text-center"
             style={{ borderColor: T.border, background: 'transparent', color: T.text }}
           >
-            <MessageCircle className="w-4 h-4" />
-            Enviar mensagem
+            <MessageCircle className="w-4 h-4 shrink-0" />
+            <span className="truncate">Mensagem</span>
           </button>
         </div>
 

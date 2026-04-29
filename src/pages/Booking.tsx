@@ -1741,13 +1741,8 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
 
   // ─── Render ───
   return (
-    <div className="min-h-screen pb-20 sm:pb-0 font-sans tracking-tight" style={{ background: T.bg, color: T.text }}>
-      {/* DEBUG BANNER OBRIGATÓRIO */}
-      {isAuthenticated && (
-        <div className="fixed top-0 left-0 w-full z-[9999] bg-green-500 text-black py-1.5 text-[10px] font-black text-center uppercase tracking-[0.3em] shadow-2xl border-b border-black/20">
-          SESSÃO CLIENTE ATIVA | MODO 1-CLIQUE LIBERADO 👋
-        </div>
-      )}
+    <div className={cn("min-h-screen font-sans tracking-tight", (selectedServices.length > 0 && step === 'services') ? "pb-32" : "pb-20 sm:pb-0")} style={{ background: T.bg, color: T.text }}>
+      {/* DEBUG BANNER REMOVIDO */}
 
       {/* Premium Header Fixo */}
       <header 
