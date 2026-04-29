@@ -3177,6 +3177,14 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
               client = newClient;
             }
 
+            if (client) {
+              setSavedClientId(client.id);
+              setClientForm({
+                full_name: client.name || '',
+                whatsapp: displayWhatsApp(client.whatsapp || ''),
+                email: client.email || '',
+                birth_date: client.birth_date || '',
+              });
               setHasValidClient(true);
               setClientDataWasAutoFilled(true);
               console.log('[BOOKING_UNLOCKED] Client record ready');
