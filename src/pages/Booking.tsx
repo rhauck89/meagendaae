@@ -1355,17 +1355,26 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
       console.log("GLOBAL CLIENT:", globalClient);
 
       // 2. Garantir Client Local (Upsert)
+      const localClientPayload: any = {
+        company_id: company.id,
+        global_client_id: (globalClient as any).id,
+        name: clientName,
+        whatsapp: normalizedPhone || null,
+        email: clientEmail,
+        updated_at: new Date().toISOString()
+      };
+
+      if (user && !isAdmin) {
+        localClientPayload.user_id = user.id;
+      }
+
+      // IMPORTANTE: Se for admin, o upsert deve ser baseado em company_id + whatsapp
+      // para evitar conflito com o unique(company_id, user_id) do próprio admin
       const { data: localClient, error: localError } = await (supabase
         .from('clients' as any)
-        .upsert({
-          company_id: company.id,
-          user_id: user.id,
-          global_client_id: (globalClient as any).id,
-          name: clientName,
-          whatsapp: normalizedPhone || null,
-          email: clientEmail,
-          updated_at: new Date().toISOString()
-        }, { onConflict: 'company_id, user_id' })
+        .upsert(localClientPayload, { 
+          onConflict: user && !isAdmin ? 'company_id, user_id' : 'company_id, whatsapp' 
+        })
         .select()
         .single() as any);
 
