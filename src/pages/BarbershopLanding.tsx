@@ -70,7 +70,11 @@ export default function BarbershopLanding({ routeBusinessType, customSlug }: Bar
   const [showAllReviews, setShowAllReviews] = useState(false);
   const [allReviewsList, setAllReviewsList] = useState<any[]>([]);
   const [isWhitelabel, setIsWhitelabel] = useState(false);
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated: isAuthAuthenticated, isAdmin } = useAuth();
+  
+  // Rule: Admin session is ignored for client identification on landing
+  const isAuthenticated = isAuthAuthenticated && !isAdmin;
+  
   const [showIdentityModal, setShowIdentityModal] = useState(false);
   const [lastBooking, setLastBooking] = useState<{
     serviceIds: string[]; serviceNames: string[]; serviceDurations: number[];
