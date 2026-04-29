@@ -244,15 +244,48 @@ const Support = () => {
       return;
     }
 
+    const ticketId = (data as any).id;
+    const protocol = (data as any).protocol_number;
+
     if (pendingFiles.length > 0) {
-      await uploadFilesForTicket((data as any).id, pendingFiles);
+      await uploadFilesForTicket(ticketId, pendingFiles);
+    }
+
+    // Enviar e-mail de confirmação para a empresa
+    try {
+      await supabase.functions.invoke('send-email', {
+        body: {
+          to: user?.email,
+          type: 'ticket_created',
+          data: {
+            protocol: protocol,
+            title: form.title.trim()
+          },
+          company_id: companyId,
+          user_id: user?.id
+        }
+      });
+
+      // Notificar suporte da Agendaê
+      await supabase.functions.invoke('send-email', {
+        body: {
+          to: 'suporte@meagendae.com.br',
+          type: 'ticket_created',
+          data: {
+            protocol: protocol,
+            title: `[NOVO TICKET] ${form.title.trim()}`
+          }
+        }
+      });
+    } catch (emailErr) {
+      console.error('Erro ao enviar e-mail de confirmação:', emailErr);
     }
 
     setCreateOpen(false);
     setForm({ title: '', description: '', category: 'general', priority: 'medium' });
     setPendingFiles([]);
-    setCreatedProtocol((data as any).protocol_number || '');
-    setCreatedTicketId((data as any).id);
+    setCreatedProtocol(protocol || '');
+    setCreatedTicketId(ticketId);
     setConfirmOpen(true);
     setCreating(false);
     fetchTickets();
