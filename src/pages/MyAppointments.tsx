@@ -94,17 +94,19 @@ const MyAppointments = () => {
 
     if (data) setAppointments(data);
     
-    // Check if user has any linked client records at all
-    const { data: clientData } = await supabase
-      .from('clients')
-      .select('id')
-      .eq('user_id', user!.id)
-      .limit(1);
+    if (!isAdmin) {
+      // Check if user has any linked client records at all
+      const { data: clientData } = await supabase
+        .from('clients')
+        .select('id')
+        .eq('user_id', user!.id)
+        .limit(1);
 
-    if (!clientData || clientData.length === 0) {
-      // No linked client → redirect to portal so the user can complete registration
-      navigate('/minha-conta?complete=1', { replace: true });
-      return;
+      if (!clientData || clientData.length === 0) {
+        // No linked client → redirect to portal so the user can complete registration
+        navigate('/minha-conta?complete=1', { replace: true });
+        return;
+      }
     }
     
     setLoading(false);
