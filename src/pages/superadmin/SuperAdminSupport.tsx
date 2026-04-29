@@ -286,16 +286,43 @@ const SuperAdminSupport = () => {
   const sendAdminMessage = async () => {
     if (!newMessage.trim() || !viewTicket) return;
     setSending(true);
-    await supabase.from('support_messages').insert({
+    
+    const { error: msgError } = await supabase.from('support_messages').insert({
       ticket_id: viewTicket.id,
       user_id: user!.id,
       message: newMessage,
       is_admin: true,
     } as any);
 
-    await supabase.from('support_tickets').update({ status: 'answered', updated_at: new Date().toISOString() } as any).eq('id', viewTicket.id);
-    setViewTicket(prev => prev ? { ...prev, status: 'answered' } : null);
+    if (msgError) {
+      toast.error('Erro ao enviar mensagem');
+      setSending(false);
+      return;
+    }
 
+    await supabase.from('support_tickets').update({ status: 'answered', updated_at: new Date().toISOString() } as any).eq('id', viewTicket.id);
+    
+    // Notificar empresa por e-mail
+    if (viewTicket.profile?.email) {
+      try {
+        await supabase.functions.invoke('send-email', {
+          body: {
+            to: viewTicket.profile.email,
+            type: 'ticket_replied',
+            data: {
+              protocol: viewTicket.protocol_number,
+              message: newMessage.trim()
+            },
+            company_id: viewTicket.company_id,
+            user_id: viewTicket.user_id
+          }
+        });
+      } catch (emailErr) {
+        console.error('Erro ao enviar e-mail de notificação:', emailErr);
+      }
+    }
+
+    setViewTicket(prev => prev ? { ...prev, status: 'answered' } : null);
     setNewMessage('');
     fetchMessages(viewTicket.id);
     setSending(false);
