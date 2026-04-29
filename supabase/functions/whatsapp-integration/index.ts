@@ -18,19 +18,26 @@ serve(async (req) => {
     )
 
     const { action, companyId, phone, message } = await req.json()
-    const EVOLUTION_URL = Deno.env.get('EVOLUTION_API_URL')
+    
+    // Check for correct secret names
+    const EVOLUTION_API_URL = Deno.env.get('EVOLUTION_API_BASE_URL') || Deno.env.get('EVOLUTION_API_URL')
     const EVOLUTION_API_KEY = Deno.env.get('EVOLUTION_API_KEY')
 
-    if (!EVOLUTION_URL || !EVOLUTION_API_KEY) {
-      console.error("Missing Evolution API configuration")
+    console.log("EVOLUTION_API_URL:", EVOLUTION_API_URL);
+    console.log("EVOLUTION_API_KEY EXISTS:", !!EVOLUTION_API_KEY);
+
+    if (!EVOLUTION_API_URL || !EVOLUTION_API_KEY) {
+      console.error("Missing Evolution API configuration. Found URL:", !!EVOLUTION_API_URL, "Key:", !!EVOLUTION_API_KEY)
       return new Response(JSON.stringify({ 
         success: false, 
-        error: "Configuração do WhatsApp não encontrada no servidor" 
+        error: "ENV_NOT_CONFIGURED" 
       }), { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 200 
       })
     }
+
+    const EVOLUTION_URL = EVOLUTION_API_URL;
 
     // Standardize instance name
     let instanceName = `company_${companyId}`
