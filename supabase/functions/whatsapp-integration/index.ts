@@ -255,8 +255,9 @@ serve(async (req) => {
       const webBaseUrl = platform?.system_url || "https://meagendae.com.br";
       const companySlug = appointment.company?.slug;
 
+      const clientName = appointment.client?.name || appointment.client_name || appointment.client?.full_name || 'Cliente';
       const variables: Record<string, string> = {
-        '{{nome}}': appointment.client?.name || appointment.client_name || 'Cliente',
+        '{{nome}}': clientName,
         '{{empresa}}': appointment.company?.name || 'Empresa',
         '{{data}}': formattedDate,
         '{{hora}}': formattedTime,
