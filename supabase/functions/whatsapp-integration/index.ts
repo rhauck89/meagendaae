@@ -411,6 +411,42 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ success: true, needsEmail: true }), { headers: corsHeaders });
     }
 
+    if (action === 'send-message') {
+      const { phone, message, imageUrl } = params;
+      
+      if (!phone || !message) {
+        return new Response(JSON.stringify({ success: false, reason: 'INVALID_PARAMS', message: 'Telefone e mensagem são obrigatórios.' }), { headers: corsHeaders });
+      }
+
+      const { instance, isFallback } = await getEffectiveInstance(companyId);
+      
+      if (!instance) {
+        return new Response(JSON.stringify({ 
+          success: false, 
+          reason: 'NO_INSTANCE',
+          message: 'Nenhuma instância de WhatsApp disponível (empresa ou sistema).' 
+        }), { headers: corsHeaders });
+      }
+
+      console.log(`[SEND_MESSAGE] Usando instância: ${instance.instance_name} (Fallback: ${isFallback}) para ${phone}`);
+      
+      try {
+        await sendWhatsApp(instance.instance_name, phone, message, imageUrl);
+        return new Response(JSON.stringify({ 
+          success: true, 
+          instance: instance.instance_name, 
+          isFallback 
+        }), { headers: corsHeaders });
+      } catch (err: any) {
+        console.error(`[SEND_MESSAGE] Erro no envio: ${err.message}`);
+        return new Response(JSON.stringify({ 
+          success: false, 
+          reason: 'SEND_FAILURE', 
+          error: err.message 
+        }), { headers: corsHeaders });
+      }
+    }
+
     if (action === 'track-abandonment') {
       const { companyId, clientData, slotData, sessionId } = params;
       
