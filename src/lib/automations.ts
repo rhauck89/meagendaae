@@ -125,9 +125,10 @@ async function sendNativeWhatsAppConfirmation(data: AppointmentWebhookData) {
 export function sendAppointmentCreatedWebhook(
   data: AppointmentWebhookData
 ): void {
-  // We trigger the native WhatsApp confirmation flow.
-  // The Edge Function handles the rest (templates, toggles, etc.)
-  void sendNativeWhatsAppConfirmation(data);
+  // We no longer trigger the native WhatsApp confirmation from the frontend
+  // because it's now handled by the database trigger handle_appointment_confirmation.
+  // This prevents duplicate messages.
+  console.info('[automations] sendAppointmentCreatedWebhook skipped (handled by DB trigger)');
 }
 
 /**
