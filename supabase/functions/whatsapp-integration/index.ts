@@ -28,21 +28,36 @@ serve(async (req) => {
     const EVOLUTION_API_URL = Deno.env.get('EVOLUTION_API_BASE_URL') || Deno.env.get('EVOLUTION_API_URL')
     const EVOLUTION_API_KEY = Deno.env.get('EVOLUTION_API_KEY')
 
-    if (!EVOLUTION_API_URL || !EVOLUTION_API_KEY) {
-      return new Response(JSON.stringify({ success: false, error: "ENV_NOT_CONFIGURED" }), { 
+    if (!EVOLUTION_API_URL) {
+      console.log(\"ERRO: BASE_URL_UNDEFINED\");
+      return new Response(JSON.stringify({ success: false, error: \"BASE_URL_UNDEFINED\" }), { 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 200 
+      })
+    }
+
+    if (!EVOLUTION_API_KEY) {
+      console.log(\"ERRO: API_KEY_UNDEFINED\");
+      return new Response(JSON.stringify({ success: false, error: \"API_KEY_UNDEFINED\" }), { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 200 
       })
     }
 
     const baseUrl = EVOLUTION_API_URL.replace(/\/$/, '')
-    console.log("BASE URL:", baseUrl); // AJUSTE OBRIGATÓRIO 2
-
     const instanceName = `company_${companyId}`
+
+    // LOGS CRÍTICOS ANTES DE QUALQUER FETCH
+    console.log(\"BASE URL:\", baseUrl)
+    console.log(\"API KEY:\", EVOLUTION_API_KEY ? \"OK\" : \"MISSING\")
+    console.log(\"INSTANCE NAME:\", instanceName)
 
     const callEvolution = async (endpoint: string, method = 'GET', body: any = null) => {
       const url = `${baseUrl}${endpoint}`
-      console.log("TESTANDO ROTA:", url)
+      
+      // LOGS CRÍTICOS DENTRO DO callEvolution
+      console.log(\"CHAMANDO:\", url)
+      console.log(\"METHOD:\", method)
       
       try {
         const response = await fetch(url, {
