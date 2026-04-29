@@ -119,10 +119,12 @@ export function usePushNotifications() {
         return { success: false, error: 'Permissão negada pelo usuário' };
       }
 
+      console.log('[PUSH] Waiting for Service Worker to be ready...');
       const registration = await Promise.race([
         navigator.serviceWorker.ready,
-        new Promise<ServiceWorkerRegistration>((_, reject) => setTimeout(() => reject(new Error('SW_TIMEOUT')), 10000))
+        new Promise<ServiceWorkerRegistration>((_, reject) => setTimeout(() => reject(new Error('SW_TIMEOUT')), 15000))
       ]);
+      console.log('[PUSH] Service Worker ready');
 
       // Check if already subscribed
       let subscription = await registration.pushManager.getSubscription();
