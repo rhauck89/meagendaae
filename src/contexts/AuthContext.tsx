@@ -168,12 +168,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Rule 4: Use onAuthStateChange ONLY for backup initialization (e.g. tab switches)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, currentSession) => {
       if (cancelled) return;
-      console.log(`[AUTH_CONTEXT] onAuthStateChange (Backup): ${event}`);
+      console.log(`[AUTH_CONTEXT] onAuthStateChange: ${event}`);
       
-      if (event === 'SIGNED_OUT') {
-        await updateAuthState(null);
-      } else if (event === 'TOKEN_REFRESHED') {
+      if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
         await updateAuthState(currentSession);
+      } else if (event === 'SIGNED_OUT') {
+        await updateAuthState(null);
+      } else if (event === 'INITIAL_SESSION') {
+        if (currentSession) {
+          await updateAuthState(currentSession);
+        } else {
+          // If no session but we were loading, stop loading
+          setLoading(false);
+        }
       }
     });
 
