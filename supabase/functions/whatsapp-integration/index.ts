@@ -322,25 +322,51 @@ serve(async (req) => {
     }
 
     if (action === 'verify-otp') {
-      const targetPhone = String(phone || "").replace(/\D/g, '')
+      const normalizePhone = (p: string) => String(p || "").replace(/\D/g, '');
+      const targetPhone = normalizePhone(phone);
       const { code } = requestBody
 
-      console.log(`VERIFICANDO OTP PARA ${targetPhone}: ${code}`);
+      console.log("PHONE BUSCADO:", targetPhone);
+      console.log("CÓDIGO DIGITADO:", code);
 
+      // Buscar o último código gerado para este telefone
       const { data: otpData, error: otpError } = await supabaseClient
         .from('whatsapp_otp_codes')
         .select('*')
         .eq('phone', targetPhone)
-        .eq('code', code)
-        .eq('verified', false)
-        .gt('expires_at', new Date().toISOString())
         .order('created_at', { ascending: false })
         .limit(1)
         .maybeSingle();
 
+      console.log("OTP ENCONTRADO:", JSON.stringify(otpData));
+
       if (otpError || !otpData) {
-        console.log("OTP INVÁLIDO OU EXPIRADO");
-        return new Response(JSON.stringify({ success: false, error: "Código inválido ou expirado" }), {
+        console.log("ERRO: Código não encontrado");
+        return new Response(JSON.stringify({ success: false, error: "Código não encontrado" }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 200
+        });
+      }
+
+      if (otpData.verified) {
+        console.log("ERRO: Código já utilizado");
+        return new Response(JSON.stringify({ success: false, error: "Código já utilizado" }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 200
+        });
+      }
+
+      if (otpData.code !== String(code)) {
+        console.log("ERRO: Código inválido");
+        return new Response(JSON.stringify({ success: false, error: "Código inválido" }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 200
+        });
+      }
+
+      if (new Date(otpData.expires_at) < new Date()) {
+        console.log("ERRO: Código expirado");
+        return new Response(JSON.stringify({ success: false, error: "Código expirado" }), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           status: 200
         });
@@ -354,7 +380,7 @@ serve(async (req) => {
       const { data: users, error: userError } = await supabaseClient.auth.admin.listUsers();
       
       if (!userError) {
-        user = users.users.find(u => u.user_metadata?.whatsapp === targetPhone || u.email === otpData.email);
+        user = users.users.find(u => normalizePhone(u.user_metadata?.whatsapp) === targetPhone || u.email === otpData.email);
       }
 
       if (!user && otpData.email) {
