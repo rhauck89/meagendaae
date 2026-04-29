@@ -293,12 +293,12 @@ Deno.serve(async (req) => {
         
         if (anyOtp) {
           console.log(`[OTP_ROW_FOUND] But invalid state: code_match=${anyOtp.code === code}, used=${anyOtp.used}, expired=${new Date(anyOtp.expires_at) < new Date()}`);
-          if (anyOtp.used) throw new Error('Este código já foi utilizado.');
-          if (new Date(anyOtp.expires_at) < new Date()) throw new Error('Este código expirou.');
-          if (anyOtp.code !== code) throw new Error('Código incorreto.');
+          if (anyOtp.used) return new Response(JSON.stringify({ success: false, reason: 'ALREADY_USED', message: 'Este código já foi utilizado.' }), { headers: corsHeaders });
+          if (new Date(anyOtp.expires_at) < new Date()) return new Response(JSON.stringify({ success: false, reason: 'EXPIRED', message: 'Este código expirou.' }), { headers: corsHeaders });
+          if (anyOtp.code !== code) return new Response(JSON.stringify({ success: false, reason: 'INCORRECT_CODE', message: 'Código incorreto.' }), { headers: corsHeaders });
         }
         
-        throw new Error('Código inválido ou não encontrado.');
+        return new Response(JSON.stringify({ success: false, reason: 'NOT_FOUND', message: 'Código inválido ou não encontrado.' }), { headers: corsHeaders });
       }
 
       console.log(`[OTP_ROW_FOUND] ID: ${otp.id}, attempts: ${otp.attempts}`);
