@@ -234,7 +234,7 @@ serve(async (req) => {
       // 3. Get services
       const { data: services } = await supabaseClient
         .from('appointment_services')
-        .select('services(name)')
+        .select('services(id, name)')
         .eq('appointment_id', appointmentId);
       
       const serviceNames = services?.map(s => s.services?.name).join(', ') || 'Serviço';
