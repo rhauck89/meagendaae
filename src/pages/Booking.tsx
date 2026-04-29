@@ -512,7 +512,9 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
         .eq('user_id', user.id)
         .single();
       
-      if (profile && ['admin', 'professional', 'company', 'super_admin'].includes(profile.role)) {
+      const isAdmin = profile && ['admin', 'professional', 'company', 'super_admin'].includes(profile.role);
+      
+      if (isAdmin) {
         setHasValidClient(false);
         return;
       }
@@ -529,8 +531,9 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
       }
       
       // AUTO-CREATE local client if authenticated but no client record exists for this company
-      if (!data && !error && user) {
-        console.log('[Booking] Authenticated user has no client record for this company. Creating automatically...');
+      // SEPARAÇÃO: Não criamos automaticamente se o usuário for ADMIN
+      if (!data && !error && user && !isAdmin) {
+        console.log('[Booking] Authenticated client has no record for this company. Creating automatically...');
         const normalizedPhone = normalizePhone(user.user_metadata?.whatsapp || user.phone || '');
         const clientName = user.user_metadata?.full_name || user.user_metadata?.name || 'Cliente';
         
@@ -1315,21 +1318,35 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
     setLoading(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Usuário não autenticado');
+      // OBRIGATÓRIO: Verificar se o usuário é admin
+      const userRole = profile?.role || 'client';
+      const isAdmin = ['admin', 'professional', 'company', 'super_admin'].includes(userRole);
 
       const normalizedPhone = clientForm.whatsapp ? normalizePhone(clientForm.whatsapp) : '';
-      const clientName = clientForm.full_name || user.user_metadata?.full_name || user.user_metadata?.name || 'Cliente';
-      const clientEmail = clientForm.email || user.email || null;
+      const clientName = clientForm.full_name || user?.user_metadata?.full_name || user?.user_metadata?.name || 'Cliente';
+      const clientEmail = clientForm.email || user?.email || null;
 
-      // 1. Garantir Client Global (Upsert)
+      console.log('[BOOKING_FLOW] Starting book process:', { 
+        normalizedPhone, 
+        isAdmin, 
+        authUserId: user?.id 
+      });
+
+      // 1. Garantir Client Global (Upsert baseado em WhatsApp)
+      // SEPARAÇÃO: Só vinculamos user_id se for um CLIENTE real (não admin)
+      const globalClientPayload: any = {
+        whatsapp: normalizedPhone || null,
+        name: clientName,
+        email: clientEmail,
+      };
+
+      if (user && !isAdmin) {
+        globalClientPayload.user_id = user.id;
+      }
+
       const { data: globalClient, error: globalError } = await (supabase
         .from('clients_global' as any)
-        .upsert({
-          user_id: user.id,
-          whatsapp: normalizedPhone || null,
-          name: clientName,
-          email: clientEmail,
-        }, { onConflict: 'whatsapp' })
+        .upsert(globalClientPayload, { onConflict: 'whatsapp' })
         .select()
         .single() as any);
 
@@ -1341,17 +1358,26 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
       console.log("GLOBAL CLIENT:", globalClient);
 
       // 2. Garantir Client Local (Upsert)
+      const localClientPayload: any = {
+        company_id: company.id,
+        global_client_id: (globalClient as any).id,
+        name: clientName,
+        whatsapp: normalizedPhone || null,
+        email: clientEmail,
+        updated_at: new Date().toISOString()
+      };
+
+      if (user && !isAdmin) {
+        localClientPayload.user_id = user.id;
+      }
+
+      // IMPORTANTE: Se for admin, o upsert deve ser baseado em company_id + whatsapp
+      // para evitar conflito com o unique(company_id, user_id) do próprio admin
       const { data: localClient, error: localError } = await (supabase
         .from('clients' as any)
-        .upsert({
-          company_id: company.id,
-          user_id: user.id,
-          global_client_id: (globalClient as any).id,
-          name: clientName,
-          whatsapp: normalizedPhone || null,
-          email: clientEmail,
-          updated_at: new Date().toISOString()
-        }, { onConflict: 'company_id, user_id' })
+        .upsert(localClientPayload, { 
+          onConflict: user && !isAdmin ? 'company_id, user_id' : 'company_id, whatsapp' 
+        })
         .select()
         .single() as any);
 
@@ -3015,79 +3041,100 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
         onClose={() => setShowIdentityModal(false)}
         companyId={company?.id}
         onLoginSuccess={async (clientData) => {
-          console.log('[LOGIN_SUCCESS] IdentityModal success callback triggered');
-          
-          console.log('[FORCED_LOGIN_STATE] Client session is now active');
+          console.log('[LOGIN_SUCCESS] IdentityModal success callback triggered', clientData);
           
           setShowIdentityModal(false);
           setShowOneClickCard(true);
           setIsChangingData(false);
           
+          // Se o clientData foi passado (do IdentityModal), usamos ele para preencher o formulário
+          if (clientData) {
+            setClientForm({
+              full_name: clientData.full_name || '',
+              whatsapp: displayWhatsApp(clientData.whatsapp || ''),
+              email: clientData.email || '',
+              birth_date: clientData.birth_date || '',
+            });
+          }
+
           const { data: { user } } = await supabase.auth.getUser();
+          const userRole = profile?.role || 'client';
+          const isAdmin = ['admin', 'professional', 'company', 'super_admin'].includes(userRole);
           
           if (user) {
-            console.log('[CLIENT_SET] recognized user:', user.id);
-            let { data: client } = await supabase
+            console.log('[CLIENT_SET] current user:', user.id, 'Role:', userRole);
+            
+            // Busca o registro local do cliente
+            let query = supabase
               .from('clients')
               .select('*')
-              .eq('user_id', user.id)
-              .eq('company_id', company?.id)
-              .maybeSingle();
+              .eq('company_id', company?.id);
+            
+            if (isAdmin && clientData?.whatsapp) {
+              // Se for admin, busca pelo whatsapp do cliente identificado
+              query = query.eq('whatsapp', normalizePhone(clientData.whatsapp));
+            } else {
+              // Se for cliente, busca pelo user_id
+              query = query.eq('user_id', user.id);
+            }
+
+            let { data: client } = await query.maybeSingle();
 
             if (!client && company?.id) {
-              console.log('[Booking] Post-login: auto-creating local client record...');
-              const normalizedPhone = normalizePhone(user.user_metadata?.whatsapp || user.phone || '');
-              const clientName = user.user_metadata?.full_name || user.user_metadata?.name || 'Cliente';
-              
+              console.log('[Booking] Post-login: identifying/creating client record...');
+              const targetPhone = clientData?.whatsapp ? normalizePhone(clientData.whatsapp) : normalizePhone(user.user_metadata?.whatsapp || user.phone || '');
+              const targetName = clientData?.full_name || user.user_metadata?.full_name || user.user_metadata?.name || 'Cliente';
+              const targetEmail = clientData?.email || user.email;
+
+              // 1. Garantir Client Global
+              const globalClientPayload: any = {
+                whatsapp: targetPhone,
+                name: targetName,
+                email: targetEmail,
+              };
+              if (!isAdmin) globalClientPayload.user_id = user.id;
+
               const { data: globalClient } = await (supabase
                 .from('clients_global' as any)
-                .upsert({
-                  user_id: user.id,
-                  whatsapp: normalizedPhone || null,
-                  name: clientName,
-                  email: user.email,
-                }, { onConflict: 'whatsapp' })
+                .upsert(globalClientPayload, { onConflict: 'whatsapp' })
                 .select()
                 .single() as any);
+
+              // 2. Garantir Client Local
+              const localClientPayload: any = {
+                company_id: company.id,
+                global_client_id: globalClient?.id,
+                name: targetName,
+                whatsapp: targetPhone,
+                email: targetEmail,
+              };
+              if (!isAdmin) localClientPayload.user_id = user.id;
 
               const { data: newClient } = await (supabase
                 .from('clients' as any)
-                .upsert({
-                  company_id: company.id,
-                  user_id: user.id,
-                  global_client_id: globalClient?.id,
-                  name: clientName,
-                  whatsapp: normalizedPhone || null,
-                  email: user.email,
-                }, { onConflict: 'company_id, user_id' })
+                .upsert(localClientPayload, { 
+                  onConflict: !isAdmin ? 'company_id, user_id' : 'company_id, whatsapp' 
+                })
                 .select()
                 .single() as any);
-              
+
               client = newClient;
             }
 
             if (client) {
+              setSavedClientId(client.id);
               setClientForm({
                 full_name: client.name || '',
-                email: client.email || '',
                 whatsapp: displayWhatsApp(client.whatsapp || ''),
+                email: client.email || '',
                 birth_date: client.birth_date || '',
               });
-              setSavedClientId(client.id);
               setHasValidClient(true);
               setClientDataWasAutoFilled(true);
               console.log('[BOOKING_UNLOCKED] Client record ready');
-            } else if (clientData) {
-              setClientForm({
-                full_name: clientData.full_name || '',
-                email: clientData.email || '',
-                whatsapp: displayWhatsApp(clientData.whatsapp || ''),
-                birth_date: '',
-              });
-              setHasValidClient(true);
-              console.log('[BOOKING_UNLOCKED] Using provided client data');
             }
           } else if (clientData) {
+            // Caso em que não há usuário logado mas o cliente se identificou (ex: erro no auth mas sucesso no lookup)
             setClientForm({
               full_name: clientData.full_name || '',
               email: clientData.email || '',
