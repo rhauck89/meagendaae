@@ -2058,7 +2058,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
             {selectedServices.length > 0 && (
               <div className="fixed bottom-0 left-0 right-0 p-4 z-40 sm:relative sm:p-0 safe-area-bottom">
                 <div 
-                  className="max-w-2xl mx-auto rounded-[2.5rem] p-4 flex items-center justify-between gap-4 animate-in slide-in-from-bottom-10 duration-500 shadow-2xl shadow-black/50" 
+                  className="max-w-2xl mx-auto rounded-[2.5rem] p-3 sm:p-4 flex items-center justify-between gap-3 sm:gap-4 animate-in slide-in-from-bottom-10 duration-500 shadow-2xl shadow-black/50" 
                   style={{ background: T.card, border: `1px solid ${T.border}` }}
                 >
                   <div className="pl-4">
