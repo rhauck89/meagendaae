@@ -95,32 +95,23 @@ async function dispatchWebhook(
  */
 async function sendNativeWhatsAppConfirmation(data: AppointmentWebhookData) {
   try {
-    const { appointment_id, company_id, client_name, client_phone, professional_name, service_name, appointment_date, appointment_time } = data;
+    const { appointment_id, company_id } = data;
     
-    if (!client_phone) return;
-
-    // Format date for display
-    const dateArr = appointment_date?.split('-') || [];
-    const displayDate = dateArr.length === 3 ? `${dateArr[2]}/${dateArr[1]}/${dateArr[0]}` : appointment_date;
-
-    const message = `Olá ${client_name} 👋\nSeu horário foi confirmado:\n\n📅 ${displayDate}\n🕐 ${appointment_time}\n✂️ ${service_name}\n👤 ${professional_name}`;
-
+    // We only send the metadata. The Edge Function will fetch the template,
+    // render the message, and check if the automation is enabled.
     const { error } = await supabase.functions.invoke('whatsapp-integration', {
       body: {
         action: 'send-message',
         companyId: company_id,
-        phone: client_phone,
-        message,
-        type: 'appointment_confirmed',
         appointmentId: appointment_id,
-        clientName: client_name
+        type: 'appointment_confirmed'
       }
     });
 
     if (error) {
-      console.warn('[automations] Native WhatsApp confirmation failed:', error);
+      console.warn('[automations] Native WhatsApp confirmation request failed:', error);
     } else {
-      console.info('[automations] Native WhatsApp confirmation sent');
+      console.info('[automations] Native WhatsApp confirmation requested');
     }
   } catch (err) {
     console.warn('[automations] Native WhatsApp error (ignored):', err);
