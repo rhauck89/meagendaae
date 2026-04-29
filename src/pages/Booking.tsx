@@ -1505,7 +1505,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
         p_promotion_id: promoData?.id ?? null,
         p_services: aptServicesPayload,
         p_cashback_ids: useCashback && cashbackCredits.length > 0 ? cashbackCredits.map(c => c.id) : [],
-        p_user_id: !isAdmin ? user?.id : (localClient.user_id || null)
+        p_user_id: null
       };
 
       console.log('[BOOKING_INSERT_ATTEMPT]', { 
