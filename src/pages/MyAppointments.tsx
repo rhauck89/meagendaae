@@ -45,22 +45,38 @@ const MyAppointments = () => {
   const linkAndFetch = async () => {
     setLoading(true);
 
-    // Get user's phone from profile and link any unlinked client records
-    const { data: profileData } = await supabase
-      .from('profiles')
-      .select('whatsapp')
-      .eq('user_id', user!.id)
-      .single();
+    const currentUserId = isAdmin ? null : user?.id;
 
-    if (profileData?.whatsapp || user!.email) {
-      await supabase.rpc('link_client_to_user', {
-        p_user_id: user!.id,
-        p_phone: profileData?.whatsapp || '',
-        p_email: user!.email || '',
-      } as any);
+    // Get user's phone from profile and link any unlinked client records
+    // Skip for admins
+    if (currentUserId) {
+      const { data: profileData } = await supabase
+        .from('profiles')
+        .select('whatsapp')
+        .eq('user_id', currentUserId)
+        .single();
+
+      if (profileData?.whatsapp || user!.email) {
+        await supabase.rpc('link_client_to_user', {
+          p_user_id: currentUserId,
+          p_phone: profileData?.whatsapp || '',
+          p_email: user!.email || '',
+        } as any);
+      }
     }
 
-    // Direct query using user_id for strict isolation
+    // Admin context check
+    let adminClientContext: any = null;
+    if (isAdmin) {
+      const keys = Object.keys(localStorage).filter(k => k.startsWith('whatsapp_session_'));
+      if (keys.length > 0) {
+        try {
+          adminClientContext = JSON.parse(localStorage.getItem(keys[0]) || '{}');
+        } catch (e) { /* ignore */ }
+      }
+    }
+
+    // Direct query for isolation
     const { data, error } = await supabase
       .from('appointments')
       .select(`
@@ -69,7 +85,7 @@ const MyAppointments = () => {
         company:companies(name),
         appointment_services(*, service:services(name))
       `)
-      .eq('user_id', user!.id) // Critical fix
+      .or(isAdmin && adminClientContext?.whatsapp ? `whatsapp.eq.${adminClientContext.whatsapp}${adminClientContext.email ? `,client_email.eq.${adminClientContext.email}` : ''}` : `user_id.eq.${currentUserId || '00000000-0000-0000-0000-000000000000'}`)
       .order('start_time', { ascending: false });
 
     if (error) {
