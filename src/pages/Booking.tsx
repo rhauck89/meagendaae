@@ -2577,6 +2577,33 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
 
               <div className="h-px w-full bg-white/5" />
 
+              {/* Seus Dados (Sempre visível para fluxo direto) */}
+              <div className="space-y-4">
+                <p className="text-[10px] font-black uppercase tracking-widest opacity-60">Seus Dados</p>
+                <div className="grid grid-cols-1 gap-3">
+                  <div className="space-y-1">
+                    <Label className="text-[10px] uppercase font-bold opacity-40 ml-2">Nome Completo</Label>
+                    <Input 
+                      value={clientForm.full_name}
+                      onChange={(e) => setClientForm({ ...clientForm, full_name: e.target.value })}
+                      placeholder="Seu nome"
+                      className="rounded-2xl h-12 bg-white/5 border-white/10 text-white font-bold"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-[10px] uppercase font-bold opacity-40 ml-2">WhatsApp</Label>
+                    <Input 
+                      value={clientForm.whatsapp}
+                      onChange={(e) => setClientForm({ ...clientForm, whatsapp: formatPhone(e.target.value) })}
+                      placeholder="(00) 00000-0000"
+                      className="rounded-2xl h-12 bg-white/5 border-white/10 text-white font-bold"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="h-px w-full bg-white/5" />
+
               {/* Services List */}
               <div className="space-y-4">
                 <p className="text-[10px] font-black uppercase tracking-widest opacity-60">Serviços Selecionados</p>
