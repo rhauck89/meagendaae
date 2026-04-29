@@ -3096,6 +3096,9 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
         onLoginSuccess={async (clientData) => {
           console.log('[LOGIN_SUCCESS] IdentityModal success callback triggered', clientData);
           
+          // ATUALIZAÇÃO IMEDIATA: Seta o cliente como válido e preenche o form
+          setHasValidClient(true);
+          setClientDataWasAutoFilled(true);
           setShowIdentityModal(false);
           setShowOneClickCard(true);
           setIsChangingData(false);
