@@ -102,7 +102,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const mappedRoles = rolesRes.data.map((r) => r.role);
         setRoles(mappedRoles);
 
-        const isAdminRole = mappedRoles.includes('professional') || mappedRoles.includes('super_admin');
+        const isAdminRole = mappedRoles.some(r => ['super_admin', 'professional', 'collaborator'].includes(r));
         if (isAdminRole && profileData?.id) {
           const { data: collabData } = await supabase
             .from('collaborators')
