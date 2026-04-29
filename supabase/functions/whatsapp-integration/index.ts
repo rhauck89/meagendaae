@@ -282,29 +282,41 @@ serve(async (req) => {
         console.log("CODIGO GERADO:", code);
         targetMessage = `Seu código de acesso para MeAgendae é: ${code}`;
         
-        console.log("SALVANDO OTP PARA:", targetPhone);
-        const { data: savedOtp, error: otpError } = await supabaseClient.from('whatsapp_otp_codes').insert({
+        console.log("COMPANY_ID RECEBIDO:", companyId);
+        
+        const otpPayload = {
           phone: targetPhone,
           code,
-          company_id: companyId,
+          company_id: companyId || null,
           expires_at: new Date(Date.now() + 5 * 60 * 1000).toISOString(),
           email: requestBody.email || null,
           verified: false
-        }).select().single();
+        };
+
+        console.log("PAYLOAD OTP:", JSON.stringify(otpPayload));
+
+        const { data: savedOtp, error: otpError } = await supabaseClient
+          .from('whatsapp_otp_codes')
+          .insert(otpPayload)
+          .select()
+          .maybeSingle();
+
+        console.log("RESULTADO INSERT:", JSON.stringify(savedOtp));
 
         if (otpError) {
-          console.error("ERRO CRÍTICO AO SALVAR OTP:", otpError);
+          console.error("ERRO INSERT COMPLETO:", JSON.stringify(otpError));
           return new Response(JSON.stringify({ 
             success: false, 
             error: "OTP_SAVE_FAILED", 
-            detail: otpError.message 
+            detail: otpError.message,
+            full_error: otpError
           }), {
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
             status: 200
           });
         }
         
-        console.log("OTP SALVO COM SUCESSO:", JSON.stringify(savedOtp));
+        console.log("OTP SALVO COM SUCESSO");
       }
 
       console.log("MENSAGEM FINAL:", targetMessage);
