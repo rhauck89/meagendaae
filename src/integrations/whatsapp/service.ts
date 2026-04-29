@@ -43,6 +43,7 @@ async function upsertInstance(companyId: string, patch: Partial<WhatsAppInstance
  * Call the WhatsApp integration Edge Function
  */
 async function callEdgeFunction(action: string, companyId: string, params: any = {}) {
+  console.log("ACTION ENVIADA:", action);
   const { data, error } = await supabase.functions.invoke('whatsapp-integration', {
     body: { action, companyId, ...params },
   });
