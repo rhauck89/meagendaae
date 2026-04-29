@@ -96,8 +96,7 @@ export function IdentityModal({
       console.log(`[IDENTITY_MODAL] Identifying: ${phone} in company ${companyId}`);
       
       const { data: client, error } = await supabase.rpc('lookup_client_globally', {
-        p_company_id: companyId,
-        p_whatsapp: phone
+        input_whatsapp: phone
       });
 
       if (error) throw error;
@@ -106,12 +105,13 @@ export function IdentityModal({
         const clientData = Array.isArray(client) ? client[0] : client;
         console.log('[IDENTITY_MODAL] Client found globally:', clientData);
         
-        setEmail(clientData.email || '');
-        setFullName(clientData.name || '');
+        // No email in the new return structure, setting to empty string or mapping from previous logic if needed
+        setEmail(''); 
+        setFullName(clientData.global_name || '');
         setIsNewUser(false);
         setView('options');
         
-        console.log(`[SESSION] Global ID: ${clientData.client_global_id}, Legacy ID: ${clientData.client_legacy_id}`);
+        console.log(`[SESSION] Global ID: ${clientData.global_id}, Local ID: ${clientData.local_client_id}`);
       } else {
         console.log('[IDENTITY_MODAL] Client not found globally');
         setView('not_found');

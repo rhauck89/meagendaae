@@ -6462,13 +6462,12 @@ export type Database = {
         }[]
       }
       lookup_client_globally: {
-        Args: { p_company_id: string; p_whatsapp: string }
+        Args: { input_whatsapp: string }
         Returns: {
-          client_global_id: string
-          client_legacy_id: string
-          email: string
-          name: string
-          whatsapp: string
+          global_id: string
+          global_name: string
+          global_whatsapp: string
+          local_client_id: string
         }[]
       }
       normalize_slug: { Args: { input_text: string }; Returns: string }
