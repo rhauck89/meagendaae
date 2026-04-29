@@ -1571,69 +1571,54 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
         return;
       }
 
-      console.log('[BOOKING_PAYLOAD]', JSON.stringify(appointmentPayload, null, 2));
-      const { data: appointmentId, error: aptError } = await supabase
-        .rpc('create_appointment' as any, appointmentPayload as any);
-
-      console.log('[BOOKING_RESULT]', { appointmentId, error: aptError });
-
-      if (aptError) {
-        console.error('[BOOKING_SUPABASE_ERROR]', JSON.stringify(aptError, null, 2));
-        throw aptError;
-      }
-      
-      if (!appointmentId) {
-        console.error('[BOOKING_ERROR] No appointment ID returned');
-        throw new Error('Falha ao criar agendamento no servidor');
-      }
-      
-      console.log('[BOOKING_SUCCESS] ID:', appointmentId);
-
-      // Update client updated_at and potentially email/name
-      if (clientId) {
-        void (supabase.from('clients') as any).update({
-          updated_at: new Date().toISOString(),
-          email: clientForm.email || undefined,
-          name: clientForm.full_name || undefined,
-        }).eq('id', clientId);
-      }
-
       const aptServicesPayload = selectedServices.map((sid) => {
         const svc = services.find((s) => s.id === sid);
-        if (!svc) {
-          console.warn(`[Booking] Service ${sid} not found during link process. Using fallback.`);
-        }
         return { 
           service_id: sid, 
           price: svc ? Number(svc.price) : 0, 
           duration_minutes: svc ? Number(svc.duration_minutes) : 0 
         };
       });
+
+      const appointmentPayloadV2 = {
+        p_company_id: company.id,
+        p_professional_id: selectedProfessional,
+        p_client_id: clientId,
+        p_start_time: startTime.toISOString(),
+        p_end_time: endTime.toISOString(),
+        p_total_price: finalPrice,
+        p_client_name: clientForm.full_name ?? null,
+        p_client_whatsapp: formattedWhatsapp ?? null,
+        p_notes: null as string | null,
+        p_promotion_id: promoData?.id ?? null,
+        p_services: aptServicesPayload,
+        p_cashback_ids: useCashback && cashbackCredits.length > 0 ? cashbackCredits.map(c => c.id) : [],
+        p_user_id: !isAdmin ? user?.id : (localClient.user_id || null)
+      };
+
+      console.log('[BOOKING_INSERT_ATTEMPT]', { 
+        professionalId: selectedProfessional,
+        clientId,
+        time: selectedTime,
+        payload: appointmentPayloadV2 
+      });
+
+      const { data: appointmentId, error: aptError } = await supabase
+        .rpc('create_appointment_v2' as any, appointmentPayloadV2 as any);
+
+      console.log('[BOOKING_INSERT_RESULT]', { appointmentId, error: aptError });
+
+      if (aptError) {
+        console.error('[BOOKING_COMPLETE_ERROR]', JSON.stringify(aptError, null, 2));
+        throw aptError;
+      }
       
-      try {
-        await supabase.rpc('create_appointment_services', { p_appointment_id: appointmentId, p_services: aptServicesPayload });
-      } catch (svcLinkError) {
-        console.error('[Booking] Error linking services (non-critical for UX):', svcLinkError);
+      if (!appointmentId) {
+        console.error('[BOOKING_ERROR] No appointment ID returned from RPC');
+        throw new Error('Falha ao processar agendamento. O servidor não retornou um ID.');
       }
-
-      // Mark used cashback credits
-      if (useCashback && cashbackCredits.length > 0 && cashbackDiscount > 0) {
-        let remaining = cashbackDiscount;
-        for (const credit of cashbackCredits) {
-          if (remaining <= 0) break;
-          remaining -= Number(credit.amount);
-          await supabase
-            .from('client_cashback')
-            .update({
-              status: 'used',
-              used_at: new Date().toISOString(),
-              used_appointment_id: appointmentId as string,
-            })
-            .eq('id', credit.id);
-
-          // Transaction is now handled automatically by database trigger on client_cashback table
-        }
-      }
+      
+      console.log('[BOOKING_SUCCESS] Transaction confirmed:', appointmentId);
 
 
       try {
