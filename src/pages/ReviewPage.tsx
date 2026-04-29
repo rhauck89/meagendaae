@@ -63,7 +63,7 @@ const ReviewPage = () => {
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [alreadyReviewed, setAlreadyReviewed] = useState(false);
-  const [googleReviewUrl, setGoogleReviewUrl] = useState<string | null>(null);
+  const [step, setStep] = useState<1 | 2>(1);
 
   useEffect(() => {
     if (appointmentId) fetchAppointment();
