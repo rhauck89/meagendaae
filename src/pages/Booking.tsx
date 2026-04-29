@@ -1278,6 +1278,8 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
       if (!user) throw new Error('Usuário não autenticado');
 
       const normalizedPhone = clientForm.whatsapp ? normalizePhone(clientForm.whatsapp) : '';
+      const clientName = clientForm.full_name || user.user_metadata?.full_name || user.user_metadata?.name || 'Cliente';
+      const clientEmail = clientForm.email || user.email || null;
 
       // 1. Garantir Client Global (Upsert)
       const { data: globalClient, error: globalError } = await (supabase
@@ -1285,7 +1287,8 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
         .upsert({
           user_id: user.id,
           whatsapp: normalizedPhone || null,
-          name: clientForm.full_name || null,
+          name: clientName,
+          email: clientEmail,
         }, { onConflict: 'whatsapp' })
         .select()
         .single() as any);
@@ -1304,8 +1307,9 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
           company_id: company.id,
           user_id: user.id,
           global_client_id: (globalClient as any).id,
-          name: clientForm.full_name,
-          whatsapp: clientForm.whatsapp,
+          name: clientName,
+          whatsapp: normalizedPhone || null,
+          email: clientEmail,
           updated_at: new Date().toISOString()
         }, { onConflict: 'company_id, user_id' })
         .select()
