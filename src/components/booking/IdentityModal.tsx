@@ -25,7 +25,7 @@ export function IdentityModal({
   companyId,
   onLoginSuccess
 }: IdentityModalProps) {
-  const { updateAuthState, user } = useAuth();
+  const { updateAuthState, user, profile } = useAuth();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   
