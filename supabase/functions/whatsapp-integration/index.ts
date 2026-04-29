@@ -28,7 +28,7 @@ serve(async (req) => {
     )
 
     const requestBody = await req.json()
-    const { action, companyId, phone, message, text, appointmentId, type } = requestBody
+    const { action, companyId, phone, message, text, appointmentId, type, code, email, redirectTo } = requestBody
     log(`ACTION: ${action}, TYPE: ${type}, APPT_ID: ${appointmentId}`);
 
     const EVOLUTION_API_URL = "https://apiwpp.meagendae.com.br"
@@ -59,8 +59,126 @@ serve(async (req) => {
       }
     }
 
-    // New logic for automatic rendering
-    if (action === 'send-message' && appointmentId && type) {
+    // ==========================================
+    // 1. FLOW: SEND OTP
+    // ==========================================
+    if (action === 'send-otp' || (action === 'send-message' && type === 'otp')) {
+      log("Iniciando fluxo de envio de OTP...");
+      const targetPhone = String(phone || "").replace(/\D/g, '');
+      const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+      const targetMessage = `Seu código de acesso para MeAgendae é: ${otpCode}`;
+
+      // Save OTP to DB
+      await supabaseClient.from('whatsapp_otp_codes').insert({
+        phone: targetPhone,
+        code: otpCode,
+        company_id: companyId || null,
+        expires_at: new Date(Date.now() + 5 * 60 * 1000).toISOString()
+      });
+
+      // Send via WhatsApp
+      const res = await callEvolution(`/message/sendText/${instanceName}`, 'POST', {
+        number: targetPhone,
+        text: targetMessage
+      });
+
+      if (!res.ok) {
+        log(`Erro ao enviar OTP: ${res.text}`);
+        return new Response(JSON.stringify({ success: false, error: "WHATSAPP_API_ERROR", details: res.text }), { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 400
+        });
+      }
+
+      return new Response(JSON.stringify({ success: true }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
+
+    // ==========================================
+    // 2. FLOW: VERIFY OTP
+    // ==========================================
+    if (action === 'verify-otp') {
+      log("Iniciando fluxo de verificação de OTP...");
+      const targetPhone = String(phone || "").replace(/\D/g, '');
+      
+      const { data: otpData, error: otpError } = await supabaseClient
+        .from('whatsapp_otp_codes')
+        .select('*')
+        .eq('phone', targetPhone)
+        .eq('code', code)
+        .gt('expires_at', new Date().toISOString())
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single();
+
+      if (otpError || !otpData) {
+        return new Response(JSON.stringify({ success: false, error: "INVALID_OR_EXPIRED_CODE" }), { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 400
+        });
+      }
+
+      // Code is valid, delete it
+      await supabaseClient.from('whatsapp_otp_codes').delete().eq('id', otpData.id);
+
+      // Get user email to provide magic link
+      let userEmail = email;
+      if (!userEmail) {
+        const { data: client } = await supabaseClient
+          .from('clients')
+          .select('email')
+          .eq('whatsapp', targetPhone)
+          .maybeSingle();
+        userEmail = client?.email;
+      }
+
+      if (!userEmail) {
+        return new Response(JSON.stringify({ success: false, error: "USER_EMAIL_REQUIRED" }), { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+
+      // Generate magic link token
+      const { data: authData, error: authError } = await supabaseClient.auth.admin.generateLink({
+        type: 'magiclink',
+        email: userEmail,
+        options: { redirectTo: redirectTo || '' }
+      });
+
+      if (authError) {
+        log(`Erro ao gerar link de autenticação: ${authError.message}`);
+        return new Response(JSON.stringify({ success: false, error: authError.message }), { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 400
+        });
+      }
+
+      return new Response(JSON.stringify({ 
+        success: true, 
+        token_hash: authData.properties?.hashed_token || authData.properties?.token_hash,
+        otp_type: 'magiclink'
+      }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
+
+    // ==========================================
+    // 3. FLOW: MANUAL TEST
+    // ==========================================
+    if (action === 'send-test') {
+      log("Iniciando fluxo de teste manual...");
+      const targetPhone = String(phone || "").replace(/\D/g, '');
+      const targetMessage = message || text;
+
+      const res = await callEvolution(`/message/sendText/${instanceName}`, 'POST', {
+        number: targetPhone,
+        text: targetMessage
+      });
+
+      return new Response(JSON.stringify({ success: res.ok, data: res.data }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
+
+    // ==========================================
+    // 4. FLOW: AUTOMATION RENDERING
+    // ==========================================
+    if ((action === 'send-message' || action === 'send-confirmation') && appointmentId && type && type !== 'otp') {
       log("Iniciando fluxo de automação renderizada...");
       
       // 1. Check automation status
@@ -175,7 +293,9 @@ serve(async (req) => {
       }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
-    // --- Original code for other actions ---
+    // ==========================================
+    // 5. OTHER ACTIONS (Original code)
+    // ==========================================
     if (action === 'create' || action === 'get-qr') {
       let qrBase64 = null;
       if (action === 'create') {
@@ -236,29 +356,6 @@ serve(async (req) => {
       }
 
       return new Response(JSON.stringify({ success: true, connected: isConnected, state }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
-    }
-
-    if (action === 'send-message' || action === 'send-test' || action === 'send-otp') {
-      const targetPhone = String(phone || "").replace(/\D/g, '');
-      let targetMessage = message || text;
-
-      if (action === 'send-otp') {
-        const code = Math.floor(100000 + Math.random() * 900000).toString();
-        targetMessage = `Seu código de acesso para MeAgendae é: ${code}`;
-        await supabaseClient.from('whatsapp_otp_codes').insert({
-          phone: targetPhone,
-          code,
-          company_id: companyId || null,
-          expires_at: new Date(Date.now() + 5 * 60 * 1000).toISOString()
-        });
-      }
-
-      const res = await callEvolution(`/message/sendText/${instanceName}`, 'POST', {
-        number: targetPhone,
-        text: targetMessage
-      });
-
-      return new Response(JSON.stringify({ success: res.ok, data: res.data }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
     if (action === 'logout') {
