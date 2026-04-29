@@ -44,7 +44,7 @@ import { usePreselectedSlot } from '@/hooks/usePreselectedSlot';
 import { Lock } from 'lucide-react';
 import { CompleteSignupModal } from '@/components/CompleteSignupModal';
 import { ExistingAccountModal } from '@/components/ExistingAccountModal';
-
+import { IdentityModal } from '@/components/booking/IdentityModal';
 import { BookingErrorDialog, translateBookingError, type BookingErrorInfo } from '@/components/BookingErrorDialog';
 
 const StarRating = ({ rating, size = 14 }: { rating: number; size?: number }) => {
@@ -235,7 +235,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
   const [showCompleteSignup, setShowCompleteSignup] = useState(false);
   const [showExistingAccountModal, setShowExistingAccountModal] = useState(false);
   const [existingAccountMode, setExistingAccountMode] = useState<'email_exists' | 'whatsapp_exists' | 'both_exists'>('email_exists');
-  
+  const [showIdentityModal, setShowIdentityModal] = useState(false);
   const [currentWeekStart, setCurrentWeekStart] = useState<Date>(startOfWeek(new Date(), { locale: ptBR }));
 
   // Refined Premium Flow States
@@ -252,6 +252,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
     }
     return id;
   }, []);
+
 
   const [hasBenefitsActive, setHasBenefitsActive] = useState(false);
   const [lastBooking, setLastBooking] = useState<{
@@ -2989,6 +2990,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
               <p className="text-xs text-right" style={{ color: T.textSec }}>{reviewComment.length}/500</p>
             </div>
             <Button
+              disabled={submittingReview || reviewRating < 1}
               onClick={async () => {
                 if (!company || reviewRating < 1) return;
                 setSubmittingReview(true);
@@ -3025,6 +3027,124 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
           </div>
         </DialogContent>
       </Dialog>
+
+      <IdentityModal
+        isOpen={showIdentityModal}
+        onClose={() => setShowIdentityModal(false)}
+        companyId={company?.id}
+        onLoginSuccess={async (clientData) => {
+          console.log('[LOGIN_SUCCESS] IdentityModal success callback triggered', clientData);
+          
+          // ATUALIZAÇÃO IMEDIATA: Seta o cliente como válido e preenche o form
+          setHasValidClient(true);
+          setClientDataWasAutoFilled(true);
+          setShowIdentityModal(false);
+          setShowOneClickCard(true);
+          setIsChangingData(false);
+          
+          // Se o clientData foi passado (do IdentityModal), usamos ele para preencher o formulário
+          if (clientData) {
+            setClientForm({
+              full_name: clientData.full_name || '',
+              whatsapp: displayWhatsApp(clientData.whatsapp || ''),
+              email: clientData.email || '',
+              birth_date: clientData.birth_date || '',
+            });
+          }
+
+          const { data: { user } } = await supabase.auth.getUser();
+          const userRole = profile?.role || 'client';
+          const isAdmin = ['admin', 'professional', 'company', 'super_admin'].includes(userRole);
+          
+          if (user) {
+            console.log('[CLIENT_SET] current user:', user.id, 'Role:', userRole);
+            
+            // Busca o registro local do cliente
+            let query = supabase
+              .from('clients')
+              .select('*')
+              .eq('company_id', company?.id);
+            
+            if (isAdmin && clientData?.whatsapp) {
+              // Se for admin, busca pelo whatsapp do cliente identificado
+              query = query.eq('whatsapp', normalizePhone(clientData.whatsapp));
+            } else {
+              // Se for cliente, busca pelo user_id
+              query = query.eq('user_id', user.id);
+            }
+
+            let { data: client } = await query.maybeSingle();
+
+            if (!client && company?.id) {
+              console.log('[Booking] Post-login: identifying/creating client record...');
+              const targetPhone = clientData?.whatsapp ? normalizePhone(clientData.whatsapp) : normalizePhone(user.user_metadata?.whatsapp || user.phone || '');
+              const targetName = clientData?.full_name || user.user_metadata?.full_name || user.user_metadata?.name || 'Cliente';
+              const targetEmail = clientData?.email || user.email;
+
+              // 1. Garantir Client Global
+              const globalClientPayload: any = {
+                whatsapp: targetPhone,
+                name: targetName,
+                email: targetEmail,
+              };
+              if (!isAdmin) globalClientPayload.user_id = user.id;
+
+              const { data: globalClient } = await (supabase
+                .from('clients_global' as any)
+                .upsert(globalClientPayload, { onConflict: 'whatsapp' })
+                .select()
+                .single() as any);
+
+              // 2. Garantir Client Local
+              const localClientPayload: any = {
+                company_id: company.id,
+                global_client_id: globalClient?.id,
+                name: targetName,
+                whatsapp: targetPhone,
+                email: targetEmail,
+              };
+              if (!isAdmin) localClientPayload.user_id = user.id;
+
+              const { data: newClient } = await (supabase
+                .from('clients' as any)
+                .upsert(localClientPayload, { 
+                  onConflict: !isAdmin ? 'company_id, user_id' : 'company_id, whatsapp' 
+                })
+                .select()
+                .single() as any);
+
+              client = newClient;
+            }
+
+            if (client) {
+              setSavedClientId(client.id);
+              setClientForm({
+                full_name: client.name || '',
+                whatsapp: displayWhatsApp(client.whatsapp || ''),
+                email: client.email || '',
+                birth_date: client.birth_date || '',
+              });
+              setHasValidClient(true);
+              setClientDataWasAutoFilled(true);
+              console.log('[BOOKING_UNLOCKED] Client record ready');
+            }
+          } else if (clientData) {
+            // Caso em que não há usuário logado mas o cliente se identificou via WhatsApp Session
+            setClientForm({
+              full_name: clientData.fullName || clientData.full_name || '',
+              email: clientData.email || '',
+              whatsapp: displayWhatsApp(clientData.whatsapp || ''),
+              birth_date: '',
+            });
+            setHasValidClient(true);
+            setClientDataWasAutoFilled(true);
+            console.log('[BOOKING_UNLOCKED] Client identified without user session');
+          }
+
+          // START FLOW FROM ZERO as requested
+          setStep(professionalSlug ? 'services' : 'professional');
+        }}
+      />
 
     </div>
   );
