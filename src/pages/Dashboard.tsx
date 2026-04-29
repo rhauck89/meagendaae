@@ -277,7 +277,7 @@ const Dashboard = () => {
       .in('status', ['confirmed', 'pending'])
       .gte('start_time', now)
       .order('start_time', { ascending: true })
-      .limit(5);
+      .limit(10);
 
     if (!isAdmin && profileId) {
       query = query.eq('professional_id', profileId);
