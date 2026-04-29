@@ -266,7 +266,7 @@ serve(async (req) => {
         '{{link_agendamento}}': `${webBaseUrl}/${companySlug || ''}`,
         '{{link_cancelamento}}': `${webBaseUrl}/cancel/${appointmentId}`,
         '{{link_reagendamento}}': `${webBaseUrl}/reschedule/${appointmentId}`,
-        '{{link_avaliacao}}': `${webBaseUrl}/review/${appointmentId}`,
+        '{{link_avaliacao}}': `${webBaseUrl}/review/${appointmentId}?c=${appointment.company_id}&p=${appointment.professional_id}`,
         '{{cashback}}': 'R$ 0,00' // Placeholder for now
       };
 
