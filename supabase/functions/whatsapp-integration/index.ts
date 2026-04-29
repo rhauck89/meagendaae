@@ -254,7 +254,7 @@ Deno.serve(async (req) => {
 
       if (!targetCompanyId) {
         console.error(`[OTP_ERROR_REAL] Missing company_id in verify-otp request`);
-        throw new Error('ID da empresa não informado.');
+        return new Response(JSON.stringify({ success: false, reason: 'MISSING_COMPANY', message: 'ID da empresa não informado.' }), { headers: corsHeaders });
       }
 
       const cleanPhone = phone ? formatPhone(phone) : null;
