@@ -63,6 +63,7 @@ import CompanySelector from "./pages/CompanySelector";
 import AppointmentRequests from "./pages/AppointmentRequests";
 import ClientPortal from "./pages/ClientPortal";
 import ClientAuth from "./pages/ClientAuth";
+import TestLogin from "./pages/TestLogin";
 
 // Settings sub-pages
 import SettingsGeneral from "./pages/settings/SettingsGeneral";
@@ -172,6 +173,7 @@ const PlatformRoutes = () => (
     <Route path="/minha-conta" element={<ClientPortal />} />
     <Route path="/cliente/auth" element={<ClientAuth />} />
     <Route path="/review/:appointmentId" element={<ReviewPage />} />
+    <Route path="/test-login" element={<TestLogin />} />
     <Route path="/cancel/:appointmentId" element={<CancelAppointment />} />
     <Route path="/reschedule/:appointmentId" element={<RescheduleAppointment />} />
     <Route path="/admin" element={<RequireRole role="super_admin"><Admin /></RequireRole>} />
