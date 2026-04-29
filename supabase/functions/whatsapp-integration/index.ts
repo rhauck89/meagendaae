@@ -202,12 +202,48 @@ serve(async (req) => {
 
     // Outras ações (get-status, send-message, logout) mantidas para integridade
     if (action === 'get-status') {
-      const res = await callEvolution(`/instance/connectionState/${instanceName}`);
-      let mappedStatus = 'disconnected';
-      if (res.data?.instance?.state === 'open') mappedStatus = 'connected';
-      else if (res.data?.instance?.state === 'connecting') mappedStatus = 'connecting';
+      console.log("CHECKING STATUS FOR:", instanceName);
+      let res = await callEvolution(`/instance/connectionState/${instanceName}`);
+      
+      // Fallback if the first route fails or doesn't return state
+      if (!res.ok || (!res.data?.instance?.state && !res.data?.state)) {
+        console.log("RETRYING WITH STATUS ROUTE...");
+        res = await callEvolution(`/instance/status/${instanceName}`);
+      }
 
-      return new Response(JSON.stringify({ success: true, instanceName, mappedStatus, data: res.data }), {
+      const rawState = res.data?.instance?.state || res.data?.state || res.data?.status;
+      const state = String(rawState || '').toLowerCase();
+      
+      console.log("ESTADO BRUTO DA EVOLUTION:", rawState);
+
+      const isConnected = ['open', 'connected', 'connected'].includes(state);
+      
+      let mappedStatus = 'disconnected';
+      if (isConnected) {
+        mappedStatus = 'connected';
+      } else if (state === 'connecting' || state === 'pending') {
+        mappedStatus = 'connecting';
+      } else if (state === 'closed' || state === 'disconnected') {
+        mappedStatus = 'disconnected';
+      }
+
+      // ATUALIZAÇÃO CRÍTICA DO BANCO
+      if (isConnected) {
+        console.log("INSTÂNCIA CONECTADA! ATUALIZANDO BANCO...");
+        await supabaseClient.from('whatsapp_instances').update({
+          status: 'connected',
+          qr_code: null,
+          updated_at: new Date().toISOString()
+        }).eq('company_id', companyId);
+      }
+
+      return new Response(JSON.stringify({ 
+        success: true, 
+        instanceName, 
+        mappedStatus, 
+        connected: isConnected,
+        data: res.data 
+      }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 200
       });
