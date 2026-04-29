@@ -148,7 +148,7 @@ Deno.serve(async (req) => {
       
       if (!targetCompanyId) {
         console.error('[OTP_ERROR_REAL] send-otp: Missing companyId');
-        throw new Error('ID da empresa não informado.');
+        return new Response(JSON.stringify({ success: false, reason: 'MISSING_PARAMS', message: 'ID da empresa não informado.' }), { headers: corsHeaders });
       }
       
       console.log(`[OTP_GENERATE] Phone: ${phone}, Email: ${targetEmail}, Company: ${targetCompanyId}`);
