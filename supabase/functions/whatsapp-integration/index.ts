@@ -284,6 +284,21 @@ serve(async (req) => {
 
       if (isOtp) {
         console.log("INICIANDO FLUXO OTP...");
+        
+        // TESTE DE INSERT FIXO PARA DIAGNÓSTICO
+        console.log("EXECUTANDO TESTE DE INSERT FIXO...");
+        const fixedTest = await supabaseClient.from('whatsapp_otp_codes').insert({
+          phone: "5511999999999",
+          code: "123456",
+          company_id: "ba00be4b-a872-4d08-880a-a5033b40ed3f",
+          expires_at: new Date(Date.now() + 5 * 60 * 1000).toISOString()
+        }).select();
+        
+        console.log("RESULTADO TESTE FIXO:", JSON.stringify(fixedTest));
+        if (fixedTest.error) {
+          console.error("ERRO TESTE FIXO:", JSON.stringify(fixedTest.error));
+        }
+
         console.log("PHONE:", phone);
         console.log("COMPANY_ID:", companyId);
         
