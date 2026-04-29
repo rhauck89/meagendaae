@@ -14,8 +14,23 @@ import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
 const MyAppointments = () => {
-  const { user, signOut } = useAuth();
+  const { user, signOut: authSignOut, isAdmin } = useAuth();
   const navigate = useNavigate();
+
+  // Custom signOut to handle admin vs client sessions
+  const signOut = async () => {
+    if (isAdmin) {
+      // Find any active whatsapp sessions in localStorage
+      const keys = Object.keys(localStorage).filter(k => k.startsWith('whatsapp_session_'));
+      keys.forEach(id => {
+        localStorage.removeItem(id);
+      });
+      toast.success('Sessão de cliente encerrada');
+      window.location.reload();
+    } else {
+      await authSignOut();
+    }
+  };
   const [appointments, setAppointments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
