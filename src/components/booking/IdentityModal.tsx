@@ -289,7 +289,11 @@ export function IdentityModal({
     setIsAuthenticated(true);
     console.log('[CLIENT_IDENTIFIED] Success! Manual update starting...');
     
-    if (session) {
+    // OBRIGATÓRIO: Se já existe um admin logado, NÃO trocamos a sessão.
+    // Apenas identificamos o cliente para o fluxo do agendamento.
+    const isAdmin = profile && ['admin', 'professional', 'company', 'super_admin'].includes(profile.role);
+
+    if (session && !isAdmin) {
       console.log('[SESSION_APPLIED] Setting Supabase session', session);
       const { error: setSessionError } = await supabase.auth.setSession({
         access_token: session.access_token,
@@ -319,9 +323,10 @@ export function IdentityModal({
         setLoading(false);
         return;
       }
+      console.log('[FORCED_LOGIN_STATE] Login identified and state updated manually');
+    } else if (isAdmin) {
+      console.log('[IDENTITY_ONLY] Admin is logged in, skipping session update to keep admin context');
     }
-
-    console.log('[FORCED_LOGIN_STATE] Login identified and state updated manually');
 
     // UX PREMIUM: Wait 800ms before closing
     setTimeout(() => {
