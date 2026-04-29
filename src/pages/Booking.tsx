@@ -1378,6 +1378,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
       const clientId = null; // Deixamos o banco resolver via nome/whatsapp
       const formattedWhatsapp = clientForm.whatsapp ? normalizePhone(clientForm.whatsapp) : null;
 
+      if (!selectedSlotIsAvailable) {
         setBookingError({
           kind: 'invalid_slot',
           title: 'Este horário não está mais disponível',
@@ -1389,6 +1390,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
         setLoading(false);
         return;
       }
+
 
       const freshAvailability = await getAvailableSlots({
         source: 'public',
