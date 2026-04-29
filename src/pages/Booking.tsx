@@ -2543,7 +2543,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
               <ChevronLeft className="h-4 w-4" /> Voltar
             </button>
             <div className="space-y-2">
-              <h2 className="text-4xl font-black tracking-tighter leading-none">{clientForm.full_name.split(' ')[0]}, revise seu Ticket Premium 👇</h2>
+              <h2 className="text-4xl font-black tracking-tighter leading-none">{clientForm.full_name ? clientForm.full_name.split(' ')[0] : 'Cliente'}, revise seu Ticket Premium 👇</h2>
               <div className="flex items-center gap-2">
                 <p className="text-[10px] font-black opacity-60 uppercase tracking-[0.2em]" style={{ color: T.textSec }}>Confirme os detalhes da sua reserva</p>
                 <div className="h-px flex-1 bg-white/5" />
