@@ -132,6 +132,9 @@ const TenantRoutes = ({ slug, businessType }: { slug: string; businessType: stri
       <Route path="/promo/:promoSlug" element={<PromotionPublic />} />
       <Route path="/:professionalSlug/agendar" element={<Booking routeBusinessType={routeType} customSlug={slug} />} />
       <Route path="/:professionalSlug" element={<ProfessionalPublicProfile />} />
+      <Route path="/review/:appointmentId" element={<ReviewPage />} />
+      <Route path="/cancel/:appointmentId" element={<CancelAppointment />} />
+      <Route path="/reschedule/:appointmentId" element={<RescheduleAppointment />} />
       <Route path="*" element={<NotFound />} />
     </Routes>
   );

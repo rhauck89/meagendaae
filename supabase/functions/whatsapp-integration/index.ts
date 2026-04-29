@@ -234,7 +234,7 @@ serve(async (req) => {
       // 3. Get services
       const { data: services } = await supabaseClient
         .from('appointment_services')
-        .select('services(name)')
+        .select('services(id, name)')
         .eq('appointment_id', appointmentId);
       
       const serviceNames = services?.map(s => s.services?.name).join(', ') || 'Serviço';
@@ -263,10 +263,10 @@ serve(async (req) => {
         '{{hora}}': formattedTime,
         '{{servico}}': serviceNames,
         '{{profissional}}': appointment.professional?.full_name || 'Profissional',
-        '{{link_agendamento}}': `${webBaseUrl}/${companySlug}`,
-        '{{link_cancelamento}}': `${webBaseUrl}/${companySlug}/meus-agendamentos`,
-        '{{link_reagendamento}}': `${webBaseUrl}/${companySlug}/meus-agendamentos`,
-        '{{link_avaliacao}}': `${webBaseUrl}/review/${appointmentId}`,
+        '{{link_agendamento}}': `${webBaseUrl}/${companySlug || ''}`,
+        '{{link_cancelamento}}': `${webBaseUrl}/cancel/${appointmentId}`,
+        '{{link_reagendamento}}': `${webBaseUrl}/reschedule/${appointmentId}`,
+        '{{link_avaliacao}}': `${webBaseUrl}/review/${appointmentId}?c=${appointment.company_id}&p=${appointment.professional_id}&s=${services?.[0]?.services?.id || ''}`,
         '{{cashback}}': 'R$ 0,00' // Placeholder for now
       };
 
