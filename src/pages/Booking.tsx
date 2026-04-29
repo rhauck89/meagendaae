@@ -529,8 +529,9 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
       }
       
       // AUTO-CREATE local client if authenticated but no client record exists for this company
-      if (!data && !error && user) {
-        console.log('[Booking] Authenticated user has no client record for this company. Creating automatically...');
+      // SEPARAÇÃO: Não criamos automaticamente se o usuário for ADMIN
+      if (!data && !error && user && !isAdmin) {
+        console.log('[Booking] Authenticated client has no record for this company. Creating automatically...');
         const normalizedPhone = normalizePhone(user.user_metadata?.whatsapp || user.phone || '');
         const clientName = user.user_metadata?.full_name || user.user_metadata?.name || 'Cliente';
         
