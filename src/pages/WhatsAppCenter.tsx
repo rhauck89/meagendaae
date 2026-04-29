@@ -370,6 +370,8 @@ function ConnectionTab({ companyId, userId, instance, loading, onChange }: { com
       }, 60000);
     }
 
+    const pollingInterval = (status === 'connecting' || status === 'pending') ? 3000 : 5000;
+    
     const interval = setInterval(async () => {
       try {
         const res = await getStatus(companyId);
@@ -379,7 +381,15 @@ function ConnectionTab({ companyId, userId, instance, loading, onChange }: { com
         const profileDataFound = (res.profile_name && !instance?.profile_name) || (res.phone && !instance?.phone);
         
         if (statusChanged || profileDataFound) {
+          console.log("Status change or profile data found, refreshing UI...");
           onChange();
+          
+          if (res.mappedStatus === 'connected') {
+            setLocalQrCode(null);
+            toast.success('WhatsApp conectado com sucesso!', {
+              description: 'Sua instância já está pronta para uso.'
+            });
+          }
         }
 
         // If we have no QR and we are connecting, try to fetch it
@@ -389,8 +399,8 @@ function ConnectionTab({ companyId, userId, instance, loading, onChange }: { com
            if (qr) {
              console.log("QR POLLING:", qr);
              setLocalQrCode(qr.startsWith('data:image') ? qr : `data:image/png;base64,${qr}`);
+             onChange();
            }
-           onChange();
         }
       } catch (e: any) {
         console.error('Error polling WhatsApp status:', e);
@@ -398,7 +408,7 @@ function ConnectionTab({ companyId, userId, instance, loading, onChange }: { com
           onChange();
         }
       }
-    }, 5000);
+    }, pollingInterval);
 
     return () => {
       clearInterval(interval);
