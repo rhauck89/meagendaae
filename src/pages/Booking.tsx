@@ -1328,25 +1328,15 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
       setStep('services');
       return;
     }
-    // Verificar se existe uma identidade válida (seja via Auth ou via WhatsApp Session local)
-    const localIdentityStr = localStorage.getItem(`whatsapp_session_${company.id}`);
-    let hasValidLocalIdentity = false;
+    // Autenticação desativada por solicitação. 
+    // O agendamento agora é livre apenas com Nome e WhatsApp.
     
-    if (localIdentityStr) {
-      try {
-        const identity = JSON.parse(localIdentityStr);
-        if (new Date(identity.expiresAt) > new Date()) {
-          hasValidLocalIdentity = true;
-        }
-      } catch (e) { /* ignore */ }
-    }
-
-    if (!isAuthenticated && !hasValidLocalIdentity) {
-      toast.error('Por favor, identifique-se para concluir o agendamento.');
-      setShowIdentityModal(true);
-      setLoading(false);
+    // Validar apenas se os dados básicos estão no form antes de prosseguir
+    if (!clientForm.full_name || !clientForm.whatsapp) {
+      toast.error('Por favor, informe seu nome e WhatsApp para concluir.');
       return;
     }
+
 
     setLoading(true);
     try {
