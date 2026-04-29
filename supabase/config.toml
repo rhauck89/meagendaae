@@ -26,3 +26,6 @@ verify_jwt = false
 
 [functions.automations-api]
 verify_jwt = false
+
+[functions.whatsapp-integration]
+verify_jwt = false
