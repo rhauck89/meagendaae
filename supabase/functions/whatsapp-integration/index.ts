@@ -377,11 +377,10 @@ serve(async (req) => {
       const targetPhone = normalizePhone(phone);
       const { code } = requestBody
 
-      console.log("PHONE BUSCADO:", targetPhone);
-      console.log("COMPANY_ID:", companyId);
-      console.log("OTP DIGITADO:", code);
+      log(`PHONE BUSCADO: ${targetPhone}`);
+      log(`COMPANY_ID: ${companyId}`);
+      log(`OTP DIGITADO: ${code}`);
 
-      // Buscar o último código gerado para este telefone e empresa
       const { data: otpData, error: otpError } = await supabaseClient
         .from('whatsapp_otp_codes')
         .select('*')
@@ -391,14 +390,16 @@ serve(async (req) => {
         .limit(1)
         .maybeSingle();
 
-      console.log("OTP ENCONTRADO NO BANCO:", JSON.stringify(otpData));
+      log("OTP ENCONTRADO NO BANCO:");
+      log(otpData);
 
       if (otpError || !otpData) {
-        console.log("ERRO: OTP_NOT_FOUND");
+        log("ERRO: OTP_NOT_FOUND");
         return new Response(JSON.stringify({ 
           success: false, 
           error: "OTP_NOT_FOUND",
-          detail: "Nenhum código encontrado para esse telefone e empresa"
+          detail: "Nenhum código encontrado para esse telefone e empresa",
+          debug: debugLogs
         }), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           status: 200
