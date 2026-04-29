@@ -181,6 +181,21 @@ serve(async (req) => {
     if ((action === 'send-message' || action === 'send-confirmation') && appointmentId && type && type !== 'otp') {
       log("Iniciando fluxo de automação renderizada...");
       
+      // 0. Anti-duplicity protection
+      const { data: existingLog } = await supabaseClient
+        .from('whatsapp_logs')
+        .select('id')
+        .eq('company_id', companyId)
+        .eq('appointment_id', appointmentId)
+        .eq('source', `automation_${type}`)
+        .eq('status', 'sent')
+        .maybeSingle();
+
+      if (existingLog) {
+        log(`Mensagem duplicada detectada para appt ${appointmentId}. Ignorando.`);
+        return new Response(JSON.stringify({ success: false, skipped: true, reason: "DUPLICATE_MESSAGE" }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }
+
       // 1. Check automation status
       const { data: automation, error: autoError } = await supabaseClient
         .from('whatsapp_automations')
