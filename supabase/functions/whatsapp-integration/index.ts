@@ -305,7 +305,7 @@ Deno.serve(async (req) => {
 
       if (otp.attempts >= (otp.max_attempts || 5)) {
         console.warn(`[OTP_ERROR_REAL] Max attempts reached for OTP ${otp.id}`);
-        throw new Error('Máximo de tentativas excedido. Solicite um novo código.');
+        return new Response(JSON.stringify({ success: false, reason: 'MAX_ATTEMPTS', message: 'Máximo de tentativas excedido. Solicite um novo código.' }), { headers: corsHeaders });
       }
 
       // Mark as used immediately
