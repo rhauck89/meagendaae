@@ -411,43 +411,33 @@ function ConnectionTab({ companyId, userId, instance, loading, onChange }: { com
     setBusy(true);
     setQrTimeout(false);
     try { 
-      // Step 1: Create instance in Evolution API and Save to DB
-      // The Edge Function already handles destroying old instance if action='create'
-      console.log('Step 1: Creating instance...');
-      const res = await connectInstance(companyId); 
-      console.log('RESPOSTA EDGE (create):', res);
+      toast.info('Iniciando conexão...', { description: 'Gerando QR Code na Evolution API.' }); 
+      console.log('Solicitando criação de instância e QR Code...');
       
-      const qrFromCreate = 
-        (res as any)?.qrcode || 
-        (res as any)?.instance?.qr_code || 
-        (res as any)?.qr || 
-        (res as any)?.base64;
+      const res = await connectInstance(companyId); 
+      console.log('RESPOSTA EDGE FINAL:', res);
+      
+      const qrCode = (res as any)?.qrcode;
 
-      if (qrFromCreate) {
-        console.log("QR FINAL (create):", qrFromCreate);
-        setLocalQrCode(qrFromCreate.startsWith('data:image') ? qrFromCreate : `data:image/png;base64,${qrFromCreate}`);
+      if (qrCode) {
+        console.log("QR FINAL CAPTURADO:", qrCode);
+        const formattedQr = qrCode.startsWith('data:image') ? qrCode : `data:image/png;base64,${qrCode}`;
+        setLocalQrCode(formattedQr);
+        toast.success('QR Code gerado!', { description: 'Escaneie agora para conectar.' });
+      } else {
+        console.warn('QR Code não retornado na primeira tentativa, o polling tentará buscar.');
       }
       
       onChange();
-      
-      console.log('Step 2: Fetching QR code...');
-      toast.info('Iniciando conexão...', { description: 'Gerando QR Code oficial Evolution API.' }); 
-      
-      await new Promise(resolve => setTimeout(resolve, 3000));
-      
-      try {
-        const qrRes = await getQrCode(companyId);
-        console.log('RESPOSTA EDGE (get-qr):', qrRes);
-        const qr = (qrRes as any)?.qrcode || (qrRes as any)?.qr || (qrRes as any)?.base64 || qrRes?.qr_code;
-        if (qr) {
-          console.log("QR FINAL (get-qr):", qr);
-          setLocalQrCode(qr.startsWith('data:image') ? qr : `data:image/png;base64,${qr}`);
-          toast.success('QR Code gerado!', { description: 'Escaneie agora para conectar.' });
-        } else {
-          console.error('QR Code não retornado pela função');
-        }
-      } catch (qrError) {
-        console.warn('QR Code fetch failed initially, polling will handle it:', qrError);
+    } catch (e: any) {
+      console.error('Erro ao conectar WhatsApp:', e);
+      toast.error('Erro ao gerar QR Code', { 
+        description: e.message || 'Verifique a configuração do servidor.' 
+      });
+    } finally {
+      setBusy(false);
+    }
+  };
       }
       
       onChange();
