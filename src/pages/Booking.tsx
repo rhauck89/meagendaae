@@ -3081,59 +3081,60 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
             let { data: client } = await query.maybeSingle();
 
             if (!client && company?.id) {
-              console.log('[Booking] Post-login: auto-creating local client record...');
-              const normalizedPhone = normalizePhone(user.user_metadata?.whatsapp || user.phone || '');
-              const clientName = user.user_metadata?.full_name || user.user_metadata?.name || 'Cliente';
-              
+              console.log('[Booking] Post-login: identifying/creating client record...');
+              const targetPhone = clientData?.whatsapp ? normalizePhone(clientData.whatsapp) : normalizePhone(user.user_metadata?.whatsapp || user.phone || '');
+              const targetName = clientData?.full_name || user.user_metadata?.full_name || user.user_metadata?.name || 'Cliente';
+              const targetEmail = clientData?.email || user.email;
+
+              // 1. Garantir Client Global
+              const globalClientPayload: any = {
+                whatsapp: targetPhone,
+                name: targetName,
+                email: targetEmail,
+              };
+              if (!isAdmin) globalClientPayload.user_id = user.id;
+
               const { data: globalClient } = await (supabase
                 .from('clients_global' as any)
-                .upsert({
-                  user_id: user.id,
-                  whatsapp: normalizedPhone || null,
-                  name: clientName,
-                  email: user.email,
-                }, { onConflict: 'whatsapp' })
+                .upsert(globalClientPayload, { onConflict: 'whatsapp' })
                 .select()
                 .single() as any);
 
+              // 2. Garantir Client Local
+              const localClientPayload: any = {
+                company_id: company.id,
+                global_client_id: globalClient?.id,
+                name: targetName,
+                whatsapp: targetPhone,
+                email: targetEmail,
+              };
+              if (!isAdmin) localClientPayload.user_id = user.id;
+
               const { data: newClient } = await (supabase
                 .from('clients' as any)
-                .upsert({
-                  company_id: company.id,
-                  user_id: user.id,
-                  global_client_id: globalClient?.id,
-                  name: clientName,
-                  whatsapp: normalizedPhone || null,
-                  email: user.email,
-                }, { onConflict: 'company_id, user_id' })
+                .upsert(localClientPayload, { 
+                  onConflict: !isAdmin ? 'company_id, user_id' : 'company_id, whatsapp' 
+                })
                 .select()
                 .single() as any);
-              
+
               client = newClient;
             }
 
             if (client) {
+              setSavedClientId(client.id);
               setClientForm({
                 full_name: client.name || '',
-                email: client.email || '',
                 whatsapp: displayWhatsApp(client.whatsapp || ''),
+                email: client.email || '',
                 birth_date: client.birth_date || '',
               });
-              setSavedClientId(client.id);
               setHasValidClient(true);
               setClientDataWasAutoFilled(true);
               console.log('[BOOKING_UNLOCKED] Client record ready');
-            } else if (clientData) {
-              setClientForm({
-                full_name: clientData.full_name || '',
-                email: clientData.email || '',
-                whatsapp: displayWhatsApp(clientData.whatsapp || ''),
-                birth_date: '',
-              });
-              setHasValidClient(true);
-              console.log('[BOOKING_UNLOCKED] Using provided client data');
             }
           } else if (clientData) {
+            // Caso em que não há usuário logado mas o cliente se identificou (ex: erro no auth mas sucesso no lookup)
             setClientForm({
               full_name: clientData.full_name || '',
               email: clientData.email || '',
