@@ -1603,6 +1603,18 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
 
       setStep('success');
     } catch (err: any) {
+      console.error('[BOOKING_FATAL_ERROR]', err);
+      
+      // Detailed error log for Supabase
+      if (err.code || err.message) {
+        console.error('[BOOKING_ERROR_DETAILS]', {
+          code: err.code,
+          message: err.message,
+          hint: err.hint,
+          details: err.details
+        });
+      }
+
       const info = translateBookingError(err);
       if ((info.kind === 'conflict' || info.kind === 'invalid_slot') && company && selectedDate && selectedProfessional) {
         const freshAvailability = await getAvailableSlots({
@@ -1623,6 +1635,10 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
       } else {
         setBookingError(info);
       }
+      
+      // Prevent success message if it failed
+      setBookingResult({ appointmentId: '', success: false });
+      toast.error(err.message || 'Ocorreu um erro ao processar seu agendamento.');
     } finally {
       setLoading(false);
     }
