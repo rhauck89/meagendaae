@@ -25,7 +25,7 @@ serve(async (req) => {
     
     console.log("ACTION RECEBIDA:", action);
 
-    const EVOLUTION_API_URL = Deno.env.get('EVOLUTION_API_BASE_URL') || Deno.env.get('EVOLUTION_API_URL')
+    const EVOLUTION_API_URL = "https://apiwpp.meagendae.com.br"
     const EVOLUTION_API_KEY = Deno.env.get('EVOLUTION_API_KEY')
 
     if (!EVOLUTION_API_URL) {
@@ -44,11 +44,11 @@ serve(async (req) => {
       })
     }
 
-    const baseUrl = EVOLUTION_API_URL.replace(/\/$/, '')
+    const baseUrl = EVOLUTION_API_URL.replace(/\/+$/, '')
     const instanceName = `company_${companyId}`
 
     // LOGS CRÍTICOS ANTES DE QUALQUER FETCH
-    console.log("BASE URL:", baseUrl)
+    console.log("BASE URL FINAL:", baseUrl)
     console.log("API KEY:", EVOLUTION_API_KEY ? "OK" : "MISSING")
     console.log("INSTANCE NAME:", instanceName)
 
