@@ -385,8 +385,11 @@ function ConnectionTab({ companyId, userId, instance, loading, onChange }: { com
         // If we have no QR and we are connecting, try to fetch it
         if (res.mappedStatus === 'connecting' && (!instance?.qr_code && !localQrCode)) {
            const qrRes = await getQrCode(companyId);
-           // @ts-ignore - The response from Edge Function returns qrcode for consistency
-           if (qrRes?.qrcode) setLocalQrCode(qrRes.qrcode);
+           const qr = qrRes?.qrcode || (qrRes as any)?.qr || (qrRes as any)?.base64;
+           if (qr) {
+             console.log("QR POLLING:", qr);
+             setLocalQrCode(qr.startsWith('data:image') ? qr : `data:image/png;base64,${qr}`);
+           }
            onChange();
         }
       } catch (e: any) {
