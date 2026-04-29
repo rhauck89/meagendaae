@@ -82,7 +82,7 @@ export function BookingErrorDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md p-0 overflow-hidden border-destructive/30">
+      <DialogContent className="max-w-[92vw] sm:max-w-md p-0 overflow-hidden border-destructive/30 rounded-[2rem] sm:rounded-lg">
         <div className="bg-destructive/10 px-6 py-5 flex items-start gap-3">
           <div className="h-10 w-10 rounded-full bg-destructive/20 flex items-center justify-center shrink-0">
             <AlertTriangle className="h-5 w-5 text-destructive" />
