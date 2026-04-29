@@ -3027,12 +3027,44 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
           
           if (user) {
             console.log('[CLIENT_SET] recognized user:', user.id);
-            const { data: client } = await supabase
+            let { data: client } = await supabase
               .from('clients')
               .select('*')
               .eq('user_id', user.id)
               .eq('company_id', company?.id)
               .maybeSingle();
+
+            if (!client && company?.id) {
+              console.log('[Booking] Post-login: auto-creating local client record...');
+              const normalizedPhone = normalizePhone(user.user_metadata?.whatsapp || user.phone || '');
+              const clientName = user.user_metadata?.full_name || user.user_metadata?.name || 'Cliente';
+              
+              const { data: globalClient } = await (supabase
+                .from('clients_global' as any)
+                .upsert({
+                  user_id: user.id,
+                  whatsapp: normalizedPhone || null,
+                  name: clientName,
+                  email: user.email,
+                }, { onConflict: 'whatsapp' })
+                .select()
+                .single() as any);
+
+              const { data: newClient } = await (supabase
+                .from('clients' as any)
+                .upsert({
+                  company_id: company.id,
+                  user_id: user.id,
+                  global_client_id: globalClient?.id,
+                  name: clientName,
+                  whatsapp: normalizedPhone || null,
+                  email: user.email,
+                }, { onConflict: 'company_id, user_id' })
+                .select()
+                .single() as any);
+              
+              client = newClient;
+            }
 
             if (client) {
               setClientForm({
@@ -3044,9 +3076,8 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
               setSavedClientId(client.id);
               setHasValidClient(true);
               setClientDataWasAutoFilled(true);
-              console.log('[BOOKING_UNLOCKED] Client record found and loaded');
+              console.log('[BOOKING_UNLOCKED] Client record ready');
             } else if (clientData) {
-              // Fallback if client record is still being created/synced
               setClientForm({
                 full_name: clientData.full_name || '',
                 email: clientData.email || '',
@@ -3054,7 +3085,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                 birth_date: '',
               });
               setHasValidClient(true);
-              console.log('[BOOKING_UNLOCKED] Using provided client data as fallback');
+              console.log('[BOOKING_UNLOCKED] Using provided client data');
             }
           } else if (clientData) {
             setClientForm({
