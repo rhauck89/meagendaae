@@ -476,8 +476,12 @@ function ConnectionTab({ companyId, userId, instance, loading, onChange }: { com
       // Wait for initialization
       await new Promise(resolve => setTimeout(resolve, 4000));
       const qrRes = await getQrCode(companyId);
-      // @ts-ignore
-      if (qrRes?.qrcode) setLocalQrCode(qrRes.qrcode);
+      console.log('RESPOSTA EDGE (reconnect):', qrRes);
+      const qr = (qrRes as any)?.qrcode || (qrRes as any)?.qr || (qrRes as any)?.base64 || qrRes?.qr_code;
+      if (qr) {
+        console.log("QR FINAL (reconnect):", qr);
+        setLocalQrCode(qr.startsWith('data:image') ? qr : `data:image/png;base64,${qr}`);
+      }
       toast.success('Nova instância pronta', { description: 'Escaneie o novo QR Code.' });
       onChange();
     } catch (e) {
