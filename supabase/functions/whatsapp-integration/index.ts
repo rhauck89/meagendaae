@@ -36,6 +36,8 @@ serve(async (req) => {
     }
 
     const baseUrl = EVOLUTION_API_URL.replace(/\/$/, '')
+    console.log("BASE URL:", baseUrl); // AJUSTE OBRIGATÓRIO 2
+
     const instanceName = `company_${companyId}`
 
     const callEvolution = async (endpoint: string, method = 'GET', body: any = null) => {
@@ -46,15 +48,15 @@ serve(async (req) => {
         const response = await fetch(url, {
           method,
           headers: {
-            'Content-Type': 'application/json',
-            'apikey': EVOLUTION_API_KEY
+            'Content-Type': 'application/json', // AJUSTE OBRIGATÓRIO 1
+            'apikey': EVOLUTION_API_KEY // AJUSTE OBRIGATÓRIO 1
           },
           body: body ? JSON.stringify(body) : null
         })
 
         const rawText = await response.text()
-        console.log("RESPONSE STATUS:", response.status);
-        console.log(`RESPOSTA ${endpoint} RAW:`, rawText.substring(0, 1000))
+        console.log(`RESPONSE STATUS (${endpoint}):`, response.status);
+        console.log(`RAW RESPONSE (${endpoint}):`, rawText.substring(0, 500));
 
         return {
           status: response.status,
@@ -68,15 +70,27 @@ serve(async (req) => {
       }
     }
 
-    const extractQr = (data: any) => {
+    const extractQr = (res: any) => {
+      const data = res?.data || res;
       if (!data) return null;
-      // Accept multiple formats
-      return data.qrcode || 
-             data.qr || 
-             data.base64 || 
-             data.code || 
-             data.instance?.qrcode || 
-             data.qrcode?.base64;
+      
+      let qr = data.qrcode || 
+               data.qr || 
+               data.base64 || 
+               data.code || 
+               data.instance?.qrcode || 
+               data.data?.qrcode || 
+               data.qrcode?.base64;
+
+      if (qr && typeof qr === 'string') {
+        // AJUSTE OBRIGATÓRIO: PREFIXO BASE64
+        if (!qr.startsWith("data:image")) {
+          qr = `data:image/png;base64,${qr}`;
+        }
+        console.log("QR DETECTADO:", qr.slice(0, 50));
+        return qr;
+      }
+      return null;
     }
 
     if (action === 'create' || action === 'get-qr') {
@@ -96,30 +110,29 @@ serve(async (req) => {
             integration: "WHATSAPP-BAILEYS"
           });
 
-          // Check if QR is already in the creation response
-          if (res.ok && res.data) {
-            qrBase64 = extractQr(res.data);
-          }
-
           if (res.ok || res.status === 403 || res.text?.includes("already exists")) {
             console.log(`INSTÂNCIA OK OU JÁ EXISTENTE: ${route.path}`);
+            qrBase64 = extractQr(res);
             break;
           }
         }
       }
 
-      // 1. INICIAR CONEXÃO (OBRIGATÓRIO PARA GERAR QR)
-      console.log("INICIANDO CONEXÃO DA INSTÂNCIA...");
-      const connectRes = await callEvolution(`/instance/connect/${instanceName}`, 'GET');
-      console.log("CONNECT RESPONSE (GET):", connectRes.status);
+      // 1. INICIAR CONEXÃO (FALLBACK OBRIGATÓRIO)
+      console.log("TRIGGERING CONNECTION...");
+      const tryConnect = async () => {
+        let res = await callEvolution(`/instance/connect/${instanceName}`, 'GET');
+        if (!res.ok) {
+          console.log("GET CONNECT FAILED, TRYING POST...");
+          res = await callEvolution(`/instance/connect/${instanceName}`, 'POST', {});
+        }
+        console.log("CONNECT FINAL RESPONSE STATUS:", res.status);
+        return res;
+      };
       
-      if (!connectRes.ok) {
-        console.log("TENTANDO CONNECT VIA POST...");
-        const connectResPost = await callEvolution(`/instance/connect/${instanceName}`, 'POST');
-        console.log("CONNECT RESPONSE (POST):", connectResPost.status);
-      }
+      await tryConnect();
 
-      // 2. BUSCAR QR COM LOOP DE ESPERA (OBRIGATÓRIO)
+      // 2. POLLING REAL (20 tentativas x 3s = 60s)
       if (!qrBase64) {
         const qrRoutes = [
           `/instance/qrcode/${instanceName}`,
@@ -127,32 +140,27 @@ serve(async (req) => {
           `/instance/connect/${instanceName}`
         ];
 
-        console.log("INICIANDO LOOP DE BUSCA DE QR CODE...");
-        for (let i = 0; i < 10; i++) {
-          console.log(`QR TRY: ${i + 1}`);
+        console.log("INICIANDO POLLING DE 60 SEGUNDOS...");
+        for (let i = 0; i < 20; i++) {
+          console.log(`Tentativa ${i + 1}/20`);
+          
           for (const route of qrRoutes) {
             const res = await callEvolution(route);
-            if (res.ok && res.data) {
-              qrBase64 = extractQr(res.data);
-              if (qrBase64) {
-                console.log(`QR CODE ENCONTRADO NA TENTATIVA ${i+1} ROTA: ${route}`);
-                break;
-              }
-            }
+            qrBase64 = extractQr(res);
+            if (qrBase64) break;
           }
+          
           if (qrBase64) break;
-          console.log(`TENTATIVA ${i+1} SEM QR CODE, AGUARDANDO 2S...`);
-          await delay(2000);
+          console.log(`Tentativa ${i + 1} sem QR, aguardando 3s...`);
+          await delay(3000);
         }
       }
-
-      console.log("QR FINAL CAPTURADO:", qrBase64 ? "ENCONTRADO (BASE64)" : "NULL");
 
       if (!qrBase64) {
         return new Response(JSON.stringify({ 
           success: false, 
-          error: "INSTANCE_NOT_CONNECTED",
-          detail: "Instância criada mas não iniciou sessão ou não retornou QR"
+          error: "QR_TIMEOUT",
+          detail: "Evolution não gerou QR em tempo hábil (60s)"
         }), { 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           status: 200 
@@ -170,13 +178,14 @@ serve(async (req) => {
       return new Response(JSON.stringify({
         success: true,
         instanceName,
-        qrcode: qrBase64 || null
+        qrcode: qrBase64
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 200
       });
     }
 
+    // Outras ações (get-status, send-message, logout) mantidas para integridade
     if (action === 'get-status') {
       const res = await callEvolution(`/instance/connectionState/${instanceName}`);
       let mappedStatus = 'disconnected';
