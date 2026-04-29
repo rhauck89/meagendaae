@@ -415,34 +415,42 @@ function ConnectionTab({ companyId, userId, instance, loading, onChange }: { com
       // The Edge Function already handles destroying old instance if action='create'
       console.log('Step 1: Creating instance...');
       const res = await connectInstance(companyId); 
+      console.log('RESPOSTA EDGE (create):', res);
       
-      // If the create action already returned a qrcode, use it
-      // @ts-ignore
-      if (res?.instance?.qr_code) {
-        // @ts-ignore
-        setLocalQrCode(res.instance.qr_code);
+      const qrFromCreate = 
+        (res as any)?.qrcode || 
+        (res as any)?.instance?.qr_code || 
+        (res as any)?.qr || 
+        (res as any)?.base64;
+
+      if (qrFromCreate) {
+        console.log("QR FINAL (create):", qrFromCreate);
+        setLocalQrCode(qrFromCreate.startsWith('data:image') ? qrFromCreate : `data:image/png;base64,${qrFromCreate}`);
       }
       
-      // Step 2: Immediate UI refresh
       onChange();
       
-      // Step 3: Fetch the actual QR code base64
       console.log('Step 2: Fetching QR code...');
       toast.info('Iniciando conexão...', { description: 'Gerando QR Code oficial Evolution API.' }); 
       
-      // Small delay to allow Evolution to be ready
       await new Promise(resolve => setTimeout(resolve, 3000));
       
       try {
         const qrRes = await getQrCode(companyId);
-        // @ts-ignore
-        if (qrRes?.qrcode) setLocalQrCode(qrRes.qrcode);
-        toast.success('QR Code gerado!', { description: 'Escaneie agora para conectar.' });
+        console.log('RESPOSTA EDGE (get-qr):', qrRes);
+        const qr = (qrRes as any)?.qrcode || (qrRes as any)?.qr || (qrRes as any)?.base64 || qrRes?.qr_code;
+        if (qr) {
+          console.log("QR FINAL (get-qr):", qr);
+          setLocalQrCode(qr.startsWith('data:image') ? qr : `data:image/png;base64,${qr}`);
+          toast.success('QR Code gerado!', { description: 'Escaneie agora para conectar.' });
+        } else {
+          console.error('QR Code não retornado pela função');
+        }
       } catch (qrError) {
         console.warn('QR Code fetch failed initially, polling will handle it:', qrError);
       }
       
-      onChange(); 
+      onChange();
     }
     catch (e) { 
       console.error('Connection flow failed:', e);
