@@ -40,23 +40,22 @@ serve(async (req) => {
 
     
     const { action, companyId, phone, message, text } = requestBody
-    
-    console.log("ACTION RECEBIDA:", action);
+    log(`ACTION RECEBIDA: ${action}`);
 
     const EVOLUTION_API_URL = "https://apiwpp.meagendae.com.br"
     const EVOLUTION_API_KEY = Deno.env.get('EVOLUTION_API_KEY')
 
     if (!EVOLUTION_API_URL) {
-      console.log("ERRO: BASE_URL_UNDEFINED");
-      return new Response(JSON.stringify({ success: false, error: "BASE_URL_UNDEFINED" }), { 
+      log("ERRO: BASE_URL_UNDEFINED");
+      return new Response(JSON.stringify({ success: false, error: "BASE_URL_UNDEFINED", debug: debugLogs }), { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 200 
       })
     }
 
     if (!EVOLUTION_API_KEY) {
-      console.log("ERRO: API_KEY_UNDEFINED");
-      return new Response(JSON.stringify({ success: false, error: "API_KEY_UNDEFINED" }), { 
+      log("ERRO: API_KEY_UNDEFINED");
+      return new Response(JSON.stringify({ success: false, error: "API_KEY_UNDEFINED", debug: debugLogs }), { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 200 
       })
@@ -65,10 +64,9 @@ serve(async (req) => {
     const baseUrl = EVOLUTION_API_URL.replace(/\/+$/, '')
     const instanceName = `company_${companyId}`
 
-    // LOGS CRÍTICOS ANTES DE QUALQUER FETCH
-    console.log("BASE URL FINAL:", baseUrl)
-    console.log("API KEY:", EVOLUTION_API_KEY ? "OK" : "MISSING")
-    console.log("INSTANCE NAME:", instanceName)
+    log(`BASE URL FINAL: ${baseUrl}`);
+    log(`INSTANCE NAME: ${instanceName}`);
+
 
     const callEvolution = async (endpoint: string, method = 'GET', body: any = null) => {
       const url = `${baseUrl}${endpoint}`
