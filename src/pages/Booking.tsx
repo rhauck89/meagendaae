@@ -1373,69 +1373,11 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
         authUserId: user?.id 
       });
 
-      // 1. Garantir Client Global (Upsert baseado em WhatsApp)
-      // SEPARAÇÃO: Só vinculamos user_id se for um CLIENTE real (não admin)
-      const globalClientPayload: any = {
-        whatsapp: normalizedPhone || null,
-        name: clientName,
-        email: clientEmail,
-      };
+      // Simplificado: Não fazemos mais o upsert no frontend. 
+      // O RPC create_appointment_v2 agora cuida disso internamente se p_client_id for null.
+      const clientId = null; // Deixamos o banco resolver via nome/whatsapp
+      const formattedWhatsapp = clientForm.whatsapp ? normalizePhone(clientForm.whatsapp) : null;
 
-      if (user && !isAdmin) {
-        globalClientPayload.user_id = user.id;
-      }
-
-      const { data: globalClient, error: globalError } = await (supabase
-        .from('clients_global' as any)
-        .upsert(globalClientPayload, { onConflict: 'whatsapp' })
-        .select()
-        .single() as any);
-
-      if (globalError || !globalClient) {
-        console.error("ERRO AO GERAR CLIENT GLOBAL:", globalError);
-        throw new Error("Erro ao vincular perfil global");
-      }
-
-      console.log("GLOBAL CLIENT:", globalClient);
-
-      // 2. Garantir Client Local (Upsert)
-      const localClientPayload: any = {
-        company_id: company.id,
-        global_client_id: (globalClient as any).id,
-        name: clientName,
-        whatsapp: normalizedPhone || null,
-        email: clientEmail,
-        updated_at: new Date().toISOString()
-      };
-
-      if (user && !isAdmin) {
-        localClientPayload.user_id = user.id;
-      }
-
-      // IMPORTANTE: Se for admin, o upsert deve ser baseado em company_id + whatsapp
-      // para evitar conflito com o unique(company_id, user_id) do próprio admin
-      const { data: localClient, error: localError } = await (supabase
-        .from('clients' as any)
-        .upsert(localClientPayload, { 
-          onConflict: user && !isAdmin ? 'company_id, user_id' : 'company_id, whatsapp' 
-        })
-        .select()
-        .single() as any);
-
-
-      if (localError || !localClient) {
-        console.error("ERRO AO GERAR CLIENT LOCAL:", localError);
-        throw new Error("Erro ao vincular cliente à empresa");
-      }
-
-      if (localClient.is_blocked) {
-        toast.error('Este cliente está bloqueado para realizar agendamentos.');
-        setLoading(false);
-        return;
-      }
-
-      const clientId = localClient.id;
-      setSavedClientId(clientId);
       const formattedWhatsapp = clientForm.whatsapp ? normalizePhone(clientForm.whatsapp) : null;
 
 
