@@ -16,7 +16,7 @@ import { fromZonedTime } from 'date-fns-tz';
 import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
 import { calculateAvailableSlots } from '@/lib/availability-engine';
-import { formatWhatsApp, openWhatsApp } from '@/lib/whatsapp';
+import { formatWhatsApp, openWhatsApp, normalizePhone } from '@/lib/whatsapp';
 import { sendAppointmentCreatedWebhook } from '@/lib/automations';
 
 type StatusTab = 'active' | 'notified' | 'expired' | 'converted' | 'all';
@@ -238,7 +238,7 @@ const Waitlist = () => {
       const startTime = fromZonedTime(`${dateStr} ${selectedSlot}:00`, 'America/Sao_Paulo');
       const endTime = addMinutes(startTime, totalDuration);
 
-      const normalizedPhone = (bookingTarget.client_whatsapp || '').replace(/\D/g, '');
+      const normalizedPhone = normalizePhone(bookingTarget.client_whatsapp || '');
 
       // 1. Garantir Client Global
       const { data: globalClient, error: globalError } = await (supabase
