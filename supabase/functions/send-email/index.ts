@@ -1,6 +1,7 @@
-// Edge Function: send-email
-// Sends emails through Resend via Lovable Connector Gateway.
-// Server-side only — RESEND_API_KEY is never exposed to the client.
+
+import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
+import { templates } from "../_shared/email-templates.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -10,120 +11,51 @@ const corsHeaders = {
 
 const GATEWAY_URL = "https://connector-gateway.lovable.dev/resend";
 
-// Default sender — uses verified domain by default. To fall back to Resend's
-// shared sandbox sender during testing, set AGENDAE_FROM_SANDBOX=true.
-const FROM_VERIFIED = "Agendaê <naoresponda@agendae.com.br>";
-const FROM_SANDBOX = "Agendaê <onboarding@resend.dev>";
-const USE_SANDBOX =
-  (Deno.env.get("AGENDAE_FROM_SANDBOX") ?? "false").toLowerCase() === "true";
-const REPLY_TO_DEFAULT = "suporte@agendae.com.br";
-
-interface SendEmailBody {
-  to: string | string[];
-  subject: string;
-  html: string;
-  from?: string;
-  reply_to?: string;
+interface EmailRequest {
+  to: string;
+  type: keyof typeof templates;
+  data: any;
+  company_id?: string;
+  user_id?: string;
 }
 
-function isValidEmail(email: string): boolean {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-}
-
-function validateBody(body: unknown): { ok: true; data: SendEmailBody } | { ok: false; error: string } {
-  if (!body || typeof body !== "object") return { ok: false, error: "Invalid body" };
-  const b = body as Record<string, unknown>;
-
-  if (!b.subject || typeof b.subject !== "string" || b.subject.length > 200) {
-    return { ok: false, error: "subject is required (max 200 chars)" };
-  }
-  if (!b.html || typeof b.html !== "string" || b.html.length > 200_000) {
-    return { ok: false, error: "html is required (max 200KB)" };
-  }
-
-  const toRaw = b.to;
-  let toList: string[] = [];
-  if (typeof toRaw === "string") toList = [toRaw];
-  else if (Array.isArray(toRaw)) toList = toRaw.filter((x): x is string => typeof x === "string");
-  else return { ok: false, error: "to must be a string or array of strings" };
-
-  if (toList.length === 0 || toList.length > 50) {
-    return { ok: false, error: "to must contain 1 to 50 addresses" };
-  }
-  for (const addr of toList) {
-    if (!isValidEmail(addr)) return { ok: false, error: `Invalid email: ${addr}` };
-  }
-
-  if (b.from && (typeof b.from !== "string" || b.from.length > 200)) {
-    return { ok: false, error: "from must be a string" };
-  }
-  if (b.reply_to && (typeof b.reply_to !== "string" || !isValidEmail(b.reply_to))) {
-    return { ok: false, error: "reply_to must be a valid email" };
-  }
-
-  return {
-    ok: true,
-    data: {
-      to: toList,
-      subject: b.subject,
-      html: b.html,
-      from: b.from as string | undefined,
-      reply_to: b.reply_to as string | undefined,
-    },
-  };
-}
-
-Deno.serve(async (req) => {
+serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
 
-  if (req.method !== "POST") {
-    return new Response(JSON.stringify({ error: "Method not allowed" }), {
-      status: 405,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
-  }
+  const supabase = createClient(
+    Deno.env.get("SUPABASE_URL") ?? "",
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
+  );
 
-  const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-  const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
-  if (!LOVABLE_API_KEY) {
-    return new Response(JSON.stringify({ error: "LOVABLE_API_KEY missing" }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
-  }
-  if (!RESEND_API_KEY) {
-    return new Response(JSON.stringify({ error: "RESEND_API_KEY missing — connect Resend in Cloud" }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
-  }
-
-  let parsed: SendEmailBody;
   try {
-    const body = await req.json();
-    const validation = validateBody(body);
-    if (!validation.ok) {
-      return new Response(JSON.stringify({ error: validation.error }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
+
+    if (!RESEND_API_KEY) {
+      throw new Error("RESEND_API_KEY missing");
     }
-    parsed = validation.data;
-  } catch {
-    return new Response(JSON.stringify({ error: "Invalid JSON body" }), {
-      status: 400,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
-  }
 
-  const from = parsed.from ?? (USE_SANDBOX ? FROM_SANDBOX : FROM_VERIFIED);
-  const replyTo = parsed.reply_to ?? REPLY_TO_DEFAULT;
-  const toArray = Array.isArray(parsed.to) ? parsed.to : [parsed.to];
+    const body: EmailRequest = await req.json();
+    const { to, type, data, company_id, user_id } = body;
 
-  try {
-    const resp = await fetch(`${GATEWAY_URL}/emails`, {
+    if (!templates[type]) {
+      throw new Error(`Invalid email type: ${type}`);
+    }
+
+    const template = templates[type](data);
+    
+    // Configurar remetente baseado no tipo
+    let from = "Agendaê <naoresponda@meagendae.com.br>";
+    if (type.startsWith("ticket")) {
+      from = "Suporte Agendaê <suporte@meagendae.com.br>";
+    } else if (type.startsWith("subscription") || type.startsWith("payment")) {
+      from = "Financeiro Agendaê <financeiro@meagendae.com.br>";
+    }
+
+    // Enviar via Resend Gateway
+    const res = await fetch(`${GATEWAY_URL}/emails`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -132,33 +64,44 @@ Deno.serve(async (req) => {
       },
       body: JSON.stringify({
         from,
-        to: toArray,
-        subject: parsed.subject,
-        html: parsed.html,
-        reply_to: replyTo,
+        to: [to],
+        subject: template.subject,
+        html: template.html,
       }),
     });
 
-    const data = await resp.json().catch(() => ({}));
+    const resData = await res.json();
+    const status = res.ok ? "sent" : "failed";
 
-    if (!resp.ok) {
-      console.error("[send-email] Resend error", resp.status, data);
-      return new Response(
-        JSON.stringify({ error: "Email send failed", status: resp.status, details: data }),
-        { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-      );
+    // Registrar Log
+    await supabase.from("email_logs").insert({
+      company_id,
+      user_id,
+      to_email: to,
+      from_email: from,
+      subject: template.subject,
+      email_type: type,
+      status,
+      resend_id: resData?.id,
+      error_message: res.ok ? null : JSON.stringify(resData),
+    });
+
+    if (!res.ok) {
+      console.error("Resend error:", resData);
+      return new Response(JSON.stringify({ error: "Failed to send email", details: resData }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
-    console.log("[send-email] sent", { to: toArray, subject: parsed.subject, id: data?.id });
-    return new Response(JSON.stringify({ success: true, id: data?.id ?? null }), {
-      status: 200,
+    return new Response(JSON.stringify({ success: true, id: resData.id }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
-  } catch (err) {
-    const message = err instanceof Error ? err.message : "Unknown error";
-    console.error("[send-email] exception", message);
-    return new Response(JSON.stringify({ error: message }), {
-      status: 500,
+
+  } catch (error) {
+    console.error("Email function error:", error);
+    return new Response(JSON.stringify({ error: error.message }), {
+      status: 400,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
