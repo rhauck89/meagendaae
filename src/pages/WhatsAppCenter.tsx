@@ -385,7 +385,7 @@ function ConnectionTab({ companyId, userId, instance, loading, onChange }: { com
         // If we have no QR and we are connecting, try to fetch it
         if (res.mappedStatus === 'connecting' && (!instance?.qr_code && !localQrCode)) {
            const qrRes = await getQrCode(companyId);
-           const qr = qrRes?.qrcode || (qrRes as any)?.qr || (qrRes as any)?.base64;
+           const qr = (qrRes as any)?.qrcode || (qrRes as any)?.qr || (qrRes as any)?.base64 || qrRes?.qr_code;
            if (qr) {
              console.log("QR POLLING:", qr);
              setLocalQrCode(qr.startsWith('data:image') ? qr : `data:image/png;base64,${qr}`);
