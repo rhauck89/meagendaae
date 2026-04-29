@@ -249,9 +249,32 @@ serve(async (req) => {
       });
     }
 
-    if (action === 'send-message' || action === 'send-test') {
+    if (action === 'send-message' || action === 'send-test' || action === 'send-otp') {
       const targetPhone = String(phone || "").replace(/\D/g, '')
-      const targetMessage = message || text
+      const isOtp = action === 'send-otp' || requestBody.type === 'otp'
+      let targetMessage = message || text || requestBody.message
+
+      if (isOtp) {
+        const code = Math.floor(100000 + Math.random() * 900000).toString();
+        targetMessage = `Seu código de acesso para MeAgendae é: ${code}`;
+        console.log(`GERANDO OTP PARA ${targetPhone}: ${code}`);
+        
+        const { error: otpError } = await supabaseClient.from('whatsapp_otp_codes').insert({
+          phone: targetPhone,
+          code,
+          expires_at: new Date(Date.now() + 10 * 60 * 1000).toISOString(),
+          email: requestBody.email || null
+        });
+
+        if (otpError) {
+          console.error("ERRO AO SALVAR OTP:", otpError);
+          return new Response(JSON.stringify({ success: false, error: "Erro ao gerar código" }), {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            status: 200
+          });
+        }
+      }
+
       const res = await callEvolution(`/message/sendText/${instanceName}`, 'POST', {
         number: targetPhone,
         options: { delay: 1200, presence: "composing", linkPreview: false },
@@ -259,6 +282,79 @@ serve(async (req) => {
       });
 
       return new Response(JSON.stringify({ success: res.ok, data: res.data }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 200
+      });
+    }
+
+    if (action === 'verify-otp') {
+      const targetPhone = String(phone || "").replace(/\D/g, '')
+      const { code } = requestBody
+
+      console.log(`VERIFICANDO OTP PARA ${targetPhone}: ${code}`);
+
+      const { data: otpData, error: otpError } = await supabaseClient
+        .from('whatsapp_otp_codes')
+        .select('*')
+        .eq('phone', targetPhone)
+        .eq('code', code)
+        .eq('verified', false)
+        .gt('expires_at', new Date().toISOString())
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (otpError || !otpData) {
+        console.log("OTP INVÁLIDO OU EXPIRADO");
+        return new Response(JSON.stringify({ success: false, error: "Código inválido ou expirado" }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 200
+        });
+      }
+
+      // Marcar como verificado
+      await supabaseClient.from('whatsapp_otp_codes').update({ verified: true }).eq('id', otpData.id);
+
+      // Buscar usuário pelo WhatsApp nos metadados ou email
+      let user;
+      const { data: users, error: userError } = await supabaseClient.auth.admin.listUsers();
+      
+      if (!userError) {
+        user = users.users.find(u => u.user_metadata?.whatsapp === targetPhone || u.email === otpData.email);
+      }
+
+      if (!user && otpData.email) {
+        // Tentar buscar por email se não achou por whatsapp
+        const { data: userByEmail } = await supabaseClient.auth.admin.getUserByEmail(otpData.email);
+        if (userByEmail?.user) user = userByEmail.user;
+      }
+
+      if (!user) {
+        return new Response(JSON.stringify({ success: false, error: "Usuário não encontrado. Por favor, crie uma conta primeiro." }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 200
+        });
+      }
+
+      // Criar link de login (magic link)
+      const { data: linkData, error: linkError } = await supabaseClient.auth.admin.generateLink({
+        type: 'magiclink',
+        email: user.email!,
+        options: { redirectTo: requestBody.redirectTo }
+      });
+
+      if (linkError) {
+        return new Response(JSON.stringify({ success: false, error: "Erro ao gerar link de acesso" }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 200
+        });
+      }
+
+      return new Response(JSON.stringify({ 
+        success: true, 
+        session: linkData.session,
+        loginUrl: linkData.properties?.action_link
+      }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 200
       });
