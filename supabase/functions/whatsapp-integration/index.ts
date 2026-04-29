@@ -10,6 +10,8 @@ const corsHeaders = {
 const delay = (ms: number) => new Promise(res => setTimeout(res, ms));
 
 serve(async (req) => {
+  console.log("WHATSAPP FUNCTION VERSION: V2 - OTP DEBUG ATIVO");
+  
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
   }
@@ -21,6 +23,8 @@ serve(async (req) => {
     )
 
     const requestBody = await req.json()
+    console.log("REQUEST RECEBIDA:", JSON.stringify(requestBody));
+    
     const { action, companyId, phone, message, text } = requestBody
     
     console.log("ACTION RECEBIDA:", action);
@@ -278,11 +282,15 @@ serve(async (req) => {
       }
 
       if (isOtp) {
+        console.log("INICIANDO FLUXO OTP...");
+        console.log("PHONE:", phone);
+        console.log("COMPANY_ID:", companyId);
+        
         const code = Math.floor(100000 + Math.random() * 900000).toString();
         console.log("CODIGO GERADO:", code);
         targetMessage = `Seu código de acesso para MeAgendae é: ${code}`;
         
-        console.log("COMPANY_ID RECEBIDO:", companyId);
+        console.log("COMPANY_ID RECEBIDO NO PAYLOAD:", companyId);
         
         const otpPayload = {
           phone: targetPhone,
