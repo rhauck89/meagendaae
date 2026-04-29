@@ -23,6 +23,10 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
+    // TESTE SELECT IMEDIATO PARA DIAGNÓSTICO
+    const testSelect = await supabaseClient.from('whatsapp_otp_codes').select('*').limit(1);
+    console.log("TESTE SELECT:", JSON.stringify(testSelect));
+
     const requestBody = await req.json()
     console.log("REQUEST RECEBIDA:", JSON.stringify(requestBody));
     
