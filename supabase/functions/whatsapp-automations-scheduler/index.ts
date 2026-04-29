@@ -59,7 +59,7 @@ Deno.serve(async (req) => {
           if (!isAutomationEnabled(apt.company_id, trigger)) continue;
           if (!apt.client_whatsapp) continue;
 
-          await supabase.functions.invoke('whatsapp-integration', {
+          const { data: response } = await supabase.functions.invoke('whatsapp-integration', {
             body: {
               action: 'send-message',
               companyId: apt.company_id,
@@ -68,10 +68,14 @@ Deno.serve(async (req) => {
             }
           });
           
-          const updateObj: any = {};
-          updateObj[trigger === 'appointment_reminder_1d' ? "whatsapp_reminder_1d_sent" : "whatsapp_reminder_sent"] = true;
-          await supabase.from("appointments").update(updateObj).eq("id", apt.id);
-          totalProcessed++;
+          if (response?.success) {
+            const updateObj: any = {};
+            updateObj[trigger === 'appointment_reminder_1d' ? "whatsapp_reminder_1d_sent" : "whatsapp_reminder_sent"] = true;
+            await supabase.from("appointments").update(updateObj).eq("id", apt.id);
+            totalProcessed++;
+          } else {
+            console.log(`[SCHEDULER] Failed to send ${trigger} for appt ${apt.id}: ${response?.error || 'Unknown error'}`);
+          }
         }
       }
     };
@@ -99,11 +103,14 @@ Deno.serve(async (req) => {
         if (!isAutomationEnabled(apt.company_id, 'post_service_review')) continue;
         if (!apt.client_whatsapp) continue;
 
-        await supabase.functions.invoke('whatsapp-integration', {
+        const { data: response } = await supabase.functions.invoke('whatsapp-integration', {
           body: { action: 'send-message', companyId: apt.company_id, appointmentId: apt.id, type: 'post_service_review' }
         });
-        await supabase.from("appointments").update({ whatsapp_review_sent: true }).eq("id", apt.id);
-        totalProcessed++;
+
+        if (response?.success) {
+          await supabase.from("appointments").update({ whatsapp_review_sent: true }).eq("id", apt.id);
+          totalProcessed++;
+        }
       }
     }
 

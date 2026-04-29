@@ -6412,6 +6412,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      initialize_company_whatsapp_defaults: {
+        Args: { p_company_id: string }
+        Returns: undefined
+      }
       initialize_company_whatsapp_templates: {
         Args: { p_company_id: string }
         Returns: undefined
