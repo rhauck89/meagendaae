@@ -1367,7 +1367,25 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
 
     setLoading(true);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      let { data: { user } } = await supabase.auth.getUser();
+      
+      // Se não houver usuário autenticado no Supabase, mas houver sessão de identidade local válida,
+      // podemos prosseguir usando a identidade local. 
+      // Nota: Algumas operações podem falhar se exigirem auth.uid() no banco.
+      // O sistema deve ser capaz de lidar com "Anonymous Guest" se a política permitir.
+      
+      const localIdentityStr = localStorage.getItem(`whatsapp_session_${company.id}`);
+      let localIdentity: any = null;
+      if (localIdentityStr) {
+        try {
+          const parsed = JSON.parse(localIdentityStr);
+          if (new Date(parsed.expiresAt) > new Date()) {
+            localIdentity = parsed;
+          }
+        } catch (e) { /* ignore */ }
+      }
+
+      // OBRIGATÓRIO: Verificar se o usuário é admin
       // OBRIGATÓRIO: Verificar se o usuário é admin
       const userRole = profile?.role || 'client';
       const isAdmin = ['admin', 'professional', 'company', 'super_admin'].includes(userRole);
