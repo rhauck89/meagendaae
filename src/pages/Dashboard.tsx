@@ -43,7 +43,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { motion, AnimatePresence } from 'framer-motion';
 import { getProfessionalColor } from '@/utils/calendarLayout';
 import { OccupancyDrawer } from '@/components/OccupancyDrawer';
-
+import { usePushNotifications } from '@/hooks/usePushNotifications';
 
 
 type ViewMode = 'day' | 'week' | 'month';
