@@ -385,6 +385,7 @@ function ConnectionTab({ companyId, userId, instance, loading, onChange }: { com
           onChange();
           
           if (res.mappedStatus === 'connected') {
+            setLocalQrCode(null);
             toast.success('WhatsApp conectado com sucesso!', {
               description: 'Sua instância já está pronta para uso.'
             });
