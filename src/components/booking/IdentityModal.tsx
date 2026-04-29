@@ -158,11 +158,13 @@ export function IdentityModal({
     if (codeToVerify.length !== 6) return;
     
     setLoading(true);
+    const action = 'verify-otp';
+    console.log("ACTION ENVIADA:", action);
     try {
       console.log(`[OTP_SUCCESS] Verifying OTP: ${codeToVerify}`);
       const { data, error } = await supabase.functions.invoke('whatsapp-integration', {
         body: {
-          action: 'verify-otp',
+          action: action,
           phone: normalizePhone(whatsapp),
           email: email || null,
           code: codeToVerify,
