@@ -1390,9 +1390,9 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
       const userRole = profile?.role || 'client';
       const isAdmin = ['admin', 'professional', 'company', 'super_admin'].includes(userRole);
 
-      const normalizedPhone = clientForm.whatsapp ? normalizePhone(clientForm.whatsapp) : '';
-      const clientName = clientForm.full_name || user?.user_metadata?.full_name || user?.user_metadata?.name || 'Cliente';
-      const clientEmail = clientForm.email || user?.email || null;
+      const normalizedPhone = clientForm.whatsapp ? normalizePhone(clientForm.whatsapp) : (localIdentity?.whatsapp || '');
+      const clientName = clientForm.full_name || localIdentity?.fullName || user?.user_metadata?.full_name || user?.user_metadata?.name || 'Cliente';
+      const clientEmail = clientForm.email || localIdentity?.email || user?.email || null;
 
       console.log('[BOOKING_FLOW] Starting book process:', { 
         normalizedPhone, 
