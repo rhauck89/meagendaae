@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
-const PLATFORM_DOMAIN = 'agendapro.com';
+const PLATFORM_DOMAIN = 'meagendae.com.br';
 const PLATFORM_HOSTS = [
   'localhost',
   '127.0.0.1',
   'lovable.app',
+  PLATFORM_DOMAIN,
+  `www.${PLATFORM_DOMAIN}`,
   `dashboard.${PLATFORM_DOMAIN}`,
 ];
 
@@ -23,65 +25,88 @@ export const useDomainRouting = () => {
 
   useEffect(() => {
     const resolveTenant = async () => {
-      const hostname = window.location.hostname;
-
-      // 1) Dashboard domain — skip tenant resolution
-      if (hostname === `dashboard.${PLATFORM_DOMAIN}`) {
-        setIsDashboard(true);
-        setLoading(false);
-        return;
-      }
-
-      // 2) Known platform / dev hosts — use path-based routing
-      if (PLATFORM_HOSTS.some((h) => hostname === h || hostname.includes('lovable.app'))) {
-        setLoading(false);
-        return;
-      }
-
-      // 3) Try custom domain first (verified only)
-      const { data: domainRecord } = await supabase
-        .from('company_domains')
-        .select('company_id')
-        .eq('domain', hostname)
-        .eq('verified', true)
-        .single();
-
-      if (domainRecord) {
-        const company = await fetchCompanyById(domainRecord.company_id);
-        if (company) {
-          setTenant({ ...company, source: 'custom_domain' });
+      // Safety timeout to never leave the app stuck in "Carregando..."
+      const timeoutId = setTimeout(() => {
+        if (loading) {
+          console.warn('[DOMAIN_ROUTING] Resolution timeout reached, falling back to platform');
           setLoading(false);
-          return;
         }
-      }
+      }, 5000);
 
-      // 4) Try subdomain of platform domain (e.g. hckbarber.agendapro.com)
-      if (hostname.endsWith(`.${PLATFORM_DOMAIN}`)) {
-        const slug = hostname.replace(`.${PLATFORM_DOMAIN}`, '');
-        // Ignore known subdomains like "dashboard", "www", "api"
-        if (['dashboard', 'www', 'api', 'app'].includes(slug)) {
+      try {
+        const hostname = window.location.hostname;
+        console.log('[DOMAIN_ROUTING] Resolving for:', hostname);
+
+        // 1) Dashboard domain — skip tenant resolution
+        if (hostname === `dashboard.${PLATFORM_DOMAIN}`) {
+          setIsDashboard(true);
           setLoading(false);
+          clearTimeout(timeoutId);
           return;
         }
 
-        const { data: company } = await supabase
-          .from('public_company' as any)
-          .select('id, slug, business_type')
-          .eq('slug', slug)
-          .single();
-
-        if (company) {
-          const c = company as any;
-          setTenant({
-            companyId: c.id,
-            slug: c.slug,
-            businessType: c.business_type,
-            source: 'subdomain',
-          });
+        // 2) Known platform / dev hosts — use path-based routing
+        if (PLATFORM_HOSTS.some((h) => hostname === h || hostname.includes('lovable.app') || hostname.includes('lovableproject.com'))) {
+          console.log('[DOMAIN_ROUTING] Platform/Dev host detected');
+          setLoading(false);
+          clearTimeout(timeoutId);
+          return;
         }
-      }
 
-      setLoading(false);
+        // 3) Try custom domain first (verified only)
+        const { data: domainRecord, error: domainError } = await supabase
+          .from('company_domains')
+          .select('company_id')
+          .eq('domain', hostname)
+          .eq('verified', true)
+          .maybeSingle();
+
+        if (domainError) {
+          console.error('[DOMAIN_ROUTING] Error fetching domain:', domainError);
+        }
+
+        if (domainRecord) {
+          const company = await fetchCompanyById(domainRecord.company_id);
+          if (company) {
+            setTenant({ ...company, source: 'custom_domain' });
+            setLoading(false);
+            clearTimeout(timeoutId);
+            return;
+          }
+        }
+
+        // 4) Try subdomain of platform domain (e.g. hckbarber.meagendae.com.br)
+        if (hostname.endsWith(`.${PLATFORM_DOMAIN}`)) {
+          const slug = hostname.replace(`.${PLATFORM_DOMAIN}`, '');
+          // Ignore known subdomains
+          if (['dashboard', 'www', 'api', 'app', 'static', 'admin'].includes(slug)) {
+            setLoading(false);
+            clearTimeout(timeoutId);
+            return;
+          }
+
+          const { data: company } = await supabase
+            .from('public_company' as any)
+            .select('id, slug, business_type')
+            .eq('slug', slug)
+            .maybeSingle();
+
+          if (company) {
+            const c = company as any;
+            setTenant({
+              companyId: c.id,
+              slug: c.slug,
+              businessType: c.business_type,
+              source: 'subdomain',
+            });
+          }
+        }
+      } catch (err) {
+        console.error('[DOMAIN_ROUTING] Critical error in resolution:', err);
+      } finally {
+        setLoading(false);
+        clearTimeout(timeoutId);
+      }
     };
 
     resolveTenant();
