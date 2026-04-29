@@ -169,7 +169,7 @@ Deno.serve(async (req) => {
 
       if (recentAttempts && recentAttempts >= 10) {
         console.warn(`[OTP_GENERATE] Rate limit hit for ${cleanPhone || userIp}`);
-        throw new Error('Muitas tentativas em curto período. Tente novamente em 1 hora.');
+        return new Response(JSON.stringify({ success: false, reason: 'RATE_LIMIT', message: 'Muitas tentativas em curto período. Tente novamente em 1 hora.' }), { headers: corsHeaders });
       }
 
       // Invalidate old UNUSED codes for this phone in this company
