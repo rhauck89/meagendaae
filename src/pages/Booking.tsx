@@ -3096,6 +3096,9 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
         onLoginSuccess={async (clientData) => {
           console.log('[LOGIN_SUCCESS] IdentityModal success callback triggered', clientData);
           
+          // ATUALIZAÇÃO IMEDIATA: Seta o cliente como válido e preenche o form
+          setHasValidClient(true);
+          setClientDataWasAutoFilled(true);
           setShowIdentityModal(false);
           setShowOneClickCard(true);
           setIsChangingData(false);
@@ -3187,14 +3190,15 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
               console.log('[BOOKING_UNLOCKED] Client record ready');
             }
           } else if (clientData) {
-            // Caso em que não há usuário logado mas o cliente se identificou (ex: erro no auth mas sucesso no lookup)
+            // Caso em que não há usuário logado mas o cliente se identificou via WhatsApp Session
             setClientForm({
-              full_name: clientData.full_name || '',
+              full_name: clientData.fullName || clientData.full_name || '',
               email: clientData.email || '',
               whatsapp: displayWhatsApp(clientData.whatsapp || ''),
               birth_date: '',
             });
             setHasValidClient(true);
+            setClientDataWasAutoFilled(true);
             console.log('[BOOKING_UNLOCKED] Client identified without user session');
           }
 
