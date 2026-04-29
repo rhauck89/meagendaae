@@ -276,7 +276,7 @@ Deno.serve(async (req) => {
 
       if (fetchError) {
         console.error('[OTP_ERROR_REAL] DB Fetch Error:', fetchError);
-        throw new Error(`Erro ao consultar código: ${fetchError.message}`);
+        return new Response(JSON.stringify({ success: false, reason: 'DB_ERROR', error: fetchError.message }), { headers: corsHeaders });
       }
 
       if (!otp) {
