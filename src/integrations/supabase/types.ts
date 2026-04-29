@@ -6482,15 +6482,26 @@ export type Database = {
           whatsapp: string
         }[]
       }
-      lookup_client_globally: {
-        Args: { input_whatsapp: string }
-        Returns: {
-          global_id: string
-          global_name: string
-          global_whatsapp: string
-          local_client_id: string
-        }[]
-      }
+      lookup_client_globally:
+        | {
+            Args: { input_whatsapp: string }
+            Returns: {
+              global_id: string
+              global_name: string
+              global_whatsapp: string
+              local_client_id: string
+            }[]
+          }
+        | {
+            Args: { input_whatsapp: string; p_company_id: string }
+            Returns: {
+              global_email: string
+              global_id: string
+              global_name: string
+              global_whatsapp: string
+              local_client_id: string
+            }[]
+          }
       normalize_slug: { Args: { input_text: string }; Returns: string }
       normalize_whatsapp_v2: { Args: { phone: string }; Returns: string }
       recalculate_client_return_stats: {
