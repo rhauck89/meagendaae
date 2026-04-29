@@ -294,10 +294,9 @@ serve(async (req) => {
       }
 
       if (isOtp) {
-        console.log("INICIANDO FLUXO OTP...");
+        log("INICIANDO FLUXO OTP...");
         
-        // TESTE DE INSERT FIXO PARA DIAGNÓSTICO
-        console.log("EXECUTANDO TESTE DE INSERT FIXO...");
+        log("EXECUTANDO TESTE DE INSERT FIXO...");
         const fixedTest = await supabaseClient.from('whatsapp_otp_codes').insert({
           phone: "5511999999999",
           code: "123456",
@@ -305,19 +304,14 @@ serve(async (req) => {
           expires_at: new Date(Date.now() + 5 * 60 * 1000).toISOString()
         }).select();
         
-        console.log("RESULTADO TESTE FIXO:", JSON.stringify(fixedTest));
-        if (fixedTest.error) {
-          console.error("ERRO TESTE FIXO:", JSON.stringify(fixedTest.error));
-        }
+        log({ fixedTest });
 
-        console.log("PHONE:", phone);
-        console.log("COMPANY_ID:", companyId);
+        log(`PHONE: ${phone}`);
+        log(`COMPANY_ID: ${companyId}`);
         
         const code = Math.floor(100000 + Math.random() * 900000).toString();
-        console.log("CODIGO GERADO:", code);
+        log(`CODIGO GERADO: ${code}`);
         targetMessage = `Seu código de acesso para MeAgendae é: ${code}`;
-        
-        console.log("COMPANY_ID RECEBIDO NO PAYLOAD:", companyId);
         
         const otpPayload = {
           phone: targetPhone,
@@ -328,7 +322,8 @@ serve(async (req) => {
           verified: false
         };
 
-        console.log("PAYLOAD OTP:", JSON.stringify(otpPayload));
+        log("PAYLOAD OTP:");
+        log(otpPayload);
 
         const { data: savedOtp, error: otpError } = await supabaseClient
           .from('whatsapp_otp_codes')
@@ -337,19 +332,21 @@ serve(async (req) => {
           .single();
 
         if (otpError) {
-          console.log("ERRO REAL DO SUPABASE:", JSON.stringify(otpError, null, 2));
+          log("ERRO REAL DO SUPABASE:");
+          log(otpError);
 
           return new Response(JSON.stringify({
             success: false,
             error: "OTP_SAVE_FAILED",
-            supabase_error: otpError
+            supabase_error: otpError,
+            debug: debugLogs
           }), { 
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
             status: 200 
           });
         }
         
-        console.log("OTP SALVO COM SUCESSO");
+        log("OTP SALVO COM SUCESSO");
       }
 
       console.log("MENSAGEM FINAL:", targetMessage);
