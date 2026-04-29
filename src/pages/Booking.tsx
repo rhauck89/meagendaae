@@ -465,30 +465,13 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
   }, [savedClientId, company?.id, isAuthenticated]);
 
   // Check if client is logged in - Refined to ignore admin sessions
-  // Identification Gatekeeper - Based ONLY on AuthContext state
+  // Identification Gatekeeper - DISABLED per request to allow direct booking
   useEffect(() => {
-    console.log('[BOOKING_GATEKEEPER_STATE]', { isAuthenticated, clientLoaded, authLoading, hasCompany: !!company, profile });
-    console.log("USER:", user);
-    console.log("PROFILE:", profile);
-    
-    // Rule 3: Modal should open only if not authenticated
-    if (isAuthenticated) {
-      console.log('[BOOKING_GATEKEEPER] Already logged in, ignoring gatekeeper');
-      setShowIdentityModal(false);
-      
-      // If we are still in identifying step but already authenticated, move forward
-      if (step === 'identifying' && company && !authLoading) {
-        console.log('[BOOKING_GATEKEEPER] Moving from identifying to main flow');
-        setStep(professionalSlug ? 'services' : 'professional');
-      }
-      return;
+    if (step === 'identifying' && company && !authLoading) {
+      console.log('[BOOKING_FLOW] Direct flow active. Moving to professional/services');
+      setStep(professionalSlug ? 'services' : 'professional');
     }
-    
-    if (company && !isAuthenticated && clientLoaded && !authLoading) {
-      console.log('[BOOKING_GATEKEEPER] Identification required. Opening modal...');
-      setShowIdentityModal(true);
-    }
-  }, [company, isAuthenticated, clientLoaded, authLoading, step, professionalSlug, profile, user]);
+  }, [company, step, professionalSlug, authLoading]);
 
 
   // Check whether a valid `clients` record exists for this user in this company.
