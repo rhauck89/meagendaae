@@ -526,9 +526,46 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
         .eq('company_id', company.id)
         .maybeSingle();
       
-      if (error) {
-        console.warn('[Booking] hasValidClient check error:', error);
+      // 1. Verificar se existe uma sessão de identidade local (WhatsApp Session) válida
+      const localIdentityStr = localStorage.getItem(`whatsapp_session_${company.id}`);
+      if (localIdentityStr) {
+        try {
+          const identity = JSON.parse(localIdentityStr);
+          const expiresAt = new Date(identity.expiresAt);
+          
+          if (expiresAt > new Date()) {
+            console.log('[Booking] Valid local identity found:', identity.whatsapp);
+            
+            // Se já temos a identidade no formulário e no estado, não precisamos fazer nada
+            // Mas vamos garantir que o hasValidClient esteja true
+            setHasValidClient(true);
+            
+            // Preencher formulário se estiver vazio
+            if (!clientForm.full_name || clientDataWasAutoFilled) {
+              setClientForm({
+                full_name: identity.fullName || '',
+                email: identity.email || '',
+                whatsapp: displayWhatsApp(identity.whatsapp || ''),
+                birth_date: identity.birth_date || '',
+              });
+              setClientDataWasAutoFilled(true);
+            }
+            
+            // Se já tem identidade válida via WhatsApp Session, não precisamos checar Supabase Auth
+            // a menos que queiramos vincular. Mas o pedido é NÃO misturar.
+            // No entanto, para o agendamento real, precisamos do isAuthenticated do useAuth.
+            // Para agendamentos recorrentes com a mesma identidade, permitimos prosseguir.
+            return;
+          } else {
+            console.log('[Booking] Local identity expired');
+            localStorage.removeItem(`whatsapp_session_${company.id}`);
+          }
+        } catch (e) {
+          console.error('[Booking] Error parsing local identity:', e);
+        }
       }
+
+      // 2. Se não houver identidade local válida, verificar Supabase Auth (Admin/Cliente Logado)
       
       // AUTO-CREATE local client if authenticated but no client record exists for this company
       // SEPARAÇÃO: Não criamos automaticamente se o usuário for ADMIN
