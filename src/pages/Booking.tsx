@@ -3028,16 +3028,8 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
         </DialogContent>
       </Dialog>
 
-      <IdentityModal
-        isOpen={showIdentityModal}
-        onClose={() => setShowIdentityModal(false)}
-        companyId={company?.id}
-        onLoginSuccess={async (clientData) => {
-          console.log('[LOGIN_SUCCESS] IdentityModal success callback triggered', clientData);
-          
-          // ATUALIZAÇÃO IMEDIATA: Seta o cliente como válido e preenche o form
-          setHasValidClient(true);
-          setClientDataWasAutoFilled(true);
+      {/* IdentityModal removido */}
+
           setShowIdentityModal(false);
           setShowOneClickCard(true);
           setIsChangingData(false);
