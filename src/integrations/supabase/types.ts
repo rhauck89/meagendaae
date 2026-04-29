@@ -3482,6 +3482,21 @@ export type Database = {
         }
         Relationships: []
       }
+      pending_super_admins: {
+        Row: {
+          created_at: string | null
+          email: string
+        }
+        Insert: {
+          created_at?: string | null
+          email: string
+        }
+        Update: {
+          created_at?: string | null
+          email?: string
+        }
+        Relationships: []
+      }
       plan_modules: {
         Row: {
           active: boolean
@@ -6461,6 +6476,10 @@ export type Database = {
     }
     Functions: {
       apply_pending_plan_changes: { Args: never; Returns: Json }
+      apply_super_admin_role: {
+        Args: { target_email: string; target_user_id: string }
+        Returns: undefined
+      }
       book_event_slot:
         | {
             Args: {
