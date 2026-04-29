@@ -253,7 +253,6 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
     return id;
   }, []);
 
-
   const [hasBenefitsActive, setHasBenefitsActive] = useState(false);
   const [lastBooking, setLastBooking] = useState<{
     serviceIds: string[]; serviceNames: string[]; serviceDurations: number[];
@@ -2990,7 +2989,6 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
               <p className="text-xs text-right" style={{ color: T.textSec }}>{reviewComment.length}/500</p>
             </div>
             <Button
-              disabled={submittingReview || reviewRating < 1}
               onClick={async () => {
                 if (!company || reviewRating < 1) return;
                 setSubmittingReview(true);
@@ -3027,41 +3025,6 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
           </div>
         </DialogContent>
       </Dialog>
-
-                .single() as any);
-
-              client = newClient;
-            }
-
-            if (client) {
-              setSavedClientId(client.id);
-              setClientForm({
-                full_name: client.name || '',
-                whatsapp: displayWhatsApp(client.whatsapp || ''),
-                email: client.email || '',
-                birth_date: client.birth_date || '',
-              });
-              setHasValidClient(true);
-              setClientDataWasAutoFilled(true);
-              console.log('[BOOKING_UNLOCKED] Client record ready');
-            }
-          } else if (clientData) {
-            // Caso em que não há usuário logado mas o cliente se identificou via WhatsApp Session
-            setClientForm({
-              full_name: clientData.fullName || clientData.full_name || '',
-              email: clientData.email || '',
-              whatsapp: displayWhatsApp(clientData.whatsapp || ''),
-              birth_date: '',
-            });
-            setHasValidClient(true);
-            setClientDataWasAutoFilled(true);
-            console.log('[BOOKING_UNLOCKED] Client identified without user session');
-          }
-
-          // START FLOW FROM ZERO as requested
-          setStep(professionalSlug ? 'services' : 'professional');
-        }}
-      />
 
     </div>
   );
