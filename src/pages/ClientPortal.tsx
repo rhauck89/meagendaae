@@ -85,8 +85,25 @@ const CompanyHeader = ({ company, size = 'sm' }: { company?: CompanyInfo; size?:
 };
 
 const ClientPortal = () => {
-  const { user, signOut } = useAuth();
+  const { user, signOut: authSignOut, isAdmin, profile } = useAuth();
   const navigate = useNavigate();
+
+  // Custom signOut to handle admin vs client sessions
+  const signOut = async () => {
+    if (isAdmin) {
+      // If admin is logged in, just clear the local identity session
+      // This allows them to stay logged in to the dashboard
+      const companyIds = clients.map(c => c.company_id);
+      companyIds.forEach(id => {
+        localStorage.removeItem(`whatsapp_session_${id}`);
+      });
+      toast.success('Sessão de cliente encerrada');
+      window.location.reload();
+    } else {
+      // Standard user logout
+      await authSignOut();
+    }
+  };
 
   const [clients, setClients] = useState<ClientRecord[]>([]);
   const [appointments, setAppointments] = useState<AppointmentRow[]>([]);
@@ -179,23 +196,45 @@ const ClientPortal = () => {
   const loadClientData = async (isRevalidation = false) => {
     if (!isRevalidation) setLoading(true);
     try {
-      // Step 1: Link any potential orphan clients to this user if not already done
-      const { data: profileData, error: profileError } = await supabase
-        .from('profiles').select('whatsapp').eq('user_id', user!.id).maybeSingle();
+      const currentUserId = isAdmin ? null : user?.id;
 
-      if (profileError && profileError.code !== 'PGRST116') {
-        console.error('[ClientPortal] Profile fetch error:', profileError);
+      if (currentUserId) {
+        const { data: profileData } = await supabase
+          .from('profiles').select('whatsapp').eq('user_id', currentUserId).maybeSingle();
+
+        if (profileData?.whatsapp || user!.email) {
+          await supabase.rpc('link_client_to_user', {
+            p_user_id: currentUserId,
+            p_phone: profileData?.whatsapp || '',
+            p_email: user!.email || '',
+          } as any);
+        }
       }
 
-      if (profileData?.whatsapp || user!.email) {
-        await supabase.rpc('link_client_to_user', {
-          p_user_id: user!.id,
-          p_phone: profileData?.whatsapp || '',
-          p_email: user!.email || '',
-        } as any);
+      let adminClientContext: any = null;
+      if (isAdmin) {
+        const keys = Object.keys(localStorage).filter(k => k.startsWith('whatsapp_session_'));
+        if (keys.length > 0) {
+          try {
+            adminClientContext = JSON.parse(localStorage.getItem(keys[0]) || '{}');
+          } catch (e) { /* ignore */ }
+        }
       }
 
-      // Step 2: Fetch all data using user_id for strict isolation
+      const clientQuery = supabase.from('clients').select('id, company_id, name, whatsapp, email, birth_date, registration_complete, postal_code, street, address_number, district, city, state');
+      const cashbackQuery = supabase.from('client_cashback').select('id, amount, status, expires_at, created_at, company_id, promotion:promotions!client_cashback_promotion_id_fkey(title)');
+      const cbTxQuery = supabase.from('cashback_transactions').select('*');
+      const lpTxQuery = supabase.from('loyalty_points_transactions').select('*');
+      const redemptionsQuery = supabase.from('loyalty_redemptions').select('id, redemption_code, status, created_at, total_points, reward_id, company_id, client_id');
+      const apptsQuery = supabase.from('appointments').select('id, start_time, end_time, total_price, status, company_id, promotion_id, original_price, promotion_discount, cashback_used, manual_discount, final_price, company:companies!appointments_company_id_fkey(id, name, logo_url, slug), professional:profiles!appointments_professional_id_fkey(id, full_name, avatar_url), appointment_services(price, service:services(id, name))');
+
+      const applyFilters = (query: any, clientEmailField = 'email') => {
+        if (isAdmin && adminClientContext?.whatsapp) {
+          return query.or(`whatsapp.eq.${adminClientContext.whatsapp}${adminClientContext.email ? `,${clientEmailField}.eq.${adminClientContext.email}` : ''}`);
+        }
+        return query.eq('user_id', currentUserId || '00000000-0000-0000-0000-000000000000');
+      };
+
       const [
         clientRes,
         cashbackRes,
@@ -205,56 +244,21 @@ const ClientPortal = () => {
         redemptionsRes,
         appointmentsRes
       ] = await Promise.all([
-        supabase.from('clients')
-          .select('id, company_id, name, whatsapp, email, birth_date, registration_complete, postal_code, street, address_number, district, city, state')
-          .eq('user_id', user!.id),
-        
-        supabase.from('client_cashback')
-          .select('id, amount, status, expires_at, created_at, company_id, promotion:promotions!client_cashback_promotion_id_fkey(title)')
-          .eq('user_id', user!.id)
-          .order('created_at', { ascending: false }),
-        
-        supabase.from('cashback_transactions')
-          .select('*')
-          .eq('user_id', user!.id)
-          .order('created_at', { ascending: false }).limit(300),
-        
-        supabase.from('loyalty_points_transactions')
-          .select('*')
-          .eq('user_id', user!.id)
-          .order('created_at', { ascending: false }).limit(300),
-        
-        supabase.from('loyalty_reward_items')
-          .select(`
-            id, name, description, points_required, real_value, extra_cost, image_url, item_type, company_id, stock_total, stock_available,
-            company:companies!loyalty_reward_items_company_id_fkey(id, name, logo_url, slug)
-          `)
-          .eq('active', true),
-        
-        supabase.from('loyalty_redemptions')
-          .select('id, redemption_code, status, created_at, total_points, reward_id, company_id, client_id')
-          .eq('user_id', user!.id)
-          .order('created_at', { ascending: false })
-          .limit(50),
-
-        supabase.from('appointments')
-          .select(`
-            id, start_time, end_time, total_price, status, company_id, promotion_id,
-            original_price, promotion_discount, cashback_used, manual_discount, final_price,
-            company:companies!appointments_company_id_fkey(id, name, logo_url, slug),
-            professional:profiles!appointments_professional_id_fkey(id, full_name, avatar_url),
-            appointment_services(price, service:services(id, name))
-          `)
-          .or(`user_id.eq.${user!.id}`)
-          .order('start_time', { ascending: false }).limit(200)
+        applyFilters(clientQuery),
+        applyFilters(cashbackQuery).order('created_at', { ascending: false }),
+        applyFilters(cbTxQuery).order('created_at', { ascending: false }).limit(300),
+        applyFilters(lpTxQuery).order('created_at', { ascending: false }).limit(300),
+        supabase.from('loyalty_reward_items').select('id, name, description, points_required, real_value, extra_cost, image_url, item_type, company_id, stock_total, stock_available, company:companies!loyalty_reward_items_company_id_fkey(id, name, logo_url, slug)').eq('active', true),
+        applyFilters(redemptionsQuery).order('created_at', { ascending: false }).limit(50),
+        applyFilters(apptsQuery, 'client_email').order('start_time', { ascending: false }).limit(200)
       ]);
 
-      if (!clientRes.data || clientRes.data.length === 0) {
+      if (!clientRes.data || (clientRes.data as any[]).length === 0) {
         if (!isRevalidation) { setClients([]); setLoading(false); }
         return;
       }
       
-      const clientData = clientRes.data;
+      const clientData = clientRes.data as any[];
       setClients(clientData as ClientRecord[]);
       setAppointments((appointmentsRes.data || []) as any);
       setAllCashbacks((cashbackRes.data || []) as any);
@@ -265,7 +269,7 @@ const ClientPortal = () => {
 
       // Map companies
       const companiesMap: Record<string, CompanyInfo> = {};
-      const companyIds = [...new Set(clientData.map(c => c.company_id))];
+      const companyIds = [...new Set(clientData.map((c: any) => c.company_id))] as string[];
       
       const { data: companyData } = await supabase.from('companies').select('id, name, logo_url, slug').in('id', companyIds);
       if (companyData) {

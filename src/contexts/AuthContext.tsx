@@ -15,6 +15,7 @@ interface AuthContextType {
   loginMode: LoginMode;
   setLoginMode: (mode: LoginMode) => void;
   isAlsoCollaborator: boolean;
+  isAdmin: boolean;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
   updateAuthState: (session: Session | null) => Promise<void>;
@@ -31,6 +32,7 @@ const AuthContext = createContext<AuthContextType>({
   loginMode: null,
   setLoginMode: () => {},
   isAlsoCollaborator: false,
+  isAdmin: false,
   signOut: async () => {},
   refreshProfile: async () => {},
   updateAuthState: async () => {},
@@ -100,7 +102,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const mappedRoles = rolesRes.data.map((r) => r.role);
         setRoles(mappedRoles);
 
-        const isAdminRole = mappedRoles.includes('professional') || mappedRoles.includes('super_admin');
+        const isAdminRole = mappedRoles.some(r => ['super_admin', 'professional', 'collaborator'].includes(r));
         if (isAdminRole && profileData?.id) {
           const { data: collabData } = await supabase
             .from('collaborators')
@@ -218,6 +220,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const isAdmin = useMemo(() => {
+    return roles.some(r => ['super_admin', 'professional', 'collaborator'].includes(r));
+  }, [roles]);
+
   return (
     <AuthContext.Provider value={{ 
       user, 
@@ -227,6 +233,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       profile, 
       companyId, 
       roles, 
+      isAdmin,
       loginMode, 
       setLoginMode, 
       isAlsoCollaborator, 

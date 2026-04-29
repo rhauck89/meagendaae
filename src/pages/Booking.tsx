@@ -231,7 +231,12 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
   const [loyaltyPoints, setLoyaltyPoints] = useState(0);
   const [loyaltyPointValue, setLoyaltyPointValue] = useState(0);
   const slotRequestRef = useRef(0);
-  const { isAuthenticated, user, profile, loading: authLoading } = useAuth();
+  const { isAuthenticated: isAuthAuthenticated, user, profile, loading: authLoading, isAdmin } = useAuth();
+  
+  // Rule: Admin/Professional users are NEVER treated as clients on the public booking page.
+  // They must identify themselves via WhatsApp just like a visitor.
+  const isAuthenticated = isAuthAuthenticated && !isAdmin;
+  
   const [hasValidClient, setHasValidClient] = useState(false);
   const [showCompleteSignup, setShowCompleteSignup] = useState(false);
   const [showExistingAccountModal, setShowExistingAccountModal] = useState(false);

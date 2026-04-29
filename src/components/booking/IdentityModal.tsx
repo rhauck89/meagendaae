@@ -25,7 +25,7 @@ export function IdentityModal({
   companyId,
   onLoginSuccess
 }: IdentityModalProps) {
-  const { updateAuthState, user, profile } = useAuth();
+  const { updateAuthState, user, profile, isAdmin } = useAuth();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   
@@ -307,9 +307,9 @@ export function IdentityModal({
     
     // OBRIGATÓRIO: Se já existe um admin logado, NÃO trocamos a sessão.
     // Apenas identificamos o cliente para o fluxo do agendamento.
-    const isAdmin = profile && ['admin', 'professional', 'company', 'super_admin'].includes(profile.role);
+    const isActuallyAdmin = isAdmin || (profile && ['professional', 'collaborator', 'super_admin'].includes(profile.role));
 
-    if (session && !isAdmin) {
+    if (session && !isActuallyAdmin) {
       console.log('[SESSION_APPLIED] Setting Supabase session', session);
       const { error: setSessionError } = await supabase.auth.setSession({
         access_token: session.access_token,
