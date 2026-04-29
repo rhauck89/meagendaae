@@ -254,6 +254,27 @@ serve(async (req) => {
       const isOtp = action === 'send-otp' || requestBody.type === 'otp'
       let targetMessage = message || text || requestBody.message
 
+      console.log("ENVIANDO PARA:", targetPhone);
+      console.log("MENSAGEM:", targetMessage);
+
+      // Validar instância antes de enviar
+      console.log("VALIDANDO INSTÂNCIA ANTES DE ENVIAR...");
+      const statusRes = await callEvolution(`/instance/connectionState/${instanceName}`);
+      const rawState = statusRes.data?.instance?.state || statusRes.data?.state || statusRes.data?.status;
+      const state = String(rawState || '').toLowerCase();
+      
+      if (!['open', 'connected'].includes(state)) {
+        console.log(`ERRO: INSTÂNCIA NÃO ESTÁ PRONTA (${state})`);
+        return new Response(JSON.stringify({ 
+          success: false, 
+          error: "INSTANCE_NOT_CONNECTED",
+          detail: `Instância está no estado: ${state}`
+        }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 200
+        });
+      }
+
       if (isOtp) {
         const code = Math.floor(100000 + Math.random() * 900000).toString();
         targetMessage = `Seu código de acesso para MeAgendae é: ${code}`;
@@ -275,13 +296,23 @@ serve(async (req) => {
         }
       }
 
-      const res = await callEvolution(`/message/sendText/${instanceName}`, 'POST', {
+      // Payload simplificado e normalizado conforme requisitos
+      const payload = {
         number: targetPhone,
-        options: { delay: 1200, presence: "composing", linkPreview: false },
-        textMessage: { text: targetMessage }
-      });
+        text: targetMessage
+      };
 
-      return new Response(JSON.stringify({ success: res.ok, data: res.data }), {
+      console.log("PAYLOAD FINAL:", JSON.stringify(payload));
+
+      const res = await callEvolution(`/message/sendText/${instanceName}`, 'POST', payload);
+      
+      console.log("RESPOSTA EVOLUTION:", JSON.stringify(res.data));
+
+      return new Response(JSON.stringify({ 
+        success: res.ok, 
+        data: res.data,
+        state: state
+      }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 200
       });
