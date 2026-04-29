@@ -85,8 +85,25 @@ const CompanyHeader = ({ company, size = 'sm' }: { company?: CompanyInfo; size?:
 };
 
 const ClientPortal = () => {
-  const { user, signOut } = useAuth();
+  const { user, signOut: authSignOut, isAdmin, profile } = useAuth();
   const navigate = useNavigate();
+
+  // Custom signOut to handle admin vs client sessions
+  const signOut = async () => {
+    if (isAdmin) {
+      // If admin is logged in, just clear the local identity session
+      // This allows them to stay logged in to the dashboard
+      const companyIds = clients.map(c => c.company_id);
+      companyIds.forEach(id => {
+        localStorage.removeItem(`whatsapp_session_${id}`);
+      });
+      toast.success('Sessão de cliente encerrada');
+      window.location.reload();
+    } else {
+      // Standard user logout
+      await authSignOut();
+    }
+  };
 
   const [clients, setClients] = useState<ClientRecord[]>([]);
   const [appointments, setAppointments] = useState<AppointmentRow[]>([]);
