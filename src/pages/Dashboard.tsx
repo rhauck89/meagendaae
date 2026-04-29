@@ -79,6 +79,7 @@ const statusFilterMap: Record<StatusTab, (apt: any) => boolean> = {
 
 const Dashboard = () => {
   const { companyId, user } = useAuth();
+  const { isSubscribed, subscribe, permission, isSupported } = usePushNotifications();
   const { isAdmin, profileId } = useUserRole();
   const isMobile = useIsMobile();
   const { maskValue } = useFinancialPrivacy();
