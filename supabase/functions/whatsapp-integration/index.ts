@@ -308,20 +308,18 @@ serve(async (req) => {
           .from('whatsapp_otp_codes')
           .insert(otpPayload)
           .select()
-          .maybeSingle();
-
-        console.log("RESULTADO INSERT:", JSON.stringify(savedOtp));
+          .single();
 
         if (otpError) {
-          console.error("ERRO INSERT COMPLETO:", JSON.stringify(otpError));
-          return new Response(JSON.stringify({ 
-            success: false, 
-            error: "OTP_SAVE_FAILED", 
-            detail: otpError.message,
-            full_error: otpError
-          }), {
+          console.log("ERRO REAL DO SUPABASE:", JSON.stringify(otpError, null, 2));
+
+          return new Response(JSON.stringify({
+            success: false,
+            error: "OTP_SAVE_FAILED",
+            supabase_error: otpError
+          }), { 
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            status: 200
+            status: 200 
           });
         }
         
