@@ -1345,8 +1345,21 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
       setStep('services');
       return;
     }
-    if (!isAuthenticated) {
-      toast.error('Sessão expirada. Por favor, identifique-se novamente.');
+    // Verificar se existe uma identidade válida (seja via Auth ou via WhatsApp Session local)
+    const localIdentityStr = localStorage.getItem(`whatsapp_session_${company.id}`);
+    let hasValidLocalIdentity = false;
+    
+    if (localIdentityStr) {
+      try {
+        const identity = JSON.parse(localIdentityStr);
+        if (new Date(identity.expiresAt) > new Date()) {
+          hasValidLocalIdentity = true;
+        }
+      } catch (e) { /* ignore */ }
+    }
+
+    if (!isAuthenticated && !hasValidLocalIdentity) {
+      toast.error('Por favor, identifique-se para concluir o agendamento.');
       setShowIdentityModal(true);
       setLoading(false);
       return;
