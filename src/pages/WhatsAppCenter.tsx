@@ -438,17 +438,6 @@ function ConnectionTab({ companyId, userId, instance, loading, onChange }: { com
       setBusy(false);
     }
   };
-      }
-      
-      onChange();
-    }
-    catch (e) { 
-      console.error('Connection flow failed:', e);
-      const friendly = translateWhatsAppError(e);
-      toast.error(friendly.title, { description: friendly.message });
-    }
-    finally { setBusy(false); }
-  };
 
   const handleReconnect = async () => {
     if (busy) return;
