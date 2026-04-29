@@ -77,6 +77,12 @@ export function usePushNotifications() {
   const checkExistingSubscription = useCallback(async () => {
     if (!user) return;
     try {
+      // Check if serviceWorker is available
+      if (!navigator.serviceWorker) {
+        console.warn('[PUSH] serviceWorker not available in navigator');
+        return;
+      }
+
       // Use a timeout for serviceWorker.ready to avoid hanging
       const registration = await Promise.race([
         navigator.serviceWorker.ready,
