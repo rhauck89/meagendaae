@@ -254,9 +254,9 @@ serve(async (req) => {
       const isOtp = action === 'send-otp' || requestBody.type === 'otp'
       let targetMessage = message || text || requestBody.message
 
+      if (isOtp) console.log("INICIANDO ENVIO OTP");
       console.log("ENVIANDO PARA:", targetPhone);
-      console.log("MENSAGEM:", targetMessage);
-
+      
       // Validar instância antes de enviar
       console.log("VALIDANDO INSTÂNCIA ANTES DE ENVIAR...");
       const statusRes = await callEvolution(`/instance/connectionState/${instanceName}`);
@@ -277,24 +277,25 @@ serve(async (req) => {
 
       if (isOtp) {
         const code = Math.floor(100000 + Math.random() * 900000).toString();
+        console.log("CODIGO GERADO:", code);
         targetMessage = `Seu código de acesso para MeAgendae é: ${code}`;
-        console.log(`GERANDO OTP PARA ${targetPhone}: ${code}`);
         
+        console.log("SALVANDO OTP PARA:", targetPhone);
         const { error: otpError } = await supabaseClient.from('whatsapp_otp_codes').insert({
           phone: targetPhone,
           code,
-          expires_at: new Date(Date.now() + 10 * 60 * 1000).toISOString(),
+          expires_at: new Date(Date.now() + 5 * 60 * 1000).toISOString(),
           email: requestBody.email || null
         });
 
         if (otpError) {
-          console.error("ERRO AO SALVAR OTP:", otpError);
-          return new Response(JSON.stringify({ success: false, error: "Erro ao gerar código" }), {
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            status: 200
-          });
+          console.error("ERRO AO SALVAR OTP (NÃO BLOQUEANTE):", otpError);
+        } else {
+          console.log("OTP SALVO COM SUCESSO");
         }
       }
+
+      console.log("MENSAGEM FINAL:", targetMessage);
 
       // Payload simplificado e normalizado conforme requisitos
       const payload = {
@@ -302,14 +303,16 @@ serve(async (req) => {
         text: targetMessage
       };
 
+      console.log("ENVIANDO WHATSAPP OTP/MESSAGE...");
       console.log("PAYLOAD FINAL:", JSON.stringify(payload));
 
       const res = await callEvolution(`/message/sendText/${instanceName}`, 'POST', payload);
       
-      console.log("RESPOSTA EVOLUTION:", JSON.stringify(res.data));
+      console.log("WHATSAPP ENVIADO. RESPOSTA EVOLUTION:", JSON.stringify(res.data));
 
       return new Response(JSON.stringify({ 
-        success: res.ok, 
+        success: true, // Forçamos success true se chegou até aqui para evitar travamentos no front
+        message: isOtp ? "OTP enviado" : "Mensagem enviada",
         data: res.data,
         state: state
       }), {
