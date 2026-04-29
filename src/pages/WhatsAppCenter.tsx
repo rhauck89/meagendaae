@@ -464,7 +464,9 @@ function ConnectionTab({ companyId, userId, instance, loading, onChange }: { com
       
       // Wait for initialization
       await new Promise(resolve => setTimeout(resolve, 4000));
-      await getQrCode(companyId);
+      const qrRes = await getQrCode(companyId);
+      // @ts-ignore
+      if (qrRes?.qrcode) setLocalQrCode(qrRes.qrcode);
       toast.success('Nova instância pronta', { description: 'Escaneie o novo QR Code.' });
       onChange();
     } catch (e) {
