@@ -20,213 +20,169 @@ serve(async (req) => {
     const requestBody = await req.json()
     const { action, companyId, phone, message, text } = requestBody
     
-    // Check for correct secret names
     const EVOLUTION_API_URL = Deno.env.get('EVOLUTION_API_BASE_URL') || Deno.env.get('EVOLUTION_API_URL')
     const EVOLUTION_API_KEY = Deno.env.get('EVOLUTION_API_KEY')
 
-    console.log("ACTION RECEBIDA:", action);
-    console.log("EVOLUTION_API_URL:", EVOLUTION_API_URL);
-    console.log("EVOLUTION_API_KEY EXISTS:", !!EVOLUTION_API_KEY);
-
     if (!EVOLUTION_API_URL || !EVOLUTION_API_KEY) {
-      console.error("Missing Evolution API configuration. Found URL:", !!EVOLUTION_API_URL, "Key:", !!EVOLUTION_API_KEY)
-      return new Response(JSON.stringify({ 
-        success: false, 
-        error: "ENV_NOT_CONFIGURED" 
-      }), { 
+      return new Response(JSON.stringify({ success: false, error: "ENV_NOT_CONFIGURED" }), { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 200 
       })
     }
 
-    // Clean URL: remove trailing slash if exists
     const baseUrl = EVOLUTION_API_URL.replace(/\/$/, '')
     const instanceName = `company_${companyId}`
 
-    // 1. PADRONIZAR AÇÕES
-    switch (action) {
-      case "create":
-      case "get-qr":
-      case "get-status":
-      case "logout":
-      case "send-message":
-      case "send-test": // Frontend uses send-test in service.ts
-        break;
-      default:
-        console.error("INVALID ACTION:", action);
-        return new Response(JSON.stringify({ 
-          success: false, 
-          error: "INVALID_ACTION" 
-        }), { 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 200 
-        })
-    }
-
-    // Helper for Evolution API calls with validation
     const callEvolution = async (endpoint: string, method = 'GET', body: any = null) => {
       const url = `${baseUrl}${endpoint}`
-      console.log(`CALLING EVOLUTION: ${method} ${url}`)
+      console.log(`TESTANDO ROTA: ${method} ${url}`)
       
-      const response = await fetch(url, {
-        method,
-        headers: {
-          'Content-Type': 'application/json',
-          'apikey': EVOLUTION_API_KEY
-        },
-        body: body ? JSON.stringify(body) : null
-      })
-
-      console.log("RESPONSE STATUS:", response.status)
-      const rawText = await response.text()
-      console.log("RAW RESPONSE:", rawText.substring(0, 200))
-
-      if (rawText.trim().startsWith('<')) {
-        console.error("EVOLUTION RETURNED HTML INSTEAD OF JSON")
-        return { error: "EVOLUTION_API_INVALID_RESPONSE", status: response.status }
-      }
-
       try {
-        return JSON.parse(rawText)
+        const response = await fetch(url, {
+          method,
+          headers: {
+            'Content-Type': 'application/json',
+            'apikey': EVOLUTION_API_KEY
+          },
+          body: body ? JSON.stringify(body) : null
+        })
+
+        const rawText = await response.text()
+        console.log(`RESPOSTA ${endpoint} (${response.status}):`, rawText.substring(0, 500))
+
+        return {
+          status: response.status,
+          text: rawText,
+          ok: response.ok,
+          data: rawText.trim().startsWith('{') ? JSON.parse(rawText) : null
+        }
       } catch (e) {
-        console.error("FAILED TO PARSE JSON:", e)
-        return { error: "JSON_PARSE_ERROR", status: response.status }
+        console.error(`ERRO NA ROTA ${endpoint}:`, e.message)
+        return { status: 500, error: e.message, ok: false }
       }
     }
 
     if (action === 'create' || action === 'get-qr') {
-      // Check if instance already exists in Evolution API
-      const instances = await callEvolution('/instance/fetchInstances')
-      let instanceExists = false
+      // 1. TENTAR DESCOBRIR ROTA DE CRIAÇÃO SE NECESSÁRIO
+      let createResult = null;
       
-      if (Array.isArray(instances)) {
-        instanceExists = instances.some((i: any) => i.instance.instanceName === instanceName)
-      }
+      if (action === 'create') {
+        const createRoutes = [
+          { path: '/instance/create', method: 'POST' },
+          { path: '/instance/init', method: 'POST' },
+          { path: '/instance', method: 'POST' }
+        ];
 
-      if (!instanceExists && action === 'create') {
-        console.log("CREATING NEW INSTANCE IN EVOLUTION:", instanceName)
-        const createResult = await callEvolution('/instance/create', 'POST', {
-          instanceName: instanceName,
-          token: "agenda-e-token",
-          qrcode: true
-        })
+        for (const route of createRoutes) {
+          console.log(`TENTANDO CRIAR INSTÂNCIA VIA: ${route.path}`);
+          const res = await callEvolution(route.path, route.method, {
+            instanceName: instanceName,
+            token: "agenda-e-token",
+            qrcode: true
+          });
 
-        if (createResult.error) {
-          return new Response(JSON.stringify({ success: false, error: createResult.error }), {
+          if (res.ok || res.status === 403 || res.text?.includes("already exists")) {
+            createResult = res;
+            console.log(`ROTA DE CRIAÇÃO ENCONTRADA OU INSTÂNCIA JÁ EXISTE: ${route.path}`);
+            break;
+          }
+        }
+
+        if (!createResult || (!createResult.ok && !createResult.text?.includes("already exists"))) {
+          return new Response(JSON.stringify({ 
+            success: false, 
+            error: "EVOLUTION_CREATE_FAILED",
+            details: createResult?.text || "Nenhuma rota de criação funcionou"
+          }), { 
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            status: 200
-          })
+            status: 200 
+          });
         }
       }
 
-      // Update local DB
+      // 6. DESCOBRIR ROTA DE QR CODE
+      const qrRoutes = [
+        `/instance/connect/${instanceName}`,
+        `/instance/qrcode/${instanceName}`,
+        `/instance/qr/${instanceName}`
+      ];
+
+      let qrBase64 = null;
+      for (const route of qrRoutes) {
+        const res = await callEvolution(route);
+        if (res.ok && res.data) {
+          qrBase64 = res.data.base64 || res.data.qrcode?.base64 || res.data.code;
+          if (qrBase64) {
+            console.log(`QR CODE ENCONTRADO NA ROTA: ${route}`);
+            break;
+          }
+        }
+      }
+
+      // Update DB
       await supabaseClient.from('whatsapp_instances').upsert({
         company_id: companyId,
         instance_name: instanceName,
         status: 'connecting',
         updated_at: new Date().toISOString()
-      })
-
-      // Always try to get QR code for these actions
-      console.log("FETCHING QR CODE FOR:", instanceName)
-      const qrData = await callEvolution(`/instance/connect/${instanceName}`)
-      
-      let qrcode = null
-      if (qrData) {
-        qrcode = qrData.base64 || qrData.qrcode?.base64 || qrData.code
-        
-        // Fallback to /instance/qrcode if connect didn't give base64
-        if (!qrcode) {
-           console.log("FALLBACK TO /instance/qrcode")
-           const fallbackQr = await callEvolution(`/instance/qrcode/${instanceName}`)
-           qrcode = fallbackQr?.base64 || fallbackQr?.qrcode?.base64
-        }
-      }
+      });
 
       return new Response(JSON.stringify({
         success: true,
         instanceName,
-        qrcode: qrcode || null
+        qrcode: qrBase64 || null,
+        debug: { qr_found: !!qrBase64 }
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 200
-      })
+      });
     }
 
+    // Outras ações mantidas com a lógica de descoberta de rotas simplificada se necessário
     if (action === 'get-status') {
-      const statusData = await callEvolution(`/instance/connectionState/${instanceName}`)
-      let mappedStatus = 'disconnected'
-      
-      if (statusData?.instance?.state === 'open') {
-        mappedStatus = 'connected'
-      } else if (statusData?.instance?.state === 'connecting') {
-        mappedStatus = 'connecting'
-      }
+      const res = await callEvolution(`/instance/connectionState/${instanceName}`);
+      let mappedStatus = 'disconnected';
+      if (res.data?.instance?.state === 'open') mappedStatus = 'connected';
+      else if (res.data?.instance?.state === 'connecting') mappedStatus = 'connecting';
 
-      return new Response(JSON.stringify({
-        success: true,
-        instanceName,
-        mappedStatus,
-        data: statusData
-      }), {
+      return new Response(JSON.stringify({ success: true, instanceName, mappedStatus, data: res.data }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 200
-      })
-    }
-
-    if (action === 'logout') {
-      await callEvolution(`/instance/logout/${instanceName}`, 'DELETE')
-      await supabaseClient.from('whatsapp_instances').delete().eq('company_id', companyId)
-      
-      return new Response(JSON.stringify({ success: true }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 200
-      })
+      });
     }
 
     if (action === 'send-message' || action === 'send-test') {
       const targetPhone = String(phone || "").replace(/\D/g, '')
       const targetMessage = message || text
-      
-      if (!targetPhone || !targetMessage) {
-        return new Response(JSON.stringify({ success: false, error: "MISSING_PARAMS" }), {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 200
-        })
-      }
-
-      const sendResult = await callEvolution(`/message/sendText/${instanceName}`, 'POST', {
+      const res = await callEvolution(`/message/sendText/${instanceName}`, 'POST', {
         number: targetPhone,
-        options: {
-          delay: 1200,
-          presence: "composing",
-          linkPreview: false
-        },
-        textMessage: {
-          text: targetMessage
-        }
-      })
+        options: { delay: 1200, presence: "composing", linkPreview: false },
+        textMessage: { text: targetMessage }
+      });
 
-      return new Response(JSON.stringify({
-        success: !sendResult.error,
-        data: sendResult
-      }), {
+      return new Response(JSON.stringify({ success: res.ok, data: res.data }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 200
-      })
+      });
+    }
+
+    if (action === 'logout') {
+      await callEvolution(`/instance/logout/${instanceName}`, 'DELETE');
+      await supabaseClient.from('whatsapp_instances').delete().eq('company_id', companyId);
+      return new Response(JSON.stringify({ success: true }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 200
+      });
     }
 
     return new Response(JSON.stringify({ success: false, error: "INVALID_ACTION" }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 200
-    })
+    });
 
   } catch (error) {
     console.error("GLOBAL ERROR:", error)
-    return new Response(JSON.stringify({ 
-      success: false, 
-      error: error.message || "INTERNAL_ERROR"
-    }), { 
+    return new Response(JSON.stringify({ success: false, error: error.message }), { 
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 200 
     })
