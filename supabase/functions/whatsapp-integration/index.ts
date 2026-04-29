@@ -191,7 +191,7 @@ Deno.serve(async (req) => {
 
       if (insertError) {
         console.error('[OTP_ERROR_REAL] Database insert error:', insertError);
-        throw new Error(`Erro ao registrar código: ${insertError.message}`);
+        return new Response(JSON.stringify({ success: false, reason: 'DB_ERROR', error: insertError.message }), { headers: corsHeaders });
       }
 
       const { instance, isFallback } = await getEffectiveInstance(targetCompanyId);
