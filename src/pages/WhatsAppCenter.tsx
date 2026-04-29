@@ -339,6 +339,8 @@ function ConnectionTab({ companyId, userId, instance, loading, onChange }: { com
   const [testMsg, setTestMsg] = useState('Mensagem de teste do Agendaê 🚀');
   const [qrTimeout, setQrTimeout] = useState(false);
   const [syncTimeout, setSyncTimeout] = useState(false);
+  const [localQrCode, setLocalQrCode] = useState<string | null>(null);
+
 
   const status = instance?.status ?? 'disconnected';
 
