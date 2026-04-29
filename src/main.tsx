@@ -1,4 +1,5 @@
 import { createRoot } from "react-dom/client";
+import { registerSW } from 'virtual:pwa-register';
 import App from "./App.tsx";
 import "./index.css";
 
@@ -18,6 +19,17 @@ const isPreviewHost =
 if (isPreviewHost || isInIframe) {
   navigator.serviceWorker?.getRegistrations().then((registrations) => {
     registrations.forEach((r) => r.unregister());
+  });
+} else {
+  // Register Service Worker in production
+  registerSW({
+    onNeedRefresh() {
+      console.log('Nova versão disponível. Recarregando...');
+      window.location.reload();
+    },
+    onOfflineReady() {
+      console.log('App pronto para uso offline.');
+    },
   });
 }
 
