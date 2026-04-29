@@ -3177,27 +3177,20 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
               client = newClient;
             }
 
-            if (client) {
-              setSavedClientId(client.id);
-              setClientForm({
-                full_name: client.name || '',
-                whatsapp: displayWhatsApp(client.whatsapp || ''),
-                email: client.email || '',
-                birth_date: client.birth_date || '',
-              });
               setHasValidClient(true);
               setClientDataWasAutoFilled(true);
               console.log('[BOOKING_UNLOCKED] Client record ready');
             }
           } else if (clientData) {
-            // Caso em que não há usuário logado mas o cliente se identificou (ex: erro no auth mas sucesso no lookup)
+            // Caso em que não há usuário logado mas o cliente se identificou via WhatsApp Session
             setClientForm({
-              full_name: clientData.full_name || '',
+              full_name: clientData.fullName || clientData.full_name || '',
               email: clientData.email || '',
               whatsapp: displayWhatsApp(clientData.whatsapp || ''),
               birth_date: '',
             });
             setHasValidClient(true);
+            setClientDataWasAutoFilled(true);
             console.log('[BOOKING_UNLOCKED] Client identified without user session');
           }
 
