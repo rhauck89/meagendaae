@@ -126,7 +126,7 @@ export function IdentityModal({
 
   const handleSendOTP = async () => {
     setLoading(true);
-    const action = 'send-message';
+    const action = 'send-otp';
     console.log("ACTION ENVIADA:", action);
     try {
       const { data, error } = await supabase.functions.invoke('whatsapp-integration', {
