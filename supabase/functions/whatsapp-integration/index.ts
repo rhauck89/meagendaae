@@ -108,17 +108,28 @@ serve(async (req) => {
         }
       }
 
-      // If we don't have QR yet, try to fetch it with a retry loop
+      // 1. INICIAR CONEXÃO (OBRIGATÓRIO PARA GERAR QR)
+      console.log("INICIANDO CONEXÃO DA INSTÂNCIA...");
+      const connectRes = await callEvolution(`/instance/connect/${instanceName}`, 'GET');
+      console.log("CONNECT RESPONSE (GET):", connectRes.status);
+      
+      if (!connectRes.ok) {
+        console.log("TENTANDO CONNECT VIA POST...");
+        const connectResPost = await callEvolution(`/instance/connect/${instanceName}`, 'POST');
+        console.log("CONNECT RESPONSE (POST):", connectResPost.status);
+      }
+
+      // 2. BUSCAR QR COM LOOP DE ESPERA (OBRIGATÓRIO)
       if (!qrBase64) {
         const qrRoutes = [
-          `/instance/connect/${instanceName}`,
           `/instance/qrcode/${instanceName}`,
-          `/instance/qr/${instanceName}`
+          `/instance/qr/${instanceName}`,
+          `/instance/connect/${instanceName}`
         ];
 
-        // Loop de espera para QR (até 10 tentativas, 2 segundos cada)
         console.log("INICIANDO LOOP DE BUSCA DE QR CODE...");
         for (let i = 0; i < 10; i++) {
+          console.log(`QR TRY: ${i + 1}`);
           for (const route of qrRoutes) {
             const res = await callEvolution(route);
             if (res.ok && res.data) {
@@ -137,11 +148,11 @@ serve(async (req) => {
 
       console.log("QR FINAL CAPTURADO:", qrBase64 ? "ENCONTRADO (BASE64)" : "NULL");
 
-      if (!qrBase64 && action === 'create') {
+      if (!qrBase64) {
         return new Response(JSON.stringify({ 
           success: false, 
-          error: "QR_NOT_GENERATED",
-          detail: "Instância criada mas Evolution não retornou QR"
+          error: "INSTANCE_NOT_CONNECTED",
+          detail: "Instância criada mas não iniciou sessão ou não retornou QR"
         }), { 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           status: 200 
