@@ -253,12 +253,12 @@ const ClientPortal = () => {
         applyFilters(apptsQuery, 'client_email').order('start_time', { ascending: false }).limit(200)
       ]);
 
-      if (!clientRes.data || clientRes.data.length === 0) {
+      if (!clientRes.data || (clientRes.data as any[]).length === 0) {
         if (!isRevalidation) { setClients([]); setLoading(false); }
         return;
       }
       
-      const clientData = clientRes.data;
+      const clientData = clientRes.data as any[];
       setClients(clientData as ClientRecord[]);
       setAppointments((appointmentsRes.data || []) as any);
       setAllCashbacks((cashbackRes.data || []) as any);
@@ -269,7 +269,7 @@ const ClientPortal = () => {
 
       // Map companies
       const companiesMap: Record<string, CompanyInfo> = {};
-      const companyIds = [...new Set(clientData.map(c => c.company_id))];
+      const companyIds = [...new Set(clientData.map((c: any) => c.company_id))] as string[];
       
       const { data: companyData } = await supabase.from('companies').select('id, name, logo_url, slug').in('id', companyIds);
       if (companyData) {
