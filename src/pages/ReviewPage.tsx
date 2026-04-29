@@ -229,9 +229,8 @@ const ReviewPage = () => {
     );
   }
 
-  // Progress indicator: 0 (nada) -> 50 (prof) -> 100 (prof + empresa)
-  const progress =
-    professionalRating > 0 && barbershopRating > 0 ? 100 : professionalRating > 0 ? 60 : 0;
+  // Progress indicator: 0 -> 50 -> 100
+  const progress = step === 1 ? (professionalRating > 0 ? 50 : 10) : (barbershopRating > 0 ? 100 : 75);
 
   return (
     <div className="min-h-screen p-4 pb-24" style={{ background: T.bg, color: T.text }}>
@@ -267,7 +266,7 @@ const ReviewPage = () => {
         {/* Progress bar */}
         <div className="space-y-1.5">
           <div className="flex justify-between items-center text-xs" style={{ color: T.textSec }}>
-            <span>Leva menos de 30 segundos</span>
+            <span>Etapa {step} de 2</span>
             <span>{progress}%</span>
           </div>
           <div className="h-1.5 w-full rounded-full overflow-hidden" style={{ background: T.border }}>
@@ -308,74 +307,101 @@ const ReviewPage = () => {
           </div>
         </div>
 
-        {/* BLOCO 1 — Profissional */}
-        <div className="rounded-2xl p-5 space-y-4" style={{ background: T.card, border: `1px solid ${T.border}` }}>
-          <div className="text-center space-y-1">
-            <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wide" style={{ background: T.accentSoft, color: T.accent }}>
-              Etapa 1
+        {step === 1 ? (
+          <div className="space-y-5 animate-in fade-in slide-in-from-right-4 duration-300">
+            {/* BLOCO 1 — Profissional */}
+            <div className="rounded-2xl p-5 space-y-4" style={{ background: T.card, border: `1px solid ${T.border}` }}>
+              <div className="text-center space-y-1">
+                <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wide" style={{ background: T.accentSoft, color: T.accent }}>
+                  Etapa 1
+                </div>
+                <p className="font-semibold">Como foi seu atendimento?</p>
+                <p className="text-xs" style={{ color: T.textSec }}>
+                  Avalie {professionalName}
+                </p>
+              </div>
+              <StarRow value={professionalRating} onChange={setProfessionalRating} />
+              <textarea
+                placeholder="Conte como foi seu atendimento (opcional)"
+                value={comment}
+                onChange={(e) => setComment(e.target.value.slice(0, 500))}
+                maxLength={500}
+                rows={3}
+                className="w-full rounded-xl px-4 py-3 text-sm resize-none outline-none placeholder:opacity-50 focus:ring-2"
+                style={{ background: T.cardSoft, border: `1px solid ${T.border}`, color: T.text }}
+              />
+              <p className="text-[11px] text-right -mt-2" style={{ color: T.textSec }}>
+                {comment.length}/500
+              </p>
             </div>
-            <p className="font-semibold">Como foi seu atendimento?</p>
-            <p className="text-xs" style={{ color: T.textSec }}>
-              Avalie {professionalName}
-            </p>
-          </div>
-          <StarRow value={professionalRating} onChange={setProfessionalRating} />
-          <textarea
-            placeholder="Conte como foi seu atendimento (opcional)"
-            value={comment}
-            onChange={(e) => setComment(e.target.value.slice(0, 500))}
-            maxLength={500}
-            rows={3}
-            className="w-full rounded-xl px-4 py-3 text-sm resize-none outline-none placeholder:opacity-50 focus:ring-2"
-            style={{ background: T.cardSoft, border: `1px solid ${T.border}`, color: T.text }}
-          />
-          <p className="text-[11px] text-right -mt-2" style={{ color: T.textSec }}>
-            {comment.length}/500
-          </p>
-        </div>
 
-        {/* BLOCO 2 — Empresa */}
-        <div className="rounded-2xl p-5 space-y-4" style={{ background: T.card, border: `1px solid ${T.border}` }}>
-          <div className="text-center space-y-1">
-            <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wide" style={{ background: T.accentSoft, color: T.accent }}>
-              Etapa 2
+            <Button
+              disabled={professionalRating < 1}
+              onClick={() => setStep(2)}
+              className="w-full rounded-xl py-6 font-semibold text-base transition-all shadow-lg"
+              style={{
+                background: professionalRating > 0 ? T.accent : T.border,
+                color: professionalRating > 0 ? '#000' : T.textSec,
+              }}
+            >
+              Próxima etapa →
+            </Button>
+            {professionalRating < 1 && (
+              <p className="text-center text-[11px]" style={{ color: T.textSec }}>
+                Selecione ao menos 1 estrela para continuar
+              </p>
+            )}
+          </div>
+        ) : (
+          <div className="space-y-5 animate-in fade-in slide-in-from-right-4 duration-300">
+            {/* BLOCO 2 — Empresa */}
+            <div className="rounded-2xl p-5 space-y-4" style={{ background: T.card, border: `1px solid ${T.border}` }}>
+              <div className="text-center space-y-1">
+                <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wide" style={{ background: T.accentSoft, color: T.accent }}>
+                  Etapa 2
+                </div>
+                <p className="font-semibold">E a sua experiência geral?</p>
+                <p className="text-xs" style={{ color: T.textSec }}>
+                  Avalie {companyName}
+                </p>
+              </div>
+              <StarRow value={barbershopRating} onChange={setBarbershopRating} />
+              <textarea
+                placeholder="Ambiente, recepção, pontualidade, experiência geral... (opcional)"
+                value={barbershopComment}
+                onChange={(e) => setBarbershopComment(e.target.value.slice(0, 500))}
+                maxLength={500}
+                rows={3}
+                className="w-full rounded-xl px-4 py-3 text-sm resize-none outline-none placeholder:opacity-50 focus:ring-2"
+                style={{ background: T.cardSoft, border: `1px solid ${T.border}`, color: T.text }}
+              />
+              <p className="text-[11px] text-right -mt-2" style={{ color: T.textSec }}>
+                {barbershopComment.length}/500
+              </p>
             </div>
-            <p className="font-semibold">E a sua experiência geral?</p>
-            <p className="text-xs" style={{ color: T.textSec }}>
-              Avalie {companyName}
-            </p>
-          </div>
-          <StarRow value={barbershopRating} onChange={setBarbershopRating} />
-          <textarea
-            placeholder="Ambiente, recepção, pontualidade, experiência geral..."
-            value={barbershopComment}
-            onChange={(e) => setBarbershopComment(e.target.value.slice(0, 500))}
-            maxLength={500}
-            rows={3}
-            className="w-full rounded-xl px-4 py-3 text-sm resize-none outline-none placeholder:opacity-50 focus:ring-2"
-            style={{ background: T.cardSoft, border: `1px solid ${T.border}`, color: T.text }}
-          />
-          <p className="text-[11px] text-right -mt-2" style={{ color: T.textSec }}>
-            {barbershopComment.length}/500
-          </p>
-        </div>
 
-        {/* Submit */}
-        <Button
-          disabled={submitting || professionalRating < 1}
-          onClick={handleSubmit}
-          className="w-full rounded-xl py-6 font-semibold text-base transition-all shadow-lg"
-          style={{
-            background: professionalRating > 0 ? T.accent : T.border,
-            color: professionalRating > 0 ? '#000' : T.textSec,
-          }}
-        >
-          {submitting ? 'Enviando...' : '⭐ Enviar avaliação'}
-        </Button>
-        {professionalRating < 1 && (
-          <p className="text-center text-[11px]" style={{ color: T.textSec }}>
-            Selecione ao menos 1 estrela para o profissional
-          </p>
+            <div className="flex flex-col gap-3">
+              <Button
+                disabled={submitting}
+                onClick={handleSubmit}
+                className="w-full rounded-xl py-6 font-semibold text-base transition-all shadow-lg"
+                style={{
+                  background: T.accent,
+                  color: '#000',
+                }}
+              >
+                {submitting ? 'Enviando...' : '⭐ Finalizar avaliação'}
+              </Button>
+              <Button
+                variant="ghost"
+                onClick={() => setStep(1)}
+                className="w-full py-4 text-sm"
+                style={{ color: T.textSec }}
+              >
+                ← Voltar para etapa anterior
+              </Button>
+            </div>
+          </div>
         )}
       </div>
     </div>
