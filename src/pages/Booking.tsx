@@ -3030,34 +3030,6 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
 
       {/* IdentityModal removido */}
 
-          setShowIdentityModal(false);
-          setShowOneClickCard(true);
-          setIsChangingData(false);
-          
-          // Se o clientData foi passado (do IdentityModal), usamos ele para preencher o formulário
-          if (clientData) {
-            setClientForm({
-              full_name: clientData.full_name || '',
-              whatsapp: displayWhatsApp(clientData.whatsapp || ''),
-              email: clientData.email || '',
-              birth_date: clientData.birth_date || '',
-            });
-          }
-
-          const { data: { user } } = await supabase.auth.getUser();
-          const userRole = profile?.role || 'client';
-          const isAdmin = ['admin', 'professional', 'company', 'super_admin'].includes(userRole);
-          
-          if (user) {
-            console.log('[CLIENT_SET] current user:', user.id, 'Role:', userRole);
-            
-            // Busca o registro local do cliente
-            let query = supabase
-              .from('clients')
-              .select('*')
-              .eq('company_id', company?.id);
-            
-            if (isAdmin && clientData?.whatsapp) {
               // Se for admin, busca pelo whatsapp do cliente identificado
               query = query.eq('whatsapp', normalizePhone(clientData.whatsapp));
             } else {
