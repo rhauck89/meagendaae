@@ -5740,6 +5740,7 @@ export type Database = {
       whatsapp_otp_codes: {
         Row: {
           code: string
+          company_id: string | null
           created_at: string | null
           email: string
           expires_at: string
@@ -5749,6 +5750,7 @@ export type Database = {
         }
         Insert: {
           code: string
+          company_id?: string | null
           created_at?: string | null
           email: string
           expires_at: string
@@ -5758,6 +5760,7 @@ export type Database = {
         }
         Update: {
           code?: string
+          company_id?: string | null
           created_at?: string | null
           email?: string
           expires_at?: string
