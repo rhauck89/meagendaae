@@ -194,36 +194,49 @@ Deno.serve(async (req) => {
         throw new Error(`Erro ao registrar código: ${insertError.message}`);
       }
 
-      const instance = await getInstance(targetCompanyId);
-      console.log(`[OTP] Instance for company ${targetCompanyId}:`, instance ? `${instance.instance_name} (${instance.status})` : 'None');
-
-      if (phone && instance && instance.status === 'connected') {
+      const { instance, isFallback } = await getEffectiveInstance(targetCompanyId);
+      
+      if (phone && instance) {
         try {
           const message = `Seu código de acesso para Agendae é: *${code}*\n\nEste código expira em 5 minutos.`;
           await sendWhatsApp(instance.instance_name, phone, message);
-          console.log(`[OTP] Sent via WhatsApp to ${phone}`);
-          return new Response(JSON.stringify({ success: true, method: 'whatsapp' }), { headers: corsHeaders });
+          console.log(`[OTP] Enviado via WhatsApp (${instance.instance_name}) para ${phone}. Fallback: ${isFallback}`);
+          return new Response(JSON.stringify({ 
+            success: true, 
+            method: 'whatsapp', 
+            isFallback,
+            instance: instance.instance_name 
+          }), { headers: corsHeaders });
         } catch (waError: any) {
-          console.error('[OTP] WhatsApp send failure:', waError.message);
+          console.error('[OTP] Falha no envio WhatsApp:', waError.message);
+          // Continua para o fallback de e-mail se o WhatsApp falhar
         }
       } 
       
       if (targetEmail) {
-        console.log(`[OTP] Falling back to Magic Link for ${targetEmail}`);
+        console.log(`[OTP] Seguindo para Magic Link para ${targetEmail}`);
         const { data, error: linkError } = await adminClient.auth.admin.generateLink({
           type: 'magiclink',
           email: targetEmail,
           options: { redirectTo: params.redirectTo || 'https://app.agendae.io/' }
         });
         if (linkError) {
-          console.error('[OTP] Magic Link error:', linkError);
-          throw linkError;
+          console.error('[OTP] Erro no Magic Link:', linkError);
+          return new Response(JSON.stringify({ 
+            success: false, 
+            reason: 'EMAIL_ERROR', 
+            error: linkError.message 
+          }), { headers: corsHeaders });
         }
         return new Response(JSON.stringify({ success: true, method: 'email' }), { headers: corsHeaders });
       } else {
-        const statusMsg = instance ? (instance.status !== 'connected' ? 'WhatsApp desconectado' : 'Falha no envio') : 'WhatsApp não configurado';
-        console.error(`[OTP] No delivery method available: ${statusMsg}`);
-        throw new Error(`Não foi possível enviar código via WhatsApp (${statusMsg}). Tente outro método ou entre em contato.`);
+        const reason = !instance ? 'NO_INSTANCE' : 'SEND_FAILURE';
+        console.error(`[OTP] Nenhum método de entrega disponível: ${reason}`);
+        return new Response(JSON.stringify({ 
+          success: false, 
+          reason,
+          message: 'Não foi possível enviar o código. WhatsApp indisponível e e-mail não informado.'
+        }), { headers: corsHeaders });
       }
     }
 
