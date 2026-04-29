@@ -153,10 +153,13 @@ export function ExistingAccountModal({
       return;
     }
     setLoading(true);
+    const action = 'send-message';
+    console.log("ACTION ENVIADA:", action);
     try {
       const { data, error } = await supabase.functions.invoke('whatsapp-integration', {
         body: {
-          action: 'send-otp',
+          action: action,
+          type: 'otp',
           companyId,
           phone: phoneToUse,
           email: email || null
