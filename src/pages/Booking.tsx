@@ -1741,13 +1741,8 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
 
   // ─── Render ───
   return (
-    <div className="min-h-screen pb-20 sm:pb-0 font-sans tracking-tight" style={{ background: T.bg, color: T.text }}>
-      {/* DEBUG BANNER OBRIGATÓRIO */}
-      {isAuthenticated && (
-        <div className="fixed top-0 left-0 w-full z-[9999] bg-green-500 text-black py-1.5 text-[10px] font-black text-center uppercase tracking-[0.3em] shadow-2xl border-b border-black/20">
-          SESSÃO CLIENTE ATIVA | MODO 1-CLIQUE LIBERADO 👋
-        </div>
-      )}
+    <div className={cn("min-h-screen font-sans tracking-tight", (selectedServices.length > 0 && step === 'services') ? "pb-32" : "pb-20 sm:pb-0")} style={{ background: T.bg, color: T.text }}>
+      {/* DEBUG BANNER REMOVIDO */}
 
       {/* Premium Header Fixo */}
       <header 
@@ -2013,18 +2008,18 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                       </div>
                     )}
                     
-                    <div className="flex items-center gap-5">
-                      <div className="w-16 h-16 rounded-2xl flex items-center justify-center shrink-0 transition-transform group-hover:rotate-12" style={{ background: sel ? T.accent : `${T.accent}15` }}>
-                        <Scissors className="h-7 w-7" style={{ color: sel ? '#000' : T.accent }} />
+                    <div className="flex items-center gap-3 sm:gap-5">
+                      <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-2xl flex items-center justify-center shrink-0 transition-transform group-hover:rotate-12" style={{ background: sel ? T.accent : `${T.accent}15` }}>
+                        <Scissors className="h-5 w-5 sm:h-7 sm:w-7" style={{ color: sel ? '#000' : T.accent }} />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="font-black text-lg tracking-tight group-hover:text-amber-500 transition-colors">{svc.name}</p>
-                        <div className="flex items-center gap-3 mt-1 opacity-70">
-                          <span className="flex items-center gap-1 text-xs font-bold uppercase tracking-wider">
+                        <p className="font-black text-base sm:text-lg tracking-tight group-hover:text-amber-500 transition-colors truncate">{svc.name}</p>
+                        <div className="flex flex-wrap items-center gap-2 sm:gap-3 mt-1 opacity-70">
+                          <span className="flex items-center gap-1 text-[10px] sm:text-xs font-bold uppercase tracking-wider whitespace-nowrap">
                             <Clock className="h-3 w-3" /> {svc.duration_minutes} min
                           </span>
-                          <span className="w-1 h-1 rounded-full bg-white/20" />
-                          <span className="text-xs font-bold uppercase tracking-wider">Acabamento Premium</span>
+                          <span className="hidden sm:block w-1 h-1 rounded-full bg-white/20" />
+                          <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider truncate">Acabamento Premium</span>
                         </div>
                       </div>
                       <div className="text-right shrink-0">
@@ -2061,16 +2056,16 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
 
             {/* Bottom Bar Otimizada Mobile */}
             {selectedServices.length > 0 && (
-              <div className="fixed bottom-0 left-0 right-0 p-4 z-40 sm:relative sm:p-0">
+              <div className="fixed bottom-0 left-0 right-0 p-4 z-40 sm:relative sm:p-0 safe-area-bottom">
                 <div 
-                  className="max-w-2xl mx-auto rounded-[2.5rem] p-4 flex items-center justify-between gap-4 animate-in slide-in-from-bottom-10 duration-500 shadow-2xl shadow-black/50" 
+                  className="max-w-2xl mx-auto rounded-[2.5rem] p-3 sm:p-4 flex items-center justify-between gap-3 sm:gap-4 animate-in slide-in-from-bottom-10 duration-500 shadow-2xl shadow-black/50" 
                   style={{ background: T.card, border: `1px solid ${T.border}` }}
                 >
                   <div className="pl-4">
                     <p className="text-[10px] font-black uppercase tracking-widest opacity-60">Total Estimado</p>
                     <div className="flex items-baseline gap-1">
-                      <span className="text-2xl font-black" style={{ color: T.accent }}>R$ {totalPrice.toFixed(2)}</span>
-                      <span className="text-xs font-bold opacity-60">/ {totalDuration}m</span>
+                      <span className="text-xl sm:text-2xl font-black" style={{ color: T.accent }}>R$ {totalPrice.toFixed(2)}</span>
+                      <span className="text-[10px] sm:text-xs font-bold opacity-60">/ {totalDuration}m</span>
                     </div>
                   </div>
                   <Button
@@ -2081,11 +2076,11 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                         setStep('datetime');
                       }
                     }}
-                    className="rounded-full px-8 py-7 font-black text-base transition-all hover:scale-105 active:scale-95 group"
+                    className="rounded-full px-6 sm:px-8 py-6 sm:py-7 font-black text-sm sm:text-base transition-all hover:scale-105 active:scale-95 group shrink-0"
                     style={{ background: `linear-gradient(135deg, ${T.accent}, #F4C752)`, color: '#000' }}
                   >
                     Continuar
-                    <ChevronRight className="h-5 w-5 ml-2 transition-transform group-hover:translate-x-1" />
+                    <ChevronRight className="h-4 w-4 sm:h-5 sm:w-5 ml-1 sm:ml-2 transition-transform group-hover:translate-x-1" />
                   </Button>
                 </div>
               </div>
@@ -2916,7 +2911,10 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
       {step !== 'success' && isAuthenticated && hasValidClient && (
         <button
           onClick={() => window.location.href = '/minha-conta'}
-          className="fixed bottom-6 left-6 z-50 flex items-center gap-2 px-4 py-3 rounded-full shadow-xl transition-transform hover:scale-105 text-sm font-semibold"
+          className={cn(
+            "fixed z-50 flex items-center gap-2 px-4 py-3 rounded-full shadow-xl transition-transform hover:scale-105 text-sm font-semibold",
+            (selectedServices.length > 0 && step === 'services') ? "bottom-24 left-6" : "bottom-6 left-6"
+          )}
           style={{ background: T.accent, color: '#000' }}
           title="Meus agendamentos"
         >
