@@ -512,7 +512,9 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
         .eq('user_id', user.id)
         .single();
       
-      if (profile && ['admin', 'professional', 'company', 'super_admin'].includes(profile.role)) {
+      const isAdmin = profile && ['admin', 'professional', 'company', 'super_admin'].includes(profile.role);
+      
+      if (isAdmin) {
         setHasValidClient(false);
         return;
       }
