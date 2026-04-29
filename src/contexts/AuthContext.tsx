@@ -157,9 +157,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     // Rule 6: Initial session fetch
     const initSession = async () => {
-      const { data: { session: initialSession } } = await supabase.auth.getSession();
-      if (!cancelled) {
-        await updateAuthState(initialSession);
+      // Safety timeout to never leave the app stuck in loading if getSession hangs
+      const timeoutId = setTimeout(() => {
+        if (loading) {
+          console.warn('[AUTH_CONTEXT] getSession timeout, forcing loading=false');
+          setLoading(false);
+        }
+      }, 8000);
+
+      try {
+        const { data: { session: initialSession } } = await supabase.auth.getSession();
+        if (!cancelled) {
+          await updateAuthState(initialSession);
+        }
+      } catch (err) {
+        console.error('[AUTH_CONTEXT] Error in initSession:', err);
+        if (!cancelled) setLoading(false);
+      } finally {
+        clearTimeout(timeoutId);
       }
     };
 

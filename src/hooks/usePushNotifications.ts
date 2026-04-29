@@ -77,6 +77,12 @@ export function usePushNotifications() {
   const checkExistingSubscription = useCallback(async () => {
     if (!user) return;
     try {
+      // Check if serviceWorker is available
+      if (!navigator.serviceWorker) {
+        console.warn('[PUSH] serviceWorker not available in navigator');
+        return;
+      }
+
       // Use a timeout for serviceWorker.ready to avoid hanging
       const registration = await Promise.race([
         navigator.serviceWorker.ready,
@@ -119,10 +125,12 @@ export function usePushNotifications() {
         return { success: false, error: 'Permissão negada pelo usuário' };
       }
 
+      console.log('[PUSH] Waiting for Service Worker to be ready...');
       const registration = await Promise.race([
         navigator.serviceWorker.ready,
-        new Promise<ServiceWorkerRegistration>((_, reject) => setTimeout(() => reject(new Error('SW_TIMEOUT')), 10000))
+        new Promise<ServiceWorkerRegistration>((_, reject) => setTimeout(() => reject(new Error('SW_TIMEOUT')), 15000))
       ]);
+      console.log('[PUSH] Service Worker ready');
 
       // Check if already subscribed
       let subscription = await registration.pushManager.getSubscription();
