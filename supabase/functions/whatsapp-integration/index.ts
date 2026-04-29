@@ -317,7 +317,7 @@ Deno.serve(async (req) => {
 
       if (updateError) {
         console.error(`[OTP_ERROR_REAL] Failed to mark OTP as used:`, updateError);
-        throw new Error('Erro ao atualizar estado do código.');
+        return new Response(JSON.stringify({ success: false, reason: 'UPDATE_ERROR', message: 'Erro ao atualizar estado do código.' }), { headers: corsHeaders });
       }
 
       console.log(`[OTP_SUCCESS] OTP ${otp.id} verified. Starting login process...`);
