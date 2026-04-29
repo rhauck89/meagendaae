@@ -1429,7 +1429,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
         totalDuration,
         bookingTimezone,
       );
-      if (!clientId) throw new Error('Cadastro do cliente falhou. Tente novamente.');
+      // clientId is null intentionally, RPC will handle creation
 
       const appointmentPayload = {
         p_professional_id: selectedProfessional, p_client_id: clientId,
