@@ -287,7 +287,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
 
   return (
     <TooltipProvider delayDuration={300}>
-      <div className="min-h-screen flex bg-background">
+      <div className="flex bg-background min-h-[100dvh]">
         {/* Mobile overlay */}
         {sidebarOpen && <div className="fixed inset-0 bg-foreground/50 z-40 lg:hidden" onClick={() => setSidebarOpen(false)} />}
 
