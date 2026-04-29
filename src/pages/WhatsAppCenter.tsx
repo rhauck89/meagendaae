@@ -431,7 +431,9 @@ function ConnectionTab({ companyId, userId, instance, loading, onChange }: { com
       await new Promise(resolve => setTimeout(resolve, 3000));
       
       try {
-        await getQrCode(companyId);
+        const qrRes = await getQrCode(companyId);
+        // @ts-ignore
+        if (qrRes?.qrcode) setLocalQrCode(qrRes.qrcode);
         toast.success('QR Code gerado!', { description: 'Escaneie agora para conectar.' });
       } catch (qrError) {
         console.warn('QR Code fetch failed initially, polling will handle it:', qrError);
