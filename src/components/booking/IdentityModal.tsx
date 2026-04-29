@@ -96,17 +96,17 @@ export function IdentityModal({
       console.log(`[IDENTITY_MODAL] Identifying: ${phone} in company ${companyId}`);
       
       const { data: client, error } = await supabase.rpc('lookup_client_globally', {
+        p_company_id: companyId,
         input_whatsapp: phone
-      });
+      } as any);
 
       if (error) throw error;
 
       if (client && client.length > 0) {
-        const clientData = Array.isArray(client) ? client[0] : client;
+        const clientData: any = Array.isArray(client) ? client[0] : client;
         console.log('[IDENTITY_MODAL] Client found globally:', clientData);
         
-        // No email in the new return structure, setting to empty string or mapping from previous logic if needed
-        setEmail(''); 
+        setEmail(clientData.global_email || ''); 
         setFullName(clientData.global_name || '');
         setIsNewUser(false);
         setView('options');
@@ -177,8 +177,24 @@ export function IdentityModal({
         throw new Error(data?.error || 'Código inválido ou expirado.');
       }
 
+      let verifiedSession = data.session;
+
+      if (!verifiedSession && data.token_hash) {
+        const { data: verifyData, error: verifyError } = await supabase.auth.verifyOtp({
+          token_hash: data.token_hash,
+          type: data.otp_type || 'magiclink',
+        } as any);
+
+        if (verifyError) {
+          console.error('[SESSION_ERROR] Failed to verify magiclink token:', verifyError);
+          throw new Error('Código confirmado, mas não foi possível iniciar a sessão.');
+        }
+
+        verifiedSession = verifyData.session;
+      }
+
       console.log('[SESSION_APPLIED] OTP Verified, applying session');
-      handleSuccess(data.session);
+      handleSuccess(verifiedSession);
     } catch (err: any) {
       toast.error(err.message || 'Código inválido');
       setOtpCode('');

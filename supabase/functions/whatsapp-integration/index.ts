@@ -295,16 +295,6 @@ serve(async (req) => {
 
       if (isOtp) {
         log("INICIANDO FLUXO OTP...");
-        
-        log("EXECUTANDO TESTE DE INSERT FIXO...");
-        const fixedTest = await supabaseClient.from('whatsapp_otp_codes').insert({
-          phone: "5511999999999",
-          code: "123456",
-          company_id: "ba00be4b-a872-4d08-880a-a5033b40ed3f",
-          expires_at: new Date(Date.now() + 5 * 60 * 1000).toISOString()
-        }).select();
-        
-        log({ fixedTest });
 
         log(`PHONE: ${phone}`);
         log(`COMPANY_ID: ${companyId}`);
@@ -467,6 +457,9 @@ serve(async (req) => {
       return new Response(JSON.stringify({ 
         success: true, 
         session: linkData.session,
+        email: user.email,
+        token_hash: linkData.properties?.hashed_token,
+        otp_type: 'magiclink',
         loginUrl: linkData.properties?.action_link
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
