@@ -142,6 +142,168 @@ Deno.serve(async (req) => {
 
     // --- ACTIONS ---
 
+    if (action === 'create') {
+      const instanceName = `company-${companyId.split('-')[0]}-${Math.floor(Math.random() * 1000)}`;
+      console.log(`[CREATE_INSTANCE] name: ${instanceName}`);
+
+      try {
+        // 1. Create in Evolution API
+        const evolution = await fetchEvolution('/instance/create', {
+          method: 'POST',
+          body: JSON.stringify({
+            instanceName,
+            token: EVOLUTION_API_KEY,
+            qrcode: true,
+            number: null
+          })
+        });
+
+        const instanceData = evolution.instance || evolution;
+        const qrcodeFromCreate = evolution.qrcode?.base64 || evolution.qrcode?.code || evolution.base64 || evolution.code;
+        const finalQrFromCreate = qrcodeFromCreate ? (qrcodeFromCreate.startsWith('data:image') ? qrcodeFromCreate : `data:image/png;base64,${qrcodeFromCreate}`) : null;
+
+        // 2. Save to DB
+        const { data: instance, error: dbError } = await adminClient
+          .from('whatsapp_instances')
+          .upsert({
+            company_id: companyId,
+            instance_name: instanceName,
+            instance_id: instanceData.instanceId || instanceData.id,
+            status: 'connecting',
+            qr_code: finalQrFromCreate,
+            updated_at: new Date().toISOString()
+          }, { onConflict: 'company_id' })
+          .select()
+          .single();
+
+        if (dbError) throw dbError;
+
+        return new Response(JSON.stringify({ success: true, instance }), { headers: corsHeaders });
+      } catch (err: any) {
+        console.error(`[CREATE_ERROR] ${err.message}`);
+        return new Response(JSON.stringify({ success: false, error: err.message }), { headers: corsHeaders });
+      }
+    }
+
+    if (action === 'get-qr') {
+      const instance = await getInstance(companyId);
+      if (!instance || !instance.instance_name) {
+        return new Response(JSON.stringify({ success: false, message: 'Instance not found' }), { headers: corsHeaders });
+      }
+
+      try {
+        console.log(`[GET_QR] instance: ${instance.instance_name}`);
+        // Evolution API usually returns base64 in the 'code' or 'base64' field
+        let res;
+        try {
+          res = await fetchEvolution(`/instance/connect/${instance.instance_name}`);
+        } catch (e) {
+          console.log(`[GET_QR] Fallback to /instance/qrcode/`);
+          res = await fetchEvolution(`/instance/qrcode/${instance.instance_name}`);
+        }
+        
+        const qrcode = res.base64 || res.code || res.qrcode || (res.qrcode && res.qrcode.base64);
+
+        if (qrcode) {
+          const finalQr = qrcode.startsWith('data:image') ? qrcode : `data:image/png;base64,${qrcode}`;
+          
+          // Update DB with the QR code
+          await adminClient
+            .from('whatsapp_instances')
+            .update({ 
+              qr_code: finalQr,
+              status: 'connecting',
+              updated_at: new Date().toISOString()
+            })
+            .eq('company_id', companyId);
+
+          return new Response(JSON.stringify({ success: true, qrcode: finalQr }), { headers: corsHeaders });
+        }
+
+        return new Response(JSON.stringify({ success: false, message: 'QR Code not generated yet' }), { headers: corsHeaders });
+      } catch (err: any) {
+        console.error(`[QR_ERROR] ${err.message}`);
+        return new Response(JSON.stringify({ success: false, error: err.message }), { headers: corsHeaders });
+      }
+    }
+
+    if (action === 'get-status') {
+      const instance = await getInstance(companyId);
+      if (!instance || !instance.instance_name) {
+        return new Response(JSON.stringify({ success: false, message: 'Instance not found' }), { headers: corsHeaders });
+      }
+
+      try {
+        const res = await fetchEvolution(`/instance/connectionState/${instance.instance_name}`);
+        const evolutionStatus = res.instance?.state || res.state; // connected, disconnected, connecting
+        
+        let mappedStatus: string = 'disconnected';
+        if (evolutionStatus === 'open' || evolutionStatus === 'connected') mappedStatus = 'connected';
+        else if (evolutionStatus === 'connecting' || evolutionStatus === 'pairing') mappedStatus = 'connecting';
+        else if (evolutionStatus === 'close' || evolutionStatus === 'disconnected') mappedStatus = 'disconnected';
+
+        const updateData: any = { 
+          status: mappedStatus,
+          updated_at: new Date().toISOString()
+        };
+
+        if (mappedStatus === 'connected') {
+          updateData.connected_at = new Date().toISOString();
+          updateData.qr_code = null;
+        }
+
+        const { data: updated } = await adminClient
+          .from('whatsapp_instances')
+          .update(updateData)
+          .eq('company_id', companyId)
+          .select()
+          .single();
+
+        return new Response(JSON.stringify({ 
+          success: true, 
+          ...updated,
+          mappedStatus 
+        }), { headers: corsHeaders });
+      } catch (err: any) {
+        return new Response(JSON.stringify({ success: false, error: err.message }), { headers: corsHeaders });
+      }
+    }
+
+    if (action === 'logout') {
+      const instance = await getInstance(companyId);
+      if (instance && instance.instance_name) {
+        try {
+          await fetchEvolution(`/instance/logout/${instance.instance_name}`, { method: 'DELETE' });
+          await fetchEvolution(`/instance/delete/${instance.instance_name}`, { method: 'DELETE' });
+        } catch (e) {
+          console.warn(`[LOGOUT_WARN] Could not delete from Evolution: ${e.message}`);
+        }
+      }
+
+      await adminClient
+        .from('whatsapp_instances')
+        .update({ 
+          status: 'disconnected', 
+          qr_code: null,
+          instance_name: null,
+          instance_id: null,
+          updated_at: new Date().toISOString()
+        })
+        .eq('company_id', companyId);
+
+      return new Response(JSON.stringify({ success: true }), { headers: corsHeaders });
+    }
+
+    if (action === 'send-test') {
+      const { phone, text } = params;
+      const { instance } = await getEffectiveInstance(companyId);
+      if (!instance) throw new Error('No instance available');
+      
+      await sendWhatsApp(instance.instance_name, phone, text || 'Teste de conexão Agendae');
+      return new Response(JSON.stringify({ success: true }), { headers: corsHeaders });
+    }
+
+
     if (action === 'send-otp') {
       const { phone, email: targetEmail } = params;
       const targetCompanyId = companyId;
