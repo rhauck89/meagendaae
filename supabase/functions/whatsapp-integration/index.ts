@@ -282,11 +282,15 @@ serve(async (req) => {
       }
 
       if (isOtp) {
+        console.log("INICIANDO FLUXO OTP...");
+        console.log("PHONE:", phone);
+        console.log("COMPANY_ID:", companyId);
+        
         const code = Math.floor(100000 + Math.random() * 900000).toString();
         console.log("CODIGO GERADO:", code);
         targetMessage = `Seu código de acesso para MeAgendae é: ${code}`;
         
-        console.log("COMPANY_ID RECEBIDO:", companyId);
+        console.log("COMPANY_ID RECEBIDO NO PAYLOAD:", companyId);
         
         const otpPayload = {
           phone: targetPhone,
