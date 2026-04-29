@@ -249,7 +249,7 @@ Deno.serve(async (req) => {
 
       if (!code || code.length !== 6) {
         console.error(`[OTP_ERROR_REAL] Invalid code format: ${code}`);
-        throw new Error('Código deve ter 6 dígitos.');
+        return new Response(JSON.stringify({ success: false, reason: 'INVALID_FORMAT', message: 'Código deve ter 6 dígitos.' }), { headers: corsHeaders });
       }
 
       if (!targetCompanyId) {
