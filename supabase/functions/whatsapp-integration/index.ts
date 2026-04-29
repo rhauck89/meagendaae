@@ -356,16 +356,17 @@ serve(async (req) => {
         text: targetMessage
       };
 
-      console.log("ENVIANDO WHATSAPP OTP/MESSAGE...");
+      log("ENVIANDO WHATSAPP OTP/MESSAGE...");
       const res = await callEvolution(`/message/sendText/${instanceName}`, 'POST', payload);
       
-      console.log("WHATSAPP ENVIADO. RESPOSTA EVOLUTION:", JSON.stringify(res.data));
+      log(`WHATSAPP ENVIADO. RESPOSTA EVOLUTION: ${JSON.stringify(res.data)}`);
 
       return new Response(JSON.stringify({ 
         success: true,
         message: isOtp ? "OTP enviado" : "Mensagem enviada",
         data: res.data,
-        state: state
+        state: state,
+        debug: debugLogs
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 200
