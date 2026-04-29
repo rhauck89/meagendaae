@@ -1315,21 +1315,35 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
     setLoading(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Usuário não autenticado');
+      // OBRIGATÓRIO: Verificar se o usuário é admin
+      const userRole = profile?.role || 'client';
+      const isAdmin = ['admin', 'professional', 'company', 'super_admin'].includes(userRole);
 
       const normalizedPhone = clientForm.whatsapp ? normalizePhone(clientForm.whatsapp) : '';
-      const clientName = clientForm.full_name || user.user_metadata?.full_name || user.user_metadata?.name || 'Cliente';
-      const clientEmail = clientForm.email || user.email || null;
+      const clientName = clientForm.full_name || user?.user_metadata?.full_name || user?.user_metadata?.name || 'Cliente';
+      const clientEmail = clientForm.email || user?.email || null;
 
-      // 1. Garantir Client Global (Upsert)
+      console.log('[BOOKING_FLOW] Starting book process:', { 
+        normalizedPhone, 
+        isAdmin, 
+        authUserId: user?.id 
+      });
+
+      // 1. Garantir Client Global (Upsert baseado em WhatsApp)
+      // SEPARAÇÃO: Só vinculamos user_id se for um CLIENTE real (não admin)
+      const globalClientPayload: any = {
+        whatsapp: normalizedPhone || null,
+        name: clientName,
+        email: clientEmail,
+      };
+
+      if (user && !isAdmin) {
+        globalClientPayload.user_id = user.id;
+      }
+
       const { data: globalClient, error: globalError } = await (supabase
         .from('clients_global' as any)
-        .upsert({
-          user_id: user.id,
-          whatsapp: normalizedPhone || null,
-          name: clientName,
-          email: clientEmail,
-        }, { onConflict: 'whatsapp' })
+        .upsert(globalClientPayload, { onConflict: 'whatsapp' })
         .select()
         .single() as any);
 
