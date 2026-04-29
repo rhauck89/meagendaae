@@ -6,6 +6,9 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
+// Utility to sleep
+const delay = (ms: number) => new Promise(res => setTimeout(res, ms));
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
@@ -20,6 +23,8 @@ serve(async (req) => {
     const requestBody = await req.json()
     const { action, companyId, phone, message, text } = requestBody
     
+    console.log("ACTION RECEBIDA:", action);
+
     const EVOLUTION_API_URL = Deno.env.get('EVOLUTION_API_BASE_URL') || Deno.env.get('EVOLUTION_API_URL')
     const EVOLUTION_API_KEY = Deno.env.get('EVOLUTION_API_KEY')
 
@@ -35,7 +40,7 @@ serve(async (req) => {
 
     const callEvolution = async (endpoint: string, method = 'GET', body: any = null) => {
       const url = `${baseUrl}${endpoint}`
-      console.log(`TESTANDO ROTA: ${method} ${url}`)
+      console.log("TESTANDO ROTA:", url)
       
       try {
         const response = await fetch(url, {
@@ -48,7 +53,8 @@ serve(async (req) => {
         })
 
         const rawText = await response.text()
-        console.log(`RESPOSTA ${endpoint} (${response.status}):`, rawText.substring(0, 500))
+        console.log("RESPONSE STATUS:", response.status);
+        console.log(`RESPOSTA ${endpoint} RAW:`, rawText.substring(0, 1000))
 
         return {
           status: response.status,
@@ -62,9 +68,19 @@ serve(async (req) => {
       }
     }
 
+    const extractQr = (data: any) => {
+      if (!data) return null;
+      // Accept multiple formats
+      return data.qrcode || 
+             data.qr || 
+             data.base64 || 
+             data.code || 
+             data.instance?.qrcode || 
+             data.qrcode?.base64;
+    }
+
     if (action === 'create' || action === 'get-qr') {
-      // 1. TENTAR DESCOBRIR ROTA DE CRIAÇÃO SE NECESSÁRIO
-      let createResult = null;
+      let qrBase64 = null;
       
       if (action === 'create') {
         const createRoutes = [
@@ -74,49 +90,62 @@ serve(async (req) => {
         ];
 
         for (const route of createRoutes) {
-          console.log(`TENTANDO CRIAR INSTÂNCIA VIA: ${route.path}`);
           const res = await callEvolution(route.path, route.method, {
             instanceName: instanceName,
-            token: "agenda-e-token",
-            qrcode: true
+            qrcode: true,
+            integration: "WHATSAPP-BAILEYS"
           });
+
+          // Check if QR is already in the creation response
+          if (res.ok && res.data) {
+            qrBase64 = extractQr(res.data);
+          }
 
           if (res.ok || res.status === 403 || res.text?.includes("already exists")) {
-            createResult = res;
-            console.log(`ROTA DE CRIAÇÃO ENCONTRADA OU INSTÂNCIA JÁ EXISTE: ${route.path}`);
+            console.log(`INSTÂNCIA OK OU JÁ EXISTENTE: ${route.path}`);
             break;
           }
-        }
-
-        if (!createResult || (!createResult.ok && !createResult.text?.includes("already exists"))) {
-          return new Response(JSON.stringify({ 
-            success: false, 
-            error: "EVOLUTION_CREATE_FAILED",
-            details: createResult?.text || "Nenhuma rota de criação funcionou"
-          }), { 
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            status: 200 
-          });
         }
       }
 
-      // 6. DESCOBRIR ROTA DE QR CODE
-      const qrRoutes = [
-        `/instance/connect/${instanceName}`,
-        `/instance/qrcode/${instanceName}`,
-        `/instance/qr/${instanceName}`
-      ];
+      // If we don't have QR yet, try to fetch it with a retry loop
+      if (!qrBase64) {
+        const qrRoutes = [
+          `/instance/connect/${instanceName}`,
+          `/instance/qrcode/${instanceName}`,
+          `/instance/qr/${instanceName}`
+        ];
 
-      let qrBase64 = null;
-      for (const route of qrRoutes) {
-        const res = await callEvolution(route);
-        if (res.ok && res.data) {
-          qrBase64 = res.data.base64 || res.data.qrcode?.base64 || res.data.code;
-          if (qrBase64) {
-            console.log(`QR CODE ENCONTRADO NA ROTA: ${route}`);
-            break;
+        // Loop de espera para QR (até 10 tentativas, 2 segundos cada)
+        console.log("INICIANDO LOOP DE BUSCA DE QR CODE...");
+        for (let i = 0; i < 10; i++) {
+          for (const route of qrRoutes) {
+            const res = await callEvolution(route);
+            if (res.ok && res.data) {
+              qrBase64 = extractQr(res.data);
+              if (qrBase64) {
+                console.log(`QR CODE ENCONTRADO NA TENTATIVA ${i+1} ROTA: ${route}`);
+                break;
+              }
+            }
           }
+          if (qrBase64) break;
+          console.log(`TENTATIVA ${i+1} SEM QR CODE, AGUARDANDO 2S...`);
+          await delay(2000);
         }
+      }
+
+      console.log("QR FINAL CAPTURADO:", qrBase64 ? "ENCONTRADO (BASE64)" : "NULL");
+
+      if (!qrBase64 && action === 'create') {
+        return new Response(JSON.stringify({ 
+          success: false, 
+          error: "QR_NOT_GENERATED",
+          detail: "Instância criada mas Evolution não retornou QR"
+        }), { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 200 
+        });
       }
 
       // Update DB
@@ -130,15 +159,13 @@ serve(async (req) => {
       return new Response(JSON.stringify({
         success: true,
         instanceName,
-        qrcode: qrBase64 || null,
-        debug: { qr_found: !!qrBase64 }
+        qrcode: qrBase64 || null
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 200
       });
     }
 
-    // Outras ações mantidas com a lógica de descoberta de rotas simplificada se necessário
     if (action === 'get-status') {
       const res = await callEvolution(`/instance/connectionState/${instanceName}`);
       let mappedStatus = 'disconnected';
