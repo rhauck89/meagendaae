@@ -102,7 +102,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return;
       }
 
-      const ctx = Array.isArray(context) ? context[0] : context;
+      let ctx = Array.isArray(context) ? context[0] : context;
       console.log("[AUTH_CONTEXT_DIAG] ctx calculated:", ctx);
 
       if (!ctx) {
