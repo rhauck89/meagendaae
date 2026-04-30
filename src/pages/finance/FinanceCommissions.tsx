@@ -50,7 +50,7 @@ const FinanceCommissions = () => {
     try {
       let query = supabase
         .from('appointments')
-        .select('*, professional:profiles!appointments_professional_id_fkey(id, full_name)')
+        .select('id, professional_id, final_price, total_price, status, start_time')
         .eq('company_id', companyId!)
         .eq('status', 'completed')
         .gte('start_time', start.toISOString())
@@ -60,6 +60,19 @@ const FinanceCommissions = () => {
 
       const { data: appointments, error: appError } = await query;
       if (appError) throw appError;
+
+      const professionalIds = Array.from(new Set((appointments || []).map((a: any) => a.professional_id).filter(Boolean)));
+      const profileMap: Record<string, string> = {};
+      if (professionalIds.length > 0) {
+        const { data: profiles, error: profilesError } = await supabase
+          .from('profiles')
+          .select('id, full_name')
+          .in('id', professionalIds);
+        if (profilesError) throw profilesError;
+        profiles?.forEach((p: any) => {
+          profileMap[p.id] = p.full_name || 'Sem nome';
+        });
+      }
 
       const { data: collaborators, error: collError } = await supabase
         .from('collaborators')
@@ -79,7 +92,8 @@ const FinanceCommissions = () => {
       const grouped: Record<string, { name: string; revenue: number; count: number }> = {};
       appointments?.forEach(a => {
         const pid = a.professional_id;
-        if (!grouped[pid]) grouped[pid] = { name: a.professional?.full_name || 'Sem nome', revenue: 0, count: 0 };
+        if (!pid) return;
+        if (!grouped[pid]) grouped[pid] = { name: profileMap[pid] || 'Sem nome', revenue: 0, count: 0 };
         grouped[pid].revenue += Number(a.final_price || a.total_price || 0);
         grouped[pid].count += 1;
       });
@@ -93,7 +107,7 @@ const FinanceCommissions = () => {
       setRows(result);
     } catch (error) {
       console.error('Error fetching data:', error);
-      toast.error('Erro ao carregar dados');
+      toast.error(error instanceof Error ? error.message : 'Erro ao carregar dados');
     } finally {
       setLoading(false);
     }
@@ -403,4 +417,3 @@ const FinanceCommissions = () => {
 };
 
 export default FinanceCommissions;
-
