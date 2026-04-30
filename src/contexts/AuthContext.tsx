@@ -70,10 +70,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.log("[AUTH_DEBUG] Fetching context for user:", userId);
 
       // Rule: Use the new centralized RPC for consistent user state
+      console.log("[AUTH_CONTEXT_DIAG] Fetching context for user:", userId);
+      setLoading(true);
+
       const { data: context, error: contextError } = await withTimeout(
         supabase.rpc('get_current_user_context' as any) as any,
         { data: null, error: { message: 'get_current_user_context timeout' } } as any
       );
+
+      console.log("[AUTH_CONTEXT_DIAG] rpc data:", context);
+      console.log("[AUTH_CONTEXT_DIAG] rpc error:", contextError);
 
       if (contextError) {
         console.error("[AUTH_DEBUG] RPC error fetching user context:", contextError);
@@ -85,11 +91,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (profileData) {
           setProfile(profileData);
           setCompanyId(profileData.company_id);
+          console.log("[AUTH_CONTEXT_DIAG] setCompanyId (fallback):", profileData.company_id);
         }
+        setLoading(false);
         return;
       }
 
       const ctx = Array.isArray(context) ? context[0] : context;
+      console.log("[AUTH_CONTEXT_DIAG] ctx calculated:", ctx);
 
       if (!ctx) {
         console.warn("[AUTH_DEBUG] RPC returned empty context for user:", userId);
@@ -116,17 +125,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           );
           const retryCtx = Array.isArray(retryContext) ? retryContext[0] : retryContext;
           if (retryCtx) {
+            console.log("[AUTH_CONTEXT_DIAG] retry ctx:", retryCtx);
             setProfile(prev => ({ ...prev, ...retryCtx }));
             setCompanyId(retryCtx.company_id);
             setRoles(retryCtx.roles || []);
             setIsAlsoCollaborator(retryCtx.is_collaborator || false);
             setLoginModeState(retryCtx.login_mode as LoginMode || (retryCtx.is_collaborator ? null : 'admin'));
+            console.log("[AUTH_CONTEXT_DIAG] setCompanyId (retry):", retryCtx.company_id);
           }
         }
+        setLoading(false);
         return;
       }
 
-      console.log("[AUTH_DEBUG] Context loaded:", ctx);
+      console.log("[AUTH_CONTEXT_DIAG] Mapping context to state. company_id:", ctx.company_id);
 
       // Map context to Auth state
       setProfile({
@@ -140,6 +152,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setCompanyId(ctx.company_id);
       setRoles(ctx.roles || []);
       setIsAlsoCollaborator(ctx.is_collaborator || false);
+      console.log("[AUTH_CONTEXT_DIAG] setCompanyId:", ctx.company_id);
+      console.log("[AUTH_CONTEXT_DIAG] roles:", ctx.roles);
 
       // Default login mode logic
       if (ctx.is_collaborator && ctx.is_company_owner) {
@@ -150,6 +164,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       } else {
         setLoginModeState('admin');
       }
+
+      setLoading(false);
 
     } catch (error) {
       console.error('[AUTH_CONTEXT] Critical error fetching user data:', error);
