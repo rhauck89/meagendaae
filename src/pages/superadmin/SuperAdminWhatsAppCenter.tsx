@@ -19,11 +19,13 @@ import {
   getPlatformSettings, connectPlatformInstance, disconnectPlatformInstance,
   sendPlatformTest, listPlatformTemplates, savePlatformTemplate,
   listPlatformAutomations, togglePlatformAutomation, listPlatformLogs,
+  getPlatformQrCode, getPlatformStatus,
   type PlatformWhatsAppSettings, type PlatformWhatsAppTemplate,
   type PlatformWhatsAppAutomation, type PlatformWhatsAppLog
 } from '@/integrations/whatsapp/platformService';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { cn } from '@/lib/utils';
 
 export default function SuperAdminWhatsAppCenter() {
   const [tab, setTab] = useState('overview');
