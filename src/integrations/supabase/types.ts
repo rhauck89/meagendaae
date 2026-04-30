@@ -6638,6 +6638,20 @@ export type Database = {
           total_clients: number
         }[]
       }
+      get_current_user_context: {
+        Args: never
+        Returns: {
+          company_id: string
+          email: string
+          full_name: string
+          is_collaborator: boolean
+          is_company_owner: boolean
+          login_mode: string
+          profile_id: string
+          roles: string[]
+          user_id: string
+        }[]
+      }
       get_my_company_id: { Args: never; Returns: string }
       get_my_profile_id: { Args: never; Returns: string }
       get_or_create_revenue_category: {
