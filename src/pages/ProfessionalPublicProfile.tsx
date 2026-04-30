@@ -65,150 +65,154 @@ export default function ProfessionalPublicProfile() {
 
   const load = async () => {
     setLoading(true);
-    const { data: compArr } = await supabase.rpc('get_company_by_slug', { _slug: slug! });
-    const comp = compArr?.[0];
-    if (!comp) { setLoading(false); return; }
-
-    const { data: fullCompanyData } = await supabase.from('public_company' as any).select('*').eq('id', comp.id).single();
-    const companyFull = { ...comp, ...((fullCompanyData as any) || {}) };
-    setCompany(companyFull);
-    setBusinessType(companyFull.business_type || 'barbershop');
-
-    const { data: pubProfs } = await supabase.from('public_professionals' as any).select('*').eq('company_id', comp.id).eq('slug', professionalSlug!);
-    const prof = (pubProfs as any[])?.[0];
-    if (!prof) { setLoading(false); return; }
-    setProfessional(prof);
-    setProfile({ 
-      bio: prof.bio, 
-      social_links: prof.social_links, 
-      whatsapp: prof.whatsapp, 
-      avatar_url: prof.avatar_url, 
-      banner_url: prof.banner_url,
-      specialty: prof.specialty || (companyFull.business_type === 'barbershop' ? 'Especialista em barba e corte' : 'Especialista em estética facial'),
-      experience_years: prof.experience_years || 5
-    });
-
-    // Check for last booking if logged in
-    if (isAuthenticated) {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        const { data: appt } = await supabase
-          .from('appointments')
-          .select('id, start_time, total_price, professional_id, status')
-          .eq('company_id', comp.id)
-          .eq('user_id', user.id)
-          .eq('professional_id', prof.id)
-          .in('status', ['completed', 'confirmed'])
-          .order('start_time', { ascending: false })
-          .limit(1)
-          .maybeSingle();
-        
-        if (appt) {
-          const { data: apptSvcs } = await supabase.from('appointment_services').select('service_id').eq('appointment_id', appt.id);
-          if (apptSvcs && apptSvcs.length > 0) {
-            const { data: svc } = await supabase.from('public_services' as any).select('name').eq('id', apptSvcs[0].service_id).maybeSingle();
-            setLastBooking({
-              ...appt,
-              serviceName: (svc as any)?.name
-            });
-          }
-        }
+    try {
+      const { data: compArr, error: compError } = await supabase.rpc('get_company_by_slug', { _slug: slug! });
+      if (compError) throw compError;
+      const comp = compArr?.[0];
+      if (!comp) {
+        setLoading(false);
+        return;
       }
-    }
 
-    const { data: spData } = await supabase.from('service_professionals').select('service_id, price_override').eq('professional_id', prof.id);
-    const svcIds = (spData || []).map((s: any) => s.service_id);
-    if (svcIds.length > 0) {
-      const { data: svcData } = await supabase.from('public_services' as any).select('*').eq('company_id', comp.id).in('id', svcIds);
-      const withOverrides = ((svcData as any[]) || []).map((s: any) => {
-        const ov = (spData || []).find((sp: any) => sp.service_id === s.id);
-        return ov?.price_override != null ? { ...s, price: ov.price_override } : s;
+      const { data: fullCompanyData } = await supabase.from('public_company' as any).select('*').eq('id', comp.id).single();
+      const companyFull = { ...comp, ...((fullCompanyData as any) || {}) };
+      setCompany(companyFull);
+      setBusinessType(companyFull.business_type || 'barbershop');
+
+      const { data: pubProfs, error: profError } = await supabase.from('public_professionals' as any).select('*').eq('company_id', comp.id).eq('slug', professionalSlug!);
+      if (profError) throw profError;
+      const prof = (pubProfs as any[])?.[0];
+      if (!prof) {
+        setLoading(false);
+        return;
+      }
+      setProfessional(prof);
+      setProfile({ 
+        bio: prof.bio, 
+        social_links: prof.social_links, 
+        whatsapp: prof.whatsapp, 
+        avatar_url: prof.avatar_url, 
+        banner_url: prof.banner_url,
+        specialty: prof.specialty || (companyFull.business_type === 'barbershop' ? 'Especialista em barba e corte' : 'Especialista em estética facial'),
+        experience_years: prof.experience_years || 5
       });
-      setServices(withOverrides);
-    }
 
-    // Rating
-    const { data: ratingsData } = await supabase.rpc('get_professional_ratings' as any, { p_company_id: comp.id });
-    if (ratingsData && Array.isArray(ratingsData)) {
-      const r = (ratingsData as any[]).find((x: any) => x.professional_id === prof.id);
-      if (r) setRating({ avg: Number(r.avg_rating), count: Number(r.review_count) });
-    }
+      // Check for last booking if logged in (non-blocking)
+      if (isAuthenticated) {
+        supabase.auth.getUser().then(({ data: { user } }) => {
+          if (user) {
+            supabase
+              .from('appointments')
+              .select('id, start_time, total_price, professional_id, status')
+              .eq('company_id', comp.id)
+              .eq('user_id', user.id)
+              .eq('professional_id', prof.id)
+              .in('status', ['completed', 'confirmed'])
+              .order('start_time', { ascending: false })
+              .limit(1)
+              .maybeSingle()
+              .then(({ data: appt }) => {
+                if (appt) {
+                  supabase.from('appointment_services').select('service_id').eq('appointment_id', appt.id).then(({ data: apptSvcs }) => {
+                    if (apptSvcs && apptSvcs.length > 0) {
+                      supabase.from('public_services' as any).select('name').eq('id', apptSvcs[0].service_id).maybeSingle().then(({ data: svc }) => {
+                        setLastBooking({
+                          ...appt,
+                          serviceName: (svc as any)?.name
+                        });
+                      });
+                    }
+                  });
+                }
+              });
+          }
+        }).catch(() => {});
+      }
 
-    // Reviews - fetch all for count, display limited
-    const { data: allReviewsData } = await supabase
-      .from('reviews')
-      .select('rating, comment, created_at, appointment_id, review_type')
-      .eq('professional_id', prof.id)
-      .eq('review_type', 'professional')
-      .order('created_at', { ascending: false });
-    if (allReviewsData) {
-      // Enrich with client display name (masked)
-      const apptIds = allReviewsData.map((r: any) => r.appointment_id).filter(Boolean);
-      let clientNames: Record<string, string> = {};
-      if (apptIds.length > 0) {
-        const { data: appts } = await supabase
-          .from('appointments')
-          .select('id, client_name, client_id')
-          .in('id', apptIds);
-        const clientIds = (appts || []).filter((a: any) => a.client_id).map((a: any) => a.client_id);
-        let cnameMap: Record<string, string> = {};
-        if (clientIds.length > 0) {
-          const { data: clients } = await supabase.from('clients').select('id, name').in('id', clientIds);
-          (clients || []).forEach((c: any) => { cnameMap[c.id] = c.name; });
+      const { data: spData } = await supabase.from('service_professionals').select('service_id, price_override').eq('professional_id', prof.id);
+      const svcIds = (spData || []).map((s: any) => s.service_id);
+      if (svcIds.length > 0) {
+        const { data: svcData } = await supabase.from('public_services' as any).select('*').eq('company_id', comp.id).in('id', svcIds);
+        const withOverrides = ((svcData as any[]) || []).map((s: any) => {
+          const ov = (spData || []).find((sp: any) => sp.service_id === s.id);
+          return ov?.price_override != null ? { ...s, price: ov.price_override } : s;
+        });
+        setServices(withOverrides);
+      }
+
+      // Rating
+      supabase.rpc('get_professional_ratings' as any, { p_company_id: comp.id }).then(({ data: ratingsData }) => {
+        if (ratingsData && Array.isArray(ratingsData)) {
+          const r = (ratingsData as any[]).find((x: any) => x.professional_id === prof.id);
+          if (r) setRating({ avg: Number(r.avg_rating), count: Number(r.review_count) });
         }
-        (appts || []).forEach((a: any) => {
-          const n = a.client_name || cnameMap[a.client_id];
-          if (n) {
-            const parts = n.trim().split(/\s+/);
-            const first = parts[0] || '';
-            const lastInitial = parts.length > 1 ? ` ${parts[parts.length - 1].charAt(0).toUpperCase()}.` : '';
-            clientNames[a.id] = `${first}${lastInitial}`;
+      });
+
+      // Reviews (non-blocking)
+      supabase
+        .from('reviews')
+        .select('rating, comment, created_at, appointment_id, review_type')
+        .eq('professional_id', prof.id)
+        .eq('review_type', 'professional')
+        .order('created_at', { ascending: false })
+        .then(({ data: allReviewsData }) => {
+          if (allReviewsData) {
+            // Enrich with client display name logic...
+            const apptIds = allReviewsData.map((r: any) => r.appointment_id).filter(Boolean);
+            if (apptIds.length > 0) {
+              supabase
+                .from('appointments')
+                .select('id, client_name, client_id')
+                .in('id', apptIds)
+                .then(({ data: appts }) => {
+                  const clientIds = (appts || []).filter((a: any) => a.client_id).map((a: any) => a.client_id);
+                  if (clientIds.length > 0) {
+                    supabase.from('clients').select('id, name').in('id', clientIds).then(({ data: clients }) => {
+                      let cnameMap: Record<string, string> = {};
+                      (clients || []).forEach((c: any) => { cnameMap[c.id] = c.name; });
+                      let clientNames: Record<string, string> = {};
+                      (appts || []).forEach((a: any) => {
+                        const n = a.client_name || cnameMap[a.client_id];
+                        if (n) {
+                          const parts = n.trim().split(/\s+/);
+                          const first = parts[0] || '';
+                          const lastInitial = parts.length > 1 ? ` ${parts[parts.length - 1].charAt(0).toUpperCase()}.` : '';
+                          clientNames[a.id] = `${first}${lastInitial}`;
+                        }
+                      });
+                      const enriched = allReviewsData.map((r: any) => ({
+                        ...r,
+                        client_display_name: r.appointment_id ? clientNames[r.appointment_id] || null : null,
+                      }));
+                      setReviews(enriched);
+                      setTotalReviews(enriched.length);
+                    });
+                  }
+                });
+            } else {
+              setReviews(allReviewsData);
+              setTotalReviews(allReviewsData.length);
+            }
           }
         });
-      }
-      const enriched = allReviewsData.map((r: any) => ({
-        ...r,
-        client_display_name: r.appointment_id ? clientNames[r.appointment_id] || null : null,
-      }));
-      setReviews(enriched);
-      setTotalReviews(enriched.length);
+
+      // Completed appointments count
+      supabase.from('appointments').select('id', { count: 'exact', head: true }).eq('professional_id', prof.id).eq('status', 'completed').then(({ count }) => {
+        setCompletedCount(count || 0);
+      });
+
+      // Fetch company settings for branding
+      supabase.from('public_company_settings' as any).select('primary_color, secondary_color, background_color').eq('company_id', comp.id).single().then(({ data: csData }) => {
+        if (csData) setCompanySettings(csData);
+      });
+
+      // Next available slots (this one stays awaited or we use a separate effect)
+      await fetchNextSlots(comp, prof);
+    } catch (err) {
+      console.error('[PROFILE] Error loading page data:', err);
+    } finally {
+      setLoading(false);
     }
-
-    // Completed appointments count
-    const { count } = await supabase.from('appointments').select('id', { count: 'exact', head: true }).eq('professional_id', prof.id).eq('status', 'completed');
-    setCompletedCount(count || 0);
-
-    // Fetch company settings for branding
-    const { data: csData } = await supabase.from('public_company_settings' as any).select('primary_color, secondary_color, background_color').eq('company_id', comp.id).single();
-    if (csData) setCompanySettings(csData);
-
-    // Check for active cashback promotions
-    try {
-      const today = format(new Date(), 'yyyy-MM-dd');
-      const { data: cbPromos } = await supabase
-        .from('promotions')
-        .select('discount_type, discount_value, professional_filter, professional_ids')
-        .eq('company_id', comp.id)
-        .eq('promotion_type', 'cashback')
-        .eq('status', 'active')
-        .lte('start_date', today)
-        .gte('end_date', today);
-      if (cbPromos && cbPromos.length > 0) {
-        const eligible = cbPromos.find((p: any) =>
-          p.professional_filter !== 'specific' || (p.professional_ids || []).includes(prof.id)
-        );
-        if (eligible) {
-          const label = eligible.discount_type === 'percentage'
-            ? `${eligible.discount_value}% de cashback`
-            : `R$ ${Number(eligible.discount_value).toFixed(2)} de cashback`;
-          setActiveCashback(label);
-        }
-      }
-    } catch { /* ignore */ }
-
-    // Next available slots
-    await fetchNextSlots(comp, prof);
-    setLoading(false);
   };
 
   const fetchNextSlots = async (comp: any, prof: any) => {

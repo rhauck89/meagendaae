@@ -186,80 +186,96 @@ export default function BarbershopLanding({ routeBusinessType, customSlug }: Bar
 
   const load = async () => {
     setLoading(true);
-    const { data: compArr } = await supabase.rpc('get_company_by_slug', { _slug: slug! });
-    const rpcComp = compArr?.[0];
-    if (!rpcComp) { setLoading(false); return; }
-
-    const { data: fullCompanyData } = await supabase.from('public_company' as any).select('*').eq('id', rpcComp.id).single();
-    const comp = { ...rpcComp, ...((fullCompanyData as any) || {}) };
-    setCompany(comp);
-    const resolvedType: BusinessType = routeBusinessType || comp.business_type || 'barbershop';
-    setBusinessType(resolvedType);
-
     try {
-      const { data: compPlan } = await supabase.from('companies').select('plan_id').eq('id', comp.id).single();
-      if (compPlan?.plan_id) {
-        const { data: planData } = await supabase.from('plans').select('whitelabel').eq('id', compPlan.plan_id).single();
-        if (planData?.whitelabel) setIsWhitelabel(true);
+      const { data: compArr, error: rpcError } = await supabase.rpc('get_company_by_slug', { _slug: slug! });
+      if (rpcError) throw rpcError;
+      
+      const rpcComp = compArr?.[0];
+      if (!rpcComp) {
+        setLoading(false);
+        return;
       }
-    } catch { /* ignore */ }
 
-    const [servicesRes, profsRes, ratingsRes, reviewsRes, settingsRes] = await Promise.all([
-      supabase.from('public_services' as any).select('*').eq('company_id', comp.id).order('name'),
-      supabase.from('public_professionals' as any).select('*').eq('company_id', comp.id).eq('active', true),
-      supabase.rpc('get_professional_ratings' as any, { p_company_id: comp.id }),
-      supabase.from('reviews').select('rating, comment, created_at, professional_id, appointment_id, review_type').eq('company_id', comp.id).order('created_at', { ascending: false }),
-      supabase.from('public_company_settings' as any).select('*').eq('company_id', comp.id).single(),
-    ]);
+      const { data: fullCompanyData, error: fullError } = await supabase.from('public_company' as any).select('*').eq('id', rpcComp.id).single();
+      if (fullError) console.warn('[LANDING] Could not fetch full company data:', fullError);
+      
+      const comp = { ...rpcComp, ...((fullCompanyData as any) || {}) };
+      setCompany(comp);
+      const resolvedType: BusinessType = routeBusinessType || comp.business_type || 'barbershop';
+      setBusinessType(resolvedType);
 
-    if (servicesRes.data) setServices(servicesRes.data as any[]);
-    if (profsRes.data) setProfessionals(profsRes.data as any[]);
-    if (settingsRes.data) setCompanySettings(settingsRes.data);
-    
-    if (ratingsRes.data && Array.isArray(ratingsRes.data)) {
-      const map: Record<string, { avg: number; count: number }> = {};
-      for (const r of ratingsRes.data as any[]) {
-        map[r.professional_id] = { avg: Number(r.avg_rating), count: Number(r.review_count) };
-      }
-      setProfessionalRatings(map);
-    }
-
-    let enrichedReviews: any[] = [];
-    if (reviewsRes.data && reviewsRes.data.length > 0) {
-      const appointmentIds = reviewsRes.data.filter((r: any) => r.appointment_id).map((r: any) => r.appointment_id);
-      let clientNameMap: Record<string, string> = {};
-      if (appointmentIds.length > 0) {
-        const { data: appts } = await supabase.from('appointments').select('id, client_name, client_id').in('id', appointmentIds);
-        if (appts) {
-          const clientIds = appts.filter((a: any) => a.client_id).map((a: any) => a.client_id);
-          let clientNames: Record<string, string> = {};
-          if (clientIds.length > 0) {
-            const { data: clients } = await supabase.from('clients').select('id, name').in('id', clientIds);
-            if (clients) for (const c of clients) clientNames[c.id] = c.name;
+      // Whitelabel check (non-blocking)
+      (async () => {
+        try {
+          const { data: compPlan } = await supabase.from('companies').select('plan_id').eq('id', comp.id).single();
+          if (compPlan?.plan_id) {
+            const { data: planData } = await supabase.from('plans').select('whitelabel').eq('id', compPlan.plan_id).single();
+            if (planData?.whitelabel) setIsWhitelabel(true);
           }
-          for (const a of appts) {
-            const name = a.client_name || clientNames[a.client_id] || null;
-            if (name) clientNameMap[a.id] = name;
+        } catch {}
+      })();
+
+      const [servicesRes, profsRes, ratingsRes, reviewsRes, settingsRes] = await Promise.all([
+        supabase.from('public_services' as any).select('*').eq('company_id', comp.id).order('name'),
+        supabase.from('public_professionals' as any).select('*').eq('company_id', comp.id).eq('active', true),
+        supabase.rpc('get_professional_ratings' as any, { p_company_id: comp.id }),
+        supabase.from('reviews').select('rating, comment, created_at, professional_id, appointment_id, review_type').eq('company_id', comp.id).order('created_at', { ascending: false }),
+        supabase.from('public_company_settings' as any).select('*').eq('company_id', comp.id).maybeSingle(),
+      ]);
+
+      if (servicesRes.data) setServices(servicesRes.data as any[]);
+      if (profsRes.data) setProfessionals(profsRes.data as any[]);
+      if (settingsRes.data) setCompanySettings(settingsRes.data);
+      
+      if (ratingsRes.data && Array.isArray(ratingsRes.data)) {
+        const map: Record<string, { avg: number; count: number }> = {};
+        for (const r of ratingsRes.data as any[]) {
+          map[r.professional_id] = { avg: Number(r.avg_rating), count: Number(r.review_count) };
+        }
+        setProfessionalRatings(map);
+      }
+
+      let enrichedReviews: any[] = [];
+      if (reviewsRes.data && reviewsRes.data.length > 0) {
+        // Enriched reviews logic... (abbreviated for the replace tool)
+        const appointmentIds = reviewsRes.data.filter((r: any) => r.appointment_id).map((r: any) => r.appointment_id);
+        let clientNameMap: Record<string, string> = {};
+        if (appointmentIds.length > 0) {
+          const { data: appts } = await supabase.from('appointments').select('id, client_name, client_id').in('id', appointmentIds);
+          if (appts) {
+            const clientIds = appts.filter((a: any) => a.client_id).map((a: any) => a.client_id);
+            let clientNames: Record<string, string> = {};
+            if (clientIds.length > 0) {
+              const { data: clients } = await supabase.from('clients').select('id, name').in('id', clientIds);
+              if (clients) for (const c of clients) clientNames[c.id] = c.name;
+            }
+            for (const a of appts) {
+              const name = a.client_name || clientNames[a.client_id] || null;
+              if (name) clientNameMap[a.id] = name;
+            }
           }
         }
+        enrichedReviews = reviewsRes.data.map((r: any) => ({
+          ...r,
+          client_display_name: r.appointment_id && clientNameMap[r.appointment_id] ? formatReviewerName(clientNameMap[r.appointment_id]) : null,
+        }));
       }
-      enrichedReviews = reviewsRes.data.map((r: any) => ({
-        ...r,
-        client_display_name: r.appointment_id && clientNameMap[r.appointment_id] ? formatReviewerName(clientNameMap[r.appointment_id]) : null,
-      }));
-    }
 
-    const companyReviews = enrichedReviews.filter((r: any) => r.review_type === 'company');
-    if (companyReviews.length > 0) {
-      const avg = companyReviews.reduce((sum: number, r: any) => sum + Number(r.rating), 0) / companyReviews.length;
-      setCompanyStats({ avgRating: avg, reviewCount: companyReviews.length });
-    } else {
-      setCompanyStats({ avgRating: 0, reviewCount: 0 });
-    }
+      const companyReviews = enrichedReviews.filter((r: any) => r.review_type === 'company');
+      if (companyReviews.length > 0) {
+        const avg = companyReviews.reduce((sum: number, r: any) => sum + Number(r.rating), 0) / companyReviews.length;
+        setCompanyStats({ avgRating: avg, reviewCount: companyReviews.length });
+      } else {
+        setCompanyStats({ avgRating: 0, reviewCount: 0 });
+      }
 
-    setAllReviewsList(companyReviews);
-    setReviews(companyReviews.slice(0, 3));
-    setLoading(false);
+      setAllReviewsList(companyReviews);
+      setReviews(companyReviews.slice(0, 3));
+    } catch (err) {
+      console.error('[LANDING] Error loading page data:', err);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const bookingBasePath = businessType === 'esthetic' ? 'estetica' : 'barbearia';
@@ -632,7 +648,7 @@ export default function BarbershopLanding({ routeBusinessType, customSlug }: Bar
 
         {/* Team */}
         {professionals.length > 0 && (
-          <section className="space-y-4">
+          <section id="equipe" className="space-y-4">
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-bold flex items-center gap-2" style={{ color: T.text }}>
                 <Users className="w-5 h-5" style={{ color: T.accent }} />
@@ -689,7 +705,7 @@ export default function BarbershopLanding({ routeBusinessType, customSlug }: Bar
 
         {/* Services */}
         {services.length > 0 && cleanedGroups.length > 0 && (
-          <section className="space-y-4">
+          <section id="servicos" data-services-section className="space-y-4">
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-bold flex items-center gap-2" style={{ color: T.text }}>
                 <Scissors className="w-5 h-5" style={{ color: T.accent }} />
@@ -764,7 +780,7 @@ export default function BarbershopLanding({ routeBusinessType, customSlug }: Bar
 
         {/* Reviews */}
         {reviews.length > 0 && (
-          <section className="space-y-4">
+          <section id="avaliacoes" className="space-y-4">
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-bold flex items-center gap-2" style={{ color: T.text }}>
                 <Star className="w-5 h-5" style={{ color: T.accent }} />
@@ -896,16 +912,24 @@ export default function BarbershopLanding({ routeBusinessType, customSlug }: Bar
         style={{ background: `${T.bg}E6`, borderColor: T.border }}
       >
         <div className="max-w-3xl mx-auto grid grid-cols-5 items-end px-2 py-2 relative">
-          <button className="flex flex-col items-center gap-0.5 py-2 text-xs font-medium" style={{ color: T.accent }}>
+          <button 
+            onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+            className="flex flex-col items-center gap-0.5 py-2 text-xs font-medium" 
+            style={{ color: T.accent }}
+          >
             <Home className="w-5 h-5" />
             <span>Início</span>
           </button>
           <button
             onClick={() => {
-              const el = document.querySelector('[data-services-section]') as HTMLElement | null;
-              if (el) el.scrollIntoView({ behavior: 'smooth' });
+              const el = document.getElementById('servicos') || document.querySelector('[data-services-section]') as HTMLElement | null;
+              if (el) {
+                el.scrollIntoView({ behavior: 'smooth' });
+              } else {
+                setIsServicesDrawerOpen(true);
+              }
             }}
-            className="flex flex-col items-center gap-0.5 py-2 text-xs font-medium opacity-60"
+            className="flex flex-col items-center gap-0.5 py-2 text-xs font-medium opacity-60 hover:opacity-100 transition-opacity"
             style={{ color: T.textSec }}
           >
             <Scissors className="w-5 h-5" />
@@ -914,7 +938,7 @@ export default function BarbershopLanding({ routeBusinessType, customSlug }: Bar
           {/* Floating booking button */}
           <button
             onClick={handleStartBooking}
-            className="flex flex-col items-center -mt-8"
+            className="flex flex-col items-center -mt-8 hover:scale-110 transition-transform active:scale-95"
           >
             <div
               className="w-16 h-16 rounded-full flex items-center justify-center shadow-2xl"
@@ -924,16 +948,142 @@ export default function BarbershopLanding({ routeBusinessType, customSlug }: Bar
             </div>
             <span className="text-xs font-semibold mt-1" style={{ color: T.accent }}>Agendar</span>
           </button>
-          <button className="flex flex-col items-center gap-0.5 py-2 text-xs font-medium opacity-60" style={{ color: T.textSec }}>
+          <button 
+            onClick={() => setIsTeamDrawerOpen(true)}
+            className="flex flex-col items-center gap-0.5 py-2 text-xs font-medium opacity-60 hover:opacity-100 transition-opacity" 
+            style={{ color: T.textSec }}
+          >
             <Users className="w-5 h-5" />
             <span>Equipe</span>
           </button>
-          <button className="flex flex-col items-center gap-0.5 py-2 text-xs font-medium opacity-60" style={{ color: T.textSec }}>
+          <button 
+            onClick={() => setIsReviewsDrawerOpen(true)}
+            className="flex flex-col items-center gap-0.5 py-2 text-xs font-medium opacity-60 hover:opacity-100 transition-opacity" 
+            style={{ color: T.textSec }}
+          >
             <Star className="w-5 h-5" />
             <span>Avaliações</span>
           </button>
         </div>
       </nav>
+      {/* Services Drawer */}
+      <Drawer open={isServicesDrawerOpen} onOpenChange={setIsServicesDrawerOpen}>
+        <DrawerContent className="max-h-[85vh]">
+          <DrawerHeader>
+            <DrawerTitle>Nossos Serviços</DrawerTitle>
+            <DrawerDescription>Escolha o serviço desejado para agendar</DrawerDescription>
+          </DrawerHeader>
+          <div className="overflow-y-auto px-4 pb-8 space-y-6">
+            {groupedServices.map(([cat, list]) => (
+              <div key={cat} className="space-y-3">
+                <h3 className="font-bold text-sm opacity-60 uppercase tracking-wider">{cat}</h3>
+                <div className="grid gap-2">
+                  {list.map(svc => (
+                    <button
+                      key={svc.id}
+                      onClick={() => {
+                        setIsServicesDrawerOpen(false);
+                        navigate(`/${bookingBasePath}/${slug}/agendar?service=${svc.id}`);
+                      }}
+                      className="flex items-center justify-between p-4 rounded-xl border text-left"
+                      style={{ background: T.card, borderColor: T.border }}
+                    >
+                      <div>
+                        <p className="font-bold" style={{ color: T.text }}>{svc.name}</p>
+                        <p className="text-xs opacity-60" style={{ color: T.textSec }}>{svc.duration_minutes} min</p>
+                      </div>
+                      <p className="font-bold" style={{ color: T.accent }}>R$ {Number(svc.price).toFixed(2)}</p>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </DrawerContent>
+      </Drawer>
+
+      {/* Team Drawer */}
+      <Drawer open={isTeamDrawerOpen} onOpenChange={setIsTeamDrawerOpen}>
+        <DrawerContent className="max-h-[85vh]">
+          <DrawerHeader>
+            <DrawerTitle>Nossa Equipe</DrawerTitle>
+            <DrawerDescription>Escolha um profissional para ver a agenda</DrawerDescription>
+          </DrawerHeader>
+          <div className="grid grid-cols-2 gap-3 px-4 pb-8 overflow-y-auto">
+            {professionals.map((prof: any) => (
+              <button
+                key={prof.id}
+                onClick={() => {
+                  setIsTeamDrawerOpen(false);
+                  navigate(`/${bookingBasePath}/${slug}/${prof.slug}`);
+                }}
+                className="flex flex-col items-center p-4 rounded-2xl border text-center gap-2"
+                style={{ background: T.card, borderColor: T.border }}
+              >
+                <div className="w-16 h-16 rounded-full overflow-hidden border-2" style={{ borderColor: T.accent }}>
+                  {prof.avatar_url ? (
+                    <img src={prof.avatar_url} alt={prof.name} className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center font-bold text-xl" style={{ background: `${T.accent}20`, color: T.accent }}>
+                      {prof.name.charAt(0)}
+                    </div>
+                  )}
+                </div>
+                <div>
+                  <p className="font-bold text-sm" style={{ color: T.text }}>{prof.name}</p>
+                  <p className="text-xs opacity-60" style={{ color: T.textSec }}>{prof.specialty || 'Profissional'}</p>
+                </div>
+              </button>
+            ))}
+          </div>
+        </DrawerContent>
+      </Drawer>
+
+      {/* Reviews Drawer */}
+      <Drawer open={isReviewsDrawerOpen} onOpenChange={setIsReviewsDrawerOpen}>
+        <DrawerContent className="max-h-[85vh]">
+          <DrawerHeader className="flex flex-row items-center justify-between">
+            <div className="text-left">
+              <DrawerTitle>Avaliações</DrawerTitle>
+              <DrawerDescription>{allReviewsList.length} depoimentos de clientes</DrawerDescription>
+            </div>
+            <Button 
+              size="sm" 
+              className="rounded-full" 
+              style={{ background: T.accent, color: '#000' }}
+              onClick={() => {
+                setIsReviewsDrawerOpen(false);
+                setIsAddReviewModalOpen(true);
+              }}
+            >
+              Avaliar
+            </Button>
+          </DrawerHeader>
+          <div className="px-4 pb-8 overflow-y-auto space-y-4">
+            {allReviewsList.map((rev: any, i: number) => (
+              <div key={i} className="p-4 rounded-2xl border space-y-2 text-left" style={{ background: T.card, borderColor: T.border }}>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs" style={{ background: `${T.accent}20`, color: T.accent }}>
+                      {(rev.client_display_name || 'C').charAt(0)}
+                    </div>
+                    <span className="font-bold text-sm" style={{ color: T.text }}>{rev.client_display_name || 'Cliente'}</span>
+                  </div>
+                  <div className="flex gap-0.5">
+                    {[1,2,3,4,5].map(s => <Star key={s} className={cn("w-3 h-3", s <= rev.rating ? "fill-yellow-400 text-yellow-400" : "opacity-20")} />)}
+                  </div>
+                </div>
+                <p className="text-sm italic opacity-80" style={{ color: T.text }}>"{rev.comment || 'Excelente!'}"</p>
+                <p className="text-[10px] opacity-40 text-right" style={{ color: T.textSec }}>{format(new Date(rev.created_at), 'dd/MM/yyyy')}</p>
+              </div>
+            ))}
+            {allReviewsList.length === 0 && (
+              <p className="text-center py-8 opacity-60" style={{ color: T.textSec }}>Nenhuma avaliação ainda.</p>
+            )}
+          </div>
+        </DrawerContent>
+      </Drawer>
+
       <IdentityModal
         isOpen={showIdentityModal}
         onClose={() => setShowIdentityModal(false)}

@@ -99,13 +99,21 @@ export default function MarketplaceHome() {
 
   const loadCompanies = async () => {
     setLoading(true);
-    const { data } = await supabase
-      .from('public_company' as any)
-      .select('id, name, slug, logo_url, city, state, average_rating, review_count, business_type, latitude, longitude');
-    if (data) {
-      setAllCompanies(data as any);
+    try {
+      const { data, error } = await supabase
+        .from('public_company' as any)
+        .select('id, name, slug, logo_url, city, state, average_rating, review_count, business_type, latitude, longitude');
+      
+      if (error) throw error;
+      
+      if (data) {
+        setAllCompanies(data as any);
+      }
+    } catch (err) {
+      console.error('[MARKETPLACE] Error loading companies:', err);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   // Compute availability when "when" window changes
