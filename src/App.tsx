@@ -67,6 +67,7 @@ import AppointmentRequests from "./pages/AppointmentRequests";
 import ClientPortal from "./pages/ClientPortal";
 import ClientAuth from "./pages/ClientAuth";
 import TestLogin from "./pages/TestLogin";
+import DebugAuthContext from "./pages/DebugAuthContext";
 
 // Settings sub-pages
 import SettingsGeneral from "./pages/settings/SettingsGeneral";
@@ -205,6 +206,7 @@ const PlatformRoutes = () => (
     <Route path="/super-admin/tutorials" element={<RequireRole role="super_admin"><SuperAdminLayout><SuperAdminTutorials /></SuperAdminLayout></RequireRole>} />
     <Route path="/super-admin/messages" element={<RequireRole role="super_admin"><SuperAdminLayout><SuperAdminMessages /></SuperAdminLayout></RequireRole>} />
     <Route path="/admin/debug-agenda" element={<RequireRole role="super_admin"><DebugAgenda /></RequireRole>} />
+    <Route path="/debug-auth-context" element={<ProtectedRoute><DebugAuthContext /></ProtectedRoute>} />
     <Route path="/dashboard" element={<DashboardRoute><Dashboard /></DashboardRoute>} />
     <Route path="/dashboard/services" element={<DashboardRoute><Services /></DashboardRoute>} />
     <Route path="/dashboard/team" element={<DashboardRoute><Team /></DashboardRoute>} />
