@@ -18,6 +18,8 @@ const ResetPassword = () => {
   const [done, setDone] = useState(false);
 
   useEffect(() => {
+    let fallbackTimer: number | undefined;
+
     // Listen for the PASSWORD_RECOVERY event from the auth state
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
       if (event === 'PASSWORD_RECOVERY') {
@@ -27,14 +29,25 @@ const ResetPassword = () => {
 
     // Check if we already have a session (user clicked the link)
     const checkHash = () => {
-      const hash = window.location.hash;
-      if (hash && hash.includes('type=recovery')) {
+      const params = `${window.location.search}${window.location.hash}`;
+      if (params.includes('type=recovery') || params.includes('code=')) {
         setIsRecovery(true);
       }
     };
     checkHash();
 
-    return () => subscription.unsubscribe();
+    // Some email providers/Supabase flows establish the recovery session before
+    // this component subscribes to PASSWORD_RECOVERY. In that case, keep the
+    // user on the password form instead of showing an endless loading card.
+    fallbackTimer = window.setTimeout(async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) setIsRecovery(true);
+    }, 800);
+
+    return () => {
+      if (fallbackTimer) window.clearTimeout(fallbackTimer);
+      subscription.unsubscribe();
+    };
   }, []);
 
   const validate = () => {
