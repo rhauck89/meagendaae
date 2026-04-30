@@ -23,6 +23,14 @@ const benefits = [
   { icon: Tag, text: 'Promoções para horários vazios' },
 ];
 
+const withTimeout = <T,>(promise: PromiseLike<T>, timeoutMs = 12000, label = 'operacao') =>
+  Promise.race<T>([
+    promise,
+    new Promise<T>((_, reject) => {
+      window.setTimeout(() => reject(new Error(`Tempo esgotado ao executar ${label}. Recarregue a pagina e tente novamente.`)), timeoutMs);
+    }),
+  ]);
+
 const Auth = () => {
   const navigate = useNavigate();
   const platform = usePlatformSettings();
@@ -84,7 +92,11 @@ const Auth = () => {
     setLoading(true);
     try {
       if (isLogin) {
-        const { data, error } = await supabase.auth.signInWithPassword({ email: email.trim().toLowerCase(), password });
+        const { data, error } = await withTimeout(
+          supabase.auth.signInWithPassword({ email: email.trim().toLowerCase(), password }),
+          12000,
+          'login',
+        );
         if (error) {
           // Real error visible in dev console for debugging (status + code)
           // eslint-disable-next-line no-console
@@ -96,10 +108,10 @@ const Auth = () => {
           });
           throw error;
         }
-        const { data: rolesData } = await supabase
+        const { data: rolesData } = await withTimeout(supabase
           .from('user_roles')
           .select('role')
-          .eq('user_id', data.user.id);
+          .eq('user_id', data.user.id), 10000, 'permissoes');
         const roles = rolesData?.map(r => r.role) || [];
         const isSuperAdmin = roles.includes('super_admin');
         toast.success('Login realizado com sucesso!');
@@ -108,12 +120,12 @@ const Auth = () => {
           navigate('/super-admin');
         } else {
           // Check if user belongs to multiple companies
-          const { data: companies } = await supabase.rpc('get_user_companies');
+          const { data: companies } = await withTimeout(supabase.rpc('get_user_companies'), 10000, 'empresas');
           if (companies && companies.length > 1) {
             navigate('/select-company');
           } else if (companies && companies.length === 1) {
             // Auto-switch to the single company
-            await supabase.rpc('switch_active_company', { _company_id: companies[0].company_id });
+            await withTimeout(supabase.rpc('switch_active_company', { _company_id: companies[0].company_id }), 10000, 'selecao da empresa');
             navigate('/dashboard');
           } else {
             navigate('/dashboard');
