@@ -180,7 +180,7 @@ function ConnectionTab({ settings, loading, onReload }: { settings: any, loading
       timer = setInterval(async () => {
         try {
           const res = await getPlatformStatus();
-          if (res.connected) {
+          if (res.status === 'connected') {
             onReload();
           }
         } catch (e) {
