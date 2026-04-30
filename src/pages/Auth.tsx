@@ -125,8 +125,7 @@ const Auth = () => {
             } else if (companies && companies.length === 1) {
               await supabase.rpc('switch_active_company', { _company_id: companies[0].company_id });
             }
-          })
-          .catch((secondaryError) => {
+          }, (secondaryError) => {
             console.warn('[LOGIN] Secondary routing check failed:', secondaryError);
           });
       } else {
