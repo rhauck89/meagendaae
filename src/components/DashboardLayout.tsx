@@ -100,6 +100,21 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
   const { data: platformMessages, dismiss: dismissMessage } = usePlatformMessages();
   const totalNotifications = (unreadTickets || 0) + (platformMessages?.length || 0);
 
+  // Determine if role selection dialog is needed
+  const needsRoleSelection = isProfessional && isAlsoCollaborator && !loginMode;
+
+  // Determine if role selection dialog is needed
+  const needsRoleSelection = isProfessional && isAlsoCollaborator && !loginMode;
+
+  const isSettingsActive = location.pathname.startsWith('/dashboard/settings');
+  const isFinanceActive = location.pathname.startsWith('/dashboard/finance');
+  const isProfessionalFinanceActive = location.pathname.startsWith('/dashboard/my-finance');
+  const [settingsOpen, setSettingsOpen] = useState(isSettingsActive);
+  const [financeOpen, setFinanceOpen] = useState(isFinanceActive);
+  const [professionalFinanceOpen, setProfessionalFinanceOpen] = useState(isProfessionalFinanceActive);
+  const [companyRecoveryLoading, setCompanyRecoveryLoading] = useState(false);
+  const [companyRecoveryChecked, setCompanyRecoveryChecked] = useState(false);
+
   // Debug logging for role detection
   console.log('[DASHBOARD_COMPANY_DIAG] Context data:', { 
     userId: user?.id, 
@@ -113,18 +128,6 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
     isProfessionalMode,
     loginMode
   });
-
-  // Determine if role selection dialog is needed
-  const needsRoleSelection = isProfessional && isAlsoCollaborator && !loginMode;
-
-  const isSettingsActive = location.pathname.startsWith('/dashboard/settings');
-  const isFinanceActive = location.pathname.startsWith('/dashboard/finance');
-  const isProfessionalFinanceActive = location.pathname.startsWith('/dashboard/my-finance');
-  const [settingsOpen, setSettingsOpen] = useState(isSettingsActive);
-  const [financeOpen, setFinanceOpen] = useState(isFinanceActive);
-  const [professionalFinanceOpen, setProfessionalFinanceOpen] = useState(isProfessionalFinanceActive);
-  const [companyRecoveryLoading, setCompanyRecoveryLoading] = useState(false);
-  const [companyRecoveryChecked, setCompanyRecoveryChecked] = useState(false);
 
   const professionalNavItems = allProfessionalNavItems.filter(item => {
     if (!item.permKey) return true;
