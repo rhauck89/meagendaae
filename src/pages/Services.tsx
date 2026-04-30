@@ -19,9 +19,12 @@ const NO_CATEGORY_VALUE = '__no_category__';
 const NO_GLOBAL_CATEGORY_VALUE = '__no_global_category__';
 
 const Services = () => {
-  const { companyId } = useAuth();
-  const { isAdmin } = useUserRole();
-  const canManageServices = isAdmin;
+  const { companyId, loginMode, roles } = useAuth();
+  const { isAdmin, isProfessionalMode } = useUserRole();
+  const canManageServices =
+    roles.includes('super_admin') ||
+    loginMode === 'admin' ||
+    (isAdmin && !isProfessionalMode && !roles.includes('collaborator'));
   const queryClient = useQueryClient();
   const { refresh } = useRefreshData();
   const [dialogOpen, setDialogOpen] = useState(false);
