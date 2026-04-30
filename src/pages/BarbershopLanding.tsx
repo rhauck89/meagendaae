@@ -912,16 +912,24 @@ export default function BarbershopLanding({ routeBusinessType, customSlug }: Bar
         style={{ background: `${T.bg}E6`, borderColor: T.border }}
       >
         <div className="max-w-3xl mx-auto grid grid-cols-5 items-end px-2 py-2 relative">
-          <button className="flex flex-col items-center gap-0.5 py-2 text-xs font-medium" style={{ color: T.accent }}>
+          <button 
+            onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+            className="flex flex-col items-center gap-0.5 py-2 text-xs font-medium" 
+            style={{ color: T.accent }}
+          >
             <Home className="w-5 h-5" />
             <span>Início</span>
           </button>
           <button
             onClick={() => {
-              const el = document.querySelector('[data-services-section]') as HTMLElement | null;
-              if (el) el.scrollIntoView({ behavior: 'smooth' });
+              const el = document.getElementById('servicos') || document.querySelector('[data-services-section]') as HTMLElement | null;
+              if (el) {
+                el.scrollIntoView({ behavior: 'smooth' });
+              } else {
+                setIsServicesDrawerOpen(true);
+              }
             }}
-            className="flex flex-col items-center gap-0.5 py-2 text-xs font-medium opacity-60"
+            className="flex flex-col items-center gap-0.5 py-2 text-xs font-medium opacity-60 hover:opacity-100 transition-opacity"
             style={{ color: T.textSec }}
           >
             <Scissors className="w-5 h-5" />
@@ -930,7 +938,7 @@ export default function BarbershopLanding({ routeBusinessType, customSlug }: Bar
           {/* Floating booking button */}
           <button
             onClick={handleStartBooking}
-            className="flex flex-col items-center -mt-8"
+            className="flex flex-col items-center -mt-8 hover:scale-110 transition-transform active:scale-95"
           >
             <div
               className="w-16 h-16 rounded-full flex items-center justify-center shadow-2xl"
@@ -940,11 +948,19 @@ export default function BarbershopLanding({ routeBusinessType, customSlug }: Bar
             </div>
             <span className="text-xs font-semibold mt-1" style={{ color: T.accent }}>Agendar</span>
           </button>
-          <button className="flex flex-col items-center gap-0.5 py-2 text-xs font-medium opacity-60" style={{ color: T.textSec }}>
+          <button 
+            onClick={() => setIsTeamDrawerOpen(true)}
+            className="flex flex-col items-center gap-0.5 py-2 text-xs font-medium opacity-60 hover:opacity-100 transition-opacity" 
+            style={{ color: T.textSec }}
+          >
             <Users className="w-5 h-5" />
             <span>Equipe</span>
           </button>
-          <button className="flex flex-col items-center gap-0.5 py-2 text-xs font-medium opacity-60" style={{ color: T.textSec }}>
+          <button 
+            onClick={() => setIsReviewsDrawerOpen(true)}
+            className="flex flex-col items-center gap-0.5 py-2 text-xs font-medium opacity-60 hover:opacity-100 transition-opacity" 
+            style={{ color: T.textSec }}
+          >
             <Star className="w-5 h-5" />
             <span>Avaliações</span>
           </button>
