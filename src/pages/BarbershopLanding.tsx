@@ -186,80 +186,94 @@ export default function BarbershopLanding({ routeBusinessType, customSlug }: Bar
 
   const load = async () => {
     setLoading(true);
-    const { data: compArr } = await supabase.rpc('get_company_by_slug', { _slug: slug! });
-    const rpcComp = compArr?.[0];
-    if (!rpcComp) { setLoading(false); return; }
-
-    const { data: fullCompanyData } = await supabase.from('public_company' as any).select('*').eq('id', rpcComp.id).single();
-    const comp = { ...rpcComp, ...((fullCompanyData as any) || {}) };
-    setCompany(comp);
-    const resolvedType: BusinessType = routeBusinessType || comp.business_type || 'barbershop';
-    setBusinessType(resolvedType);
-
     try {
-      const { data: compPlan } = await supabase.from('companies').select('plan_id').eq('id', comp.id).single();
-      if (compPlan?.plan_id) {
-        const { data: planData } = await supabase.from('plans').select('whitelabel').eq('id', compPlan.plan_id).single();
-        if (planData?.whitelabel) setIsWhitelabel(true);
+      const { data: compArr, error: rpcError } = await supabase.rpc('get_company_by_slug', { _slug: slug! });
+      if (rpcError) throw rpcError;
+      
+      const rpcComp = compArr?.[0];
+      if (!rpcComp) {
+        setLoading(false);
+        return;
       }
-    } catch { /* ignore */ }
 
-    const [servicesRes, profsRes, ratingsRes, reviewsRes, settingsRes] = await Promise.all([
-      supabase.from('public_services' as any).select('*').eq('company_id', comp.id).order('name'),
-      supabase.from('public_professionals' as any).select('*').eq('company_id', comp.id).eq('active', true),
-      supabase.rpc('get_professional_ratings' as any, { p_company_id: comp.id }),
-      supabase.from('reviews').select('rating, comment, created_at, professional_id, appointment_id, review_type').eq('company_id', comp.id).order('created_at', { ascending: false }),
-      supabase.from('public_company_settings' as any).select('*').eq('company_id', comp.id).single(),
-    ]);
+      const { data: fullCompanyData, error: fullError } = await supabase.from('public_company' as any).select('*').eq('id', rpcComp.id).single();
+      if (fullError) console.warn('[LANDING] Could not fetch full company data:', fullError);
+      
+      const comp = { ...rpcComp, ...((fullCompanyData as any) || {}) };
+      setCompany(comp);
+      const resolvedType: BusinessType = routeBusinessType || comp.business_type || 'barbershop';
+      setBusinessType(resolvedType);
 
-    if (servicesRes.data) setServices(servicesRes.data as any[]);
-    if (profsRes.data) setProfessionals(profsRes.data as any[]);
-    if (settingsRes.data) setCompanySettings(settingsRes.data);
-    
-    if (ratingsRes.data && Array.isArray(ratingsRes.data)) {
-      const map: Record<string, { avg: number; count: number }> = {};
-      for (const r of ratingsRes.data as any[]) {
-        map[r.professional_id] = { avg: Number(r.avg_rating), count: Number(r.review_count) };
+      // Whitelabel check (non-blocking)
+      supabase.from('companies').select('plan_id').eq('id', comp.id).single().then(({ data: compPlan }) => {
+        if (compPlan?.plan_id) {
+          supabase.from('plans').select('whitelabel').eq('id', compPlan.plan_id).single().then(({ data: planData }) => {
+            if (planData?.whitelabel) setIsWhitelabel(true);
+          });
+        }
+      }).catch(() => {});
+
+      const [servicesRes, profsRes, ratingsRes, reviewsRes, settingsRes] = await Promise.all([
+        supabase.from('public_services' as any).select('*').eq('company_id', comp.id).order('name'),
+        supabase.from('public_professionals' as any).select('*').eq('company_id', comp.id).eq('active', true),
+        supabase.rpc('get_professional_ratings' as any, { p_company_id: comp.id }),
+        supabase.from('reviews').select('rating, comment, created_at, professional_id, appointment_id, review_type').eq('company_id', comp.id).order('created_at', { ascending: false }),
+        supabase.from('public_company_settings' as any).select('*').eq('company_id', comp.id).maybeSingle(),
+      ]);
+
+      if (servicesRes.data) setServices(servicesRes.data as any[]);
+      if (profsRes.data) setProfessionals(profsRes.data as any[]);
+      if (settingsRes.data) setCompanySettings(settingsRes.data);
+      
+      if (ratingsRes.data && Array.isArray(ratingsRes.data)) {
+        const map: Record<string, { avg: number; count: number }> = {};
+        for (const r of ratingsRes.data as any[]) {
+          map[r.professional_id] = { avg: Number(r.avg_rating), count: Number(r.review_count) };
+        }
+        setProfessionalRatings(map);
       }
-      setProfessionalRatings(map);
-    }
 
-    let enrichedReviews: any[] = [];
-    if (reviewsRes.data && reviewsRes.data.length > 0) {
-      const appointmentIds = reviewsRes.data.filter((r: any) => r.appointment_id).map((r: any) => r.appointment_id);
-      let clientNameMap: Record<string, string> = {};
-      if (appointmentIds.length > 0) {
-        const { data: appts } = await supabase.from('appointments').select('id, client_name, client_id').in('id', appointmentIds);
-        if (appts) {
-          const clientIds = appts.filter((a: any) => a.client_id).map((a: any) => a.client_id);
-          let clientNames: Record<string, string> = {};
-          if (clientIds.length > 0) {
-            const { data: clients } = await supabase.from('clients').select('id, name').in('id', clientIds);
-            if (clients) for (const c of clients) clientNames[c.id] = c.name;
-          }
-          for (const a of appts) {
-            const name = a.client_name || clientNames[a.client_id] || null;
-            if (name) clientNameMap[a.id] = name;
+      let enrichedReviews: any[] = [];
+      if (reviewsRes.data && reviewsRes.data.length > 0) {
+        // Enriched reviews logic... (abbreviated for the replace tool)
+        const appointmentIds = reviewsRes.data.filter((r: any) => r.appointment_id).map((r: any) => r.appointment_id);
+        let clientNameMap: Record<string, string> = {};
+        if (appointmentIds.length > 0) {
+          const { data: appts } = await supabase.from('appointments').select('id, client_name, client_id').in('id', appointmentIds);
+          if (appts) {
+            const clientIds = appts.filter((a: any) => a.client_id).map((a: any) => a.client_id);
+            let clientNames: Record<string, string> = {};
+            if (clientIds.length > 0) {
+              const { data: clients } = await supabase.from('clients').select('id, name').in('id', clientIds);
+              if (clients) for (const c of clients) clientNames[c.id] = c.name;
+            }
+            for (const a of appts) {
+              const name = a.client_name || clientNames[a.client_id] || null;
+              if (name) clientNameMap[a.id] = name;
+            }
           }
         }
+        enrichedReviews = reviewsRes.data.map((r: any) => ({
+          ...r,
+          client_display_name: r.appointment_id && clientNameMap[r.appointment_id] ? formatReviewerName(clientNameMap[r.appointment_id]) : null,
+        }));
       }
-      enrichedReviews = reviewsRes.data.map((r: any) => ({
-        ...r,
-        client_display_name: r.appointment_id && clientNameMap[r.appointment_id] ? formatReviewerName(clientNameMap[r.appointment_id]) : null,
-      }));
-    }
 
-    const companyReviews = enrichedReviews.filter((r: any) => r.review_type === 'company');
-    if (companyReviews.length > 0) {
-      const avg = companyReviews.reduce((sum: number, r: any) => sum + Number(r.rating), 0) / companyReviews.length;
-      setCompanyStats({ avgRating: avg, reviewCount: companyReviews.length });
-    } else {
-      setCompanyStats({ avgRating: 0, reviewCount: 0 });
-    }
+      const companyReviews = enrichedReviews.filter((r: any) => r.review_type === 'company');
+      if (companyReviews.length > 0) {
+        const avg = companyReviews.reduce((sum: number, r: any) => sum + Number(r.rating), 0) / companyReviews.length;
+        setCompanyStats({ avgRating: avg, reviewCount: companyReviews.length });
+      } else {
+        setCompanyStats({ avgRating: 0, reviewCount: 0 });
+      }
 
-    setAllReviewsList(companyReviews);
-    setReviews(companyReviews.slice(0, 3));
-    setLoading(false);
+      setAllReviewsList(companyReviews);
+      setReviews(companyReviews.slice(0, 3));
+    } catch (err) {
+      console.error('[LANDING] Error loading page data:', err);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const bookingBasePath = businessType === 'esthetic' ? 'estetica' : 'barbearia';
