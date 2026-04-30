@@ -72,13 +72,18 @@ const Services = () => {
     queryKey: categoriesQueryKey,
     enabled: Boolean(companyId),
     queryFn: async () => {
+      console.log('[SERVICES] Fetching categories for company:', companyId);
       const { data, error } = await supabase
         .from('service_categories')
         .select('*, global:service_categories_global(name)')
         .eq('company_id', companyId!)
         .order('name');
 
-      if (error) throw error;
+      if (error) {
+        console.error('[SERVICES] Error fetching categories:', error);
+        throw error;
+      }
+      console.log('[SERVICES] Categories received:', data?.length || 0);
       return data ?? [];
     },
   });
@@ -87,13 +92,18 @@ const Services = () => {
     queryKey: servicesQueryKey,
     enabled: Boolean(companyId),
     queryFn: async () => {
+      console.log('[SERVICES] Fetching services for company:', companyId);
       const { data, error } = await supabase
         .from('services')
         .select('*')
         .eq('company_id', companyId!)
         .order('name');
 
-      if (error) throw error;
+      if (error) {
+        console.error('[SERVICES] Error fetching services:', error);
+        throw error;
+      }
+      console.log('[SERVICES] Services received:', data?.length || 0);
       return data ?? [];
     },
   });
@@ -302,8 +312,9 @@ const Services = () => {
 
   const uncategorizedServices = useMemo(() => {
     if (!Array.isArray(services)) return [];
-    return services.filter((s: any) => !s.category_id);
-  }, [services]);
+    const visibleCategoryIds = new Set(categories.map((c: any) => c.id));
+    return services.filter((s: any) => !s.category_id || !visibleCategoryIds.has(s.category_id));
+  }, [services, categories]);
 
   return (
     <div className="space-y-8">

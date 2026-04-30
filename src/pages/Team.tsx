@@ -164,14 +164,45 @@ const Team = () => {
     queryKey: teamQueryKey,
     enabled: Boolean(companyId),
     queryFn: async () => {
-      const { data, error } = await supabase
+      console.log('[TEAM] Fetching collaborators for company:', companyId);
+      // Separation of concerns: Fetch collaborators first to avoid profile join issues
+      const { data: colabs, error: colabsError } = await supabase
         .from('collaborators')
-        .select('*, profile:profiles(*)')
+        .select('*')
         .eq('company_id', companyId!)
         .order('created_at');
 
-      if (error) throw error;
-      return data ?? [];
+      if (colabsError) {
+        console.error('[TEAM] Error fetching collaborators:', colabsError);
+        throw colabsError;
+      }
+
+      if (!colabs || colabs.length === 0) {
+        console.log('[TEAM] No collaborators found');
+        return [];
+      }
+
+      // Fetch profiles separately for these collaborators
+      const profileIds = colabs.map(c => c.profile_id).filter(Boolean);
+      console.log('[TEAM] Fetching profiles for IDs:', profileIds.length);
+      
+      const { data: profiles, error: profilesError } = await supabase
+        .from('profiles')
+        .select('*')
+        .in('id', profileIds);
+
+      if (profilesError) {
+        console.warn('[TEAM] Warning fetching profiles:', profilesError);
+      }
+
+      // Merge data
+      const enriched = colabs.map(c => ({
+        ...c,
+        profile: profiles?.find(p => p.id === c.profile_id) || null
+      }));
+
+      console.log('[TEAM] Collaborators processed:', enriched.length);
+      return enriched;
     },
   });
 

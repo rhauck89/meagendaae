@@ -106,12 +106,16 @@ const Dashboard = () => {
     queryKey: ['dashboard-server-stats', companyId, filterProfessional, isAdmin, profileId],
     queryFn: async () => {
       if (!companyId) return null;
+      console.log('[DASHBOARD] Fetching server stats for company:', companyId);
       const professionalId = (!isAdmin && profileId) ? profileId : (filterProfessional === 'all' ? null : filterProfessional);
       const { data, error } = await supabase.rpc('get_company_dashboard_stats', {
         p_company_id: companyId,
         p_professional_id: professionalId
       });
-      if (error) throw error;
+      if (error) {
+        console.error('[DASHBOARD] Error in get_company_dashboard_stats:', error);
+        throw error;
+      }
       return data[0];
     },
     enabled: !!companyId,
@@ -293,10 +297,15 @@ const Dashboard = () => {
   };
 
   const fetchCollaborators = async () => {
-    const { data } = await supabase
+    console.log('[DASHBOARD] Fetching collaborators list for company:', companyId);
+    const { data, error } = await supabase
       .from('collaborators')
       .select('profile_id, profile:profiles(full_name)')
       .eq('company_id', companyId!);
+    
+    if (error) {
+      console.error('[DASHBOARD] Error fetching collaborators:', error);
+    }
     if (data) setCollaboratorsList(data);
   };
 
@@ -377,7 +386,11 @@ const Dashboard = () => {
       query = query.eq('professional_id', filterProfessional);
     }
 
-    const { data } = await query;
+    const { data, error } = await query;
+    if (error) {
+      console.error('[DASHBOARD] Error fetching appointments:', error);
+    }
+    console.log('[DASHBOARD] Appointments fetched:', data?.length || 0);
 
     if (data) {
       setAppointments(data);
