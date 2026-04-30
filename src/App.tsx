@@ -246,24 +246,45 @@ const AppRoutes = () => {
   return <PlatformRoutes />;
 };
 
-const App = () => (
-  <AppErrorBoundary>
-    <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <FinancialPrivacyProvider>
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
-            <AuthProvider>
-              <PaymentTestModeBanner />
-              <ReadOnlyBanner />
-              <AppRoutes />
-            </AuthProvider>
-          </BrowserRouter>
-        </FinancialPrivacyProvider>
-      </TooltipProvider>
-    </QueryClientProvider>
-  </AppErrorBoundary>
-);
+const App = () => {
+  useEffect(() => {
+    // Nuclear option to ensure PWA/SW is cleared if disabled
+    if (!ENABLE_PUSH_NOTIFICATIONS && 'serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistrations().then((registrations) => {
+        registrations.forEach((r) => {
+          console.log('[APP] Force clearing SW:', r.scope);
+          r.unregister();
+        });
+      });
+      
+      window.caches?.keys().then((names) => {
+        for (const name of names) {
+          window.caches.delete(name);
+        }
+      });
+    }
+  }, []);
+
+  return (
+    <AppErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <TooltipProvider>
+          <FinancialPrivacyProvider>
+            <Toaster />
+            <Sonner />
+            <BrowserRouter>
+              <AuthProvider>
+                <PaymentTestModeBanner />
+                <ReadOnlyBanner />
+                <AppRoutes />
+              </AuthProvider>
+            </BrowserRouter>
+          </FinancialPrivacyProvider>
+        </TooltipProvider>
+      </QueryClientProvider>
+    </AppErrorBoundary>
+  );
+};
+
 
 export default App;
