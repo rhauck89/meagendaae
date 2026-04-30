@@ -20,6 +20,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerDescription, DrawerFooter, DrawerClose } from "@/components/ui/drawer";
 import { toast } from 'sonner';
 import { IdentityModal } from '@/components/booking/IdentityModal';
+import { ReviewForm } from '@/components/public-profile/ReviewForm';
 import { useAuth } from '@/contexts/AuthContext';
 
 type BusinessType = 'barbershop' | 'esthetic';
