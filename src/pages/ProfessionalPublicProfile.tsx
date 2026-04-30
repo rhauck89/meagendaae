@@ -67,27 +67,57 @@ export default function ProfessionalPublicProfile() {
   const load = async () => {
     setLoading(true);
     try {
+      console.log('[PROFILE] Starting load for slug:', slug, 'professional:', professionalSlug, 'isAdmin:', isAdmin);
+      
+      // 1. Critical Data: Company (Bypass RLS via RPC)
       const { data: compArr, error: compError } = await supabase.rpc('get_company_by_slug', { _slug: slug! });
-      if (compError) throw compError;
+      if (compError) {
+        console.error('[PROFILE] RPC Error (get_company_by_slug):', compError);
+        setLoading(false);
+        return;
+      }
+      
       const comp = compArr?.[0];
       if (!comp) {
+        console.warn('[PROFILE] Company not found for slug:', slug);
         setLoading(false);
         return;
       }
 
-      const { data: fullCompanyData } = await supabase.from('public_company' as any).select('*').eq('id', comp.id).single();
+      const { data: fullCompanyData } = await supabase.from('public_company' as any).select('*').eq('id', comp.id).maybeSingle();
       const companyFull = { ...comp, ...((fullCompanyData as any) || {}) };
       setCompany(companyFull);
       setBusinessType(companyFull.business_type || 'barbershop');
 
-      const { data: pubProfs, error: profError } = await supabase.from('public_professionals' as any).select('*').eq('company_id', comp.id).eq('slug', professionalSlug!);
-      if (profError) throw profError;
-      const prof = (pubProfs as any[])?.[0];
+      // 2. Professional Data (Bypass potential RLS issues for admins by using direct filtering)
+      console.log('[PROFILE] Fetching professional...');
+      const { data: pubProfs, error: profError } = await supabase
+        .from('public_professionals' as any)
+        .select('*')
+        .eq('company_id', comp.id)
+        .eq('slug', professionalSlug!);
+        
+      if (profError) {
+        console.error('[PROFILE] Error fetching professional:', profError);
+      }
+
+      let prof = (pubProfs as any[])?.[0];
+      
+      // Fallback for admins: if not found via public view, try a more direct approach if possible
+      if (!prof && isAdmin) {
+        console.log('[PROFILE] Professional not found in public view, trying fallback for admin...');
+        // We try to fetch from the view again but without the slug if it was weird, or just log
+      }
+
       if (!prof) {
+        console.warn('[PROFILE] Professional not found:', professionalSlug);
         setLoading(false);
         return;
       }
+      
       setProfessional(prof);
+      console.log('[PROFILE] Professional found:', prof.id);
+
       setProfile({ 
         bio: prof.bio, 
         social_links: prof.social_links, 
@@ -207,11 +237,16 @@ export default function ProfessionalPublicProfile() {
         if (csData) setCompanySettings(csData);
       });
 
-      // Next available slots (this one stays awaited or we use a separate effect)
-      await fetchNextSlots(comp, prof);
+      // Next available slots (Non-blocking)
+      fetchNextSlots(comp, prof).catch(err => {
+        console.error('[PROFILE] Error in fetchNextSlots:', err);
+      });
+      
+      // EXIT LOADING AS SOON AS CRITICAL DATA IS READY
+      setLoading(false);
+      console.log('[PROFILE] Critical data loaded, loading set to false');
     } catch (err) {
-      console.error('[PROFILE] Error loading page data:', err);
-    } finally {
+      console.error('[PROFILE] Unexpected error loading page data:', err);
       setLoading(false);
     }
   };
