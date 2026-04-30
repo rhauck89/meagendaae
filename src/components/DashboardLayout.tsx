@@ -15,6 +15,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { useState, useEffect, useCallback } from 'react';
 import { ENABLE_PUSH_NOTIFICATIONS } from '@/lib/constants';
+import { supabase } from '@/integrations/supabase/client';
 
 import { cn } from '@/lib/utils';
 import CompanySetup from './CompanySetup';
@@ -82,7 +83,7 @@ const allProfessionalNavItems = [
 ];
 
 const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
-  const { profile, companyId, signOut, loading: authLoading, loginMode, setLoginMode, isAlsoCollaborator, roles } = useAuth();
+  const { user, profile, companyId, signOut, loading: authLoading, loginMode, setLoginMode, isAlsoCollaborator, roles, refreshProfile } = useAuth();
   const { isAdmin, isProfessionalMode, isProfessional } = useUserRole();
   // isProfessional = raw role check (always true if user has 'professional' role)
   // isAdmin = false when in professional mode (by design)
@@ -111,6 +112,8 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
   const [settingsOpen, setSettingsOpen] = useState(isSettingsActive);
   const [financeOpen, setFinanceOpen] = useState(isFinanceActive);
   const [professionalFinanceOpen, setProfessionalFinanceOpen] = useState(isProfessionalFinanceActive);
+  const [companyRecoveryLoading, setCompanyRecoveryLoading] = useState(false);
+  const [companyRecoveryChecked, setCompanyRecoveryChecked] = useState(false);
 
   const professionalNavItems = allProfessionalNavItems.filter(item => {
     if (!item.permKey) return true;
@@ -141,6 +144,86 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
     navigate('/auth');
   };
 
+  useEffect(() => {
+    if (authLoading || companyId || !user?.id || companyRecoveryLoading || companyRecoveryChecked) return;
+
+    let cancelled = false;
+    const withTimeout = (promise: Promise<any>, fallback: any, ms = 3500): Promise<any> =>
+      Promise.race([
+        promise.catch((error) => {
+          console.warn('[DashboardLayout] Company recovery query failed:', error);
+          return fallback;
+        }),
+        new Promise((resolve) => setTimeout(() => resolve(fallback), ms)),
+      ]);
+
+    const recoverCompany = async () => {
+      setCompanyRecoveryLoading(true);
+      try {
+        const [ownedRes, membershipsRes, collabRes] = await Promise.all([
+          withTimeout(
+            supabase
+              .from('companies')
+              .select('id')
+              .eq('user_id', user.id)
+              .limit(1)
+              .maybeSingle(),
+            { data: null, error: null }
+          ),
+          withTimeout(
+            supabase.rpc('get_user_companies'),
+            { data: [], error: null }
+          ),
+          profile?.id
+            ? withTimeout(
+                supabase
+                  .from('collaborators')
+                  .select('company_id')
+                  .eq('profile_id', profile.id)
+                  .eq('active', true)
+                  .limit(1)
+                  .maybeSingle(),
+                { data: null, error: null }
+              )
+            : Promise.resolve({ data: null, error: null } as any),
+        ]);
+
+        if (cancelled) return;
+
+        const membershipCompany = Array.isArray(membershipsRes.data) && membershipsRes.data.length > 0
+          ? membershipsRes.data[0]?.company_id
+          : null;
+        const recoveredCompanyId =
+          ownedRes.data?.id ||
+          membershipCompany ||
+          collabRes.data?.company_id ||
+          null;
+
+        if (recoveredCompanyId) {
+          await supabase
+            .from('profiles')
+            .update({ company_id: recoveredCompanyId })
+            .eq('user_id', user.id);
+          await refreshProfile();
+          return;
+        }
+      } catch (error) {
+        console.error('[DashboardLayout] Could not recover company access:', error);
+      } finally {
+        if (!cancelled) {
+          setCompanyRecoveryChecked(true);
+          setCompanyRecoveryLoading(false);
+        }
+      }
+    };
+
+    recoverCompany();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [authLoading, companyId, user?.id, profile?.id, companyRecoveryLoading, companyRecoveryChecked, refreshProfile]);
+
   // Show loading while auth data is being fetched to prevent flash
   if (authLoading) {
     return (
@@ -148,6 +231,17 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
         <div className="flex flex-col items-center gap-3">
           <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
           <p className="text-sm text-muted-foreground">Carregando...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!companyId && (companyRecoveryLoading || !companyRecoveryChecked)) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+          <p className="text-sm text-muted-foreground">Validando sua empresa...</p>
         </div>
       </div>
     );
