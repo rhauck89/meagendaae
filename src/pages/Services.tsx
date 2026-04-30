@@ -419,9 +419,10 @@ const Services = () => {
                     />
                   </div>
                 </div>
-                <Button onClick={handleSave} className="w-full">
-                  {editing ? 'Salvar' : 'Criar'}
+                <Button onClick={handleSave} className="w-full" disabled={saving}>
+                  {saving ? 'Salvando...' : editing ? 'Salvar' : 'Criar'}
                 </Button>
+
               </div>
             </DialogContent>
           </Dialog>
