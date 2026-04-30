@@ -61,11 +61,29 @@ export default function ProfessionalPublicProfile() {
   useEffect(() => {
   }, []);
 
-  useEffect(() => { if (slug && professionalSlug) load(); }, [slug, professionalSlug]);
+  useEffect(() => { 
+    if (slug && professionalSlug) {
+      load(); 
+      
+      // Defensive timeout: max 5 seconds for initial loading
+      const timeoutId = setTimeout(() => {
+        setLoading(prev => {
+          if (prev) {
+            console.warn('[PROFILE] Loading timeout reached after 5s');
+            return false;
+          }
+          return prev;
+        });
+      }, 5000);
+
+      return () => clearTimeout(timeoutId);
+    }
+  }, [slug, professionalSlug]);
 
   const load = async () => {
     setLoading(true);
     try {
+      // 1. Critical Data: Company
       const { data: compArr, error: compError } = await supabase.rpc('get_company_by_slug', { _slug: slug! });
       if (compError) throw compError;
       const comp = compArr?.[0];
@@ -79,6 +97,7 @@ export default function ProfessionalPublicProfile() {
       setCompany(companyFull);
       setBusinessType(companyFull.business_type || 'barbershop');
 
+      // 2. Critical Data: Professional
       const { data: pubProfs, error: profError } = await supabase.from('public_professionals' as any).select('*').eq('company_id', comp.id).eq('slug', professionalSlug!);
       if (profError) throw profError;
       const prof = (pubProfs as any[])?.[0];
@@ -97,7 +116,94 @@ export default function ProfessionalPublicProfile() {
         experience_years: prof.experience_years || 5
       });
 
-      // Check for last booking if logged in (non-blocking)
+      // 3. Critical Data: Services (for basic render)
+      const { data: spData } = await supabase.from('service_professionals').select('service_id, price_override').eq('professional_id', prof.id);
+      const svcIds = (spData || []).map((s: any) => s.service_id);
+      if (svcIds.length > 0) {
+        const { data: svcData } = await supabase.from('public_services' as any).select('*').eq('company_id', comp.id).in('id', svcIds);
+        const withOverrides = ((svcData as any[]) || []).map((s: any) => {
+          const ov = (spData || []).find((sp: any) => sp.service_id === s.id);
+          return ov?.price_override != null ? { ...s, price: ov.price_override } : s;
+        });
+        setServices(withOverrides);
+      }
+
+      // EXIT LOADING EARLY - Render main profile structure
+      setLoading(false);
+
+      // 4. Secondary Data (Non-blocking)
+      
+      // Fetch Next Slots (Non-blocking)
+      fetchNextSlots(companyFull, prof).catch(err => {
+        console.warn('[PROFILE] Error fetching slots in background:', err);
+        setSlotsLoading(false);
+      });
+
+      // Rating
+      supabase.rpc('get_professional_ratings' as any, { p_company_id: comp.id }).then(({ data: ratingsData }) => {
+        if (ratingsData && Array.isArray(ratingsData)) {
+          const r = (ratingsData as any[]).find((x: any) => x.professional_id === prof.id);
+          if (r) setRating({ avg: Number(r.avg_rating), count: Number(r.review_count) });
+        }
+      }).catch(() => {});
+
+      // Reviews
+      supabase
+        .from('reviews')
+        .select('rating, comment, created_at, appointment_id, review_type')
+        .eq('professional_id', prof.id)
+        .eq('review_type', 'professional')
+        .order('created_at', { ascending: false })
+        .then(({ data: allReviewsData }) => {
+          if (allReviewsData) {
+            const apptIds = allReviewsData.map((r: any) => r.appointment_id).filter(Boolean);
+            if (apptIds.length > 0) {
+              supabase
+                .from('appointments')
+                .select('id, client_name, client_id')
+                .in('id', apptIds)
+                .then(({ data: appts }) => {
+                  const clientIds = (appts || []).filter((a: any) => a.client_id).map((a: any) => a.client_id);
+                  if (clientIds.length > 0) {
+                    supabase.from('clients').select('id, name').in('id', clientIds).then(({ data: clients }) => {
+                      let cnameMap: Record<string, string> = {};
+                      (clients || []).forEach((c: any) => { cnameMap[c.id] = c.name; });
+                      let clientNames: Record<string, string> = {};
+                      (appts || []).forEach((a: any) => {
+                        const n = a.client_name || cnameMap[a.client_id];
+                        if (n) {
+                          const parts = n.trim().split(/\s+/);
+                          const first = parts[0] || '';
+                          const lastInitial = parts.length > 1 ? ` ${parts[parts.length - 1].charAt(0).toUpperCase()}.` : '';
+                          clientNames[a.id] = `${first}${lastInitial}`;
+                        }
+                      });
+                      const enriched = allReviewsData.map((r: any) => ({
+                        ...r,
+                        client_display_name: r.appointment_id ? clientNames[r.appointment_id] || null : null,
+                      }));
+                      setReviews(enriched);
+                      setTotalReviews(enriched.length);
+                    });
+                  }
+                }).catch(() => {});
+            } else {
+              setReviews(allReviewsData);
+              setTotalReviews(allReviewsData.length);
+            }
+          }
+        }).catch(() => {});
+
+      // Stats and Settings
+      supabase.from('appointments').select('id', { count: 'exact', head: true }).eq('professional_id', prof.id).eq('status', 'completed').then(({ count }) => {
+        setCompletedCount(count || 0);
+      }).catch(() => {});
+
+      supabase.from('public_company_settings' as any).select('timezone, booking_buffer_minutes').eq('company_id', comp.id).single().then(({ data: csData }) => {
+        if (csData) setCompanySettings(csData);
+      }).catch(() => {});
+
+      // Last Booking
       if (isAuthenticated) {
         supabase.auth.getUser().then(({ data: { user } }) => {
           if (user) {
@@ -129,89 +235,9 @@ export default function ProfessionalPublicProfile() {
         }).catch(() => {});
       }
 
-      const { data: spData } = await supabase.from('service_professionals').select('service_id, price_override').eq('professional_id', prof.id);
-      const svcIds = (spData || []).map((s: any) => s.service_id);
-      if (svcIds.length > 0) {
-        const { data: svcData } = await supabase.from('public_services' as any).select('*').eq('company_id', comp.id).in('id', svcIds);
-        const withOverrides = ((svcData as any[]) || []).map((s: any) => {
-          const ov = (spData || []).find((sp: any) => sp.service_id === s.id);
-          return ov?.price_override != null ? { ...s, price: ov.price_override } : s;
-        });
-        setServices(withOverrides);
-      }
-
-      // Rating
-      supabase.rpc('get_professional_ratings' as any, { p_company_id: comp.id }).then(({ data: ratingsData }) => {
-        if (ratingsData && Array.isArray(ratingsData)) {
-          const r = (ratingsData as any[]).find((x: any) => x.professional_id === prof.id);
-          if (r) setRating({ avg: Number(r.avg_rating), count: Number(r.review_count) });
-        }
-      });
-
-      // Reviews (non-blocking)
-      supabase
-        .from('reviews')
-        .select('rating, comment, created_at, appointment_id, review_type')
-        .eq('professional_id', prof.id)
-        .eq('review_type', 'professional')
-        .order('created_at', { ascending: false })
-        .then(({ data: allReviewsData }) => {
-          if (allReviewsData) {
-            // Enrich with client display name logic...
-            const apptIds = allReviewsData.map((r: any) => r.appointment_id).filter(Boolean);
-            if (apptIds.length > 0) {
-              supabase
-                .from('appointments')
-                .select('id, client_name, client_id')
-                .in('id', apptIds)
-                .then(({ data: appts }) => {
-                  const clientIds = (appts || []).filter((a: any) => a.client_id).map((a: any) => a.client_id);
-                  if (clientIds.length > 0) {
-                    supabase.from('clients').select('id, name').in('id', clientIds).then(({ data: clients }) => {
-                      let cnameMap: Record<string, string> = {};
-                      (clients || []).forEach((c: any) => { cnameMap[c.id] = c.name; });
-                      let clientNames: Record<string, string> = {};
-                      (appts || []).forEach((a: any) => {
-                        const n = a.client_name || cnameMap[a.client_id];
-                        if (n) {
-                          const parts = n.trim().split(/\s+/);
-                          const first = parts[0] || '';
-                          const lastInitial = parts.length > 1 ? ` ${parts[parts.length - 1].charAt(0).toUpperCase()}.` : '';
-                          clientNames[a.id] = `${first}${lastInitial}`;
-                        }
-                      });
-                      const enriched = allReviewsData.map((r: any) => ({
-                        ...r,
-                        client_display_name: r.appointment_id ? clientNames[r.appointment_id] || null : null,
-                      }));
-                      setReviews(enriched);
-                      setTotalReviews(enriched.length);
-                    });
-                  }
-                });
-            } else {
-              setReviews(allReviewsData);
-              setTotalReviews(allReviewsData.length);
-            }
-          }
-        });
-
-      // Completed appointments count
-      supabase.from('appointments').select('id', { count: 'exact', head: true }).eq('professional_id', prof.id).eq('status', 'completed').then(({ count }) => {
-        setCompletedCount(count || 0);
-      });
-
-      // Fetch company settings for branding
-      supabase.from('public_company_settings' as any).select('primary_color, secondary_color, background_color').eq('company_id', comp.id).single().then(({ data: csData }) => {
-        if (csData) setCompanySettings(csData);
-      });
-
-      // Next available slots (this one stays awaited or we use a separate effect)
-      await fetchNextSlots(comp, prof);
     } catch (err) {
       console.error('[PROFILE] Error loading page data:', err);
-    } finally {
-      setLoading(false);
+      setLoading(false); // Ensure loading is stopped on error
     }
   };
 
