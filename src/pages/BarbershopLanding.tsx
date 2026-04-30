@@ -705,7 +705,7 @@ export default function BarbershopLanding({ routeBusinessType, customSlug }: Bar
 
         {/* Services */}
         {services.length > 0 && cleanedGroups.length > 0 && (
-          <section className="space-y-4">
+          <section id="servicos" data-services-section className="space-y-4">
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-bold flex items-center gap-2" style={{ color: T.text }}>
                 <Scissors className="w-5 h-5" style={{ color: T.accent }} />
