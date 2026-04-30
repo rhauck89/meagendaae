@@ -570,7 +570,7 @@ export default function BarbershopLanding({ routeBusinessType, customSlug }: Bar
         </Button>
 
         {/* Secondary actions */}
-        <div className="grid grid-cols-2 gap-3 -mt-4">
+        <div className="grid grid-cols-2 gap-3 -mt-4 mb-2">
           {companyWhatsapp && (
             <Button
               variant="outline"
@@ -615,7 +615,7 @@ export default function BarbershopLanding({ routeBusinessType, customSlug }: Bar
                 <Calendar className="w-4 h-4" style={{ color: T.accent }} />
                 <span className="font-semibold text-sm">Seu último atendimento</span>
               </div>
-              <div className="flex flex-col sm:flex-row items-center sm:items-center gap-4 text-center sm:text-left">
+              <div className="flex flex-col items-center gap-4 text-center sm:text-left sm:flex-row">
                 {lastBooking.professionalAvatar ? (
                   <img src={lastBooking.professionalAvatar} alt="" className="w-16 h-16 sm:w-12 sm:h-12 rounded-full object-cover" style={{ border: `2px solid ${T.accent}` }} />
                 ) : (

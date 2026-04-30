@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRefreshData } from '@/hooks/useRefreshData';
@@ -33,6 +33,8 @@ const Services = () => {
   });
   const [catForm, setCatForm] = useState({ name: '', global_category_id: '' });
   const [companyBookingMode, setCompanyBookingMode] = useState<string>('fixed_grid');
+  const [saving, setSaving] = useState(false);
+  const [catSaving, setCatSaving] = useState(false);
 
   useEffect(() => {
     if (companyId) {
@@ -100,31 +102,28 @@ const Services = () => {
       price: '', 
       recommended_return_days: '', 
       booking_mode: 'company_default',
-      category_id: categories[0]?.id || '',
+      category_id: categories?.[0]?.id || '',
       global_category_id: ''
     });
   };
 
   const getSmartSuggestion = (name: string) => {
-    if (!name.trim()) return '';
+    if (!name.trim() || !globalCategories?.length) return '';
     const normalized = name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
     
-    // Exact match by slug or name
     let match = globalCategories.find((gc: any) => 
       normalized === gc.slug || normalized === gc.name.toLowerCase()
     );
 
-    // Partial match (keyword)
     if (!match) {
       match = globalCategories
         .filter((gc: any) => gc.slug !== 'outros')
         .find((gc: any) => normalized.includes(gc.name.toLowerCase()));
     }
 
-    return match?.id || globalCategories.find((gc: any) => gc.slug === 'outros')?.id || '';
+    const outrosId = globalCategories.find((gc: any) => gc.slug === 'outros')?.id || '';
+    return match?.id || outrosId;
   };
-
-  const [saving, setSaving] = useState(false);
 
   const handleSave = async () => {
     if (!form.name.trim()) return toast.error('Nome é obrigatório');
@@ -169,9 +168,6 @@ const Services = () => {
     }
   };
 
-
-  const [catSaving, setCatSaving] = useState(false);
-
   const handleSaveCategory = async () => {
     if (!catForm.name.trim()) return toast.error('Nome é obrigatório');
     if (!companyId) return toast.error('Empresa não encontrada');
@@ -211,7 +207,6 @@ const Services = () => {
       setCatSaving(false);
     }
   };
-
 
   const toggleActive = async (id: string, active: boolean) => {
     const { error } = await supabase
@@ -282,12 +277,18 @@ const Services = () => {
     setDialogOpen(true);
   };
 
-  const groupedServices = categories.map((cat: any) => ({
-    ...cat,
-    services: services.filter((s: any) => s.category_id === cat.id)
-  }));
+  const groupedServices = useMemo(() => {
+    if (!Array.isArray(categories)) return [];
+    return categories.map((cat: any) => ({
+      ...cat,
+      services: Array.isArray(services) ? services.filter((s: any) => s.category_id === cat.id) : []
+    }));
+  }, [categories, services]);
 
-  const uncategorizedServices = services.filter((s: any) => !s.category_id);
+  const uncategorizedServices = useMemo(() => {
+    if (!Array.isArray(services)) return [];
+    return services.filter((s: any) => !s.category_id);
+  }, [services]);
 
   return (
     <div className="space-y-8">
@@ -329,8 +330,8 @@ const Services = () => {
                       <SelectValue placeholder="Selecione categoria padrão" />
                     </SelectTrigger>
                     <SelectContent>
-                      {globalCategories.map((gc: any) => (
-                        <SelectItem key={gc.id} value={gc.id}>{gc.name}</SelectItem>
+                      {Array.isArray(globalCategories) && globalCategories.map((gc: any) => (
+                        <SelectItem key={gc.id || 'missing-gc-id'} value={gc.id || ''}>{gc.name || 'Sem nome'}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -339,7 +340,6 @@ const Services = () => {
                 <Button onClick={handleSaveCategory} className="w-full" disabled={catSaving}>
                   {catSaving ? 'Salvando...' : editingCat ? 'Salvar' : 'Criar'}
                 </Button>
-
               </div>
             </DialogContent>
           </Dialog>
@@ -368,10 +368,11 @@ const Services = () => {
                     onChange={(e) => {
                       const newName = e.target.value;
                       const updates: any = { name: newName };
-                      if (!form.global_category_id || form.global_category_id === (globalCategories.find((gc: any) => gc.slug === 'outros')?.id)) {
+                      const outrosId = globalCategories?.find((gc: any) => gc.slug === 'outros')?.id;
+                      if (!form.global_category_id || (outrosId && form.global_category_id === outrosId)) {
                         updates.global_category_id = getSmartSuggestion(newName);
                       }
-                      setForm({ ...form, ...updates });
+                      setForm(prev => ({ ...prev, ...updates }));
                     }}
                     placeholder="Ex: Corte masculino"
                   />
@@ -384,8 +385,8 @@ const Services = () => {
                       <SelectValue placeholder="Selecione uma categoria" />
                     </SelectTrigger>
                     <SelectContent>
-                      {categories.map((cat: any) => (
-                        <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
+                      {Array.isArray(categories) && categories.map((cat: any) => (
+                        <SelectItem key={cat.id || 'missing-id'} value={cat.id || ''}>{cat.name || 'Sem nome'}</SelectItem>
                       ))}
                       <SelectItem value="">Sem Categoria</SelectItem>
                     </SelectContent>
@@ -399,8 +400,8 @@ const Services = () => {
                       <SelectValue placeholder="Padrão para marketplace" />
                     </SelectTrigger>
                     <SelectContent>
-                      {globalCategories.map((gc: any) => (
-                        <SelectItem key={gc.id} value={gc.id}>{gc.name}</SelectItem>
+                      {Array.isArray(globalCategories) && globalCategories.map((gc: any) => (
+                        <SelectItem key={gc.id || 'missing-gc-id'} value={gc.id || ''}>{gc.name || 'Sem nome'}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -430,7 +431,6 @@ const Services = () => {
                 <Button onClick={handleSave} className="w-full" disabled={saving}>
                   {saving ? 'Salvando...' : editing ? 'Salvar' : 'Criar'}
                 </Button>
-
               </div>
             </DialogContent>
           </Dialog>
