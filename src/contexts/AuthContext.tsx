@@ -90,9 +90,37 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         console.error("[AUTH_DEBUG] Error fetching profile:", profileError);
       }
 
+      let resolvedCompanyId = profileData?.company_id ?? null;
+
+      if (!resolvedCompanyId) {
+        const [ownedCompanyRes, collaboratorRes] = await Promise.all([
+          supabase
+            .from('companies')
+            .select('id')
+            .eq('user_id', userId)
+            .limit(1)
+            .maybeSingle(),
+          profileData?.id
+            ? supabase
+                .from('collaborators')
+                .select('company_id')
+                .eq('profile_id', profileData.id)
+                .eq('active', true)
+                .limit(1)
+                .maybeSingle()
+            : Promise.resolve({ data: null, error: null } as any),
+        ]);
+
+        resolvedCompanyId = ownedCompanyRes.data?.id ?? collaboratorRes.data?.company_id ?? null;
+
+        if (resolvedCompanyId && profileData && !profileData.company_id) {
+          profileData = { ...profileData, company_id: resolvedCompanyId };
+        }
+      }
+
       if (profileData) {
         setProfile(profileData);
-        setCompanyId(profileData.company_id);
+        setCompanyId(resolvedCompanyId);
         
         if (profileData.role === 'client') {
           // No need to await or block for global client data
