@@ -52,7 +52,10 @@ export default function ProfessionalPublicProfile() {
   const [companySettings, setCompanySettings] = useState<any>(null);
   const [activeCashback, setActiveCashback] = useState<string | null>(null);
   const [lastBooking, setLastBooking] = useState<any>(null);
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated: isAuthAuthenticated, isAdmin } = useAuth();
+  
+  // Rule: Admin/Professional session is ignored for client identification on public profile
+  const isAuthenticated = isAuthAuthenticated && !isAdmin;
 
   const { amenities: companyAmenities } = useCompanyAmenities(company?.id);
   const { scrollY } = useScroll();
@@ -83,11 +86,12 @@ export default function ProfessionalPublicProfile() {
   const load = async () => {
     setLoading(true);
     try {
-      console.log('[PROFILE] Starting load for:', slug, professionalSlug);
-      // 1. Critical Data: Company
+      console.log('[PROFILE] Starting load for:', slug, professionalSlug, 'Authenticated:', isAuthenticated, 'isAdmin:', isAdmin);
+      
+      // 1. Critical Data: Company (Bypass RLS via RPC)
       const { data: compArr, error: compError } = await supabase.rpc('get_company_by_slug', { _slug: slug! });
       if (compError) {
-        console.error('[PROFILE] RPC Error:', compError);
+        console.error('[PROFILE] RPC Error (get_company_by_slug):', compError);
         setLoading(false);
         return;
       }
@@ -99,8 +103,15 @@ export default function ProfessionalPublicProfile() {
         return;
       }
 
-      // 2. Critical Data: Professional
-      const { data: pubProfs, error: profError } = await supabase.from('public_professionals' as any).select('*').eq('company_id', rpcComp.id).eq('slug', professionalSlug!);
+      console.log('[PROFILE] Company found:', rpcComp.id, 'Querying professional:', professionalSlug);
+
+      // 2. Critical Data: Professional (Using session-agnostic view)
+      const { data: pubProfs, error: profError } = await supabase
+        .from('public_professionals' as any)
+        .select('*')
+        .eq('company_id', rpcComp.id)
+        .eq('slug', professionalSlug!);
+
       if (profError) {
         console.error('[PROFILE] Professional Fetch Error:', profError);
         setLoading(false);
@@ -109,10 +120,12 @@ export default function ProfessionalPublicProfile() {
       
       const prof = (pubProfs as any[])?.[0];
       if (!prof) {
-        console.warn('[PROFILE] Professional not found for slug:', professionalSlug);
+        console.warn('[PROFILE] Professional not found. CompanyID:', rpcComp.id, 'Slug:', professionalSlug, 'Result count:', pubProfs?.length);
         setLoading(false);
         return;
       }
+
+      console.log('[PROFILE] Professional found:', prof.id, prof.name);
 
       // Fetch other critical info in parallel
       const [fullCompanyRes, spDataRes] = await Promise.all([
@@ -223,7 +236,7 @@ export default function ProfessionalPublicProfile() {
         if (csData) setCompanySettings(csData);
       }, () => {});
 
-      // Last Booking
+      // Last Booking - Only for real clients (ignore admins/professionals)
       if (isAuthenticated) {
         supabase.auth.getUser().then(({ data: { user } }) => {
           if (user) {
