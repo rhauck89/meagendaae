@@ -31,8 +31,8 @@ export default defineConfig(({ mode }) => ({
       manifest: {
         name: "Me Agendaê",
         short_name: "Me Agendaê",
-        start_url: "/app",
-        display: "standalone",
+        start_url: "/",
+        display: "browser",
         background_color: "#ffffff",
         theme_color: "#0f2a5c",
         orientation: "portrait",
