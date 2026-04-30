@@ -124,10 +124,13 @@ const Services = () => {
     return match?.id || globalCategories.find((gc: any) => gc.slug === 'outros')?.id || '';
   };
 
+  const [saving, setSaving] = useState(false);
+
   const handleSave = async () => {
     if (!form.name.trim()) return toast.error('Nome é obrigatório');
     if (!companyId) return toast.error('Empresa não encontrada');
 
+    setSaving(true);
     try {
       const serviceData = {
         company_id: companyId,
@@ -159,9 +162,13 @@ const Services = () => {
       resetForm();
       await refreshAll();
     } catch (err: any) {
+      console.error('[SERVICES] Error saving service:', err);
       toast.error(err.message || 'Erro ao salvar serviço');
+    } finally {
+      setSaving(false);
     }
   };
+
 
   const handleSaveCategory = async () => {
     if (!catForm.name.trim()) return toast.error('Nome é obrigatório');
