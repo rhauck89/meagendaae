@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRefreshData } from '@/hooks/useRefreshData';
@@ -33,6 +33,8 @@ const Services = () => {
   });
   const [catForm, setCatForm] = useState({ name: '', global_category_id: '' });
   const [companyBookingMode, setCompanyBookingMode] = useState<string>('fixed_grid');
+  const [saving, setSaving] = useState(false);
+  const [catSaving, setCatSaving] = useState(false);
 
   useEffect(() => {
     if (companyId) {
@@ -100,13 +102,13 @@ const Services = () => {
       price: '', 
       recommended_return_days: '', 
       booking_mode: 'company_default',
-      category_id: categories[0]?.id || '',
+      category_id: categories?.[0]?.id || '',
       global_category_id: ''
     });
   };
 
   const getSmartSuggestion = (name: string) => {
-    if (!name.trim()) return '';
+    if (!name.trim() || !globalCategories?.length) return '';
     const normalized = name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
     
     // Exact match by slug or name
@@ -121,7 +123,8 @@ const Services = () => {
         .find((gc: any) => normalized.includes(gc.name.toLowerCase()));
     }
 
-    return match?.id || globalCategories.find((gc: any) => gc.slug === 'outros')?.id || '';
+    const outrosId = globalCategories.find((gc: any) => gc.slug === 'outros')?.id || '';
+    return match?.id || outrosId;
   };
 
   const [saving, setSaving] = useState(false);
@@ -282,12 +285,18 @@ const Services = () => {
     setDialogOpen(true);
   };
 
-  const groupedServices = categories.map((cat: any) => ({
-    ...cat,
-    services: services.filter((s: any) => s.category_id === cat.id)
-  }));
+  const groupedServices = useMemo(() => {
+    if (!Array.isArray(categories)) return [];
+    return categories.map((cat: any) => ({
+      ...cat,
+      services: Array.isArray(services) ? services.filter((s: any) => s.category_id === cat.id) : []
+    }));
+  }, [categories, services]);
 
-  const uncategorizedServices = services.filter((s: any) => !s.category_id);
+  const uncategorizedServices = useMemo(() => {
+    if (!Array.isArray(services)) return [];
+    return services.filter((s: any) => !s.category_id);
+  }, [services]);
 
   return (
     <div className="space-y-8">

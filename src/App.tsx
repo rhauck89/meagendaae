@@ -110,9 +110,9 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   }
 
   // Se o usuário está autenticado mas o profile sumiu (inconsistência crítica)
+  // Removido redirecionamento para evitar loop infinito com /auth
   if (!profile) {
-    console.error("[AUTH_CHECK] User authenticated but profile missing. Redirecting to auth for clean session...");
-    return <Navigate to="/auth" replace />;
+    console.error("[AUTH_CHECK] User authenticated but profile missing. Profile should be created by AuthContext.");
   }
 
   return <>{children}</>;
