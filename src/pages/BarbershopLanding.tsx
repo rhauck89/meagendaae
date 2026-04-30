@@ -17,8 +17,10 @@ import { useCompanyAmenities } from '@/hooks/useCompanyAmenities';
 import { AmenitiesDisplay } from '@/components/AmenitiesDisplay';
 import { motion, useScroll, useTransform } from 'framer-motion';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerDescription, DrawerFooter, DrawerClose } from "@/components/ui/drawer";
 import { toast } from 'sonner';
 import { IdentityModal } from '@/components/booking/IdentityModal';
+import { ReviewForm } from '@/components/public-profile/ReviewForm';
 import { useAuth } from '@/contexts/AuthContext';
 
 type BusinessType = 'barbershop' | 'esthetic';
@@ -82,6 +84,13 @@ export default function BarbershopLanding({ routeBusinessType, customSlug }: Bar
     totalPrice: number; totalDuration: number; bookedAt: string;
   } | null>(null);
   const [rebookDismissed, setRebookDismissed] = useState(false);
+  const [isServicesDrawerOpen, setIsServicesDrawerOpen] = useState(false);
+  const [isTeamDrawerOpen, setIsTeamDrawerOpen] = useState(false);
+  const [isReviewsDrawerOpen, setIsReviewsDrawerOpen] = useState(false);
+  const [isAddReviewModalOpen, setIsAddReviewModalOpen] = useState(false);
+  const [reviewFormRating, setReviewFormRating] = useState(0);
+  const [reviewFormComment, setReviewFormComment] = useState('');
+  const [isSubmittingReview, setIsSubmittingReview] = useState(false);
 
   const { amenities: companyAmenities } = useCompanyAmenities(company?.id);
   const { scrollY } = useScroll();
@@ -312,6 +321,38 @@ export default function BarbershopLanding({ routeBusinessType, customSlug }: Bar
     }
   };
 
+  const handleSubmitReview = async (rating: number, comment: string) => {
+    if (!company?.id) return;
+    setIsSubmittingReview(true);
+    try {
+      // Find a professional to tie this review to
+      const profId = professionals[0]?.id;
+      if (!profId) {
+        toast.error("Nenhum profissional disponível para registrar a avaliação.");
+        return;
+      }
+
+      const { error } = await supabase.from('reviews').insert({
+        company_id: company.id,
+        professional_id: profId,
+        rating: rating,
+        comment: comment.trim() || null,
+        review_type: 'company'
+      });
+
+      if (error) throw error;
+      toast.success("Avaliação enviada com sucesso!");
+      setIsAddReviewModalOpen(false);
+      // Refresh reviews
+      load(); 
+    } catch (err: any) {
+      toast.error(err.message || "Erro ao enviar avaliação");
+      throw err;
+    } finally {
+      setIsSubmittingReview(false);
+    }
+  };
+
   const handleShare = async () => {
     if (navigator.share) {
       try {
@@ -518,7 +559,7 @@ export default function BarbershopLanding({ routeBusinessType, customSlug }: Bar
             <Button
               variant="outline"
               asChild
-              className="h-12 rounded-xl border-2 font-semibold"
+              className="h-12 rounded-xl border-2 font-semibold overflow-hidden"
               style={{ borderColor: '#25D366', color: '#25D366', background: 'transparent' }}
             >
               <a
@@ -528,7 +569,8 @@ export default function BarbershopLanding({ routeBusinessType, customSlug }: Bar
                 rel="noopener noreferrer"
               >
                 <MessageCircle className="w-4 h-4 mr-2" />
-                Chamar no WhatsApp
+                <span className="sm:hidden">Contato</span>
+                <span className="hidden sm:inline">Chamar no WhatsApp</span>
               </a>
             </Button>
           )}
@@ -557,25 +599,25 @@ export default function BarbershopLanding({ routeBusinessType, customSlug }: Bar
                 <Calendar className="w-4 h-4" style={{ color: T.accent }} />
                 <span className="font-semibold text-sm">Seu último atendimento</span>
               </div>
-              <div className="flex items-center gap-4">
+              <div className="flex flex-col sm:flex-row items-center sm:items-center gap-4 text-center sm:text-left">
                 {lastBooking.professionalAvatar ? (
-                  <img src={lastBooking.professionalAvatar} alt="" className="w-12 h-12 rounded-full object-cover" style={{ border: `2px solid ${T.accent}` }} />
+                  <img src={lastBooking.professionalAvatar} alt="" className="w-16 h-16 sm:w-12 sm:h-12 rounded-full object-cover" style={{ border: `2px solid ${T.accent}` }} />
                 ) : (
-                  <div className="w-12 h-12 rounded-full flex items-center justify-center font-bold" style={{ background: `${T.accent}20`, color: T.accent, border: `2px solid ${T.accent}` }}>
+                  <div className="w-16 h-16 sm:w-12 sm:h-12 rounded-full flex items-center justify-center font-bold text-xl sm:text-base" style={{ background: `${T.accent}20`, color: T.accent, border: `2px solid ${T.accent}` }}>
                     {lastBooking.professionalName.charAt(0).toUpperCase()}
                   </div>
                 )}
-                <div className="flex-1 min-w-0">
-                  <p className="font-bold text-sm truncate" style={{ color: T.text }}>{lastBooking.serviceNames.join(' + ')}</p>
-                  <p className="text-xs opacity-60 mt-0.5" style={{ color: T.textSec }}>com {lastBooking.professionalName}</p>
-                  <p className="text-xs opacity-50 mt-0.5 flex items-center gap-1" style={{ color: T.textSec }}>
+                <div className="flex-1 min-w-0 w-full">
+                  <p className="font-bold text-base sm:text-sm truncate" style={{ color: T.text }}>{lastBooking.serviceNames.join(' + ')}</p>
+                  <p className="text-sm sm:text-xs opacity-60 mt-0.5" style={{ color: T.textSec }}>com {lastBooking.professionalName}</p>
+                  <p className="text-xs opacity-50 mt-1 flex items-center justify-center sm:justify-start gap-1" style={{ color: T.textSec }}>
                     <Calendar className="w-3 h-3" /> {formattedDate}
                   </p>
                 </div>
                 <Button
                   onClick={() => navigate(`/${bookingBasePath}/${slug}/agendar?rebook=1`)}
                   variant="outline"
-                  className="rounded-xl font-semibold text-sm border-2"
+                  className="w-full sm:w-auto rounded-xl font-semibold text-sm border-2 h-11"
                   style={{ borderColor: T.accent, color: T.accent, background: 'transparent' }}
                 >
                   Repetir atendimento

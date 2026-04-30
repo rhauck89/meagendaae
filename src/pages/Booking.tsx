@@ -874,7 +874,20 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
       }
     }
 
-    // Load promotion data if ?promo= param is present
+    // Apply prefilled services from URL query params
+    const servicesParam = searchParams.get('services');
+    if (servicesParam) {
+      const sIds = servicesParam.split(',');
+      setSelectedServices(sIds);
+      // If we have services pre-selected, we might want to skip the services step
+      // if the user also pre-selected a professional or if there's only one.
+      if (professionalSlug || searchParams.get('professional')) {
+        setStep('datetime');
+      } else {
+        setStep('professional');
+      }
+    }
+
     if (promoIdRef.current) {
       const { data: promos } = await supabase
         .from('public_promotions' as any)
