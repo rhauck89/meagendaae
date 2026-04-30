@@ -247,8 +247,36 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
     );
   }
 
+  const allowCompanySetup = new URLSearchParams(location.search).get('setup') === '1';
+
   if (!companyId) {
-    return <CompanySetup onComplete={() => { window.location.reload(); }} />;
+    if (allowCompanySetup) {
+      return <CompanySetup onComplete={() => { window.location.replace('/dashboard'); }} />;
+    }
+
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background p-6">
+        <div className="w-full max-w-md rounded-lg border bg-card p-6 text-center shadow-sm">
+          <AlertTriangle className="mx-auto mb-4 h-10 w-10 text-amber-500" />
+          <h1 className="text-xl font-bold">Empresa não localizada</h1>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Seu login foi confirmado, mas não conseguimos carregar a empresa vinculada a esta conta.
+            Para proteger seus dados, o cadastro inicial não será aberto automaticamente.
+          </p>
+          <div className="mt-6 flex flex-col gap-2 sm:flex-row sm:justify-center">
+            <Button onClick={() => window.location.reload()}>Tentar novamente</Button>
+            <Button variant="outline" onClick={() => navigate('/select-company')}>Selecionar empresa</Button>
+          </div>
+          <Button
+            variant="link"
+            className="mt-3"
+            onClick={() => navigate('/dashboard?setup=1')}
+          >
+            Criar uma nova empresa
+          </Button>
+        </div>
+      </div>
+    );
   }
 
   const sidebarWidth = collapsed ? 'w-[72px]' : 'w-64';
