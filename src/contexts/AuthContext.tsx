@@ -49,7 +49,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [roles, setRoles] = useState<string[]>([]);
   const [loginMode, setLoginModeState] = useState<LoginMode>(null);
   const [isAlsoCollaborator, setIsAlsoCollaborator] = useState(false);
-  const lastLoadedUserId = useRef<string | null>(null);
+  const authLockRef = useRef<Promise<void>>(Promise.resolve());
+  const stateRef = useRef({
+    userId: null as string | null,
+    token: null as string | null,
+    hasContext: false
+  });
 
   const isAuthenticated = useMemo(() => !!session, [session]);
 
@@ -140,27 +145,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       console.log("[AUTH_CONTEXT_DIAG] Mapping context to state. company_id:", ctx.company_id);
       
-      // Rule 1: Manual mapping of flat RPC fields to profile object
-      setProfile({
+      const mappedProfile = {
         id: ctx.profile_id,
         user_id: ctx.user_id,
         full_name: ctx.full_name,
         email: ctx.email,
         company_id: ctx.company_id,
         last_login_mode: ctx.login_mode
-      });
-      
+      };
+
+      setProfile(mappedProfile);
       setCompanyId(ctx.company_id);
       setRoles(ctx.roles || []);
       setLoginModeState(ctx.login_mode || null);
       setIsAlsoCollaborator(ctx.is_collaborator || false);
       
-      console.log("[AUTH_CONTEXT_DIAG] State updated:", {
-        companyId: ctx.company_id,
-        roles: ctx.roles,
-        loginMode: ctx.login_mode
-      });
+      stateRef.current.hasContext = true;
 
+      console.log("[AUTH_CONTEXT_DIAG] State updated successfully");
       setLoading(false);
 
     } catch (error) {
@@ -169,39 +171,43 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const updateAuthState = useCallback(async (newSession: Session | null) => {
-    const newUser = newSession?.user ?? null;
-    
-    // Rule 2: Only skip if user is same AND context is already hydrated
-    const contextHydrated = !!profile || !!companyId || roles.length > 0;
-    const isSameUser = newUser?.id === user?.id && !!newUser === !!user;
-    const isSameToken = session?.access_token === newSession?.access_token;
-
-    if (isSameUser && isSameToken && contextHydrated) {
-      console.log('[AUTH_CONTEXT] Skipping redundant updateAuthState (already hydrated)');
-      setLoading(false);
-      return;
-    }
-
-    console.log('[AUTH_CONTEXT] updateAuthState triggered', { 
-      event: 'manual/hook', 
-      hasUser: !!newUser,
-      userId: newUser?.id 
-    });
+    // Acquire sequential lock
+    const currentLock = authLockRef.current;
+    let resolveLock: () => void;
+    authLockRef.current = new Promise((res) => { resolveLock = res; });
+    await currentLock;
 
     try {
+      const newUser = newSession?.user ?? null;
+      const newToken = newSession?.access_token ?? null;
+      
+      const isSameUser = newUser?.id === stateRef.current.userId;
+      const isSameToken = newToken === stateRef.current.token;
+      const alreadyHydrated = stateRef.current.hasContext && !!profile && !!companyId;
+
+      if (isSameUser && isSameToken && alreadyHydrated) {
+        console.log('[AUTH_CONTEXT] Redundant update skipped (already hydrated)');
+        setLoading(false);
+        return;
+      }
+
+      console.log('[AUTH_CONTEXT] updateAuthState processing:', { 
+        userId: newUser?.id,
+        isSameUser,
+        isSameToken,
+        alreadyHydrated
+      });
+
       setSession(newSession);
       setUser(newUser);
+      stateRef.current.userId = newUser?.id ?? null;
+      stateRef.current.token = newToken;
 
       if (newUser) {
-        // Rule 2: Fetch if ID changed OR context is missing
-        const contextHydrated = !!profile || !!companyId || roles.length > 0;
-        if (lastLoadedUserId.current !== newUser.id || !contextHydrated) {
-          console.log('[AUTH_CONTEXT] Fetching user data (id change or missing hydration)');
-          lastLoadedUserId.current = newUser.id;
-          await fetchUserData(newUser.id, newUser);
-        }
+        await fetchUserData(newUser.id, newUser);
       } else {
-        lastLoadedUserId.current = null;
+        console.log('[AUTH_CONTEXT] Clearing state (signed out)');
+        stateRef.current.hasContext = false;
         setProfile(null);
         setCompanyId(null);
         setRoles([]);
@@ -209,11 +215,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setIsAlsoCollaborator(false);
       }
     } catch (error) {
-      console.error('[AUTH_CONTEXT] Critical error in updateAuthState:', error);
+      console.error('[AUTH_CONTEXT] Error in updateAuthState:', error);
     } finally {
       setLoading(false);
+      resolveLock!();
     }
-  }, [user?.id, session?.access_token, fetchUserData]);
+  }, [profile, companyId, fetchUserData]);
 
 
   useEffect(() => {
@@ -244,22 +251,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     initSession();
 
-    // Rule 4: Use onAuthStateChange ONLY for backup initialization (e.g. tab switches)
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, currentSession) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, currentSession) => {
       if (cancelled) return;
-      console.log(`[AUTH_CONTEXT] onAuthStateChange: ${event}`);
+      console.log(`[AUTH_CONTEXT] onAuthStateChange event: ${event}`);
       
-      if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
-        await updateAuthState(currentSession);
-      } else if (event === 'SIGNED_OUT') {
-        await updateAuthState(null);
-      } else if (event === 'INITIAL_SESSION') {
-        if (currentSession) {
-          await updateAuthState(currentSession);
-        } else {
-          // If no session but we were loading, stop loading
-          setLoading(false);
-        }
+      // Schedule the state update to avoid "lock theft" in Supabase Auth
+      if (event === 'SIGNED_OUT') {
+        setTimeout(() => void updateAuthState(null), 0);
+      } else if (['SIGNED_IN', 'TOKEN_REFRESHED', 'USER_UPDATED', 'INITIAL_SESSION'].includes(event)) {
+        setTimeout(() => void updateAuthState(currentSession), 0);
       }
     });
 
