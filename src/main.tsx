@@ -31,12 +31,28 @@ if (shouldDisableSW) {
     
     // Also clear caches to prevent stale files if we're disabling PWA
     if (!ENABLE_PUSH_NOTIFICATIONS) {
-      window.caches?.keys().then((names) => {
-        for (const name of names) {
-          console.log('[PWA] Clearing cache:', name);
-          window.caches.delete(name);
+      const clearPWA = async () => {
+        try {
+          const names = await window.caches?.keys();
+          if (names) {
+            for (const name of names) {
+              console.log('[PWA] Clearing cache:', name);
+              await window.caches.delete(name);
+            }
+          }
+          // Force reload if we found a registration to ensure clean state
+          const registrations = await navigator.serviceWorker.getRegistrations();
+          if (registrations.length > 0) {
+            for (const r of registrations) {
+              await r.unregister();
+            }
+            // window.location.reload(); // Removed to avoid potential loop, but the unregistration is done
+          }
+        } catch (e) {
+          console.error('[PWA] Error clearing PWA:', e);
         }
-      });
+      };
+      clearPWA();
     }
   }
 } else {
