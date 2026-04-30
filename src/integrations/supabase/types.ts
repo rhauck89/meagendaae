@@ -3784,6 +3784,202 @@ export type Database = {
         }
         Relationships: []
       }
+      platform_whatsapp_automations: {
+        Row: {
+          created_at: string | null
+          daily_limit: number | null
+          delay_minutes: number | null
+          enabled: boolean | null
+          id: string
+          template_id: string | null
+          type: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          daily_limit?: number | null
+          delay_minutes?: number | null
+          enabled?: boolean | null
+          id?: string
+          template_id?: string | null
+          type: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          daily_limit?: number | null
+          delay_minutes?: number | null
+          enabled?: boolean | null
+          id?: string
+          template_id?: string | null
+          type?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "platform_whatsapp_automations_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "platform_whatsapp_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      platform_whatsapp_logs: {
+        Row: {
+          company_id: string | null
+          created_at: string | null
+          error: string | null
+          id: string
+          message: string
+          recipient_phone: string
+          recipient_user_id: string | null
+          status: string
+          type: string
+        }
+        Insert: {
+          company_id?: string | null
+          created_at?: string | null
+          error?: string | null
+          id?: string
+          message: string
+          recipient_phone: string
+          recipient_user_id?: string | null
+          status: string
+          type: string
+        }
+        Update: {
+          company_id?: string | null
+          created_at?: string | null
+          error?: string | null
+          id?: string
+          message?: string
+          recipient_phone?: string
+          recipient_user_id?: string | null
+          status?: string
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "platform_whatsapp_logs_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "platform_whatsapp_logs_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies_billing"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "platform_whatsapp_logs_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "marketplace_active_services"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "platform_whatsapp_logs_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "public_company"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "platform_whatsapp_logs_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "public_company_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "platform_whatsapp_logs_recipient_user_id_fkey"
+            columns: ["recipient_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "platform_whatsapp_logs_recipient_user_id_fkey"
+            columns: ["recipient_user_id"]
+            isOneToOne: false
+            referencedRelation: "public_professionals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      platform_whatsapp_settings: {
+        Row: {
+          api_key: string | null
+          api_url: string
+          connected_phone: string | null
+          created_at: string | null
+          id: string
+          instance_id: string | null
+          instance_name: string
+          qr_code: string | null
+          status: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          api_key?: string | null
+          api_url: string
+          connected_phone?: string | null
+          created_at?: string | null
+          id?: string
+          instance_id?: string | null
+          instance_name: string
+          qr_code?: string | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          api_key?: string | null
+          api_url?: string
+          connected_phone?: string | null
+          created_at?: string | null
+          id?: string
+          instance_id?: string | null
+          instance_name?: string
+          qr_code?: string | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      platform_whatsapp_templates: {
+        Row: {
+          active: boolean | null
+          content: string
+          created_at: string | null
+          id: string
+          name: string
+          type: string
+          updated_at: string | null
+        }
+        Insert: {
+          active?: boolean | null
+          content: string
+          created_at?: string | null
+          id?: string
+          name: string
+          type: string
+          updated_at?: string | null
+        }
+        Update: {
+          active?: boolean | null
+          content?: string
+          created_at?: string | null
+          id?: string
+          name?: string
+          type?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       professional_working_hours: {
         Row: {
           close_time: string
