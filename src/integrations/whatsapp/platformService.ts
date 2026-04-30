@@ -91,11 +91,15 @@ export async function listPlatformTemplates(): Promise<PlatformWhatsAppTemplate[
 }
 
 export async function savePlatformTemplate(template: Partial<PlatformWhatsAppTemplate>): Promise<PlatformWhatsAppTemplate> {
-  const { data, error } = template.id 
-    ? await supabase.from('platform_whatsapp_templates').update(template).eq('id', template.id).select().single()
-    : await supabase.from('platform_whatsapp_templates').insert(template).select().single();
-  if (error) throw error;
-  return data;
+  if (template.id) {
+    const { data, error } = await (supabase.from('platform_whatsapp_templates').update(template as any).eq('id', template.id).select().single() as any);
+    if (error) throw error;
+    return data;
+  } else {
+    const { data, error } = await (supabase.from('platform_whatsapp_templates').insert(template as any).select().single() as any);
+    if (error) throw error;
+    return data;
+  }
 }
 
 export async function listPlatformAutomations(): Promise<PlatformWhatsAppAutomation[]> {
