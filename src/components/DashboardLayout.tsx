@@ -101,7 +101,18 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
   const totalNotifications = (unreadTickets || 0) + (platformMessages?.length || 0);
 
   // Debug logging for role detection
-  console.log('[DashboardLayout] Role debug:', { isAdmin, isProfessional, isProfessionalMode, isAlsoCollaborator, loginMode, roles });
+  console.log('[DASHBOARD_COMPANY_DIAG] Context data:', { 
+    userId: user?.id, 
+    profileId: profile?.id,
+    companyId, 
+    roles, 
+    authLoading, 
+    companyRecoveryLoading, 
+    companyRecoveryChecked,
+    isAdmin,
+    isProfessionalMode,
+    loginMode
+  });
 
   // Determine if role selection dialog is needed
   const needsRoleSelection = isProfessional && isAlsoCollaborator && !loginMode;
