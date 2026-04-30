@@ -63,6 +63,14 @@ const getProfileRoute = (company: MarketCompany) => {
   return `/${bt}/${company.slug}`;
 };
 
+const withTimeout = <T,>(promise: PromiseLike<T>, timeoutMs = 12000, label = 'carregamento') =>
+  Promise.race<T>([
+    promise,
+    new Promise<T>((_, reject) => {
+      window.setTimeout(() => reject(new Error(`Tempo esgotado no ${label}.`)), timeoutMs);
+    }),
+  ]);
+
 export default function MarketplaceHome() {
   const platform = usePlatformSettings();
   const headerLogo = platform?.logo_dark || platform?.system_logo || platform?.logo_light || null;
@@ -100,9 +108,9 @@ export default function MarketplaceHome() {
   const loadCompanies = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase
+      const { data, error } = await withTimeout(supabase
         .from('public_company' as any)
-        .select('id, name, slug, logo_url, city, state, average_rating, review_count, business_type, latitude, longitude');
+        .select('id, name, slug, logo_url, city, state, average_rating, review_count, business_type, latitude, longitude'), 12000, 'marketplace');
       
       if (error) throw error;
       
