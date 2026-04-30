@@ -61,7 +61,7 @@ import { installGlobalErrorHandlers } from "./lib/error-handler";
 installGlobalErrorHandlers();
 
 import NotFound from "./pages/NotFound";
-import AppRedirect from "./pages/AppRedirect";
+// AppRedirect removed while PWA is disabled
 import CompanySelector from "./pages/CompanySelector";
 import AppointmentRequests from "./pages/AppointmentRequests";
 import ClientPortal from "./pages/ClientPortal";
