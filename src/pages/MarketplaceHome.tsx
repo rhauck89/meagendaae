@@ -110,7 +110,9 @@ export default function MarketplaceHome() {
     try {
       const { data, error } = await withTimeout(supabase
         .from('public_company' as any)
-        .select('id, name, slug, logo_url, city, state, average_rating, review_count, business_type, latitude, longitude'), 12000, 'marketplace');
+        .select('id, name, slug, logo_url, city, state, average_rating, review_count, business_type, latitude, longitude')
+        .order('average_rating', { ascending: false, nullsFirst: false })
+        .limit(60), 12000, 'marketplace');
       
       if (error) throw error;
       
@@ -380,6 +382,14 @@ export default function MarketplaceHome() {
         <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 text-center">
           <Loader2 className="h-8 w-8 animate-spin text-[hsl(var(--primary))] mx-auto mb-4" />
           <p className="text-[hsl(var(--muted-foreground))]">Carregando profissionais...</p>
+        </section>
+      )}
+
+      {!loading && filteredCompanies.length === 0 && (
+        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 text-center">
+          <p className="text-[hsl(var(--muted-foreground))]">
+            Nenhum profissional encontrado no momento.
+          </p>
         </section>
       )}
 
