@@ -42,6 +42,12 @@ const Auth = () => {
   // Fixes "Invalid Refresh Token" loops where a stale localStorage token
   // poisons subsequent signInWithPassword attempts.
   useEffect(() => {
+    const recoveryParams = `${window.location.search}${window.location.hash}`;
+    if (recoveryParams.includes('type=recovery') || recoveryParams.includes('code=')) {
+      navigate(`/reset-password${window.location.search}${window.location.hash}`, { replace: true });
+      return;
+    }
+
     // Basic session check on mount, but without aggressive signout
     // AuthContext handles the source of truth for sessions.
     supabase.auth.getSession().then(({ data: { session }, error }) => {
