@@ -204,12 +204,12 @@ export default function BarbershopLanding({ routeBusinessType, customSlug }: Bar
   const load = async () => {
     setLoading(true);
     try {
-      console.log('[LANDING] Starting load for slug:', slug);
-      // 1. Critical Data: Company
+      console.log('[LANDING] Starting load for slug:', slug, 'Authenticated:', isAuthenticated, 'isAdmin:', isAdmin);
+      // 1. Critical Data: Company (Bypass RLS via RPC)
       const { data: compArr, error: rpcError } = await supabase.rpc('get_company_by_slug', { _slug: slug! });
       
       if (rpcError) {
-        console.error('[LANDING] RPC Error:', rpcError);
+        console.error('[LANDING] RPC Error (get_company_by_slug):', rpcError);
         setLoading(false);
         return;
       }
@@ -220,6 +220,8 @@ export default function BarbershopLanding({ routeBusinessType, customSlug }: Bar
         setLoading(false);
         return;
       }
+
+      console.log('[LANDING] Company found:', rpcComp.id, 'Fetching services and professionals...');
 
       // Fetch company data and other critical info in parallel to speed up
       const [fullCompanyRes, servicesRes, profsRes, settingsRes] = await Promise.all([
