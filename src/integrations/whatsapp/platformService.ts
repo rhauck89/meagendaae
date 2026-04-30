@@ -5,8 +5,7 @@ export interface PlatformWhatsAppSettings {
   id: string;
   instance_name: string;
   instance_id: string | null;
-  api_url: string;
-  api_key: string | null;
+  instance_id: string | null;
   status: WhatsAppStatus;
   connected_phone: string | null;
   qr_code: string | null;
