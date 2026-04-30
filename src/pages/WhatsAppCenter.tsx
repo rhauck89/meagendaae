@@ -86,9 +86,9 @@ export default function WhatsAppCenter() {
   const [logs, setLogs] = useState<WhatsAppLog[]>([]);
   const [metrics, setMetrics] = useState<WhatsAppMetric[]>([]);
 
-  const reload = async () => {
+  const reload = async (silent = false) => {
     if (!companyId) return;
-    setLoading(true);
+    if (!silent) setLoading(true);
     try {
       const [i, a, t, l, m] = await Promise.all([
         getInstance(companyId),
@@ -103,17 +103,19 @@ export default function WhatsAppCenter() {
       setLogs(l);
       setMetrics(m);
     } catch (e) {
+      console.error('[WHATSAPP_CENTER] Reload error:', e);
       const friendly = translateWhatsAppError(e);
       toast.error(friendly.title, { 
         description: friendly.message,
-        action: { label: 'Tentar novamente', onClick: reload }
+        action: { label: 'Tentar novamente', onClick: () => reload() }
       });
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
 
   useEffect(() => { reload(); }, [companyId]);
+
 
   if (!companyId) {
     return (
