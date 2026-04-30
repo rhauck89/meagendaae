@@ -103,30 +103,28 @@ const Auth = () => {
           throw error;
         }
         toast.success('Login realizado com sucesso!');
-        
-        // Wait for context to be loaded before navigating to avoid flickering
-        // DashboardLayout will also handle the loading state, but this helps
         navigate('/dashboard');
 
         // Secondary routing checks (non-blocking)
-        void supabase.rpc('get_current_user_context').then(({ data: context }) => {
-          if (!context || context.length === 0) return;
-          const ctx = context[0];
-          
-          if (ctx.roles?.includes('super_admin')) {
-            navigate('/super-admin');
-            return;
-          }
+        (async () => {
+          try {
+            const { data: context } = await supabase.rpc('get_current_user_context');
+            if (!context || context.length === 0) return;
+            const ctx = context[0];
+            
+            if (ctx.roles?.includes('super_admin')) {
+              navigate('/super-admin');
+              return;
+            }
 
-          // If multiple companies, let user choose, but context already picked one as default
-          supabase.rpc('get_user_companies').then(({ data: companies }) => {
+            const { data: companies } = await supabase.rpc('get_user_companies');
             if (companies && companies.length > 1) {
               navigate('/select-company');
             }
-          });
-        }).catch(err => {
-          console.warn('[LOGIN] Context check failed:', err);
-        });
+          } catch (err) {
+            console.warn('[LOGIN] Context check failed:', err);
+          }
+        })();
       } else {
         const { data: signUpData, error: authError } = await supabase.functions.invoke('auth-handler', {
           body: {
