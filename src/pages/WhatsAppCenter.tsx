@@ -249,10 +249,11 @@ function OverviewTab({ loading, instance, logs, metrics }: { loading: boolean; i
           label="Status"
           value={statusInfo.label}
           valueClassName={
-            status === 'connected' ? "text-green-600" : 
-            (status === 'connecting' || status === 'pending' ? "text-yellow-600" : "text-red-500")
+            instance?.status === 'connected' ? "text-green-600" : 
+            (instance?.status === 'connecting' || instance?.status === 'pending' ? "text-yellow-600" : "text-red-500")
           }
         />
+
         <StatCard icon={<Send className="h-5 w-5 text-primary" />} label="Enviadas hoje" value={sentToday.toString()} />
         <StatCard icon={<TrendingUp className="h-5 w-5 text-primary" />} label="Este mês" value={sentMonth.toString()} />
         <StatCard icon={<CheckCircle2 className="h-5 w-5 text-primary" />} label="Taxa de entrega" value={`${replyRate}%`} />
