@@ -100,9 +100,6 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
   const { data: platformMessages, dismiss: dismissMessage } = usePlatformMessages();
   const totalNotifications = (unreadTickets || 0) + (platformMessages?.length || 0);
 
-  // Debug logging for role detection
-  console.log('[DashboardLayout] Role debug:', { isAdmin, isProfessional, isProfessionalMode, isAlsoCollaborator, loginMode, roles });
-
   // Determine if role selection dialog is needed
   const needsRoleSelection = isProfessional && isAlsoCollaborator && !loginMode;
 
@@ -114,6 +111,20 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
   const [professionalFinanceOpen, setProfessionalFinanceOpen] = useState(isProfessionalFinanceActive);
   const [companyRecoveryLoading, setCompanyRecoveryLoading] = useState(false);
   const [companyRecoveryChecked, setCompanyRecoveryChecked] = useState(false);
+
+  // Debug logging for role detection
+  console.log('[DASHBOARD_COMPANY_DIAG] Context data:', { 
+    userId: user?.id, 
+    profileId: profile?.id,
+    companyId, 
+    roles, 
+    authLoading, 
+    companyRecoveryLoading, 
+    companyRecoveryChecked,
+    isAdmin,
+    isProfessionalMode,
+    loginMode
+  });
 
   const professionalNavItems = allProfessionalNavItems.filter(item => {
     if (!item.permKey) return true;
