@@ -68,8 +68,16 @@ export async function getPlatformSettings(): Promise<PlatformWhatsAppSettings | 
   return data as PlatformWhatsAppSettings | null;
 }
 
-export async function connectPlatformInstance(instanceName: string, apiUrl: string, apiKey: string): Promise<PlatformWhatsAppSettings> {
-  return callPlatformEdgeFunction('connect', { instanceName, apiUrl, apiKey });
+export async function connectPlatformInstance(): Promise<PlatformWhatsAppSettings> {
+  return callPlatformEdgeFunction('create');
+}
+
+export async function getPlatformQrCode(): Promise<{ qr_code: string }> {
+  return callPlatformEdgeFunction('get-qr');
+}
+
+export async function getPlatformStatus(): Promise<PlatformWhatsAppSettings & { mappedStatus: WhatsAppStatus }> {
+  return callPlatformEdgeFunction('get-status');
 }
 
 export async function disconnectPlatformInstance(): Promise<void> {
