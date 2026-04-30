@@ -25,7 +25,7 @@ const ProfilePage = () => {
   const { refresh } = useRefreshData();
   
   if (isAdmin && loginMode === 'admin') {
-    return <Navigate to=\"/dashboard/settings/general\" replace />;
+    return <Navigate to="/dashboard/settings/general" replace />;
   }
 
   const [loading, setLoading] = useState(false);
