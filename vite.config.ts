@@ -2,9 +2,9 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
 import { componentTagger } from "lovable-tagger";
-import { VitePWA } from "vite-plugin-pwa";
 
-// https://vitejs.dev/config/
+// PWA/service worker is intentionally disabled until the loading/cache issues
+// are fully isolated. Do not add VitePWA back without a controlled rollout.
 export default defineConfig(({ mode }) => ({
   server: {
     host: "::",
@@ -16,46 +16,6 @@ export default defineConfig(({ mode }) => ({
   plugins: [
     react(),
     mode === "development" && componentTagger(),
-    VitePWA({
-      strategies: "injectManifest",
-      srcDir: "src",
-      filename: "sw.ts",
-      registerType: "autoUpdate",
-      devOptions: {
-        enabled: false,
-      },
-      injectManifest: {
-        globPatterns: ["**/*.{js,css,html,ico,png,svg,woff2}"],
-        maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
-      },
-      manifest: {
-        name: "Me Agendaê",
-        short_name: "Me Agendaê",
-        start_url: "/",
-        display: "browser",
-        background_color: "#ffffff",
-        theme_color: "#0f2a5c",
-        orientation: "portrait",
-        icons: [
-          {
-            src: "/icons/icon-192.png",
-            sizes: "192x192",
-            type: "image/png",
-          },
-          {
-            src: "/icons/icon-512.png",
-            sizes: "512x512",
-            type: "image/png",
-          },
-          {
-            src: "/icons/icon-512.png",
-            sizes: "512x512",
-            type: "image/png",
-            purpose: "maskable",
-          },
-        ],
-      },
-    }),
   ].filter(Boolean),
   resolve: {
     alias: {
