@@ -1,4 +1,4 @@
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+﻿import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUserRole } from '@/hooks/useUserRole';
 import { useUserTicketCounts } from '@/hooks/useSupportTicketCounts';
@@ -33,51 +33,52 @@ const SIDEBAR_COLLAPSED_KEY = 'sidebar-collapsed';
 
 const adminNavItems = [
   { href: '/dashboard', icon: Calendar, label: 'Agenda' },
-  { href: '/dashboard/services', icon: Scissors, label: 'Serviços' },
+  { href: '/dashboard/services', icon: Scissors, label: 'ServiÃ§os' },
   { href: '/dashboard/team', icon: Users, label: 'Equipe' },
   { href: '/dashboard/clients', icon: UserCheck, label: 'Clientes' },
   { href: '/dashboard/whatsapp', icon: MessageSquare, label: 'WhatsApp Center' },
   { href: '/dashboard/events', icon: PartyPopper, label: 'Agenda Aberta' },
-  { href: '/dashboard/promotions', icon: Megaphone, label: 'Promoções' },
+  { href: '/dashboard/promotions', icon: Megaphone, label: 'PromoÃ§Ãµes' },
   { href: '/dashboard/loyalty', icon: Star, label: 'Fidelidade' },
-  { href: '/dashboard/solicitacoes', icon: Inbox, label: 'Solicitações' },
+  { href: '/dashboard/solicitacoes', icon: Inbox, label: 'SolicitaÃ§Ãµes' },
+  { href: '/dashboard/profile', icon: User, label: 'Meu Perfil' },
 ];
 
 const settingsSubItems = [
   { href: '/dashboard/settings/general', icon: Settings, label: 'Geral' },
   { href: '/dashboard/settings/company', icon: Building2, label: 'Empresa' },
   { href: '/dashboard/settings/schedule', icon: Clock, label: 'Agenda' },
-  { href: '/dashboard/settings/automation', icon: Zap, label: 'Automação' },
+  { href: '/dashboard/settings/automation', icon: Zap, label: 'AutomaÃ§Ã£o' },
   { href: '/dashboard/settings/branding', icon: Palette, label: 'Branding' },
-  { href: '/dashboard/settings/domain', icon: Globe, label: 'Domínio' },
-  { href: '/dashboard/settings/swap-history', icon: ArrowLeftRight, label: 'Trocas de Horário' },
+  { href: '/dashboard/settings/domain', icon: Globe, label: 'DomÃ­nio' },
+  { href: '/dashboard/settings/swap-history', icon: ArrowLeftRight, label: 'Trocas de HorÃ¡rio' },
   { href: '/dashboard/settings/plan', icon: CreditCard, label: 'Plano' },
 ];
 
 const financeSubItems = [
   { href: '/dashboard/finance', icon: DollarSign, label: 'Dashboard' },
-  { href: '/dashboard/finance/transactions', icon: ArrowUpDown, label: 'Movimentações' },
+  { href: '/dashboard/finance/transactions', icon: ArrowUpDown, label: 'MovimentaÃ§Ãµes' },
   { href: '/dashboard/finance/revenues', icon: TrendingUp, label: 'Receitas' },
   { href: '/dashboard/finance/expenses', icon: TrendingDown, label: 'Despesas' },
   { href: '/dashboard/finance/categories', icon: FolderOpen, label: 'Categorias' },
-  { href: '/dashboard/finance/commissions', icon: Percent, label: 'Comissões' },
+  { href: '/dashboard/finance/commissions', icon: Percent, label: 'ComissÃµes' },
   { href: '/dashboard/finance/payables', icon: Receipt, label: 'Contas a Pagar' },
   { href: '/dashboard/finance/receivables', icon: HandCoins, label: 'Contas a Receber' },
-  { href: '/dashboard/finance/reports', icon: FileBarChart, label: 'Relatórios' },
+  { href: '/dashboard/finance/reports', icon: FileBarChart, label: 'RelatÃ³rios' },
 ];
 
 const professionalFinanceSubItems = [
   { href: '/dashboard/my-finance', icon: DollarSign, label: 'Resumo' },
-  { href: '/dashboard/my-finance/commissions', icon: Percent, label: 'Comissões' },
+  { href: '/dashboard/my-finance/commissions', icon: Percent, label: 'ComissÃƒÂµes' },
 ];
 
 const allProfessionalNavItems = [
   { href: '/dashboard', icon: Calendar, label: 'Minha Agenda', permKey: null },
-  { href: '/dashboard/services', icon: Scissors, label: 'Meus Serviços', permKey: null },
+  { href: '/dashboard/services', icon: Scissors, label: 'Meus ServiÃ§os', permKey: null },
   { href: '/dashboard/clients', icon: UserCheck, label: 'Clientes', permKey: 'clients' as const },
-  { href: '/dashboard/promotions', icon: Megaphone, label: 'Promoções', permKey: 'promotions' as const },
+  { href: '/dashboard/promotions', icon: Megaphone, label: 'PromoÃ§Ãµes', permKey: 'promotions' as const },
   { href: '/dashboard/events', icon: PartyPopper, label: 'Agenda Aberta', permKey: 'events' as const },
-  { href: '/dashboard/solicitacoes', icon: Inbox, label: 'Solicitações', permKey: 'requests' as const },
+  { href: '/dashboard/solicitacoes', icon: Inbox, label: 'SolicitaÃ§Ãµes', permKey: 'requests' as const },
 ];
 
 const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
@@ -283,7 +284,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
   const currentLabel = (() => {
     if (isSettingsActive) {
       const sub = settingsSubItems.find(i => location.pathname === i.href);
-      return sub ? `Configurações / ${sub.label}` : 'Configurações';
+      return sub ? `ConfiguraÃ§Ãµes / ${sub.label}` : 'ConfiguraÃ§Ãµes';
     }
     if (isFinanceActive) {
       const sub = financeSubItems.find(i => location.pathname === i.href);
@@ -363,7 +364,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
                       </button>
                     </TooltipTrigger>
                     <TooltipContent side="right">
-                      {isAdmin ? 'Modo Administrador — Clique para trocar' : 'Modo Profissional — Clique para trocar'}
+                      {isAdmin ? 'Modo Administrador â€” Clique para trocar' : 'Modo Profissional â€” Clique para trocar'}
                     </TooltipContent>
                   </Tooltip>
                 ) : (
@@ -407,7 +408,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
 
 
               {isAdmin && renderCollapsibleGroup('Financeiro', DollarSign, isFinanceActive, financeOpen, setFinanceOpen, financeSubItems)}
-              {isAdmin && renderCollapsibleGroup('Configurações', Settings, isSettingsActive, settingsOpen, setSettingsOpen, settingsSubItems)}
+              {isAdmin && renderCollapsibleGroup('ConfiguraÃ§Ãµes', Settings, isSettingsActive, settingsOpen, setSettingsOpen, settingsSubItems)}
 
               {!isAdmin && profPerms.finance && renderCollapsibleGroup('Financeiro', DollarSign, isProfessionalFinanceActive, professionalFinanceOpen, setProfessionalFinanceOpen, professionalFinanceSubItems)}
 
@@ -435,7 +436,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
                     {profile?.full_name?.charAt(0)?.toUpperCase() || '?'}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate">{profile?.full_name || 'Usuário'}</p>
+                    <p className="text-sm font-medium truncate">{profile?.full_name || 'UsuÃ¡rio'}</p>
                     <p className="text-xs text-sidebar-foreground/50 truncate">{profile?.email}</p>
                   </div>
                 </div>
@@ -508,12 +509,12 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
                 </button>
               </PopoverTrigger>
               <PopoverContent className="w-80 p-0" align="end">
-                <div className="p-3 border-b"><h3 className="font-semibold text-sm">Notificações</h3></div>
+                <div className="p-3 border-b"><h3 className="font-semibold text-sm">NotificaÃ§Ãµes</h3></div>
                 <ScrollArea className="max-h-80">
                   {unreadTickets > 0 && (
                     <button onClick={() => navigate('/dashboard/support')} className="w-full text-left px-3 py-2.5 hover:bg-muted border-b flex items-center gap-2">
                       <MessageSquare className="h-4 w-4 text-primary shrink-0" />
-                      <span className="text-sm">{unreadTickets} ticket(s) com atualização</span>
+                      <span className="text-sm">{unreadTickets} ticket(s) com atualizaÃ§Ã£o</span>
                     </button>
                   )}
                   {platformMessages?.map((msg: any) => (
@@ -532,7 +533,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
                     </div>
                   ))}
                   {totalNotifications === 0 && (
-                    <p className="text-center text-sm text-muted-foreground py-6">Nenhuma notificação</p>
+                    <p className="text-center text-sm text-muted-foreground py-6">Nenhuma notificaÃ§Ã£o</p>
                   )}
                 </ScrollArea>
               </PopoverContent>
@@ -576,3 +577,4 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
 };
 
 export default DashboardLayout;
+
