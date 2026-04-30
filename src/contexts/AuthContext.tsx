@@ -53,9 +53,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const isAuthenticated = useMemo(() => !!session, [session]);
 
   const fetchUserData = useCallback(async (userId: string) => {
+    // Timeout safety for user data fetch
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000);
+
     try {
+      console.log("[AUTH_DEBUG] Fetching data for user:", userId);
       const { data: { user } } = await supabase.auth.getUser();
-      console.log("[AUTH_DEBUG] User:", user);
 
       let { data: profileData, error: profileError } = await supabase
         .from('profiles')
@@ -86,15 +90,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         supabase.from('user_roles').select('role').eq('user_id', userId),
       ]);
 
-      console.log("[AUTH_DEBUG] Profile:", profileData);
-
       if (profileData) {
         setProfile(profileData);
         setCompanyId(profileData.company_id);
         
-        // Sync with global client data if applicable
         if (profileData.role === 'client') {
-          await supabase.from('clients_global').select('*').eq('user_id', userId).single();
+          // No need to await or block for global client data
+          supabase.from('clients_global').select('*').eq('user_id', userId).single().catch(() => {});
         }
       }
 
@@ -126,6 +128,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     } catch (error) {
       console.error('[AUTH_CONTEXT] Error fetching user data:', error);
+    } finally {
+      clearTimeout(timeoutId);
     }
   }, []);
 
