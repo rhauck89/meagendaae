@@ -1408,31 +1408,33 @@ const Dashboard = () => {
       {isAdmin && <MarketplaceActivation />}
       <TutorialProgressWidget />
 
-      {/* Temporary test push notification button */}
-      <Card className="border-dashed border-warning/50 bg-warning/5">
-        <CardContent className="p-4 flex items-center justify-between">
-          <div>
-            <p className="font-medium text-sm">🔔 Teste de Push Notification</p>
-            <p className="text-xs text-muted-foreground">Clique para enviar uma notificação de teste para este dispositivo</p>
-          </div>
-          <Button
-            variant="outline"
-            size="sm"
-            className="gap-2"
-            disabled={pushLoading}
-            onClick={async () => {
-              try {
-                toast.info('Iniciando teste de notificação...');
-                
-                // 1. Ensure permission and subscription
-                if (!isSubscribed) {
-                  toast.info('Ativando notificações primeiro...');
-                  const subResult = await subscribe();
-                  if (!subResult.success) {
-                    toast.error('Ativação falhou: ' + subResult.error);
-                    return;
+      {/* Temporary test push notification button - Hidden when disabled */}
+      {ENABLE_PUSH_NOTIFICATIONS && (
+        <Card className="border-dashed border-warning/50 bg-warning/5">
+          <CardContent className="p-4 flex items-center justify-between">
+            <div>
+              <p className="font-medium text-sm">🔔 Teste de Push Notification</p>
+              <p className="text-xs text-muted-foreground">Clique para enviar uma notificação de teste para este dispositivo</p>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-2"
+              disabled={pushLoading}
+              onClick={async () => {
+                try {
+                  toast.info('Iniciando teste de notificação...');
+                  
+                  // 1. Ensure permission and subscription
+                  if (!isSubscribed) {
+                    toast.info('Ativando notificações primeiro...');
+                    const subResult = await subscribe();
+                    if (!subResult.success) {
+                      toast.error('Ativação falhou: ' + subResult.error);
+                      return;
+                    }
                   }
-                }
+
 
                 // 2. Double check SW is ready and get subscription
                 const registration = await Promise.race([
