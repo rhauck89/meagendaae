@@ -96,7 +96,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         
         if (profileData.role === 'client') {
           // No need to await or block for global client data
-          supabase.from('clients_global').select('*').eq('user_id', userId).single().catch(() => {});
+          supabase.from('clients_global').select('*').eq('user_id', userId).single().then(({ error }) => {
+            if (error) console.warn("[AUTH_DEBUG] Error fetching global client data (non-blocking):", error);
+          });
         }
       }
 
