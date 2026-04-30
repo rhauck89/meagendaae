@@ -91,7 +91,18 @@ import FinanceReceivables from "./pages/finance/FinanceReceivables";
 import ProfessionalFinance from "./pages/ProfessionalFinance";
 import WhatsAppCenter from "./pages/WhatsAppCenter";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 30_000,
+      refetchOnWindowFocus: false,
+      retry: 1,
+    },
+    mutations: {
+      retry: 0,
+    },
+  },
+});
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, loading, profile } = useAuth();
