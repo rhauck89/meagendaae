@@ -5,10 +5,10 @@ export interface PlatformWhatsAppSettings {
   id: string;
   instance_name: string;
   instance_id: string | null;
-  instance_id: string | null;
   status: WhatsAppStatus;
   connected_phone: string | null;
   qr_code: string | null;
+  last_connected_at: string | null;
   created_at: string;
   updated_at: string;
 }
