@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
-import { Building2, Link2, Copy, AlertTriangle, Users, Lock } from 'lucide-react';
+import { Building2, Link2, Copy, AlertTriangle, Users, Lock, RotateCcw } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import SettingsBreadcrumb from '@/components/SettingsBreadcrumb';
 import { resetOnboardingChecklist } from '@/components/OnboardingChecklist';
