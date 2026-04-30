@@ -19,20 +19,21 @@ serve(async (req) => {
     )
 
     const requestBody = await req.json()
-    const { action, instanceName, apiUrl, apiKey, phone, text, type, companyId, userId } = requestBody
+    const { action, phone, text, type, companyId, userId } = requestBody
 
-    // ---------------------------------------------------------------------------
-    // Helper: call Evolution API
-    // ---------------------------------------------------------------------------
-    const callEvolution = async (url: string, key: string, endpoint: string, method = 'GET', body: any = null) => {
-      const baseUrl = url.replace(/\/+$/, '')
+    const EVOLUTION_API_URL = Deno.env.get('EVOLUTION_API_URL') || "https://apiwpp.meagendae.com.br"
+    const EVOLUTION_API_KEY = Deno.env.get('EVOLUTION_API_KEY')
+    const instanceName = "platform_main"
+
+    const callEvolution = async (endpoint: string, method = 'GET', body: any = null) => {
+      const baseUrl = EVOLUTION_API_URL.replace(/\/+$/, '')
       const finalUrl = `${baseUrl}${endpoint}`
       try {
         const response = await fetch(finalUrl, {
           method,
           headers: {
             'Content-Type': 'application/json',
-            'apikey': key
+            'apikey': EVOLUTION_API_KEY ?? ''
           },
           body: body ? JSON.stringify(body) : null
         })
@@ -47,53 +48,84 @@ serve(async (req) => {
       }
     }
 
-    // ---------------------------------------------------------------------------
-    // Actions
-    // ---------------------------------------------------------------------------
-
-    if (action === 'connect') {
-      // 1. Save settings
+    if (action === 'create' || action === 'get-qr') {
+      // 1. Ensure settings exist
       await supabaseClient.from('platform_whatsapp_settings').upsert({
         instance_name: instanceName,
-        api_url: apiUrl,
-        api_key: apiKey,
-        status: 'connecting'
-      });
+        status: 'connecting',
+        updated_at: new Date().toISOString()
+      }, { onConflict: 'instance_name' });
 
-      // 2. Try to create/init instance in Evolution
-      // For platform, we assume the instance might already exist or needs creation
-      const res = await callEvolution(apiUrl, apiKey, `/instance/create`, 'POST', {
+      // 2. Try to create/init
+      const createRes = await callEvolution(`/instance/create`, 'POST', {
         instanceName,
         qrcode: true,
         integration: "WHATSAPP-BAILEYS"
       });
 
-      // 3. Update status based on response
-      const status = res.ok || res.status === 403 ? 'connected' : 'error'; // simplified for platform admin
-      await supabaseClient.from('platform_whatsapp_settings').update({ status }).match({ instance_name: instanceName });
+      // 3. Get QR
+      let qrBase64 = createRes.data?.qrcode?.base64 || createRes.data?.qrcode;
+      
+      if (!qrBase64) {
+        const qrRes = await callEvolution(`/instance/qrcode/${instanceName}`);
+        qrBase64 = qrRes.data?.qrcode?.base64 || qrRes.data?.qrcode;
+      }
 
-      return new Response(JSON.stringify({ success: true, status }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      if (qrBase64 && !qrBase64.startsWith("data:image")) qrBase64 = `data:image/png;base64,${qrBase64}`;
+
+      if (qrBase64) {
+        await supabaseClient.from('platform_whatsapp_settings').update({
+          qr_code: qrBase64,
+          status: 'pending'
+        }).eq('instance_name', instanceName);
+      }
+
+      return new Response(JSON.stringify({ success: true, qrcode: qrBase64 }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
-    if (action === 'disconnect') {
-      const { data: settings } = await supabaseClient.from('platform_whatsapp_settings').select('*').single();
-      if (settings) {
-        await callEvolution(settings.api_url, settings.api_key, `/instance/logout/${settings.instance_name}`, 'DELETE');
-        await supabaseClient.from('platform_whatsapp_settings').delete().eq('id', settings.id);
+    if (action === 'get-status') {
+      const res = await callEvolution(`/instance/connectionState/${instanceName}`);
+      const rawState = res.data?.instance?.state || res.data?.state || res.data?.status;
+      const state = String(rawState || '').toLowerCase();
+      const isConnected = ['open', 'connected'].includes(state);
+      
+      if (isConnected) {
+        // Get instance info to save phone
+        const infoRes = await callEvolution(`/instance/fetchInstances?instanceName=${instanceName}`);
+        const instanceInfo = infoRes.data?.[0] || infoRes.data;
+        const phone = instanceInfo?.owner || instanceInfo?.number;
+
+        await supabaseClient.from('platform_whatsapp_settings').update({
+          status: 'connected',
+          qr_code: null,
+          connected_phone: phone,
+          last_connected_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        }).eq('instance_name', instanceName);
+      } else {
+        await supabaseClient.from('platform_whatsapp_settings').update({
+          status: state === 'connecting' ? 'connecting' : (state === 'pending' ? 'pending' : 'disconnected'),
+          updated_at: new Date().toISOString()
+        }).eq('instance_name', instanceName);
       }
+
+      return new Response(JSON.stringify({ success: true, connected: isConnected, state }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
+
+    if (action === 'disconnect' || action === 'logout') {
+      await callEvolution(`/instance/logout/${instanceName}`, 'DELETE');
+      await supabaseClient.from('platform_whatsapp_settings').update({
+        status: 'disconnected',
+        qr_code: null,
+        connected_phone: null
+      }).eq('instance_name', instanceName);
       return new Response(JSON.stringify({ success: true }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
     if (action === 'send-test' || action === 'trigger-automation') {
-      const { data: settings } = await supabaseClient.from('platform_whatsapp_settings').select('*').single();
-      if (!settings || settings.status !== 'connected') {
-        throw new Error("Plataforma WhatsApp não configurada ou desconectada.");
-      }
-
       const targetPhone = String(phone || "").replace(/\D/g, '');
       let messageText = text;
 
-      // If it's an automation trigger, render template
       if (action === 'trigger-automation' && type) {
         const { data: automation } = await supabaseClient
           .from('platform_whatsapp_automations')
@@ -104,7 +136,6 @@ serve(async (req) => {
         if (automation && automation.enabled && automation.platform_whatsapp_templates) {
           messageText = automation.platform_whatsapp_templates.content;
           
-          // Render basic variables (this would be expanded based on event data)
           const { data: company } = companyId ? await supabaseClient.from('companies').select('*').eq('id', companyId).single() : { data: null };
           const { data: userProfile } = userId ? await supabaseClient.from('profiles').select('*').eq('id', userId).single() : { data: null };
           
@@ -113,22 +144,20 @@ serve(async (req) => {
             '{{empresa}}': company?.name || 'Sua Empresa',
             '{{plano}}': company?.subscription_status || 'Trial',
             '{{data}}': new Date().toLocaleDateString('pt-BR'),
+            '{{link_dashboard}}': "https://meagendae.com.br/dashboard"
           };
 
           Object.entries(vars).forEach(([k, v]) => {
             messageText = messageText.split(k).join(v);
           });
-        } else {
-          return new Response(JSON.stringify({ success: false, reason: "AUTOMATION_DISABLED_OR_NO_TEMPLATE" }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
         }
       }
 
-      const res = await callEvolution(settings.api_url, settings.api_key, `/message/sendText/${settings.instance_name}`, 'POST', {
+      const res = await callEvolution(`/message/sendText/${instanceName}`, 'POST', {
         number: targetPhone,
         text: messageText
       });
 
-      // Log the attempt
       await supabaseClient.from('platform_whatsapp_logs').insert({
         company_id: companyId || null,
         recipient_user_id: userId || null,

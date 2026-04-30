@@ -19,11 +19,13 @@ import {
   getPlatformSettings, connectPlatformInstance, disconnectPlatformInstance,
   sendPlatformTest, listPlatformTemplates, savePlatformTemplate,
   listPlatformAutomations, togglePlatformAutomation, listPlatformLogs,
+  getPlatformQrCode, getPlatformStatus,
   type PlatformWhatsAppSettings, type PlatformWhatsAppTemplate,
   type PlatformWhatsAppAutomation, type PlatformWhatsAppLog
 } from '@/integrations/whatsapp/platformService';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { cn } from '@/lib/utils';
 
 export default function SuperAdminWhatsAppCenter() {
   const [tab, setTab] = useState('overview');
@@ -165,21 +167,57 @@ function OverviewTab({ settings, logs, loading }: { settings: any, logs: any[], 
 }
 
 function ConnectionTab({ settings, loading, onReload }: { settings: any, loading: boolean, onReload: () => void }) {
-  const [instanceName, setInstanceName] = useState(settings?.instance_name || 'AgendaePlatform');
-  const [apiUrl, setApiUrl] = useState(settings?.api_url || '');
-  const [apiKey, setApiKey] = useState(settings?.api_key || '');
   const [busy, setBusy] = useState(false);
   const [testPhone, setTestPhone] = useState('');
+  const [localQrCode, setLocalQrCode] = useState<string | null>(null);
+
+  const status = settings?.status || 'disconnected';
+
+  // Polling for status
+  useEffect(() => {
+    let timer: NodeJS.Timeout;
+    if (status === 'connecting' || status === 'pending') {
+      timer = setInterval(async () => {
+        try {
+          const res = await getPlatformStatus();
+          if (res.status === 'connected') {
+            onReload();
+          }
+        } catch (e) {
+          console.warn('[SUPER_ADMIN_WPP] Status check failed', e);
+        }
+      }, 5000);
+    }
+    return () => clearInterval(timer);
+  }, [status, onReload]);
 
   const handleConnect = async () => {
-    if (!apiUrl || !apiKey) return toast.error('Preencha a URL e a API Key');
     setBusy(true);
+    setLocalQrCode(null);
     try {
-      await connectPlatformInstance(instanceName, apiUrl, apiKey);
-      toast.success('Instância configurada com sucesso');
+      const res = await connectPlatformInstance();
+      if (res.qr_code) {
+        setLocalQrCode(res.qr_code);
+      }
+      toast.success('Iniciando conexão...');
       onReload();
     } catch (e) {
       toast.error('Erro ao conectar instância');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleRefreshQr = async () => {
+    setBusy(true);
+    try {
+      const res = await getPlatformQrCode();
+      if (res.qr_code) {
+        setLocalQrCode(res.qr_code);
+        toast.success('QR Code atualizado');
+      }
+    } catch (e) {
+      toast.error('Erro ao atualizar QR Code');
     } finally {
       setBusy(false);
     }
@@ -190,6 +228,7 @@ function ConnectionTab({ settings, loading, onReload }: { settings: any, loading
     try {
       await disconnectPlatformInstance();
       toast.success('Instância desconectada');
+      setLocalQrCode(null);
       onReload();
     } catch (e) {
       toast.error('Erro ao desconectar');
@@ -214,40 +253,65 @@ function ConnectionTab({ settings, loading, onReload }: { settings: any, loading
 
   if (loading) return <Skeleton className="h-64 w-full" />;
 
+  const displayQr = localQrCode || settings?.qr_code;
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
       <Card>
         <CardHeader>
-          <CardTitle>Configuração Evolution API</CardTitle>
-          <CardDescription>Conecte a instância central da plataforma</CardDescription>
+          <CardTitle>Conexão WhatsApp Platform</CardTitle>
+          <CardDescription>Escaneie o QR Code para conectar o número central</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label>Nome da Instância</Label>
-            <Input value={instanceName} onChange={e => setInstanceName(e.target.value)} placeholder="ex: AgendaePlatform" />
-          </div>
-          <div className="space-y-2">
-            <Label>API URL</Label>
-            <Input value={apiUrl} onChange={e => setApiUrl(e.target.value)} placeholder="https://api.meuevolution.com" />
-          </div>
-          <div className="space-y-2">
-            <Label>API Key (Global/Instance)</Label>
-            <Input type="password" value={apiKey} onChange={e => setApiKey(e.target.value)} placeholder="SUA_CHAVE_AQUI" />
-          </div>
-        </CardContent>
-        <CardFooter className="flex justify-between border-t p-6">
-          {settings?.status === 'connected' ? (
-            <Button variant="destructive" onClick={handleDisconnect} disabled={busy}>
-              {busy ? <Loader2 className="animate-spin mr-2 h-4 w-4" /> : <Trash2 className="mr-2 h-4 w-4" />}
-              Desconectar
-            </Button>
+        <CardContent className="flex flex-col items-center justify-center py-6">
+          {status === 'connected' ? (
+            <div className="text-center space-y-4">
+              <div className="h-20 w-20 rounded-full bg-green-100 text-green-600 flex items-center justify-center mx-auto">
+                <CheckCircle2 className="h-10 w-10" />
+              </div>
+              <div>
+                <p className="font-bold text-lg">WhatsApp Conectado</p>
+                <p className="text-sm text-muted-foreground">{settings?.connected_phone}</p>
+              </div>
+              <Button variant="outline" onClick={handleDisconnect} disabled={busy}>
+                {busy && <Loader2 className="animate-spin mr-2 h-4 w-4" />}
+                Desconectar Número
+              </Button>
+            </div>
+          ) : (status === 'connecting' || status === 'pending') && displayQr ? (
+            <div className="text-center space-y-4">
+              <div className="bg-white p-4 rounded-xl border-4 border-primary/20 inline-block shadow-inner">
+                <img src={displayQr} alt="WhatsApp QR Code" className="w-48 h-48" />
+              </div>
+              <div className="space-y-1">
+                <p className="font-medium">Aguardando leitura...</p>
+                <p className="text-xs text-muted-foreground">Abra o WhatsApp {'>'} Aparelhos Conectados</p>
+              </div>
+              <div className="flex gap-2 justify-center">
+                <Button variant="outline" size="sm" onClick={handleRefreshQr} disabled={busy}>
+                  <RefreshCw className={cn("mr-2 h-4 w-4", busy && "animate-spin")} />
+                  Atualizar QR
+                </Button>
+                <Button variant="ghost" size="sm" onClick={handleDisconnect} disabled={busy} className="text-destructive">
+                  Cancelar
+                </Button>
+              </div>
+            </div>
           ) : (
-            <Button onClick={handleConnect} disabled={busy} className="w-full">
-              {busy ? <Loader2 className="animate-spin mr-2 h-4 w-4" /> : <Wifi className="mr-2 h-4 w-4" />}
-              Conectar Instância
-            </Button>
+            <div className="text-center space-y-4 py-8">
+              <div className="h-20 w-20 rounded-full bg-muted flex items-center justify-center mx-auto">
+                <Wifi className="h-10 w-10 text-muted-foreground" />
+              </div>
+              <div className="space-y-1">
+                <p className="font-medium">Nenhum aparelho conectado</p>
+                <p className="text-sm text-muted-foreground">Conecte o número oficial da Agendaê</p>
+              </div>
+              <Button onClick={handleConnect} disabled={busy}>
+                {busy && <Loader2 className="animate-spin mr-2 h-4 w-4" />}
+                Conectar WhatsApp
+              </Button>
+            </div>
           )}
-        </CardFooter>
+        </CardContent>
       </Card>
 
       <Card>
@@ -259,8 +323,10 @@ function ConnectionTab({ settings, loading, onReload }: { settings: any, loading
           <div className="flex items-center gap-4 p-4 rounded-lg bg-muted/50 border">
             <Smartphone className="h-8 w-8 text-primary" />
             <div>
-              <p className="text-sm font-medium">Número Conectado</p>
-              <p className="text-lg font-bold">{settings?.connected_phone || '---'}</p>
+              <p className="text-sm font-medium">Última Conexão</p>
+              <p className="text-lg font-bold">
+                {settings?.last_connected_at ? format(new Date(settings.last_connected_at), 'dd/MM/yyyy HH:mm') : '---'}
+              </p>
             </div>
           </div>
 
@@ -268,7 +334,7 @@ function ConnectionTab({ settings, loading, onReload }: { settings: any, loading
             <Label>Telefone para Teste (com DDI/DDD)</Label>
             <div className="flex gap-2">
               <Input value={testPhone} onChange={e => setTestPhone(e.target.value)} placeholder="5511999999999" />
-              <Button onClick={handleTest} disabled={busy || settings?.status !== 'connected'}>
+              <Button onClick={handleTest} disabled={busy || status !== 'connected'}>
                 {busy ? <Loader2 className="animate-spin h-4 w-4" /> : <Send className="h-4 w-4" />}
               </Button>
             </div>

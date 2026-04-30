@@ -3913,37 +3913,34 @@ export type Database = {
       }
       platform_whatsapp_settings: {
         Row: {
-          api_key: string | null
-          api_url: string
           connected_phone: string | null
           created_at: string | null
           id: string
           instance_id: string | null
           instance_name: string
+          last_connected_at: string | null
           qr_code: string | null
           status: string | null
           updated_at: string | null
         }
         Insert: {
-          api_key?: string | null
-          api_url: string
           connected_phone?: string | null
           created_at?: string | null
           id?: string
           instance_id?: string | null
           instance_name: string
+          last_connected_at?: string | null
           qr_code?: string | null
           status?: string | null
           updated_at?: string | null
         }
         Update: {
-          api_key?: string | null
-          api_url?: string
           connected_phone?: string | null
           created_at?: string | null
           id?: string
           instance_id?: string | null
           instance_name?: string
+          last_connected_at?: string | null
           qr_code?: string | null
           status?: string | null
           updated_at?: string | null
