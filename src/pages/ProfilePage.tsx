@@ -1,6 +1,8 @@
 import { useEffect, useState, useRef } from 'react';
+import { Navigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUserRole } from '@/hooks/useUserRole';
+
 import { useRefreshData } from '@/hooks/useRefreshData';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -17,9 +19,15 @@ import { ptBR } from 'date-fns/locale';
 import ImageCropDialog from '@/components/ImageCropDialog';
 
 const ProfilePage = () => {
-  const { user, profile, companyId, refreshProfile } = useAuth();
-  const { profileId } = useUserRole();
+  const { user, profile, companyId, refreshProfile, loginMode } = useAuth();
+  const { profileId, isAdmin } = useUserRole();
+
   const { refresh } = useRefreshData();
+  
+  if (isAdmin && loginMode === 'admin') {
+    return <Navigate to="/dashboard/settings/general" replace />;
+  }
+
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [reviews, setReviews] = useState<any[]>([]);

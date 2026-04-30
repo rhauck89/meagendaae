@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
-import { Building2, Link2, Copy, AlertTriangle, Users } from 'lucide-react';
+import { Building2, Link2, Copy, AlertTriangle, Users, Lock, RotateCcw } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import SettingsBreadcrumb from '@/components/SettingsBreadcrumb';
 import { resetOnboardingChecklist } from '@/components/OnboardingChecklist';
@@ -149,9 +149,35 @@ const SettingsGeneral = () => {
 
       <Card className="border-dashed">
         <CardContent className="p-4 flex items-center justify-between">
-          <div>
-            <p className="text-sm font-medium">Tutoriais e primeiros passos</p>
-            <p className="text-xs text-muted-foreground">Reexibir os guias de configuração no painel</p>
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-full bg-primary/10 text-primary">
+              <Lock className="h-4 w-4" />
+            </div>
+            <div>
+              <p className="text-sm font-medium">Segurança da conta</p>
+              <p className="text-xs text-muted-foreground">Altere sua senha de acesso</p>
+            </div>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => navigate('/dashboard/settings/security')}
+          >
+            Configurar segurança
+          </Button>
+        </CardContent>
+      </Card>
+
+      <Card className="border-dashed">
+        <CardContent className="p-4 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-full bg-muted text-muted-foreground">
+              <RotateCcw className="h-4 w-4" />
+            </div>
+            <div>
+              <p className="text-sm font-medium">Tutoriais e primeiros passos</p>
+              <p className="text-xs text-muted-foreground">Reexibir os guias de configuração no painel</p>
+            </div>
           </div>
           <Button
             variant="outline"
@@ -161,7 +187,6 @@ const SettingsGeneral = () => {
               resetTutorialProgress();
               toast.success('Tutoriais reativados! Volte ao painel para visualizá-los.');
             }}
-
           >
             Ver tutorial novamente
           </Button>

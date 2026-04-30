@@ -8,7 +8,7 @@ import { useProfessionalPermissions } from '@/hooks/useProfessionalPermissions';
 import { useCompanyBrandInfo } from '@/hooks/useCompanyBrandInfo';
 import {
   Calendar, Scissors, Users, Settings, LogOut, Menu, X, User, UserCheck,
-  PartyPopper, Megaphone, MessageSquare, ChevronDown, Building2, Clock, Zap, Palette, Globe, CreditCard, Bell, HelpCircle, Info, AlertTriangle,
+  PartyPopper, Megaphone, MessageSquare, ChevronDown, Building2, Clock, Zap, Palette, Globe, CreditCard, Bell, HelpCircle, Info, AlertTriangle, Lock,
   DollarSign, ArrowUpDown, TrendingUp, TrendingDown, FolderOpen, Percent, FileBarChart, Receipt, HandCoins,
   ChevronsLeft, ChevronsRight, Inbox, Crown, Scissors as ScissorsIcon, ArrowLeftRight, Star,
 } from 'lucide-react';
@@ -34,27 +34,29 @@ const SIDEBAR_COLLAPSED_KEY = 'sidebar-collapsed';
 
 const adminNavItems = [
   { href: '/dashboard', icon: Calendar, label: 'Agenda' },
-  { href: '/dashboard/services', icon: Scissors, label: 'ServiÃ§os' },
+  { href: '/dashboard/services', icon: Scissors, label: 'Serviços' },
   { href: '/dashboard/team', icon: Users, label: 'Equipe' },
   { href: '/dashboard/clients', icon: UserCheck, label: 'Clientes' },
   { href: '/dashboard/whatsapp', icon: MessageSquare, label: 'WhatsApp Center' },
   { href: '/dashboard/events', icon: PartyPopper, label: 'Agenda Aberta' },
-  { href: '/dashboard/promotions', icon: Megaphone, label: 'PromoÃ§Ãµes' },
+  { href: '/dashboard/promotions', icon: Megaphone, label: 'Promoções' },
   { href: '/dashboard/loyalty', icon: Star, label: 'Fidelidade' },
-  { href: '/dashboard/solicitacoes', icon: Inbox, label: 'SolicitaÃ§Ãµes' },
-  { href: '/dashboard/profile', icon: User, label: 'Meu Perfil' },
+  { href: '/dashboard/solicitacoes', icon: Inbox, label: 'Solicitações' },
 ];
+
 
 const settingsSubItems = [
   { href: '/dashboard/settings/general', icon: Settings, label: 'Geral' },
+  { href: '/dashboard/settings/security', icon: Lock, label: 'Segurança' },
   { href: '/dashboard/settings/company', icon: Building2, label: 'Empresa' },
   { href: '/dashboard/settings/schedule', icon: Clock, label: 'Agenda' },
-  { href: '/dashboard/settings/automation', icon: Zap, label: 'AutomaÃ§Ã£o' },
+  { href: '/dashboard/settings/automation', icon: Zap, label: 'Automação' },
   { href: '/dashboard/settings/branding', icon: Palette, label: 'Branding' },
-  { href: '/dashboard/settings/domain', icon: Globe, label: 'DomÃ­nio' },
-  { href: '/dashboard/settings/swap-history', icon: ArrowLeftRight, label: 'Trocas de HorÃ¡rio' },
+  { href: '/dashboard/settings/domain', icon: Globe, label: 'Domínio' },
+  { href: '/dashboard/settings/swap-history', icon: ArrowLeftRight, label: 'Trocas de Horário' },
   { href: '/dashboard/settings/plan', icon: CreditCard, label: 'Plano' },
 ];
+
 
 const financeSubItems = [
   { href: '/dashboard/finance', icon: DollarSign, label: 'Dashboard' },
