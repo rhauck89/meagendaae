@@ -336,9 +336,10 @@ const Services = () => {
                   </Select>
                   <p className="text-[10px] text-muted-foreground italic">Ajuda a organizar seus serviços no marketplace</p>
                 </div>
-                <Button onClick={handleSaveCategory} className="w-full">
-                  {editingCat ? 'Salvar' : 'Criar'}
+                <Button onClick={handleSaveCategory} className="w-full" disabled={catSaving}>
+                  {catSaving ? 'Salvando...' : editingCat ? 'Salvar' : 'Criar'}
                 </Button>
+
               </div>
             </DialogContent>
           </Dialog>
