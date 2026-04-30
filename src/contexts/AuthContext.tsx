@@ -93,7 +93,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       let resolvedCompanyId = profileData?.company_id ?? null;
 
       if (!resolvedCompanyId) {
-        const [ownedCompanyRes, collaboratorRes] = await Promise.all([
+        const [userCompaniesRes, ownedCompanyRes, collaboratorRes] = await Promise.all([
+          supabase.rpc('get_user_companies' as any),
           supabase
             .from('companies')
             .select('id')
@@ -111,7 +112,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             : Promise.resolve({ data: null, error: null } as any),
         ]);
 
-        resolvedCompanyId = ownedCompanyRes.data?.id ?? collaboratorRes.data?.company_id ?? null;
+        const membershipCompany = Array.isArray(userCompaniesRes.data) && userCompaniesRes.data.length > 0
+          ? userCompaniesRes.data[0]?.company_id
+          : null;
+
+        resolvedCompanyId = profileData?.company_id ?? membershipCompany ?? ownedCompanyRes.data?.id ?? collaboratorRes.data?.company_id ?? null;
 
         if (resolvedCompanyId && profileData && !profileData.company_id) {
           profileData = { ...profileData, company_id: resolvedCompanyId };
