@@ -122,7 +122,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         );
 
         if (newProfile) {
-          setProfile(newProfile);
           // Retry context after creation
           const { data: retryContext } = await withTimeout(
             supabase.rpc('get_current_user_context' as any) as any,
@@ -130,17 +129,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           );
           const retryCtx = Array.isArray(retryContext) ? retryContext[0] : retryContext;
           if (retryCtx) {
-            console.log("[AUTH_CONTEXT_DIAG] retry ctx:", retryCtx);
-            setProfile(prev => ({ ...prev, ...retryCtx }));
-            setCompanyId(retryCtx.company_id);
-            setRoles(retryCtx.roles || []);
-            setIsAlsoCollaborator(retryCtx.is_collaborator || false);
-            setLoginModeState(retryCtx.login_mode as LoginMode || (retryCtx.is_collaborator ? null : 'admin'));
-            console.log("[AUTH_CONTEXT_DIAG] setCompanyId (retry):", retryCtx.company_id);
+            ctx = retryCtx; // Use the retried context
+          } else {
+            setProfile(newProfile);
+            setLoading(false);
+            return;
           }
+        } else {
+          setLoading(false);
+          return;
         }
-        setLoading(false);
-        return;
       }
 
       console.log("[AUTH_CONTEXT_DIAG] Mapping context to state. company_id:", ctx.company_id);
