@@ -238,7 +238,12 @@ export default function BarbershopLanding({ routeBusinessType, customSlug }: Bar
       setBusinessType(resolvedType);
 
       if (servicesRes.data) setServices(servicesRes.data as any[]);
-      if (profsRes.data) setProfessionals(profsRes.data as any[]);
+      if (profsRes.data) {
+        console.log('[LANDING] Professionals found:', profsRes.data.length);
+        setProfessionals(profsRes.data as any[]);
+      } else {
+        console.warn('[LANDING] No professionals found for company:', rpcComp.id);
+      }
       if (settingsRes.data) setCompanySettings(settingsRes.data);
 
       // EXIT LOADING AS SOON AS CRITICAL DATA IS READY
