@@ -250,7 +250,9 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
   const allowCompanySetup = new URLSearchParams(location.search).get('setup') === '1';
 
   if (!companyId) {
-    if (allowCompanySetup) {
+    const isSetupMode = new URLSearchParams(location.search).get('setup') === '1';
+    
+    if (isSetupMode) {
       return <CompanySetup onComplete={() => { window.location.replace('/dashboard'); }} />;
     }
 
@@ -260,20 +262,23 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
           <AlertTriangle className="mx-auto mb-4 h-10 w-10 text-amber-500" />
           <h1 className="text-xl font-bold">Empresa não localizada</h1>
           <p className="mt-2 text-sm text-muted-foreground">
-            Seu login foi confirmado, mas não conseguimos carregar a empresa vinculada a esta conta.
-            Para proteger seus dados, o cadastro inicial não será aberto automaticamente.
+            Seu login foi confirmado, mas não conseguimos carregar sua empresa.
+            Isso pode ocorrer se o cadastro não foi concluído ou há um problema de permissão.
           </p>
           <div className="mt-6 flex flex-col gap-2 sm:flex-row sm:justify-center">
             <Button onClick={() => window.location.reload()}>Tentar novamente</Button>
             <Button variant="outline" onClick={() => navigate('/select-company')}>Selecionar empresa</Button>
           </div>
-          <Button
-            variant="link"
-            className="mt-3"
-            onClick={() => navigate('/dashboard?setup=1')}
-          >
-            Criar uma nova empresa
-          </Button>
+          <div className="mt-4 pt-4 border-t text-xs text-muted-foreground">
+            <p>ID do Usuário: {user?.id}</p>
+            <Button
+              variant="link"
+              className="mt-2 text-xs h-auto p-0"
+              onClick={() => navigate('/dashboard?setup=1')}
+            >
+              Criar nova empresa
+            </Button>
+          </div>
         </div>
       </div>
     );
