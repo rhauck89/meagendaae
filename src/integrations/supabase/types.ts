@@ -6504,6 +6504,8 @@ export type Database = {
             }
             Returns: string
           }
+      can_access_company: { Args: { _company_id: string }; Returns: boolean }
+      can_manage_company: { Args: { _company_id: string }; Returns: boolean }
       cancel_appointment_public: {
         Args: { p_appointment_id: string }
         Returns: Json
