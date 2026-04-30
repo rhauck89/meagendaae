@@ -54,16 +54,34 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const isAuthenticated = useMemo(() => !!session, [session]);
 
   const fetchUserData = useCallback(async (userId: string, authUser?: User | null) => {
+    const withTimeout = async <T,>(promise: Promise<T>, fallback: T, ms = 6000): Promise<T> => {
+      try {
+        return await Promise.race([
+          promise,
+          new Promise<T>((resolve) => setTimeout(() => resolve(fallback), ms)),
+        ]);
+      } catch (error) {
+        console.error('[AUTH_CONTEXT] Timed query failed:', error);
+        return fallback;
+      }
+    };
+
     try {
       console.log("[AUTH_DEBUG] Fetching context for user:", userId);
 
       // Rule: Use the new centralized RPC for consistent user state
-      const { data: context, error: contextError } = await supabase.rpc('get_current_user_context');
+      const { data: context, error: contextError } = await withTimeout(
+        supabase.rpc('get_current_user_context' as any) as any,
+        { data: null, error: { message: 'get_current_user_context timeout' } } as any
+      );
 
       if (contextError) {
         console.error("[AUTH_DEBUG] RPC error fetching user context:", contextError);
         // Fallback to minimal profile if RPC fails
-        const { data: profileData } = await supabase.from('profiles').select('*').eq('user_id', userId).maybeSingle();
+        const { data: profileData } = await withTimeout(
+          supabase.from('profiles').select('*').eq('user_id', userId).maybeSingle() as any,
+          { data: null, error: { message: 'profile fallback timeout' } } as any
+        );
         if (profileData) {
           setProfile(profileData);
           setCompanyId(profileData.company_id);
@@ -71,36 +89,43 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return;
       }
 
-      if (!context || context.length === 0) {
+      const ctx = Array.isArray(context) ? context[0] : context;
+
+      if (!ctx) {
         console.warn("[AUTH_DEBUG] RPC returned empty context for user:", userId);
         
         // Auto-create profile if missing
-        const { data: newProfile, error: createError } = await supabase
-          .from('profiles')
-          .insert({ 
-            user_id: userId,
-            full_name: authUser?.user_metadata?.full_name || null 
-          })
-          .select()
-          .maybeSingle();
+        const { data: newProfile, error: createError } = await withTimeout(
+          supabase
+            .from('profiles')
+            .insert({ 
+              user_id: userId,
+              full_name: authUser?.user_metadata?.full_name || null 
+            })
+            .select()
+            .maybeSingle() as any,
+          { data: null, error: { message: 'profile creation timeout' } } as any
+        );
 
         if (newProfile) {
           setProfile(newProfile);
           // Retry context after creation
-          const { data: retryContext } = await supabase.rpc('get_current_user_context');
-          if (retryContext?.[0]) {
-            const ctx = retryContext[0];
-            setProfile(prev => ({ ...prev, ...ctx }));
-            setCompanyId(ctx.company_id);
-            setRoles(ctx.roles || []);
-            setIsAlsoCollaborator(ctx.is_collaborator || false);
-            setLoginModeState(ctx.login_mode as LoginMode || (ctx.is_collaborator ? null : 'admin'));
+          const { data: retryContext } = await withTimeout(
+            supabase.rpc('get_current_user_context' as any) as any,
+            { data: null, error: null } as any
+          );
+          const retryCtx = Array.isArray(retryContext) ? retryContext[0] : retryContext;
+          if (retryCtx) {
+            setProfile(prev => ({ ...prev, ...retryCtx }));
+            setCompanyId(retryCtx.company_id);
+            setRoles(retryCtx.roles || []);
+            setIsAlsoCollaborator(retryCtx.is_collaborator || false);
+            setLoginModeState(retryCtx.login_mode as LoginMode || (retryCtx.is_collaborator ? null : 'admin'));
           }
         }
         return;
       }
 
-      const ctx = context[0];
       console.log("[AUTH_DEBUG] Context loaded:", ctx);
 
       // Map context to Auth state
