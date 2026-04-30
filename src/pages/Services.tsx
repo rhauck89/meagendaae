@@ -1,6 +1,7 @@
 import { useEffect, useState, useMemo } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
+import { useUserRole } from '@/hooks/useUserRole';
 import { useRefreshData } from '@/hooks/useRefreshData';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent } from '@/components/ui/card';
@@ -19,6 +20,8 @@ const NO_GLOBAL_CATEGORY_VALUE = '__no_global_category__';
 
 const Services = () => {
   const { companyId } = useAuth();
+  const { isAdmin } = useUserRole();
+  const canManageServices = isAdmin;
   const queryClient = useQueryClient();
   const { refresh } = useRefreshData();
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -129,6 +132,7 @@ const Services = () => {
   };
 
   const handleSave = async () => {
+    if (!canManageServices) return toast.error('Apenas administradores podem criar ou editar serviços.');
     if (!form.name.trim()) return toast.error('Nome é obrigatório');
     if (!companyId) return toast.error('Empresa não encontrada');
 
@@ -172,6 +176,7 @@ const Services = () => {
   };
 
   const handleSaveCategory = async () => {
+    if (!canManageServices) return toast.error('Apenas administradores podem criar ou editar categorias.');
     if (!catForm.name.trim()) return toast.error('Nome é obrigatório');
     if (!companyId) return toast.error('Empresa não encontrada');
 
@@ -212,6 +217,7 @@ const Services = () => {
   };
 
   const toggleActive = async (id: string, active: boolean) => {
+    if (!canManageServices) return toast.error('Apenas administradores podem ativar ou desativar serviços.');
     const { error } = await supabase
       .from('services')
       .update({ active: !active })
@@ -227,6 +233,7 @@ const Services = () => {
   };
 
   const deleteService = async (id: string) => {
+    if (!canManageServices) return toast.error('Apenas administradores podem excluir serviços.');
     if (!confirm('Tem certeza que deseja excluir este serviço?')) return;
     const { error } = await supabase
       .from('services')
@@ -244,6 +251,7 @@ const Services = () => {
   };
 
   const deleteCategory = async (id: string) => {
+    if (!canManageServices) return toast.error('Apenas administradores podem excluir categorias.');
     const count = services.filter((s: any) => s.category_id === id).length;
     if (count > 0) {
       return toast.error(`Esta categoria possui ${count} serviços vinculados. Mova-os ou exclua-os primeiro.`);
@@ -267,6 +275,7 @@ const Services = () => {
   };
 
   const openEdit = (service: any) => {
+    if (!canManageServices) return;
     setEditing(service);
     setForm({
       name: service.name,
@@ -300,7 +309,7 @@ const Services = () => {
           <h2 className="text-2xl font-display font-bold">Serviços</h2>
           <p className="text-sm text-muted-foreground">Gerencie as categorias e serviços do seu estabelecimento</p>
         </div>
-        <div className="flex gap-2">
+        <div className={canManageServices ? "flex gap-2" : "hidden"}>
           <Dialog
             open={catDialogOpen}
             onOpenChange={(open) => {
@@ -467,7 +476,7 @@ const Services = () => {
                 )}
                 <span className="text-sm text-muted-foreground">({cat.services.length})</span>
               </div>
-              <div className="flex gap-2">
+              <div className={canManageServices ? "flex gap-2" : "hidden"}>
                 <Button variant="ghost" size="sm" onClick={() => { setEditingCat(cat); setCatForm({ name: cat.name, global_category_id: cat.global_category_id || '' }); setCatDialogOpen(true); }}>
                   <Pencil className="h-4 w-4" />
                 </Button>
@@ -485,6 +494,7 @@ const Services = () => {
                   onEdit={openEdit} 
                   onToggle={toggleActive} 
                   onDelete={deleteService} 
+                  canManage={canManageServices}
                 />
               ))}
               {cat.services.length === 0 && (
@@ -511,6 +521,7 @@ const Services = () => {
                   onEdit={openEdit} 
                   onToggle={toggleActive} 
                   onDelete={deleteService} 
+                  canManage={canManageServices}
                 />
               ))}
             </div>
@@ -531,12 +542,16 @@ const Services = () => {
   );
 };
 
-const ServiceCard = ({ service, onEdit, onToggle, onDelete }: any) => (
+const ServiceCard = ({ service, onEdit, onToggle, onDelete, canManage }: any) => (
   <Card className={!service.active ? 'opacity-50' : 'hover:shadow-md transition-shadow'}>
     <CardContent className="p-5">
       <div className="mb-3 flex items-start justify-between">
         <h3 className="text-lg font-semibold line-clamp-1">{service.name}</h3>
-        <Switch checked={service.active} onCheckedChange={() => onToggle(service.id, service.active)} />
+        {canManage ? (
+          <Switch checked={service.active} onCheckedChange={() => onToggle(service.id, service.active)} />
+        ) : (
+          <Badge variant={service.active ? 'default' : 'secondary'}>{service.active ? 'Ativo' : 'Inativo'}</Badge>
+        )}
       </div>
       <div className="mb-4 flex flex-wrap gap-4 text-sm text-muted-foreground">
         <span className="flex items-center gap-1">
@@ -546,7 +561,7 @@ const ServiceCard = ({ service, onEdit, onToggle, onDelete }: any) => (
           <DollarSign className="h-4 w-4" /> R$ {Number(service.price).toFixed(2)}
         </span>
       </div>
-      <div className="flex gap-2">
+      <div className={canManage ? "flex gap-2" : "hidden"}>
         <Button variant="outline" size="sm" className="flex-1" onClick={() => onEdit(service)}>
           <Pencil className="mr-1 h-3 w-3" /> Editar
         </Button>
