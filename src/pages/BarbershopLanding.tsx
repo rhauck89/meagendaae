@@ -204,43 +204,50 @@ export default function BarbershopLanding({ routeBusinessType, customSlug }: Bar
   const load = async () => {
     setLoading(true);
     try {
+      console.log('[LANDING] Starting load for slug:', slug);
       // 1. Critical Data: Company
       const { data: compArr, error: rpcError } = await supabase.rpc('get_company_by_slug', { _slug: slug! });
-      if (rpcError) throw rpcError;
+      
+      if (rpcError) {
+        console.error('[LANDING] RPC Error:', rpcError);
+        setLoading(false);
+        return;
+      }
       
       const rpcComp = compArr?.[0];
       if (!rpcComp) {
+        console.warn('[LANDING] Company not found for slug:', slug);
         setLoading(false);
         return;
       }
 
-      const { data: fullCompanyData, error: fullError } = await supabase.from('public_company' as any).select('*').eq('id', rpcComp.id).single();
-      if (fullError) console.warn('[LANDING] Could not fetch full company data:', fullError);
-      
-      const comp = { ...rpcComp, ...((fullCompanyData as any) || {}) };
-      setCompany(comp);
-      const resolvedType: BusinessType = routeBusinessType || comp.business_type || 'barbershop';
-      setBusinessType(resolvedType);
-
-      // 2. Critical Data: Services, Professionals, Settings
-      const [servicesRes, profsRes, settingsRes] = await Promise.all([
-        supabase.from('public_services' as any).select('*').eq('company_id', comp.id).order('name'),
-        supabase.from('public_professionals' as any).select('*').eq('company_id', comp.id).eq('active', true),
-        supabase.from('public_company_settings' as any).select('*').eq('company_id', comp.id).maybeSingle(),
+      // Fetch company data and other critical info in parallel to speed up
+      const [fullCompanyRes, servicesRes, profsRes, settingsRes] = await Promise.all([
+        supabase.from('public_company' as any).select('*').eq('id', rpcComp.id).maybeSingle(),
+        supabase.from('public_services' as any).select('*').eq('company_id', rpcComp.id).order('name'),
+        supabase.from('public_professionals' as any).select('*').eq('company_id', rpcComp.id).eq('active', true),
+        supabase.from('public_company_settings' as any).select('*').eq('company_id', rpcComp.id).maybeSingle(),
       ]);
+      
+      const companyFull = { ...rpcComp, ...(fullCompanyRes.data || {}) };
+      setCompany(companyFull);
+      
+      const resolvedType: BusinessType = routeBusinessType || companyFull.business_type || 'barbershop';
+      setBusinessType(resolvedType);
 
       if (servicesRes.data) setServices(servicesRes.data as any[]);
       if (profsRes.data) setProfessionals(profsRes.data as any[]);
       if (settingsRes.data) setCompanySettings(settingsRes.data);
 
-      // EXIT LOADING EARLY - Render main page structure
+      // EXIT LOADING AS SOON AS CRITICAL DATA IS READY
       setLoading(false);
+      console.log('[LANDING] Critical data loaded, loading set to false');
 
       // 3. Secondary Data (Non-blocking)
       // Whitelabel check
       (async () => {
         try {
-          const { data: compPlan } = await supabase.from('companies').select('plan_id').eq('id', comp.id).single();
+          const { data: compPlan } = await supabase.from('companies').select('plan_id').eq('id', companyFull.id).single();
           if (compPlan?.plan_id) {
             const { data: planData } = await supabase.from('plans').select('whitelabel').eq('id', compPlan.plan_id).single();
             if (planData?.whitelabel) setIsWhitelabel(true);
@@ -254,8 +261,8 @@ export default function BarbershopLanding({ routeBusinessType, customSlug }: Bar
       (async () => {
         try {
           const [ratingsRes, reviewsRes] = await Promise.all([
-            supabase.rpc('get_professional_ratings' as any, { p_company_id: comp.id }),
-            supabase.from('reviews').select('rating, comment, created_at, professional_id, appointment_id, review_type').eq('company_id', comp.id).order('created_at', { ascending: false }),
+            supabase.rpc('get_professional_ratings' as any, { p_company_id: companyFull.id }),
+            supabase.from('reviews').select('rating, comment, created_at, professional_id, appointment_id, review_type').eq('company_id', companyFull.id).order('created_at', { ascending: false }),
           ]);
 
           if (ratingsRes.data && Array.isArray(ratingsRes.data)) {
@@ -308,8 +315,10 @@ export default function BarbershopLanding({ routeBusinessType, customSlug }: Bar
       })();
 
     } catch (err) {
-      console.error('[LANDING] Error loading page data:', err);
-      setLoading(false); // Ensure loading is stopped on error
+      console.error('[LANDING] Unexpected error loading page data:', err);
+    } finally {
+      // Final guard to ensure loading is false
+      setLoading(false);
     }
   };
 
