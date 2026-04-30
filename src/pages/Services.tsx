@@ -14,6 +14,9 @@ import { Badge } from '@/components/ui/badge';
 import { Plus, Pencil, Trash2, Clock, DollarSign, RefreshCw, Zap, Grid3X3, FolderPlus, Tag } from 'lucide-react';
 import { toast } from 'sonner';
 
+const NO_CATEGORY_VALUE = '__no_category__';
+const NO_GLOBAL_CATEGORY_VALUE = '__no_global_category__';
+
 const Services = () => {
   const { companyId } = useAuth();
   const queryClient = useQueryClient();
@@ -325,13 +328,20 @@ const Services = () => {
                 </div>
                 <div className="space-y-2">
                   <Label>Vínculo Global (Marketplace)</Label>
-                  <Select value={catForm.global_category_id} onValueChange={(v) => setCatForm({ ...catForm, global_category_id: v })}>
+                  <Select
+                    value={catForm.global_category_id || NO_GLOBAL_CATEGORY_VALUE}
+                    onValueChange={(v) => setCatForm({
+                      ...catForm,
+                      global_category_id: v === NO_GLOBAL_CATEGORY_VALUE ? '' : v,
+                    })}
+                  >
                     <SelectTrigger>
                       <SelectValue placeholder="Selecione categoria padrão" />
                     </SelectTrigger>
                     <SelectContent>
-                      {Array.isArray(globalCategories) && globalCategories.map((gc: any) => (
-                        <SelectItem key={gc.id || 'missing-gc-id'} value={gc.id || ''}>{gc.name || 'Sem nome'}</SelectItem>
+                      <SelectItem value={NO_GLOBAL_CATEGORY_VALUE}>Sem vínculo global</SelectItem>
+                      {Array.isArray(globalCategories) && globalCategories.filter((gc: any) => Boolean(gc.id)).map((gc: any) => (
+                        <SelectItem key={gc.id} value={gc.id}>{gc.name || 'Sem nome'}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -380,15 +390,21 @@ const Services = () => {
                 
                 <div className="space-y-2">
                   <Label>Categoria</Label>
-                  <Select value={form.category_id} onValueChange={(v) => setForm({ ...form, category_id: v })}>
+                  <Select
+                    value={form.category_id || NO_CATEGORY_VALUE}
+                    onValueChange={(v) => setForm({
+                      ...form,
+                      category_id: v === NO_CATEGORY_VALUE ? '' : v,
+                    })}
+                  >
                     <SelectTrigger>
                       <SelectValue placeholder="Selecione uma categoria" />
                     </SelectTrigger>
                     <SelectContent>
-                      {Array.isArray(categories) && categories.map((cat: any) => (
-                        <SelectItem key={cat.id || 'missing-id'} value={cat.id || ''}>{cat.name || 'Sem nome'}</SelectItem>
+                      <SelectItem value={NO_CATEGORY_VALUE}>Sem Categoria</SelectItem>
+                      {Array.isArray(categories) && categories.filter((cat: any) => Boolean(cat.id)).map((cat: any) => (
+                        <SelectItem key={cat.id} value={cat.id}>{cat.name || 'Sem nome'}</SelectItem>
                       ))}
-                      <SelectItem value="">Sem Categoria</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -400,8 +416,8 @@ const Services = () => {
                       <SelectValue placeholder="Padrão para marketplace" />
                     </SelectTrigger>
                     <SelectContent>
-                      {Array.isArray(globalCategories) && globalCategories.map((gc: any) => (
-                        <SelectItem key={gc.id || 'missing-gc-id'} value={gc.id || ''}>{gc.name || 'Sem nome'}</SelectItem>
+                      {Array.isArray(globalCategories) && globalCategories.filter((gc: any) => Boolean(gc.id)).map((gc: any) => (
+                        <SelectItem key={gc.id} value={gc.id}>{gc.name || 'Sem nome'}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
