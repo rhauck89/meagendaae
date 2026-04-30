@@ -205,13 +205,15 @@ export default function BarbershopLanding({ routeBusinessType, customSlug }: Bar
       setBusinessType(resolvedType);
 
       // Whitelabel check (non-blocking)
-      supabase.from('companies').select('plan_id').eq('id', comp.id).single().then(({ data: compPlan }) => {
-        if (compPlan?.plan_id) {
-          supabase.from('plans').select('whitelabel').eq('id', compPlan.plan_id).single().then(({ data: planData }) => {
+      (async () => {
+        try {
+          const { data: compPlan } = await supabase.from('companies').select('plan_id').eq('id', comp.id).single();
+          if (compPlan?.plan_id) {
+            const { data: planData } = await supabase.from('plans').select('whitelabel').eq('id', compPlan.plan_id).single();
             if (planData?.whitelabel) setIsWhitelabel(true);
-          });
-        }
-      }).catch(() => {});
+          }
+        } catch {}
+      })();
 
       const [servicesRes, profsRes, ratingsRes, reviewsRes, settingsRes] = await Promise.all([
         supabase.from('public_services' as any).select('*').eq('company_id', comp.id).order('name'),
