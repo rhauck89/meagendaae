@@ -321,6 +321,38 @@ export default function BarbershopLanding({ routeBusinessType, customSlug }: Bar
     }
   };
 
+  const handleSubmitReview = async (rating: number, comment: string) => {
+    if (!company?.id) return;
+    setIsSubmittingReview(true);
+    try {
+      // Find a professional to tie this review to
+      const profId = professionals[0]?.id;
+      if (!profId) {
+        toast.error("Nenhum profissional disponível para registrar a avaliação.");
+        return;
+      }
+
+      const { error } = await supabase.from('reviews').insert({
+        company_id: company.id,
+        professional_id: profId,
+        rating: rating,
+        comment: comment.trim() || null,
+        review_type: 'company'
+      });
+
+      if (error) throw error;
+      toast.success("Avaliação enviada com sucesso!");
+      setIsAddReviewModalOpen(false);
+      // Refresh reviews
+      load(); 
+    } catch (err: any) {
+      toast.error(err.message || "Erro ao enviar avaliação");
+      throw err;
+    } finally {
+      setIsSubmittingReview(false);
+    }
+  };
+
   const handleShare = async () => {
     if (navigator.share) {
       try {
