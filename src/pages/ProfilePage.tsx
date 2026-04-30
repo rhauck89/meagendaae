@@ -10,7 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Star, Save, Camera, Instagram, Link2, Loader2, Copy, Check, ImagePlus } from 'lucide-react';
+import { Star, Save, Camera, Instagram, Link2, Loader2, Copy, Check, ImagePlus, Lock } from 'lucide-react';
 import { toast } from 'sonner';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -31,6 +31,11 @@ const ProfilePage = () => {
   const [cropImage, setCropImage] = useState<string | null>(null);
   const [cropMode, setCropMode] = useState<'avatar' | 'cover'>('avatar');
   const [uploadingBanner, setUploadingBanner] = useState(false);
+  const [passwordLoading, setPasswordLoading] = useState(false);
+  const [passwordForm, setPasswordForm] = useState({
+    newPassword: '',
+    confirmPassword: '',
+  });
   const [form, setForm] = useState({
     full_name: '',
     email: '',
@@ -237,6 +242,29 @@ const ProfilePage = () => {
     }
   };
 
+  const handlePasswordChange = async () => {
+    if (passwordForm.newPassword.length < 8) {
+      toast.error('A nova senha deve ter pelo menos 8 caracteres.');
+      return;
+    }
+    if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+      toast.error('As senhas não conferem.');
+      return;
+    }
+
+    setPasswordLoading(true);
+    try {
+      const { error } = await supabase.auth.updateUser({ password: passwordForm.newPassword });
+      if (error) throw error;
+      setPasswordForm({ newPassword: '', confirmPassword: '' });
+      toast.success('Senha alterada com sucesso.');
+    } catch (err: any) {
+      toast.error(err.message || 'Erro ao alterar senha.');
+    } finally {
+      setPasswordLoading(false);
+    }
+  };
+
   const renderStars = (rating: number) => {
     return Array.from({ length: 5 }, (_, i) => (
       <Star
@@ -406,6 +434,44 @@ const ProfilePage = () => {
           <Button onClick={handleSave} disabled={loading} className="w-full md:w-auto">
             <Save className="h-4 w-4 mr-2" />
             {loading ? 'Salvando...' : 'Salvar Perfil'}
+          </Button>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg font-display flex items-center gap-2">
+            <Lock className="h-5 w-5" /> Segurança
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="newPassword">Nova senha</Label>
+              <Input
+                id="newPassword"
+                type="password"
+                value={passwordForm.newPassword}
+                onChange={(e) => setPasswordForm((prev) => ({ ...prev, newPassword: e.target.value }))}
+                autoComplete="new-password"
+                placeholder="Mínimo 8 caracteres"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="confirmNewPassword">Confirmar nova senha</Label>
+              <Input
+                id="confirmNewPassword"
+                type="password"
+                value={passwordForm.confirmPassword}
+                onChange={(e) => setPasswordForm((prev) => ({ ...prev, confirmPassword: e.target.value }))}
+                autoComplete="new-password"
+                placeholder="Repita a nova senha"
+              />
+            </div>
+          </div>
+          <Button onClick={handlePasswordChange} disabled={passwordLoading}>
+            {passwordLoading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Lock className="h-4 w-4 mr-2" />}
+            {passwordLoading ? 'Alterando...' : 'Alterar senha'}
           </Button>
         </CardContent>
       </Card>
