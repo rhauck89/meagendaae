@@ -19,7 +19,7 @@ serve(async (req) => {
   );
 
   try {
-    const { email, password, fullName, type } = await req.json();
+    const { email, password, fullName, type, redirectTo } = await req.json();
 
     if (!email || !type) {
       throw new Error("Email and type are required");
@@ -62,6 +62,9 @@ serve(async (req) => {
       const { data, error } = await supabaseAdmin.auth.admin.generateLink({
         type: 'recovery',
         email: email,
+        options: {
+          redirectTo: redirectTo || `${Deno.env.get("SITE_URL") || "https://meagendae.com.br"}/reset-password`,
+        },
       });
       if (error) throw error;
       link = data.properties.action_link;
