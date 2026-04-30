@@ -236,7 +236,7 @@ export default function ProfessionalPublicProfile() {
         if (csData) setCompanySettings(csData);
       }, () => {});
 
-      // Last Booking
+      // Last Booking - Only for real clients (ignore admins/professionals)
       if (isAuthenticated) {
         supabase.auth.getUser().then(({ data: { user } }) => {
           if (user) {
