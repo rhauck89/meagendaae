@@ -167,11 +167,11 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
               .select('id')
               .eq('user_id', user.id)
               .limit(1)
-              .maybeSingle(),
+              .maybeSingle() as any,
             { data: null, error: null }
           ),
           withTimeout(
-            supabase.rpc('get_user_companies'),
+            supabase.rpc('get_user_companies') as any,
             { data: [], error: null }
           ),
           profile?.id
@@ -182,7 +182,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
                   .eq('profile_id', profile.id)
                   .eq('active', true)
                   .limit(1)
-                  .maybeSingle(),
+                  .maybeSingle() as any,
                 { data: null, error: null }
               )
             : Promise.resolve({ data: null, error: null } as any),
