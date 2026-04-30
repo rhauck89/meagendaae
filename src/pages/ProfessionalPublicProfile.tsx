@@ -83,28 +83,46 @@ export default function ProfessionalPublicProfile() {
   const load = async () => {
     setLoading(true);
     try {
+      console.log('[PROFILE] Starting load for:', slug, professionalSlug);
       // 1. Critical Data: Company
       const { data: compArr, error: compError } = await supabase.rpc('get_company_by_slug', { _slug: slug! });
-      if (compError) throw compError;
-      const comp = compArr?.[0];
-      if (!comp) {
+      if (compError) {
+        console.error('[PROFILE] RPC Error:', compError);
         setLoading(false);
         return;
       }
-
-      const { data: fullCompanyData } = await supabase.from('public_company' as any).select('*').eq('id', comp.id).single();
-      const companyFull = { ...comp, ...((fullCompanyData as any) || {}) };
-      setCompany(companyFull);
-      setBusinessType(companyFull.business_type || 'barbershop');
+      
+      const rpcComp = compArr?.[0];
+      if (!rpcComp) {
+        console.warn('[PROFILE] Company not found for slug:', slug);
+        setLoading(false);
+        return;
+      }
 
       // 2. Critical Data: Professional
-      const { data: pubProfs, error: profError } = await supabase.from('public_professionals' as any).select('*').eq('company_id', comp.id).eq('slug', professionalSlug!);
-      if (profError) throw profError;
-      const prof = (pubProfs as any[])?.[0];
-      if (!prof) {
+      const { data: pubProfs, error: profError } = await supabase.from('public_professionals' as any).select('*').eq('company_id', rpcComp.id).eq('slug', professionalSlug!);
+      if (profError) {
+        console.error('[PROFILE] Professional Fetch Error:', profError);
         setLoading(false);
         return;
       }
+      
+      const prof = (pubProfs as any[])?.[0];
+      if (!prof) {
+        console.warn('[PROFILE] Professional not found for slug:', professionalSlug);
+        setLoading(false);
+        return;
+      }
+
+      // Fetch other critical info in parallel
+      const [fullCompanyRes, spDataRes] = await Promise.all([
+        supabase.from('public_company' as any).select('*').eq('id', rpcComp.id).maybeSingle(),
+        supabase.from('service_professionals').select('service_id, price_override').eq('professional_id', prof.id),
+      ]);
+      
+      const companyFull = { ...(rpcComp as any), ...(fullCompanyRes.data as any || {}) };
+      setCompany(companyFull);
+      setBusinessType(companyFull.business_type || 'barbershop');
       setProfessional(prof);
       setProfile({ 
         bio: prof.bio, 
@@ -117,30 +135,32 @@ export default function ProfessionalPublicProfile() {
       });
 
       // 3. Critical Data: Services (for basic render)
-      const { data: spData } = await supabase.from('service_professionals').select('service_id, price_override').eq('professional_id', prof.id);
-      const svcIds = (spData || []).map((s: any) => s.service_id);
+      const spData = spDataRes.data || [];
+      const svcIds = spData.map((s: any) => s.service_id);
       if (svcIds.length > 0) {
-        const { data: svcData } = await supabase.from('public_services' as any).select('*').eq('company_id', comp.id).in('id', svcIds);
+        const { data: svcData } = await supabase.from('public_services' as any).select('*').eq('company_id', rpcComp.id).in('id', svcIds);
         const withOverrides = ((svcData as any[]) || []).map((s: any) => {
-          const ov = (spData || []).find((sp: any) => sp.service_id === s.id);
+          const ov = spData.find((sp: any) => sp.service_id === s.id);
           return ov?.price_override != null ? { ...s, price: ov.price_override } : s;
         });
         setServices(withOverrides);
       }
 
-      // EXIT LOADING EARLY - Render main profile structure
+      // EXIT LOADING AS SOON AS MAIN STRUCTURE IS READY
       setLoading(false);
+      console.log('[PROFILE] Critical data loaded, loading set to false');
 
       // 4. Secondary Data (Non-blocking)
       
       // Fetch Next Slots (Non-blocking)
+      // Call without await to allow background loading
       fetchNextSlots(companyFull, prof).catch(err => {
         console.warn('[PROFILE] Error fetching slots in background:', err);
         setSlotsLoading(false);
       });
 
       // Rating
-      supabase.rpc('get_professional_ratings' as any, { p_company_id: comp.id }).then(({ data: ratingsData }) => {
+      supabase.rpc('get_professional_ratings' as any, { p_company_id: rpcComp.id }).then(({ data: ratingsData }) => {
         if (ratingsData && Array.isArray(ratingsData)) {
           const r = (ratingsData as any[]).find((x: any) => x.professional_id === prof.id);
           if (r) setRating({ avg: Number(r.avg_rating), count: Number(r.review_count) });
@@ -199,7 +219,7 @@ export default function ProfessionalPublicProfile() {
         setCompletedCount(count || 0);
       }, () => {});
 
-      supabase.from('public_company_settings' as any).select('timezone, booking_buffer_minutes').eq('company_id', comp.id).single().then(({ data: csData }) => {
+      supabase.from('public_company_settings' as any).select('timezone, booking_buffer_minutes').eq('company_id', rpcComp.id).single().then(({ data: csData }) => {
         if (csData) setCompanySettings(csData);
       }, () => {});
 
@@ -210,7 +230,7 @@ export default function ProfessionalPublicProfile() {
             supabase
               .from('appointments')
               .select('id, start_time, total_price, professional_id, status')
-              .eq('company_id', comp.id)
+              .eq('company_id', rpcComp.id)
               .eq('user_id', user.id)
               .eq('professional_id', prof.id)
               .in('status', ['completed', 'confirmed'])
@@ -236,8 +256,10 @@ export default function ProfessionalPublicProfile() {
       }
 
     } catch (err) {
-      console.error('[PROFILE] Error loading page data:', err);
-      setLoading(false); // Ensure loading is stopped on error
+      console.error('[PROFILE] Unexpected error loading page data:', err);
+    } finally {
+      // Final guard to ensure loading is false
+      setLoading(false);
     }
   };
 

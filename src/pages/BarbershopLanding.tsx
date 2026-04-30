@@ -229,7 +229,7 @@ export default function BarbershopLanding({ routeBusinessType, customSlug }: Bar
         supabase.from('public_company_settings' as any).select('*').eq('company_id', rpcComp.id).maybeSingle(),
       ]);
       
-      const companyFull = { ...rpcComp, ...(fullCompanyRes.data || {}) };
+      const companyFull = { ...(rpcComp as any), ...(fullCompanyRes.data as any || {}) };
       setCompany(companyFull);
       
       const resolvedType: BusinessType = routeBusinessType || companyFull.business_type || 'barbershop';
