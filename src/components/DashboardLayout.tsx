@@ -103,9 +103,6 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
   // Determine if role selection dialog is needed
   const needsRoleSelection = isProfessional && isAlsoCollaborator && !loginMode;
 
-  // Determine if role selection dialog is needed
-  const needsRoleSelection = isProfessional && isAlsoCollaborator && !loginMode;
-
   const isSettingsActive = location.pathname.startsWith('/dashboard/settings');
   const isFinanceActive = location.pathname.startsWith('/dashboard/finance');
   const isProfessionalFinanceActive = location.pathname.startsWith('/dashboard/my-finance');
