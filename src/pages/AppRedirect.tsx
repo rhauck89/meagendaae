@@ -9,14 +9,15 @@ const AppRedirect = () => {
   const { user, loading, companyId, profile } = useAuth();
   const navigate = useNavigate();
   const settings = usePlatformSettings();
-  const [splashDone, setSplashDone] = useState(false);
-  const [animateIn, setAnimateIn] = useState(false);
+  const [splashDone, setSplashDone] = useState(true); // Instant finish
+  const [animateIn, setAnimateIn] = useState(true);
 
   useEffect(() => {
-    requestAnimationFrame(() => setAnimateIn(true));
-    const timer = setTimeout(() => setSplashDone(true), SPLASH_MIN_MS);
-    return () => clearTimeout(timer);
-  }, []);
+    // If we're here despite the redirect in App.tsx, navigate immediately
+    if (!loading) {
+      navigate(user ? '/dashboard' : '/auth', { replace: true });
+    }
+  }, [user, loading, navigate]);
 
   useEffect(() => {
     if (loading || !splashDone) return;
