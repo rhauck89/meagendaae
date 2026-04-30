@@ -55,22 +55,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const fetchUserData = useCallback(async (userId: string, authUser?: User | null) => {
     try {
-      console.log("[AUTH_DEBUG] Fetching data for user:", userId);
+      console.log("[AUTH_DEBUG] Fetching context for user:", userId);
 
-      const [profileRes, rolesRes] = await Promise.all([
-        supabase
-          .from('profiles')
-          .select('*')
-          .eq('user_id', userId)
-          .maybeSingle(),
-        supabase.from('user_roles').select('role').eq('user_id', userId),
-      ]);
+      // Rule: Use the new centralized RPC for consistent user state
+      const { data: context, error: contextError } = await supabase.rpc('get_current_user_context');
 
-      let profileData = profileRes.data;
-      const profileError = profileRes.error;
+      if (contextError) {
+        console.error("[AUTH_DEBUG] RPC error fetching user context:", contextError);
+        // Fallback to minimal profile if RPC fails
+        const { data: profileData } = await supabase.from('profiles').select('*').eq('user_id', userId).maybeSingle();
+        if (profileData) {
+          setProfile(profileData);
+          setCompanyId(profileData.company_id);
+        }
+        return;
+      }
 
-      if (!profileData && !profileError) {
-        console.log("[AUTH_DEBUG] Profile not found, creating for:", userId);
+      if (!context || context.length === 0) {
+        console.warn("[AUTH_DEBUG] RPC returned empty context for user:", userId);
+        
+        // Auto-create profile if missing
         const { data: newProfile, error: createError } = await supabase
           .from('profiles')
           .insert({ 
@@ -80,89 +84,50 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           .select()
           .maybeSingle();
 
-        if (createError) {
-          console.error("[AUTH_DEBUG] Error creating profile:", createError);
-        } else {
-          profileData = newProfile;
-          console.log("[AUTH_DEBUG] Profile created successfully:", profileData);
-        }
-      } else if (profileError) {
-        console.error("[AUTH_DEBUG] Error fetching profile:", profileError);
-      }
-
-      let resolvedCompanyId = profileData?.company_id ?? null;
-
-      if (!resolvedCompanyId) {
-        const [userCompaniesRes, ownedCompanyRes, collaboratorRes] = await Promise.all([
-          supabase.rpc('get_user_companies' as any),
-          supabase
-            .from('companies')
-            .select('id')
-            .eq('user_id', userId)
-            .limit(1)
-            .maybeSingle(),
-          profileData?.id
-            ? supabase
-                .from('collaborators')
-                .select('company_id')
-                .eq('profile_id', profileData.id)
-                .eq('active', true)
-                .limit(1)
-                .maybeSingle()
-            : Promise.resolve({ data: null, error: null } as any),
-        ]);
-
-        const membershipCompany = Array.isArray(userCompaniesRes.data) && userCompaniesRes.data.length > 0
-          ? userCompaniesRes.data[0]?.company_id
-          : null;
-
-        resolvedCompanyId = profileData?.company_id ?? membershipCompany ?? ownedCompanyRes.data?.id ?? collaboratorRes.data?.company_id ?? null;
-
-        if (resolvedCompanyId && profileData && !profileData.company_id) {
-          profileData = { ...profileData, company_id: resolvedCompanyId };
-        }
-      }
-
-      if (profileData) {
-        setProfile(profileData);
-        setCompanyId(resolvedCompanyId);
-        
-        if (profileData.role === 'client') {
-          // No need to await or block for global client data
-          supabase.from('clients_global').select('*').eq('user_id', userId).single().then(({ error }) => {
-            if (error) console.warn("[AUTH_DEBUG] Error fetching global client data (non-blocking):", error);
-          });
-        }
-      }
-
-      if (rolesRes.data) {
-        const mappedRoles = rolesRes.data.map((r) => r.role);
-        setRoles(mappedRoles);
-
-        const isAdminRole = mappedRoles.some(r => ['super_admin', 'professional', 'collaborator'].includes(r));
-        if (isAdminRole && profileData?.id) {
-          const { data: collabData } = await supabase
-            .from('collaborators')
-            .select('id')
-            .eq('profile_id', profileData.id)
-            .eq('active', true)
-            .limit(1);
-          
-          const hasCollabRecord = !!(collabData && collabData.length > 0);
-          setIsAlsoCollaborator(hasCollabRecord);
-
-          if (!hasCollabRecord) {
-            setLoginModeState('admin');
-          } else if (profileData.last_login_mode) {
-            setLoginModeState(profileData.last_login_mode as LoginMode);
+        if (newProfile) {
+          setProfile(newProfile);
+          // Retry context after creation
+          const { data: retryContext } = await supabase.rpc('get_current_user_context');
+          if (retryContext?.[0]) {
+            const ctx = retryContext[0];
+            setProfile(prev => ({ ...prev, ...ctx }));
+            setCompanyId(ctx.company_id);
+            setRoles(ctx.roles || []);
+            setIsAlsoCollaborator(ctx.is_collaborator || false);
+            setLoginModeState(ctx.login_mode as LoginMode || (ctx.is_collaborator ? null : 'admin'));
           }
-        } else if (mappedRoles.includes('collaborator')) {
-          setIsAlsoCollaborator(false);
-          setLoginModeState('professional');
         }
+        return;
       }
+
+      const ctx = context[0];
+      console.log("[AUTH_DEBUG] Context loaded:", ctx);
+
+      // Map context to Auth state
+      setProfile({
+        id: ctx.profile_id,
+        user_id: ctx.user_id,
+        full_name: ctx.full_name,
+        company_id: ctx.company_id,
+        last_login_mode: ctx.login_mode
+      });
+      
+      setCompanyId(ctx.company_id);
+      setRoles(ctx.roles || []);
+      setIsAlsoCollaborator(ctx.is_collaborator || false);
+
+      // Default login mode logic
+      if (ctx.is_collaborator && ctx.is_company_owner) {
+        // If both, respect last mode or wait for choice
+        setLoginModeState(ctx.login_mode as LoginMode || null);
+      } else if (ctx.is_collaborator) {
+        setLoginModeState('professional');
+      } else {
+        setLoginModeState('admin');
+      }
+
     } catch (error) {
-      console.error('[AUTH_CONTEXT] Error fetching user data:', error);
+      console.error('[AUTH_CONTEXT] Critical error fetching user data:', error);
     }
   }, []);
 

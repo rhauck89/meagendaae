@@ -105,16 +105,14 @@ const Auth = () => {
         toast.success('Login realizado com sucesso!');
         navigate('/dashboard');
 
-        // Do not block login on secondary routing checks. AuthContext/DashboardLayout
-        // will load the company state, and this avoids the login button getting stuck
-        // when a profile/company query is slow.
-        void supabase
-          .from('user_roles')
-          .select('role')
-          .eq('user_id', data.user.id)
-          .then(async ({ data: rolesData }) => {
-            const roles = rolesData?.map(r => r.role) || [];
-            if (roles.includes('super_admin')) {
+        // Secondary routing checks (non-blocking)
+        (async () => {
+          try {
+            const { data: context } = await supabase.rpc('get_current_user_context');
+            if (!context || context.length === 0) return;
+            const ctx = context[0];
+            
+            if (ctx.roles?.includes('super_admin')) {
               navigate('/super-admin');
               return;
             }
@@ -122,12 +120,11 @@ const Auth = () => {
             const { data: companies } = await supabase.rpc('get_user_companies');
             if (companies && companies.length > 1) {
               navigate('/select-company');
-            } else if (companies && companies.length === 1) {
-              await supabase.rpc('switch_active_company', { _company_id: companies[0].company_id });
             }
-          }, (secondaryError) => {
-            console.warn('[LOGIN] Secondary routing check failed:', secondaryError);
-          });
+          } catch (err) {
+            console.warn('[LOGIN] Context check failed:', err);
+          }
+        })();
       } else {
         const { data: signUpData, error: authError } = await supabase.functions.invoke('auth-handler', {
           body: {
