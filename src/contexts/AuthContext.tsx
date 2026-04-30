@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState, useCallback, useMemo } from 'react';
+import React, { createContext, useContext, useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -49,34 +49,36 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [roles, setRoles] = useState<string[]>([]);
   const [loginMode, setLoginModeState] = useState<LoginMode>(null);
   const [isAlsoCollaborator, setIsAlsoCollaborator] = useState(false);
+  const lastLoadedUserId = useRef<string | null>(null);
 
   const isAuthenticated = useMemo(() => !!session, [session]);
 
-  const fetchUserData = useCallback(async (userId: string) => {
-    // Timeout safety for user data fetch
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 10000);
-
+  const fetchUserData = useCallback(async (userId: string, authUser?: User | null) => {
     try {
       console.log("[AUTH_DEBUG] Fetching data for user:", userId);
-      const { data: { user } } = await supabase.auth.getUser();
 
-      let { data: profileData, error: profileError } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('user_id', userId)
-        .single();
+      const [profileRes, rolesRes] = await Promise.all([
+        supabase
+          .from('profiles')
+          .select('*')
+          .eq('user_id', userId)
+          .maybeSingle(),
+        supabase.from('user_roles').select('role').eq('user_id', userId),
+      ]);
 
-      if (profileError && profileError.code === 'PGRST116') {
+      let profileData = profileRes.data;
+      const profileError = profileRes.error;
+
+      if (!profileData && !profileError) {
         console.log("[AUTH_DEBUG] Profile not found, creating for:", userId);
         const { data: newProfile, error: createError } = await supabase
           .from('profiles')
           .insert({ 
             user_id: userId,
-            full_name: user?.user_metadata?.full_name || null 
+            full_name: authUser?.user_metadata?.full_name || null 
           })
           .select()
-          .single();
+          .maybeSingle();
 
         if (createError) {
           console.error("[AUTH_DEBUG] Error creating profile:", createError);
@@ -84,11 +86,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           profileData = newProfile;
           console.log("[AUTH_DEBUG] Profile created successfully:", profileData);
         }
+      } else if (profileError) {
+        console.error("[AUTH_DEBUG] Error fetching profile:", profileError);
       }
-
-      const [rolesRes] = await Promise.all([
-        supabase.from('user_roles').select('role').eq('user_id', userId),
-      ]);
 
       if (profileData) {
         setProfile(profileData);
@@ -130,8 +130,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     } catch (error) {
       console.error('[AUTH_CONTEXT] Error fetching user data:', error);
-    } finally {
-      clearTimeout(timeoutId);
     }
   }, []);
 
@@ -156,8 +154,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setUser(newUser);
 
       if (newUser) {
-        await fetchUserData(newUser.id);
+        if (lastLoadedUserId.current !== newUser.id) {
+          lastLoadedUserId.current = newUser.id;
+          await fetchUserData(newUser.id, newUser);
+        }
       } else {
+        lastLoadedUserId.current = null;
         setProfile(null);
         setCompanyId(null);
         setRoles([]);
