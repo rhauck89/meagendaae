@@ -182,11 +182,29 @@ export default function BarbershopLanding({ routeBusinessType, customSlug }: Bar
   useApplyBranding(branding);
   const T = buildThemeFromBranding(branding, isDark);
 
-  useEffect(() => { if (slug) load(); }, [slug]);
+  useEffect(() => { 
+    if (slug) {
+      load();
+      
+      // Defensive timeout: max 5 seconds for initial loading
+      const timeoutId = setTimeout(() => {
+        setLoading(prev => {
+          if (prev) {
+            console.warn('[LANDING] Loading timeout reached after 5s');
+            return false;
+          }
+          return prev;
+        });
+      }, 5000);
+
+      return () => clearTimeout(timeoutId);
+    } 
+  }, [slug]);
 
   const load = async () => {
     setLoading(true);
     try {
+      // 1. Critical Data: Company
       const { data: compArr, error: rpcError } = await supabase.rpc('get_company_by_slug', { _slug: slug! });
       if (rpcError) throw rpcError;
       
@@ -204,7 +222,22 @@ export default function BarbershopLanding({ routeBusinessType, customSlug }: Bar
       const resolvedType: BusinessType = routeBusinessType || comp.business_type || 'barbershop';
       setBusinessType(resolvedType);
 
-      // Whitelabel check (non-blocking)
+      // 2. Critical Data: Services, Professionals, Settings
+      const [servicesRes, profsRes, settingsRes] = await Promise.all([
+        supabase.from('public_services' as any).select('*').eq('company_id', comp.id).order('name'),
+        supabase.from('public_professionals' as any).select('*').eq('company_id', comp.id).eq('active', true),
+        supabase.from('public_company_settings' as any).select('*').eq('company_id', comp.id).maybeSingle(),
+      ]);
+
+      if (servicesRes.data) setServices(servicesRes.data as any[]);
+      if (profsRes.data) setProfessionals(profsRes.data as any[]);
+      if (settingsRes.data) setCompanySettings(settingsRes.data);
+
+      // EXIT LOADING EARLY - Render main page structure
+      setLoading(false);
+
+      // 3. Secondary Data (Non-blocking)
+      // Whitelabel check
       (async () => {
         try {
           const { data: compPlan } = await supabase.from('companies').select('plan_id').eq('id', comp.id).single();
@@ -212,69 +245,71 @@ export default function BarbershopLanding({ routeBusinessType, customSlug }: Bar
             const { data: planData } = await supabase.from('plans').select('whitelabel').eq('id', compPlan.plan_id).single();
             if (planData?.whitelabel) setIsWhitelabel(true);
           }
-        } catch {}
+        } catch (err) {
+          console.warn('[LANDING] Error checking whitelabel:', err);
+        }
       })();
 
-      const [servicesRes, profsRes, ratingsRes, reviewsRes, settingsRes] = await Promise.all([
-        supabase.from('public_services' as any).select('*').eq('company_id', comp.id).order('name'),
-        supabase.from('public_professionals' as any).select('*').eq('company_id', comp.id).eq('active', true),
-        supabase.rpc('get_professional_ratings' as any, { p_company_id: comp.id }),
-        supabase.from('reviews').select('rating, comment, created_at, professional_id, appointment_id, review_type').eq('company_id', comp.id).order('created_at', { ascending: false }),
-        supabase.from('public_company_settings' as any).select('*').eq('company_id', comp.id).maybeSingle(),
-      ]);
+      // Ratings and Reviews
+      (async () => {
+        try {
+          const [ratingsRes, reviewsRes] = await Promise.all([
+            supabase.rpc('get_professional_ratings' as any, { p_company_id: comp.id }),
+            supabase.from('reviews').select('rating, comment, created_at, professional_id, appointment_id, review_type').eq('company_id', comp.id).order('created_at', { ascending: false }),
+          ]);
 
-      if (servicesRes.data) setServices(servicesRes.data as any[]);
-      if (profsRes.data) setProfessionals(profsRes.data as any[]);
-      if (settingsRes.data) setCompanySettings(settingsRes.data);
-      
-      if (ratingsRes.data && Array.isArray(ratingsRes.data)) {
-        const map: Record<string, { avg: number; count: number }> = {};
-        for (const r of ratingsRes.data as any[]) {
-          map[r.professional_id] = { avg: Number(r.avg_rating), count: Number(r.review_count) };
-        }
-        setProfessionalRatings(map);
-      }
-
-      let enrichedReviews: any[] = [];
-      if (reviewsRes.data && reviewsRes.data.length > 0) {
-        // Enriched reviews logic... (abbreviated for the replace tool)
-        const appointmentIds = reviewsRes.data.filter((r: any) => r.appointment_id).map((r: any) => r.appointment_id);
-        let clientNameMap: Record<string, string> = {};
-        if (appointmentIds.length > 0) {
-          const { data: appts } = await supabase.from('appointments').select('id, client_name, client_id').in('id', appointmentIds);
-          if (appts) {
-            const clientIds = appts.filter((a: any) => a.client_id).map((a: any) => a.client_id);
-            let clientNames: Record<string, string> = {};
-            if (clientIds.length > 0) {
-              const { data: clients } = await supabase.from('clients').select('id, name').in('id', clientIds);
-              if (clients) for (const c of clients) clientNames[c.id] = c.name;
+          if (ratingsRes.data && Array.isArray(ratingsRes.data)) {
+            const map: Record<string, { avg: number; count: number }> = {};
+            for (const r of ratingsRes.data as any[]) {
+              map[r.professional_id] = { avg: Number(r.avg_rating), count: Number(r.review_count) };
             }
-            for (const a of appts) {
-              const name = a.client_name || clientNames[a.client_id] || null;
-              if (name) clientNameMap[a.id] = name;
-            }
+            setProfessionalRatings(map);
           }
+
+          if (reviewsRes.data && reviewsRes.data.length > 0) {
+            const appointmentIds = reviewsRes.data.filter((r: any) => r.appointment_id).map((r: any) => r.appointment_id);
+            let clientNameMap: Record<string, string> = {};
+            
+            if (appointmentIds.length > 0) {
+              const { data: appts } = await supabase.from('appointments').select('id, client_name, client_id').in('id', appointmentIds);
+              if (appts) {
+                const clientIds = appts.filter((a: any) => a.client_id).map((a: any) => a.client_id);
+                let clientNames: Record<string, string> = {};
+                if (clientIds.length > 0) {
+                  const { data: clients } = await supabase.from('clients').select('id, name').in('id', clientIds);
+                  if (clients) for (const c of clients) clientNames[c.id] = c.name;
+                }
+                for (const a of appts) {
+                  const name = a.client_name || clientNames[a.client_id] || null;
+                  if (name) clientNameMap[a.id] = name;
+                }
+              }
+            }
+
+            const enrichedReviews = reviewsRes.data.map((r: any) => ({
+              ...r,
+              client_display_name: r.appointment_id && clientNameMap[r.appointment_id] ? formatReviewerName(clientNameMap[r.appointment_id]) : null,
+            }));
+
+            const companyReviews = enrichedReviews.filter((r: any) => r.review_type === 'company');
+            if (companyReviews.length > 0) {
+              const avg = companyReviews.reduce((sum: number, r: any) => sum + Number(r.rating), 0) / companyReviews.length;
+              setCompanyStats({ avgRating: avg, reviewCount: companyReviews.length });
+            } else {
+              setCompanyStats({ avgRating: 0, reviewCount: 0 });
+            }
+
+            setAllReviewsList(companyReviews);
+            setReviews(companyReviews.slice(0, 3));
+          }
+        } catch (err) {
+          console.warn('[LANDING] Error loading secondary reviews data:', err);
         }
-        enrichedReviews = reviewsRes.data.map((r: any) => ({
-          ...r,
-          client_display_name: r.appointment_id && clientNameMap[r.appointment_id] ? formatReviewerName(clientNameMap[r.appointment_id]) : null,
-        }));
-      }
+      })();
 
-      const companyReviews = enrichedReviews.filter((r: any) => r.review_type === 'company');
-      if (companyReviews.length > 0) {
-        const avg = companyReviews.reduce((sum: number, r: any) => sum + Number(r.rating), 0) / companyReviews.length;
-        setCompanyStats({ avgRating: avg, reviewCount: companyReviews.length });
-      } else {
-        setCompanyStats({ avgRating: 0, reviewCount: 0 });
-      }
-
-      setAllReviewsList(companyReviews);
-      setReviews(companyReviews.slice(0, 3));
     } catch (err) {
       console.error('[LANDING] Error loading page data:', err);
-    } finally {
-      setLoading(false);
+      setLoading(false); // Ensure loading is stopped on error
     }
   };
 
