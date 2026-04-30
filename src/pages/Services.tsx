@@ -111,12 +111,10 @@ const Services = () => {
     if (!name.trim() || !globalCategories?.length) return '';
     const normalized = name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
     
-    // Exact match by slug or name
     let match = globalCategories.find((gc: any) => 
       normalized === gc.slug || normalized === gc.name.toLowerCase()
     );
 
-    // Partial match (keyword)
     if (!match) {
       match = globalCategories
         .filter((gc: any) => gc.slug !== 'outros')
@@ -170,7 +168,6 @@ const Services = () => {
     }
   };
 
-
   const handleSaveCategory = async () => {
     if (!catForm.name.trim()) return toast.error('Nome é obrigatório');
     if (!companyId) return toast.error('Empresa não encontrada');
@@ -210,7 +207,6 @@ const Services = () => {
       setCatSaving(false);
     }
   };
-
 
   const toggleActive = async (id: string, active: boolean) => {
     const { error } = await supabase
@@ -334,8 +330,8 @@ const Services = () => {
                       <SelectValue placeholder="Selecione categoria padrão" />
                     </SelectTrigger>
                     <SelectContent>
-                      {globalCategories.map((gc: any) => (
-                        <SelectItem key={gc.id} value={gc.id}>{gc.name}</SelectItem>
+                      {Array.isArray(globalCategories) && globalCategories.map((gc: any) => (
+                        <SelectItem key={gc.id || 'missing-gc-id'} value={gc.id || ''}>{gc.name || 'Sem nome'}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -344,7 +340,6 @@ const Services = () => {
                 <Button onClick={handleSaveCategory} className="w-full" disabled={catSaving}>
                   {catSaving ? 'Salvando...' : editingCat ? 'Salvar' : 'Criar'}
                 </Button>
-
               </div>
             </DialogContent>
           </Dialog>
@@ -373,10 +368,11 @@ const Services = () => {
                     onChange={(e) => {
                       const newName = e.target.value;
                       const updates: any = { name: newName };
-                      if (!form.global_category_id || form.global_category_id === (globalCategories.find((gc: any) => gc.slug === 'outros')?.id)) {
+                      const outrosId = globalCategories?.find((gc: any) => gc.slug === 'outros')?.id;
+                      if (!form.global_category_id || (outrosId && form.global_category_id === outrosId)) {
                         updates.global_category_id = getSmartSuggestion(newName);
                       }
-                      setForm({ ...form, ...updates });
+                      setForm(prev => ({ ...prev, ...updates }));
                     }}
                     placeholder="Ex: Corte masculino"
                   />
@@ -389,8 +385,8 @@ const Services = () => {
                       <SelectValue placeholder="Selecione uma categoria" />
                     </SelectTrigger>
                     <SelectContent>
-                      {categories.map((cat: any) => (
-                        <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
+                      {Array.isArray(categories) && categories.map((cat: any) => (
+                        <SelectItem key={cat.id || 'missing-id'} value={cat.id || ''}>{cat.name || 'Sem nome'}</SelectItem>
                       ))}
                       <SelectItem value="">Sem Categoria</SelectItem>
                     </SelectContent>
@@ -404,8 +400,8 @@ const Services = () => {
                       <SelectValue placeholder="Padrão para marketplace" />
                     </SelectTrigger>
                     <SelectContent>
-                      {globalCategories.map((gc: any) => (
-                        <SelectItem key={gc.id} value={gc.id}>{gc.name}</SelectItem>
+                      {Array.isArray(globalCategories) && globalCategories.map((gc: any) => (
+                        <SelectItem key={gc.id || 'missing-gc-id'} value={gc.id || ''}>{gc.name || 'Sem nome'}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -435,7 +431,6 @@ const Services = () => {
                 <Button onClick={handleSave} className="w-full" disabled={saving}>
                   {saving ? 'Salvando...' : editing ? 'Salvar' : 'Criar'}
                 </Button>
-
               </div>
             </DialogContent>
           </Dialog>
