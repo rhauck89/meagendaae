@@ -15,16 +15,14 @@ clientsClaim();
 cleanupOutdatedCaches();
 precacheAndRoute(self.__WB_MANIFEST);
 
-// Runtime caching: Supabase API
+// Runtime caching: images (more important than API caching for offline)
 registerRoute(
-  ({ url }) => url.hostname.includes('supabase.co'),
-  new NetworkFirst({
-    cacheName: 'supabase-api',
-    plugins: [new ExpirationPlugin({ maxEntries: 50, maxAgeSeconds: 300 })],
+  ({ request }) => request.destination === 'image',
+  new StaleWhileRevalidate({
+    cacheName: 'images',
+    plugins: [new ExpirationPlugin({ maxEntries: 100, maxAgeSeconds: 60 * 60 * 24 * 30 })],
   })
 );
-
-// Runtime caching: images
 registerRoute(
   ({ request }) => request.destination === 'image',
   new StaleWhileRevalidate({
