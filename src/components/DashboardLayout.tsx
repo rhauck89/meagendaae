@@ -66,6 +66,11 @@ const financeSubItems = [
   { href: '/dashboard/finance/reports', icon: FileBarChart, label: 'Relatórios' },
 ];
 
+const professionalFinanceSubItems = [
+  { href: '/dashboard/my-finance', icon: DollarSign, label: 'Resumo' },
+  { href: '/dashboard/my-finance/commissions', icon: Percent, label: 'ComissÃµes' },
+];
+
 const allProfessionalNavItems = [
   { href: '/dashboard', icon: Calendar, label: 'Minha Agenda', permKey: null },
   { href: '/dashboard/services', icon: Scissors, label: 'Meus Serviços', permKey: null },
@@ -73,7 +78,6 @@ const allProfessionalNavItems = [
   { href: '/dashboard/promotions', icon: Megaphone, label: 'Promoções', permKey: 'promotions' as const },
   { href: '/dashboard/events', icon: PartyPopper, label: 'Agenda Aberta', permKey: 'events' as const },
   { href: '/dashboard/solicitacoes', icon: Inbox, label: 'Solicitações', permKey: 'requests' as const },
-  { href: '/dashboard/my-finance', icon: DollarSign, label: 'Financeiro', permKey: 'finance' as const },
 ];
 
 const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
@@ -102,8 +106,10 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
 
   const isSettingsActive = location.pathname.startsWith('/dashboard/settings');
   const isFinanceActive = location.pathname.startsWith('/dashboard/finance');
+  const isProfessionalFinanceActive = location.pathname.startsWith('/dashboard/my-finance');
   const [settingsOpen, setSettingsOpen] = useState(isSettingsActive);
   const [financeOpen, setFinanceOpen] = useState(isFinanceActive);
+  const [professionalFinanceOpen, setProfessionalFinanceOpen] = useState(isProfessionalFinanceActive);
 
   const professionalNavItems = allProfessionalNavItems.filter(item => {
     if (!item.permKey) return true;
@@ -283,6 +289,10 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
       const sub = financeSubItems.find(i => location.pathname === i.href);
       return sub ? `Financeiro / ${sub.label}` : 'Financeiro';
     }
+    if (isProfessionalFinanceActive) {
+      const sub = professionalFinanceSubItems.find(i => location.pathname === i.href);
+      return sub ? `Financeiro / ${sub.label}` : 'Financeiro';
+    }
     return navItems.find(i => location.pathname === i.href || (i.href !== '/dashboard' && location.pathname.startsWith(i.href)))?.label
       || (location.pathname === '/dashboard/profile' ? 'Meu Perfil' : location.pathname === '/dashboard/support' ? 'Suporte' : 'Dashboard');
   })();
@@ -398,6 +408,8 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
 
               {isAdmin && renderCollapsibleGroup('Financeiro', DollarSign, isFinanceActive, financeOpen, setFinanceOpen, financeSubItems)}
               {isAdmin && renderCollapsibleGroup('Configurações', Settings, isSettingsActive, settingsOpen, setSettingsOpen, settingsSubItems)}
+
+              {!isAdmin && profPerms.finance && renderCollapsibleGroup('Financeiro', DollarSign, isProfessionalFinanceActive, professionalFinanceOpen, setProfessionalFinanceOpen, professionalFinanceSubItems)}
 
               {!isAdmin && (
                 <>
