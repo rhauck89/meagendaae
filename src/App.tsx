@@ -61,7 +61,7 @@ import { installGlobalErrorHandlers } from "./lib/error-handler";
 installGlobalErrorHandlers();
 
 import NotFound from "./pages/NotFound";
-import AppRedirect from "./pages/AppRedirect";
+// AppRedirect removed while PWA is disabled
 import CompanySelector from "./pages/CompanySelector";
 import AppointmentRequests from "./pages/AppointmentRequests";
 import ClientPortal from "./pages/ClientPortal";
@@ -111,8 +111,8 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 
   // Se o usuário está autenticado mas o profile sumiu (inconsistência crítica)
   if (!profile) {
-    console.log("[AUTH_CHECK] User authenticated but profile missing. Redirecting to app...");
-    return <Navigate to="/app" replace />;
+    console.error("[AUTH_CHECK] User authenticated but profile missing. Redirecting to auth for clean session...");
+    return <Navigate to="/auth" replace />;
   }
 
   return <>{children}</>;
@@ -145,7 +145,7 @@ const TenantRoutes = ({ slug, businessType }: { slug: string; businessType: stri
 
 const PlatformRoutes = () => (
   <Routes>
-    <Route path="/app" element={<AppRedirect />} />
+    <Route path="/app" element={<Navigate to="/dashboard" replace />} />
     <Route path="/" element={<MarketplaceHome />} />
     <Route path="/profissionais" element={<LandingProfissionais />} />
     <Route path="/barbeiros" element={<MarketplaceCategory />} />
