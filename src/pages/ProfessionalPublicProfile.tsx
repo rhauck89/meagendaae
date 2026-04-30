@@ -1,3 +1,4 @@
+// Last synced: 2026-04-30 16:35 BRT
 import { useEffect, useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
