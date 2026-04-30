@@ -294,6 +294,7 @@ const Team = () => {
       return toast.error('Empresa não encontrada');
     }
 
+    setLoadingAction('creating');
     try {
       const tempPassword = `${crypto.randomUUID().slice(0, 8)}A1!`;
       const professionalSlug = generateSlug(form.name);
@@ -301,10 +302,8 @@ const Team = () => {
       const bookingMode = form.schedule_from_company ? (company?.booking_mode || 'hybrid') : form.booking_mode;
       const gridInterval = form.schedule_from_company ? (company?.fixed_slot_interval || 15) : form.grid_interval;
 
-      // Derive legacy fields from the new unified business model so the
-      // existing financial engine and edge function keep working unchanged.
       const legacy = deriveLegacyFields(wizardBM);
-      const paymentType = legacy.commission_type; // 'percentage' | 'fixed' | 'none' | 'own_revenue'
+      const paymentType = legacy.commission_type;
 
       const response = await supabase.functions.invoke('create-collaborator', {
         body: {
@@ -315,7 +314,6 @@ const Team = () => {
           collaborator_type: legacy.collaborator_type,
           payment_type: paymentType,
           commission_value: legacy.commission_value,
-          // New unified business model fields (forwarded so DB stores the user's choice)
           business_model: wizardBM.business_model,
           partner_revenue_mode: wizardBM.partner_revenue_mode,
           partner_equity_percent: wizardBM.partner_equity_percent || 0,
@@ -361,9 +359,13 @@ const Team = () => {
       toast.success('Profissional adicionado com sucesso!');
       await refreshTeam();
     } catch (err: any) {
+      console.error('[TEAM] Error adding collaborator:', err);
       toast.error(err.message || 'Erro ao criar colaborador');
+    } finally {
+      setLoadingAction(null);
     }
   };
+
 
   const handleSendInvite = async (collaborator: any) => {
     const email = collaborator.profile?.email;
