@@ -170,10 +170,13 @@ const Services = () => {
   };
 
 
+  const [catSaving, setCatSaving] = useState(false);
+
   const handleSaveCategory = async () => {
     if (!catForm.name.trim()) return toast.error('Nome é obrigatório');
     if (!companyId) return toast.error('Empresa não encontrada');
 
+    setCatSaving(true);
     try {
       if (editingCat) {
         const { error } = await supabase
@@ -202,9 +205,13 @@ const Services = () => {
       setCatForm({ name: '', global_category_id: '' });
       await refreshAll();
     } catch (err: any) {
+      console.error('[SERVICES] Error saving category:', err);
       toast.error(err.message || 'Erro ao salvar categoria');
+    } finally {
+      setCatSaving(false);
     }
   };
+
 
   const toggleActive = async (id: string, active: boolean) => {
     const { error } = await supabase
