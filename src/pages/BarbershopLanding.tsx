@@ -780,7 +780,7 @@ export default function BarbershopLanding({ routeBusinessType, customSlug }: Bar
 
         {/* Reviews */}
         {reviews.length > 0 && (
-          <section className="space-y-4">
+          <section id="avaliacoes" className="space-y-4">
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-bold flex items-center gap-2" style={{ color: T.text }}>
                 <Star className="w-5 h-5" style={{ color: T.accent }} />
