@@ -1483,8 +1483,10 @@ const Dashboard = () => {
           </Button>
         </CardContent>
       </Card>
+      )}
 
       {/* Manual appointment button */}
+
       <div className="flex justify-end">
         <Button className="gap-2" onClick={() => setManualAppointmentOpen(true)}>
           <CalendarIcon className="h-4 w-4" /> Agendar manualmente
