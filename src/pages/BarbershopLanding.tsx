@@ -966,6 +966,124 @@ export default function BarbershopLanding({ routeBusinessType, customSlug }: Bar
           </button>
         </div>
       </nav>
+      {/* Services Drawer */}
+      <Drawer open={isServicesDrawerOpen} onOpenChange={setIsServicesDrawerOpen}>
+        <DrawerContent className="max-h-[85vh]">
+          <DrawerHeader>
+            <DrawerTitle>Nossos Serviços</DrawerTitle>
+            <DrawerDescription>Escolha o serviço desejado para agendar</DrawerDescription>
+          </DrawerHeader>
+          <div className="overflow-y-auto px-4 pb-8 space-y-6">
+            {groupedServices.map(([cat, list]) => (
+              <div key={cat} className="space-y-3">
+                <h3 className="font-bold text-sm opacity-60 uppercase tracking-wider">{cat}</h3>
+                <div className="grid gap-2">
+                  {list.map(svc => (
+                    <button
+                      key={svc.id}
+                      onClick={() => {
+                        setIsServicesDrawerOpen(false);
+                        navigate(`/${bookingBasePath}/${slug}/agendar?service=${svc.id}`);
+                      }}
+                      className="flex items-center justify-between p-4 rounded-xl border text-left"
+                      style={{ background: T.card, borderColor: T.border }}
+                    >
+                      <div>
+                        <p className="font-bold" style={{ color: T.text }}>{svc.name}</p>
+                        <p className="text-xs opacity-60" style={{ color: T.textSec }}>{svc.duration_minutes} min</p>
+                      </div>
+                      <p className="font-bold" style={{ color: T.accent }}>R$ {Number(svc.price).toFixed(2)}</p>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </DrawerContent>
+      </Drawer>
+
+      {/* Team Drawer */}
+      <Drawer open={isTeamDrawerOpen} onOpenChange={setIsTeamDrawerOpen}>
+        <DrawerContent className="max-h-[85vh]">
+          <DrawerHeader>
+            <DrawerTitle>Nossa Equipe</DrawerTitle>
+            <DrawerDescription>Escolha um profissional para ver a agenda</DrawerDescription>
+          </DrawerHeader>
+          <div className="grid grid-cols-2 gap-3 px-4 pb-8 overflow-y-auto">
+            {professionals.map((prof: any) => (
+              <button
+                key={prof.id}
+                onClick={() => {
+                  setIsTeamDrawerOpen(false);
+                  navigate(`/${bookingBasePath}/${slug}/${prof.slug}`);
+                }}
+                className="flex flex-col items-center p-4 rounded-2xl border text-center gap-2"
+                style={{ background: T.card, borderColor: T.border }}
+              >
+                <div className="w-16 h-16 rounded-full overflow-hidden border-2" style={{ borderColor: T.accent }}>
+                  {prof.avatar_url ? (
+                    <img src={prof.avatar_url} alt={prof.name} className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center font-bold text-xl" style={{ background: `${T.accent}20`, color: T.accent }}>
+                      {prof.name.charAt(0)}
+                    </div>
+                  )}
+                </div>
+                <div>
+                  <p className="font-bold text-sm" style={{ color: T.text }}>{prof.name}</p>
+                  <p className="text-xs opacity-60" style={{ color: T.textSec }}>{prof.specialty || 'Profissional'}</p>
+                </div>
+              </button>
+            ))}
+          </div>
+        </DrawerContent>
+      </Drawer>
+
+      {/* Reviews Drawer */}
+      <Drawer open={isReviewsDrawerOpen} onOpenChange={setIsReviewsDrawerOpen}>
+        <DrawerContent className="max-h-[85vh]">
+          <DrawerHeader className="flex flex-row items-center justify-between">
+            <div className="text-left">
+              <DrawerTitle>Avaliações</DrawerTitle>
+              <DrawerDescription>{allReviewsList.length} depoimentos de clientes</DrawerDescription>
+            </div>
+            <Button 
+              size="sm" 
+              className="rounded-full" 
+              style={{ background: T.accent, color: '#000' }}
+              onClick={() => {
+                setIsReviewsDrawerOpen(false);
+                setIsAddReviewModalOpen(true);
+              }}
+            >
+              Avaliar
+            </Button>
+          </DrawerHeader>
+          <div className="px-4 pb-8 overflow-y-auto space-y-4">
+            {allReviewsList.map((rev: any, i: number) => (
+              <div key={i} className="p-4 rounded-2xl border space-y-2 text-left" style={{ background: T.card, borderColor: T.border }}>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs" style={{ background: `${T.accent}20`, color: T.accent }}>
+                      {(rev.client_display_name || 'C').charAt(0)}
+                    </div>
+                    <span className="font-bold text-sm" style={{ color: T.text }}>{rev.client_display_name || 'Cliente'}</span>
+                  </div>
+                  <div className="flex gap-0.5">
+                    {[1,2,3,4,5].map(s => <Star key={s} className={cn("w-3 h-3", s <= rev.rating ? "fill-yellow-400 text-yellow-400" : "opacity-20")} />)}
+                  </div>
+                </div>
+                <p className="text-sm italic opacity-80" style={{ color: T.text }}>"{rev.comment || 'Excelente!'}"</p>
+                <p className="text-[10px] opacity-40 text-right" style={{ color: T.textSec }}>{format(new Date(rev.created_at), 'dd/MM/yyyy')}</p>
+              </div>
+            ))}
+            {allReviewsList.length === 0 && (
+              <p className="text-center py-8 opacity-60" style={{ color: T.textSec }}>Nenhuma avaliação ainda.</p>
+            )}
+          </div>
+        </DrawerContent>
+      </Drawer>
+
       <IdentityModal
         isOpen={showIdentityModal}
         onClose={() => setShowIdentityModal(false)}
