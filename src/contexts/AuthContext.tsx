@@ -136,10 +136,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const updateAuthState = useCallback(async (newSession: Session | null) => {
-    console.log('[AUTH_CONTEXT] Manual updateAuthState triggered', { hasSession: !!newSession });
+    const newUser = newSession?.user ?? null;
+    
+    // Avoid redundant updates if user is the same
+    if (newUser?.id === user?.id && !!newUser === !!user && session?.access_token === newSession?.access_token) {
+      console.log('[AUTH_CONTEXT] Skipping redundant updateAuthState');
+      setLoading(false);
+      return;
+    }
+
+    console.log('[AUTH_CONTEXT] updateAuthState triggered', { 
+      event: 'manual/hook', 
+      hasUser: !!newUser,
+      userId: newUser?.id 
+    });
+
     try {
       setSession(newSession);
-      const newUser = newSession?.user ?? null;
       setUser(newUser);
 
       if (newUser) {
@@ -156,7 +169,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } finally {
       setLoading(false);
     }
-  }, [fetchUserData]);
+  }, [user?.id, session?.access_token, fetchUserData]);
+
 
   useEffect(() => {
     let cancelled = false;
