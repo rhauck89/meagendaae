@@ -2,8 +2,9 @@ import { createRoot } from "react-dom/client";
 import { registerSW } from 'virtual:pwa-register';
 import App from "./App.tsx";
 import "./index.css";
+import { ENABLE_PUSH_NOTIFICATIONS } from "@/lib/constants";
 
-// Prevent SW issues in Lovable preview/iframe
+// Prevent SW issues in Lovable preview/iframe or if manually disabled
 const isInIframe = (() => {
   try {
     return window.self !== window.top;
@@ -16,17 +17,34 @@ const isPreviewHost =
   window.location.hostname.includes("id-preview--") ||
   window.location.hostname.includes("lovableproject.com");
 
-if (isPreviewHost || isInIframe) {
-  navigator.serviceWorker?.getRegistrations().then((registrations) => {
-    registrations.forEach((r) => r.unregister());
-  });
+const shouldDisableSW = isPreviewHost || isInIframe || !ENABLE_PUSH_NOTIFICATIONS;
+
+if (shouldDisableSW) {
+  // Actively unregister any service worker if it shouldn't be here
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.getRegistrations().then((registrations) => {
+      registrations.forEach((r) => {
+        console.log('[PWA] Unregistering service worker:', r.scope);
+        r.unregister();
+      });
+    });
+    
+    // Also clear caches to prevent stale files if we're disabling PWA
+    if (!ENABLE_PUSH_NOTIFICATIONS) {
+      window.caches?.keys().then((names) => {
+        for (const name of names) {
+          console.log('[PWA] Clearing cache:', name);
+          window.caches.delete(name);
+        }
+      });
+    }
+  }
 } else {
   // Register Service Worker in production - non-blocking
   window.addEventListener('load', () => {
     registerSW({
       onNeedRefresh() {
         console.log('Nova versão disponível. Recarregando...');
-        // Only reload if we're not in the middle of a critical action
         if (!window.location.pathname.includes('/auth')) {
           window.location.reload();
         }
@@ -39,17 +57,16 @@ if (isPreviewHost || isInIframe) {
 }
 
 // Dynamically load manifest from edge function and update meta tags
-// Moved inside a safe check to never block app execution
 const initializePWA = async () => {
+  if (shouldDisableSW) return;
+  
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-  if (!supabaseUrl || isPreviewHost || isInIframe) return;
+  if (!supabaseUrl) return;
 
   try {
-    // Remove static manifest link to avoid conflicts with dynamic one
     const existingManifest = document.querySelector<HTMLLinkElement>('link[rel="manifest"]');
     if (existingManifest) existingManifest.remove();
 
-    // Use a timeout for the fetch to ensure it doesn't hang the app
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 5000);
 
@@ -59,14 +76,12 @@ const initializePWA = async () => {
     if (!r.ok) return;
     const manifest = await r.json();
 
-    // Create dynamic manifest link
     const link = document.createElement("link");
     link.rel = "manifest";
     const blob = new Blob([JSON.stringify(manifest)], { type: "application/manifest+json" });
     link.href = URL.createObjectURL(blob);
     document.head.appendChild(link);
 
-    // Update meta tags
     const themeMeta = document.querySelector<HTMLMetaElement>('meta[name="theme-color"]');
     if (themeMeta && manifest.theme_color) themeMeta.content = manifest.theme_color;
 
@@ -80,8 +95,7 @@ const initializePWA = async () => {
   }
 };
 
-// Run PWA initialization without blocking main thread
-if (typeof window !== 'undefined') {
+if (typeof window !== 'undefined' && !shouldDisableSW) {
   if (document.readyState === 'complete') {
     initializePWA();
   } else {
@@ -90,3 +104,4 @@ if (typeof window !== 'undefined') {
 }
 
 createRoot(document.getElementById("root")!).render(<App />);
+

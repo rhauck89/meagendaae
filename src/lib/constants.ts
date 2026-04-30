@@ -1,0 +1,2 @@
+export const ENABLE_PUSH_NOTIFICATIONS = false;
+export const PWA_INITIALIZATION_TIMEOUT = 5000;

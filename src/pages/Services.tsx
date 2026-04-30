@@ -124,10 +124,13 @@ const Services = () => {
     return match?.id || globalCategories.find((gc: any) => gc.slug === 'outros')?.id || '';
   };
 
+  const [saving, setSaving] = useState(false);
+
   const handleSave = async () => {
     if (!form.name.trim()) return toast.error('Nome é obrigatório');
     if (!companyId) return toast.error('Empresa não encontrada');
 
+    setSaving(true);
     try {
       const serviceData = {
         company_id: companyId,
@@ -159,14 +162,21 @@ const Services = () => {
       resetForm();
       await refreshAll();
     } catch (err: any) {
+      console.error('[SERVICES] Error saving service:', err);
       toast.error(err.message || 'Erro ao salvar serviço');
+    } finally {
+      setSaving(false);
     }
   };
+
+
+  const [catSaving, setCatSaving] = useState(false);
 
   const handleSaveCategory = async () => {
     if (!catForm.name.trim()) return toast.error('Nome é obrigatório');
     if (!companyId) return toast.error('Empresa não encontrada');
 
+    setCatSaving(true);
     try {
       if (editingCat) {
         const { error } = await supabase
@@ -195,9 +205,13 @@ const Services = () => {
       setCatForm({ name: '', global_category_id: '' });
       await refreshAll();
     } catch (err: any) {
+      console.error('[SERVICES] Error saving category:', err);
       toast.error(err.message || 'Erro ao salvar categoria');
+    } finally {
+      setCatSaving(false);
     }
   };
+
 
   const toggleActive = async (id: string, active: boolean) => {
     const { error } = await supabase
@@ -322,9 +336,10 @@ const Services = () => {
                   </Select>
                   <p className="text-[10px] text-muted-foreground italic">Ajuda a organizar seus serviços no marketplace</p>
                 </div>
-                <Button onClick={handleSaveCategory} className="w-full">
-                  {editingCat ? 'Salvar' : 'Criar'}
+                <Button onClick={handleSaveCategory} className="w-full" disabled={catSaving}>
+                  {catSaving ? 'Salvando...' : editingCat ? 'Salvar' : 'Criar'}
                 </Button>
+
               </div>
             </DialogContent>
           </Dialog>
@@ -412,9 +427,10 @@ const Services = () => {
                     />
                   </div>
                 </div>
-                <Button onClick={handleSave} className="w-full">
-                  {editing ? 'Salvar' : 'Criar'}
+                <Button onClick={handleSave} className="w-full" disabled={saving}>
+                  {saving ? 'Salvando...' : editing ? 'Salvar' : 'Criar'}
                 </Button>
+
               </div>
             </DialogContent>
           </Dialog>

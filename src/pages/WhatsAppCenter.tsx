@@ -86,9 +86,9 @@ export default function WhatsAppCenter() {
   const [logs, setLogs] = useState<WhatsAppLog[]>([]);
   const [metrics, setMetrics] = useState<WhatsAppMetric[]>([]);
 
-  const reload = async () => {
+  const reload = async (silent = false) => {
     if (!companyId) return;
-    setLoading(true);
+    if (!silent) setLoading(true);
     try {
       const [i, a, t, l, m] = await Promise.all([
         getInstance(companyId),
@@ -103,17 +103,19 @@ export default function WhatsAppCenter() {
       setLogs(l);
       setMetrics(m);
     } catch (e) {
+      console.error('[WHATSAPP_CENTER] Reload error:', e);
       const friendly = translateWhatsAppError(e);
       toast.error(friendly.title, { 
         description: friendly.message,
-        action: { label: 'Tentar novamente', onClick: reload }
+        action: { label: 'Tentar novamente', onClick: () => reload() }
       });
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
 
   useEffect(() => { reload(); }, [companyId]);
+
 
   if (!companyId) {
     return (
@@ -170,10 +172,11 @@ export default function WhatsAppCenter() {
         </div>
 
         <TabsContent value="overview"><OverviewTab loading={loading} instance={instance} logs={logs} metrics={metrics} /></TabsContent>
-        <TabsContent value="connection"><ConnectionTab companyId={companyId} userId={user?.id} instance={instance} loading={loading} onChange={reload} /></TabsContent>
-        <TabsContent value="automations"><AutomationsTab companyId={companyId} automations={automations} templates={templates} loading={loading} onChange={reload} /></TabsContent>
-        <TabsContent value="templates"><TemplatesTab companyId={companyId} templates={templates} loading={loading} onChange={reload} /></TabsContent>
-        <TabsContent value="history"><HistoryTab companyId={companyId} logs={logs} loading={loading} onChange={reload} /></TabsContent>
+        <TabsContent value="connection"><ConnectionTab companyId={companyId} userId={user?.id} instance={instance} loading={loading} onChange={() => reload(true)} /></TabsContent>
+        <TabsContent value="automations"><AutomationsTab companyId={companyId} automations={automations} templates={templates} loading={loading} onChange={() => reload(true)} /></TabsContent>
+        <TabsContent value="templates"><TemplatesTab companyId={companyId} templates={templates} loading={loading} onChange={() => reload(true)} /></TabsContent>
+        <TabsContent value="history"><HistoryTab companyId={companyId} logs={logs} loading={loading} onChange={() => reload(true)} /></TabsContent>
+
       </Tabs>
     </div>
   );
@@ -249,10 +252,11 @@ function OverviewTab({ loading, instance, logs, metrics }: { loading: boolean; i
           label="Status"
           value={statusInfo.label}
           valueClassName={
-            status === 'connected' ? "text-green-600" : 
-            (status === 'connecting' || status === 'pending' ? "text-yellow-600" : "text-red-500")
+            instance?.status === 'connected' ? "text-green-600" : 
+            (instance?.status === 'connecting' || instance?.status === 'pending' ? "text-yellow-600" : "text-red-500")
           }
         />
+
         <StatCard icon={<Send className="h-5 w-5 text-primary" />} label="Enviadas hoje" value={sentToday.toString()} />
         <StatCard icon={<TrendingUp className="h-5 w-5 text-primary" />} label="Este mês" value={sentMonth.toString()} />
         <StatCard icon={<CheckCircle2 className="h-5 w-5 text-primary" />} label="Taxa de entrega" value={`${replyRate}%`} />

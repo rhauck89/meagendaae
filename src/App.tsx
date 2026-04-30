@@ -6,6 +6,8 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { FinancialPrivacyProvider } from "@/contexts/FinancialPrivacyContext";
 import { useDomainRouting } from "@/hooks/useDomainRouting";
+import { useEffect } from "react";
+import { ENABLE_PUSH_NOTIFICATIONS } from "@/lib/constants";
 import Index from "./pages/Index";
 import MarketplaceHome from "./pages/MarketplaceHome";
 import MarketplaceCategory from "./pages/MarketplaceCategory";
@@ -57,6 +59,7 @@ import { AppErrorBoundary } from "./components/AppErrorBoundary";
 import { installGlobalErrorHandlers } from "./lib/error-handler";
 
 installGlobalErrorHandlers();
+
 import NotFound from "./pages/NotFound";
 import AppRedirect from "./pages/AppRedirect";
 import CompanySelector from "./pages/CompanySelector";
@@ -243,24 +246,45 @@ const AppRoutes = () => {
   return <PlatformRoutes />;
 };
 
-const App = () => (
-  <AppErrorBoundary>
-    <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <FinancialPrivacyProvider>
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
-            <AuthProvider>
-              <PaymentTestModeBanner />
-              <ReadOnlyBanner />
-              <AppRoutes />
-            </AuthProvider>
-          </BrowserRouter>
-        </FinancialPrivacyProvider>
-      </TooltipProvider>
-    </QueryClientProvider>
-  </AppErrorBoundary>
-);
+const App = () => {
+  useEffect(() => {
+    // Nuclear option to ensure PWA/SW is cleared if disabled
+    if (!ENABLE_PUSH_NOTIFICATIONS && 'serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistrations().then((registrations) => {
+        registrations.forEach((r) => {
+          console.log('[APP] Force clearing SW:', r.scope);
+          r.unregister();
+        });
+      });
+      
+      window.caches?.keys().then((names) => {
+        for (const name of names) {
+          window.caches.delete(name);
+        }
+      });
+    }
+  }, []);
+
+  return (
+    <AppErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <TooltipProvider>
+          <FinancialPrivacyProvider>
+            <Toaster />
+            <Sonner />
+            <BrowserRouter>
+              <AuthProvider>
+                <PaymentTestModeBanner />
+                <ReadOnlyBanner />
+                <AppRoutes />
+              </AuthProvider>
+            </BrowserRouter>
+          </FinancialPrivacyProvider>
+        </TooltipProvider>
+      </QueryClientProvider>
+    </AppErrorBoundary>
+  );
+};
+
 
 export default App;
