@@ -30,7 +30,8 @@ const ForgotPassword = () => {
       const { data, error } = await supabase.functions.invoke('auth-handler', {
         body: {
           email: email.trim(),
-          type: 'reset'
+          type: 'reset',
+          redirectTo: `${window.location.origin}/reset-password`,
         }
       });
       if (error) throw error;
