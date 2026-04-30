@@ -17,6 +17,7 @@ import { useCompanyAmenities } from '@/hooks/useCompanyAmenities';
 import { AmenitiesDisplay } from '@/components/AmenitiesDisplay';
 import { motion, useScroll, useTransform } from 'framer-motion';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerDescription, DrawerFooter, DrawerClose } from "@/components/ui/drawer";
 import { toast } from 'sonner';
 import { IdentityModal } from '@/components/booking/IdentityModal';
 import { useAuth } from '@/contexts/AuthContext';
