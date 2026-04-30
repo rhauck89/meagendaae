@@ -145,7 +145,7 @@ export default function ProfessionalPublicProfile() {
           const r = (ratingsData as any[]).find((x: any) => x.professional_id === prof.id);
           if (r) setRating({ avg: Number(r.avg_rating), count: Number(r.review_count) });
         }
-      }).catch(() => {});
+      }, () => {});
 
       // Reviews
       supabase
@@ -186,22 +186,22 @@ export default function ProfessionalPublicProfile() {
                       setTotalReviews(enriched.length);
                     });
                   }
-                }).catch(() => {});
+                }, () => {});
             } else {
               setReviews(allReviewsData);
               setTotalReviews(allReviewsData.length);
             }
           }
-        }).catch(() => {});
+        }, () => {});
 
       // Stats and Settings
       supabase.from('appointments').select('id', { count: 'exact', head: true }).eq('professional_id', prof.id).eq('status', 'completed').then(({ count }) => {
         setCompletedCount(count || 0);
-      }).catch(() => {});
+      }, () => {});
 
       supabase.from('public_company_settings' as any).select('timezone, booking_buffer_minutes').eq('company_id', comp.id).single().then(({ data: csData }) => {
         if (csData) setCompanySettings(csData);
-      }).catch(() => {});
+      }, () => {});
 
       // Last Booking
       if (isAuthenticated) {
@@ -232,7 +232,7 @@ export default function ProfessionalPublicProfile() {
                 }
               });
           }
-        }).catch(() => {});
+        }, () => {});
       }
 
     } catch (err) {
