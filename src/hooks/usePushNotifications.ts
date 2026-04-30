@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
+import { ENABLE_PUSH_NOTIFICATIONS } from '@/lib/constants';
 
 const VAPID_PUBLIC_KEY = 'BMMM2-HgXKJ5db00JRldeIKkKDU_ydN79_vt7vawFC90mmZo13zRR0VhFZ6xEuEuIuiIsL--Y2UaSXIppOf3_p0';
 
@@ -25,7 +26,7 @@ export function usePushNotifications() {
   const [loading, setLoading] = useState(false);
 
   const persistSubscription = useCallback(async (subscription: PushSubscription): Promise<boolean> => {
-    if (!user) return false;
+    if (!user || !ENABLE_PUSH_NOTIFICATIONS) return false;
 
     try {
       const subJson = subscription.toJSON();
@@ -75,15 +76,12 @@ export function usePushNotifications() {
   }, [user]);
 
   const checkExistingSubscription = useCallback(async () => {
-    if (!user) return;
+    if (!user || !ENABLE_PUSH_NOTIFICATIONS) return;
     try {
-      // Check if serviceWorker is available
       if (!navigator.serviceWorker) {
-        console.warn('[PUSH] serviceWorker not available in navigator');
         return;
       }
 
-      // Use a timeout for serviceWorker.ready to avoid hanging
       const registration = await Promise.race([
         navigator.serviceWorker.ready,
         new Promise<ServiceWorkerRegistration>((_, reject) => setTimeout(() => reject(new Error('SW_TIMEOUT')), 5000))
@@ -103,6 +101,11 @@ export function usePushNotifications() {
   }, [persistSubscription, user]);
 
   useEffect(() => {
+    if (!ENABLE_PUSH_NOTIFICATIONS) {
+      setIsSupported(false);
+      return;
+    }
+
     const supported = 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
     setIsSupported(supported);
 
@@ -113,6 +116,7 @@ export function usePushNotifications() {
   }, [user, checkExistingSubscription]);
 
   const subscribe = useCallback(async (): Promise<{ success: boolean; error?: string }> => {
+    if (!ENABLE_PUSH_NOTIFICATIONS) return { success: false, error: 'Notificações desativadas globalmente' };
     if (!user) return { success: false, error: 'Usuário não autenticado' };
     if (!isSupported) return { success: false, error: 'Notificações não suportadas neste navegador' };
 
@@ -125,14 +129,11 @@ export function usePushNotifications() {
         return { success: false, error: 'Permissão negada pelo usuário' };
       }
 
-      console.log('[PUSH] Waiting for Service Worker to be ready...');
       const registration = await Promise.race([
         navigator.serviceWorker.ready,
         new Promise<ServiceWorkerRegistration>((_, reject) => setTimeout(() => reject(new Error('SW_TIMEOUT')), 15000))
       ]);
-      console.log('[PUSH] Service Worker ready');
 
-      // Check if already subscribed
       let subscription = await registration.pushManager.getSubscription();
 
       if (!subscription) {
@@ -164,7 +165,7 @@ export function usePushNotifications() {
   }, [user, isSupported, persistSubscription]);
 
   const unsubscribe = useCallback(async (): Promise<boolean> => {
-    if (!user) return false;
+    if (!user || !ENABLE_PUSH_NOTIFICATIONS) return false;
 
     setLoading(true);
     try {
@@ -200,3 +201,4 @@ export function usePushNotifications() {
     unsubscribe,
   };
 }
+
