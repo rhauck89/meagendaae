@@ -83,6 +83,13 @@ export default function BarbershopLanding({ routeBusinessType, customSlug }: Bar
     totalPrice: number; totalDuration: number; bookedAt: string;
   } | null>(null);
   const [rebookDismissed, setRebookDismissed] = useState(false);
+  const [isServicesDrawerOpen, setIsServicesDrawerOpen] = useState(false);
+  const [isTeamDrawerOpen, setIsTeamDrawerOpen] = useState(false);
+  const [isReviewsDrawerOpen, setIsReviewsDrawerOpen] = useState(false);
+  const [isAddReviewModalOpen, setIsAddReviewModalOpen] = useState(false);
+  const [reviewFormRating, setReviewFormRating] = useState(0);
+  const [reviewFormComment, setReviewFormComment] = useState('');
+  const [isSubmittingReview, setIsSubmittingReview] = useState(false);
 
   const { amenities: companyAmenities } = useCompanyAmenities(company?.id);
   const { scrollY } = useScroll();
