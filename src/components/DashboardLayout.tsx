@@ -60,28 +60,28 @@ const settingsSubItems = [
 
 const financeSubItems = [
   { href: '/dashboard/finance', icon: DollarSign, label: 'Dashboard' },
-  { href: '/dashboard/finance/transactions', icon: ArrowUpDown, label: 'MovimentaÃ§Ãµes' },
+  { href: '/dashboard/finance/transactions', icon: ArrowUpDown, label: 'Movimentações' },
   { href: '/dashboard/finance/revenues', icon: TrendingUp, label: 'Receitas' },
   { href: '/dashboard/finance/expenses', icon: TrendingDown, label: 'Despesas' },
   { href: '/dashboard/finance/categories', icon: FolderOpen, label: 'Categorias' },
-  { href: '/dashboard/finance/commissions', icon: Percent, label: 'ComissÃµes' },
+  { href: '/dashboard/finance/commissions', icon: Percent, label: 'Comissões' },
   { href: '/dashboard/finance/payables', icon: Receipt, label: 'Contas a Pagar' },
   { href: '/dashboard/finance/receivables', icon: HandCoins, label: 'Contas a Receber' },
-  { href: '/dashboard/finance/reports', icon: FileBarChart, label: 'RelatÃ³rios' },
+  { href: '/dashboard/finance/reports', icon: FileBarChart, label: 'Relatórios' },
 ];
 
 const professionalFinanceSubItems = [
   { href: '/dashboard/my-finance', icon: DollarSign, label: 'Resumo' },
-  { href: '/dashboard/my-finance/commissions', icon: Percent, label: 'ComissÃƒÂµes' },
+  { href: '/dashboard/my-finance/commissions', icon: Percent, label: 'Comissões' },
 ];
 
 const allProfessionalNavItems = [
   { href: '/dashboard', icon: Calendar, label: 'Minha Agenda', permKey: null },
-  { href: '/dashboard/services', icon: Scissors, label: 'Meus ServiÃ§os', permKey: null },
+  { href: '/dashboard/services', icon: Scissors, label: 'Meus Serviços', permKey: null },
   { href: '/dashboard/clients', icon: UserCheck, label: 'Clientes', permKey: 'clients' as const },
-  { href: '/dashboard/promotions', icon: Megaphone, label: 'PromoÃ§Ãµes', permKey: 'promotions' as const },
+  { href: '/dashboard/promotions', icon: Megaphone, label: 'Promoções', permKey: 'promotions' as const },
   { href: '/dashboard/events', icon: PartyPopper, label: 'Agenda Aberta', permKey: 'events' as const },
-  { href: '/dashboard/solicitacoes', icon: Inbox, label: 'SolicitaÃ§Ãµes', permKey: 'requests' as const },
+  { href: '/dashboard/solicitacoes', icon: Inbox, label: 'Solicitações', permKey: 'requests' as const },
 ];
 
 const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
