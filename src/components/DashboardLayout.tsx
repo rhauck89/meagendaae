@@ -14,6 +14,8 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useState, useEffect, useCallback } from 'react';
+import { ENABLE_PUSH_NOTIFICATIONS } from '@/lib/constants';
+
 import { cn } from '@/lib/utils';
 import CompanySetup from './CompanySetup';
 import { PushNotificationPrompt } from './PushNotificationPrompt';
