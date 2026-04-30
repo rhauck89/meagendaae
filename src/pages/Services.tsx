@@ -127,8 +127,6 @@ const Services = () => {
     return match?.id || outrosId;
   };
 
-  const [saving, setSaving] = useState(false);
-
   const handleSave = async () => {
     if (!form.name.trim()) return toast.error('Nome é obrigatório');
     if (!companyId) return toast.error('Empresa não encontrada');
@@ -172,8 +170,6 @@ const Services = () => {
     }
   };
 
-
-  const [catSaving, setCatSaving] = useState(false);
 
   const handleSaveCategory = async () => {
     if (!catForm.name.trim()) return toast.error('Nome é obrigatório');
