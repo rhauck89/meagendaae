@@ -68,7 +68,7 @@ const financeSubItems = [
 
 const professionalFinanceSubItems = [
   { href: '/dashboard/my-finance', icon: DollarSign, label: 'Resumo' },
-  { href: '/dashboard/my-finance/commissions', icon: Percent, label: 'ComissÃµes' },
+  { href: '/dashboard/my-finance/commissions', icon: Percent, label: 'Comissões' },
 ];
 
 const allProfessionalNavItems = [
