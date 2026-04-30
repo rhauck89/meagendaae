@@ -556,7 +556,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
           </footer>
         </main>
         <OnboardingPopup />
-        <PushNotificationPrompt />
+        {ENABLE_PUSH_NOTIFICATIONS && <PushNotificationPrompt />}
         <RoleSelectorDialog open={needsRoleSelection} onSelect={handleRoleSelect} />
       </div>
     </TooltipProvider>
