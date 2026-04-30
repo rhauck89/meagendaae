@@ -459,9 +459,9 @@ function HistoryTab({ logs, loading }: { logs: any[], loading: boolean }) {
         </div>
       </CardContent>
     </Card>
+  );
 }
 
-// Add CardFooter to standard components imports or defined locally
 function CardFooter({ children, className }: any) {
   return <div className={`flex items-center p-6 pt-0 ${className}`}>{children}</div>;
 }
