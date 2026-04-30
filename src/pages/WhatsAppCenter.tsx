@@ -86,7 +86,7 @@ export default function WhatsAppCenter() {
   const [logs, setLogs] = useState<WhatsAppLog[]>([]);
   const [metrics, setMetrics] = useState<WhatsAppMetric[]>([]);
 
-  const reload = async (silent = false) => {
+  const reload = useCallback(async (silent = false) => {
     if (!companyId) return;
     if (!silent) setLoading(true);
     try {
