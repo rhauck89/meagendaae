@@ -6645,7 +6645,7 @@ export type Database = {
           email: string
           full_name: string
           is_collaborator: boolean
-          is_company_owner: boolean
+          is_owner: boolean
           login_mode: string
           profile_id: string
           roles: string[]
