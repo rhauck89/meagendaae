@@ -139,31 +139,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       console.log("[AUTH_CONTEXT_DIAG] Mapping context to state. company_id:", ctx.company_id);
-
-      // Map context to Auth state
+      
+      // Rule 1: Manual mapping of flat RPC fields to profile object
       setProfile({
         id: ctx.profile_id,
         user_id: ctx.user_id,
         full_name: ctx.full_name,
+        email: ctx.email,
         company_id: ctx.company_id,
         last_login_mode: ctx.login_mode
       });
       
       setCompanyId(ctx.company_id);
       setRoles(ctx.roles || []);
+      setLoginModeState(ctx.login_mode || null);
       setIsAlsoCollaborator(ctx.is_collaborator || false);
-      console.log("[AUTH_CONTEXT_DIAG] setCompanyId:", ctx.company_id);
-      console.log("[AUTH_CONTEXT_DIAG] roles:", ctx.roles);
-
-      // Default login mode logic
-      if (ctx.is_collaborator && ctx.is_company_owner) {
-        // If both, respect last mode or wait for choice
-        setLoginModeState(ctx.login_mode as LoginMode || null);
-      } else if (ctx.is_collaborator) {
-        setLoginModeState('professional');
-      } else {
-        setLoginModeState('admin');
-      }
+      
+      console.log("[AUTH_CONTEXT_DIAG] State updated:", {
+        companyId: ctx.company_id,
+        roles: ctx.roles,
+        loginMode: ctx.login_mode
+      });
 
       setLoading(false);
 
@@ -175,9 +171,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const updateAuthState = useCallback(async (newSession: Session | null) => {
     const newUser = newSession?.user ?? null;
     
-    // Avoid redundant updates if user is the same
-    if (newUser?.id === user?.id && !!newUser === !!user && session?.access_token === newSession?.access_token) {
-      console.log('[AUTH_CONTEXT] Skipping redundant updateAuthState');
+    // Rule 2: Only skip if user is same AND context is already hydrated
+    const contextHydrated = !!profile || !!companyId || roles.length > 0;
+    const isSameUser = newUser?.id === user?.id && !!newUser === !!user;
+    const isSameToken = session?.access_token === newSession?.access_token;
+
+    if (isSameUser && isSameToken && contextHydrated) {
+      console.log('[AUTH_CONTEXT] Skipping redundant updateAuthState (already hydrated)');
       setLoading(false);
       return;
     }
@@ -193,7 +193,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setUser(newUser);
 
       if (newUser) {
-        if (lastLoadedUserId.current !== newUser.id) {
+        // Rule 2: Fetch if ID changed OR context is missing
+        const contextHydrated = !!profile || !!companyId || roles.length > 0;
+        if (lastLoadedUserId.current !== newUser.id || !contextHydrated) {
+          console.log('[AUTH_CONTEXT] Fetching user data (id change or missing hydration)');
           lastLoadedUserId.current = newUser.id;
           await fetchUserData(newUser.id, newUser);
         }
