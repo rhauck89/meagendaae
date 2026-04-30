@@ -52,7 +52,10 @@ export default function ProfessionalPublicProfile() {
   const [companySettings, setCompanySettings] = useState<any>(null);
   const [activeCashback, setActiveCashback] = useState<string | null>(null);
   const [lastBooking, setLastBooking] = useState<any>(null);
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated: isAuthAuthenticated, isAdmin } = useAuth();
+  
+  // Rule: Admin/Professional session is ignored for client identification on public profile
+  const isAuthenticated = isAuthAuthenticated && !isAdmin;
 
   const { amenities: companyAmenities } = useCompanyAmenities(company?.id);
   const { scrollY } = useScroll();
