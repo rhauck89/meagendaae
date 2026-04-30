@@ -385,7 +385,7 @@ export default function MarketplaceHome() {
         </section>
       )}
 
-      {!loading && filteredCompanies.length === 0 && (
+      {!loading && filtered.length === 0 && (
         <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 text-center">
           <p className="text-[hsl(var(--muted-foreground))]">
             Nenhum profissional encontrado no momento.
