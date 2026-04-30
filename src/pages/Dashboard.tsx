@@ -44,6 +44,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { getProfessionalColor } from '@/utils/calendarLayout';
 import { OccupancyDrawer } from '@/components/OccupancyDrawer';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
+import { ENABLE_PUSH_NOTIFICATIONS } from '@/lib/constants';
+
 
 
 type ViewMode = 'day' | 'week' | 'month';
