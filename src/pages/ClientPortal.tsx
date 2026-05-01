@@ -215,16 +215,8 @@ const ClientPortal = () => {
         }
       }
 
-      const apptsRes = await supabase.rpc('get_client_appointments_v2');
-      const appointmentsData = (apptsRes.data || []) as any[];
-
-      const clientQuery = supabase.from('clients').select('id, company_id, name, whatsapp, email, birth_date, registration_complete, postal_code, street, address_number, district, city, state');
-      const cashbackQuery = supabase.from('client_cashback').select('id, amount, status, expires_at, created_at, company_id, promotion:promotions!client_cashback_promotion_id_fkey(title)');
-      const cbTxQuery = supabase.from('cashback_transactions').select('*');
-      const lpTxQuery = supabase.from('loyalty_points_transactions').select('*');
-      const redemptionsQuery = supabase.from('loyalty_redemptions').select('id, redemption_code, status, created_at, total_points, reward_id, company_id, client_id');
-
-      const applyFilters = (query: any, clientEmailField = 'email', clientPhoneField = 'whatsapp') => {
+      // Helper for filtering by user/whatsapp/email
+      const buildFilters = (clientEmailField = 'email', clientPhoneField = 'whatsapp') => {
         const profilePhone = profileData?.whatsapp ? profileData.whatsapp.replace(/\D/g, '') : null;
         const profilePhoneNoDdi = profilePhone && profilePhone.startsWith('55') ? profilePhone.slice(2) : profilePhone;
         
@@ -238,7 +230,7 @@ const ClientPortal = () => {
           ];
           if (adminClientContext.email) adminConditions.push(`${clientEmailField}.eq.${adminClientContext.email}`);
           
-          return query.or(adminConditions.join(','));
+          return adminConditions.join(',');
         }
         
         const conditions = [`user_id.eq.${currentUserId || '00000000-0000-0000-0000-000000000000'}`];
@@ -250,31 +242,45 @@ const ClientPortal = () => {
           conditions.push(`${clientEmailField}.eq.${user.email}`);
         }
         
+        return conditions.join(',');
+      };
+
+      // 1. Fetch Clients first to get IDs
+      const clientRes = await supabase
+        .from('clients')
+        .select('id, company_id, name, whatsapp, email, birth_date, registration_complete, postal_code, street, address_number, district, city, state')
+        .or(buildFilters('email', 'whatsapp'));
+
+      const clientData = (clientRes.data || []) as any[];
+      const clientIds = clientData.map(c => c.id);
+      
+      // 2. Fetch everything else using IDs or user_id
+      const idOrUserFilter = (query: any) => {
+        const conditions = [`user_id.eq.${currentUserId || '00000000-0000-0000-0000-000000000000'}`];
+        if (clientIds.length > 0) {
+          conditions.push(`client_id.in.(${clientIds.join(',')})`);
+        }
         return query.or(conditions.join(','));
       };
 
       const [
-        clientRes,
+        apptsRes,
         cashbackRes,
         cashbackTxRes,
         loyaltyTxRes,
         rewardsRes,
         redemptionsRes
       ] = await Promise.all([
-        applyFilters(clientQuery),
-        applyFilters(cashbackQuery).order('created_at', { ascending: false }),
-        applyFilters(cbTxQuery).order('created_at', { ascending: false }).limit(300),
-        applyFilters(lpTxQuery).order('created_at', { ascending: false }).limit(300),
+        supabase.rpc('get_client_appointments_v2'),
+        idOrUserFilter(supabase.from('client_cashback').select('id, amount, status, expires_at, created_at, company_id, promotion:promotions!client_cashback_promotion_id_fkey(title)')).order('created_at', { ascending: false }),
+        idOrUserFilter(supabase.from('cashback_transactions').select('*')).order('created_at', { ascending: false }).limit(300),
+        idOrUserFilter(supabase.from('loyalty_points_transactions').select('*')).order('created_at', { ascending: false }).limit(300),
         supabase.from('loyalty_reward_items').select('id, name, description, points_required, real_value, extra_cost, image_url, item_type, company_id, stock_total, stock_available, company:companies!loyalty_reward_items_company_id_fkey(id, name, logo_url, slug)').eq('active', true),
-        applyFilters(redemptionsQuery).order('created_at', { ascending: false }).limit(50)
+        idOrUserFilter(supabase.from('loyalty_redemptions').select('id, redemption_code, status, created_at, total_points, reward_id, company_id, client_id')).order('created_at', { ascending: false }).limit(50)
       ]);
 
-      if (!clientRes.data || (clientRes.data as any[]).length === 0) {
-        if (!isRevalidation) { setClients([]); setLoading(false); }
-        return;
-      }
+      const appointmentsData = (apptsRes.data || []) as any[];
       
-      const clientData = clientRes.data as any[];
       setClients(clientData as ClientRecord[]);
       setAppointments(appointmentsData);
       setAllCashbacks((cashbackRes.data || []) as any);
@@ -300,12 +306,14 @@ const ClientPortal = () => {
       });
       setCompanies(companiesMap);
 
-      // Load specific loyalty configs for companies linked to this client
+      // Load specific loyalty configs
       const cashActive: Record<string, boolean> = {};
       const loyalActive: Record<string, boolean> = {};
       const lcMap: Record<string, any> = {};
       
-      await Promise.all(companyIds.map(async (cid) => {
+      const distinctCompanyIds = [...new Set([...companyIds, ...appointmentsData.map(a => a.company_id)])];
+      
+      await Promise.all(distinctCompanyIds.map(async (cid) => {
         const [promoCheck, lcRes] = await Promise.all([
           supabase.from('promotions').select('id').eq('company_id', cid).eq('promotion_type', 'cashback').eq('status', 'active').limit(1),
           supabase.from('loyalty_config').select('*').eq('company_id', cid).single(),
@@ -320,14 +328,16 @@ const ClientPortal = () => {
       setLoyaltyConfigs(lcMap);
 
       // Profile form initialization
-      const c = clientData[0];
-      setProfileForm({
-        name: c.name || '', whatsapp: c.whatsapp || '', email: c.email || '',
-        birth_date: c.birth_date || '',
-        postal_code: (c as any).postal_code || '', street: (c as any).street || '',
-        address_number: (c as any).address_number || '', district: (c as any).district || '',
-        city: (c as any).city || '', state: (c as any).state || '',
-      });
+      if (clientData.length > 0) {
+        const c = clientData[0];
+        setProfileForm({
+          name: c.name || '', whatsapp: c.whatsapp || '', email: c.email || '',
+          birth_date: c.birth_date || '',
+          postal_code: (c as any).postal_code || '', street: (c as any).street || '',
+          address_number: (c as any).address_number || '', district: (c as any).district || '',
+          city: (c as any).city || '', state: (c as any).state || '',
+        });
+      }
 
       // Persist to cache
       writeCache({
@@ -567,7 +577,7 @@ const ClientPortal = () => {
 
   if (loading) return <ClientPortalSkeleton />;
 
-  if (clients.length === 0) return (
+  if (clients.length === 0 && appointments.length === 0) return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <div className="w-full max-w-sm text-center space-y-4">
         <User className="h-16 w-16 mx-auto text-muted-foreground/40" />
@@ -609,7 +619,7 @@ const ClientPortal = () => {
           </div>
           <div className="mt-3">
             <p className="text-lg font-bold leading-tight">
-              Olá, {primaryClient?.name?.split(' ')[0] || 'cliente'} 👋
+              Olá, {(primaryClient?.name || user?.user_metadata?.full_name || 'cliente')?.split(' ')[0]} 👋
             </p>
             <p className="text-xs text-muted-foreground">
               Seus agendamentos, cashback e pontos
@@ -870,13 +880,11 @@ const ClientPortal = () => {
                         <UnifiedAppointmentCard
                           key={apt.id}
                           appointment={apt}
+                          variant="client"
                           isAdmin={false}
                           showCompany={true}
                           onReschedule={(apt) => navigate(`/reschedule/${apt.id}`)}
                           onCancel={(apt) => navigate(`/cancel/${apt.id}`)}
-                          onClick={(apt) => {
-                            // On client portal, clicking might show more info
-                          }}
                         />
                       ))}
                     </div>
@@ -896,6 +904,7 @@ const ClientPortal = () => {
                     <UnifiedAppointmentCard
                       key={apt.id}
                       appointment={apt}
+                      variant="client"
                       isAdmin={false}
                       showCompany={true}
                       onClick={(apt) => {

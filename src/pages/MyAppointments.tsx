@@ -164,6 +164,7 @@ const MyAppointments = () => {
             <UnifiedAppointmentCard
               key={apt.id}
               appointment={apt}
+              variant="client"
               isAdmin={false}
               showCompany={true}
               onCancel={(apt) => cancelAppointment(apt.id)}

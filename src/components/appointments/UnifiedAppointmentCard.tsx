@@ -29,7 +29,7 @@ import { formatServicesWithDuration } from '@/lib/format-services';
 
 export interface UnifiedAppointmentCardProps {
   appointment: any;
-  variant?: 'compact' | 'default' | 'detailed';
+  variant?: 'compact' | 'default' | 'detailed' | 'business' | 'client';
   isAdmin?: boolean;
   onComplete?: (apt: any) => void;
   onReschedule?: (apt: any) => void;
@@ -341,7 +341,10 @@ export function UnifiedAppointmentCard({
                 "font-bold text-foreground leading-tight truncate capitalize",
                 variant === 'detailed' ? 'text-lg' : 'text-sm sm:text-base'
               )}>
-                {format(startTime, "d 'de' MMMM', 'eeee", { locale: ptBR })}
+                {variant === 'client' 
+                  ? format(startTime, "d 'de' MMMM', 'eeee", { locale: ptBR })
+                  : clientName
+                }
               </h3>
               {apt.promotion_id && (
                 <Badge variant="secondary" className="bg-orange-500/10 text-orange-600 border-none h-4 px-1 text-[9px] font-bold uppercase tracking-tighter">
@@ -351,11 +354,6 @@ export function UnifiedAppointmentCard({
               {cashbackUsed > 0 && apt.status !== 'cancelled' && apt.status !== 'no_show' && (
                 <Badge variant="secondary" className="bg-blue-500/10 text-blue-600 border-none h-4 px-1 text-[9px] font-bold uppercase tracking-tighter">
                   💸 CASHBACK
-                </Badge>
-              )}
-              {(apt.status === 'cancelled' || apt.status === 'no_show') && cashbackUsed > 0 && (
-                <Badge variant="secondary" className="bg-green-500/10 text-green-600 border-none h-4 px-1 text-[9px] font-bold uppercase tracking-tighter">
-                  💸 Cashback devolvido
                 </Badge>
               )}
               {apt.client?.is_vip && (
