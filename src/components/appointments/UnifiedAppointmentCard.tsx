@@ -375,7 +375,9 @@ export function UnifiedAppointmentCard({
               variant === 'detailed' ? 'text-sm sm:text-base' : 'text-xs sm:text-sm'
             )}>
               <Scissors className="h-3 w-3 sm:h-3.5 sm:w-3.5 shrink-0" />
-              {formatServicesWithDuration(apt.appointment_services)}
+              {apt.appointment_services?.length > 0 
+                ? formatServicesWithDuration(apt.appointment_services) 
+                : 'Serviço não informado'}
             </p>
             
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1 pt-1">
