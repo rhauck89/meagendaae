@@ -228,11 +228,18 @@ const ClientPortal = () => {
       const redemptionsQuery = supabase.from('loyalty_redemptions').select('id, redemption_code, status, created_at, total_points, reward_id, company_id, client_id');
       const apptsQuery = supabase.from('appointments').select('id, start_time, end_time, total_price, status, company_id, promotion_id, original_price, promotion_discount, cashback_used, manual_discount, final_price, company:companies!appointments_company_id_fkey(id, name, logo_url, slug), professional:profiles!appointments_professional_id_fkey(id, full_name, avatar_url), appointment_services(price, service:services(id, name))');
 
-      const applyFilters = (query: any, clientEmailField = 'email') => {
+      const applyFilters = (query: any, clientEmailField = 'email', clientPhoneField = 'whatsapp') => {
         if (isAdmin && adminClientContext?.whatsapp) {
-          return query.or(`whatsapp.eq.${adminClientContext.whatsapp}${adminClientContext.email ? `,${clientEmailField}.eq.${adminClientContext.email}` : ''}`);
+          const adminPhone = adminClientContext.whatsapp.replace(/\D/g, '');
+          return query.or(`${clientPhoneField}.eq.${adminPhone}${adminClientContext.email ? `,${clientEmailField}.eq.${adminClientContext.email}` : ''}`);
         }
-        return query.eq('user_id', currentUserId || '00000000-0000-0000-0000-000000000000');
+        
+        const profilePhone = profileData?.whatsapp ? profileData.whatsapp.replace(/\D/g, '') : null;
+        const conditions = [`user_id.eq.${currentUserId || '00000000-0000-0000-0000-000000000000'}`];
+        if (profilePhone) {
+          conditions.push(`${clientPhoneField}.eq.${profilePhone}`);
+        }
+        return query.or(conditions.join(','));
       };
 
       const [
