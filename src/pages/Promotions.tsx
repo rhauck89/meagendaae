@@ -1710,7 +1710,7 @@ export default function Promotions() {
 
             {/* Navigation (Manual only) */}
             {creationMode === 'manual' && (
-              <DialogFooter className="flex-row items-center justify-between border-t bg-background p-4 sm:p-6">
+              <DialogFooter className="shrink-0 flex-row items-center justify-between border-t bg-background p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:p-6">
                 {wizardStep > 1 ? (
                   <Button variant="outline" onClick={goBack} className="h-10 px-4">
                     <ChevronLeft className="h-4 w-4 mr-1" /> <span className="hidden sm:inline">Voltar</span>
