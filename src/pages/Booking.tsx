@@ -2832,8 +2832,8 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
               {/* Final Price Breakdown */}
               <div className="pt-4 space-y-2">
                 <div className="flex justify-between items-center text-xs opacity-60 font-bold uppercase tracking-widest">
-                  <span>Subtotal</span>
-                  <p>R$ {(Number(totalPrice) || 0).toFixed(2)}</p>
+                   <span>Subtotal</span>
+                  <p>R$ {(Number(originalSubtotal) || 0).toFixed(2)}</p>
                 </div>
 
                 {hasPromoApplied && !isCashbackPromo && (
