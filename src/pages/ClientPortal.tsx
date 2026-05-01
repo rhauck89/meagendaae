@@ -373,6 +373,37 @@ const ClientPortal = () => {
     }
   };
 
+  const lastAppointment = completedAppointments[0];
+
+  const rewardsCompany = rewardsCompanyId ? companies[rewardsCompanyId] : null;
+  const rewardsList = useMemo(
+    () => rewards.filter(r => r.company_id === rewardsCompanyId),
+    [rewards, rewardsCompanyId]);
+  const rewardsBalance = rewardsCompanyId ? (pointsByCompany[rewardsCompanyId] || 0) : 0;
+  const rewardsConfig = rewardsCompanyId ? loyaltyConfigs[rewardsCompanyId] : null;
+  const rewardsPointValue = rewardsConfig?.point_value || 0.05;
+
+  const companiesWithCashback = useMemo(
+    () => Object.values(companies).filter(c => companyCashbackActive[c.id]),
+    [companies, companyCashbackActive]);
+  const companiesWithLoyalty = useMemo(
+    () => Object.values(companies).filter(c => companyLoyaltyActive[c.id]),
+    [companies, companyLoyaltyActive]);
+
+  const companiesWithRewards = useMemo(() => {
+    const ids = [...new Set(rewards.map(r => r.company_id))];
+    const list = ids.map(id => companies[id]).filter(Boolean) as CompanyInfo[];
+    return list.sort((a, b) => {
+      const pa = pointsByCompany[a.id] || 0;
+      const pb = pointsByCompany[b.id] || 0;
+      if (pa !== pb) return pb - pa;
+      const ha = appointmentCompanyIds.has(a.id) ? 1 : 0;
+      const hb = appointmentCompanyIds.has(b.id) ? 1 : 0;
+      if (ha !== hb) return hb - ha;
+      return a.name.localeCompare(b.name);
+    });
+  }, [rewards, companies, pointsByCompany, appointmentCompanyIds]);
+
   const anyCashback = companiesWithCashback.length > 0;
   const anyLoyalty = companiesWithLoyalty.length > 0;
   const anyRewards = companiesWithRewards.length > 0;
@@ -437,36 +468,6 @@ const ClientPortal = () => {
   const nextAppointment = [...upcomingAppointments].sort(
     (a, b) => parseISO(a.start_time).getTime() - parseISO(b.start_time).getTime()
   )[0];
-  const lastAppointment = completedAppointments[0];
-
-  const rewardsCompany = rewardsCompanyId ? companies[rewardsCompanyId] : null;
-  const rewardsList = useMemo(
-    () => rewards.filter(r => r.company_id === rewardsCompanyId),
-    [rewards, rewardsCompanyId]);
-  const rewardsBalance = rewardsCompanyId ? (pointsByCompany[rewardsCompanyId] || 0) : 0;
-  const rewardsConfig = rewardsCompanyId ? loyaltyConfigs[rewardsCompanyId] : null;
-  const rewardsPointValue = rewardsConfig?.point_value || 0.05;
-
-  const companiesWithCashback = useMemo(
-    () => Object.values(companies).filter(c => companyCashbackActive[c.id]),
-    [companies, companyCashbackActive]);
-  const companiesWithLoyalty = useMemo(
-    () => Object.values(companies).filter(c => companyLoyaltyActive[c.id]),
-    [companies, companyLoyaltyActive]);
-
-  const companiesWithRewards = useMemo(() => {
-    const ids = [...new Set(rewards.map(r => r.company_id))];
-    const list = ids.map(id => companies[id]).filter(Boolean) as CompanyInfo[];
-    return list.sort((a, b) => {
-      const pa = pointsByCompany[a.id] || 0;
-      const pb = pointsByCompany[b.id] || 0;
-      if (pa !== pb) return pb - pa;
-      const ha = appointmentCompanyIds.has(a.id) ? 1 : 0;
-      const hb = appointmentCompanyIds.has(b.id) ? 1 : 0;
-      if (ha !== hb) return hb - ha;
-      return a.name.localeCompare(b.name);
-    });
-  }, [rewards, companies, pointsByCompany, appointmentCompanyIds]);
 
   const refreshRedemptions = async () => {
     if (!clients.length) return;
