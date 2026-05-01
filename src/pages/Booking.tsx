@@ -2827,12 +2827,12 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                   <p>R$ {(Number(totalPrice) || 0).toFixed(2)}</p>
                 </div>
 
-                {isPromoMode && promoData && !isCashbackPromo && (
+                {hasPromoApplied && !isCashbackPromo && (
                   <div className="flex justify-between items-center text-xs font-bold text-amber-500 uppercase tracking-widest">
                     <span className="flex items-center gap-1">
-                      <Tag className="h-3 w-3" /> Desconto ({promoData.title})
+                      <Tag className="h-3 w-3" /> Desconto ({currentPromo?.title})
                     </span>
-                    <p>- R$ {(Number(totalPrice) - Number(finalPrice)).toFixed(2)}</p>
+                    <p>- R$ {(Number(originalSubtotal) - Number(totalPrice)).toFixed(2)}</p>
                   </div>
                 )}
 
@@ -2848,8 +2848,8 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                 <div className="flex justify-between items-center">
                   <div>
                     <p className="text-[10px] font-black uppercase tracking-widest opacity-60">Total a Pagar no Local</p>
-                    {isPromoMode && !isCashbackPromo && (
-                      <p className="text-[10px] text-amber-500 font-bold uppercase tracking-tighter">Você economizou R$ {(Number(totalPrice) - Number(finalPrice)).toFixed(2)}!</p>
+                    {hasPromoApplied && !isCashbackPromo && (
+                      <p className="text-[10px] text-amber-500 font-bold uppercase tracking-tighter">Você economizou R$ {(Number(originalSubtotal) - Number(totalPrice)).toFixed(2)}!</p>
                     )}
                   </div>
                   <p className="text-4xl font-black tracking-tighter" style={{ color: T.accent }}>R$ {(Number(finalPrice) || 0).toFixed(2)}</p>
