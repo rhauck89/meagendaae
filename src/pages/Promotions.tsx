@@ -942,51 +942,55 @@ export default function Promotions() {
 
   // --- Status badge renderer ---
   const renderStatusBadge = (promo: Promotion) => {
-    const isSmart = promo.promotion_mode === 'smart';
-    const status = promoVisualStatus(promo, now);
-    const start = getPromoStart(promo);
-    const isTargetingTomorrow = isTomorrow(parseISO(promo.end_date)) && isToday(parseISO(promo.start_date));
+    const validityStatus = promoVisualStatus(promo, now);
+    const startsAt = getPromoStart(promo);
+    const opensAt = promo.booking_opens_at ? new Date(promo.booking_opens_at) : startsAt;
+    const isBookingActive = opensAt <= now && validityStatus !== 'expired';
     
-    switch (status) {
-      case 'scheduled':
-        let dateText = '';
-        const daysDiff = differenceInCalendarDays(start, now);
-        const startTime = promo.start_time?.slice(0, 5) || '00:00';
-        const formattedHour = startTime.split(':')[0] + 'h';
-
-        if (isToday(start)) {
-          dateText = `hoje às ${formattedHour}`;
-        } else if (isTomorrow(start)) {
-          dateText = `amanhã às ${formattedHour}`;
-        } else if (daysDiff <= 6) {
-          dateText = `${format(start, 'EEEE', { locale: ptBR })} às ${formattedHour}`;
-        } else {
-          dateText = `em ${format(start, 'dd/MM')} às ${formattedHour}`;
-        }
-
-        return (
-          <Badge className="bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-900/30 dark:text-indigo-400 dark:border-indigo-800 gap-1.5 py-1 px-3">
-            <CalendarCheck className="h-3.5 w-3.5" />
-            {isTargetingTomorrow ? `🟢 Ativa hoje às ${formattedHour} para reservas de amanhã` : `📅 Começa automaticamente ${dateText}`}
-          </Badge>
-        );
-      case 'active':
-        return (
-          <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-800 gap-1.5 py-1 px-3 shadow-sm font-medium">
-            {isTargetingTomorrow ? <Zap className="h-3.5 w-3.5 fill-emerald-500" /> : <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />}
-            {isTargetingTomorrow ? '🚀 Ativa agora para reservas de amanhã' : '🟢 Ativa agora'}
-          </Badge>
-        );
-      case 'paused':
-        return <Badge variant="secondary" className="py-1 px-3">Pausada</Badge>;
-      case 'expired':
-        return (
-          <Badge variant="outline" className="gap-1.5 text-muted-foreground py-1 px-3 bg-muted/30">
-            <div className="w-2 h-2 rounded-full bg-muted-foreground/50" />
-            Encerrada
-          </Badge>
-        );
+    if (promo.status === 'paused') {
+      return <Badge variant="secondary" className="py-1 px-3">Pausada</Badge>;
     }
+    
+    if (validityStatus === 'expired') {
+      return (
+        <Badge variant="outline" className="gap-1.5 text-muted-foreground py-1 px-3 bg-muted/30">
+          <div className="w-2 h-2 rounded-full bg-muted-foreground/50" />
+          Encerrada
+        </Badge>
+      );
+    }
+
+    if (isBookingActive) {
+      return (
+        <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-800 gap-1.5 py-1 px-3 shadow-sm font-medium">
+          <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+          🟢 Aberta para Agendamento
+        </Badge>
+      );
+    }
+
+    // Upcoming booking
+    let dateText = '';
+    const daysDiff = differenceInCalendarDays(opensAt, now);
+    const openTimeStr = promo.booking_opens_at ? format(opensAt, 'HH:mm') : format(startsAt, 'HH:mm');
+    const formattedHour = openTimeStr.split(':')[0] + 'h';
+
+    if (isToday(opensAt)) {
+      dateText = `hoje às ${formattedHour}`;
+    } else if (isTomorrow(opensAt)) {
+      dateText = `amanhã às ${formattedHour}`;
+    } else if (daysDiff <= 6) {
+      dateText = `${format(opensAt, 'EEEE', { locale: ptBR })} às ${formattedHour}`;
+    } else {
+      dateText = `em ${format(opensAt, 'dd/MM')} às ${formattedHour}`;
+    }
+
+    return (
+      <Badge className="bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-900/30 dark:text-indigo-400 dark:border-indigo-800 gap-1.5 py-1 px-3">
+        <Clock className="h-3.5 w-3.5" />
+        {`Libera para agendar ${dateText}`}
+      </Badge>
+    );
   };
 
   // --- Countdown for active promos ---
