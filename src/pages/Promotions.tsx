@@ -1838,29 +1838,36 @@ export default function Promotions() {
                       )}
 
                       {/* Date + time range */}
-                      <div className="flex flex-col gap-1.5 text-xs text-muted-foreground">
-                        <div className="flex items-center gap-1.5">
-                          {promo.start_date === promo.end_date ? (
-                            <span>📅 {format(parseISO(promo.start_date), 'dd/MM/yyyy')}</span>
-                          ) : (
-                            <span>📅 {format(parseISO(promo.start_date), 'dd/MM/yyyy')} - {format(parseISO(promo.end_date), 'dd/MM/yyyy')}</span>
-                          )}
-                        </div>
-                        <div className="flex items-center gap-1.5">
-                          {promo.use_business_hours !== false ? (
-                            <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-medium">
-                              <Clock className="h-3 w-3" /> {status === 'active' ? 'Hoje segue horário comercial' : 'Segue horário comercial'}
+                      <div className="flex flex-col gap-2 text-xs">
+                        <div className="flex items-start gap-1.5 p-2 rounded bg-muted/50 border border-muted-foreground/10">
+                          <CalendarCheck className="h-3.5 w-3.5 mt-0.5 text-primary" />
+                          <div className="flex flex-col gap-0.5">
+                            <span className="font-semibold text-foreground/80">Promoção válida para:</span>
+                            <span className="text-muted-foreground">
+                              {promo.start_date === promo.end_date ? (
+                                format(parseISO(promo.start_date), 'dd/MM/yyyy')
+                              ) : (
+                                `${format(parseISO(promo.start_date), 'dd/MM/yyyy')} até ${format(parseISO(promo.end_date), 'dd/MM/yyyy')}`
+                              )}
+                              {promo.use_business_hours !== false ? ' (Horário comercial)' : ` (${promo.start_time?.slice(0, 5) || '00:00'} às ${promo.end_time?.slice(0, 5) || '23:59'})`}
                             </span>
-                          ) : (
-                            <span className="flex items-center gap-1 text-primary font-medium">
-                              <Clock className="h-3 w-3" /> 
-                              {status === 'active' ? 'Hoje das ' : ''}
-                              {promo.start_time?.slice(0, 5)} às {promo.end_time?.slice(0, 5)}
-                              {promo.valid_days && promo.valid_days.length < 7 && (
-                                <span className="ml-1 text-[10px] opacity-70">({promo.valid_days.length} dias/sem)</span>
+                          </div>
+                        </div>
+
+                        <div className="flex items-start gap-1.5 p-2 rounded bg-primary/5 border border-primary/10">
+                          <Clock className="h-3.5 w-3.5 mt-0.5 text-primary" />
+                          <div className="flex flex-col gap-0.5">
+                            <span className="font-semibold text-foreground/80">Liberação para agendar:</span>
+                            <span className="text-muted-foreground">
+                              {promo.booking_opens_at 
+                                ? format(new Date(promo.booking_opens_at), 'dd/MM/yyyy HH:mm') 
+                                : 'Já liberado'
+                              }
+                              {promo.booking_closes_at && (
+                                ` até ${format(new Date(promo.booking_closes_at), 'dd/MM/yyyy HH:mm')}`
                               )}
                             </span>
-                          )}
+                          </div>
                         </div>
                       </div>
 
