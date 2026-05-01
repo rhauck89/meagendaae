@@ -1650,6 +1650,29 @@ export default function Promotions() {
               </DialogTitle>
             </DialogHeader>
 
+            {/* Step indicator (Manual only) */}
+            {creationMode === 'manual' && (
+              <div className="shrink-0 px-4 py-3 border-b bg-background sm:px-6">
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between text-xs text-muted-foreground">
+                    {WIZARD_STEPS.map((step) => (
+                      <div key={step.num} className={`flex items-center gap-1.5 ${wizardStep >= step.num ? 'text-primary font-medium' : ''}`}>
+                        <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs border-2 transition-colors ${
+                          wizardStep > step.num ? 'bg-primary border-primary text-primary-foreground' :
+                          wizardStep === step.num ? 'border-primary text-primary' :
+                          'border-muted-foreground/30'
+                        }`}>
+                          {wizardStep > step.num ? <Check className="h-3 w-3" /> : step.num}
+                        </div>
+                        <span className="hidden sm:inline">{step.label}</span>
+                      </div>
+                    ))}
+                  </div>
+                  <Progress value={(wizardStep / totalSteps) * 100} className="h-1.5" />
+                </div>
+              </div>
+            )}
+
             <DialogBody className="p-4 sm:p-6">
               {/* Step content */}
               {creationMode === 'choice' && !isEditing && renderChoiceScreen()}
@@ -1657,24 +1680,6 @@ export default function Promotions() {
               
               {creationMode === 'manual' && (
                 <>
-                  <div className="space-y-3 mb-6">
-                    <div className="flex items-center justify-between text-xs text-muted-foreground">
-                      {WIZARD_STEPS.map((step) => (
-                        <div key={step.num} className={`flex items-center gap-1.5 ${wizardStep >= step.num ? 'text-primary font-medium' : ''}`}>
-                          <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs border-2 transition-colors ${
-                            wizardStep > step.num ? 'bg-primary border-primary text-primary-foreground' :
-                            wizardStep === step.num ? 'border-primary text-primary' :
-                            'border-muted-foreground/30'
-                          }`}>
-                            {wizardStep > step.num ? <Check className="h-3 w-3" /> : step.num}
-                          </div>
-                          <span className="hidden sm:inline">{step.label}</span>
-                        </div>
-                      ))}
-                    </div>
-                    <Progress value={(wizardStep / totalSteps) * 100} className="h-1.5" />
-                  </div>
-
                   {wizardStep === 1 && renderStep1()}
                   {promotionType === 'cashback' && wizardStep === 2 && renderCashbackStep()}
                   {((promotionType === 'cashback' && wizardStep === 3) || (promotionType === 'traditional' && wizardStep === 2)) && renderStep2()}
