@@ -155,16 +155,19 @@ const EventPublic = () => {
     setSlots(enrichedSlots);
 
     // Load services linked to the event
+    const { data: eventSvcData } = await supabase
+      .from('event_services')
+      .select('service_id, event_price')
+      .eq('event_id', eventData.id);
+
+    const eventSvcIds = (eventSvcData || []).map(es => es.service_id);
+
     const { data: svcData } = await supabase
       .from('public_services')
-      .select('*, event_services!inner(event_id, event_price)')
-      .eq('event_services.event_id', eventData.id);
-
-    // Fallback/Legacy: also check event_service_prices if needed
-    const { data: priceData } = await supabase
-      .from('event_service_prices')
       .select('*')
-      .eq('event_id', eventData.id);
+      .in('id', eventSvcIds);
+
+    const eventPriceMap = new Map((eventSvcData || []).map((es: any) => [es.service_id, es.event_price]));
 
     const priceMap = new Map((priceData || []).map((p: any) => [p.service_id, p.override_price]));
     const enrichedSvc = (svcData || []).map((s: any) => {
