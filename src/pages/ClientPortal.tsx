@@ -65,7 +65,6 @@ interface RewardItem {
   stock_total: number | null; stock_available: number | null;
 }
 
-/** Company logo + name */
 const CompanyHeader = ({ company, size = 'sm' }: { company?: CompanyInfo; size?: 'sm' | 'md' | 'lg' }) => {
   if (!company) return null;
   const dim = size === 'lg' ? 'h-12 w-12' : size === 'md' ? 'h-10 w-10' : 'h-7 w-7';
@@ -88,11 +87,8 @@ const ClientPortal = () => {
   const { user, signOut: authSignOut, isAdmin, profile } = useAuth();
   const navigate = useNavigate();
 
-  // Custom signOut to handle admin vs client sessions
   const signOut = async () => {
     if (isAdmin) {
-      // If admin is logged in, just clear the local identity session
-      // This allows them to stay logged in to the dashboard
       const companyIds = clients.map(c => c.company_id);
       companyIds.forEach(id => {
         localStorage.removeItem(`whatsapp_session_${id}`);
@@ -100,7 +96,6 @@ const ClientPortal = () => {
       toast.success('Sessão de cliente encerrada');
       window.location.reload();
     } else {
-      // Standard user logout
       await authSignOut();
     }
   };
@@ -132,7 +127,6 @@ const ClientPortal = () => {
 
   const [rewardsCompanyId, setRewardsCompanyId] = useState<string | null>(null);
 
-  // Redemptions (QR + history)
   const [redemptions, setRedemptions] = useState<Redemption[]>([]);
   const [activeRedemption, setActiveRedemption] = useState<Redemption | null>(null);
   const [activeRedemptionRewardName, setActiveRedemptionRewardName] = useState<string | undefined>(undefined);
@@ -140,7 +134,6 @@ const ClientPortal = () => {
   const [regenerating, setRegenerating] = useState(false);
   const [redeemingId, setRedeemingId] = useState<string | null>(null);
 
-  // ---------- Cache (instant render + background revalidation) ----------
   const cacheKey = `client_portal_${user?.id || 'anon'}`;
   const { read: readCache, write: writeCache } = useLocalCache<{
     clients: ClientRecord[];
@@ -159,7 +152,6 @@ const ClientPortal = () => {
 
   useEffect(() => {
     if (!user) return;
-    // Hydrate from cache instantly (no skeleton flash)
     const cached = readCache();
     if (cached) {
       hasCacheRef.current = true;
@@ -174,18 +166,15 @@ const ClientPortal = () => {
       setCompanyCashbackActive(cached.companyCashbackActive || {});
       setCompanyLoyaltyActive(cached.companyLoyaltyActive || {});
       setLoading(false);
-      // Revalidate in background (do not block UI)
       loadClientData(true);
     } else {
       loadClientData(false);
     }
 
-    // Background revalidation every 30s
     const interval = setInterval(() => {
       loadClientData(true);
     }, 30000);
     return () => clearInterval(interval);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
   const primaryClient = clients[0];
@@ -217,7 +206,6 @@ const ClientPortal = () => {
         }
       }
 
-      // Helper for filtering by user/whatsapp/email
       const buildFilters = (clientEmailField = 'email', clientPhoneField = 'whatsapp') => {
         const profilePhone = profileData?.whatsapp ? profileData.whatsapp.replace(/\D/g, '') : null;
         const profilePhoneNoDdi = profilePhone && profilePhone.startsWith('55') ? profilePhone.slice(2) : profilePhone;
@@ -247,7 +235,6 @@ const ClientPortal = () => {
         return conditions.join(',');
       };
 
-      // 1. Fetch Clients first to get IDs
       const clientRes = await supabase
         .from('clients')
         .select('id, company_id, name, whatsapp, email, birth_date, registration_complete, postal_code, street, address_number, district, city, state')
@@ -256,7 +243,6 @@ const ClientPortal = () => {
       const clientData = (clientRes.data || []) as any[];
       const clientIds = clientData.map(c => c.id);
       
-      // 2. Fetch everything else using IDs or user_id
       const idOrUserFilter = (query: any) => {
         const conditions = [`user_id.eq.${currentUserId || '00000000-0000-0000-0000-000000000000'}`];
         if (clientIds.length > 0) {
@@ -291,7 +277,6 @@ const ClientPortal = () => {
       setRewards((rewardsRes.data || []) as any);
       setRedemptions((redemptionsRes.data || []) as Redemption[]);
 
-      // Map companies
       const companiesMap: Record<string, CompanyInfo> = {};
       const companyIds = [...new Set(clientData.map((c: any) => c.company_id))] as string[];
       
@@ -300,7 +285,6 @@ const ClientPortal = () => {
         companyData.forEach((c: any) => { companiesMap[c.id] = { id: c.id, name: c.name, logo_url: c.logo_url, slug: c.slug }; });
       }
 
-      // Add companies from rewards and appointments
       [...(rewardsRes.data || []), ...appointmentsData].forEach((item: any) => {
         if (item.company && !companiesMap[item.company.id]) {
           companiesMap[item.company.id] = { id: item.company.id, name: item.company.name, logo_url: item.company.logo_url, slug: item.company.slug };
@@ -308,7 +292,6 @@ const ClientPortal = () => {
       });
       setCompanies(companiesMap);
 
-      // Load specific loyalty configs
       const cashActive: Record<string, boolean> = {};
       const loyalActive: Record<string, boolean> = {};
       const lcMap: Record<string, any> = {};
@@ -329,15 +312,14 @@ const ClientPortal = () => {
       setCompanyLoyaltyActive(loyalActive);
       setLoyaltyConfigs(lcMap);
 
-      // Profile form initialization
       const { data: globalClientData } = await supabase.from('clients_global').select('*').eq('user_id', currentUserId).maybeSingle();
       if (globalClientData) {
         setGlobalProfile(globalClientData);
         setProfileForm({
           name: globalClientData.name || '', 
-          whatsapp: globalClientData.whatsapp || '', 
+          whatsapp: (globalClientData as any).whatsapp || '', 
           email: globalClientData.email || '',
-          birth_date: globalClientData.birth_date || '',
+          birth_date: (globalClientData as any).birth_date || '',
           postal_code: (globalClientData as any).postal_code || '', 
           street: (globalClientData as any).street || '',
           address_number: (globalClientData as any).address_number || '', 
@@ -356,7 +338,6 @@ const ClientPortal = () => {
         });
       }
 
-      // Persist to cache
       writeCache({
         clients: clientData as ClientRecord[],
         appointments: appointmentsData,
@@ -376,7 +357,6 @@ const ClientPortal = () => {
     }
   };
 
-  // ---------- Aggregations ----------
   const cashbackByCompany = useMemo(() => {
     const map: Record<string, number> = {};
     for (const cb of allCashbacks) {
@@ -442,25 +422,24 @@ const ClientPortal = () => {
     () => Object.values(companies).filter(c => companyLoyaltyActive[c.id]),
     [companies, companyLoyaltyActive]);
 
-  // Loja: empresas com itens ativos, ordenadas (1) com pontos > 0, (2) com histórico, (3) outras
-  const appointmentCompanyIds = useMemo(
-    () => new Set(appointments.map(a => a.company_id)),
-    [appointments]);
   const companiesWithRewards = useMemo(() => {
     const ids = [...new Set(rewards.map(r => r.company_id))];
     const list = ids.map(id => companies[id]).filter(Boolean) as CompanyInfo[];
     return list.sort((a, b) => {
       const pa = pointsByCompany[a.id] || 0;
       const pb = pointsByCompany[b.id] || 0;
-      if (pa !== pb) return pb - pa; // mais pontos primeiro
+      if (pa !== pb) return pb - pa;
       const ha = appointmentCompanyIds.has(a.id) ? 1 : 0;
       const hb = appointmentCompanyIds.has(b.id) ? 1 : 0;
-      if (ha !== hb) return hb - ha; // histórico primeiro
+      if (ha !== hb) return hb - ha;
       return a.name.localeCompare(b.name);
     });
   }, [rewards, companies, pointsByCompany, appointmentCompanyIds]);
 
-  // Auto-seleciona empresa com mais pontos (ou primeira ordenada) quando a Loja carrega
+  const appointmentCompanyIds = useMemo(
+    () => new Set(appointments.map(a => a.company_id)),
+    [appointments]);
+
   useEffect(() => {
     if (rewardsCompanyId) return;
     if (companiesWithRewards.length === 0) return;
@@ -471,7 +450,6 @@ const ClientPortal = () => {
   const anyLoyalty = companiesWithLoyalty.length > 0;
   const anyRewards = companiesWithRewards.length > 0;
 
-  // ---------- Redemptions: refresh + create (transactional via RPC) ----------
   const refreshRedemptions = async () => {
     if (!clients.length) return;
     const { data } = await supabase
@@ -515,7 +493,6 @@ const ClientPortal = () => {
 
   const handleRegenerateActive = async () => {
     if (!activeRedemption) return;
-    // Find the original reward to call RPC again
     const reward = rewards.find(r => r.id === activeRedemption.reward_id);
     if (!reward) {
       toast.error('Recompensa não encontrada para regenerar.');
@@ -572,7 +549,6 @@ const ClientPortal = () => {
     else navigate('/');
   };
 
-  // Unauthenticated
   if (!user) return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <div className="w-full max-w-sm text-center space-y-5">
@@ -608,7 +584,6 @@ const ClientPortal = () => {
     </div>
   );
 
-  // 4-tab bottom nav
   const bottomTabs = [
     { value: 'home', icon: Home, label: 'Início' },
     { value: 'agenda', icon: Calendar, label: 'Agenda' },
@@ -618,7 +593,6 @@ const ClientPortal = () => {
 
   return (
     <div className="min-h-screen bg-muted/30 pb-24">
-      {/* ============ HEADER (Agendaê identity) ============ */}
       <header className="bg-card border-b sticky top-0 z-20 shadow-sm">
         <div className="max-w-3xl mx-auto px-4 pt-4 pb-3">
           <div className="flex items-center justify-between gap-3">
@@ -646,7 +620,6 @@ const ClientPortal = () => {
       </header>
 
       <div className="max-w-3xl mx-auto px-4 py-4 space-y-5">
-        {/* Profile incomplete banner */}
         {isRegistrationIncomplete && (
           <Card className="border-primary/30 bg-primary/5">
             <CardContent className="p-4 flex items-start gap-3">
@@ -662,9 +635,7 @@ const ClientPortal = () => {
         )}
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          {/* ============ HOME ============ */}
           <TabsContent value="home" className="space-y-5 mt-0">
-            {/* Horizontal scroll summary cards */}
             <div className="-mx-4 px-4 overflow-x-auto scrollbar-hide">
               <div className="flex gap-3 pb-2" style={{ minWidth: 'max-content' }}>
                 <button
@@ -717,7 +688,6 @@ const ClientPortal = () => {
               </div>
             </div>
 
-            {/* Próximo agendamento */}
             <div>
               <h2 className="text-sm font-semibold mb-2 flex items-center gap-2">
                 <Calendar className="h-4 w-4 text-primary" /> Próximo agendamento
@@ -768,7 +738,6 @@ const ClientPortal = () => {
               )}
             </div>
 
-            {/* Último atendimento */}
             {lastAppointment && (
               <div>
                 <h2 className="text-sm font-semibold mb-2 flex items-center gap-2">
@@ -796,7 +765,6 @@ const ClientPortal = () => {
               </div>
             )}
 
-            {/* Benefícios resumo por empresa */}
             {anyCashback && (
               <div>
                 <div className="flex items-center justify-between mb-2">
@@ -841,6 +809,8 @@ const ClientPortal = () => {
                 <div className="space-y-2">
                   {companiesWithLoyalty.map(co => {
                     const balance = pointsByCompany[co.id] || 0;
+                    const cfg = loyaltyConfigs[co.id];
+                    const pointVal = cfg?.point_value || 0.05;
                     const companyRewards = rewards.filter(r => r.company_id === co.id);
                     const next = companyRewards
                       .map(r => ({ ...r, diff: r.points_required - balance }))
@@ -869,7 +839,6 @@ const ClientPortal = () => {
             )}
           </TabsContent>
 
-          {/* ============ AGENDA ============ */}
           <TabsContent value="agenda" className="space-y-5 mt-0">
             <Tabs defaultValue="upcoming">
               <TabsList className="grid grid-cols-2 w-full">
@@ -934,7 +903,6 @@ const ClientPortal = () => {
             </Tabs>
           </TabsContent>
 
-          {/* ============ BENEFITS (sub-tabs) ============ */}
           <TabsContent value="benefits" className="space-y-4 mt-0">
             <Tabs value={benefitsTab} onValueChange={setBenefitsTab}>
               <TabsList className="grid grid-cols-3 w-full">
@@ -943,7 +911,6 @@ const ClientPortal = () => {
                 <TabsTrigger value="store">Loja</TabsTrigger>
               </TabsList>
 
-              {/* CASHBACK */}
               <TabsContent value="cashback" className="space-y-4 mt-4">
                 {!anyCashback && allCashbackTxs.length === 0 ? (
                   <Card>
@@ -959,7 +926,6 @@ const ClientPortal = () => {
                 ) : (
                   <>
                     <div className="grid grid-cols-1 gap-3">
-                      {/* Resumo visual no topo estilo Wallet */}
                       <Card className="bg-gradient-to-br from-primary/10 via-background to-background border-primary/20 overflow-hidden relative">
                         <div className="absolute top-0 right-0 p-4 opacity-10">
                           <Wallet className="h-16 w-16 rotate-12" />
@@ -1001,7 +967,6 @@ const ClientPortal = () => {
                         </CardContent>
                       </Card>
 
-                      {/* Botões de ação (Base pronta) */}
                       <div className="flex gap-2">
                         <Button variant="outline" size="sm" className="flex-1 text-[11px] h-9 gap-1.5" onClick={() => navigate('/')}>
                           <Calendar className="h-3.5 w-3.5" /> Usar no próximo
@@ -1017,7 +982,6 @@ const ClientPortal = () => {
                         <HistoryIcon className="h-3 w-3" /> Extrato Detalhado
                       </h3>
                       
-                      {/* Saldo por estabelecimento */}
                       <div className="space-y-2">
                         {companiesWithCashback.map(co => (
                           <div key={co.id} className="flex items-center justify-between p-3 rounded-xl bg-card border shadow-sm">
@@ -1031,7 +995,6 @@ const ClientPortal = () => {
                         ))}
                       </div>
 
-                      {/* Lista cronológica do extrato */}
                       <div className="space-y-2">
                         {allCashbackTxs.length === 0 ? (
                           <Card><CardContent className="p-6 text-center text-sm text-muted-foreground italic">
@@ -1089,7 +1052,6 @@ const ClientPortal = () => {
                 )}
               </TabsContent>
 
-              {/* POINTS */}
               <TabsContent value="points" className="space-y-4 mt-4">
                 {!anyLoyalty ? (
                   <Card>
@@ -1118,7 +1080,6 @@ const ClientPortal = () => {
                       const cfg = loyaltyConfigs[co.id];
                       const pointVal = cfg?.point_value || 0.05;
                       const companyRewards = rewards.filter(r => r.company_id === co.id);
-                      // Smart suggestion based on this company's appointment history
                       const companyApts = appointments.filter(a => a.company_id === co.id);
                       const aptHistory = companyApts.flatMap(a =>
                         (a.appointment_services || []).map(s => ({
@@ -1200,7 +1161,6 @@ const ClientPortal = () => {
                 )}
               </TabsContent>
 
-              {/* STORE */}
               <TabsContent value="store" className="space-y-4 mt-4">
                 {!anyRewards ? (
                   <Card>
@@ -1214,7 +1174,6 @@ const ClientPortal = () => {
                   </Card>
                 ) : (
                   <>
-                    {/* Seletor horizontal estilo Livelo: logos coloridas (com pontos) vs grayscale (sem pontos) */}
                     <div>
                       <p className="text-xs font-semibold text-muted-foreground mb-2">
                         Escolha o estabelecimento:
@@ -1261,7 +1220,6 @@ const ClientPortal = () => {
                       </div>
                     </div>
 
-                    {/* Saldo na empresa selecionada */}
                     {rewardsCompany && (
                       <Card className="bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20">
                         <CardContent className="p-4 flex items-center justify-between gap-3">
@@ -1300,8 +1258,7 @@ const ClientPortal = () => {
                       const closest = sorted.filter(r => rewardsBalance < r.points_required);
 
                       const handleRedeem = async (reward: typeof rewardsList[number]) => {
-                        if (redeemingId) return; // proteção contra duplo clique
-                        // Reuse an existing pending+non-expired redemption for this reward, if any
+                        if (redeemingId) return;
                         const existing = redemptions.find(r =>
                           r.reward_id === reward.id &&
                           r.status === 'pending' &&
@@ -1341,7 +1298,6 @@ const ClientPortal = () => {
                             }`}
                           >
                             <CardContent className="p-0">
-                              {/* 1. EMPRESA */}
                               <div className="flex items-center gap-3 px-4 py-3 bg-gradient-to-r from-primary/5 via-primary/[0.02] to-transparent border-b">
                                 <div className="relative shrink-0">
                                   {rewardsCompany?.logo_url ? (
@@ -1365,7 +1321,6 @@ const ClientPortal = () => {
                                 </div>
                               </div>
 
-                              {/* 2. PRODUTO */}
                               <div className="p-4 flex gap-4">
                                 <div className="w-24 h-24 rounded-xl overflow-hidden border shadow-sm shrink-0 bg-gradient-to-br from-primary/10 to-primary/5 flex items-center justify-center">
                                   {reward.image_url ? (
@@ -1396,7 +1351,6 @@ const ClientPortal = () => {
                                 </div>
                               </div>
 
-                              {/* Status / progresso / estoque */}
                               <div className="px-4 pb-2 space-y-1.5">
                                 {hasPoints ? (
                                   <Badge className="bg-green-500/15 text-green-700 hover:bg-green-500/20 text-[11px] border-0 font-semibold">
@@ -1422,7 +1376,6 @@ const ClientPortal = () => {
                                 )}
                               </div>
 
-                              {/* 4. AÇÃO */}
                               <div className="px-4 pb-4 pt-2 space-y-2">
                                 <Button
                                   size="default"
@@ -1473,7 +1426,6 @@ const ClientPortal = () => {
                   </>
                 )}
 
-                {/* ============ MEUS RESGATES (histórico) ============ */}
                 {redemptions.length > 0 && (
                   <div className="space-y-2 pt-2">
                     <h3 className="text-sm font-semibold flex items-center gap-1.5">
@@ -1534,7 +1486,6 @@ const ClientPortal = () => {
             </Tabs>
           </TabsContent>
 
-          {/* ============ PROFILE ============ */}
           <TabsContent value="profile" className="space-y-4 mt-0">
             <Card>
               <CardHeader>
@@ -1620,7 +1571,6 @@ const ClientPortal = () => {
         </Tabs>
       </div>
 
-      {/* ============ BOTTOM NAV (4 tabs, mobile-first, always visible) ============ */}
       <nav className="fixed bottom-0 left-0 right-0 z-30 bg-card border-t shadow-[0_-2px_10px_rgba(0,0,0,0.04)]">
         <div className="max-w-3xl mx-auto grid grid-cols-4">
           {bottomTabs.map(t => {
@@ -1643,7 +1593,6 @@ const ClientPortal = () => {
         </div>
       </nav>
 
-      {/* Password Dialog */}
       <Dialog open={showPasswordDialog} onOpenChange={setShowPasswordDialog}>
         <DialogContent className="max-w-sm">
           <DialogHeader><DialogTitle>Alterar senha</DialogTitle></DialogHeader>
@@ -1666,7 +1615,6 @@ const ClientPortal = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Complete Profile Dialog */}
       <Dialog open={showCompleteProfile} onOpenChange={setShowCompleteProfile}>
         <DialogContent className="max-w-sm max-h-[90vh] overflow-y-auto">
           <DialogHeader><DialogTitle>Completar cadastro</DialogTitle></DialogHeader>
@@ -1690,13 +1638,11 @@ const ClientPortal = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Redemption QR Dialog */}
       <RedemptionQRDialog
         open={showRedemptionDialog}
         onOpenChange={(v) => {
           setShowRedemptionDialog(v);
           if (!v) {
-            // Refresh on close to reflect any status change while open
             refreshRedemptions();
           }
         }}
