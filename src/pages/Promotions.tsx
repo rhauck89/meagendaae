@@ -792,12 +792,12 @@ export default function Promotions() {
     setSourceInsight(promo.source_insight || null);
     
     if (promo.booking_opens_at) {
-      const d = new Date(promo.booking_opens_at);
+      const d = toZonedTime(new Date(promo.booking_opens_at), DEFAULT_TZ);
       setBookingOpensAtDate(format(d, 'yyyy-MM-dd'));
       setBookingOpensAtTime(format(d, 'HH:mm'));
     }
     if (promo.booking_closes_at) {
-      const d = new Date(promo.booking_closes_at);
+      const d = toZonedTime(new Date(promo.booking_closes_at), DEFAULT_TZ);
       setBookingClosesAtDate(format(d, 'yyyy-MM-dd'));
       setBookingClosesAtTime(format(d, 'HH:mm'));
       setHasCustomBookingClosesAt(true);
