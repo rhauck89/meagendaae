@@ -903,6 +903,13 @@ const Events = () => {
         <Label>Descrição</Label>
         <Textarea value={formDescription} onChange={e => setFormDescription(e.target.value)} placeholder="Descreva o evento..." rows={3} />
       </div>
+      <div className="flex items-center justify-between p-3 border rounded-lg bg-muted/20">
+        <div className="space-y-0.5">
+          <Label className="text-sm font-medium">Bloquear agenda principal</Label>
+          <p className="text-xs text-muted-foreground">Impede agendamentos manuais nos horários deste evento</p>
+        </div>
+        <Switch checked={formBlockMainSchedule} onCheckedChange={setFormBlockMainSchedule} />
+      </div>
       <div className="flex items-center justify-between">
         <div>
           <Label>Evento de um dia</Label>
