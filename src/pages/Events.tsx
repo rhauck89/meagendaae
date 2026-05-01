@@ -39,6 +39,7 @@ type Event = {
   status: 'draft' | 'published' | 'cancelled' | 'completed';
   created_at: string;
   max_bookings_per_client: number;
+  block_main_schedule?: boolean;
 };
 
 type EventSlot = {
