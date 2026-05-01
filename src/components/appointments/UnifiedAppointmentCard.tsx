@@ -42,6 +42,7 @@ export interface UnifiedAppointmentCardProps {
   isHighlighted?: boolean;
   className?: string;
   showCompany?: boolean;
+  referenceDate?: Date;
 }
 
 const statusColors: Record<string, string> = {
