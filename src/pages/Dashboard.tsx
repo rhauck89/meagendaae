@@ -17,7 +17,7 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogBody, DialogFooter, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { isPromoActive } from '@/lib/promotion-period';
-import { Calendar as CalendarIcon, CalendarCheck, ChevronLeft, ChevronRight, Clock, DollarSign, Users, UserCheck, UserMinus, AlertTriangle, Bell, MailCheck, Cake, Ban, Trash2, Timer, RefreshCw, AlertCircle, TrendingUp, BarChart3, XCircle, Percent, Receipt, Send, List, LayoutGrid, ArrowLeftRight, MoreHorizontal, MessageSquare, Info, Scissors, User, CheckCircle2, Rocket, Crown } from 'lucide-react';
+import { Calendar as CalendarIcon, CalendarCheck, ChevronLeft, ChevronRight, Clock, DollarSign, Users, UserCheck, UserMinus, UserPlus, AlertTriangle, Bell, MailCheck, Cake, Ban, Trash2, Timer, RefreshCw, AlertCircle, TrendingUp, BarChart3, XCircle, Percent, Receipt, Send, List, LayoutGrid, ArrowLeftRight, MoreHorizontal, MessageSquare, Info, Scissors, User, CheckCircle2, Rocket, Crown } from 'lucide-react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { BlockTimeDialog } from '@/components/BlockTimeDialog';
 import { Calendar as DatePickerCalendar } from '@/components/ui/calendar';
@@ -599,79 +599,211 @@ const Dashboard = () => {
         onConverted={() => { fetchAppointments(); fetchUpcomingAppointments(); fetchMonthlyStats(); }}
       />
 
-      <Card className="bg-gradient-to-br from-card to-muted/30 border-primary/10 shadow-sm overflow-hidden">
-        <CardHeader className="pb-3 bg-primary/5">
-          <CardTitle className="text-lg font-display flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Clock className="h-5 w-5 text-primary" /> Próximos atendimentos
-            </div>
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="pt-4">
-          <div className="space-y-3">
-            {upcomingAppointments.length > 0 ? (
-              upcomingAppointments.map((apt) => (
-                <UnifiedAppointmentCard
-                  key={apt.id}
-                  appointment={apt}
-                  variant="business"
-                  isAdmin={isAdmin}
-                  onComplete={handleCompleteClick}
-                  onReschedule={openRescheduleDialog}
-                  onAdjust={(apt) => { setAdjustTarget(apt); setAdjustDialogOpen(true); }}
-                  onCancel={(apt) => { setCancelTarget(apt); setCancelDialogOpen(true); }}
-                  onUpdateStatus={updateStatus}
-                  onRegisterDelay={(apt) => { setDelayTargetId(apt.id); setDelayTargetApt(apt); setDelayDialogOpen(true); }}
-                  onWhatsApp={(apt) => openWhatsApp(apt.client?.whatsapp || '', `Olá ${apt.client?.name}, confirmando seu agendamento hoje às ${format(parseISO(apt.start_time), 'HH:mm')}`)}
-                />
-              ))
-            ) : (
-              <div className="text-center py-8 text-muted-foreground">
-                <Clock className="h-12 w-12 mx-auto mb-2 opacity-30" />
-                <p className="text-sm">Nenhum agendamento próximo</p>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <Card className="bg-gradient-to-br from-card to-muted/30 border-primary/10 shadow-sm overflow-hidden">
+          <CardHeader className="pb-3 bg-primary/5">
+            <CardTitle className="text-lg font-display flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Clock className="h-5 w-5 text-primary" /> Próximos atendimentos
               </div>
-            )}
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card className="bg-gradient-to-br from-card to-orange-50/30 border-orange-500/20 shadow-sm overflow-hidden">
-        <CardHeader className="pb-3 bg-orange-500/5">
-          <CardTitle className="text-lg font-display flex items-center justify-between text-orange-600">
-            <div className="flex items-center gap-2">
-              <AlertCircle className="h-5 w-5" /> Finalizar atendimentos
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="pt-4">
+            <div className="space-y-3">
+              {upcomingAppointments.length > 0 ? (
+                upcomingAppointments.slice(0, 3).map((apt) => (
+                  <UnifiedAppointmentCard
+                    key={apt.id}
+                    appointment={apt}
+                    variant="business"
+                    isAdmin={isAdmin}
+                    onComplete={handleCompleteClick}
+                    onReschedule={openRescheduleDialog}
+                    onAdjust={(apt) => { setAdjustTarget(apt); setAdjustDialogOpen(true); }}
+                    onCancel={(apt) => { setCancelTarget(apt); setCancelDialogOpen(true); }}
+                    onUpdateStatus={updateStatus}
+                    onRegisterDelay={(apt) => { setDelayTargetId(apt.id); setDelayTargetApt(apt); setDelayDialogOpen(true); }}
+                    onWhatsApp={(apt) => openWhatsApp(apt.client?.whatsapp || '', `Olá ${apt.client?.name}, confirmando seu agendamento hoje às ${format(parseISO(apt.start_time), 'HH:mm')}`)}
+                  />
+                ))
+              ) : (
+                <div className="text-center py-8 text-muted-foreground">
+                  <Clock className="h-12 w-12 mx-auto mb-2 opacity-30" />
+                  <p className="text-sm">Nenhum agendamento próximo</p>
+                </div>
+              )}
             </div>
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="pt-4">
-          <div className="space-y-3">
-            {appointments.filter(apt => {
-              const ds = getDisplayStatus(apt);
-              const isPast = new Date() > parseISO(apt.end_time);
-              return (isPast && ds !== 'completed' && ds !== 'cancelled' && ds !== 'no_show');
-            }).map((apt) => (
-              <UnifiedAppointmentCard
-                key={apt.id}
-                appointment={apt}
-                variant="business"
-                isAdmin={isAdmin}
-                onComplete={handleCompleteClick}
-                onReschedule={openRescheduleDialog}
-                onAdjust={(apt) => { setAdjustTarget(apt); setAdjustDialogOpen(true); }}
-                onCancel={(apt) => { setCancelTarget(apt); setCancelDialogOpen(true); }}
-                onUpdateStatus={updateStatus}
-                onRegisterDelay={(apt) => { setDelayTargetId(apt.id); setDelayTargetApt(apt); setDelayDialogOpen(true); }}
-                onWhatsApp={(apt) => openWhatsApp(apt.client?.whatsapp || '', `Olá ${apt.client?.name}, confirmando seu agendamento hoje às ${format(parseISO(apt.start_time), 'HH:mm')}`)}
-              />
-            ))}
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+
+        {appointments.filter(apt => {
+          const ds = getDisplayStatus(apt);
+          const isPast = new Date() > parseISO(apt.end_time);
+          return (isPast && ds !== 'completed' && ds !== 'cancelled' && ds !== 'no_show');
+        }).length > 0 && (
+          <Card className="bg-gradient-to-br from-card to-orange-50/30 border-orange-500/20 shadow-sm overflow-hidden">
+            <CardHeader className="pb-3 bg-orange-500/5">
+              <CardTitle className="text-lg font-display flex items-center justify-between text-orange-600">
+                <div className="flex items-center gap-2">
+                  <AlertCircle className="h-5 w-5" /> Finalizar atendimentos
+                </div>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="pt-4">
+              <div className="space-y-3">
+                {appointments.filter(apt => {
+                  const ds = getDisplayStatus(apt);
+                  const isPast = new Date() > parseISO(apt.end_time);
+                  return (isPast && ds !== 'completed' && ds !== 'cancelled' && ds !== 'no_show');
+                }).slice(0, 3).map((apt) => (
+                  <UnifiedAppointmentCard
+                    key={apt.id}
+                    appointment={apt}
+                    variant="business"
+                    isAdmin={isAdmin}
+                    onComplete={handleCompleteClick}
+                    onReschedule={openRescheduleDialog}
+                    onAdjust={(apt) => { setAdjustTarget(apt); setAdjustDialogOpen(true); }}
+                    onCancel={(apt) => { setCancelTarget(apt); setCancelDialogOpen(true); }}
+                    onUpdateStatus={updateStatus}
+                    onRegisterDelay={(apt) => { setDelayTargetId(apt.id); setDelayTargetApt(apt); setDelayDialogOpen(true); }}
+                    onWhatsApp={(apt) => openWhatsApp(apt.client?.whatsapp || '', `Olá ${apt.client?.name}, confirmando seu agendamento hoje às ${format(parseISO(apt.start_time), 'HH:mm')}`)}
+                  />
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+      </div>
+
+      <div className="space-y-3">
+        <h3 className="text-lg font-display font-bold flex items-center gap-2">
+          <TrendingUp className="h-5 w-5 text-primary" /> Resumo do Dia
+        </h3>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <Card className="bg-white/50 backdrop-blur-sm border-primary/10">
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Receita Estimada</p>
+                  <h3 className="text-2xl font-black text-primary mt-1">{formatCurrency(stats.revenue)}</h3>
+                </div>
+                <div className="h-10 w-10 bg-primary/10 rounded-xl flex items-center justify-center">
+                  <DollarSign className="h-5 w-5 text-primary" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="bg-white/50 backdrop-blur-sm border-primary/10">
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Receita Realizada</p>
+                  <h3 className="text-2xl font-black text-success mt-1">{formatCurrency(stats.revenueCompleted)}</h3>
+                </div>
+                <div className="h-10 w-10 bg-success/10 rounded-xl flex items-center justify-center">
+                  <Receipt className="h-5 w-5 text-success" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="bg-white/50 backdrop-blur-sm border-primary/10">
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Clientes Únicos</p>
+                  <h3 className="text-2xl font-black text-foreground mt-1">{stats.clients}</h3>
+                </div>
+                <div className="h-10 w-10 bg-muted rounded-xl flex items-center justify-center">
+                  <Users className="h-5 w-5 text-muted-foreground" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="bg-white/50 backdrop-blur-sm border-primary/10">
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Aguardando Vaga</p>
+                  <h3 className="text-2xl font-black text-orange-600 mt-1">{waitlistCount}</h3>
+                </div>
+                <div className="h-10 w-10 bg-orange-100 rounded-xl flex items-center justify-center text-orange-600">
+                  <UserPlus className="h-5 w-5" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+
+      <div className="space-y-3">
+        <h3 className="text-lg font-display font-bold flex items-center gap-2">
+          <BarChart3 className="h-5 w-5 text-primary" /> Resumo do Mês
+        </h3>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <Card className="bg-white/50 border-primary/10">
+            <CardContent className="pt-6">
+              <p className="text-[10px] font-bold text-muted-foreground uppercase">Faturamento Mensal</p>
+              <h3 className="text-xl font-black text-primary">{formatCurrency(monthlyStats.revenue)}</h3>
+              <p className="text-[9px] text-muted-foreground mt-1">Estimado para o mês atual</p>
+            </CardContent>
+          </Card>
+          <Card className="bg-white/50 border-primary/10">
+            <CardContent className="pt-6">
+              <p className="text-[10px] font-bold text-muted-foreground uppercase">Ticket Médio</p>
+              <h3 className="text-xl font-black text-foreground">{formatCurrency(monthlyStats.avgTicket)}</h3>
+              <p className="text-[9px] text-muted-foreground mt-1">Por atendimento confirmado</p>
+            </CardContent>
+          </Card>
+          <Card className="bg-white/50 border-primary/10">
+            <CardContent className="pt-6">
+              <p className="text-[10px] font-bold text-muted-foreground uppercase">Taxa de Ocupação</p>
+              <h3 className="text-xl font-black text-foreground">{monthlyStats.occupancyRate}%</h3>
+              <p className="text-[9px] text-muted-foreground mt-1">Baseado em {monthlyStats.completedAppointments} agendamentos</p>
+            </CardContent>
+          </Card>
+          <Card className="bg-white/50 border-primary/10">
+            <CardContent className="pt-6">
+              <p className="text-[10px] font-bold text-muted-foreground uppercase">Cancelamentos</p>
+              <h3 className="text-xl font-black text-destructive">{monthlyStats.cancellations}</h3>
+              <p className="text-[9px] text-muted-foreground mt-1">No período mensal</p>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
 
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle className="text-lg font-display flex items-center gap-2 mb-3">
-            <CalendarIcon className="h-5 w-5" /> Calendário de Agendamentos
+          <CardTitle className="text-lg font-display flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <CalendarIcon className="h-5 w-5" /> Calendário de Agendamentos
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="flex items-center bg-muted p-1 rounded-lg">
+                <Button 
+                  variant={agendaDisplayMode === 'lista' ? 'secondary' : 'ghost'} 
+                  size="sm" 
+                  className="h-7 text-[10px] font-bold"
+                  onClick={() => {
+                    setAgendaDisplayMode('lista');
+                    localStorage.setItem('agenda_display_mode', 'lista');
+                  }}
+                >
+                  <List className="h-3 w-3 mr-1" /> LISTA
+                </Button>
+                <Button 
+                  variant={agendaDisplayMode === 'calendario' ? 'secondary' : 'ghost'} 
+                  size="sm" 
+                  className="h-7 text-[10px] font-bold"
+                  onClick={() => {
+                    setAgendaDisplayMode('calendario');
+                    localStorage.setItem('agenda_display_mode', 'calendario');
+                  }}
+                >
+                  <LayoutGrid className="h-3 w-3 mr-1" /> AGENDA
+                </Button>
+              </div>
+            </div>
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -684,6 +816,7 @@ const Dashboard = () => {
               <TabsTrigger value="rescheduled">Reagendados</TabsTrigger>
             </TabsList>
           </Tabs>
+
           <div className="space-y-4">
             {appointments.filter(statusFilterMap[statusTab]).map((apt) => (
               <UnifiedAppointmentCard
