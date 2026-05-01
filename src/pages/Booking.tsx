@@ -820,7 +820,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
         .eq('status', 'active');
       
       if (pubPromos) {
-        setPublicPromotions(pubPromos as PromotionInfo[]);
+        setPublicPromotions(pubPromos as unknown as PromotionInfo[]);
       }
     } catch (err) {
       console.error('[Booking] Error fetching promotions:', err);
