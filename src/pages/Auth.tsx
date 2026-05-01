@@ -90,10 +90,12 @@ const Auth = () => {
     setLoading(true);
     try {
       if (isLogin) {
-        const { data, error } = await supabase.auth.signInWithPassword({ email: email.trim().toLowerCase(), password });
+        const { data: authData, error } = await supabase.auth.signInWithPassword({ 
+          email: email.trim().toLowerCase(), 
+          password 
+        });
+
         if (error) {
-          // Real error visible in dev console for debugging (status + code)
-          // eslint-disable-next-line no-console
           console.error('[LOGIN ERROR]', {
             message: error.message,
             status: (error as any).status,
@@ -102,29 +104,27 @@ const Auth = () => {
           });
           throw error;
         }
+
+        // Fetch profile/context immediately to decide where to go
+        const { data: contextData } = await supabase.rpc('get_current_user_context');
+        const context = contextData && contextData.length > 0 ? contextData[0] : null;
+        const roles = context?.roles || [];
+        
+        console.log('[LOGIN_REDIRECT] User roles:', roles);
+        
         toast.success('Login realizado com sucesso!');
-        navigate('/dashboard');
-
-        // Secondary routing checks (non-blocking)
-        (async () => {
-          try {
-            const { data: context } = await supabase.rpc('get_current_user_context');
-            if (!context || context.length === 0) return;
-            const ctx = context[0];
-            
-            if (ctx.roles?.includes('super_admin')) {
-              navigate('/super-admin');
-              return;
-            }
-
-            const { data: companies } = await supabase.rpc('get_user_companies');
-            if (companies && companies.length > 1) {
-              navigate('/select-company');
-            }
-          } catch (err) {
-            console.warn('[LOGIN] Context check failed:', err);
+        
+        if (roles.includes('super_admin')) {
+          console.log('[LOGIN_REDIRECT] Redirecting to super-admin');
+          navigate('/super-admin');
+        } else {
+          const { data: companies } = await supabase.rpc('get_user_companies');
+          if (companies && companies.length > 1) {
+            navigate('/select-company');
+          } else {
+            navigate('/dashboard');
           }
-        })();
+        }
       } else {
         const { data: signUpData, error: authError } = await supabase.functions.invoke('auth-handler', {
           body: {
