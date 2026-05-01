@@ -889,7 +889,7 @@ const Events = () => {
   );
 
   const renderStep1Details = () => (
-    <div className="space-y-4">
+    <div className="space-y-4 pt-1 sm:pt-0">
       <div>
         <Label>Nome do evento *</Label>
         <Input value={formName} onChange={e => setFormName(e.target.value)} placeholder="Ex: Dia do Cliente" />
