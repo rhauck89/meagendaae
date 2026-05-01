@@ -65,7 +65,22 @@ interface RewardItem {
   stock_total: number | null; stock_available: number | null;
 }
 
-/** Company logo + name */
+const getDisplayStatus = (apt: any): string => {
+  if (['completed', 'cancelled', 'no_show', 'rescheduled'].includes(apt.status)) {
+    return apt.status;
+  }
+  const now = new Date();
+  const endTime = parseISO(apt.end_time);
+  const startTime = parseISO(apt.start_time);
+  if ((apt.status === 'confirmed' || apt.status === 'pending') && now > endTime) {
+    return 'late';
+  }
+  if (apt.status === 'confirmed' && now >= startTime && now <= endTime) {
+    return 'in_progress';
+  }
+  return apt.status;
+};
+
 const CompanyHeader = ({ company, size = 'sm' }: { company?: CompanyInfo; size?: 'sm' | 'md' | 'lg' }) => {
   if (!company) return null;
   const dim = size === 'lg' ? 'h-12 w-12' : size === 'md' ? 'h-10 w-10' : 'h-7 w-7';
@@ -88,11 +103,8 @@ const ClientPortal = () => {
   const { user, signOut: authSignOut, isAdmin, profile } = useAuth();
   const navigate = useNavigate();
 
-  // Custom signOut to handle admin vs client sessions
   const signOut = async () => {
     if (isAdmin) {
-      // If admin is logged in, just clear the local identity session
-      // This allows them to stay logged in to the dashboard
       const companyIds = clients.map(c => c.company_id);
       companyIds.forEach(id => {
         localStorage.removeItem(`whatsapp_session_${id}`);
@@ -100,7 +112,6 @@ const ClientPortal = () => {
       toast.success('Sessão de cliente encerrada');
       window.location.reload();
     } else {
-      // Standard user logout
       await authSignOut();
     }
   };
@@ -124,6 +135,7 @@ const ClientPortal = () => {
     name: '', whatsapp: '', email: '', birth_date: '',
     postal_code: '', street: '', address_number: '', district: '', city: '', state: '',
   });
+  const [globalProfile, setGlobalProfile] = useState<any>(null);
   const [passwordForm, setPasswordForm] = useState({ newPassword: '', confirm: '' });
 
   const [companyCashbackActive, setCompanyCashbackActive] = useState<Record<string, boolean>>({});
@@ -131,7 +143,6 @@ const ClientPortal = () => {
 
   const [rewardsCompanyId, setRewardsCompanyId] = useState<string | null>(null);
 
-  // Redemptions (QR + history)
   const [redemptions, setRedemptions] = useState<Redemption[]>([]);
   const [activeRedemption, setActiveRedemption] = useState<Redemption | null>(null);
   const [activeRedemptionRewardName, setActiveRedemptionRewardName] = useState<string | undefined>(undefined);
@@ -139,7 +150,6 @@ const ClientPortal = () => {
   const [regenerating, setRegenerating] = useState(false);
   const [redeemingId, setRedeemingId] = useState<string | null>(null);
 
-  // ---------- Cache (instant render + background revalidation) ----------
   const cacheKey = `client_portal_${user?.id || 'anon'}`;
   const { read: readCache, write: writeCache } = useLocalCache<{
     clients: ClientRecord[];
@@ -158,7 +168,6 @@ const ClientPortal = () => {
 
   useEffect(() => {
     if (!user) return;
-    // Hydrate from cache instantly (no skeleton flash)
     const cached = readCache();
     if (cached) {
       hasCacheRef.current = true;
@@ -173,25 +182,23 @@ const ClientPortal = () => {
       setCompanyCashbackActive(cached.companyCashbackActive || {});
       setCompanyLoyaltyActive(cached.companyLoyaltyActive || {});
       setLoading(false);
-      // Revalidate in background (do not block UI)
       loadClientData(true);
     } else {
       loadClientData(false);
     }
 
-    // Background revalidation every 30s
     const interval = setInterval(() => {
       loadClientData(true);
     }, 30000);
     return () => clearInterval(interval);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
   const primaryClient = clients[0];
   const isRegistrationIncomplete = useMemo(() => {
-    if (!primaryClient) return true;
-    return !primaryClient.email || !primaryClient.birth_date;
-  }, [primaryClient]);
+    const email = (globalProfile as any)?.email || primaryClient?.email;
+    const birthDate = (globalProfile as any)?.birth_date || primaryClient?.birth_date;
+    return !email || !birthDate;
+  }, [primaryClient, globalProfile]);
 
   const loadClientData = async (isRevalidation = false) => {
     if (!isRevalidation) setLoading(true);
@@ -215,7 +222,6 @@ const ClientPortal = () => {
         }
       }
 
-      // Helper for filtering by user/whatsapp/email
       const buildFilters = (clientEmailField = 'email', clientPhoneField = 'whatsapp') => {
         const profilePhone = profileData?.whatsapp ? profileData.whatsapp.replace(/\D/g, '') : null;
         const profilePhoneNoDdi = profilePhone && profilePhone.startsWith('55') ? profilePhone.slice(2) : profilePhone;
@@ -245,7 +251,6 @@ const ClientPortal = () => {
         return conditions.join(',');
       };
 
-      // 1. Fetch Clients first to get IDs
       const clientRes = await supabase
         .from('clients')
         .select('id, company_id, name, whatsapp, email, birth_date, registration_complete, postal_code, street, address_number, district, city, state')
@@ -254,7 +259,6 @@ const ClientPortal = () => {
       const clientData = (clientRes.data || []) as any[];
       const clientIds = clientData.map(c => c.id);
       
-      // 2. Fetch everything else using IDs or user_id
       const idOrUserFilter = (query: any) => {
         const conditions = [`user_id.eq.${currentUserId || '00000000-0000-0000-0000-000000000000'}`];
         if (clientIds.length > 0) {
@@ -289,7 +293,6 @@ const ClientPortal = () => {
       setRewards((rewardsRes.data || []) as any);
       setRedemptions((redemptionsRes.data || []) as Redemption[]);
 
-      // Map companies
       const companiesMap: Record<string, CompanyInfo> = {};
       const companyIds = [...new Set(clientData.map((c: any) => c.company_id))] as string[];
       
@@ -298,7 +301,6 @@ const ClientPortal = () => {
         companyData.forEach((c: any) => { companiesMap[c.id] = { id: c.id, name: c.name, logo_url: c.logo_url, slug: c.slug }; });
       }
 
-      // Add companies from rewards and appointments
       [...(rewardsRes.data || []), ...appointmentsData].forEach((item: any) => {
         if (item.company && !companiesMap[item.company.id]) {
           companiesMap[item.company.id] = { id: item.company.id, name: item.company.name, logo_url: item.company.logo_url, slug: item.company.slug };
@@ -306,7 +308,6 @@ const ClientPortal = () => {
       });
       setCompanies(companiesMap);
 
-      // Load specific loyalty configs
       const cashActive: Record<string, boolean> = {};
       const loyalActive: Record<string, boolean> = {};
       const lcMap: Record<string, any> = {};
@@ -327,8 +328,22 @@ const ClientPortal = () => {
       setCompanyLoyaltyActive(loyalActive);
       setLoyaltyConfigs(lcMap);
 
-      // Profile form initialization
-      if (clientData.length > 0) {
+      const { data: globalClientData } = await supabase.from('clients_global').select('*').eq('user_id', currentUserId).maybeSingle();
+      if (globalClientData) {
+        setGlobalProfile(globalClientData);
+        setProfileForm({
+          name: globalClientData.name || '', 
+          whatsapp: (globalClientData as any).whatsapp || '', 
+          email: globalClientData.email || '',
+          birth_date: (globalClientData as any).birth_date || '',
+          postal_code: (globalClientData as any).postal_code || '', 
+          street: (globalClientData as any).street || '',
+          address_number: (globalClientData as any).address_number || '', 
+          district: (globalClientData as any).district || '',
+          city: (globalClientData as any).city || '', 
+          state: (globalClientData as any).state || '',
+        });
+      } else if (clientData.length > 0) {
         const c = clientData[0];
         setProfileForm({
           name: c.name || '', whatsapp: c.whatsapp || '', email: c.email || '',
@@ -339,7 +354,6 @@ const ClientPortal = () => {
         });
       }
 
-      // Persist to cache
       writeCache({
         clients: clientData as ClientRecord[],
         appointments: appointmentsData,
@@ -359,7 +373,6 @@ const ClientPortal = () => {
     }
   };
 
-  // ---------- Aggregations ----------
   const cashbackByCompany = useMemo(() => {
     const map: Record<string, number> = {};
     for (const cb of allCashbacks) {
@@ -369,18 +382,17 @@ const ClientPortal = () => {
     }
     return map;
   }, [allCashbacks]);
+
   const cashbackTotals = useMemo(() => {
     let gained = 0;
     let used = 0;
     let expired = 0;
-    
     for (const tx of allCashbackTxs) {
       const amt = Number(tx.amount) || 0;
       if (tx.type === 'credit') gained += amt;
       else if (tx.type === 'debit') used += amt;
       else if (tx.type === 'expiration' || (tx as any).type === 'expire') expired += amt;
     }
-    
     return { gained, used, expired };
   }, [allCashbackTxs]);
 
@@ -394,21 +406,59 @@ const ClientPortal = () => {
     }
     return map;
   }, [allLoyaltyTxs]);
+
   const totalPoints = useMemo(
     () => Object.values(pointsByCompany).reduce((s, v) => s + v, 0), [pointsByCompany]);
 
-  const upcomingAppointments = useMemo(
-    () => appointments.filter(a => !isPast(parseISO(a.start_time)) && !['cancelled', 'no_show'].includes(a.status)),
+  const appointmentCompanyIds = useMemo(
+    () => new Set(appointments.map(a => a.company_id)),
     [appointments]);
-  const pastAppointments = useMemo(
-    () => appointments.filter(a => isPast(parseISO(a.start_time)) || ['cancelled', 'no_show'].includes(a.status)),
-    [appointments]);
+
+  const upcomingAppointments = useMemo(() => 
+    appointments.filter(a => {
+      const status = getDisplayStatus(a);
+      return (status === 'confirmed' || status === 'pending' || status === 'in_progress' || status === 'late') && !isPast(parseISO(a.end_time));
+    }).sort((a, b) => parseISO(a.start_time).getTime() - parseISO(b.start_time).getTime()),
+  [appointments]);
+
+  const pastAppointments = useMemo(() => 
+    appointments.filter(a => {
+      const status = getDisplayStatus(a);
+      return status === 'completed' || status === 'cancelled' || status === 'no_show' || isPast(parseISO(a.end_time));
+    }).sort((a, b) => parseISO(b.start_time).getTime() - parseISO(a.start_time).getTime()),
+  [appointments]);
+
   const completedAppointments = pastAppointments.filter(a => a.status === 'completed');
   const completedCount = completedAppointments.length;
   const nextAppointment = [...upcomingAppointments].sort(
     (a, b) => parseISO(a.start_time).getTime() - parseISO(b.start_time).getTime()
   )[0];
   const lastAppointment = completedAppointments[0];
+
+  const companiesWithCashback = useMemo(
+    () => Object.values(companies).filter(c => companyCashbackActive[c.id]),
+    [companies, companyCashbackActive]);
+  const companiesWithLoyalty = useMemo(
+    () => Object.values(companies).filter(c => companyLoyaltyActive[c.id]),
+    [companies, companyLoyaltyActive]);
+
+  const companiesWithRewards = useMemo(() => {
+    const ids = [...new Set(rewards.map(r => r.company_id))];
+    const list = ids.map(id => companies[id]).filter(Boolean) as CompanyInfo[];
+    return list.sort((a, b) => {
+      const pa = pointsByCompany[a.id] || 0;
+      const pb = pointsByCompany[b.id] || 0;
+      if (pa !== pb) return pb - pa;
+      const ha = appointmentCompanyIds.has(a.id) ? 1 : 0;
+      const hb = appointmentCompanyIds.has(b.id) ? 1 : 0;
+      if (ha !== hb) return hb - ha;
+      return a.name.localeCompare(b.name);
+    });
+  }, [rewards, companies, pointsByCompany, appointmentCompanyIds]);
+
+  const anyCashback = companiesWithCashback.length > 0;
+  const anyLoyalty = companiesWithLoyalty.length > 0;
+  const anyRewards = companiesWithRewards.length > 0;
 
   const rewardsCompany = rewardsCompanyId ? companies[rewardsCompanyId] : null;
   const rewardsList = useMemo(
@@ -418,43 +468,6 @@ const ClientPortal = () => {
   const rewardsConfig = rewardsCompanyId ? loyaltyConfigs[rewardsCompanyId] : null;
   const rewardsPointValue = rewardsConfig?.point_value || 0.05;
 
-  const companiesWithCashback = useMemo(
-    () => Object.values(companies).filter(c => companyCashbackActive[c.id]),
-    [companies, companyCashbackActive]);
-  const companiesWithLoyalty = useMemo(
-    () => Object.values(companies).filter(c => companyLoyaltyActive[c.id]),
-    [companies, companyLoyaltyActive]);
-
-  // Loja: empresas com itens ativos, ordenadas (1) com pontos > 0, (2) com histórico, (3) outras
-  const appointmentCompanyIds = useMemo(
-    () => new Set(appointments.map(a => a.company_id)),
-    [appointments]);
-  const companiesWithRewards = useMemo(() => {
-    const ids = [...new Set(rewards.map(r => r.company_id))];
-    const list = ids.map(id => companies[id]).filter(Boolean) as CompanyInfo[];
-    return list.sort((a, b) => {
-      const pa = pointsByCompany[a.id] || 0;
-      const pb = pointsByCompany[b.id] || 0;
-      if (pa !== pb) return pb - pa; // mais pontos primeiro
-      const ha = appointmentCompanyIds.has(a.id) ? 1 : 0;
-      const hb = appointmentCompanyIds.has(b.id) ? 1 : 0;
-      if (ha !== hb) return hb - ha; // histórico primeiro
-      return a.name.localeCompare(b.name);
-    });
-  }, [rewards, companies, pointsByCompany, appointmentCompanyIds]);
-
-  // Auto-seleciona empresa com mais pontos (ou primeira ordenada) quando a Loja carrega
-  useEffect(() => {
-    if (rewardsCompanyId) return;
-    if (companiesWithRewards.length === 0) return;
-    setRewardsCompanyId(companiesWithRewards[0].id);
-  }, [companiesWithRewards, rewardsCompanyId]);
-
-  const anyCashback = companiesWithCashback.length > 0;
-  const anyLoyalty = companiesWithLoyalty.length > 0;
-  const anyRewards = companiesWithRewards.length > 0;
-
-  // ---------- Redemptions: refresh + create (transactional via RPC) ----------
   const refreshRedemptions = async () => {
     if (!clients.length) return;
     const { data } = await supabase
@@ -498,7 +511,6 @@ const ClientPortal = () => {
 
   const handleRegenerateActive = async () => {
     if (!activeRedemption) return;
-    // Find the original reward to call RPC again
     const reward = rewards.find(r => r.id === activeRedemption.reward_id);
     if (!reward) {
       toast.error('Recompensa não encontrada para regenerar.');
@@ -555,7 +567,6 @@ const ClientPortal = () => {
     else navigate('/');
   };
 
-  // Unauthenticated
   if (!user) return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <div className="w-full max-w-sm text-center space-y-5">
@@ -591,7 +602,6 @@ const ClientPortal = () => {
     </div>
   );
 
-  // 4-tab bottom nav
   const bottomTabs = [
     { value: 'home', icon: Home, label: 'Início' },
     { value: 'agenda', icon: Calendar, label: 'Agenda' },
@@ -601,7 +611,6 @@ const ClientPortal = () => {
 
   return (
     <div className="min-h-screen bg-muted/30 pb-24">
-      {/* ============ HEADER (Agendaê identity) ============ */}
       <header className="bg-card border-b sticky top-0 z-20 shadow-sm">
         <div className="max-w-3xl mx-auto px-4 pt-4 pb-3">
           <div className="flex items-center justify-between gap-3">
@@ -629,7 +638,6 @@ const ClientPortal = () => {
       </header>
 
       <div className="max-w-3xl mx-auto px-4 py-4 space-y-5">
-        {/* Profile incomplete banner */}
         {isRegistrationIncomplete && (
           <Card className="border-primary/30 bg-primary/5">
             <CardContent className="p-4 flex items-start gap-3">
@@ -645,9 +653,7 @@ const ClientPortal = () => {
         )}
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          {/* ============ HOME ============ */}
           <TabsContent value="home" className="space-y-5 mt-0">
-            {/* Horizontal scroll summary cards */}
             <div className="-mx-4 px-4 overflow-x-auto scrollbar-hide">
               <div className="flex gap-3 pb-2" style={{ minWidth: 'max-content' }}>
                 <button
@@ -700,7 +706,6 @@ const ClientPortal = () => {
               </div>
             </div>
 
-            {/* Próximo agendamento */}
             <div>
               <h2 className="text-sm font-semibold mb-2 flex items-center gap-2">
                 <Calendar className="h-4 w-4 text-primary" /> Próximo agendamento
@@ -751,7 +756,6 @@ const ClientPortal = () => {
               )}
             </div>
 
-            {/* Último atendimento */}
             {lastAppointment && (
               <div>
                 <h2 className="text-sm font-semibold mb-2 flex items-center gap-2">
@@ -779,7 +783,6 @@ const ClientPortal = () => {
               </div>
             )}
 
-            {/* Benefícios resumo por empresa */}
             {anyCashback && (
               <div>
                 <div className="flex items-center justify-between mb-2">
@@ -824,6 +827,8 @@ const ClientPortal = () => {
                 <div className="space-y-2">
                   {companiesWithLoyalty.map(co => {
                     const balance = pointsByCompany[co.id] || 0;
+                    const cfg = loyaltyConfigs[co.id];
+                    const pointVal = cfg?.point_value || 0.05;
                     const companyRewards = rewards.filter(r => r.company_id === co.id);
                     const next = companyRewards
                       .map(r => ({ ...r, diff: r.points_required - balance }))
@@ -852,7 +857,6 @@ const ClientPortal = () => {
             )}
           </TabsContent>
 
-          {/* ============ AGENDA ============ */}
           <TabsContent value="agenda" className="space-y-5 mt-0">
             <Tabs defaultValue="upcoming">
               <TabsList className="grid grid-cols-2 w-full">
@@ -881,10 +885,7 @@ const ClientPortal = () => {
                           key={apt.id}
                           appointment={apt}
                           variant="client"
-                          isAdmin={false}
-                          showCompany={true}
-                          onReschedule={(apt) => navigate(`/reschedule/${apt.id}`)}
-                          onCancel={(apt) => navigate(`/cancel/${apt.id}`)}
+                          onClick={() => {}}
                         />
                       ))}
                     </div>
@@ -905,11 +906,7 @@ const ClientPortal = () => {
                       key={apt.id}
                       appointment={apt}
                       variant="client"
-                      isAdmin={false}
-                      showCompany={true}
-                      onClick={(apt) => {
-                        if (apt.status === 'completed') goRebook(apt.company_id);
-                      }}
+                      onClick={() => {}}
                     />
                   ))
                 )}
@@ -917,7 +914,6 @@ const ClientPortal = () => {
             </Tabs>
           </TabsContent>
 
-          {/* ============ BENEFITS (sub-tabs) ============ */}
           <TabsContent value="benefits" className="space-y-4 mt-0">
             <Tabs value={benefitsTab} onValueChange={setBenefitsTab}>
               <TabsList className="grid grid-cols-3 w-full">
@@ -926,7 +922,6 @@ const ClientPortal = () => {
                 <TabsTrigger value="store">Loja</TabsTrigger>
               </TabsList>
 
-              {/* CASHBACK */}
               <TabsContent value="cashback" className="space-y-4 mt-4">
                 {!anyCashback && allCashbackTxs.length === 0 ? (
                   <Card>
@@ -941,138 +936,146 @@ const ClientPortal = () => {
                   </Card>
                 ) : (
                   <>
-                    <div className="grid grid-cols-1 gap-3">
-                      {/* Resumo visual no topo estilo Wallet */}
-                      <Card className="bg-gradient-to-br from-primary/10 via-background to-background border-primary/20 overflow-hidden relative">
-                        <div className="absolute top-0 right-0 p-4 opacity-10">
-                          <Wallet className="h-16 w-16 rotate-12" />
-                        </div>
-                        <CardContent className="p-5">
-                          <div className="space-y-4">
-                            <div>
-                              <p className="text-[10px] font-bold uppercase tracking-wider text-primary/70">Saldo Disponível</p>
-                              <div className="flex items-baseline gap-1">
-                                <span className="text-2xl font-bold text-primary">R$</span>
-                                <span className="text-5xl font-black text-primary tracking-tighter">
-                                  {totalCashback.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                </span>
-                              </div>
-                              <p className="text-[11px] text-muted-foreground mt-1 font-medium">
-                                {totalCashback > 20 
-                                  ? "Você já pode usar seu saldo em benefícios 🎁" 
-                                  : totalCashback > 0 
-                                    ? "Seu cashback acumulado está crescendo 🚀"
-                                    : "Agende novos horários para acumular cashback 💈"}
-                              </p>
-                            </div>
-
-                            <div className="grid grid-cols-2 gap-3 pt-2 border-t border-primary/10">
-                              <div>
-                                <p className="text-[10px] text-muted-foreground uppercase font-bold">Total Ganho</p>
-                                <p className="text-lg font-bold text-green-600">
-                                  + R$ {cashbackTotals.gained.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                                </p>
-                              </div>
-                              <div>
-                                <p className="text-[10px] text-muted-foreground uppercase font-bold">Total Usado</p>
-                                <p className="text-lg font-bold text-red-500">
-                                  - R$ {cashbackTotals.used.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                                </p>
-                              </div>
-                            </div>
+                    <div className="grid grid-cols-2 gap-3 mb-6">
+                      <Card className="bg-primary/5 border-primary/10">
+                        <CardContent className="p-4 flex flex-col items-center justify-center text-center">
+                          <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center mb-2">
+                            <Star className="h-5 w-5 text-primary" />
                           </div>
+                          <span className="text-2xl font-bold text-primary">{totalPoints}</span>
+                          <span className="text-[10px] uppercase font-bold text-primary/60">Pontos Totais</span>
                         </CardContent>
                       </Card>
-
-                      {/* Botões de ação (Base pronta) */}
-                      <div className="flex gap-2">
-                        <Button variant="outline" size="sm" className="flex-1 text-[11px] h-9 gap-1.5" onClick={() => navigate('/')}>
-                          <Calendar className="h-3.5 w-3.5" /> Usar no próximo
-                        </Button>
-                        <Button variant="outline" size="sm" className="flex-1 text-[11px] h-9 gap-1.5" onClick={() => navigate('/help-center')}>
-                          <Star className="h-3.5 w-3.5" /> Ver regras
-                        </Button>
-                      </div>
+                      <Card className="bg-success/5 border-success/10">
+                        <CardContent className="p-4 flex flex-col items-center justify-center text-center">
+                          <div className="h-10 w-10 rounded-full bg-success/10 flex items-center justify-center mb-2">
+                            <Wallet className="h-5 w-5 text-success" />
+                          </div>
+                          <span className="text-2xl font-bold text-success">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalCashback)}</span>
+                          <span className="text-[10px] uppercase font-bold text-success/60">Cashback Total</span>
+                        </CardContent>
+                      </Card>
                     </div>
 
                     <div className="space-y-3">
-                      <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
-                        <HistoryIcon className="h-3 w-3" /> Extrato Detalhado
-                      </h3>
-                      
-                      {/* Saldo por estabelecimento */}
-                      <div className="space-y-2">
-                        {companiesWithCashback.map(co => (
-                          <div key={co.id} className="flex items-center justify-between p-3 rounded-xl bg-card border shadow-sm">
-                            <CompanyHeader company={co} size="sm" />
-                            <div className="text-right">
-                              <p className="text-sm font-bold text-primary">
-                                R$ {(cashbackByCompany[co.id] || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                              </p>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
+                      {upcomingAppointments.length > 0 ? (
+                        upcomingAppointments.map((apt) => (
+                          <UnifiedAppointmentCard
+                            key={apt.id}
+                            appointment={apt}
+                            variant="client"
+                            onClick={() => {}}
+                          />
+                        ))
+                      ) : (
+                        <Card>
+                          <CardContent className="p-6 text-center space-y-3">
+                            <Calendar className="h-10 w-10 mx-auto text-muted-foreground/40" />
+                            <p className="text-sm text-muted-foreground">Você não tem agendamentos futuros</p>
+                            <Button size="sm" onClick={() => navigate('/')}>Agendar agora</Button>
+                          </CardContent>
+                        </Card>
+                      )}
+                    </div>
 
-                      {/* Lista cronológica do extrato */}
-                      <div className="space-y-2">
-                        {allCashbackTxs.length === 0 ? (
-                          <Card><CardContent className="p-6 text-center text-sm text-muted-foreground italic">
-                            Nenhuma movimentação registrada ainda
-                          </CardContent></Card>
-                        ) : (
-                          allCashbackTxs.map(tx => {
-                            const isCredit = tx.type === 'credit';
-                            const isDebit = tx.type === 'debit';
-                            const isExpiration = tx.type === 'expiration' || (tx as any).type === 'expire';
-                            
-                            return (
-                              <div key={tx.id} className="flex items-center justify-between p-3 rounded-xl bg-card border border-border/50 hover:bg-accent/5 transition-colors">
-                                <div className="flex items-center gap-3 min-w-0">
-                                  <div className={cn(
-                                    "h-10 w-10 rounded-full flex items-center justify-center shrink-0",
-                                    isCredit ? "bg-green-500/10 text-green-600" : 
-                                    isDebit ? "bg-red-500/10 text-red-500" : 
-                                    "bg-orange-500/10 text-orange-500"
-                                  )}>
-                                    {isCredit ? <Plus className="h-5 w-5" /> : 
-                                     isDebit ? <ArrowRight className="h-5 w-5" /> : 
-                                     <Pause className="h-5 w-5" />}
-                                  </div>
-                                  <div className="min-w-0">
-                                    <p className="text-xs font-bold truncate">
-                                      {tx.description || (isCredit ? 'Cashback ganho' : isDebit ? 'Cashback utilizado' : 'Cashback expirado')}
-                                    </p>
-                                    <div className="flex items-center gap-1.5 mt-0.5">
-                                      <span className="text-[10px] text-muted-foreground">
-                                        {format(parseISO(tx.created_at), "dd/MM/yy 'às' HH:mm", { locale: ptBR })}
-                                      </span>
-                                      <span className="text-[10px] text-muted-foreground opacity-50">•</span>
-                                      <span className="text-[10px] text-muted-foreground truncate max-w-[100px]">
-                                        {companies[tx.company_id]?.name}
-                                      </span>
-                                    </div>
-                                  </div>
+                    <div className="space-y-3">
+                      {pastAppointments.length > 0 ? (
+                        pastAppointments.map((apt) => (
+                          <UnifiedAppointmentCard
+                            key={apt.id}
+                            appointment={apt}
+                            variant="client"
+                            onClick={() => {}}
+                          />
+                        ))
+                      ) : (
+                        <Card>
+                          <CardContent className="p-6 text-center space-y-3">
+                            <Calendar className="h-10 w-10 mx-auto text-muted-foreground/40" />
+                            <p className="text-sm text-muted-foreground">Você não tem agendamentos anteriores</p>
+                            <Button size="sm" onClick={() => navigate('/')}>Ver agendamentos</Button>
+                          </CardContent>
+                        </Card>
+                      )}
+                    </div>
+
+                    <div className="space-y-3">
+                      {completedAppointments.length > 0 ? (
+                        completedAppointments.map((apt) => (
+                          <UnifiedAppointmentCard
+                            key={apt.id}
+                            appointment={apt}
+                            variant="client"
+                            onClick={() => {}}
+                          />
+                        ))
+                      ) : (
+                        <Card>
+                          <CardContent className="p-6 text-center space-y-3">
+                            <CheckCircle2 className="h-10 w-10 mx-auto text-muted-foreground/40" />
+                            <p className="text-sm text-muted-foreground">Você não tem atendimentos completos</p>
+                            <Button size="sm" onClick={() => navigate('/')}>Ver agendamentos</Button>
+                          </CardContent>
+                        </Card>
+                      )}
+                    </div>
+
+                    <div className="space-y-3">
+                      {allCashbackTxs.length === 0 ? (
+                        <Card><CardContent className="p-6 text-center text-sm text-muted-foreground italic">
+                          Nenhuma movimentação registrada ainda
+                        </CardContent></Card>
+                      ) : (
+                        allCashbackTxs.map(tx => {
+                          const isCredit = tx.type === 'credit';
+                          const isDebit = tx.type === 'debit';
+                          const isExpiration = tx.type === 'expiration' || (tx as any).type === 'expire';
+                          
+                          return (
+                            <div key={tx.id} className="flex items-center justify-between p-3 rounded-xl bg-card border border-border/50 hover:bg-accent/5 transition-colors">
+                              <div className="flex items-center gap-3 min-w-0">
+                                <div className={cn(
+                                  "h-10 w-10 rounded-full flex items-center justify-center shrink-0",
+                                  isCredit ? "bg-green-500/10 text-green-600" : 
+                                  isDebit ? "bg-red-500/10 text-red-500" : 
+                                  "bg-orange-500/10 text-orange-500"
+                                )}>
+                                  {isCredit ? <Plus className="h-5 w-5" /> : 
+                                   isDebit ? <ArrowRight className="h-5 w-5" /> : 
+                                   <Pause className="h-5 w-5" />}
                                 </div>
-                                <div className="text-right shrink-0">
-                                  <p className={cn(
-                                    "text-sm font-black tracking-tight",
-                                    isCredit ? "text-green-600" : isDebit ? "text-red-500" : "text-orange-500"
-                                  )}>
-                                    {isCredit ? '+' : '-'} R$ {Number(tx.amount).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                                <div className="min-w-0">
+                                  <p className="text-xs font-bold truncate">
+                                    {tx.description || (isCredit ? 'Cashback ganho' : isDebit ? 'Cashback utilizado' : 'Cashback expirado')}
                                   </p>
+                                  <div className="flex items-center gap-1.5 mt-0.5">
+                                    <span className="text-[10px] text-muted-foreground">
+                                      {format(parseISO(tx.created_at), "dd/MM/yy 'às' HH:mm", { locale: ptBR })}
+                                    </span>
+                                    <span className="text-[10px] text-muted-foreground opacity-50">•</span>
+                                    <span className="text-[10px] text-muted-foreground truncate max-w-[100px]">
+                                      {companies[tx.company_id]?.name}
+                                    </span>
+                                  </div>
                                 </div>
                               </div>
-                            );
-                          })
-                        )}
-                      </div>
+                              <div className="text-right shrink-0">
+                                <p className={cn(
+                                  "text-sm font-black tracking-tight",
+                                  isCredit ? "text-green-600" : isDebit ? "text-red-500" : "text-orange-500"
+                                )}>
+                                  {isCredit ? '+' : '-'} R$ {Number(tx.amount).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                                </p>
+                              </div>
+                            </div>
+                          );
+                        })
+                      )}
                     </div>
                   </>
                 )}
               </TabsContent>
 
-              {/* POINTS */}
               <TabsContent value="points" className="space-y-4 mt-4">
                 {!anyLoyalty ? (
                   <Card>
@@ -1101,7 +1104,6 @@ const ClientPortal = () => {
                       const cfg = loyaltyConfigs[co.id];
                       const pointVal = cfg?.point_value || 0.05;
                       const companyRewards = rewards.filter(r => r.company_id === co.id);
-                      // Smart suggestion based on this company's appointment history
                       const companyApts = appointments.filter(a => a.company_id === co.id);
                       const aptHistory = companyApts.flatMap(a =>
                         (a.appointment_services || []).map(s => ({
@@ -1183,7 +1185,6 @@ const ClientPortal = () => {
                 )}
               </TabsContent>
 
-              {/* STORE */}
               <TabsContent value="store" className="space-y-4 mt-4">
                 {!anyRewards ? (
                   <Card>
@@ -1197,7 +1198,6 @@ const ClientPortal = () => {
                   </Card>
                 ) : (
                   <>
-                    {/* Seletor horizontal estilo Livelo: logos coloridas (com pontos) vs grayscale (sem pontos) */}
                     <div>
                       <p className="text-xs font-semibold text-muted-foreground mb-2">
                         Escolha o estabelecimento:
@@ -1244,7 +1244,6 @@ const ClientPortal = () => {
                       </div>
                     </div>
 
-                    {/* Saldo na empresa selecionada */}
                     {rewardsCompany && (
                       <Card className="bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20">
                         <CardContent className="p-4 flex items-center justify-between gap-3">
@@ -1283,8 +1282,7 @@ const ClientPortal = () => {
                       const closest = sorted.filter(r => rewardsBalance < r.points_required);
 
                       const handleRedeem = async (reward: typeof rewardsList[number]) => {
-                        if (redeemingId) return; // proteção contra duplo clique
-                        // Reuse an existing pending+non-expired redemption for this reward, if any
+                        if (redeemingId) return;
                         const existing = redemptions.find(r =>
                           r.reward_id === reward.id &&
                           r.status === 'pending' &&
@@ -1324,7 +1322,6 @@ const ClientPortal = () => {
                             }`}
                           >
                             <CardContent className="p-0">
-                              {/* 1. EMPRESA */}
                               <div className="flex items-center gap-3 px-4 py-3 bg-gradient-to-r from-primary/5 via-primary/[0.02] to-transparent border-b">
                                 <div className="relative shrink-0">
                                   {rewardsCompany?.logo_url ? (
@@ -1348,7 +1345,6 @@ const ClientPortal = () => {
                                 </div>
                               </div>
 
-                              {/* 2. PRODUTO */}
                               <div className="p-4 flex gap-4">
                                 <div className="w-24 h-24 rounded-xl overflow-hidden border shadow-sm shrink-0 bg-gradient-to-br from-primary/10 to-primary/5 flex items-center justify-center">
                                   {reward.image_url ? (
@@ -1379,7 +1375,6 @@ const ClientPortal = () => {
                                 </div>
                               </div>
 
-                              {/* Status / progresso / estoque */}
                               <div className="px-4 pb-2 space-y-1.5">
                                 {hasPoints ? (
                                   <Badge className="bg-green-500/15 text-green-700 hover:bg-green-500/20 text-[11px] border-0 font-semibold">
@@ -1405,7 +1400,6 @@ const ClientPortal = () => {
                                 )}
                               </div>
 
-                              {/* 4. AÇÃO */}
                               <div className="px-4 pb-4 pt-2 space-y-2">
                                 <Button
                                   size="default"
@@ -1456,7 +1450,6 @@ const ClientPortal = () => {
                   </>
                 )}
 
-                {/* ============ MEUS RESGATES (histórico) ============ */}
                 {redemptions.length > 0 && (
                   <div className="space-y-2 pt-2">
                     <h3 className="text-sm font-semibold flex items-center gap-1.5">
@@ -1517,7 +1510,6 @@ const ClientPortal = () => {
             </Tabs>
           </TabsContent>
 
-          {/* ============ PROFILE ============ */}
           <TabsContent value="profile" className="space-y-4 mt-0">
             <Card>
               <CardHeader>
@@ -1603,7 +1595,6 @@ const ClientPortal = () => {
         </Tabs>
       </div>
 
-      {/* ============ BOTTOM NAV (4 tabs, mobile-first, always visible) ============ */}
       <nav className="fixed bottom-0 left-0 right-0 z-30 bg-card border-t shadow-[0_-2px_10px_rgba(0,0,0,0.04)]">
         <div className="max-w-3xl mx-auto grid grid-cols-4">
           {bottomTabs.map(t => {
@@ -1626,7 +1617,6 @@ const ClientPortal = () => {
         </div>
       </nav>
 
-      {/* Password Dialog */}
       <Dialog open={showPasswordDialog} onOpenChange={setShowPasswordDialog}>
         <DialogContent className="max-w-sm">
           <DialogHeader><DialogTitle>Alterar senha</DialogTitle></DialogHeader>
@@ -1649,7 +1639,6 @@ const ClientPortal = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Complete Profile Dialog */}
       <Dialog open={showCompleteProfile} onOpenChange={setShowCompleteProfile}>
         <DialogContent className="max-w-sm max-h-[90vh] overflow-y-auto">
           <DialogHeader><DialogTitle>Completar cadastro</DialogTitle></DialogHeader>
@@ -1673,13 +1662,11 @@ const ClientPortal = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Redemption QR Dialog */}
       <RedemptionQRDialog
         open={showRedemptionDialog}
         onOpenChange={(v) => {
           setShowRedemptionDialog(v);
           if (!v) {
-            // Refresh on close to reflect any status change while open
             refreshRedemptions();
           }
         }}
