@@ -6821,6 +6821,30 @@ export type Database = {
           status: string
         }[]
       }
+      get_client_appointments_v2: {
+        Args: never
+        Returns: {
+          appointment_services: Json
+          cashback_used: number
+          client_email: string
+          client_name: string
+          client_whatsapp: string
+          company: Json
+          company_id: string
+          end_time: string
+          final_price: number
+          id: string
+          manual_discount: number
+          original_price: number
+          professional: Json
+          promotion_discount: number
+          promotion_id: string
+          start_time: string
+          status: string
+          total_price: number
+          user_id: string
+        }[]
+      }
       get_company_by_slug: {
         Args: { _slug: string }
         Returns: {
