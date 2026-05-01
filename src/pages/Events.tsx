@@ -921,7 +921,7 @@ const Events = () => {
       )}
 
       {/* Cover Image Upload */}
-      <div>
+      <div className={cn(!formCoverPreview && "hidden sm:block")}>
         <Label>Imagem de capa</Label>
         <p className="text-xs text-muted-foreground mb-2">Recomendado: 1200×400 px · JPG ou PNG</p>
         <input ref={coverInputRef} type="file" accept="image/jpeg,image/png,image/jpg" className="hidden" onChange={handleCoverUpload} />
