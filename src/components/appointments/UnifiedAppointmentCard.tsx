@@ -323,17 +323,14 @@ export function UnifiedAppointmentCard({
       <div className="flex justify-between items-start gap-3">
         <div className="flex gap-3 sm:gap-4 items-start">
           {/* Time Column */}
-          <div className="flex flex-col items-center justify-center bg-background/60 backdrop-blur-sm rounded-xl px-2.5 py-1.5 sm:px-3 sm:py-2 min-w-[70px] sm:min-w-[75px] border border-border/40 shadow-sm">
-            <p className="text-lg sm:text-xl font-display font-bold text-foreground tracking-tight">
-              {format(startTime, 'HH:mm')}
-            </p>
-            <p className="text-[10px] font-bold text-primary uppercase tracking-wider">
-              {format(startTime, "dd/MM/yyyy")}
-            </p>
-            <p className="text-[9px] font-medium text-muted-foreground uppercase tracking-wider">
-              até {format(endTime, 'HH:mm')}
-            </p>
-          </div>
+            <div className="flex flex-col items-center justify-center bg-background/60 backdrop-blur-sm rounded-xl px-2.5 py-1.5 sm:px-3 sm:py-2 min-w-[70px] sm:min-w-[75px] border border-border/40 shadow-sm">
+              <p className="text-lg sm:text-xl font-display font-bold text-foreground tracking-tight">
+                {format(startTime, 'HH:mm')}
+              </p>
+              <p className="text-[10px] font-bold text-primary uppercase tracking-wider text-center">
+                {format(startTime, "d 'de' MMM", { locale: ptBR })}
+              </p>
+            </div>
 
           {/* Info Column */}
           <div className="space-y-1 min-w-0 flex-1">
