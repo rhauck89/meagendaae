@@ -14,7 +14,7 @@ import { Scissors, Sparkles, Clock, DollarSign, ChevronRight, ChevronLeft, Check
 import { format, addMinutes, addDays, startOfDay, isSameDay, parseISO, startOfWeek, endOfWeek, eachDayOfInterval, addWeeks, subWeeks, isToday, startOfMonth, endOfMonth, eachMonthOfInterval, setMonth, getYear } from 'date-fns';
 import { fromZonedTime, toZonedTime } from 'date-fns-tz';
 import { sendAppointmentCreatedWebhook } from '@/lib/automations';
-import { isPromoActive } from '@/lib/promotion-period';
+import { isPromoActive, getBookingStatus, getPromoValidityStatus } from '@/lib/promotion-period';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -157,6 +157,8 @@ interface PromotionInfo {
   promotion_type?: string;
   cashback_validity_days?: number | null;
   cashback_rules_text?: string | null;
+  booking_opens_at?: string | null;
+  booking_closes_at?: string | null;
 }
 
 const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
@@ -895,54 +897,65 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
         .eq('id', promoIdRef.current)
         .limit(1);
       const pd = (promos as any)?.[0];
-      if (pd && pd.company_id === comp.id && isPromoActive(pd)) {
-        setPromoData(pd as PromotionInfo);
-        
-        // Auto-select promo services (aggressive)
-        const promoServiceIds = pd.service_ids || (pd.service_id ? [pd.service_id] : []);
-        if (promoServiceIds.length > 0) {
-          setSelectedServices(promoServiceIds);
-        }
-
-        // Auto-select promo date if set
-        if (pd.start_date) {
-          const pDate = parseISO(pd.start_date);
-          if (pDate >= startOfDay(new Date())) {
-            setSelectedDate(pDate);
-          }
-        }
-
-        // Auto-select professional if only one or first from promo
-        const targetProfs = pd.professional_ids || [];
-        if (targetProfs.length > 0) {
-          const profId = targetProfs[0];
-          setSelectedProfessional(profId);
-          const { data: profHoursData } = await supabase
-            .from('professional_working_hours' as any)
-            .select('*')
-            .eq('professional_id', profId);
-          if (profHoursData && (profHoursData as any[]).length > 0) {
-            setProfessionalHours(profHoursData as unknown as BusinessHours[]);
-          }
+      
+      if (pd && pd.company_id === comp.id) {
+        const bookingStatus = getBookingStatus(pd);
+        if (bookingStatus === 'active') {
+          setPromoData(pd as PromotionInfo);
           
-          const { data: promoProfs } = await supabase
-            .from('public_professionals' as any)
-            .select('*')
-            .eq('company_id', comp.id)
-            .in('id', targetProfs);
-          if (promoProfs) {
-            setProfessionals((promoProfs as any[]).map((p: any) => ({
-              id: p.id, name: p.name, full_name: p.name, avatar_url: p.avatar_url, slug: p.slug,
-            })));
+          // Auto-select promo services
+          const promoServiceIds = pd.service_ids || (pd.service_id ? [pd.service_id] : []);
+          if (promoServiceIds.length > 0) {
+            setSelectedServices(promoServiceIds);
           }
-        }
-        // Skip to appropriate step
-        if (pd.professional_ids?.length === 1) {
-          setStep('datetime');
-        } else if (pd.professional_ids?.length > 1) {
-          setStep('professional');
+  
+          // Auto-select promo date if set
+          if (pd.start_date) {
+            const pDate = parseISO(pd.start_date);
+            if (pDate >= startOfDay(new Date())) {
+              setSelectedDate(pDate);
+            }
+          }
+  
+          // Auto-select professional if set
+          const targetProfs = pd.professional_ids || [];
+          if (targetProfs.length > 0) {
+            const profId = targetProfs[0];
+            setSelectedProfessional(profId);
+            const { data: profHoursData } = await supabase.from('professional_working_hours' as any)
+              .select('*')
+              .eq('professional_id', profId);
+            if (profHoursData && (profHoursData as any[]).length > 0) {
+              setProfessionalHours(profHoursData as unknown as BusinessHours[]);
+            }
+            
+            const { data: promoProfs } = await supabase.from('public_professionals' as any)
+              .select('*')
+              .eq('company_id', comp.id)
+              .in('id', targetProfs);
+            if (promoProfs) {
+              setProfessionals((promoProfs as any[]).map((p: any) => ({
+                id: p.id, name: p.name, full_name: p.name, avatar_url: p.avatar_url, slug: p.slug,
+              })));
+            }
+          }
+
+          // Skip to appropriate step
+          if (pd.professional_ids?.length === 1) {
+            setStep('datetime');
+          } else if (pd.professional_ids?.length > 1) {
+            setStep('professional');
+          } else {
+            setStep('datetime');
+          }
+        } else if (bookingStatus === 'upcoming') {
+          const openDate = pd.booking_opens_at ? new Date(pd.booking_opens_at) : null;
+          const formattedOpenDate = openDate ? format(openDate, "dd/MM 'às' HH:mm") : 'em breve';
+          toast.info(`Promoção disponível para agendamento a partir de ${formattedOpenDate}`, {
+            duration: 5000,
+          });
         } else {
-          setStep('datetime');
+          toast.error('Esta promoção já foi encerrada.');
         }
       }
       promoIdRef.current = null;
@@ -1168,11 +1181,19 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
 
       // Filter slots based on promotion time window if applicable
       if (promoData) {
-        if (promoData.start_time) {
-          slots = slots.filter(s => s >= promoData.start_time!);
-        }
-        if (promoData.end_time) {
-          slots = slots.filter(s => s <= promoData.end_time!);
+        // Only allow slots on dates within the promo validity range
+        const dateStr = format(date, 'yyyy-MM-dd');
+        if (dateStr < promoData.start_date || dateStr > promoData.end_date) {
+          slots = [];
+        } else {
+          // If on start date, filter by start time
+          if (dateStr === promoData.start_date && promoData.start_time) {
+            slots = slots.filter(s => s >= promoData.start_time!.slice(0, 5));
+          }
+          // If on end date, filter by end time
+          if (dateStr === promoData.end_date && promoData.end_time) {
+            slots = slots.filter(s => s <= promoData.end_time!.slice(0, 5));
+          }
         }
       }
 
@@ -2366,7 +2387,11 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                             start: currentWeekStart,
                             end: addDays(currentWeekStart, 6)
                           }).map((date) => {
-                            const isPast = date < startOfDay(new Date());
+                            const isOutsidePromo = isPromoMode && promoData && (
+                              format(date, 'yyyy-MM-dd') < promoData.start_date ||
+                              format(date, 'yyyy-MM-dd') > promoData.end_date
+                            );
+                            const isPast = date < startOfDay(new Date()) || isOutsidePromo;
                             const isSel = selectedDate && isSameDay(date, selectedDate);
                             const isTod = isToday(date);
                             const dayName = format(date, "EEE", { locale: ptBR });

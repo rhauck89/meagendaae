@@ -59,6 +59,8 @@ interface Promotion {
   cashback_cumulative: boolean;
   promotion_mode?: 'manual' | 'smart';
   source_insight?: string;
+  booking_opens_at: string | null;
+  booking_closes_at: string | null;
 }
 
 interface ClientRow {
@@ -244,6 +246,11 @@ export default function Promotions() {
   const [cashbackValidityDays, setCashbackValidityDays] = useState('30');
   const [cashbackRulesText, setCashbackRulesText] = useState('');
   const [cashbackCumulative, setCashbackCumulative] = useState(false);
+  const [bookingOpensAtDate, setBookingOpensAtDate] = useState('');
+  const [bookingOpensAtTime, setBookingOpensAtTime] = useState('09:00');
+  const [bookingClosesAtDate, setBookingClosesAtDate] = useState('');
+  const [bookingClosesAtTime, setBookingClosesAtTime] = useState('23:59');
+  const [hasCustomBookingClosesAt, setHasCustomBookingClosesAt] = useState(false);
 
   const WIZARD_STEPS = promotionType === 'cashback'
     ? [{ num: 1, label: 'Serviço' }, { num: 2, label: 'Cashback' }, { num: 3, label: 'Agenda' }, { num: 4, label: 'Mensagem' }]
@@ -691,6 +698,8 @@ export default function Promotions() {
       cashback_cumulative: promotionType === 'cashback' ? cashbackCumulative : false,
       promotion_mode: smartMode,
       source_insight: sourceInsight,
+      booking_opens_at: bookingOpensAtDate ? `${bookingOpensAtDate}T${bookingOpensAtTime || '00:00'}:00Z` : null,
+      booking_closes_at: hasCustomBookingClosesAt && bookingClosesAtDate ? `${bookingClosesAtDate}T${bookingClosesAtTime || '23:59'}:00Z` : null,
     };
 
     if (!isAdmin && profile?.id) {
@@ -744,52 +753,63 @@ export default function Promotions() {
     setCreationMode(null);
     setSmartMode('manual');
     setSourceInsight(null);
+    setBookingOpensAtDate(''); setBookingOpensAtTime('09:00');
+    setBookingClosesAtDate(''); setBookingClosesAtTime('23:59');
+    setHasCustomBookingClosesAt(false);
   };
 
   const handleEdit = (promo: Promotion) => {
     setSelectedPromotion(promo);
     setIsEditing(true);
     setCreationMode('manual');
-    setSmartMode(promo.promotion_mode || 'manual');
-    setSourceInsight(promo.source_insight || null);
     setPromotionType(promo.promotion_type as any || 'traditional');
     setTitle(promo.title);
     setDescription(promo.description || '');
+    setDiscountType(promo.discount_type as any);
+    setDiscountValue(promo.discount_value?.toString() || '');
+    setPromotionPrice(promo.promotion_price?.toString() || '');
+    setStartDate(promo.start_date);
+    setEndDate(promo.end_date);
+    setSingleDay(promo.start_date === promo.end_date);
+    setStartTime(promo.start_time?.slice(0, 5) || '');
+    setEndTime(promo.end_time?.slice(0, 5) || '');
+    setUseBusinessHours(promo.use_business_hours ?? true);
+    setValidDays(promo.valid_days || [0, 1, 2, 3, 4, 5, 6]);
+    setMinIntervalMinutes(promo.min_interval_minutes?.toString() || '0');
+    setMaxSlots(promo.max_slots.toString());
+    setClientFilter(promo.client_filter);
+    setClientFilterValue(promo.client_filter_value?.toString() || '30');
+    setProfessionalFilter(promo.professional_filter);
+    setSelectedProfessionalIds(promo.professional_ids || []);
+    setMessageTemplate(promo.message_template || DEFAULT_TEMPLATE);
+    setCashbackValidityDays(promo.cashback_validity_days?.toString() || '30');
+    setCashbackRulesText(promo.cashback_rules_text || '');
+    setCashbackCumulative(promo.cashback_cumulative || false);
+    setSmartMode(promo.promotion_mode || 'manual');
+    setSourceInsight(promo.source_insight || null);
+    
+    if (promo.booking_opens_at) {
+      const d = new Date(promo.booking_opens_at);
+      setBookingOpensAtDate(format(d, 'yyyy-MM-dd'));
+      setBookingOpensAtTime(format(d, 'HH:mm'));
+    }
+    if (promo.booking_closes_at) {
+      const d = new Date(promo.booking_closes_at);
+      setBookingClosesAtDate(format(d, 'yyyy-MM-dd'));
+      setBookingClosesAtTime(format(d, 'HH:mm'));
+      setHasCustomBookingClosesAt(true);
+    }
     
     const sIds = promo.service_ids || (promo.service_id ? [promo.service_id] : []);
     if (sIds.length === services.length) {
       setServiceSelectionMode('all');
-      setSelectedServiceIds(services.map(s => s.id));
     } else if (sIds.length > 1) {
       setServiceSelectionMode('multiple');
-      setSelectedServiceIds(sIds);
     } else {
       setServiceSelectionMode('single');
       setSelectedServiceId(sIds[0] || '');
-      setSelectedServiceIds(sIds);
     }
-
-    setDiscountType(promo.discount_type as any);
-    setDiscountValue(promo.discount_value ? String(promo.discount_value) : '');
-    setPromotionPrice(promo.promotion_price ? String(promo.promotion_price) : '');
-    setStartDate(promo.start_date);
-    setEndDate(promo.end_date);
-    setSingleDay(promo.start_date === promo.end_date);
-    setStartTime(promo.start_time || '');
-    setEndTime(promo.end_time || '');
-    setUseBusinessHours(promo.use_business_hours !== false);
-    setValidDays(promo.valid_days || [0, 1, 2, 3, 4, 5, 6]);
-    setMinIntervalMinutes(String(promo.min_interval_minutes || 0));
-    setMaxSlots(String(promo.max_slots));
-    setClientFilter(promo.client_filter);
-    setClientFilterValue(String(promo.client_filter_value || '30'));
-    setProfessionalFilter(promo.professional_filter);
-    setSelectedProfessionalIds(promo.professional_ids || []);
-    setMessageTemplate(promo.message_template || DEFAULT_TEMPLATE);
-    setCashbackValidityDays(String(promo.cashback_validity_days || '30'));
-    setCashbackRulesText(promo.cashback_rules_text || '');
-    setCashbackCumulative(promo.cashback_cumulative || false);
-    
+    setSelectedServiceIds(sIds);
     setWizardStep(1);
     setDialogOpen(true);
   };
@@ -922,51 +942,55 @@ export default function Promotions() {
 
   // --- Status badge renderer ---
   const renderStatusBadge = (promo: Promotion) => {
-    const isSmart = promo.promotion_mode === 'smart';
-    const status = promoVisualStatus(promo, now);
-    const start = getPromoStart(promo);
-    const isTargetingTomorrow = isTomorrow(parseISO(promo.end_date)) && isToday(parseISO(promo.start_date));
+    const validityStatus = promoVisualStatus(promo, now);
+    const startsAt = getPromoStart(promo);
+    const opensAt = promo.booking_opens_at ? new Date(promo.booking_opens_at) : startsAt;
+    const isBookingActive = opensAt <= now && validityStatus !== 'expired';
     
-    switch (status) {
-      case 'scheduled':
-        let dateText = '';
-        const daysDiff = differenceInCalendarDays(start, now);
-        const startTime = promo.start_time?.slice(0, 5) || '00:00';
-        const formattedHour = startTime.split(':')[0] + 'h';
-
-        if (isToday(start)) {
-          dateText = `hoje às ${formattedHour}`;
-        } else if (isTomorrow(start)) {
-          dateText = `amanhã às ${formattedHour}`;
-        } else if (daysDiff <= 6) {
-          dateText = `${format(start, 'EEEE', { locale: ptBR })} às ${formattedHour}`;
-        } else {
-          dateText = `em ${format(start, 'dd/MM')} às ${formattedHour}`;
-        }
-
-        return (
-          <Badge className="bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-900/30 dark:text-indigo-400 dark:border-indigo-800 gap-1.5 py-1 px-3">
-            <CalendarCheck className="h-3.5 w-3.5" />
-            {isTargetingTomorrow ? `🟢 Ativa hoje às ${formattedHour} para reservas de amanhã` : `📅 Começa automaticamente ${dateText}`}
-          </Badge>
-        );
-      case 'active':
-        return (
-          <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-800 gap-1.5 py-1 px-3 shadow-sm font-medium">
-            {isTargetingTomorrow ? <Zap className="h-3.5 w-3.5 fill-emerald-500" /> : <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />}
-            {isTargetingTomorrow ? '🚀 Ativa agora para reservas de amanhã' : '🟢 Ativa agora'}
-          </Badge>
-        );
-      case 'paused':
-        return <Badge variant="secondary" className="py-1 px-3">Pausada</Badge>;
-      case 'expired':
-        return (
-          <Badge variant="outline" className="gap-1.5 text-muted-foreground py-1 px-3 bg-muted/30">
-            <div className="w-2 h-2 rounded-full bg-muted-foreground/50" />
-            Encerrada
-          </Badge>
-        );
+    if (promo.status === 'paused') {
+      return <Badge variant="secondary" className="py-1 px-3">Pausada</Badge>;
     }
+    
+    if (validityStatus === 'expired') {
+      return (
+        <Badge variant="outline" className="gap-1.5 text-muted-foreground py-1 px-3 bg-muted/30">
+          <div className="w-2 h-2 rounded-full bg-muted-foreground/50" />
+          Encerrada
+        </Badge>
+      );
+    }
+
+    if (isBookingActive) {
+      return (
+        <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-800 gap-1.5 py-1 px-3 shadow-sm font-medium">
+          <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+          🟢 Aberta para Agendamento
+        </Badge>
+      );
+    }
+
+    // Upcoming booking
+    let dateText = '';
+    const daysDiff = differenceInCalendarDays(opensAt, now);
+    const openTimeStr = promo.booking_opens_at ? format(opensAt, 'HH:mm') : format(startsAt, 'HH:mm');
+    const formattedHour = openTimeStr.split(':')[0] + 'h';
+
+    if (isToday(opensAt)) {
+      dateText = `hoje às ${formattedHour}`;
+    } else if (isTomorrow(opensAt)) {
+      dateText = `amanhã às ${formattedHour}`;
+    } else if (daysDiff <= 6) {
+      dateText = `${format(opensAt, 'EEEE', { locale: ptBR })} às ${formattedHour}`;
+    } else {
+      dateText = `em ${format(opensAt, 'dd/MM')} às ${formattedHour}`;
+    }
+
+    return (
+      <Badge className="bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-900/30 dark:text-indigo-400 dark:border-indigo-800 gap-1.5 py-1 px-3">
+        <Clock className="h-3.5 w-3.5" />
+        {`Libera para agendar ${dateText}`}
+      </Badge>
+    );
   };
 
   // --- Countdown for active promos ---
@@ -1219,128 +1243,170 @@ export default function Promotions() {
   );
 
   const renderStep2 = () => (
-    <div className="space-y-4">
-      <label className="flex items-center gap-2 cursor-pointer">
-        <Checkbox checked={singleDay} onCheckedChange={(v) => setSingleDay(!!v)} />
-        <span className="text-sm font-medium">Promoção de um único dia</span>
-      </label>
+    <div className="space-y-6">
+      <div className="space-y-4 p-4 rounded-lg border bg-muted/30">
+        <h4 className="font-bold text-sm flex items-center gap-2">
+          <CalendarCheck className="h-4 w-4 text-primary" />
+          Seção A: Quando a promoção vale
+        </h4>
+        <p className="text-xs text-muted-foreground -mt-2">Define quais horários agendados recebem o desconto.</p>
 
-      <div className={singleDay ? '' : 'grid grid-cols-2 gap-4'}>
-        <div>
-          <Label>{singleDay ? 'Data *' : 'Data Início *'}</Label>
-          <Input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} />
-        </div>
-        {!singleDay && (
+        <label className="flex items-center gap-2 cursor-pointer">
+          <Checkbox checked={singleDay} onCheckedChange={(v) => setSingleDay(!!v)} />
+          <span className="text-sm font-medium">Promoção de um único dia</span>
+        </label>
+
+        <div className={singleDay ? '' : 'grid grid-cols-2 gap-4'}>
           <div>
-            <Label>Data Fim *</Label>
-            <Input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} />
+            <Label className="text-xs">{singleDay ? 'Data *' : 'Data Início *'}</Label>
+            <Input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="h-8" />
+          </div>
+          {!singleDay && (
+            <div>
+              <Label className="text-xs">Data Fim *</Label>
+              <Input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="h-8" />
+            </div>
+          )}
+        </div>
+
+        {singleDay && startDate && (
+          <p className="text-xs text-muted-foreground">
+            📅 {(() => {
+              try {
+                const d = parseISO(startDate);
+                if (isNaN(d.getTime())) return 'Data inválida';
+                return format(d, "dd/MM/yyyy (EEEE)", { locale: ptBR });
+              } catch (e) {
+                return 'Erro ao carregar data';
+              }
+            })()}
+          </p>
+        )}
+
+        <div className="space-y-3 pt-2">
+          <Label className="text-xs">Horários válidos para o desconto</Label>
+          <div className="grid grid-cols-1 gap-3">
+            <div className="flex items-center gap-2">
+              <Switch checked={useBusinessHours} onCheckedChange={setUseBusinessHours} id="business-hours" />
+              <Label htmlFor="business-hours" className="font-normal text-xs">Seguir horário padrão da empresa</Label>
+            </div>
+            
+            {!useBusinessHours && (
+              <div className="pl-6 space-y-4 border-l-2 border-primary/10 ml-2">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label className="text-xs">Hora Início</Label>
+                    <Input type="time" value={startTime} onChange={e => setStartTime(e.target.value)} className="h-8" />
+                  </div>
+                  <div>
+                    <Label className="text-xs">Hora Fim</Label>
+                    <Input type="time" value={endTime} onChange={e => setEndTime(e.target.value)} className="h-8" />
+                  </div>
+                </div>
+
+                <div>
+                  <Label className="text-xs mb-2 block">Dias da semana válidos</Label>
+                  <div className="flex flex-wrap gap-1.5">
+                    {['D', 'S', 'T', 'Q', 'Q', 'S', 'S'].map((day, i) => (
+                      <Button
+                        key={i}
+                        type="button"
+                        variant={validDays.includes(i) ? "default" : "outline"}
+                        size="sm"
+                        className="h-7 w-7 p-0 text-[10px]"
+                        onClick={() => setValidDays(prev => 
+                          prev.includes(i) ? prev.filter(d => d !== i) : [...prev, i]
+                        )}
+                      >
+                        {day}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      <div className="space-y-4 p-4 rounded-lg border border-primary/20 bg-primary/5">
+        <h4 className="font-bold text-sm flex items-center gap-2">
+          <Clock className="h-4 w-4 text-primary" />
+          Seção B: Quando liberar agendamentos
+        </h4>
+        <p className="text-xs text-muted-foreground -mt-2">Define quando os clientes podem começar a reservar.</p>
+        
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <Label className="text-xs">Liberar em *</Label>
+            <Input type="date" value={bookingOpensAtDate} onChange={e => setBookingOpensAtDate(e.target.value)} className="h-8" />
+          </div>
+          <div>
+            <Label className="text-xs">Horário</Label>
+            <Input type="time" value={bookingOpensAtTime} onChange={e => setBookingOpensAtTime(e.target.value)} className="h-8" />
+          </div>
+        </div>
+
+        <div className="space-y-3">
+          <label className="flex items-center gap-2 cursor-pointer">
+            <Checkbox checked={hasCustomBookingClosesAt} onCheckedChange={(v) => setHasCustomBookingClosesAt(!!v)} />
+            <span className="text-xs font-medium">Encerrar agendamentos em horário específico?</span>
+          </label>
+          
+          {hasCustomBookingClosesAt && (
+            <div className="grid grid-cols-2 gap-4 pl-6 border-l-2 border-primary/10">
+              <div>
+                <Label className="text-xs">Encerrar em</Label>
+                <Input type="date" value={bookingClosesAtDate} onChange={e => setBookingClosesAtDate(e.target.value)} className="h-8" />
+              </div>
+              <div>
+                <Label className="text-xs">Horário</Label>
+                <Input type="time" value={bookingClosesAtTime} onChange={e => setBookingClosesAtTime(e.target.value)} className="h-8" />
+              </div>
+            </div>
+          )}
+          {!hasCustomBookingClosesAt && (
+            <p className="text-[10px] text-muted-foreground pl-6">Fallback: os agendamentos encerram no fim da promoção.</p>
+          )}
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+        <div>
+          <Label className="text-xs">Vagas máximas</Label>
+          <Input type="number" value={maxSlots} onChange={e => setMaxSlots(e.target.value)} min="0" className="h-8" />
+          <p className="text-[10px] text-muted-foreground mt-1">0 = ilimitado por período</p>
+        </div>
+
+        {isAdmin && (
+          <div>
+            <Label className="text-xs">Profissionais participantes</Label>
+            <Select value={professionalFilter} onValueChange={setProfessionalFilter}>
+              <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos os profissionais</SelectItem>
+                <SelectItem value="selected">Selecionar</SelectItem>
+              </SelectContent>
+            </Select>
+            {professionalFilter === 'selected' && (
+              <div className="space-y-1 pl-2 mt-2 max-h-32 overflow-y-auto border rounded-md p-1.5 bg-muted/20">
+                {professionals.length === 0 ? (
+                  <p className="text-[10px] text-muted-foreground p-1">Carregando...</p>
+                ) : professionals.map((p: any) => (
+                  <label key={p.profile_id} className="flex items-center gap-2 cursor-pointer py-0.5">
+                    <Checkbox
+                      checked={selectedProfessionalIds.includes(p.profile_id)}
+                      onCheckedChange={(ch) => setSelectedProfessionalIds(prev => ch ? [...prev, p.profile_id] : prev.filter(id => id !== p.profile_id))}
+                      className="h-3 w-3"
+                    />
+                    <span className="text-xs">{p.profiles?.full_name}</span>
+                  </label>
+                ))}
+              </div>
+            )}
           </div>
         )}
       </div>
-
-      {singleDay && startDate && (
-        <p className="text-sm text-muted-foreground">
-          📅 {(() => {
-            try {
-              const d = parseISO(startDate);
-              if (isNaN(d.getTime())) return 'Data inválida';
-              return format(d, "dd/MM/yyyy (EEEE)", { locale: ptBR });
-            } catch (e) {
-              return 'Erro ao carregar data';
-            }
-          })()}
-        </p>
-      )}
-
-      <div className="space-y-3 pt-2">
-        <Label>Horários de agendamento</Label>
-        <div className="grid grid-cols-1 gap-3">
-          <div className="flex items-center gap-2">
-            <Switch checked={useBusinessHours} onCheckedChange={setUseBusinessHours} id="business-hours" />
-            <Label htmlFor="business-hours" className="font-normal">Seguir horário padrão da empresa</Label>
-          </div>
-          
-          {!useBusinessHours && (
-            <div className="pl-9 space-y-4 border-l-2 border-primary/10 ml-2">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label className="text-xs">Hora Início</Label>
-                  <Input type="time" value={startTime} onChange={e => setStartTime(e.target.value)} className="h-8" />
-                </div>
-                <div>
-                  <Label className="text-xs">Hora Fim</Label>
-                  <Input type="time" value={endTime} onChange={e => setEndTime(e.target.value)} className="h-8" />
-                </div>
-              </div>
-
-              <div>
-                <Label className="text-xs mb-2 block">Dias da semana válidos</Label>
-                <div className="flex flex-wrap gap-2">
-                  {['D', 'S', 'T', 'Q', 'Q', 'S', 'S'].map((day, i) => (
-                    <Button
-                      key={i}
-                      type="button"
-                      variant={validDays.includes(i) ? "default" : "outline"}
-                      size="sm"
-                      className="h-8 w-8 p-0"
-                      onClick={() => setValidDays(prev => 
-                        prev.includes(i) ? prev.filter(d => d !== i) : [...prev, i]
-                      )}
-                    >
-                      {day}
-                    </Button>
-                  ))}
-                </div>
-              </div>
-
-              <div>
-                <Label className="text-xs">Densidade (Intervalo mínimo em minutos)</Label>
-                <Input 
-                  type="number" 
-                  value={minIntervalMinutes} 
-                  onChange={e => setMinIntervalMinutes(e.target.value)} 
-                  className="h-8" 
-                  placeholder="0 = padrão do serviço"
-                />
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-
-      <div>
-        <Label>Vagas máximas</Label>
-        <Input type="number" value={maxSlots} onChange={e => setMaxSlots(e.target.value)} min="0" />
-        <p className="text-xs text-muted-foreground mt-1">0 = ilimitado por período</p>
-      </div>
-
-      {isAdmin && (
-        <div>
-          <Label>Profissionais participantes</Label>
-          <Select value={professionalFilter} onValueChange={setProfessionalFilter}>
-            <SelectTrigger><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos os profissionais</SelectItem>
-              <SelectItem value="selected">Selecionar</SelectItem>
-            </SelectContent>
-          </Select>
-          {professionalFilter === 'selected' && (
-            <div className="space-y-2 pl-2 mt-2 max-h-40 overflow-y-auto border rounded-md p-2">
-              {professionals.length === 0 ? (
-                <p className="text-xs text-muted-foreground p-2">Carregando profissionais...</p>
-              ) : professionals.map((p: any) => (
-                <label key={p.profile_id} className="flex items-center gap-2 cursor-pointer py-1">
-                  <Checkbox
-                    checked={selectedProfessionalIds.includes(p.profile_id)}
-                    onCheckedChange={(ch) => setSelectedProfessionalIds(prev => ch ? [...prev, p.profile_id] : prev.filter(id => id !== p.profile_id))}
-                  />
-                  <span className="text-sm">{p.profiles?.full_name}</span>
-                </label>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
     </div>
   );
 
@@ -1776,29 +1842,36 @@ export default function Promotions() {
                       )}
 
                       {/* Date + time range */}
-                      <div className="flex flex-col gap-1.5 text-xs text-muted-foreground">
-                        <div className="flex items-center gap-1.5">
-                          {promo.start_date === promo.end_date ? (
-                            <span>📅 {format(parseISO(promo.start_date), 'dd/MM/yyyy')}</span>
-                          ) : (
-                            <span>📅 {format(parseISO(promo.start_date), 'dd/MM/yyyy')} - {format(parseISO(promo.end_date), 'dd/MM/yyyy')}</span>
-                          )}
-                        </div>
-                        <div className="flex items-center gap-1.5">
-                          {promo.use_business_hours !== false ? (
-                            <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-medium">
-                              <Clock className="h-3 w-3" /> {status === 'active' ? 'Hoje segue horário comercial' : 'Segue horário comercial'}
+                      <div className="flex flex-col gap-2 text-xs">
+                        <div className="flex items-start gap-1.5 p-2 rounded bg-muted/50 border border-muted-foreground/10">
+                          <CalendarCheck className="h-3.5 w-3.5 mt-0.5 text-primary" />
+                          <div className="flex flex-col gap-0.5">
+                            <span className="font-semibold text-foreground/80">Promoção válida para:</span>
+                            <span className="text-muted-foreground">
+                              {promo.start_date === promo.end_date ? (
+                                format(parseISO(promo.start_date), 'dd/MM/yyyy')
+                              ) : (
+                                `${format(parseISO(promo.start_date), 'dd/MM/yyyy')} até ${format(parseISO(promo.end_date), 'dd/MM/yyyy')}`
+                              )}
+                              {promo.use_business_hours !== false ? ' (Horário comercial)' : ` (${promo.start_time?.slice(0, 5) || '00:00'} às ${promo.end_time?.slice(0, 5) || '23:59'})`}
                             </span>
-                          ) : (
-                            <span className="flex items-center gap-1 text-primary font-medium">
-                              <Clock className="h-3 w-3" /> 
-                              {status === 'active' ? 'Hoje das ' : ''}
-                              {promo.start_time?.slice(0, 5)} às {promo.end_time?.slice(0, 5)}
-                              {promo.valid_days && promo.valid_days.length < 7 && (
-                                <span className="ml-1 text-[10px] opacity-70">({promo.valid_days.length} dias/sem)</span>
+                          </div>
+                        </div>
+
+                        <div className="flex items-start gap-1.5 p-2 rounded bg-primary/5 border border-primary/10">
+                          <Clock className="h-3.5 w-3.5 mt-0.5 text-primary" />
+                          <div className="flex flex-col gap-0.5">
+                            <span className="font-semibold text-foreground/80">Liberação para agendar:</span>
+                            <span className="text-muted-foreground">
+                              {promo.booking_opens_at 
+                                ? format(new Date(promo.booking_opens_at), 'dd/MM/yyyy HH:mm') 
+                                : 'Já liberado'
+                              }
+                              {promo.booking_closes_at && (
+                                ` até ${format(new Date(promo.booking_closes_at), 'dd/MM/yyyy HH:mm')}`
                               )}
                             </span>
-                          )}
+                          </div>
                         </div>
                       </div>
 
