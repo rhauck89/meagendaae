@@ -170,92 +170,34 @@ const AppointmentRequests = () => {
 
       const normPhone = normalizePhone(selectedRequest.client_whatsapp);
 
-      // 1. Garantir Client Global (Upsert com prioridade para user_id se existisse, mas aqui usamos o whatsapp)
-      // Como estamos no painel admin aceitando uma solicitação, o "user" logado é o admin, não o cliente.
-      // Buscamos se já existe um global_client com este whatsapp.
-      const { data: globalClient, error: globalError } = await (supabase
-        .from('clients_global' as any)
-        .upsert({
-          whatsapp: normPhone,
-          name: selectedRequest.client_name,
-        }, { onConflict: 'whatsapp' })
-        .select()
-        .single() as any);
+      // 1. Create appointment via RPC v2 (handles clients and services atomically)
+      const servicesPayload = [{
+        service_id: selectedRequest.service_id,
+        price: serviceInfo.price,
+        duration_minutes: serviceInfo.duration
+      }];
 
-      if (globalError || !globalClient) {
-        console.error("ERRO AO GERAR CLIENT GLOBAL:", globalError);
-        throw new Error("Erro ao vincular perfil global do cliente");
-      }
-
-      const gClient = globalClient as any;
-      console.log("GLOBAL CLIENT:", gClient);
-
-      // 2. Garantir Client Local (Upsert)
-      const { data: localClient, error: localError } = await (supabase
-        .from('clients' as any)
-        .upsert({
-          company_id: companyId!,
-          global_client_id: gClient.id,
-          user_id: gClient.user_id, // Se o global já tiver user_id vinculado
-          name: selectedRequest.client_name,
-          whatsapp: selectedRequest.client_whatsapp,
-          updated_at: new Date().toISOString()
-        }, { onConflict: 'company_id, whatsapp' })
-        .select()
-        .single() as any);
-
-
-      if (localError || !localClient) {
-        console.error("ERRO AO GERAR CLIENT LOCAL:", localError);
-        throw new Error("Erro ao vincular cliente à empresa");
-      }
-
-      const lClient = localClient as any;
-      console.log("LOCAL CLIENT:", lClient);
-
-      // 3. Criar agendamento com IDs garantidos
-      const insertData = {
-        company_id: companyId!,
-        client_id: lClient.id,
-        user_id: gClient.user_id,
-        professional_id: selectedRequest.professional_id || Object.keys(professionals)[0],
-        client_name: selectedRequest.client_name,
-        client_whatsapp: selectedRequest.client_whatsapp,
-        start_time: startTime.toISOString(),
-        end_time: endTime.toISOString(),
-        total_price: finalPrice,
-        original_price: finalPrice,
-        extra_fee: extraFee,
-        extra_fee_type: feeType,
-        extra_fee_value: feeType === 'fixed' ? parseFloat(fixedFeeValue) : (feeType === 'none' ? 0 : parseInt(feeType)),
-        final_price: finalPrice,
-        special_schedule: true,
-        status: 'confirmed' as any,
-        notes: selectedRequest.message || null,
-      };
-
-      console.log("INSERT DATA:", insertData);
-
-      const { data: apptData, error: apptError } = await (supabase
-        .from('appointments')
-        .insert(insertData)
-        .select('id')
-        .single() as any);
-
+      const { data: appointmentId, error: apptError } = await (supabase.rpc('create_appointment_v2', {
+        p_company_id: companyId,
+        p_professional_id: selectedRequest.professional_id || Object.keys(professionals)[0],
+        p_client_id: null, // Let the RPC handle it
+        p_start_time: startTime.toISOString(),
+        p_end_time: endTime.toISOString(),
+        p_total_price: finalPrice,
+        p_client_name: selectedRequest.client_name,
+        p_client_whatsapp: selectedRequest.client_whatsapp,
+        p_notes: selectedRequest.message || null,
+        p_services: servicesPayload,
+        p_booking_origin: 'request',
+        p_extra_fee: extraFee,
+        p_extra_fee_type: feeType,
+        p_extra_fee_value: feeType === 'fixed' ? parseFloat(fixedFeeValue) : (feeType === 'none' ? 0 : parseInt(feeType)),
+        p_special_schedule: true
+      }) as any);
 
       if (apptError) {
         console.error("ERRO AO SALVAR AGENDAMENTO:", apptError);
         throw apptError;
-      }
-
-      // 4. Link service
-      if (selectedRequest.service_id && (apptData as any)?.id) {
-        await supabase.from('appointment_services').insert({
-          appointment_id: apptData.id,
-          service_id: selectedRequest.service_id,
-          price: serviceInfo.price,
-          duration_minutes: serviceInfo.duration,
-        });
       }
 
       // 5. Update request status

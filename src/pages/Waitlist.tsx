@@ -240,67 +240,28 @@ const Waitlist = () => {
 
       const normalizedPhone = normalizePhone(bookingTarget.client_whatsapp || '');
 
-      // 1. Garantir Client Global
-      const { data: globalClient, error: globalError } = await (supabase
-        .from('clients_global' as any)
-        .upsert({
-          whatsapp: normalizedPhone || null,
-          name: bookingTarget.client_name,
-        }, { onConflict: 'whatsapp' })
-        .select()
-        .single() as any);
+      // Create appointment via RPC v2 (handles everything atomically in the backend)
+      const servicesPayload = bookingTarget.service_ids.map((sid: string) => ({
+        service_id: sid,
+        price: 0,
+        duration_minutes: serviceDurationsMap[sid] || 30,
+      }));
 
-      if (globalError || !globalClient) {
-        console.error("ERRO AO GERAR CLIENT GLOBAL:", globalError);
-        throw new Error("Erro ao vincular perfil global");
-      }
-
-      console.log("GLOBAL CLIENT:", globalClient);
-
-      // 2. Garantir Client Local
-      const { data: localClient, error: localError } = await (supabase
-        .from('clients' as any)
-        .upsert({
-          company_id: companyId!,
-          global_client_id: (globalClient as any).id,
-          user_id: (globalClient as any).user_id,
-          name: bookingTarget.client_name,
-          whatsapp: bookingTarget.client_whatsapp,
-          updated_at: new Date().toISOString()
-        }, { onConflict: 'company_id, whatsapp' })
-        .select()
-        .single() as any);
-
-
-      if (localError || !localClient) {
-        console.error("ERRO AO GERAR CLIENT LOCAL:", localError);
-        throw new Error("Erro ao vincular cliente à empresa");
-      }
-
-      const { data: appointmentId, error: aptErr } = await (supabase.rpc('create_appointment', {
-        p_client_id: localClient.id,
+      const { data: appointmentId, error: aptErr } = await (supabase.rpc('create_appointment_v2', {
+        p_company_id: companyId,
         p_professional_id: selectedProfessional,
+        p_client_id: null, // Let the RPC handle client lookup/creation
         p_start_time: startTime.toISOString(),
         p_end_time: endTime.toISOString(),
         p_total_price: 0,
         p_client_name: bookingTarget.client_name,
         p_client_whatsapp: bookingTarget.client_whatsapp || '',
         p_notes: 'Agendado via lista de espera',
+        p_services: servicesPayload,
+        p_booking_origin: 'waitlist'
       }) as any);
+
       if (aptErr) throw aptErr;
-
-
-      if (bookingTarget.service_ids && bookingTarget.service_ids.length > 0) {
-        const servicesPayload = bookingTarget.service_ids.map((sid: string) => ({
-          service_id: sid,
-          price: 0,
-          duration_minutes: serviceDurationsMap[sid] || 30,
-        }));
-        await supabase.rpc('create_appointment_services', {
-          p_appointment_id: appointmentId,
-          p_services: servicesPayload,
-        });
-      }
 
       // Mark waitlist entry as converted
       if (bookingTarget.source === 'waitlist') {
