@@ -197,10 +197,12 @@ const ClientPortal = () => {
     if (!isRevalidation) setLoading(true);
     try {
       const currentUserId = isAdmin ? null : user?.id;
+      let profileData = null;
 
       if (currentUserId) {
-        const { data: profileData } = await supabase
+        const { data } = await supabase
           .from('profiles').select('whatsapp').eq('user_id', currentUserId).maybeSingle();
+        profileData = data;
 
         if (profileData?.whatsapp || user!.email) {
           await supabase.rpc('link_client_to_user', {
