@@ -1170,11 +1170,19 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
 
       // Filter slots based on promotion time window if applicable
       if (promoData) {
-        if (promoData.start_time) {
-          slots = slots.filter(s => s >= promoData.start_time!);
-        }
-        if (promoData.end_time) {
-          slots = slots.filter(s => s <= promoData.end_time!);
+        // Only allow slots on dates within the promo validity range
+        const dateStr = format(date, 'yyyy-MM-dd');
+        if (dateStr < promoData.start_date || dateStr > promoData.end_date) {
+          slots = [];
+        } else {
+          // If on start date, filter by start time
+          if (dateStr === promoData.start_date && promoData.start_time) {
+            slots = slots.filter(s => s >= promoData.start_time!.slice(0, 5));
+          }
+          // If on end date, filter by end time
+          if (dateStr === promoData.end_date && promoData.end_time) {
+            slots = slots.filter(s => s <= promoData.end_time!.slice(0, 5));
+          }
         }
       }
 
