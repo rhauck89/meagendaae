@@ -897,8 +897,76 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
         .eq('id', promoIdRef.current)
         .limit(1);
       const pd = (promos as any)?.[0];
-      if (pd && pd.company_id === comp.id && isPromoActive(pd)) {
-        setPromoData(pd as PromotionInfo);
+      
+      if (pd && pd.company_id === comp.id) {
+        import('@/lib/promotion-period').then(({ getBookingStatus }) => {
+          const bookingStatus = getBookingStatus(pd);
+          if (bookingStatus === 'active') {
+            setPromoData(pd as PromotionInfo);
+            
+            // Auto-select promo services (aggressive)
+            const promoServiceIds = pd.service_ids || (pd.service_id ? [pd.service_id] : []);
+            if (promoServiceIds.length > 0) {
+              setSelectedServices(promoServiceIds);
+            }
+    
+            // Auto-select promo date if set
+            if (pd.start_date) {
+              const pDate = parseISO(pd.start_date);
+              if (pDate >= startOfDay(new Date())) {
+                setSelectedDate(pDate);
+              }
+            }
+    
+            // Auto-select professional if only one or first from promo
+            const targetProfs = pd.professional_ids || [];
+            if (targetProfs.length > 0) {
+              const profId = targetProfs[0];
+              setSelectedProfessional(profId);
+              supabase.from('professional_working_hours' as any)
+                .select('*')
+                .eq('professional_id', profId)
+                .then(({ data: profHoursData }) => {
+                  if (profHoursData && (profHoursData as any[]).length > 0) {
+                    setProfessionalHours(profHoursData as unknown as BusinessHours[]);
+                  }
+                });
+              
+              supabase.from('public_professionals' as any)
+                .select('*')
+                .eq('company_id', comp.id)
+                .in('id', targetProfs)
+                .then(({ data: promoProfs }) => {
+                  if (promoProfs) {
+                    setProfessionals((promoProfs as any[]).map((p: any) => ({
+                      id: p.id, name: p.name, full_name: p.name, avatar_url: p.avatar_url, slug: p.slug,
+                    })));
+                  }
+                });
+            }
+            // Skip to appropriate step
+            if (pd.professional_ids?.length === 1) {
+              setStep('datetime');
+            } else if (pd.professional_ids?.length > 1) {
+              setStep('professional');
+            } else {
+              setStep('datetime');
+            }
+          } else if (bookingStatus === 'upcoming') {
+            const openDate = pd.booking_opens_at ? new Date(pd.booking_opens_at) : null;
+            const formattedOpenDate = openDate ? format(openDate, "dd/MM 'às' HH:mm") : 'em breve';
+            toast.info(`Promoção disponível para agendamento a partir de ${formattedOpenDate}`, {
+              duration: 5000,
+            });
+            // Don't set promoData, but maybe still allow browsing? 
+            // The user said: "mostrar mensagem “Promoção disponível para agendamento a partir de ...”"
+          } else {
+            toast.error('Esta promoção já foi encerrada.');
+          }
+        });
+      }
+      promoIdRef.current = null;
+    }
         
         // Auto-select promo services (aggressive)
         const promoServiceIds = pd.service_ids || (pd.service_id ? [pd.service_id] : []);
