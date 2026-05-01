@@ -160,7 +160,8 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
   };
 
   useEffect(() => {
-    if (authLoading || companyId || !user?.id || companyRecoveryLoading || companyRecoveryChecked) return;
+    // Super Admin never needs company recovery in DashboardLayout
+    if (isSuperAdmin || authLoading || companyId || !user?.id || companyRecoveryLoading || companyRecoveryChecked) return;
 
     let cancelled = false;
     const withTimeout = (promise: Promise<any>, fallback: any, ms = 3500): Promise<any> =>
