@@ -567,7 +567,7 @@ const ClientPortal = () => {
 
   if (loading) return <ClientPortalSkeleton />;
 
-  if (clients.length === 0) return (
+  if (clients.length === 0 && appointments.length === 0) return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <div className="w-full max-w-sm text-center space-y-4">
         <User className="h-16 w-16 mx-auto text-muted-foreground/40" />
@@ -609,7 +609,7 @@ const ClientPortal = () => {
           </div>
           <div className="mt-3">
             <p className="text-lg font-bold leading-tight">
-              Olá, {primaryClient?.name?.split(' ')[0] || 'cliente'} 👋
+              Olá, {(primaryClient?.name || user?.user_metadata?.full_name || 'cliente')?.split(' ')[0]} 👋
             </p>
             <p className="text-xs text-muted-foreground">
               Seus agendamentos, cashback e pontos
