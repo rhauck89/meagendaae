@@ -50,11 +50,21 @@ const Auth = () => {
 
     // Basic session check on mount, but without aggressive signout
     // AuthContext handles the source of truth for sessions.
-    supabase.auth.getSession().then(({ data: { session }, error }) => {
+    supabase.auth.getSession().then(async ({ data: { session }, error }) => {
       if (error) console.error('[AUTH_DEBUG] Session check error:', error);
       if (session) {
-        console.log('[AUTH_DEBUG] Valid session found on Auth mount, redirecting...');
-        navigate('/dashboard');
+        console.log('[AUTH_DEBUG] Valid session found on Auth mount, checking roles...');
+        const { data: contextData } = await supabase.rpc('get_current_user_context');
+        const context = contextData && contextData.length > 0 ? contextData[0] : null;
+        const roles = context?.roles || [];
+        
+        if (roles.includes('super_admin')) {
+          console.log('[AUTH_DEBUG] Redirecting existing session to super-admin');
+          navigate('/super-admin');
+        } else {
+          console.log('[AUTH_DEBUG] Redirecting existing session to dashboard');
+          navigate('/dashboard');
+        }
       }
     });
   }, [navigate]);
