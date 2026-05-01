@@ -292,6 +292,55 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
   const isDark = businessType === 'barbershop';
   const bookingTimezone = companySettings?.timezone || DEFAULT_BOOKING_TIMEZONE;
 
+  // Identify the best applicable promotion for the current selection
+  const activePromo = useMemo(() => {
+    // If the user arrived via a specific promo link, we prioritize that one.
+    if (promoData) return promoData;
+    
+    // Otherwise, we search through all active public promotions
+    if (publicPromotions.length === 0 || !selectedDate || !selectedTime || selectedServices.length === 0) return null;
+
+    // We must parse the selected slot time in the company's timezone to compare with promo validity
+    const dateStr = format(selectedDate, 'yyyy-MM-dd');
+    const slotDateTime = fromZonedTime(`${dateStr} ${selectedTime}:00`, bookingTimezone);
+    
+    // Filter promos that are:
+    // 1. Open for booking right now (booking_opens_at/booking_closes_at)
+    // 2. Valid for the specific slot time (start_date/end_date/start_time/end_time)
+    // 3. Match the selected professional (if professional filter is specific)
+    // 4. Match at least one selected service
+    const eligiblePromos = publicPromotions.filter(promo => {
+      // Cashback promos are handled separately (they don't apply a discount to the price)
+      if (promo.promotion_type === 'cashback') return false; 
+      
+      // Is it open for booking today?
+      const isBookingOpen = isPromoActive(promo);
+      if (!isBookingOpen) return false;
+
+      // Is the selected slot time within the promo's valid hours?
+      const isSlotValid = isSlotEligible(promo, slotDateTime);
+      if (!isSlotValid) return false;
+
+      // If professional filter is specific, check if the selected professional is included
+      if (promo.professional_filter === 'specific' && promo.professional_ids) {
+        if (!selectedProfessional || !promo.professional_ids.includes(selectedProfessional)) return false;
+      }
+
+      // Check if any selected service is part of this promotion
+      const promoServiceIds = promo.service_ids || (promo.service_id ? [promo.service_id] : []);
+      const hasEligibleService = selectedServices.some(sid => promoServiceIds.length === 0 || promoServiceIds.includes(sid));
+      
+      return hasEligibleService;
+    });
+
+    // If multiple promos apply, we could sort them by "best discount", 
+    // but for now we'll take the first applicable one.
+    return eligiblePromos.length > 0 ? eligiblePromos[0] : null;
+  }, [promoData, publicPromotions, selectedDate, selectedTime, selectedServices, selectedProfessional, bookingTimezone]);
+
+  const currentPromo = activePromo;
+  const hasPromoApplied = !!currentPromo;
+
   // Dynamic theme based on company branding
   const T = useMemo(() => {
     const branding = getCompanyBranding(companySettings, isDark);
