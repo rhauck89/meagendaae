@@ -753,10 +753,58 @@ export default function Promotions() {
     setCreationMode(null);
     setSmartMode('manual');
     setSourceInsight(null);
+    setBookingOpensAtDate(''); setBookingOpensAtTime('09:00');
+    setBookingClosesAtDate(''); setBookingClosesAtTime('23:59');
+    setHasCustomBookingClosesAt(false);
   };
 
   const handleEdit = (promo: Promotion) => {
     setSelectedPromotion(promo);
+    setIsEditing(true);
+    setCreationMode('manual');
+    setPromotionType(promo.promotion_type as any || 'traditional');
+    setTitle(promo.title);
+    setDescription(promo.description || '');
+    setDiscountType(promo.discount_type as any);
+    setDiscountValue(promo.discount_value?.toString() || '');
+    setPromotionPrice(promo.promotion_price?.toString() || '');
+    setStartDate(promo.start_date);
+    setEndDate(promo.end_date);
+    setSingleDay(promo.start_date === promo.end_date);
+    setStartTime(promo.start_time?.slice(0, 5) || '');
+    setEndTime(promo.end_time?.slice(0, 5) || '');
+    setUseBusinessHours(promo.use_business_hours ?? true);
+    setValidDays(promo.valid_days || [0, 1, 2, 3, 4, 5, 6]);
+    setMinIntervalMinutes(promo.min_interval_minutes?.toString() || '0');
+    setMaxSlots(promo.max_slots.toString());
+    setClientFilter(promo.client_filter);
+    setClientFilterValue(promo.client_filter_value?.toString() || '30');
+    setProfessionalFilter(promo.professional_filter);
+    setSelectedProfessionalIds(promo.professional_ids || []);
+    setMessageTemplate(promo.message_template || DEFAULT_TEMPLATE);
+    setCashbackValidityDays(promo.cashback_validity_days?.toString() || '30');
+    setCashbackRulesText(promo.cashback_rules_text || '');
+    setCashbackCumulative(promo.cashback_cumulative || false);
+    setSmartMode(promo.promotion_mode || 'manual');
+    setSourceInsight(promo.source_insight || null);
+    
+    if (promo.booking_opens_at) {
+      const d = new Date(promo.booking_opens_at);
+      setBookingOpensAtDate(format(d, 'yyyy-MM-dd'));
+      setBookingOpensAtTime(format(d, 'HH:mm'));
+    }
+    if (promo.booking_closes_at) {
+      const d = new Date(promo.booking_closes_at);
+      setBookingClosesAtDate(format(d, 'yyyy-MM-dd'));
+      setBookingClosesAtTime(format(d, 'HH:mm'));
+      setHasCustomBookingClosesAt(true);
+    }
+    
+    setServiceSelectionMode(promo.service_ids && promo.service_ids.length > 1 ? 'multiple' : 'single');
+    setSelectedServiceIds(promo.service_ids || (promo.service_id ? [promo.service_id] : []));
+    setSelectedServiceId(promo.service_id || '');
+    setDialogOpen(true);
+  };
     setIsEditing(true);
     setCreationMode('manual');
     setSmartMode(promo.promotion_mode || 'manual');
