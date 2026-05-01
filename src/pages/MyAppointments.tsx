@@ -46,6 +46,7 @@ const MyAppointments = () => {
     setLoading(true);
 
     const currentUserId = isAdmin ? null : user?.id;
+    let profileWhatsApp = null;
 
     // Get user's phone from profile and link any unlinked client records
     // Skip for admins
@@ -55,11 +56,13 @@ const MyAppointments = () => {
         .select('whatsapp')
         .eq('user_id', currentUserId)
         .single();
+      
+      profileWhatsApp = profileData?.whatsapp;
 
-      if (profileData?.whatsapp || user!.email) {
+      if (profileWhatsApp || user!.email) {
         await supabase.rpc('link_client_to_user', {
           p_user_id: currentUserId,
-          p_phone: profileData?.whatsapp || '',
+          p_phone: profileWhatsApp || '',
           p_email: user!.email || '',
         } as any);
       }
