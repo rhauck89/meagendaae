@@ -1670,7 +1670,7 @@ export default function Promotions() {
               </div>
             )}
 
-            <DialogBody className="p-4 sm:p-6">
+            <DialogBody className="p-4 sm:p-6 pt-2 sm:pt-6">
               {/* Step content */}
               {creationMode === 'choice' && !isEditing && renderChoiceScreen()}
               {creationMode === 'smart' && !isEditing && renderSmartScreen()}
