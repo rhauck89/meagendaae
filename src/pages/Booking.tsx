@@ -797,9 +797,11 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
       setCompanyStats({ avgRating, reviewCount, completedCount });
     }
 
-    // Fetch active cashback promotions for auto-detection
+    // Fetch all active public promotions for the company
     try {
       const today = format(new Date(), 'yyyy-MM-dd');
+      
+      // Fetch cashback promos separately for the earned amount logic
       const { data: cbPromos } = await supabase
         .from('promotions')
         .select('id, promotion_type, discount_type, discount_value, cashback_validity_days, service_id, service_ids, professional_filter, professional_ids')
@@ -809,7 +811,20 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
         .lte('start_date', today)
         .gte('end_date', today);
       if (cbPromos) setAutoCashbackPromos(cbPromos);
-    } catch { /* ignore */ }
+
+      // Fetch all public promotions for slot badges and automatic discounts
+      const { data: pubPromos } = await supabase
+        .from('public_promotions' as any)
+        .select('*')
+        .eq('company_id', comp.id)
+        .eq('status', 'active');
+      
+      if (pubPromos) {
+        setPublicPromotions(pubPromos as PromotionInfo[]);
+      }
+    } catch (err) {
+      console.error('[Booking] Error fetching promotions:', err);
+    }
 
     // Check if company has any active professionals
     if (!professionalSlug && !promoIdRef.current) {
