@@ -14,7 +14,7 @@ import { Scissors, Sparkles, Clock, DollarSign, ChevronRight, ChevronLeft, Check
 import { format, addMinutes, addDays, startOfDay, isSameDay, parseISO, startOfWeek, endOfWeek, eachDayOfInterval, addWeeks, subWeeks, isToday, startOfMonth, endOfMonth, eachMonthOfInterval, setMonth, getYear } from 'date-fns';
 import { fromZonedTime, toZonedTime } from 'date-fns-tz';
 import { sendAppointmentCreatedWebhook } from '@/lib/automations';
-import { isPromoActive, getBookingStatus, getPromoValidityStatus } from '@/lib/promotion-period';
+import { isPromoActive, getBookingStatus, getPromoValidityStatus, isSlotEligible } from '@/lib/promotion-period';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -195,6 +195,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
   const [allowCustomRequests, setAllowCustomRequests] = useState(false);
   // Promotion state
   const [promoData, setPromoData] = useState<PromotionInfo | null>(null);
+  const [publicPromotions, setPublicPromotions] = useState<PromotionInfo[]>([]);
   const isPromoMode = !!promoData;
 
   const [step, setStep] = useState<Step>('identifying');
@@ -290,6 +291,55 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
 
   const isDark = businessType === 'barbershop';
   const bookingTimezone = companySettings?.timezone || DEFAULT_BOOKING_TIMEZONE;
+
+  // Identify the best applicable promotion for the current selection
+  const activePromo = useMemo(() => {
+    // If the user arrived via a specific promo link, we prioritize that one.
+    if (promoData) return promoData;
+    
+    // Otherwise, we search through all active public promotions
+    if (publicPromotions.length === 0 || !selectedDate || !selectedTime || selectedServices.length === 0) return null;
+
+    // We must parse the selected slot time in the company's timezone to compare with promo validity
+    const dateStr = format(selectedDate, 'yyyy-MM-dd');
+    const slotDateTime = fromZonedTime(`${dateStr} ${selectedTime}:00`, bookingTimezone);
+    
+    // Filter promos that are:
+    // 1. Open for booking right now (booking_opens_at/booking_closes_at)
+    // 2. Valid for the specific slot time (start_date/end_date/start_time/end_time)
+    // 3. Match the selected professional (if professional filter is specific)
+    // 4. Match at least one selected service
+    const eligiblePromos = publicPromotions.filter(promo => {
+      // Cashback promos are handled separately (they don't apply a discount to the price)
+      if (promo.promotion_type === 'cashback') return false; 
+      
+      // Is it open for booking today?
+      const isBookingOpen = isPromoActive(promo);
+      if (!isBookingOpen) return false;
+
+      // Is the selected slot time within the promo's valid hours?
+      const isSlotValid = isSlotEligible(promo, slotDateTime);
+      if (!isSlotValid) return false;
+
+      // If professional filter is specific, check if the selected professional is included
+      if (promo.professional_filter === 'specific' && promo.professional_ids) {
+        if (!selectedProfessional || !promo.professional_ids.includes(selectedProfessional)) return false;
+      }
+
+      // Check if any selected service is part of this promotion
+      const promoServiceIds = promo.service_ids || (promo.service_id ? [promo.service_id] : []);
+      const hasEligibleService = selectedServices.some(sid => promoServiceIds.length === 0 || promoServiceIds.includes(sid));
+      
+      return hasEligibleService;
+    });
+
+    // If multiple promos apply, we could sort them by "best discount", 
+    // but for now we'll take the first applicable one.
+    return eligiblePromos.length > 0 ? eligiblePromos[0] : null;
+  }, [promoData, publicPromotions, selectedDate, selectedTime, selectedServices, selectedProfessional, bookingTimezone]);
+
+  const currentPromo = activePromo;
+  const hasPromoApplied = !!currentPromo;
 
   // Dynamic theme based on company branding
   const T = useMemo(() => {
@@ -796,9 +846,11 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
       setCompanyStats({ avgRating, reviewCount, completedCount });
     }
 
-    // Fetch active cashback promotions for auto-detection
+    // Fetch all active public promotions for the company
     try {
       const today = format(new Date(), 'yyyy-MM-dd');
+      
+      // Fetch cashback promos separately for the earned amount logic
       const { data: cbPromos } = await supabase
         .from('promotions')
         .select('id, promotion_type, discount_type, discount_value, cashback_validity_days, service_id, service_ids, professional_filter, professional_ids')
@@ -808,7 +860,20 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
         .lte('start_date', today)
         .gte('end_date', today);
       if (cbPromos) setAutoCashbackPromos(cbPromos);
-    } catch { /* ignore */ }
+
+      // Fetch all public promotions for slot badges and automatic discounts
+      const { data: pubPromos } = await supabase
+        .from('public_promotions' as any)
+        .select('*')
+        .eq('company_id', comp.id)
+        .eq('status', 'active');
+      
+      if (pubPromos) {
+        setPublicPromotions(pubPromos as unknown as PromotionInfo[]);
+      }
+    } catch (err) {
+      console.error('[Booking] Error fetching promotions:', err);
+    }
 
     // Check if company has any active professionals
     if (!professionalSlug && !promoIdRef.current) {
@@ -1069,29 +1134,33 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
 
   const isCashbackPromo = isPromoMode && promoData?.promotion_type === 'cashback';
 
+  const originalSubtotal = services
+    .filter((s) => selectedServices.includes(s.id))
+    .reduce((sum, s) => sum + Number(s.price), 0);
+
   const totalPrice = (() => {
     // Cashback promos: client pays full price — no discount applied
     if (isCashbackPromo) {
       return services.filter((s) => selectedServices.includes(s.id)).reduce((sum, s) => sum + Number(s.price), 0);
     }
-    if (!isPromoMode || !promoData) {
+    if (!currentPromo) {
       return services.filter((s) => selectedServices.includes(s.id)).reduce((sum, s) => sum + Number(s.price), 0);
     }
-    const promoServiceIds = promoData.service_ids || (promoData.service_id ? [promoData.service_id] : []);
+    const promoServiceIds = currentPromo.service_ids || (currentPromo.service_id ? [currentPromo.service_id] : []);
     // For single-service fixed_price promos, use promotion_price directly
-    if (promoData.discount_type === 'fixed_price' && promoData.promotion_price != null && promoServiceIds.length <= 1) {
-      return Number(promoData.promotion_price);
+    if (currentPromo.discount_type === 'fixed_price' && currentPromo.promotion_price != null && promoServiceIds.length <= 1) {
+      return Number(currentPromo.promotion_price);
     }
     // For percentage/fixed_amount, calculate per service
     return services.filter(s => selectedServices.includes(s.id)).reduce((sum, s) => {
-      if (promoServiceIds.includes(s.id)) {
+      if (promoServiceIds.length === 0 || promoServiceIds.includes(s.id)) {
         const orig = Number(s.price);
-        if (promoData.discount_type === 'percentage' && promoData.discount_value) {
-          return sum + orig * (1 - Number(promoData.discount_value) / 100);
-        } else if (promoData.discount_type === 'fixed_amount' && promoData.discount_value) {
-          return sum + Math.max(0, orig - Number(promoData.discount_value));
-        } else if (promoData.discount_type === 'fixed_price' && promoData.promotion_price != null) {
-          return sum + Number(promoData.promotion_price);
+        if (currentPromo.discount_type === 'percentage' && currentPromo.discount_value) {
+          return sum + orig * (1 - Number(currentPromo.discount_value) / 100);
+        } else if (currentPromo.discount_type === 'fixed_amount' && currentPromo.discount_value) {
+          return sum + Math.max(0, orig - Number(currentPromo.discount_value));
+        } else if (currentPromo.discount_type === 'fixed_price' && currentPromo.promotion_price != null) {
+          return sum + Number(currentPromo.promotion_price);
         }
       }
       return sum + Number(s.price);
@@ -1568,10 +1637,12 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
         p_client_name: clientForm.full_name ?? null,
         p_client_whatsapp: formattedWhatsapp ?? null,
         p_notes: null as string | null,
-        p_promotion_id: promoData?.id ?? null,
+        p_promotion_id: currentPromo?.id ?? null,
         p_services: aptServicesPayload,
         p_cashback_ids: useCashback && cashbackCredits.length > 0 ? cashbackCredits.map(c => c.id) : [],
-        p_user_id: user?.id ?? null
+        p_user_id: user?.id ?? null,
+        p_booking_origin: 'public_booking',
+        p_client_email: clientForm.email || null,
       };
 
       console.log('[BOOKING_INSERT_ATTEMPT]', { 
@@ -2458,10 +2529,33 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                     <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
                       {(nextSlots.find(d => isSameDay(d.date, selectedDate))?.slots || []).map((slot) => {
                         const isSel = selectedTime === slot;
-                        const promoServiceIds = promoData?.service_ids || (promoData?.service_id ? [promoData.service_id] : []);
-                        const isPromoSlot = isPromoMode && promoData && 
-                          promoServiceIds.length > 0 && 
-                          selectedServices.some(sid => promoServiceIds.includes(sid));
+                        
+                        // Check if this slot is promotional
+                        const isPromoSlot = (() => {
+                          const dateStr = format(selectedDate, 'yyyy-MM-dd');
+                          const slotDateTime = fromZonedTime(`${dateStr} ${slot}:00`, bookingTimezone);
+
+                          if (currentPromo) {
+                            const isSlotValid = isSlotEligible(currentPromo, slotDateTime);
+                            if (!isSlotValid) return false;
+                            
+                            const promoServiceIds = currentPromo.service_ids || (currentPromo.service_id ? [currentPromo.service_id] : []);
+                            return promoServiceIds.length === 0 || selectedServices.some(sid => promoServiceIds.includes(sid));
+                          }
+                          
+                          // If not in a "focused" promo mode, check if ANY active promo applies to this slot
+                          if (publicPromotions.length > 0 && selectedServices.length > 0) {
+                            return publicPromotions.some(promo => {
+                              if (promo.promotion_type === 'cashback') return false;
+                              if (!isPromoActive(promo)) return false;
+                              if (!isSlotEligible(promo, slotDateTime)) return false;
+                              
+                              const pServiceIds = promo.service_ids || (promo.service_id ? [promo.service_id] : []);
+                              return pServiceIds.length === 0 || selectedServices.some(sid => pServiceIds.includes(sid));
+                            });
+                          }
+                          return false;
+                        })();
 
                         return (
                           <button
@@ -2738,16 +2832,16 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
               {/* Final Price Breakdown */}
               <div className="pt-4 space-y-2">
                 <div className="flex justify-between items-center text-xs opacity-60 font-bold uppercase tracking-widest">
-                  <span>Subtotal</span>
-                  <p>R$ {(Number(totalPrice) || 0).toFixed(2)}</p>
+                   <span>Subtotal</span>
+                  <p>R$ {(Number(originalSubtotal) || 0).toFixed(2)}</p>
                 </div>
 
-                {isPromoMode && promoData && !isCashbackPromo && (
+                {hasPromoApplied && !isCashbackPromo && (
                   <div className="flex justify-between items-center text-xs font-bold text-amber-500 uppercase tracking-widest">
                     <span className="flex items-center gap-1">
-                      <Tag className="h-3 w-3" /> Desconto ({promoData.title})
+                      <Tag className="h-3 w-3" /> Desconto ({currentPromo?.title})
                     </span>
-                    <p>- R$ {(Number(totalPrice) - Number(finalPrice)).toFixed(2)}</p>
+                    <p>- R$ {(Number(originalSubtotal) - Number(totalPrice)).toFixed(2)}</p>
                   </div>
                 )}
 
@@ -2763,8 +2857,8 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                 <div className="flex justify-between items-center">
                   <div>
                     <p className="text-[10px] font-black uppercase tracking-widest opacity-60">Total a Pagar no Local</p>
-                    {isPromoMode && !isCashbackPromo && (
-                      <p className="text-[10px] text-amber-500 font-bold uppercase tracking-tighter">Você economizou R$ {(Number(totalPrice) - Number(finalPrice)).toFixed(2)}!</p>
+                    {hasPromoApplied && !isCashbackPromo && (
+                      <p className="text-[10px] text-amber-500 font-bold uppercase tracking-tighter">Você economizou R$ {(Number(originalSubtotal) - Number(totalPrice)).toFixed(2)}!</p>
                     )}
                   </div>
                   <p className="text-4xl font-black tracking-tighter" style={{ color: T.accent }}>R$ {(Number(finalPrice) || 0).toFixed(2)}</p>

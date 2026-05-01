@@ -21,9 +21,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Progress } from '@/components/ui/progress';
 import { toast } from '@/hooks/use-toast';
 import { format, parseISO, isToday, isTomorrow, differenceInCalendarDays } from 'date-fns';
+import { fromZonedTime, toZonedTime } from 'date-fns-tz';
 import { ptBR } from 'date-fns/locale';
 import { Plus, MessageCircle, Send, Users, Tag, Megaphone, Copy, BarChart3, Eye, TrendingUp, MousePointerClick, CalendarCheck, ChevronLeft, ChevronRight, Check, Clock, Flame, Timer, Zap } from 'lucide-react';
 import { formatWhatsApp, displayWhatsApp, buildWhatsAppUrl, trackWhatsAppClick } from '@/lib/whatsapp';
+
+const DEFAULT_TZ = 'America/Sao_Paulo';
 
 interface Promotion {
   id: string;
@@ -698,8 +701,8 @@ export default function Promotions() {
       cashback_cumulative: promotionType === 'cashback' ? cashbackCumulative : false,
       promotion_mode: smartMode,
       source_insight: sourceInsight,
-      booking_opens_at: bookingOpensAtDate ? new Date(`${bookingOpensAtDate}T${bookingOpensAtTime || '00:00'}:00`).toISOString() : null,
-      booking_closes_at: hasCustomBookingClosesAt && bookingClosesAtDate ? new Date(`${bookingClosesAtDate}T${bookingClosesAtTime || '23:59'}:00`).toISOString() : null,
+      booking_opens_at: bookingOpensAtDate ? fromZonedTime(`${bookingOpensAtDate} ${bookingOpensAtTime || '00:00'}:00`, DEFAULT_TZ).toISOString() : null,
+      booking_closes_at: hasCustomBookingClosesAt && bookingClosesAtDate ? fromZonedTime(`${bookingClosesAtDate} ${bookingClosesAtTime || '23:59'}:00`, DEFAULT_TZ).toISOString() : null,
     };
 
     if (!isAdmin && profile?.id) {
@@ -789,12 +792,12 @@ export default function Promotions() {
     setSourceInsight(promo.source_insight || null);
     
     if (promo.booking_opens_at) {
-      const d = new Date(promo.booking_opens_at);
+      const d = toZonedTime(new Date(promo.booking_opens_at), DEFAULT_TZ);
       setBookingOpensAtDate(format(d, 'yyyy-MM-dd'));
       setBookingOpensAtTime(format(d, 'HH:mm'));
     }
     if (promo.booking_closes_at) {
-      const d = new Date(promo.booking_closes_at);
+      const d = toZonedTime(new Date(promo.booking_closes_at), DEFAULT_TZ);
       setBookingClosesAtDate(format(d, 'yyyy-MM-dd'));
       setBookingClosesAtTime(format(d, 'HH:mm'));
       setHasCustomBookingClosesAt(true);
