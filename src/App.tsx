@@ -145,6 +145,21 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   return <>{children}</>;
 };
 
+const AuthRedirect = () => {
+  const { roles, loading, user } = useAuth();
+  
+  if (loading) return null;
+  if (!user) return <Navigate to="/" replace />;
+  
+  if (roles?.includes('super_admin')) {
+    console.log('[AUTH_REDIRECT_DECISION] Super Admin -> /super-admin');
+    return <Navigate to="/super-admin" replace />;
+  }
+  
+  console.log('[AUTH_REDIRECT_DECISION] Standard User -> /dashboard');
+  return <Navigate to="/dashboard" replace />;
+};
+
 const DashboardRoute = ({ children }: { children: React.ReactNode }) => (
   <ProtectedRoute>
     <DashboardLayout>{children}</DashboardLayout>
