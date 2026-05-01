@@ -118,15 +118,17 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
   const isSuperAdminRoute = location.pathname.startsWith('/super-admin');
 
   // Debug logging for role detection
-  console.log('[SUPER_ADMIN_ROUTE_GUARD]', { 
-    pathname: location.pathname,
-    roles, 
-    companyId,
-    isSuperAdmin,
-    isSuperAdminRoute,
-    authLoading,
-    userId: user?.id
-  });
+  useEffect(() => {
+    console.log('[SUPER_ADMIN_ROUTE_GUARD]', { 
+      pathname: location.pathname,
+      roles, 
+      companyId,
+      isSuperAdmin,
+      isSuperAdminRoute,
+      authLoading,
+      userId: user?.id
+    });
+  }, [location.pathname, roles, companyId, isSuperAdmin, isSuperAdminRoute, authLoading, user?.id]);
 
   const professionalNavItems = allProfessionalNavItems.filter(item => {
     if (!item.permKey) return true;
