@@ -39,6 +39,7 @@ type Event = {
   status: 'draft' | 'published' | 'cancelled' | 'completed';
   created_at: string;
   max_bookings_per_client: number;
+  block_main_schedule?: boolean;
 };
 
 type EventSlot = {
@@ -156,6 +157,7 @@ const Events = () => {
   const [formImagePositionX, setFormImagePositionX] = useState(50);
   const [formImagePositionY, setFormImagePositionY] = useState(50);
   const [formImageZoom, setFormImageZoom] = useState(1);
+  const [formBlockMainSchedule, setFormBlockMainSchedule] = useState(true);
   const [saving, setSaving] = useState(false);
   const [eventSlotStats, setEventSlotStats] = useState<Record<string, { total: number; booked: number }>>({});
   const coverInputRef = useRef<HTMLInputElement>(null);
@@ -355,6 +357,7 @@ const Events = () => {
       setFormCoverImage(event.cover_image || '');
       setFormCoverPreview(event.cover_image || '');
       setFormMaxBookingsPerClient(event.max_bookings_per_client || 0);
+      setFormBlockMainSchedule(event.block_main_schedule ?? true);
       setFormImagePositionX((event as any).image_position_x ?? 50);
       setFormImagePositionY((event as any).image_position_y ?? 50);
       setFormImageZoom((event as any).image_zoom ?? 1);
@@ -373,6 +376,7 @@ const Events = () => {
       setFormCoverImage('');
       setFormCoverPreview('');
       setFormMaxBookingsPerClient(0);
+      setFormBlockMainSchedule(true);
       setFormImagePositionX(50);
       setFormImagePositionY(50);
       setFormImageZoom(1);
@@ -426,6 +430,7 @@ const Events = () => {
         image_position_x: formImagePositionX,
         image_position_y: formImagePositionY,
         image_zoom: formImageZoom,
+        block_main_schedule: formBlockMainSchedule,
       };
 
       if (editingEvent) {
@@ -897,6 +902,13 @@ const Events = () => {
       <div>
         <Label>Descrição</Label>
         <Textarea value={formDescription} onChange={e => setFormDescription(e.target.value)} placeholder="Descreva o evento..." rows={3} />
+      </div>
+      <div className="flex items-center justify-between p-3 border rounded-lg bg-muted/20">
+        <div className="space-y-0.5">
+          <Label className="text-sm font-medium">Bloquear agenda principal</Label>
+          <p className="text-xs text-muted-foreground">Impede agendamentos manuais nos horários deste evento</p>
+        </div>
+        <Switch checked={formBlockMainSchedule} onCheckedChange={setFormBlockMainSchedule} />
       </div>
       <div className="flex items-center justify-between">
         <div>

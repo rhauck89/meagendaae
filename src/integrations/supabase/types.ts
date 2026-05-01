@@ -215,6 +215,7 @@ export type Database = {
       }
       appointments: {
         Row: {
+          booking_origin: string | null
           cashback_used: number | null
           client_id: string | null
           client_name: string | null
@@ -251,6 +252,7 @@ export type Database = {
           whatsapp_review_sent: boolean | null
         }
         Insert: {
+          booking_origin?: string | null
           cashback_used?: number | null
           client_id?: string | null
           client_name?: string | null
@@ -287,6 +289,7 @@ export type Database = {
           whatsapp_review_sent?: boolean | null
         }
         Update: {
+          booking_origin?: string | null
           cashback_used?: number | null
           client_id?: string | null
           client_name?: string | null
@@ -2817,6 +2820,7 @@ export type Database = {
       }
       events: {
         Row: {
+          block_main_schedule: boolean | null
           company_id: string
           cover_image: string | null
           created_at: string
@@ -2835,6 +2839,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          block_main_schedule?: boolean | null
           company_id: string
           cover_image?: string | null
           created_at?: string
@@ -2853,6 +2858,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          block_main_schedule?: boolean | null
           company_id?: string
           cover_image?: string | null
           created_at?: string
