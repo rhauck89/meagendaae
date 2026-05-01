@@ -1,5 +1,6 @@
 import { useAuth } from '@/contexts/AuthContext';
 import { Navigate } from 'react-router-dom';
+import { useEffect } from 'react';
 
 interface RequireRoleProps {
   role: string;
