@@ -195,6 +195,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
   const [allowCustomRequests, setAllowCustomRequests] = useState(false);
   // Promotion state
   const [promoData, setPromoData] = useState<PromotionInfo | null>(null);
+  const [publicPromotions, setPublicPromotions] = useState<PromotionInfo[]>([]);
   const isPromoMode = !!promoData;
 
   const [step, setStep] = useState<Step>('identifying');
