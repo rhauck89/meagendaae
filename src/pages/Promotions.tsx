@@ -246,6 +246,11 @@ export default function Promotions() {
   const [cashbackValidityDays, setCashbackValidityDays] = useState('30');
   const [cashbackRulesText, setCashbackRulesText] = useState('');
   const [cashbackCumulative, setCashbackCumulative] = useState(false);
+  const [bookingOpensAtDate, setBookingOpensAtDate] = useState('');
+  const [bookingOpensAtTime, setBookingOpensAtTime] = useState('09:00');
+  const [bookingClosesAtDate, setBookingClosesAtDate] = useState('');
+  const [bookingClosesAtTime, setBookingClosesAtTime] = useState('23:59');
+  const [hasCustomBookingClosesAt, setHasCustomBookingClosesAt] = useState(false);
 
   const WIZARD_STEPS = promotionType === 'cashback'
     ? [{ num: 1, label: 'Serviço' }, { num: 2, label: 'Cashback' }, { num: 3, label: 'Agenda' }, { num: 4, label: 'Mensagem' }]
