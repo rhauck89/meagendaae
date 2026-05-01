@@ -153,7 +153,9 @@ export function UnifiedAppointmentCard({
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-1 min-w-0">
-                <p className="text-sm font-bold truncate leading-tight">{clientName}</p>
+                <p className="text-sm font-bold truncate leading-tight capitalize">
+                  {format(startTime, "d 'de' MMMM", { locale: ptBR })}
+                </p>
                 <div className="flex gap-0.5 ml-1">
                   {apt.promotion_id && (
                     <span className="text-[10px]" title="Promoção">🏷️</span>
