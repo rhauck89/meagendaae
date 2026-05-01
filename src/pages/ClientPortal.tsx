@@ -203,14 +203,6 @@ const ClientPortal = () => {
         const { data } = await supabase
           .from('profiles').select('whatsapp').eq('user_id', currentUserId).maybeSingle();
         profileData = data;
-
-        if (profileData?.whatsapp || user!.email) {
-          await supabase.rpc('link_client_to_user', {
-            p_user_id: currentUserId,
-            p_phone: profileData?.whatsapp || '',
-            p_email: user!.email || '',
-          } as any);
-        }
       }
 
       let adminClientContext: any = null;
