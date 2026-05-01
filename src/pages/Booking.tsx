@@ -1139,24 +1139,24 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
     if (isCashbackPromo) {
       return services.filter((s) => selectedServices.includes(s.id)).reduce((sum, s) => sum + Number(s.price), 0);
     }
-    if (!isPromoMode || !promoData) {
+    if (!currentPromo) {
       return services.filter((s) => selectedServices.includes(s.id)).reduce((sum, s) => sum + Number(s.price), 0);
     }
-    const promoServiceIds = promoData.service_ids || (promoData.service_id ? [promoData.service_id] : []);
+    const promoServiceIds = currentPromo.service_ids || (currentPromo.service_id ? [currentPromo.service_id] : []);
     // For single-service fixed_price promos, use promotion_price directly
-    if (promoData.discount_type === 'fixed_price' && promoData.promotion_price != null && promoServiceIds.length <= 1) {
-      return Number(promoData.promotion_price);
+    if (currentPromo.discount_type === 'fixed_price' && currentPromo.promotion_price != null && promoServiceIds.length <= 1) {
+      return Number(currentPromo.promotion_price);
     }
     // For percentage/fixed_amount, calculate per service
     return services.filter(s => selectedServices.includes(s.id)).reduce((sum, s) => {
-      if (promoServiceIds.includes(s.id)) {
+      if (promoServiceIds.length === 0 || promoServiceIds.includes(s.id)) {
         const orig = Number(s.price);
-        if (promoData.discount_type === 'percentage' && promoData.discount_value) {
-          return sum + orig * (1 - Number(promoData.discount_value) / 100);
-        } else if (promoData.discount_type === 'fixed_amount' && promoData.discount_value) {
-          return sum + Math.max(0, orig - Number(promoData.discount_value));
-        } else if (promoData.discount_type === 'fixed_price' && promoData.promotion_price != null) {
-          return sum + Number(promoData.promotion_price);
+        if (currentPromo.discount_type === 'percentage' && currentPromo.discount_value) {
+          return sum + orig * (1 - Number(currentPromo.discount_value) / 100);
+        } else if (currentPromo.discount_type === 'fixed_amount' && currentPromo.discount_value) {
+          return sum + Math.max(0, orig - Number(currentPromo.discount_value));
+        } else if (currentPromo.discount_type === 'fixed_price' && currentPromo.promotion_price != null) {
+          return sum + Number(currentPromo.promotion_price);
         }
       }
       return sum + Number(s.price);
