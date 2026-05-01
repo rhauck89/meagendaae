@@ -2523,10 +2523,30 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                     <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
                       {(nextSlots.find(d => isSameDay(d.date, selectedDate))?.slots || []).map((slot) => {
                         const isSel = selectedTime === slot;
-                        const promoServiceIds = promoData?.service_ids || (promoData?.service_id ? [promoData.service_id] : []);
-                        const isPromoSlot = isPromoMode && promoData && 
-                          promoServiceIds.length > 0 && 
-                          selectedServices.some(sid => promoServiceIds.includes(sid));
+                        
+                        // Check if this slot is promotional
+                        const isPromoSlot = (() => {
+                          if (currentPromo) {
+                            const promoServiceIds = currentPromo.service_ids || (currentPromo.service_id ? [currentPromo.service_id] : []);
+                            return promoServiceIds.length === 0 || selectedServices.some(sid => promoServiceIds.includes(sid));
+                          }
+                          
+                          // If not in a "focused" promo mode, check if ANY active promo applies to this slot
+                          if (publicPromotions.length > 0 && selectedDate && selectedServices.length > 0) {
+                            const dateStr = format(selectedDate, 'yyyy-MM-dd');
+                            const slotDateTime = fromZonedTime(`${dateStr} ${slot}:00`, bookingTimezone);
+                            
+                            return publicPromotions.some(promo => {
+                              if (promo.promotion_type === 'cashback') return false;
+                              if (!isPromoActive(promo)) return false;
+                              if (!isSlotEligible(promo, slotDateTime)) return false;
+                              
+                              const pServiceIds = promo.service_ids || (promo.service_id ? [promo.service_id] : []);
+                              return pServiceIds.length === 0 || selectedServices.some(sid => pServiceIds.includes(sid));
+                            });
+                          }
+                          return false;
+                        })();
 
                         return (
                           <button
