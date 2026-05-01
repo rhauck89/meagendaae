@@ -30,31 +30,7 @@ const timeStringToMinutes = (v: string) => {
   return h * 60 + m;
 };
 
-const getAppointmentMinutesInTimezone = (value: string, timezone: string) => {
-  const parts = new Intl.DateTimeFormat('en-GB', {
-    timeZone: timezone,
-    hour: '2-digit', minute: '2-digit', hour12: false,
-  }).formatToParts(new Date(value));
-  const hours = Number(parts.find((p) => p.type === 'hour')?.value ?? '0');
-  const minutes = Number(parts.find((p) => p.type === 'minute')?.value ?? '0');
-  return hours * 60 + minutes;
-};
-
-const filterOverlappingSlots = (
-  slots: string[], appointments: ExistingAppointment[], serviceDuration: number,
-  _bufferMinutes: number, timezone: string, excludeId: string,
-) => {
-  return slots.filter((slot) => {
-    const slotStart = timeStringToMinutes(slot);
-    const slotEnd = slotStart + serviceDuration;
-    return !appointments.some((apt) => {
-      if ((apt as any).id === excludeId) return false;
-      const aStart = getAppointmentMinutesInTimezone(apt.start_time, timezone);
-      const aEnd = getAppointmentMinutesInTimezone(apt.end_time, timezone);
-      return aStart < slotEnd && aEnd > slotStart;
-    });
-  });
-};
+// Removed redundant local filtering logic as it's now handled by the unified availability service
 
 const RescheduleAppointment = () => {
   const { appointmentId } = useParams<{ appointmentId: string }>();
