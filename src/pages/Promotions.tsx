@@ -800,54 +800,19 @@ export default function Promotions() {
       setHasCustomBookingClosesAt(true);
     }
     
-    setServiceSelectionMode(promo.service_ids && promo.service_ids.length > 1 ? 'multiple' : 'single');
-    setSelectedServiceIds(promo.service_ids || (promo.service_id ? [promo.service_id] : []));
-    setSelectedServiceId(promo.service_id || '');
-    setDialogOpen(true);
-  };
-    setIsEditing(true);
-    setCreationMode('manual');
-    setSmartMode(promo.promotion_mode || 'manual');
-    setSourceInsight(promo.source_insight || null);
-    setPromotionType(promo.promotion_type as any || 'traditional');
-    setTitle(promo.title);
-    setDescription(promo.description || '');
-    
     const sIds = promo.service_ids || (promo.service_id ? [promo.service_id] : []);
     if (sIds.length === services.length) {
       setServiceSelectionMode('all');
-      setSelectedServiceIds(services.map(s => s.id));
     } else if (sIds.length > 1) {
       setServiceSelectionMode('multiple');
-      setSelectedServiceIds(sIds);
     } else {
       setServiceSelectionMode('single');
       setSelectedServiceId(sIds[0] || '');
-      setSelectedServiceIds(sIds);
     }
-
-    setDiscountType(promo.discount_type as any);
-    setDiscountValue(promo.discount_value ? String(promo.discount_value) : '');
-    setPromotionPrice(promo.promotion_price ? String(promo.promotion_price) : '');
-    setStartDate(promo.start_date);
-    setEndDate(promo.end_date);
-    setSingleDay(promo.start_date === promo.end_date);
-    setStartTime(promo.start_time || '');
-    setEndTime(promo.end_time || '');
-    setUseBusinessHours(promo.use_business_hours !== false);
-    setValidDays(promo.valid_days || [0, 1, 2, 3, 4, 5, 6]);
-    setMinIntervalMinutes(String(promo.min_interval_minutes || 0));
-    setMaxSlots(String(promo.max_slots));
-    setClientFilter(promo.client_filter);
-    setClientFilterValue(String(promo.client_filter_value || '30'));
-    setProfessionalFilter(promo.professional_filter);
-    setSelectedProfessionalIds(promo.professional_ids || []);
-    setMessageTemplate(promo.message_template || DEFAULT_TEMPLATE);
-    setCashbackValidityDays(String(promo.cashback_validity_days || '30'));
-    setCashbackRulesText(promo.cashback_rules_text || '');
-    setCashbackCumulative(promo.cashback_cumulative || false);
-    
+    setSelectedServiceIds(sIds);
     setWizardStep(1);
+    setDialogOpen(true);
+  };
     setDialogOpen(true);
   };
 
