@@ -2029,72 +2029,77 @@ export default function Promotions() {
 
       {/* Client list dialog */}
       <Dialog open={clientsDialogOpen} onOpenChange={setClientsDialogOpen}>
-        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-3xl p-0 flex flex-col overflow-hidden">
           <DialogHeader>
             <DialogTitle>Clientes — {selectedPromotion?.title}</DialogTitle>
           </DialogHeader>
-          {clientsLoading ? (
-            <p className="text-muted-foreground py-4">Carregando...</p>
-          ) : filteredClients.length === 0 ? (
-            <p className="text-muted-foreground py-4">Nenhum cliente encontrado.</p>
-          ) : (
-            <div className="space-y-4">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <p className="text-sm text-muted-foreground">{filteredClients.length} cliente(s) filtrados</p>
-                {selectedPromotion?.promotion_mode === 'smart' && (
-                  <div className="flex items-center gap-2 bg-primary/5 text-primary px-3 py-1.5 rounded-full border border-primary/20 shadow-sm">
-                    <Zap className="h-3.5 w-3.5 fill-primary/20" />
-                    <span className="text-xs font-semibold">Público sugerido pela IA</span>
-                  </div>
-                )}
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  className="text-xs h-8"
-                  onClick={() => {
-                    setClientsDialogOpen(false);
-                    handleEdit(selectedPromotion!);
-                    setWizardStep(totalSteps); // Go to last step (filters)
-                  }}
-                >
-                  Editar filtros manualmente
-                </Button>
-              </div>
-              <div className="border rounded-lg overflow-x-auto">
+          <DialogBody className="p-4 sm:p-6">
+            {clientsLoading ? (
+              <p className="text-muted-foreground py-4">Carregando...</p>
+            ) : filteredClients.length === 0 ? (
+              <p className="text-muted-foreground py-4">Nenhum cliente encontrado.</p>
+            ) : (
+              <div className="space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <p className="text-sm text-muted-foreground">{filteredClients.length} cliente(s) filtrados</p>
+                  {selectedPromotion?.promotion_mode === 'smart' && (
+                    <div className="flex items-center gap-2 bg-primary/5 text-primary px-3 py-1.5 rounded-full border border-primary/20 shadow-sm">
+                      <Zap className="h-3.5 w-3.5 fill-primary/20" />
+                      <span className="text-xs font-semibold">Público sugerido pela IA</span>
+                    </div>
+                  )}
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="text-xs h-8"
+                    onClick={() => {
+                      setClientsDialogOpen(false);
+                      handleEdit(selectedPromotion!);
+                      setWizardStep(totalSteps); // Go to last step (filters)
+                    }}
+                  >
+                    Editar filtros manualmente
+                  </Button>
+                </div>
+                <div className="border rounded-lg overflow-x-auto">
 
-                <table className="w-full text-sm">
-                  <thead className="bg-muted">
-                    <tr>
-                      <th className="text-left p-3 font-medium">Nome</th>
-                      <th className="text-left p-3 font-medium">WhatsApp</th>
-                      <th className="text-left p-3 font-medium">Última Visita</th>
-                      <th className="text-right p-3 font-medium">Total Gasto</th>
-                      <th className="text-right p-3 font-medium">Ação</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredClients.map(client => (
-                      <tr key={client.id} className="border-t">
-                        <td className="p-3">{client.name}</td>
-                        <td className="p-3 text-muted-foreground">{client.whatsapp ? displayWhatsApp(client.whatsapp) : '-'}</td>
-                        <td className="p-3 text-muted-foreground">{client.last_visit ? format(parseISO(client.last_visit), 'dd/MM/yyyy') : '-'}</td>
-                        <td className="p-3 text-right">R$ {(client.total_spent || 0).toFixed(2)}</td>
-                        <td className="p-3 text-right">
-                          {client.whatsapp && selectedPromotion ? (
-                            <a href={buildWhatsAppLink(client, selectedPromotion)} target="_blank" rel="noopener noreferrer">
-                              <Button size="sm" variant="outline" className="text-emerald-600 border-emerald-600/30 hover:bg-emerald-50">
-                                <MessageCircle className="h-3 w-3 mr-1" />WhatsApp
-                              </Button>
-                            </a>
-                          ) : <span className="text-xs text-muted-foreground">Sem WhatsApp</span>}
-                        </td>
+                  <table className="w-full text-sm">
+                    <thead className="bg-muted">
+                      <tr>
+                        <th className="text-left p-3 font-medium">Nome</th>
+                        <th className="text-left p-3 font-medium">WhatsApp</th>
+                        <th className="text-left p-3 font-medium">Última Visita</th>
+                        <th className="text-right p-3 font-medium">Total Gasto</th>
+                        <th className="text-right p-3 font-medium">Ação</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody>
+                      {filteredClients.map(client => (
+                        <tr key={client.id} className="border-t">
+                          <td className="p-3">{client.name}</td>
+                          <td className="p-3 text-muted-foreground">{client.whatsapp ? displayWhatsApp(client.whatsapp) : '-'}</td>
+                          <td className="p-3 text-muted-foreground">{client.last_visit ? format(parseISO(client.last_visit), 'dd/MM/yyyy') : '-'}</td>
+                          <td className="p-3 text-right">R$ {(client.total_spent || 0).toFixed(2)}</td>
+                          <td className="p-3 text-right">
+                            {client.whatsapp && selectedPromotion ? (
+                              <a href={buildWhatsAppLink(client, selectedPromotion)} target="_blank" rel="noopener noreferrer">
+                                <Button size="sm" variant="outline" className="text-emerald-600 border-emerald-600/30 hover:bg-emerald-50">
+                                  <MessageCircle className="h-3 w-3 mr-1" />WhatsApp
+                                </Button>
+                              </a>
+                            ) : <span className="text-xs text-muted-foreground">Sem WhatsApp</span>}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </div>
-            </div>
-          )}
+            )}
+          </DialogBody>
+          <DialogFooter className="p-4 sm:p-6 border-t bg-background">
+             <Button variant="outline" onClick={() => setClientsDialogOpen(false)}>Fechar</Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 
