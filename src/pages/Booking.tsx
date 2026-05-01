@@ -2458,6 +2458,11 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                     <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
                       {(nextSlots.find(d => isSameDay(d.date, selectedDate))?.slots || []).map((slot) => {
                         const isSel = selectedTime === slot;
+                        const promoServiceIds = promoData?.service_ids || (promoData?.service_id ? [promoData.service_id] : []);
+                        const isPromoSlot = isPromoMode && promoData && 
+                          promoServiceIds.length > 0 && 
+                          selectedServices.some(sid => promoServiceIds.includes(sid));
+
                         return (
                           <button
                             key={slot}
@@ -2465,7 +2470,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                               setSelectedTime(slot); 
                               setStep('confirm');
                             }}
-                            className="py-5 rounded-3xl text-sm font-black transition-all duration-300 border-2"
+                            className="py-5 rounded-3xl text-sm font-black transition-all duration-300 border-2 relative overflow-hidden"
                             style={{ 
                               background: isSel ? T.accent : T.card, 
                               borderColor: isSel ? T.accent : T.border,
@@ -2473,6 +2478,11 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                               boxShadow: isSel ? `0 10px 20px -5px ${T.accent}40` : 'none'
                             }}
                           >
+                            {isPromoSlot && (
+                              <div className="absolute top-0 right-0 bg-amber-500 text-[8px] px-1.5 py-0.5 font-black uppercase text-black rounded-bl-lg">
+                                Promo
+                              </div>
+                            )}
                             {formatSlotTime(slot)}
                           </button>
                         );
