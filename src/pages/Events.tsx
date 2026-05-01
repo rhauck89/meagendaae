@@ -357,6 +357,7 @@ const Events = () => {
       setFormCoverImage(event.cover_image || '');
       setFormCoverPreview(event.cover_image || '');
       setFormMaxBookingsPerClient(event.max_bookings_per_client || 0);
+      setFormBlockMainSchedule(event.block_main_schedule ?? true);
       setFormImagePositionX((event as any).image_position_x ?? 50);
       setFormImagePositionY((event as any).image_position_y ?? 50);
       setFormImageZoom((event as any).image_zoom ?? 1);
