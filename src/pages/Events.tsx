@@ -1374,7 +1374,7 @@ const Events = () => {
           </DialogBody>
 
           {/* Wizard navigation */}
-          <DialogFooter className="flex-row items-center justify-between border-t bg-background p-4 sm:p-6">
+          <DialogFooter className="shrink-0 flex-row items-center justify-between border-t bg-background p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:p-6">
             <div>
               {wizardStep > 0 && (
                 <Button variant="outline" onClick={handlePrevStep} className="gap-1.5 h-10 px-4">
