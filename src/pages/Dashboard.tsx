@@ -616,6 +616,7 @@ const Dashboard = () => {
                     key={apt.id}
                     appointment={apt}
                     variant="business"
+                    referenceDate={currentDate}
                     isAdmin={isAdmin}
                     onComplete={handleCompleteClick}
                     onReschedule={openRescheduleDialog}
@@ -660,6 +661,7 @@ const Dashboard = () => {
                     key={apt.id}
                     appointment={apt}
                     variant="business"
+                    referenceDate={currentDate}
                     isAdmin={isAdmin}
                     onComplete={handleCompleteClick}
                     onReschedule={openRescheduleDialog}
@@ -823,6 +825,7 @@ const Dashboard = () => {
                 key={apt.id}
                 appointment={apt}
                 variant="business"
+                referenceDate={currentDate}
                 isAdmin={isAdmin}
                 onComplete={handleCompleteClick}
                 onReschedule={openRescheduleDialog}
