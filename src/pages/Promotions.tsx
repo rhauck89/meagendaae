@@ -1142,10 +1142,7 @@ export default function Promotions() {
     const selectedSvcs = services.filter(s => effectiveIds.includes(s.id));
     
     return (
-    <div className="space-y-4">
-
-
-
+    <div className="space-y-4 pt-1 sm:pt-0">
       <div>
         <Label>Título *</Label>
         <Input value={title} onChange={e => setTitle(e.target.value)} placeholder="Ex: Corte Promocional" />
