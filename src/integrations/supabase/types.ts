@@ -4360,6 +4360,8 @@ export type Database = {
       }
       promotions: {
         Row: {
+          booking_closes_at: string | null
+          booking_opens_at: string | null
           cashback_cumulative: boolean
           cashback_rules_text: string | null
           cashback_validity_days: number | null
@@ -4397,6 +4399,8 @@ export type Database = {
           valid_days: number[] | null
         }
         Insert: {
+          booking_closes_at?: string | null
+          booking_opens_at?: string | null
           cashback_cumulative?: boolean
           cashback_rules_text?: string | null
           cashback_validity_days?: number | null
@@ -4434,6 +4438,8 @@ export type Database = {
           valid_days?: number[] | null
         }
         Update: {
+          booking_closes_at?: string | null
+          booking_opens_at?: string | null
           cashback_cumulative?: boolean
           cashback_rules_text?: string | null
           cashback_validity_days?: number | null
@@ -6526,6 +6532,8 @@ export type Database = {
       }
       public_promotions: {
         Row: {
+          booking_closes_at: string | null
+          booking_opens_at: string | null
           cashback_rules_text: string | null
           cashback_validity_days: number | null
           company_id: string | null
