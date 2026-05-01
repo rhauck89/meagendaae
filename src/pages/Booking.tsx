@@ -2532,16 +2532,19 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                         
                         // Check if this slot is promotional
                         const isPromoSlot = (() => {
+                          const dateStr = format(selectedDate, 'yyyy-MM-dd');
+                          const slotDateTime = fromZonedTime(`${dateStr} ${slot}:00`, bookingTimezone);
+
                           if (currentPromo) {
+                            const isSlotValid = isSlotEligible(currentPromo, slotDateTime);
+                            if (!isSlotValid) return false;
+                            
                             const promoServiceIds = currentPromo.service_ids || (currentPromo.service_id ? [currentPromo.service_id] : []);
                             return promoServiceIds.length === 0 || selectedServices.some(sid => promoServiceIds.includes(sid));
                           }
                           
                           // If not in a "focused" promo mode, check if ANY active promo applies to this slot
-                          if (publicPromotions.length > 0 && selectedDate && selectedServices.length > 0) {
-                            const dateStr = format(selectedDate, 'yyyy-MM-dd');
-                            const slotDateTime = fromZonedTime(`${dateStr} ${slot}:00`, bookingTimezone);
-                            
+                          if (publicPromotions.length > 0 && selectedServices.length > 0) {
                             return publicPromotions.some(promo => {
                               if (promo.promotion_type === 'cashback') return false;
                               if (!isPromoActive(promo)) return false;
