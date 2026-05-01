@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Route, Routes, Navigate } from "react-router-dom";
+import { BrowserRouter, Route, Routes, Navigate, useLocation } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -108,8 +108,22 @@ const queryClient = new QueryClient({
 });
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
-  const { user, loading, profile } = useAuth();
+  const { user, loading, profile, roles, companyId } = useAuth();
+  const location = useLocation();
   
+  const isSuperAdmin = roles?.includes('super_admin');
+  const isSuperAdminRoute = location.pathname.startsWith('/super-admin');
+
+  console.log('[SUPER_ADMIN_ROUTE_GUARD]', { 
+    pathname: location.pathname,
+    roles, 
+    companyId,
+    isSuperAdmin,
+    isSuperAdminRoute,
+    loading,
+    userId: user?.id
+  });
+
   if (loading) return (
     <div className="min-h-screen flex items-center justify-center bg-background">
       <div className="flex flex-col items-center gap-3">
@@ -124,9 +138,8 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   }
 
   // Se o usuário está autenticado mas o profile sumiu (inconsistência crítica)
-  // Removido redirecionamento para evitar loop infinito com /auth
   if (!profile) {
-    console.error("[AUTH_CHECK] User authenticated but profile missing. Profile should be created by AuthContext.");
+    console.error("[AUTH_CHECK] User authenticated but profile missing.");
   }
 
   return <>{children}</>;
