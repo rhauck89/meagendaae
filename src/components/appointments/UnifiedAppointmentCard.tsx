@@ -147,9 +147,9 @@ export function UnifiedAppointmentCard({
 
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-3 min-w-0">
-            <div className="text-center min-w-[50px] border-r pr-3">
+            <div className="text-center min-w-[60px] border-r pr-3">
               <p className="text-sm font-bold leading-tight">{format(startTime, 'HH:mm')}</p>
-              <p className="text-[10px] text-muted-foreground">{format(startTime, 'dd/MM')}</p>
+              <p className="text-[10px] font-bold text-primary">{format(startTime, 'dd/MM/yyyy')}</p>
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-1 min-w-0">
