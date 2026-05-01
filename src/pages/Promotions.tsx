@@ -1239,128 +1239,170 @@ export default function Promotions() {
   );
 
   const renderStep2 = () => (
-    <div className="space-y-4">
-      <label className="flex items-center gap-2 cursor-pointer">
-        <Checkbox checked={singleDay} onCheckedChange={(v) => setSingleDay(!!v)} />
-        <span className="text-sm font-medium">Promoção de um único dia</span>
-      </label>
+    <div className="space-y-6">
+      <div className="space-y-4 p-4 rounded-lg border bg-muted/30">
+        <h4 className="font-bold text-sm flex items-center gap-2">
+          <CalendarCheck className="h-4 w-4 text-primary" />
+          Seção A: Quando a promoção vale
+        </h4>
+        <p className="text-xs text-muted-foreground -mt-2">Define quais horários agendados recebem o desconto.</p>
 
-      <div className={singleDay ? '' : 'grid grid-cols-2 gap-4'}>
-        <div>
-          <Label>{singleDay ? 'Data *' : 'Data Início *'}</Label>
-          <Input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} />
-        </div>
-        {!singleDay && (
+        <label className="flex items-center gap-2 cursor-pointer">
+          <Checkbox checked={singleDay} onCheckedChange={(v) => setSingleDay(!!v)} />
+          <span className="text-sm font-medium">Promoção de um único dia</span>
+        </label>
+
+        <div className={singleDay ? '' : 'grid grid-cols-2 gap-4'}>
           <div>
-            <Label>Data Fim *</Label>
-            <Input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} />
+            <Label className="text-xs">{singleDay ? 'Data *' : 'Data Início *'}</Label>
+            <Input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="h-8" />
+          </div>
+          {!singleDay && (
+            <div>
+              <Label className="text-xs">Data Fim *</Label>
+              <Input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="h-8" />
+            </div>
+          )}
+        </div>
+
+        {singleDay && startDate && (
+          <p className="text-xs text-muted-foreground">
+            📅 {(() => {
+              try {
+                const d = parseISO(startDate);
+                if (isNaN(d.getTime())) return 'Data inválida';
+                return format(d, "dd/MM/yyyy (EEEE)", { locale: ptBR });
+              } catch (e) {
+                return 'Erro ao carregar data';
+              }
+            })()}
+          </p>
+        )}
+
+        <div className="space-y-3 pt-2">
+          <Label className="text-xs">Horários válidos para o desconto</Label>
+          <div className="grid grid-cols-1 gap-3">
+            <div className="flex items-center gap-2">
+              <Switch checked={useBusinessHours} onCheckedChange={setUseBusinessHours} id="business-hours" />
+              <Label htmlFor="business-hours" className="font-normal text-xs">Seguir horário padrão da empresa</Label>
+            </div>
+            
+            {!useBusinessHours && (
+              <div className="pl-6 space-y-4 border-l-2 border-primary/10 ml-2">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label className="text-xs">Hora Início</Label>
+                    <Input type="time" value={startTime} onChange={e => setStartTime(e.target.value)} className="h-8" />
+                  </div>
+                  <div>
+                    <Label className="text-xs">Hora Fim</Label>
+                    <Input type="time" value={endTime} onChange={e => setEndTime(e.target.value)} className="h-8" />
+                  </div>
+                </div>
+
+                <div>
+                  <Label className="text-xs mb-2 block">Dias da semana válidos</Label>
+                  <div className="flex flex-wrap gap-1.5">
+                    {['D', 'S', 'T', 'Q', 'Q', 'S', 'S'].map((day, i) => (
+                      <Button
+                        key={i}
+                        type="button"
+                        variant={validDays.includes(i) ? "default" : "outline"}
+                        size="sm"
+                        className="h-7 w-7 p-0 text-[10px]"
+                        onClick={() => setValidDays(prev => 
+                          prev.includes(i) ? prev.filter(d => d !== i) : [...prev, i]
+                        )}
+                      >
+                        {day}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      <div className="space-y-4 p-4 rounded-lg border border-primary/20 bg-primary/5">
+        <h4 className="font-bold text-sm flex items-center gap-2">
+          <Clock className="h-4 w-4 text-primary" />
+          Seção B: Quando liberar agendamentos
+        </h4>
+        <p className="text-xs text-muted-foreground -mt-2">Define quando os clientes podem começar a reservar.</p>
+        
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <Label className="text-xs">Liberar em *</Label>
+            <Input type="date" value={bookingOpensAtDate} onChange={e => setBookingOpensAtDate(e.target.value)} className="h-8" />
+          </div>
+          <div>
+            <Label className="text-xs">Horário</Label>
+            <Input type="time" value={bookingOpensAtTime} onChange={e => setBookingOpensAtTime(e.target.value)} className="h-8" />
+          </div>
+        </div>
+
+        <div className="space-y-3">
+          <label className="flex items-center gap-2 cursor-pointer">
+            <Checkbox checked={hasCustomBookingClosesAt} onCheckedChange={(v) => setHasCustomBookingClosesAt(!!v)} />
+            <span className="text-xs font-medium">Encerrar agendamentos em horário específico?</span>
+          </label>
+          
+          {hasCustomBookingClosesAt && (
+            <div className="grid grid-cols-2 gap-4 pl-6 border-l-2 border-primary/10">
+              <div>
+                <Label className="text-xs">Encerrar em</Label>
+                <Input type="date" value={bookingClosesAtDate} onChange={e => setBookingClosesAtDate(e.target.value)} className="h-8" />
+              </div>
+              <div>
+                <Label className="text-xs">Horário</Label>
+                <Input type="time" value={bookingClosesAtTime} onChange={e => setBookingClosesAtTime(e.target.value)} className="h-8" />
+              </div>
+            </div>
+          )}
+          {!hasCustomBookingClosesAt && (
+            <p className="text-[10px] text-muted-foreground pl-6">Fallback: os agendamentos encerram no fim da promoção.</p>
+          )}
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+        <div>
+          <Label className="text-xs">Vagas máximas</Label>
+          <Input type="number" value={maxSlots} onChange={e => setMaxSlots(e.target.value)} min="0" className="h-8" />
+          <p className="text-[10px] text-muted-foreground mt-1">0 = ilimitado por período</p>
+        </div>
+
+        {isAdmin && (
+          <div>
+            <Label className="text-xs">Profissionais participantes</Label>
+            <Select value={professionalFilter} onValueChange={setProfessionalFilter}>
+              <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos os profissionais</SelectItem>
+                <SelectItem value="selected">Selecionar</SelectItem>
+              </SelectContent>
+            </Select>
+            {professionalFilter === 'selected' && (
+              <div className="space-y-1 pl-2 mt-2 max-h-32 overflow-y-auto border rounded-md p-1.5 bg-muted/20">
+                {professionals.length === 0 ? (
+                  <p className="text-[10px] text-muted-foreground p-1">Carregando...</p>
+                ) : professionals.map((p: any) => (
+                  <label key={p.profile_id} className="flex items-center gap-2 cursor-pointer py-0.5">
+                    <Checkbox
+                      checked={selectedProfessionalIds.includes(p.profile_id)}
+                      onCheckedChange={(ch) => setSelectedProfessionalIds(prev => ch ? [...prev, p.profile_id] : prev.filter(id => id !== p.profile_id))}
+                      className="h-3 w-3"
+                    />
+                    <span className="text-xs">{p.profiles?.full_name}</span>
+                  </label>
+                ))}
+              </div>
+            )}
           </div>
         )}
       </div>
-
-      {singleDay && startDate && (
-        <p className="text-sm text-muted-foreground">
-          📅 {(() => {
-            try {
-              const d = parseISO(startDate);
-              if (isNaN(d.getTime())) return 'Data inválida';
-              return format(d, "dd/MM/yyyy (EEEE)", { locale: ptBR });
-            } catch (e) {
-              return 'Erro ao carregar data';
-            }
-          })()}
-        </p>
-      )}
-
-      <div className="space-y-3 pt-2">
-        <Label>Horários de agendamento</Label>
-        <div className="grid grid-cols-1 gap-3">
-          <div className="flex items-center gap-2">
-            <Switch checked={useBusinessHours} onCheckedChange={setUseBusinessHours} id="business-hours" />
-            <Label htmlFor="business-hours" className="font-normal">Seguir horário padrão da empresa</Label>
-          </div>
-          
-          {!useBusinessHours && (
-            <div className="pl-9 space-y-4 border-l-2 border-primary/10 ml-2">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label className="text-xs">Hora Início</Label>
-                  <Input type="time" value={startTime} onChange={e => setStartTime(e.target.value)} className="h-8" />
-                </div>
-                <div>
-                  <Label className="text-xs">Hora Fim</Label>
-                  <Input type="time" value={endTime} onChange={e => setEndTime(e.target.value)} className="h-8" />
-                </div>
-              </div>
-
-              <div>
-                <Label className="text-xs mb-2 block">Dias da semana válidos</Label>
-                <div className="flex flex-wrap gap-2">
-                  {['D', 'S', 'T', 'Q', 'Q', 'S', 'S'].map((day, i) => (
-                    <Button
-                      key={i}
-                      type="button"
-                      variant={validDays.includes(i) ? "default" : "outline"}
-                      size="sm"
-                      className="h-8 w-8 p-0"
-                      onClick={() => setValidDays(prev => 
-                        prev.includes(i) ? prev.filter(d => d !== i) : [...prev, i]
-                      )}
-                    >
-                      {day}
-                    </Button>
-                  ))}
-                </div>
-              </div>
-
-              <div>
-                <Label className="text-xs">Densidade (Intervalo mínimo em minutos)</Label>
-                <Input 
-                  type="number" 
-                  value={minIntervalMinutes} 
-                  onChange={e => setMinIntervalMinutes(e.target.value)} 
-                  className="h-8" 
-                  placeholder="0 = padrão do serviço"
-                />
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-
-      <div>
-        <Label>Vagas máximas</Label>
-        <Input type="number" value={maxSlots} onChange={e => setMaxSlots(e.target.value)} min="0" />
-        <p className="text-xs text-muted-foreground mt-1">0 = ilimitado por período</p>
-      </div>
-
-      {isAdmin && (
-        <div>
-          <Label>Profissionais participantes</Label>
-          <Select value={professionalFilter} onValueChange={setProfessionalFilter}>
-            <SelectTrigger><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos os profissionais</SelectItem>
-              <SelectItem value="selected">Selecionar</SelectItem>
-            </SelectContent>
-          </Select>
-          {professionalFilter === 'selected' && (
-            <div className="space-y-2 pl-2 mt-2 max-h-40 overflow-y-auto border rounded-md p-2">
-              {professionals.length === 0 ? (
-                <p className="text-xs text-muted-foreground p-2">Carregando profissionais...</p>
-              ) : professionals.map((p: any) => (
-                <label key={p.profile_id} className="flex items-center gap-2 cursor-pointer py-1">
-                  <Checkbox
-                    checked={selectedProfessionalIds.includes(p.profile_id)}
-                    onCheckedChange={(ch) => setSelectedProfessionalIds(prev => ch ? [...prev, p.profile_id] : prev.filter(id => id !== p.profile_id))}
-                  />
-                  <span className="text-sm">{p.profiles?.full_name}</span>
-                </label>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
     </div>
   );
 
