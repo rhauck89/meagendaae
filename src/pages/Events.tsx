@@ -961,7 +961,7 @@ const Events = () => {
             </div>
           </div>
         ) : (
-          <button type="button" onClick={() => coverInputRef.current?.click()} disabled={uploadingCover} className="w-full h-40 border-2 border-dashed rounded-lg flex flex-col items-center justify-center gap-2 text-muted-foreground hover:border-primary hover:text-primary transition-colors cursor-pointer disabled:opacity-50 relative overflow-hidden">
+          <button type="button" onClick={() => coverInputRef.current?.click()} disabled={uploadingCover} className="w-full h-24 sm:h-40 border-2 border-dashed rounded-lg flex flex-col items-center justify-center gap-2 text-muted-foreground hover:border-primary hover:text-primary transition-colors cursor-pointer disabled:opacity-50 relative overflow-hidden">
             <div className="absolute inset-0 flex pointer-events-none">
               <div className="w-[16.67%] bg-muted-foreground/5 border-r border-dashed border-muted-foreground/20" />
               <div className="flex-1 relative"><div className="absolute inset-0 grid grid-cols-3 grid-rows-2">{Array.from({ length: 6 }).map((_, i) => <div key={i} className="border border-muted-foreground/5" />)}</div></div>
