@@ -29,6 +29,15 @@ const SuperAdminLayout = ({ children }: { children: React.ReactNode }) => {
   const { profile, signOut } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
+  const { roles, loading } = useAuth();
+  
+  useEffect(() => {
+    console.log('[SUPER_ADMIN_LAYOUT]', { 
+      pathname: location.pathname, 
+      roles, 
+      loading 
+    });
+  }, [location.pathname, roles, loading]);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const ticketCounts = useSupportTicketCounts(true);
 
