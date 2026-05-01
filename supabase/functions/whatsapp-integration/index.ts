@@ -248,8 +248,13 @@ serve(async (req) => {
 
       let renderedBody = template.body;
       const apptDate = new Date(appointment.start_time);
-      const formattedDate = apptDate.toLocaleDateString('pt-BR');
-      const formattedTime = apptDate.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+      const formattedDate = apptDate.toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' });
+      const formattedTime = apptDate.toLocaleTimeString('pt-BR', { 
+        timeZone: 'America/Sao_Paulo',
+        hour: '2-digit', 
+        minute: '2-digit',
+        hour12: false 
+      });
       
       const { data: platform } = await supabaseClient.from('platform_settings').select('system_url').single();
       const webBaseUrl = platform?.system_url || "https://meagendae.com.br";

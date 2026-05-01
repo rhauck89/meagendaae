@@ -102,7 +102,7 @@ export function ManualAppointmentDialog({
     setClientsLoading(true);
     const { data } = await supabase
       .from('clients')
-      .select('id, name, whatsapp, email')
+      .select('id, name, whatsapp, email, user_id')
       .eq('company_id', companyId)
       .or(`name.ilike.%${query}%,whatsapp.ilike.%${query}%`)
       .order('name')
@@ -243,7 +243,14 @@ export function ManualAppointmentDialog({
       const dateFormatted = format(selectedDate, "dd 'de' MMMM, yyyy", { locale: ptBR });
 
       if (sendWhatsApp && selectedClient.whatsapp) {
-        openWhatsApp(selectedClient.whatsapp, { source: 'manual-appointment', message: `Olá ${selectedClient.name}! 👋\n\nSeu horário foi agendado com sucesso! ✅\n\n✂️ Serviço: ${serviceNames}\n👤 Profissional: ${profName}\n📅 Data: ${dateFormatted}\n🕐 Horário: ${selectedSlot}\n\nNos vemos em breve!` });
+        await supabase.functions.invoke('whatsapp-integration', {
+          body: {
+            action: 'send-confirmation',
+            companyId,
+            appointmentId,
+            type: 'appointment_confirmed'
+          }
+        });
       }
 
       // Fire automation webhook (Make) — non-blocking
