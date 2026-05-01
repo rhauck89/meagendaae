@@ -701,8 +701,8 @@ export default function Promotions() {
       cashback_cumulative: promotionType === 'cashback' ? cashbackCumulative : false,
       promotion_mode: smartMode,
       source_insight: sourceInsight,
-      booking_opens_at: bookingOpensAtDate ? new Date(`${bookingOpensAtDate}T${bookingOpensAtTime || '00:00'}:00`).toISOString() : null,
-      booking_closes_at: hasCustomBookingClosesAt && bookingClosesAtDate ? new Date(`${bookingClosesAtDate}T${bookingClosesAtTime || '23:59'}:00`).toISOString() : null,
+      booking_opens_at: bookingOpensAtDate ? fromZonedTime(`${bookingOpensAtDate} ${bookingOpensAtTime || '00:00'}:00`, DEFAULT_TZ).toISOString() : null,
+      booking_closes_at: hasCustomBookingClosesAt && bookingClosesAtDate ? fromZonedTime(`${bookingClosesAtDate} ${bookingClosesAtTime || '23:59'}:00`, DEFAULT_TZ).toISOString() : null,
     };
 
     if (!isAdmin && profile?.id) {
