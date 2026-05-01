@@ -394,12 +394,24 @@ const ClientPortal = () => {
   const totalPoints = useMemo(
     () => Object.values(pointsByCompany).reduce((s, v) => s + v, 0), [pointsByCompany]);
 
+  const appointmentCompanyIds = useMemo(
+    () => new Set(appointments.map(a => a.company_id)),
+    [appointments]);
+
   const upcomingAppointments = useMemo(
-    () => appointments.filter(a => !isPast(parseISO(a.start_time)) && !['cancelled', 'no_show'].includes(a.status)),
-    [appointments]);
+    () => appointments.filter(a => {
+      const status = getDisplayStatus(a);
+      return (status === 'confirmed' || status === 'pending' || status === 'in_progress' || status === 'late') && !isPast(parseISO(a.end_time));
+    }).sort((a, b) => parseISO(a.start_time).getTime() - parseISO(b.start_time).getTime()),
+  [appointments]);
+
   const pastAppointments = useMemo(
-    () => appointments.filter(a => isPast(parseISO(a.start_time)) || ['cancelled', 'no_show'].includes(a.status)),
-    [appointments]);
+    () => appointments.filter(a => {
+      const status = getDisplayStatus(a);
+      return status === 'completed' || status === 'cancelled' || status === 'no_show' || isPast(parseISO(a.end_time));
+    }).sort((a, b) => parseISO(b.start_time).getTime() - parseISO(a.start_time).getTime()),
+  [appointments]);
+
   const completedAppointments = pastAppointments.filter(a => a.status === 'completed');
   const completedCount = completedAppointments.length;
   const nextAppointment = [...upcomingAppointments].sort(
@@ -435,20 +447,6 @@ const ClientPortal = () => {
       return a.name.localeCompare(b.name);
     });
   }, [rewards, companies, pointsByCompany, appointmentCompanyIds]);
-
-  const appointmentCompanyIds = useMemo(
-    () => new Set(appointments.map(a => a.company_id)),
-    [appointments]);
-
-  useEffect(() => {
-    if (rewardsCompanyId) return;
-    if (companiesWithRewards.length === 0) return;
-    setRewardsCompanyId(companiesWithRewards[0].id);
-  }, [companiesWithRewards, rewardsCompanyId]);
-
-  const anyCashback = companiesWithCashback.length > 0;
-  const anyLoyalty = companiesWithLoyalty.length > 0;
-  const anyRewards = companiesWithRewards.length > 0;
 
   const refreshRedemptions = async () => {
     if (!clients.length) return;
@@ -867,10 +865,7 @@ const ClientPortal = () => {
                           key={apt.id}
                           appointment={apt}
                           variant="client"
-                          isAdmin={false}
-                          showCompany={true}
-                          onReschedule={(apt) => navigate(`/reschedule/${apt.id}`)}
-                          onCancel={(apt) => navigate(`/cancel/${apt.id}`)}
+                          onClick={() => {}}
                         />
                       ))}
                     </div>
@@ -891,11 +886,7 @@ const ClientPortal = () => {
                       key={apt.id}
                       appointment={apt}
                       variant="client"
-                      isAdmin={false}
-                      showCompany={true}
-                      onClick={(apt) => {
-                        if (apt.status === 'completed') goRebook(apt.company_id);
-                      }}
+                      onClick={() => {}}
                     />
                   ))
                 )}
@@ -925,128 +916,141 @@ const ClientPortal = () => {
                   </Card>
                 ) : (
                   <>
-                    <div className="grid grid-cols-1 gap-3">
-                      <Card className="bg-gradient-to-br from-primary/10 via-background to-background border-primary/20 overflow-hidden relative">
-                        <div className="absolute top-0 right-0 p-4 opacity-10">
-                          <Wallet className="h-16 w-16 rotate-12" />
-                        </div>
-                        <CardContent className="p-5">
-                          <div className="space-y-4">
-                            <div>
-                              <p className="text-[10px] font-bold uppercase tracking-wider text-primary/70">Saldo Disponível</p>
-                              <div className="flex items-baseline gap-1">
-                                <span className="text-2xl font-bold text-primary">R$</span>
-                                <span className="text-5xl font-black text-primary tracking-tighter">
-                                  {totalCashback.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                </span>
-                              </div>
-                              <p className="text-[11px] text-muted-foreground mt-1 font-medium">
-                                {totalCashback > 20 
-                                  ? "Você já pode usar seu saldo em benefícios 🎁" 
-                                  : totalCashback > 0 
-                                    ? "Seu cashback acumulado está crescendo 🚀"
-                                    : "Agende novos horários para acumular cashback 💈"}
-                              </p>
-                            </div>
-
-                            <div className="grid grid-cols-2 gap-3 pt-2 border-t border-primary/10">
-                              <div>
-                                <p className="text-[10px] text-muted-foreground uppercase font-bold">Total Ganho</p>
-                                <p className="text-lg font-bold text-green-600">
-                                  + R$ {cashbackTotals.gained.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                                </p>
-                              </div>
-                              <div>
-                                <p className="text-[10px] text-muted-foreground uppercase font-bold">Total Usado</p>
-                                <p className="text-lg font-bold text-red-500">
-                                  - R$ {cashbackTotals.used.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                                </p>
-                              </div>
-                            </div>
+                    <div className="grid grid-cols-2 gap-3 mb-6">
+                      <Card className="bg-primary/5 border-primary/10">
+                        <CardContent className="p-4 flex flex-col items-center justify-center text-center">
+                          <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center mb-2">
+                            <Star className="h-5 w-5 text-primary" />
                           </div>
+                          <span className="text-2xl font-bold text-primary">{totalPoints}</span>
+                          <span className="text-[10px] uppercase font-bold text-primary/60">Pontos Totais</span>
                         </CardContent>
                       </Card>
-
-                      <div className="flex gap-2">
-                        <Button variant="outline" size="sm" className="flex-1 text-[11px] h-9 gap-1.5" onClick={() => navigate('/')}>
-                          <Calendar className="h-3.5 w-3.5" /> Usar no próximo
-                        </Button>
-                        <Button variant="outline" size="sm" className="flex-1 text-[11px] h-9 gap-1.5" onClick={() => navigate('/help-center')}>
-                          <Star className="h-3.5 w-3.5" /> Ver regras
-                        </Button>
-                      </div>
+                      <Card className="bg-success/5 border-success/10">
+                        <CardContent className="p-4 flex flex-col items-center justify-center text-center">
+                          <div className="h-10 w-10 rounded-full bg-success/10 flex items-center justify-center mb-2">
+                            <Wallet className="h-5 w-5 text-success" />
+                          </div>
+                          <span className="text-2xl font-bold text-success">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalCashback)}</span>
+                          <span className="text-[10px] uppercase font-bold text-success/60">Cashback Total</span>
+                        </CardContent>
+                      </Card>
                     </div>
 
                     <div className="space-y-3">
-                      <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
-                        <HistoryIcon className="h-3 w-3" /> Extrato Detalhado
-                      </h3>
-                      
-                      <div className="space-y-2">
-                        {companiesWithCashback.map(co => (
-                          <div key={co.id} className="flex items-center justify-between p-3 rounded-xl bg-card border shadow-sm">
-                            <CompanyHeader company={co} size="sm" />
-                            <div className="text-right">
-                              <p className="text-sm font-bold text-primary">
-                                R$ {(cashbackByCompany[co.id] || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                              </p>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
+                      {upcomingAppointments.length > 0 ? (
+                        upcomingAppointments.map((apt) => (
+                          <UnifiedAppointmentCard
+                            key={apt.id}
+                            appointment={apt}
+                            variant="client"
+                            onClick={() => {}}
+                          />
+                        ))
+                      ) : (
+                        <Card>
+                          <CardContent className="p-6 text-center space-y-3">
+                            <Calendar className="h-10 w-10 mx-auto text-muted-foreground/40" />
+                            <p className="text-sm text-muted-foreground">Você não tem agendamentos futuros</p>
+                            <Button size="sm" onClick={() => navigate('/')}>Agendar agora</Button>
+                          </CardContent>
+                        </Card>
+                      )}
+                    </div>
 
-                      <div className="space-y-2">
-                        {allCashbackTxs.length === 0 ? (
-                          <Card><CardContent className="p-6 text-center text-sm text-muted-foreground italic">
-                            Nenhuma movimentação registrada ainda
-                          </CardContent></Card>
-                        ) : (
-                          allCashbackTxs.map(tx => {
-                            const isCredit = tx.type === 'credit';
-                            const isDebit = tx.type === 'debit';
-                            const isExpiration = tx.type === 'expiration' || (tx as any).type === 'expire';
-                            
-                            return (
-                              <div key={tx.id} className="flex items-center justify-between p-3 rounded-xl bg-card border border-border/50 hover:bg-accent/5 transition-colors">
-                                <div className="flex items-center gap-3 min-w-0">
-                                  <div className={cn(
-                                    "h-10 w-10 rounded-full flex items-center justify-center shrink-0",
-                                    isCredit ? "bg-green-500/10 text-green-600" : 
-                                    isDebit ? "bg-red-500/10 text-red-500" : 
-                                    "bg-orange-500/10 text-orange-500"
-                                  )}>
-                                    {isCredit ? <Plus className="h-5 w-5" /> : 
-                                     isDebit ? <ArrowRight className="h-5 w-5" /> : 
-                                     <Pause className="h-5 w-5" />}
-                                  </div>
-                                  <div className="min-w-0">
-                                    <p className="text-xs font-bold truncate">
-                                      {tx.description || (isCredit ? 'Cashback ganho' : isDebit ? 'Cashback utilizado' : 'Cashback expirado')}
-                                    </p>
-                                    <div className="flex items-center gap-1.5 mt-0.5">
-                                      <span className="text-[10px] text-muted-foreground">
-                                        {format(parseISO(tx.created_at), "dd/MM/yy 'às' HH:mm", { locale: ptBR })}
-                                      </span>
-                                      <span className="text-[10px] text-muted-foreground opacity-50">•</span>
-                                      <span className="text-[10px] text-muted-foreground truncate max-w-[100px]">
-                                        {companies[tx.company_id]?.name}
-                                      </span>
-                                    </div>
-                                  </div>
+                    <div className="space-y-3">
+                      {pastAppointments.length > 0 ? (
+                        pastAppointments.map((apt) => (
+                          <UnifiedAppointmentCard
+                            key={apt.id}
+                            appointment={apt}
+                            variant="client"
+                            onClick={() => {}}
+                          />
+                        ))
+                      ) : (
+                        <Card>
+                          <CardContent className="p-6 text-center space-y-3">
+                            <Calendar className="h-10 w-10 mx-auto text-muted-foreground/40" />
+                            <p className="text-sm text-muted-foreground">Você não tem agendamentos anteriores</p>
+                            <Button size="sm" onClick={() => navigate('/')}>Ver agendamentos</Button>
+                          </CardContent>
+                        </Card>
+                      )}
+                    </div>
+
+                    <div className="space-y-3">
+                      {completedAppointments.length > 0 ? (
+                        completedAppointments.map((apt) => (
+                          <UnifiedAppointmentCard
+                            key={apt.id}
+                            appointment={apt}
+                            variant="client"
+                            onClick={() => {}}
+                          />
+                        ))
+                      ) : (
+                        <Card>
+                          <CardContent className="p-6 text-center space-y-3">
+                            <CheckCircle2 className="h-10 w-10 mx-auto text-muted-foreground/40" />
+                            <p className="text-sm text-muted-foreground">Você não tem atendimentos completos</p>
+                            <Button size="sm" onClick={() => navigate('/')}>Ver agendamentos</Button>
+                          </CardContent>
+                        </Card>
+                      )}
+                    </div>
+
+                    <div className="space-y-3">
+                      {allCashbackTxs.length === 0 ? (
+                        <Card><CardContent className="p-6 text-center text-sm text-muted-foreground italic">
+                          Nenhuma movimentação registrada ainda
+                        </CardContent></Card>
+                      ) : (
+                        allCashbackTxs.map(tx => {
+                          const isCredit = tx.type === 'credit';
+                          const isDebit = tx.type === 'debit';
+                          const isExpiration = tx.type === 'expiration' || (tx as any).type === 'expire';
+                          
+                          return (
+                            <div key={tx.id} className="flex items-center justify-between p-3 rounded-xl bg-card border border-border/50 hover:bg-accent/5 transition-colors">
+                              <div className="flex items-center gap-3 min-w-0">
+                                <div className={cn(
+                                  "h-10 w-10 rounded-full flex items-center justify-center shrink-0",
+                                  isCredit ? "bg-green-500/10 text-green-600" : 
+                                  isDebit ? "bg-red-500/10 text-red-500" : 
+                                  "bg-orange-500/10 text-orange-500"
+                                )}>
+                                  {isCredit ? <Plus className="h-5 w-5" /> : 
+                                   isDebit ? <ArrowRight className="h-5 w-5" /> : 
+                                   <Pause className="h-5 w-5" />}
                                 </div>
-                                <div className="text-right shrink-0">
-                                  <p className={cn(
-                                    "text-sm font-black tracking-tight",
-                                    isCredit ? "text-green-600" : isDebit ? "text-red-500" : "text-orange-500"
-                                  )}>
-                                    {isCredit ? '+' : '-'} R$ {Number(tx.amount).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                                <div className="min-w-0">
+                                  <p className="text-xs font-bold truncate">
+                                    {tx.description || (isCredit ? 'Cashback ganho' : isDebit ? 'Cashback utilizado' : 'Cashback expirado')}
                                   </p>
+                                  <div className="flex items-center gap-1.5 mt-0.5">
+                                    <span className="text-[10px] text-muted-foreground">
+                                      {format(parseISO(tx.created_at), "dd/MM/yy 'às' HH:mm", { locale: ptBR })}
+                                    </span>
+                                    <span className="text-[10px] text-muted-foreground opacity-50">•</span>
+                                    <span className="text-[10px] text-muted-foreground truncate max-w-[100px]">
+                                      {companies[tx.company_id]?.name}
+                                    </span>
+                                  </div>
                                 </div>
                               </div>
-                            );
-                          })
-                        )}
-                      </div>
+                              <div className="text-right shrink-0">
+                                <p className={cn(
+                                  "text-sm font-black tracking-tight",
+                                  isCredit ? "text-green-600" : isDebit ? "text-red-500" : "text-orange-500"
+                                )}>
+                                  {isCredit ? '+' : '-'} R$ {Number(tx.amount).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                                </p>
+                              </div>
+                            </div>
+                          );
+                        })
+                      )}
                     </div>
                   </>
                 )}
