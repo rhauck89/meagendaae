@@ -259,7 +259,7 @@ const ClientPortal = () => {
         applyFilters(lpTxQuery).order('created_at', { ascending: false }).limit(300),
         supabase.from('loyalty_reward_items').select('id, name, description, points_required, real_value, extra_cost, image_url, item_type, company_id, stock_total, stock_available, company:companies!loyalty_reward_items_company_id_fkey(id, name, logo_url, slug)').eq('active', true),
         applyFilters(redemptionsQuery).order('created_at', { ascending: false }).limit(50),
-        applyFilters(apptsQuery, 'client_email').order('start_time', { ascending: false }).limit(200)
+        applyFilters(apptsQuery, 'client_email', 'client_whatsapp').order('start_time', { ascending: false }).limit(200)
       ]);
 
       if (!clientRes.data || (clientRes.data as any[]).length === 0) {
