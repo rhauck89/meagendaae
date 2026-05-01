@@ -373,15 +373,67 @@ const ClientPortal = () => {
     }
   };
 
-  const lastAppointment = completedAppointments[0];
+  const cashbackByCompany = useMemo(() => {
+    const map: Record<string, number> = {};
+    for (const cb of allCashbacks) {
+      if (cb.status === 'active' && !isPast(parseISO(cb.expires_at))) {
+        map[cb.company_id] = (map[cb.company_id] || 0) + Number(cb.amount);
+      }
+    }
+    return map;
+  }, [allCashbacks]);
 
-  const rewardsCompany = rewardsCompanyId ? companies[rewardsCompanyId] : null;
-  const rewardsList = useMemo(
-    () => rewards.filter(r => r.company_id === rewardsCompanyId),
-    [rewards, rewardsCompanyId]);
-  const rewardsBalance = rewardsCompanyId ? (pointsByCompany[rewardsCompanyId] || 0) : 0;
-  const rewardsConfig = rewardsCompanyId ? loyaltyConfigs[rewardsCompanyId] : null;
-  const rewardsPointValue = rewardsConfig?.point_value || 0.05;
+  const cashbackTotals = useMemo(() => {
+    let gained = 0;
+    let used = 0;
+    let expired = 0;
+    for (const tx of allCashbackTxs) {
+      const amt = Number(tx.amount) || 0;
+      if (tx.type === 'credit') gained += amt;
+      else if (tx.type === 'debit') used += amt;
+      else if (tx.type === 'expiration' || (tx as any).type === 'expire') expired += amt;
+    }
+    return { gained, used, expired };
+  }, [allCashbackTxs]);
+
+  const totalCashback = useMemo(
+    () => Object.values(cashbackByCompany).reduce((s, v) => s + v, 0), [cashbackByCompany]);
+
+  const pointsByCompany = useMemo(() => {
+    const map: Record<string, number> = {};
+    for (const tx of allLoyaltyTxs) {
+      if (map[tx.company_id] === undefined) map[tx.company_id] = tx.balance_after;
+    }
+    return map;
+  }, [allLoyaltyTxs]);
+
+  const totalPoints = useMemo(
+    () => Object.values(pointsByCompany).reduce((s, v) => s + v, 0), [pointsByCompany]);
+
+  const appointmentCompanyIds = useMemo(
+    () => new Set(appointments.map(a => a.company_id)),
+    [appointments]);
+
+  const upcomingAppointments = useMemo(() => 
+    appointments.filter(a => {
+      const status = getDisplayStatus(a);
+      return (status === 'confirmed' || status === 'pending' || status === 'in_progress' || status === 'late') && !isPast(parseISO(a.end_time));
+    }).sort((a, b) => parseISO(a.start_time).getTime() - parseISO(b.start_time).getTime()),
+  [appointments]);
+
+  const pastAppointments = useMemo(() => 
+    appointments.filter(a => {
+      const status = getDisplayStatus(a);
+      return status === 'completed' || status === 'cancelled' || status === 'no_show' || isPast(parseISO(a.end_time));
+    }).sort((a, b) => parseISO(b.start_time).getTime() - parseISO(a.start_time).getTime()),
+  [appointments]);
+
+  const completedAppointments = pastAppointments.filter(a => a.status === 'completed');
+  const completedCount = completedAppointments.length;
+  const nextAppointment = [...upcomingAppointments].sort(
+    (a, b) => parseISO(a.start_time).getTime() - parseISO(b.start_time).getTime()
+  )[0];
+  const lastAppointment = completedAppointments[0];
 
   const companiesWithCashback = useMemo(
     () => Object.values(companies).filter(c => companyCashbackActive[c.id]),
@@ -408,66 +460,13 @@ const ClientPortal = () => {
   const anyLoyalty = companiesWithLoyalty.length > 0;
   const anyRewards = companiesWithRewards.length > 0;
 
-  const cashbackByCompany = useMemo(() => {
-    const map: Record<string, number> = {};
-    for (const cb of allCashbacks) {
-      if (cb.status === 'active' && !isPast(parseISO(cb.expires_at))) {
-        map[cb.company_id] = (map[cb.company_id] || 0) + Number(cb.amount);
-      }
-    }
-    return map;
-  }, [allCashbacks]);
-  const cashbackTotals = useMemo(() => {
-    let gained = 0;
-    let used = 0;
-    let expired = 0;
-    
-    for (const tx of allCashbackTxs) {
-      const amt = Number(tx.amount) || 0;
-      if (tx.type === 'credit') gained += amt;
-      else if (tx.type === 'debit') used += amt;
-      else if (tx.type === 'expiration' || (tx as any).type === 'expire') expired += amt;
-    }
-    
-    return { gained, used, expired };
-  }, [allCashbackTxs]);
-
-  const totalCashback = useMemo(
-    () => Object.values(cashbackByCompany).reduce((s, v) => s + v, 0), [cashbackByCompany]);
-
-  const pointsByCompany = useMemo(() => {
-    const map: Record<string, number> = {};
-    for (const tx of allLoyaltyTxs) {
-      if (map[tx.company_id] === undefined) map[tx.company_id] = tx.balance_after;
-    }
-    return map;
-  }, [allLoyaltyTxs]);
-  const totalPoints = useMemo(
-    () => Object.values(pointsByCompany).reduce((s, v) => s + v, 0), [pointsByCompany]);
-
-  const appointmentCompanyIds = useMemo(
-    () => new Set(appointments.map(a => a.company_id)),
-    [appointments]);
-
-  const upcomingAppointments = useMemo(
-    () => appointments.filter(a => {
-      const status = getDisplayStatus(a);
-      return (status === 'confirmed' || status === 'pending' || status === 'in_progress' || status === 'late') && !isPast(parseISO(a.end_time));
-    }).sort((a, b) => parseISO(a.start_time).getTime() - parseISO(b.start_time).getTime()),
-  [appointments]);
-
-  const pastAppointments = useMemo(
-    () => appointments.filter(a => {
-      const status = getDisplayStatus(a);
-      return status === 'completed' || status === 'cancelled' || status === 'no_show' || isPast(parseISO(a.end_time));
-    }).sort((a, b) => parseISO(b.start_time).getTime() - parseISO(a.start_time).getTime()),
-  [appointments]);
-
-  const completedAppointments = pastAppointments.filter(a => a.status === 'completed');
-  const completedCount = completedAppointments.length;
-  const nextAppointment = [...upcomingAppointments].sort(
-    (a, b) => parseISO(a.start_time).getTime() - parseISO(b.start_time).getTime()
-  )[0];
+  const rewardsCompany = rewardsCompanyId ? companies[rewardsCompanyId] : null;
+  const rewardsList = useMemo(
+    () => rewards.filter(r => r.company_id === rewardsCompanyId),
+    [rewards, rewardsCompanyId]);
+  const rewardsBalance = rewardsCompanyId ? (pointsByCompany[rewardsCompanyId] || 0) : 0;
+  const rewardsConfig = rewardsCompanyId ? loyaltyConfigs[rewardsCompanyId] : null;
+  const rewardsPointValue = rewardsConfig?.point_value || 0.05;
 
   const refreshRedemptions = async () => {
     if (!clients.length) return;
