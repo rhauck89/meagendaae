@@ -243,7 +243,14 @@ export function ManualAppointmentDialog({
       const dateFormatted = format(selectedDate, "dd 'de' MMMM, yyyy", { locale: ptBR });
 
       if (sendWhatsApp && selectedClient.whatsapp) {
-        openWhatsApp(selectedClient.whatsapp, { source: 'manual-appointment', message: `Olá ${selectedClient.name}! 👋\n\nSeu horário foi agendado com sucesso! ✅\n\n✂️ Serviço: ${serviceNames}\n👤 Profissional: ${profName}\n📅 Data: ${dateFormatted}\n🕐 Horário: ${selectedSlot}\n\nNos vemos em breve!` });
+        await supabase.functions.invoke('whatsapp-integration', {
+          body: {
+            action: 'send-confirmation',
+            companyId,
+            appointmentId,
+            type: 'appointment_confirmed'
+          }
+        });
       }
 
       // Fire automation webhook (Make) — non-blocking
