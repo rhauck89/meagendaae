@@ -249,7 +249,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
     );
   }
 
-  if (!companyId && (companyRecoveryLoading || !companyRecoveryChecked)) {
+  if (!companyId && !isSuperAdmin && (companyRecoveryLoading || !companyRecoveryChecked)) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-3">
@@ -262,7 +262,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
 
   const allowCompanySetup = new URLSearchParams(location.search).get('setup') === '1';
 
-  if (!companyId) {
+  if (!companyId && !isSuperAdmin) {
     const isSetupMode = new URLSearchParams(location.search).get('setup') === '1';
     
     if (isSetupMode) {
