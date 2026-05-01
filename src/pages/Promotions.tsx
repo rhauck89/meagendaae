@@ -698,6 +698,8 @@ export default function Promotions() {
       cashback_cumulative: promotionType === 'cashback' ? cashbackCumulative : false,
       promotion_mode: smartMode,
       source_insight: sourceInsight,
+      booking_opens_at: bookingOpensAtDate ? `${bookingOpensAtDate}T${bookingOpensAtTime || '00:00'}:00Z` : null,
+      booking_closes_at: hasCustomBookingClosesAt && bookingClosesAtDate ? `${bookingClosesAtDate}T${bookingClosesAtTime || '23:59'}:00Z` : null,
     };
 
     if (!isAdmin && profile?.id) {
