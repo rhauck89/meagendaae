@@ -251,7 +251,7 @@ const EventPublic = () => {
           .filter(Boolean)
           .join(', ');
         sendAppointmentCreatedWebhook({
-          appointment_id: typeof data === 'string' ? data : (data as any)?.appointment_id || '',
+          appointment_id: appointmentId || '',
           company_id: event?.company_id || '',
           client_name: clientName.trim(),
           client_phone: formatWhatsApp(clientWhatsapp.trim()),
