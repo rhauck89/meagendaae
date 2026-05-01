@@ -163,12 +163,14 @@ const AuthRedirect = () => {
   if (!user) return <Navigate to="/" replace />;
   
   if (roles?.includes('super_admin')) {
-    console.log('[AUTH_REDIRECT_DECISION] Super Admin -> /super-admin');
+    const count = (window as any)._trace_AuthRedirect = ((window as any)._trace_AuthRedirect || 0) + 1;
+    console.log('[SUPER_ADMIN_RENDER_TRACE]', { component: "AuthRedirect", count, target: "/super-admin", timestamp: Date.now() });
     return <Navigate to="/super-admin" replace />;
   }
   
   console.log('[AUTH_REDIRECT_DECISION] Standard User -> /dashboard');
   return <Navigate to="/dashboard" replace />;
+
 };
 
 const DashboardRoute = ({ children }: { children: React.ReactNode }) => (
