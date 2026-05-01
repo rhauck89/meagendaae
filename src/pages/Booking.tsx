@@ -1134,6 +1134,10 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
 
   const isCashbackPromo = isPromoMode && promoData?.promotion_type === 'cashback';
 
+  const originalSubtotal = services
+    .filter((s) => selectedServices.includes(s.id))
+    .reduce((sum, s) => sum + Number(s.price), 0);
+
   const totalPrice = (() => {
     // Cashback promos: client pays full price — no discount applied
     if (isCashbackPromo) {
