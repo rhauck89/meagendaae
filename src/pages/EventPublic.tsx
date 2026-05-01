@@ -222,7 +222,7 @@ const EventPublic = () => {
     }
     setBooking(true);
     try {
-      const { data, error } = await supabase.rpc('book_event_slot' as any, {
+      const { data, error } = await supabase.rpc('book_open_agenda_slot_v2' as any, {
         p_slot_id: selectedSlot.id,
         p_client_name: clientName.trim(),
         p_client_whatsapp: formatWhatsApp(clientWhatsapp.trim()),
@@ -230,7 +230,17 @@ const EventPublic = () => {
         p_service_ids: selectedServices,
         p_notes: `Evento: ${event?.name}`,
       });
+
       if (error) throw error;
+
+      // New structured return: data is an array since it's a TABLE return
+      const result = Array.isArray(data) ? data[0] : data;
+
+      if (!result?.success) {
+        throw new Error(result?.message || 'Erro ao realizar agendamento');
+      }
+
+      const appointmentId = result.appointment_id;
       setBookingSuccess(true);
       toast.success('Agendamento confirmado! 🎉');
 
