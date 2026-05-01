@@ -314,23 +314,12 @@ async function fetchSlotInputs(
     .eq('block_date', dateStr));
 
   // Index 4: Appointments
-  if (source === 'public') {
-    fetchTasks.push(supabase.rpc('get_booking_appointments' as any, {
-      p_company_id: companyId,
-      p_professional_id: professionalId,
-      p_selected_date: dateStr,
-      p_timezone: 'America/Sao_Paulo',
-    }));
-  } else {
-    fetchTasks.push(supabase
-      .from(apptsTable as any)
-      .select('start_time, end_time')
-      .eq('professional_id', professionalId)
-      .eq('company_id', companyId)
-      .gte('start_time', startISO)
-      .lt('start_time', endISO)
-      .not('status', 'in', '("cancelled","no_show")'));
-  }
+  fetchTasks.push(supabase.rpc('get_booking_appointments' as any, {
+    p_company_id: companyId,
+    p_professional_id: professionalId,
+    p_selected_date: dateStr,
+    p_timezone: 'America/Sao_Paulo',
+  }));
 
   // Index 5: Event slots
   fetchTasks.push(supabase
