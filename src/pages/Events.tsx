@@ -430,6 +430,7 @@ const Events = () => {
         image_position_x: formImagePositionX,
         image_position_y: formImagePositionY,
         image_zoom: formImageZoom,
+        block_main_schedule: formBlockMainSchedule,
       };
 
       if (editingEvent) {
