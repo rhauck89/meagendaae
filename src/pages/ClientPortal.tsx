@@ -284,7 +284,7 @@ const ClientPortal = () => {
       
       const clientData = clientRes.data as any[];
       setClients(clientData as ClientRecord[]);
-      setAppointments((appointmentsRes.data || []) as any);
+      setAppointments(appointmentsData);
       setAllCashbacks((cashbackRes.data || []) as any);
       setAllCashbackTxs((cashbackTxRes.data || []) as any);
       setAllLoyaltyTxs((loyaltyTxRes.data || []) as any);
@@ -301,7 +301,7 @@ const ClientPortal = () => {
       }
 
       // Add companies from rewards and appointments
-      [...(rewardsRes.data || []), ...(appointmentsRes.data || [])].forEach((item: any) => {
+      [...(rewardsRes.data || []), ...appointmentsData].forEach((item: any) => {
         if (item.company && !companiesMap[item.company.id]) {
           companiesMap[item.company.id] = { id: item.company.id, name: item.company.name, logo_url: item.company.logo_url, slug: item.company.slug };
         }
@@ -340,7 +340,7 @@ const ClientPortal = () => {
       // Persist to cache
       writeCache({
         clients: clientData as ClientRecord[],
-        appointments: (appointmentsRes.data || []) as any,
+        appointments: appointmentsData,
         allCashbacks: (cashbackRes.data || []) as any,
         allCashbackTxs: (cashbackTxRes.data || []) as any,
         allLoyaltyTxs: (loyaltyTxRes.data || []) as any,
