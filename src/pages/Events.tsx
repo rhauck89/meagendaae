@@ -1334,7 +1334,7 @@ const Events = () => {
 
       {/* ===== EVENT WIZARD DIALOG ===== */}
       <Dialog open={showWizard} onOpenChange={setShowWizard}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-2xl p-0 flex flex-col overflow-hidden">
           <DialogHeader>
             <DialogTitle>{editingEvent ? 'Editar Evento' : 'Novo Evento'}</DialogTitle>
             <DialogDescription>
@@ -1344,38 +1344,42 @@ const Events = () => {
             </DialogDescription>
           </DialogHeader>
 
-          {renderWizardStepIndicator()}
-
-          <div className="min-h-[300px]">
-            {wizardStep === 0 && renderStep1Details()}
-            {wizardStep === 1 && renderStep2Schedule()}
-            {wizardStep === 2 && renderStep3Prices()}
+          <div className="shrink-0 px-4 py-2 border-b bg-background sm:px-6">
+            {renderWizardStepIndicator()}
           </div>
 
+          <DialogBody className="p-4 sm:p-6">
+            <div className="min-h-[300px]">
+              {wizardStep === 0 && renderStep1Details()}
+              {wizardStep === 1 && renderStep2Schedule()}
+              {wizardStep === 2 && renderStep3Prices()}
+            </div>
+          </DialogBody>
+
           {/* Wizard navigation */}
-          <div className="flex items-center justify-between pt-4 border-t">
+          <DialogFooter className="flex-row items-center justify-between border-t bg-background p-4 sm:p-6">
             <div>
               {wizardStep > 0 && (
-                <Button variant="outline" onClick={handlePrevStep} className="gap-1.5">
-                  <ChevronLeft className="h-4 w-4" /> Voltar
+                <Button variant="outline" onClick={handlePrevStep} className="gap-1.5 h-10 px-4">
+                  <ChevronLeft className="h-4 w-4" /> <span className="hidden sm:inline">Voltar</span>
                 </Button>
               )}
             </div>
             <div className="flex gap-2">
-              <Button variant="ghost" onClick={handleSaveDraft} disabled={saving}>
+              <Button variant="ghost" onClick={handleSaveDraft} disabled={saving} className="h-10 px-4">
                 {saving ? 'Salvando...' : 'Salvar rascunho'}
               </Button>
               {wizardStep < 2 ? (
-                <Button onClick={handleNextStep} disabled={saving} className="gap-1.5">
+                <Button onClick={handleNextStep} disabled={saving} className="gap-1.5 h-10 px-4">
                   {saving ? 'Salvando...' : 'Próximo'} <ChevronRight className="h-4 w-4" />
                 </Button>
               ) : (
-                <Button onClick={handlePublishEvent} disabled={saving} className="gap-1.5">
+                <Button onClick={handlePublishEvent} disabled={saving} className="gap-1.5 h-10 px-4 bg-primary text-primary-foreground hover:bg-primary/90">
                   {saving ? 'Publicando...' : 'Publicar evento'}
                 </Button>
               )}
             </div>
-          </div>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 
