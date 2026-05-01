@@ -269,7 +269,7 @@ const ClientPortal = () => {
         applyFilters(redemptionsQuery).order('created_at', { ascending: false }).limit(50)
       ]);
 
-      if (!clientRes.data || (clientRes.data as any[]).length === 0) {
+      if ((!clientRes.data || (clientRes.data as any[]).length === 0) && appointmentsData.length === 0) {
         if (!isRevalidation) { setClients([]); setLoading(false); }
         return;
       }
@@ -870,13 +870,11 @@ const ClientPortal = () => {
                         <UnifiedAppointmentCard
                           key={apt.id}
                           appointment={apt}
+                          variant="client"
                           isAdmin={false}
                           showCompany={true}
                           onReschedule={(apt) => navigate(`/reschedule/${apt.id}`)}
                           onCancel={(apt) => navigate(`/cancel/${apt.id}`)}
-                          onClick={(apt) => {
-                            // On client portal, clicking might show more info
-                          }}
                         />
                       ))}
                     </div>
@@ -896,6 +894,7 @@ const ClientPortal = () => {
                     <UnifiedAppointmentCard
                       key={apt.id}
                       appointment={apt}
+                      variant="client"
                       isAdmin={false}
                       showCompany={true}
                       onClick={(apt) => {
