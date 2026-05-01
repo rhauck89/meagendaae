@@ -81,7 +81,8 @@ export function UnifiedAppointmentCard({
   onClick,
   isHighlighted,
   className,
-  showCompany = false
+  showCompany = false,
+  referenceDate
 }: UnifiedAppointmentCardProps) {
   const startTime = parseISO(apt.start_time);
   const endTime = parseISO(apt.end_time);
