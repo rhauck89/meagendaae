@@ -1640,7 +1640,7 @@ export default function Promotions() {
               Nova Promoção
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+          <DialogContent className="max-w-3xl p-0 flex flex-col overflow-hidden">
             <DialogHeader>
               <DialogTitle>
                 {isEditing ? 'Editar Promoção' : 
@@ -1650,70 +1650,71 @@ export default function Promotions() {
               </DialogTitle>
             </DialogHeader>
 
-
-            {/* Step content */}
-            {creationMode === 'choice' && !isEditing && renderChoiceScreen()}
-            {creationMode === 'smart' && !isEditing && renderSmartScreen()}
-            
-            {creationMode === 'manual' && (
-              <>
-                <div className="space-y-3 mb-6">
-                  <div className="flex items-center justify-between text-xs text-muted-foreground">
-                    {WIZARD_STEPS.map((step) => (
-                      <div key={step.num} className={`flex items-center gap-1.5 ${wizardStep >= step.num ? 'text-primary font-medium' : ''}`}>
-                        <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs border-2 transition-colors ${
-                          wizardStep > step.num ? 'bg-primary border-primary text-primary-foreground' :
-                          wizardStep === step.num ? 'border-primary text-primary' :
-                          'border-muted-foreground/30'
-                        }`}>
-                          {wizardStep > step.num ? <Check className="h-3 w-3" /> : step.num}
+            <DialogBody className="p-4 sm:p-6">
+              {/* Step content */}
+              {creationMode === 'choice' && !isEditing && renderChoiceScreen()}
+              {creationMode === 'smart' && !isEditing && renderSmartScreen()}
+              
+              {creationMode === 'manual' && (
+                <>
+                  <div className="space-y-3 mb-6">
+                    <div className="flex items-center justify-between text-xs text-muted-foreground">
+                      {WIZARD_STEPS.map((step) => (
+                        <div key={step.num} className={`flex items-center gap-1.5 ${wizardStep >= step.num ? 'text-primary font-medium' : ''}`}>
+                          <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs border-2 transition-colors ${
+                            wizardStep > step.num ? 'bg-primary border-primary text-primary-foreground' :
+                            wizardStep === step.num ? 'border-primary text-primary' :
+                            'border-muted-foreground/30'
+                          }`}>
+                            {wizardStep > step.num ? <Check className="h-3 w-3" /> : step.num}
+                          </div>
+                          <span className="hidden sm:inline">{step.label}</span>
                         </div>
-                        <span className="hidden sm:inline">{step.label}</span>
-                      </div>
-                    ))}
+                      ))}
+                    </div>
+                    <Progress value={(wizardStep / totalSteps) * 100} className="h-1.5" />
                   </div>
-                  <Progress value={(wizardStep / totalSteps) * 100} className="h-1.5" />
-                </div>
 
-                {wizardStep === 1 && renderStep1()}
-                {promotionType === 'cashback' && wizardStep === 2 && renderCashbackStep()}
-                {((promotionType === 'cashback' && wizardStep === 3) || (promotionType === 'traditional' && wizardStep === 2)) && renderStep2()}
-                {((promotionType === 'cashback' && wizardStep === 4) || (promotionType === 'traditional' && wizardStep === 3)) && renderStep3()}
-              </>
-            )}
+                  {wizardStep === 1 && renderStep1()}
+                  {promotionType === 'cashback' && wizardStep === 2 && renderCashbackStep()}
+                  {((promotionType === 'cashback' && wizardStep === 3) || (promotionType === 'traditional' && wizardStep === 2)) && renderStep2()}
+                  {((promotionType === 'cashback' && wizardStep === 4) || (promotionType === 'traditional' && wizardStep === 3)) && renderStep3()}
+                </>
+              )}
+            </DialogBody>
 
             {/* Navigation (Manual only) */}
             {creationMode === 'manual' && (
-              <div className="flex justify-between pt-2">
+              <DialogFooter className="flex-row items-center justify-between border-t bg-background p-4 sm:p-6">
                 {wizardStep > 1 ? (
-                  <Button variant="outline" onClick={goBack}>
-                    <ChevronLeft className="h-4 w-4 mr-1" />Voltar
+                  <Button variant="outline" onClick={goBack} className="h-10 px-4">
+                    <ChevronLeft className="h-4 w-4 mr-1" /> <span className="hidden sm:inline">Voltar</span>
                   </Button>
                 ) : (
-                  <Button variant="outline" onClick={() => isEditing ? setDialogOpen(false) : setCreationMode('choice')}>
-                    <ChevronLeft className="h-4 w-4 mr-1" />Voltar
+                  <Button variant="outline" onClick={() => isEditing ? setDialogOpen(false) : setCreationMode('choice')} className="h-10 px-4">
+                    <ChevronLeft className="h-4 w-4 mr-1" /> <span className="hidden sm:inline">Voltar</span>
                   </Button>
                 )}
 
                 {wizardStep < totalSteps ? (
-                  <Button onClick={goNext}>
+                  <Button onClick={goNext} className="h-10 px-4">
                     Próximo<ChevronRight className="h-4 w-4 ml-1" />
                   </Button>
                 ) : (
-                  <Button onClick={handleSave}>
+                  <Button onClick={handleSave} className="h-10 px-4 bg-primary text-primary-foreground hover:bg-primary/90">
                     <Check className="h-4 w-4 mr-2" />
                     {isEditing ? 'Salvar Alterações' : 'Criar Promoção'}
                   </Button>
                 )}
-              </div>
+              </DialogFooter>
             )}
 
             {creationMode === 'smart' && (
-              <div className="flex justify-start pt-2">
-                <Button variant="outline" onClick={() => setCreationMode('choice')}>
-                  <ChevronLeft className="h-4 w-4 mr-1" />Voltar
+              <DialogFooter className="flex-row items-center justify-start border-t bg-background p-4 sm:p-6">
+                <Button variant="outline" onClick={() => setCreationMode('choice')} className="h-10 px-4">
+                  <ChevronLeft className="h-4 w-4 mr-1" /> <span className="hidden sm:inline">Voltar</span>
                 </Button>
-              </div>
+              </DialogFooter>
             )}
           </DialogContent>
         </Dialog>
