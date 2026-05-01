@@ -154,23 +154,33 @@ const EventPublic = () => {
     });
     setSlots(enrichedSlots);
 
-    // Load services with event price overrides
+    // Load services linked to the event
     const { data: svcData } = await supabase
       .from('public_services')
-      .select('*')
-      .eq('company_id', eventData.company_id);
+      .select('*, event_services!inner(event_id, event_price)')
+      .eq('event_services.event_id', eventData.id);
 
+    // Fallback/Legacy: also check event_service_prices if needed
     const { data: priceData } = await supabase
       .from('event_service_prices')
       .select('*')
       .eq('event_id', eventData.id);
 
     const priceMap = new Map((priceData || []).map((p: any) => [p.service_id, p.override_price]));
-    const enrichedSvc = (svcData || []).map((s: any) => ({
-      ...s,
-      override_price: priceMap.get(s.id),
-    }));
+    const enrichedSvc = (svcData || []).map((s: any) => {
+      // Prioritize event_price from event_services table
+      const eventPrice = s.event_services?.[0]?.event_price;
+      return {
+        ...s,
+        override_price: eventPrice ?? priceMap.get(s.id),
+      };
+    });
     setServices(enrichedSvc);
+
+    // If only one service, pre-select it
+    if (enrichedSvc.length === 1) {
+      setSelectedServices([enrichedSvc[0].id]);
+    }
 
     // Set default selected date
     if (enrichedSlots.length > 0) {
