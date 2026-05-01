@@ -231,16 +231,31 @@ const ClientPortal = () => {
       const apptsQuery = supabase.from('appointments').select('id, start_time, end_time, total_price, status, company_id, promotion_id, original_price, promotion_discount, cashback_used, manual_discount, final_price, company:companies!appointments_company_id_fkey(id, name, logo_url, slug), professional:profiles!appointments_professional_id_fkey(id, full_name, avatar_url), appointment_services(price, service:services(id, name))');
 
       const applyFilters = (query: any, clientEmailField = 'email', clientPhoneField = 'whatsapp') => {
+        const profilePhone = profileData?.whatsapp ? profileData.whatsapp.replace(/\D/g, '') : null;
+        const profilePhoneNoDdi = profilePhone && profilePhone.startsWith('55') ? profilePhone.slice(2) : profilePhone;
+        
         if (isAdmin && adminClientContext?.whatsapp) {
           const adminPhone = adminClientContext.whatsapp.replace(/\D/g, '');
-          return query.or(`${clientPhoneField}.eq.${adminPhone}${adminClientContext.email ? `,${clientEmailField}.eq.${adminClientContext.email}` : ''}`);
+          const adminPhoneNoDdi = adminPhone.startsWith('55') ? adminPhone.slice(2) : adminPhone;
+          
+          const adminConditions = [
+            `${clientPhoneField}.eq.${adminPhone}`,
+            `${clientPhoneField}.eq.${adminPhoneNoDdi}`
+          ];
+          if (adminClientContext.email) adminConditions.push(`${clientEmailField}.eq.${adminClientContext.email}`);
+          
+          return query.or(adminConditions.join(','));
         }
         
-        const profilePhone = profileData?.whatsapp ? profileData.whatsapp.replace(/\D/g, '') : null;
         const conditions = [`user_id.eq.${currentUserId || '00000000-0000-0000-0000-000000000000'}`];
         if (profilePhone) {
           conditions.push(`${clientPhoneField}.eq.${profilePhone}`);
+          if (profilePhoneNoDdi) conditions.push(`${clientPhoneField}.eq.${profilePhoneNoDdi}`);
         }
+        if (user?.email) {
+          conditions.push(`${clientEmailField}.eq.${user.email}`);
+        }
+        
         return query.or(conditions.join(','));
       };
 
