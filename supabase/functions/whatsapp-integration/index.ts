@@ -248,13 +248,21 @@ serve(async (req) => {
 
       let renderedBody = template.body;
       const apptDate = new Date(appointment.start_time);
-      const formattedDate = apptDate.toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' });
-      const formattedTime = apptDate.toLocaleTimeString('pt-BR', { 
+      
+      // Force pt-BR formatting with America/Sao_Paulo timezone
+      const formattedDate = new Intl.DateTimeFormat('pt-BR', {
         timeZone: 'America/Sao_Paulo',
-        hour: '2-digit', 
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric'
+      }).format(apptDate);
+
+      const formattedTime = new Intl.DateTimeFormat('pt-BR', {
+        timeZone: 'America/Sao_Paulo',
+        hour: '2-digit',
         minute: '2-digit',
-        hour12: false 
-      });
+        hour12: false
+      }).format(apptDate);
       
       const { data: platform } = await supabaseClient.from('platform_settings').select('system_url').single();
       const webBaseUrl = platform?.system_url || "https://meagendae.com.br";

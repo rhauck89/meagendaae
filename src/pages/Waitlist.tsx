@@ -289,12 +289,8 @@ const Waitlist = () => {
         });
       } catch { /* silent */ }
 
-      if (bookingTarget.client_whatsapp) {
-        const msg = encodeURIComponent(
-          `\u2705 Seu hor\u00e1rio foi confirmado!\n\n\uD83D\uDCC5 ${format(selectedDate, "dd 'de' MMMM, yyyy", { locale: ptBR })}\n\u23F0 ${selectedSlot}\n\nObrigado pela paci\u00eancia!`
-        );
-        openWhatsApp(bookingTarget.client_whatsapp, { source: 'waitlist', message: `✅ Seu horário foi confirmado!\n\n📅 ${format(selectedDate, "dd 'de' MMMM, yyyy", { locale: ptBR })}\n⏰ ${selectedSlot}\n\nObrigado pela paciência!` });
-      }
+      // WhatsApp is now handled automatically via the Edge Function
+      // and DB triggers triggered by create_appointment_v2.
 
       setBookingOpen(false);
       setBookingTarget(null);
