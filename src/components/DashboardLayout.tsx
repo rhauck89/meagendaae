@@ -114,18 +114,18 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
   const [companyRecoveryLoading, setCompanyRecoveryLoading] = useState(false);
   const [companyRecoveryChecked, setCompanyRecoveryChecked] = useState(false);
 
+  const isSuperAdmin = roles?.includes('super_admin');
+  const isSuperAdminRoute = location.pathname.startsWith('/super-admin');
+
   // Debug logging for role detection
-  console.log('[DASHBOARD_COMPANY_DIAG] Context data:', { 
-    userId: user?.id, 
-    profileId: profile?.id,
-    companyId, 
+  console.log('[SUPER_ADMIN_ROUTE_GUARD]', { 
+    pathname: location.pathname,
     roles, 
-    authLoading, 
-    companyRecoveryLoading, 
-    companyRecoveryChecked,
-    isAdmin,
-    isProfessionalMode,
-    loginMode
+    companyId,
+    isSuperAdmin,
+    isSuperAdminRoute,
+    authLoading,
+    userId: user?.id
   });
 
   const professionalNavItems = allProfessionalNavItems.filter(item => {
