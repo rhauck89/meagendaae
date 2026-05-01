@@ -646,35 +646,24 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
         const normalizedPhone = normalizePhone(user.user_metadata?.whatsapp || user.phone || '');
         const clientName = user.user_metadata?.full_name || user.user_metadata?.name || 'Cliente';
         
-        // 1. Ensure Global Client
-        const { data: globalClient } = await (supabase
-          .from('clients_global' as any)
-          .upsert({
-            user_id: user.id,
-            whatsapp: normalizedPhone || null,
-            name: clientName,
-            email: user.email,
-          }, { onConflict: 'whatsapp' })
-          .select()
-          .single() as any);
+        // 1. Ensure Global & Local Client via secure RPC
+        await supabase.rpc('link_client_globally', {
+          p_user_id: user.id,
+          p_phone: normalizedPhone || '',
+          p_email: user.email || '',
+          p_company_id: company.id,
+          p_name: clientName
+        });
 
-        // 2. Create Local Client
-        const { data: newClient, error: createError } = await (supabase
-          .from('clients' as any)
-          .upsert({
-            company_id: company.id,
-            user_id: user.id,
-            global_client_id: globalClient?.id,
-            name: clientName,
-            whatsapp: normalizedPhone || null,
-            email: user.email,
-          }, { onConflict: 'company_id, user_id' })
-          .select()
-          .single() as any);
+        // 2. Fetch the newly created/linked client
+        const { data: newClient } = await supabase
+          .from('clients')
+          .select('*')
+          .eq('company_id', company.id)
+          .eq('user_id', user.id)
+          .maybeSingle();
 
-        if (createError) {
-          console.error('[Booking] Failed to auto-create client:', createError);
-        } else {
+        if (newClient) {
           data = newClient;
         }
       }
