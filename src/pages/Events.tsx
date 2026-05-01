@@ -1345,7 +1345,7 @@ const Events = () => {
 
       {/* ===== EVENT WIZARD DIALOG ===== */}
       <Dialog open={showWizard} onOpenChange={setShowWizard}>
-        <DialogContent className="fixed inset-0 w-screen h-[100dvh] max-w-none max-h-[100dvh] rounded-none p-0 flex flex-col overflow-hidden sm:relative sm:inset-auto sm:max-w-2xl sm:h-auto sm:max-h-[90vh] sm:rounded-2xl sm:translate-none">
+        <DialogContent className="fixed inset-0 w-screen h-[100dvh] max-w-none max-h-[100dvh] rounded-none p-0 flex flex-col overflow-hidden sm:inset-auto sm:left-[50%] sm:top-[50%] sm:translate-x-[-50%] sm:translate-y-[-50%] sm:w-full sm:max-w-2xl sm:h-auto sm:max-h-[90vh] sm:rounded-2xl">
           <DialogHeader className="shrink-0">
             <DialogTitle>{editingEvent ? 'Editar Evento' : 'Novo Evento'}</DialogTitle>
             <DialogDescription>
