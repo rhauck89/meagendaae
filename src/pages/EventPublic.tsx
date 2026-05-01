@@ -154,23 +154,33 @@ const EventPublic = () => {
     });
     setSlots(enrichedSlots);
 
-    // Load services with event price overrides
+    // Load services linked to the event
+    const { data: eventSvcData } = await supabase
+      .from('event_services')
+      .select('service_id, event_price')
+      .eq('event_id', eventData.id);
+
+    const eventSvcIds = (eventSvcData || []).map(es => es.service_id);
+
     const { data: svcData } = await supabase
       .from('public_services')
       .select('*')
-      .eq('company_id', eventData.company_id);
+      .in('id', eventSvcIds);
 
-    const { data: priceData } = await supabase
-      .from('event_service_prices')
-      .select('*')
-      .eq('event_id', eventData.id);
+    const eventPriceMap = new Map((eventSvcData || []).map((es: any) => [es.service_id, es.event_price]));
 
-    const priceMap = new Map((priceData || []).map((p: any) => [p.service_id, p.override_price]));
-    const enrichedSvc = (svcData || []).map((s: any) => ({
-      ...s,
-      override_price: priceMap.get(s.id),
-    }));
+    const enrichedSvc = (svcData || []).map((s: any) => {
+      return {
+        ...s,
+        override_price: eventPriceMap.get(s.id),
+      };
+    });
     setServices(enrichedSvc);
+
+    // If only one service, pre-select it
+    if (enrichedSvc.length === 1) {
+      setSelectedServices([enrichedSvc[0].id]);
+    }
 
     // Set default selected date
     if (enrichedSlots.length > 0) {
@@ -212,7 +222,7 @@ const EventPublic = () => {
     }
     setBooking(true);
     try {
-      const { data, error } = await supabase.rpc('book_event_slot' as any, {
+      const { data, error } = await supabase.rpc('book_open_agenda_slot_v2' as any, {
         p_slot_id: selectedSlot.id,
         p_client_name: clientName.trim(),
         p_client_whatsapp: formatWhatsApp(clientWhatsapp.trim()),
@@ -220,7 +230,17 @@ const EventPublic = () => {
         p_service_ids: selectedServices,
         p_notes: `Evento: ${event?.name}`,
       });
+
       if (error) throw error;
+
+      // New structured return: data is an array since it's a TABLE return
+      const result = Array.isArray(data) ? data[0] : data;
+
+      if (!result?.success) {
+        throw new Error(result?.message || 'Erro ao realizar agendamento');
+      }
+
+      const appointmentId = result.appointment_id;
       setBookingSuccess(true);
       toast.success('Agendamento confirmado! 🎉');
 
@@ -231,7 +251,7 @@ const EventPublic = () => {
           .filter(Boolean)
           .join(', ');
         sendAppointmentCreatedWebhook({
-          appointment_id: typeof data === 'string' ? data : (data as any)?.appointment_id || '',
+          appointment_id: appointmentId || '',
           company_id: event?.company_id || '',
           client_name: clientName.trim(),
           client_phone: formatWhatsApp(clientWhatsapp.trim()),

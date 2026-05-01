@@ -6673,30 +6673,21 @@ export type Database = {
         Args: { target_email: string; target_user_id: string }
         Returns: undefined
       }
-      book_event_slot:
-        | {
-            Args: {
-              p_client_cpf?: string
-              p_client_email?: string
-              p_client_name: string
-              p_client_whatsapp: string
-              p_notes?: string
-              p_service_ids?: string[]
-              p_slot_id: string
-            }
-            Returns: string
-          }
-        | {
-            Args: {
-              p_client_email?: string
-              p_client_name: string
-              p_client_whatsapp: string
-              p_notes?: string
-              p_service_ids?: string[]
-              p_slot_id: string
-            }
-            Returns: string
-          }
+      book_open_agenda_slot_v2: {
+        Args: {
+          p_client_email?: string
+          p_client_name: string
+          p_client_whatsapp: string
+          p_notes?: string
+          p_service_ids?: string[]
+          p_slot_id: string
+        }
+        Returns: {
+          appointment_id: string
+          message: string
+          success: boolean
+        }[]
+      }
       can_access_company: { Args: { _company_id: string }; Returns: boolean }
       can_manage_company: { Args: { _company_id: string }; Returns: boolean }
       cancel_appointment_public: {
