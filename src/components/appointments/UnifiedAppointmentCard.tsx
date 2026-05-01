@@ -327,8 +327,8 @@ export function UnifiedAppointmentCard({
             <p className="text-lg sm:text-xl font-display font-bold text-foreground tracking-tight">
               {format(startTime, 'HH:mm')}
             </p>
-            <p className="text-[10px] font-bold text-primary/80 uppercase tracking-wider">
-              {format(startTime, "dd 'de' MMM", { locale: ptBR })}
+            <p className="text-[10px] font-bold text-primary uppercase tracking-wider">
+              {format(startTime, "dd/MM/yyyy")}
             </p>
             <p className="text-[9px] font-medium text-muted-foreground uppercase tracking-wider">
               até {format(endTime, 'HH:mm')}
