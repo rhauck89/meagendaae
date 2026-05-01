@@ -169,13 +169,10 @@ const EventPublic = () => {
 
     const eventPriceMap = new Map((eventSvcData || []).map((es: any) => [es.service_id, es.event_price]));
 
-    const priceMap = new Map((priceData || []).map((p: any) => [p.service_id, p.override_price]));
     const enrichedSvc = (svcData || []).map((s: any) => {
-      // Prioritize event_price from event_services table
-      const eventPrice = s.event_services?.[0]?.event_price;
       return {
         ...s,
-        override_price: eventPrice ?? priceMap.get(s.id),
+        override_price: eventPriceMap.get(s.id),
       };
     });
     setServices(enrichedSvc);
