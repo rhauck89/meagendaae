@@ -336,10 +336,10 @@ export function UnifiedAppointmentCard({
           <div className="space-y-1 min-w-0 flex-1">
             <div className="flex items-center gap-2 flex-wrap">
               <h3 className={cn(
-                "font-bold text-foreground leading-tight truncate",
+                "font-bold text-foreground leading-tight truncate capitalize",
                 variant === 'detailed' ? 'text-lg' : 'text-sm sm:text-base'
               )}>
-                {clientName}
+                {format(startTime, "d 'de' MMMM', 'eeee", { locale: ptBR })}
               </h3>
               {apt.promotion_id && (
                 <Badge variant="secondary" className="bg-orange-500/10 text-orange-600 border-none h-4 px-1 text-[9px] font-bold uppercase tracking-tighter">
