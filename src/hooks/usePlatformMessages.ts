@@ -18,6 +18,12 @@ export const usePlatformMessages = () => {
   const { companyId } = useAuth();
   const [dismissedIds, setDismissedIds] = useState<string[]>(getDismissedIds);
 
+  useEffect(() => {
+    const count = (window as any)._trace_usePlatformMessages = ((window as any)._trace_usePlatformMessages || 0) + 1;
+    console.log('[SUPER_ADMIN_EFFECT_TRACE]', { component: "usePlatformMessages", effect: "render", count, deps: [companyId] });
+  });
+
+
   const dismiss = useCallback((id: string) => {
     setDismissedIds(prev => {
       const next = [...prev, id];

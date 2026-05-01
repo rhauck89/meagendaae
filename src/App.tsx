@@ -111,6 +111,17 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, loading, profile, roles, companyId } = useAuth();
   const location = useLocation();
   
+  // Trace logs
+  useEffect(() => {
+    const count = (window as any)._trace_ProtectedRoute = ((window as any)._trace_ProtectedRoute || 0) + 1;
+    console.log('[SUPER_ADMIN_RENDER_TRACE]', { component: "ProtectedRoute", count, pathname: location.pathname, timestamp: Date.now() });
+  });
+
+  useEffect(() => {
+    console.log('[SUPER_ADMIN_EFFECT_TRACE]', { component: "ProtectedRoute", effect: "mount/deps", deps: [loading, !!user, roles?.join(',')] });
+  }, [loading, user, roles]);
+
+  
   const isSuperAdmin = roles?.includes('super_admin');
   const isSuperAdminRoute = location.pathname.startsWith('/super-admin');
 

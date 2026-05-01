@@ -26,18 +26,20 @@ const navItems = [
 ];
 
 const SuperAdminLayout = ({ children }: { children: React.ReactNode }) => {
-  const { profile, signOut } = useAuth();
+  const { profile, signOut, roles, loading } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
-  const { roles, loading } = useAuth();
   
+  // Trace logs
   useEffect(() => {
-    console.log('[SUPER_ADMIN_LAYOUT]', { 
-      pathname: location.pathname, 
-      roles, 
-      loading 
-    });
+    const count = (window as any)._trace_SuperAdminLayout = ((window as any)._trace_SuperAdminLayout || 0) + 1;
+    console.log('[SUPER_ADMIN_RENDER_TRACE]', { component: "SuperAdminLayout", count, pathname: location.pathname, timestamp: Date.now() });
+  });
+
+  useEffect(() => {
+    console.log('[SUPER_ADMIN_EFFECT_TRACE]', { component: "SuperAdminLayout", effect: "auth-sync", deps: [location.pathname, roles, loading] });
   }, [location.pathname, roles, loading]);
+
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const ticketCounts = useSupportTicketCounts(true);
 
