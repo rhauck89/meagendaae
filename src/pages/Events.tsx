@@ -867,7 +867,7 @@ const Events = () => {
   // ========== RENDER ==========
 
   const renderWizardStepIndicator = () => (
-    <div className="space-y-3">
+    <div className="space-y-2 sm:space-y-3">
       <div className="flex items-center justify-between px-1">
         {WIZARD_STEPS.map((step, i) => (
           <div key={step.key} className="flex items-center gap-1.5">
@@ -889,7 +889,7 @@ const Events = () => {
   );
 
   const renderStep1Details = () => (
-    <div className="space-y-4">
+    <div className="space-y-3 sm:space-y-4 pt-1 sm:pt-0">
       <div>
         <Label>Nome do evento *</Label>
         <Input value={formName} onChange={e => setFormName(e.target.value)} placeholder="Ex: Dia do Cliente" />
@@ -921,7 +921,18 @@ const Events = () => {
       )}
 
       {/* Cover Image Upload */}
-      <div>
+      {!formCoverPreview && (
+        <Button 
+          variant="outline" 
+          size="sm" 
+          className="w-full sm:hidden gap-2 mb-2" 
+          onClick={(e) => { e.preventDefault(); coverInputRef.current?.click(); }}
+          disabled={uploadingCover}
+        >
+          <Upload className="h-4 w-4" /> {uploadingCover ? 'Enviando...' : 'Adicionar imagem de capa'}
+        </Button>
+      )}
+      <div className={cn(!formCoverPreview && "hidden sm:block")}>
         <Label>Imagem de capa</Label>
         <p className="text-xs text-muted-foreground mb-2">Recomendado: 1200×400 px · JPG ou PNG</p>
         <input ref={coverInputRef} type="file" accept="image/jpeg,image/png,image/jpg" className="hidden" onChange={handleCoverUpload} />
@@ -961,7 +972,7 @@ const Events = () => {
             </div>
           </div>
         ) : (
-          <button type="button" onClick={() => coverInputRef.current?.click()} disabled={uploadingCover} className="w-full h-40 border-2 border-dashed rounded-lg flex flex-col items-center justify-center gap-2 text-muted-foreground hover:border-primary hover:text-primary transition-colors cursor-pointer disabled:opacity-50 relative overflow-hidden">
+          <button type="button" onClick={() => coverInputRef.current?.click()} disabled={uploadingCover} className="w-full h-24 sm:h-40 border-2 border-dashed rounded-lg flex flex-col items-center justify-center gap-2 text-muted-foreground hover:border-primary hover:text-primary transition-colors cursor-pointer disabled:opacity-50 relative overflow-hidden">
             <div className="absolute inset-0 flex pointer-events-none">
               <div className="w-[16.67%] bg-muted-foreground/5 border-r border-dashed border-muted-foreground/20" />
               <div className="flex-1 relative"><div className="absolute inset-0 grid grid-cols-3 grid-rows-2">{Array.from({ length: 6 }).map((_, i) => <div key={i} className="border border-muted-foreground/5" />)}</div></div>
@@ -1348,8 +1359,8 @@ const Events = () => {
             {renderWizardStepIndicator()}
           </div>
 
-          <DialogBody className="p-4 sm:p-6">
-            <div className="min-h-[300px]">
+          <DialogBody className="p-4 sm:p-6 pt-2 sm:pt-6">
+            <div className="flex-1 flex flex-col">
               {wizardStep === 0 && renderStep1Details()}
               {wizardStep === 1 && renderStep2Schedule()}
               {wizardStep === 2 && renderStep3Prices()}
