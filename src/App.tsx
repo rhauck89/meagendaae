@@ -145,6 +145,21 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   return <>{children}</>;
 };
 
+const AuthRedirect = () => {
+  const { roles, loading, user } = useAuth();
+  
+  if (loading) return null;
+  if (!user) return <Navigate to="/" replace />;
+  
+  if (roles?.includes('super_admin')) {
+    console.log('[AUTH_REDIRECT_DECISION] Super Admin -> /super-admin');
+    return <Navigate to="/super-admin" replace />;
+  }
+  
+  console.log('[AUTH_REDIRECT_DECISION] Standard User -> /dashboard');
+  return <Navigate to="/dashboard" replace />;
+};
+
 const DashboardRoute = ({ children }: { children: React.ReactNode }) => (
   <ProtectedRoute>
     <DashboardLayout>{children}</DashboardLayout>
@@ -172,7 +187,7 @@ const TenantRoutes = ({ slug, businessType }: { slug: string; businessType: stri
 
 const PlatformRoutes = () => (
   <Routes>
-    <Route path="/app" element={<Navigate to="/dashboard" replace />} />
+    <Route path="/app" element={<AuthRedirect />} />
     <Route path="/" element={<MarketplaceHome />} />
     <Route path="/profissionais" element={<LandingProfissionais />} />
     <Route path="/barbeiros" element={<MarketplaceCategory />} />

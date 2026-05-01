@@ -117,16 +117,26 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
   const isSuperAdmin = roles?.includes('super_admin');
   const isSuperAdminRoute = location.pathname.startsWith('/super-admin');
 
+  // Redirect Super Admin to their proper home if they land in the company dashboard
+  useEffect(() => {
+    if (isSuperAdmin && !isSuperAdminRoute) {
+      console.log('[DASHBOARD_LAYOUT] Super admin detected in company dashboard, redirecting to super-admin');
+      navigate('/super-admin', { replace: true });
+    }
+  }, [isSuperAdmin, isSuperAdminRoute, navigate]);
+
   // Debug logging for role detection
-  console.log('[SUPER_ADMIN_ROUTE_GUARD]', { 
-    pathname: location.pathname,
-    roles, 
-    companyId,
-    isSuperAdmin,
-    isSuperAdminRoute,
-    authLoading,
-    userId: user?.id
-  });
+  useEffect(() => {
+    console.log('[SUPER_ADMIN_ROUTE_GUARD]', { 
+      pathname: location.pathname,
+      roles, 
+      companyId,
+      isSuperAdmin,
+      isSuperAdminRoute,
+      authLoading,
+      userId: user?.id
+    });
+  }, [location.pathname, roles, companyId, isSuperAdmin, isSuperAdminRoute, authLoading, user?.id]);
 
   const professionalNavItems = allProfessionalNavItems.filter(item => {
     if (!item.permKey) return true;
@@ -158,7 +168,8 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
   };
 
   useEffect(() => {
-    if (authLoading || companyId || !user?.id || companyRecoveryLoading || companyRecoveryChecked) return;
+    // Super Admin never needs company recovery in DashboardLayout
+    if (isSuperAdmin || authLoading || companyId || !user?.id || companyRecoveryLoading || companyRecoveryChecked) return;
 
     let cancelled = false;
     const withTimeout = (promise: Promise<any>, fallback: any, ms = 3500): Promise<any> =>
