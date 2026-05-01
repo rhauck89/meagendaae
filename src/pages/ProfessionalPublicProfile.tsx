@@ -280,7 +280,7 @@ export default function ProfessionalPublicProfile() {
       });
 
       const apts = ((result.existingAppointments as ExistingAppointment[]) || []).map(a => ({ start_time: a.start_time, end_time: a.end_time }));
-      let slots = filterOverlapping(result.slots, apts, avgDur, result.bufferMinutes, tz);
+      let slots = result.slots;
       if (isToday(day)) { const ct = format(now, 'HH:mm'); slots = slots.filter(s => s > ct); }
 
       if (slots.length > 0) {

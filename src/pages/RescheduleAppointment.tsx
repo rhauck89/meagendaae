@@ -8,6 +8,7 @@ import { format, parseISO, addMinutes, addDays, startOfDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
 import { calculateAvailableSlots, type BusinessHours, type BusinessException, type ExistingAppointment, type BlockedTime } from '@/lib/availability-engine';
+import { getAvailableSlots } from '@/lib/availability-service';
 import { openWhatsApp } from '@/lib/whatsapp';
 
 const T = {
@@ -29,31 +30,7 @@ const timeStringToMinutes = (v: string) => {
   return h * 60 + m;
 };
 
-const getAppointmentMinutesInTimezone = (value: string, timezone: string) => {
-  const parts = new Intl.DateTimeFormat('en-GB', {
-    timeZone: timezone,
-    hour: '2-digit', minute: '2-digit', hour12: false,
-  }).formatToParts(new Date(value));
-  const hours = Number(parts.find((p) => p.type === 'hour')?.value ?? '0');
-  const minutes = Number(parts.find((p) => p.type === 'minute')?.value ?? '0');
-  return hours * 60 + minutes;
-};
-
-const filterOverlappingSlots = (
-  slots: string[], appointments: ExistingAppointment[], serviceDuration: number,
-  _bufferMinutes: number, timezone: string, excludeId: string,
-) => {
-  return slots.filter((slot) => {
-    const slotStart = timeStringToMinutes(slot);
-    const slotEnd = slotStart + serviceDuration;
-    return !appointments.some((apt) => {
-      if ((apt as any).id === excludeId) return false;
-      const aStart = getAppointmentMinutesInTimezone(apt.start_time, timezone);
-      const aEnd = getAppointmentMinutesInTimezone(apt.end_time, timezone);
-      return aStart < slotEnd && aEnd > slotStart;
-    });
-  });
-};
+// Removed redundant local filtering logic as it's now handled by the unified availability service
 
 const RescheduleAppointment = () => {
   const { appointmentId } = useParams<{ appointmentId: string }>();
@@ -117,37 +94,56 @@ const RescheduleAppointment = () => {
     if (!appointment || !selectedDate) return;
     setSlotsLoading(true);
     const reqId = ++slotReqRef.current;
-    const dateStr = format(selectedDate, 'yyyy-MM-dd');
     const companyId = appointment.company?.id || appointment.company_id;
 
-    const { data: aptData } = await supabase.rpc('get_booking_appointments', {
-      p_company_id: companyId,
-      p_professional_id: appointment.professional_id,
-      p_selected_date: dateStr,
-      p_timezone: DEFAULT_TZ,
-    });
+    try {
+      const { slots, existingAppointments: apts } = await getAvailableSlots({
+        source: 'public', // Using public to ensure consistency with the user's booking view
+        companyId,
+        professionalId: appointment.professional_id,
+        date: selectedDate,
+        totalDuration,
+        prefetchData: {
+          businessHours,
+          professionalHours,
+          exceptions,
+        }
+      });
 
-    if (reqId !== slotReqRef.current) return;
-    const apts = (aptData || []) as ExistingAppointment[];
-    setExistingAppointments(apts);
+      if (reqId !== slotReqRef.current) return;
 
-    // Pass the real bookings into the engine so the SAME free-window pipeline
-    // used by the public booking flow filters them out — but exclude the
-    // appointment being rescheduled from the occupied list (otherwise the user
-    // would see no slots around their own current time).
-    const apptsForEngine = apts.filter((a) => (a as any).id !== appointmentId);
-    const rawSlots = calculateAvailableSlots({
-      date: selectedDate,
-      totalDuration,
-      businessHours,
-      exceptions,
-      existingAppointments: apptsForEngine,
-      bufferMinutes,
-      professionalHours: professionalHours.length > 0 ? professionalHours : undefined,
-      blockedTimes: [],
-    });
-    setAvailableSlots(rawSlots);
-    setSlotsLoading(false);
+      setExistingAppointments(apts);
+
+      // When rescheduling, we need to ensure the slot the user currently occupies 
+      // is considered "available" to them, otherwise they can't "reschedule" 
+      // to the same time or slightly shifted times if it overlaps their current appointment.
+      // However, the engine usually blocks existing appointments.
+      // If the current appointment is for the same day being viewed, we filter it out.
+      const apptsForEngine = apts.filter((a) => (a as any).id !== appointmentId);
+      
+      // If we filtered any, we re-calculate just to be sure, or we can trust the engine 
+      // if we had a way to pass the exclusion to it.
+      // For now, if the exclusion list changed, we re-run the engine calculation.
+      if (apptsForEngine.length !== apts.length) {
+        const rawSlots = calculateAvailableSlots({
+          date: selectedDate,
+          totalDuration,
+          businessHours,
+          exceptions,
+          existingAppointments: apptsForEngine,
+          bufferMinutes,
+          professionalHours: professionalHours.length > 0 ? professionalHours : undefined,
+          blockedTimes: [],
+        });
+        setAvailableSlots(rawSlots);
+      } else {
+        setAvailableSlots(slots);
+      }
+    } catch (err) {
+      console.error('Error loading slots for reschedule:', err);
+    } finally {
+      setSlotsLoading(false);
+    }
   };
 
   const handleReschedule = async () => {
