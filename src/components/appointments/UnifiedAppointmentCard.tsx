@@ -329,6 +329,11 @@ export function UnifiedAppointmentCard({
               <p className="text-lg sm:text-xl font-display font-bold text-foreground tracking-tight">
                 {format(startTime, 'HH:mm')}
               </p>
+              {variant === 'business' && (
+                <p className="text-[10px] text-muted-foreground font-medium -mt-1 mb-0.5">
+                  até {format(endTime, 'HH:mm')}
+                </p>
+              )}
               <p className="text-[10px] font-bold text-primary uppercase tracking-wider text-center">
                 {format(startTime, "d 'de' MMM", { locale: ptBR })}
               </p>
@@ -342,7 +347,7 @@ export function UnifiedAppointmentCard({
                 variant === 'detailed' ? 'text-lg' : 'text-sm sm:text-base'
               )}>
                 {variant === 'client' 
-                  ? format(startTime, "d 'de' MMMM', 'eeee", { locale: ptBR })
+                  ? format(startTime, "d 'de' MMMM' - 'eeee", { locale: ptBR })
                   : clientName
                 }
               </h3>

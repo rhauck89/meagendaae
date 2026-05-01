@@ -2116,10 +2116,11 @@ const Dashboard = () => {
                     <div className="space-y-4">
                       <AnimatePresence initial={false}>
                         {filteredAppts.map((apt) => (
-                          <UnifiedAppointmentCard
-                            key={apt.id}
-                            appointment={apt}
-                            isAdmin={isAdmin}
+                        <UnifiedAppointmentCard
+                          key={apt.id}
+                          appointment={apt}
+                          variant="business"
+                          isAdmin={isAdmin}
                             onComplete={(apt) => {
                               setCompleteTarget(apt);
                               setCompleteDialogOpen(true);

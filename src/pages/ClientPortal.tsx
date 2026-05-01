@@ -124,6 +124,7 @@ const ClientPortal = () => {
     name: '', whatsapp: '', email: '', birth_date: '',
     postal_code: '', street: '', address_number: '', district: '', city: '', state: '',
   });
+  const [globalProfile, setGlobalProfile] = useState<any>(null);
   const [passwordForm, setPasswordForm] = useState({ newPassword: '', confirm: '' });
 
   const [companyCashbackActive, setCompanyCashbackActive] = useState<Record<string, boolean>>({});
