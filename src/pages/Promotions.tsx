@@ -813,8 +813,6 @@ export default function Promotions() {
     setWizardStep(1);
     setDialogOpen(true);
   };
-    setDialogOpen(true);
-  };
 
   const handleDuplicate = (promo: Promotion) => {
     handleEdit(promo);
