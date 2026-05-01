@@ -1345,8 +1345,8 @@ const Events = () => {
 
       {/* ===== EVENT WIZARD DIALOG ===== */}
       <Dialog open={showWizard} onOpenChange={setShowWizard}>
-        <DialogContent className="max-w-2xl p-0 flex flex-col overflow-hidden">
-          <DialogHeader>
+        <DialogContent className="fixed inset-0 w-screen h-[100dvh] max-w-none max-h-[100dvh] rounded-none p-0 flex flex-col overflow-hidden sm:relative sm:inset-auto sm:max-w-2xl sm:h-auto sm:max-h-[90vh] sm:rounded-2xl sm:translate-none">
+          <DialogHeader className="shrink-0">
             <DialogTitle>{editingEvent ? 'Editar Evento' : 'Novo Evento'}</DialogTitle>
             <DialogDescription>
               {wizardStep === 0 ? 'Configure os detalhes do evento' :
@@ -1355,12 +1355,18 @@ const Events = () => {
             </DialogDescription>
           </DialogHeader>
 
-          <div className="shrink-0 px-4 py-2 border-b bg-background sm:px-6">
+          {/* Wizard step indicator - Desktop only */}
+          <div className="hidden sm:block shrink-0 px-6 py-2 border-b bg-background">
             {renderWizardStepIndicator()}
           </div>
 
-          <DialogBody className="p-4 sm:p-6 pt-2 sm:pt-6">
+          <DialogBody className="flex-1 overflow-y-auto p-4 sm:p-6 sm:pt-6">
+            {/* Wizard step indicator - Mobile only */}
+            <div className="block sm:hidden mb-6">
+              {renderWizardStepIndicator()}
+            </div>
             <div className="flex-1 flex flex-col">
+
               {wizardStep === 0 && renderStep1Details()}
               {wizardStep === 1 && renderStep2Schedule()}
               {wizardStep === 2 && renderStep3Prices()}
