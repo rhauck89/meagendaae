@@ -53,6 +53,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const stateRef = useRef({
     userId: null as string | null,
     token: null as string | null,
+    profile: null as any | null,
+    companyId: null as string | null,
+    roles: [] as string[],
+    loginMode: null as LoginMode,
     hasContext: false
   });
 
@@ -76,7 +80,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       // Rule: Use the new centralized RPC for consistent user state
       console.log("[AUTH_CONTEXT_DIAG] Fetching context for user:", userId);
-      setLoading(true);
+      // Only set loading if not already hydrated to prevent flickering on updates
+      if (!stateRef.current.hasContext) {
+        setLoading(true);
+      }
 
       const { data: context, error: contextError } = await withTimeout(
         supabase.rpc('get_current_user_context' as any) as any,
@@ -152,15 +159,36 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         last_login_mode: ctx.login_mode
       };
 
-      setProfile(mappedProfile);
-      setCompanyId(ctx.company_id);
-      setRoles(ctx.roles || []);
-      setLoginModeState(ctx.login_mode || null);
-      setIsAlsoCollaborator(ctx.is_collaborator || false);
+      // Comparison logic to prevent redundant state updates
+      const profileChanged = JSON.stringify(stateRef.current.profile) !== JSON.stringify(mappedProfile);
+      const companyChanged = stateRef.current.companyId !== ctx.company_id;
+      const rolesChanged = JSON.stringify(stateRef.current.roles) !== JSON.stringify(ctx.roles || []);
+      const loginModeChanged = stateRef.current.loginMode !== (ctx.login_mode || null);
+
+      if (profileChanged) {
+        setProfile(mappedProfile);
+        stateRef.current.profile = mappedProfile;
+      }
       
+      if (companyChanged) {
+        setCompanyId(ctx.company_id);
+        stateRef.current.companyId = ctx.company_id;
+      }
+      
+      if (rolesChanged) {
+        setRoles(ctx.roles || []);
+        stateRef.current.roles = ctx.roles || [];
+      }
+      
+      if (loginModeChanged) {
+        setLoginModeState(ctx.login_mode || null);
+        stateRef.current.loginMode = ctx.login_mode || null;
+      }
+      
+      setIsAlsoCollaborator(ctx.is_collaborator || false);
       stateRef.current.hasContext = true;
 
-      console.log("[AUTH_CONTEXT_DIAG] State updated successfully");
+      console.log("[AUTH_CONTEXT_DIAG] State updated successfully. Changed:", { profileChanged, companyChanged, rolesChanged });
       setLoading(false);
 
     } catch (error) {
@@ -181,7 +209,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       const isSameUser = newUser?.id === stateRef.current.userId;
       const isSameToken = newToken === stateRef.current.token;
-      const alreadyHydrated = stateRef.current.hasContext && !!profile && !!companyId;
+      const alreadyHydrated = stateRef.current.hasContext && !!stateRef.current.profile;
 
       if (isSameUser && isSameToken && alreadyHydrated) {
         console.log('[AUTH_CONTEXT] Redundant update skipped (already hydrated)');
@@ -206,6 +234,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       } else {
         console.log('[AUTH_CONTEXT] Clearing state (signed out)');
         stateRef.current.hasContext = false;
+        stateRef.current.profile = null;
+        stateRef.current.companyId = null;
+        stateRef.current.roles = [];
+        stateRef.current.loginMode = null;
         setProfile(null);
         setCompanyId(null);
         setRoles([]);
@@ -218,7 +250,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setLoading(false);
       resolveLock!();
     }
-  }, [profile, companyId, fetchUserData]);
+  }, [fetchUserData]);
 
 
   useEffect(() => {
