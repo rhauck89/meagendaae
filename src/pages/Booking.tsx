@@ -10,7 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Calendar as CalendarPicker } from '@/components/ui/calendar';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Scissors, Sparkles, Clock, DollarSign, ChevronRight, ChevronLeft, CheckCircle2, Bell, Zap, CalendarPlus, MessageCircle, RotateCcw, Home, User, Phone, Mail, Cake, MapPin, Star, X, AlertTriangle, Calendar, ChevronDown } from 'lucide-react';
+import { Scissors, Sparkles, Clock, DollarSign, ChevronRight, ChevronLeft, CheckCircle2, Bell, Zap, CalendarPlus, MessageCircle, RotateCcw, Home, User, Phone, Mail, Cake, MapPin, Star, X, AlertTriangle, Calendar, ChevronDown, Tag } from 'lucide-react';
 import { format, addMinutes, addDays, startOfDay, isSameDay, parseISO, startOfWeek, endOfWeek, eachDayOfInterval, addWeeks, subWeeks, isToday, startOfMonth, endOfMonth, eachMonthOfInterval, setMonth, getYear } from 'date-fns';
 import { fromZonedTime, toZonedTime } from 'date-fns-tz';
 import { sendAppointmentCreatedWebhook } from '@/lib/automations';
@@ -2458,6 +2458,11 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                     <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
                       {(nextSlots.find(d => isSameDay(d.date, selectedDate))?.slots || []).map((slot) => {
                         const isSel = selectedTime === slot;
+                        const promoServiceIds = promoData?.service_ids || (promoData?.service_id ? [promoData.service_id] : []);
+                        const isPromoSlot = isPromoMode && promoData && 
+                          promoServiceIds.length > 0 && 
+                          selectedServices.some(sid => promoServiceIds.includes(sid));
+
                         return (
                           <button
                             key={slot}
@@ -2465,7 +2470,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                               setSelectedTime(slot); 
                               setStep('confirm');
                             }}
-                            className="py-5 rounded-3xl text-sm font-black transition-all duration-300 border-2"
+                            className="py-5 rounded-3xl text-sm font-black transition-all duration-300 border-2 relative overflow-hidden"
                             style={{ 
                               background: isSel ? T.accent : T.card, 
                               borderColor: isSel ? T.accent : T.border,
@@ -2473,6 +2478,11 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                               boxShadow: isSel ? `0 10px 20px -5px ${T.accent}40` : 'none'
                             }}
                           >
+                            {isPromoSlot && (
+                              <div className="absolute top-0 right-0 bg-amber-500 text-[8px] px-1.5 py-0.5 font-black uppercase text-black rounded-bl-lg">
+                                Promo
+                              </div>
+                            )}
                             {formatSlotTime(slot)}
                           </button>
                         );
@@ -2725,15 +2735,40 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                 </div>
               )}
 
-              {/* Final Price */}
-              <div className="pt-4 flex justify-between items-center">
-                <div>
-                  <p className="text-[10px] font-black uppercase tracking-widest opacity-60">Total a Pagar no Local</p>
-                  {cashbackDiscount > 0 && (
-                    <p className="text-xs line-through opacity-40 font-bold">R$ {(Number(totalPrice) || 0).toFixed(2)}</p>
-                  )}
+              {/* Final Price Breakdown */}
+              <div className="pt-4 space-y-2">
+                <div className="flex justify-between items-center text-xs opacity-60 font-bold uppercase tracking-widest">
+                  <span>Subtotal</span>
+                  <p>R$ {(Number(totalPrice) || 0).toFixed(2)}</p>
                 </div>
-                <p className="text-4xl font-black tracking-tighter" style={{ color: T.accent }}>R$ {(Number(finalPrice) || 0).toFixed(2)}</p>
+
+                {isPromoMode && promoData && !isCashbackPromo && (
+                  <div className="flex justify-between items-center text-xs font-bold text-amber-500 uppercase tracking-widest">
+                    <span className="flex items-center gap-1">
+                      <Tag className="h-3 w-3" /> Desconto ({promoData.title})
+                    </span>
+                    <p>- R$ {(Number(totalPrice) - Number(finalPrice)).toFixed(2)}</p>
+                  </div>
+                )}
+
+                {cashbackDiscount > 0 && (
+                  <div className="flex justify-between items-center text-xs font-bold text-green-500 uppercase tracking-widest">
+                    <span>Uso de Cashback</span>
+                    <p>- R$ {Number(cashbackDiscount).toFixed(2)}</p>
+                  </div>
+                )}
+
+                <div className="h-px w-full bg-white/5 my-2" />
+
+                <div className="flex justify-between items-center">
+                  <div>
+                    <p className="text-[10px] font-black uppercase tracking-widest opacity-60">Total a Pagar no Local</p>
+                    {isPromoMode && !isCashbackPromo && (
+                      <p className="text-[10px] text-amber-500 font-bold uppercase tracking-tighter">Você economizou R$ {(Number(totalPrice) - Number(finalPrice)).toFixed(2)}!</p>
+                    )}
+                  </div>
+                  <p className="text-4xl font-black tracking-tighter" style={{ color: T.accent }}>R$ {(Number(finalPrice) || 0).toFixed(2)}</p>
+                </div>
               </div>
             </div>
 
