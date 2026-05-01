@@ -157,6 +157,8 @@ interface PromotionInfo {
   promotion_type?: string;
   cashback_validity_days?: number | null;
   cashback_rules_text?: string | null;
+  booking_opens_at?: string | null;
+  booking_closes_at?: string | null;
 }
 
 const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
