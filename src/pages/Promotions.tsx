@@ -1649,8 +1649,8 @@ export default function Promotions() {
 
             {/* Step indicator (Manual only) */}
             {creationMode === 'manual' && (
-              <div className="shrink-0 px-4 py-3 border-b bg-background sm:px-6">
-                <div className="space-y-3">
+              <div className="shrink-0 px-4 py-2.5 sm:py-3 border-b bg-background sm:px-6">
+                <div className="space-y-2 sm:space-y-3">
                   <div className="flex items-center justify-between text-xs text-muted-foreground">
                     {WIZARD_STEPS.map((step) => (
                       <div key={step.num} className={`flex items-center gap-1.5 ${wizardStep >= step.num ? 'text-primary font-medium' : ''}`}>
