@@ -102,7 +102,7 @@ export function ManualAppointmentDialog({
     setClientsLoading(true);
     const { data } = await supabase
       .from('clients')
-      .select('id, name, whatsapp, email')
+      .select('id, name, whatsapp, email, user_id')
       .eq('company_id', companyId)
       .or(`name.ilike.%${query}%,whatsapp.ilike.%${query}%`)
       .order('name')
