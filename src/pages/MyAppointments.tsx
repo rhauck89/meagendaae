@@ -80,7 +80,7 @@ const MyAppointments = () => {
     }
 
     // Direct query for isolation - includes user_id OR normalized phone match
-    const userPhone = profileData?.whatsapp ? profileData.whatsapp.replace(/\D/g, '') : null;
+    const userPhone = profileWhatsApp ? profileWhatsApp.replace(/\D/g, '') : null;
     
     let query = supabase
       .from('appointments')
