@@ -3247,35 +3247,22 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
               let { data: client } = await query.maybeSingle();
 
               if (!client && targetPhone) {
-                const globalClientPayload: any = {
-                  whatsapp: targetPhone,
-                  name: targetName,
-                  email: targetEmail,
-                };
-                if (!isAdmin && user) globalClientPayload.user_id = user.id;
+                // Ensure Global & Local Client via secure RPC
+                await supabase.rpc('link_client_globally', {
+                  p_user_id: (!isAdmin && user) ? user.id : null,
+                  p_phone: targetPhone,
+                  p_email: targetEmail || '',
+                  p_company_id: company.id,
+                  p_name: targetName
+                });
 
-                const { data: globalClient } = await (supabase
-                  .from('clients_global' as any)
-                  .upsert(globalClientPayload, { onConflict: 'whatsapp' })
-                  .select()
-                  .single() as any);
-
-                const localClientPayload: any = {
-                  company_id: company.id,
-                  global_client_id: globalClient?.id,
-                  name: targetName,
-                  whatsapp: targetPhone,
-                  email: targetEmail,
-                };
-                if (!isAdmin && user) localClientPayload.user_id = user.id;
-
-                const { data: newClient } = await (supabase
-                  .from('clients' as any)
-                  .upsert(localClientPayload, {
-                    onConflict: !isAdmin && user ? 'company_id, user_id' : 'company_id, whatsapp',
-                  })
-                  .select()
-                  .single() as any);
+                // Fetch the newly created/linked client
+                const { data: newClient } = await supabase
+                  .from('clients')
+                  .select('*')
+                  .eq('company_id', company.id)
+                  .eq('whatsapp', targetPhone)
+                  .maybeSingle();
 
                 client = newClient;
               }
