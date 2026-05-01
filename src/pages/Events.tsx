@@ -157,6 +157,7 @@ const Events = () => {
   const [formImagePositionX, setFormImagePositionX] = useState(50);
   const [formImagePositionY, setFormImagePositionY] = useState(50);
   const [formImageZoom, setFormImageZoom] = useState(1);
+  const [formBlockMainSchedule, setFormBlockMainSchedule] = useState(true);
   const [saving, setSaving] = useState(false);
   const [eventSlotStats, setEventSlotStats] = useState<Record<string, { total: number; booked: number }>>({});
   const coverInputRef = useRef<HTMLInputElement>(null);
