@@ -306,8 +306,7 @@ export default function Promotions() {
       fetchPromotions(), 
       fetchServices(), 
       fetchProfessionals(), 
-      fetchCompanyInfo(), 
-      generateInsights()
+      fetchCompanyInfo()
     ]);
     setLoading(false);
   };
