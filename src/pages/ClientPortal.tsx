@@ -65,6 +65,22 @@ interface RewardItem {
   stock_total: number | null; stock_available: number | null;
 }
 
+const getDisplayStatus = (apt: any): string => {
+  if (['completed', 'cancelled', 'no_show', 'rescheduled'].includes(apt.status)) {
+    return apt.status;
+  }
+  const now = new Date();
+  const endTime = parseISO(apt.end_time);
+  const startTime = parseISO(apt.start_time);
+  if ((apt.status === 'confirmed' || apt.status === 'pending') && now > endTime) {
+    return 'late';
+  }
+  if (apt.status === 'confirmed' && now >= startTime && now <= endTime) {
+    return 'in_progress';
+  }
+  return apt.status;
+};
+
 const CompanyHeader = ({ company, size = 'sm' }: { company?: CompanyInfo; size?: 'sm' | 'md' | 'lg' }) => {
   if (!company) return null;
   const dim = size === 'lg' ? 'h-12 w-12' : size === 'md' ? 'h-10 w-10' : 'h-7 w-7';
@@ -356,6 +372,10 @@ const ClientPortal = () => {
       if (!isRevalidation) setLoading(false);
     }
   };
+
+  const anyCashback = companiesWithCashback.length > 0;
+  const anyLoyalty = companiesWithLoyalty.length > 0;
+  const anyRewards = companiesWithRewards.length > 0;
 
   const cashbackByCompany = useMemo(() => {
     const map: Record<string, number> = {};

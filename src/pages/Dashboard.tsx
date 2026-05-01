@@ -609,21 +609,28 @@ const Dashboard = () => {
         </CardHeader>
         <CardContent className="pt-4">
           <div className="space-y-3">
-            {upcomingAppointments.map((apt) => (
-              <UnifiedAppointmentCard
-                key={apt.id}
-                appointment={apt}
-                variant="business"
-                isAdmin={isAdmin}
-                onComplete={handleCompleteClick}
-                onReschedule={openRescheduleDialog}
-                onAdjust={(apt) => { setAdjustTarget(apt); setAdjustDialogOpen(true); }}
-                onCancel={(apt) => { setCancelTarget(apt); setCancelDialogOpen(true); }}
-                onUpdateStatus={updateStatus}
-                onRegisterDelay={(apt) => { setDelayTargetId(apt.id); setDelayTargetApt(apt); setDelayDialogOpen(true); }}
-                onWhatsApp={(apt) => openWhatsApp(apt.client?.whatsapp || '', `Olá ${apt.client?.name}, confirmando seu agendamento hoje às ${format(parseISO(apt.start_time), 'HH:mm')}`)}
-              />
-            ))}
+            {upcomingAppointments.length > 0 ? (
+              upcomingAppointments.map((apt) => (
+                <UnifiedAppointmentCard
+                  key={apt.id}
+                  appointment={apt}
+                  variant="business"
+                  isAdmin={isAdmin}
+                  onComplete={handleCompleteClick}
+                  onReschedule={openRescheduleDialog}
+                  onAdjust={(apt) => { setAdjustTarget(apt); setAdjustDialogOpen(true); }}
+                  onCancel={(apt) => { setCancelTarget(apt); setCancelDialogOpen(true); }}
+                  onUpdateStatus={updateStatus}
+                  onRegisterDelay={(apt) => { setDelayTargetId(apt.id); setDelayTargetApt(apt); setDelayDialogOpen(true); }}
+                  onWhatsApp={(apt) => openWhatsApp(apt.client?.whatsapp || '', `Olá ${apt.client?.name}, confirmando seu agendamento hoje às ${format(parseISO(apt.start_time), 'HH:mm')}`)}
+                />
+              ))
+            ) : (
+              <div className="text-center py-8 text-muted-foreground">
+                <Clock className="h-12 w-12 mx-auto mb-2 opacity-30" />
+                <p className="text-sm">Nenhum agendamento próximo</p>
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>
