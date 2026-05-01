@@ -190,8 +190,8 @@ const ClientPortal = () => {
 
   const primaryClient = clients[0];
   const isRegistrationIncomplete = useMemo(() => {
-    const email = globalProfile?.email || primaryClient?.email;
-    const birthDate = globalProfile?.birth_date || primaryClient?.birth_date;
+    const email = (globalProfile as any)?.email || primaryClient?.email;
+    const birthDate = (globalProfile as any)?.birth_date || primaryClient?.birth_date;
     return !email || !birthDate;
   }, [primaryClient, globalProfile]);
 
