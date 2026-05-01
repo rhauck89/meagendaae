@@ -48,8 +48,6 @@ const MyAppointments = () => {
     const currentUserId = isAdmin ? null : user?.id;
     let profileWhatsApp = null;
 
-    // Get user's phone from profile and link any unlinked client records
-    // Skip for admins
     if (currentUserId) {
       const { data: profileData } = await supabase
         .from('profiles')
@@ -58,14 +56,6 @@ const MyAppointments = () => {
         .single();
       
       profileWhatsApp = profileData?.whatsapp;
-
-      if (profileWhatsApp || user!.email) {
-        await supabase.rpc('link_client_to_user', {
-          p_user_id: currentUserId,
-          p_phone: profileWhatsApp || '',
-          p_email: user!.email || '',
-        } as any);
-      }
     }
 
     // Admin context check
@@ -79,30 +69,7 @@ const MyAppointments = () => {
       }
     }
 
-    // Direct query for isolation - includes user_id OR normalized phone match
-    const userPhone = profileWhatsApp ? profileWhatsApp.replace(/\D/g, '') : null;
-    
-    let query = supabase
-      .from('appointments')
-      .select(`
-        *,
-        professional:profiles!appointments_professional_id_fkey(full_name),
-        company:companies(name),
-        appointment_services(*, service:services(name))
-      `);
-
-    if (isAdmin && adminClientContext?.whatsapp) {
-      const adminPhone = adminClientContext.whatsapp.replace(/\D/g, '');
-      query = query.or(`client_whatsapp.eq.${adminPhone}${adminClientContext.email ? `,client_email.eq.${adminClientContext.email}` : ''}`);
-    } else {
-      const conditions = [`user_id.eq.${currentUserId || '00000000-0000-0000-0000-000000000000'}`];
-      if (userPhone) {
-        conditions.push(`client_whatsapp.eq.${userPhone}`);
-      }
-      query = query.or(conditions.join(','));
-    }
-
-    const { data, error } = await query.order('start_time', { ascending: false });
+    const { data, error } = await supabase.rpc('get_client_appointments_v2');
 
     if (error) {
       console.error('[MyAppointments] fetch error:', error);

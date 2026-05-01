@@ -203,14 +203,6 @@ const ClientPortal = () => {
         const { data } = await supabase
           .from('profiles').select('whatsapp').eq('user_id', currentUserId).maybeSingle();
         profileData = data;
-
-        if (profileData?.whatsapp || user!.email) {
-          await supabase.rpc('link_client_to_user', {
-            p_user_id: currentUserId,
-            p_phone: profileData?.whatsapp || '',
-            p_email: user!.email || '',
-          } as any);
-        }
       }
 
       let adminClientContext: any = null;
@@ -223,12 +215,14 @@ const ClientPortal = () => {
         }
       }
 
+      const apptsRes = await supabase.rpc('get_client_appointments_v2');
+      const appointmentsData = (apptsRes.data || []) as any[];
+
       const clientQuery = supabase.from('clients').select('id, company_id, name, whatsapp, email, birth_date, registration_complete, postal_code, street, address_number, district, city, state');
       const cashbackQuery = supabase.from('client_cashback').select('id, amount, status, expires_at, created_at, company_id, promotion:promotions!client_cashback_promotion_id_fkey(title)');
       const cbTxQuery = supabase.from('cashback_transactions').select('*');
       const lpTxQuery = supabase.from('loyalty_points_transactions').select('*');
       const redemptionsQuery = supabase.from('loyalty_redemptions').select('id, redemption_code, status, created_at, total_points, reward_id, company_id, client_id');
-      const apptsQuery = supabase.from('appointments').select('id, start_time, end_time, total_price, status, company_id, promotion_id, original_price, promotion_discount, cashback_used, manual_discount, final_price, company:companies!appointments_company_id_fkey(id, name, logo_url, slug), professional:profiles!appointments_professional_id_fkey(id, full_name, avatar_url), appointment_services(price, service:services(id, name))');
 
       const applyFilters = (query: any, clientEmailField = 'email', clientPhoneField = 'whatsapp') => {
         const profilePhone = profileData?.whatsapp ? profileData.whatsapp.replace(/\D/g, '') : null;
@@ -265,16 +259,14 @@ const ClientPortal = () => {
         cashbackTxRes,
         loyaltyTxRes,
         rewardsRes,
-        redemptionsRes,
-        appointmentsRes
+        redemptionsRes
       ] = await Promise.all([
         applyFilters(clientQuery),
         applyFilters(cashbackQuery).order('created_at', { ascending: false }),
         applyFilters(cbTxQuery).order('created_at', { ascending: false }).limit(300),
         applyFilters(lpTxQuery).order('created_at', { ascending: false }).limit(300),
         supabase.from('loyalty_reward_items').select('id, name, description, points_required, real_value, extra_cost, image_url, item_type, company_id, stock_total, stock_available, company:companies!loyalty_reward_items_company_id_fkey(id, name, logo_url, slug)').eq('active', true),
-        applyFilters(redemptionsQuery).order('created_at', { ascending: false }).limit(50),
-        applyFilters(apptsQuery, 'client_email', 'client_whatsapp').order('start_time', { ascending: false }).limit(200)
+        applyFilters(redemptionsQuery).order('created_at', { ascending: false }).limit(50)
       ]);
 
       if (!clientRes.data || (clientRes.data as any[]).length === 0) {
@@ -284,7 +276,7 @@ const ClientPortal = () => {
       
       const clientData = clientRes.data as any[];
       setClients(clientData as ClientRecord[]);
-      setAppointments((appointmentsRes.data || []) as any);
+      setAppointments(appointmentsData);
       setAllCashbacks((cashbackRes.data || []) as any);
       setAllCashbackTxs((cashbackTxRes.data || []) as any);
       setAllLoyaltyTxs((loyaltyTxRes.data || []) as any);
@@ -301,7 +293,7 @@ const ClientPortal = () => {
       }
 
       // Add companies from rewards and appointments
-      [...(rewardsRes.data || []), ...(appointmentsRes.data || [])].forEach((item: any) => {
+      [...(rewardsRes.data || []), ...appointmentsData].forEach((item: any) => {
         if (item.company && !companiesMap[item.company.id]) {
           companiesMap[item.company.id] = { id: item.company.id, name: item.company.name, logo_url: item.company.logo_url, slug: item.company.slug };
         }
@@ -340,7 +332,7 @@ const ClientPortal = () => {
       // Persist to cache
       writeCache({
         clients: clientData as ClientRecord[],
-        appointments: (appointmentsRes.data || []) as any,
+        appointments: appointmentsData,
         allCashbacks: (cashbackRes.data || []) as any,
         allCashbackTxs: (cashbackTxRes.data || []) as any,
         allLoyaltyTxs: (loyaltyTxRes.data || []) as any,
