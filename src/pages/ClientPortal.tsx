@@ -190,9 +190,10 @@ const ClientPortal = () => {
 
   const primaryClient = clients[0];
   const isRegistrationIncomplete = useMemo(() => {
-    if (!primaryClient) return true;
-    return !primaryClient.email || !primaryClient.birth_date;
-  }, [primaryClient]);
+    const email = globalProfile?.email || primaryClient?.email;
+    const birthDate = globalProfile?.birth_date || primaryClient?.birth_date;
+    return !email || !birthDate;
+  }, [primaryClient, globalProfile]);
 
   const loadClientData = async (isRevalidation = false) => {
     if (!isRevalidation) setLoading(true);
@@ -329,7 +330,22 @@ const ClientPortal = () => {
       setLoyaltyConfigs(lcMap);
 
       // Profile form initialization
-      if (clientData.length > 0) {
+      const { data: globalClientData } = await supabase.from('clients_global').select('*').eq('user_id', currentUserId).maybeSingle();
+      if (globalClientData) {
+        setGlobalProfile(globalClientData);
+        setProfileForm({
+          name: globalClientData.name || '', 
+          whatsapp: globalClientData.whatsapp || '', 
+          email: globalClientData.email || '',
+          birth_date: globalClientData.birth_date || '',
+          postal_code: (globalClientData as any).postal_code || '', 
+          street: (globalClientData as any).street || '',
+          address_number: (globalClientData as any).address_number || '', 
+          district: (globalClientData as any).district || '',
+          city: (globalClientData as any).city || '', 
+          state: (globalClientData as any).state || '',
+        });
+      } else if (clientData.length > 0) {
         const c = clientData[0];
         setProfileForm({
           name: c.name || '', whatsapp: c.whatsapp || '', email: c.email || '',
