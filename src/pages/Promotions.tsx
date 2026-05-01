@@ -259,8 +259,6 @@ export default function Promotions() {
   const [companySlug, setCompanySlug] = useState('');
   const [companyBusinessType, setCompanyBusinessType] = useState('');
   const [metrics, setMetrics] = useState<PromoMetrics>({ clicks: 0, bookings: 0, clientsReached: 0 });
-  const [insights, setInsights] = useState<PromotionInsight[]>([]);
-  const [activeInsightIndex, setActiveInsightIndex] = useState(0);
 
   // Feature discovery intro
   useEffect(() => {
@@ -273,13 +271,7 @@ export default function Promotions() {
   useEffect(() => {
     const interval = setInterval(() => {
       setNow(new Date());
-      setInsights(prev => {
-        if (prev.length > 1) {
-          setActiveInsightIndex(current => (current + 1) % prev.length);
-        }
-        return prev;
-      });
-    }, 15000); // Rotate every 15s
+    }, 15000); // Update clock every 15s
     return () => clearInterval(interval);
   }, []);
 
@@ -308,8 +300,7 @@ export default function Promotions() {
       fetchPromotions(), 
       fetchServices(), 
       fetchProfessionals(), 
-      fetchCompanyInfo(), 
-      generateInsights()
+      fetchCompanyInfo()
     ]);
     setLoading(false);
   };
@@ -350,116 +341,6 @@ export default function Promotions() {
     if (data) setProfessionals(data);
   };
 
-  const generateInsights = async () => {
-    if (!companyId) return;
-    const newInsights: PromotionInsight[] = [];
-    
-    // 1. Tomorrow's occupancy
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    const dateStr = format(tomorrow, 'yyyy-MM-dd');
-    const { data: tomorrowApps } = await supabase
-      .from('appointments')
-      .select('id')
-      .eq('company_id', companyId!)
-      .gte('start_time', `${dateStr}T00:00:00`)
-      .lte('start_time', `${dateStr}T23:59:59`)
-      .in('status', ['confirmed', 'pending']);
-
-    const appCount = tomorrowApps?.length || 0;
-    if (appCount < 5) {
-      newInsights.push({
-        type: 'low_occupancy',
-        title: '📉 Agenda com vagas amanhã',
-        description: `Você tem apenas ${appCount} horários agendados para amanhã.`,
-        buttonLabel: '⚡ Criar promoção automática',
-        icon: TrendingUp,
-        data: { date: dateStr }
-      });
-    }
-
-    // 2. Birthdays this month
-    const currentMonth = new Date().getMonth() + 1;
-    const { data: clients } = await supabase
-      .from('clients')
-      .select('id, name, birth_date')
-      .eq('company_id', companyId!)
-      .not('birth_date', 'is', null);
-    
-    const bdaysThisMonth = clients?.filter(c => {
-      if (!c.birth_date) return false;
-      const m = parseInt(c.birth_date.split('-')[1]);
-      return m === currentMonth;
-    }) || [];
-
-    if (bdaysThisMonth.length > 0) {
-      newInsights.push({
-        type: 'birthdays',
-        title: `🎂 ${bdaysThisMonth.length} aniversariantes este mês`,
-        description: 'Envie um presente especial para fidelizar esses clientes.',
-        buttonLabel: '🎁 Criar campanha aniversário',
-        icon: Users,
-        data: { count: bdaysThisMonth.length }
-      });
-    }
-
-    // 3. Reactivation (Inactive)
-    const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-    const { data: recentApps } = await supabase
-      .from('appointments')
-      .select('client_id')
-      .eq('company_id', companyId!)
-      .gte('start_time', thirtyDaysAgo.toISOString())
-      .limit(100);
-    
-    const recentClientIds = new Set(recentApps?.map(a => a.client_id));
-    const inactiveCount = (clients?.length || 0) - recentClientIds.size;
-    
-    if (inactiveCount > 5) {
-      newInsights.push({
-        type: 'reactivation',
-        title: `😴 ${inactiveCount} clientes inativos`,
-        description: 'Eles não aparecem há mais de 30 dias. Chame-os de volta!',
-        buttonLabel: '🔁 Criar campanha reativação',
-        icon: RefreshCw,
-        data: { count: inactiveCount }
-      });
-    }
-
-    // 4. Lunch time
-    const currentHour = new Date().getHours();
-    const isPastLunch = currentHour >= 14;
-    newInsights.push({
-      type: 'lunch_time',
-      title: isPastLunch ? '🍽️ Almoço de Amanhã' : '🍽️ Horário fraco no almoço',
-      description: isPastLunch ? 'Já comece a lotar seu horário de almoço de amanhã.' : 'Geralmente as 11h às 14h são horários mais calmos.',
-      buttonLabel: isPastLunch ? '☀️ Promo almoço amanhã' : '☀️ Promo almoço',
-      icon: Clock,
-      data: { isTomorrow: isPastLunch }
-    });
-
-    // 5. Afternoon
-    const isPastAfternoon = currentHour >= 19;
-    newInsights.push({
-      type: 'afternoon_low',
-      title: isPastAfternoon ? '🌙 Tarde de Amanhã' : '🌙 Fim de tarde com baixa ocupação',
-      description: isPastAfternoon ? 'Garanta agendamentos para o fim da tarde de amanhã.' : 'Preencha os horários após as 17h com um desconto rápido.',
-      buttonLabel: isPastAfternoon ? '🌙 Promo tarde amanhã' : '🌙 Promo fim de tarde',
-      icon: Flame,
-      data: { isTomorrow: isPastAfternoon }
-    });
-
-    // Tip fallback
-    newInsights.push({
-      type: 'tip',
-      title: '💡 Dica de Especialista',
-      description: 'Promoções curtas (2-3 dias) com escassez convertem muito mais.',
-      icon: Megaphone
-    });
-
-    setInsights(newInsights);
-  };
 
   const applyInsight = (insight: PromotionInsight) => {
     resetForm();
@@ -1745,79 +1626,6 @@ export default function Promotions() {
         </Dialog>
       </div>
 
-      {/* Smart Promotions / Oportunidades */}
-      {insights.length > 0 && (
-        <Card className="border-dashed border-primary/40 bg-primary/5 mb-6 overflow-hidden relative transition-all duration-300">
-          <div className="absolute top-0 left-0 w-1 h-full bg-primary" />
-          <CardContent className="py-4">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-              <div className="flex items-center gap-4 transition-all duration-500 animate-in fade-in slide-in-from-right-4" key={activeInsightIndex}>
-                <div className="bg-white dark:bg-slate-900 p-2.5 rounded-full shadow-sm border border-primary/10">
-                  {insights[activeInsightIndex] && (() => {
-                    const Icon = insights[activeInsightIndex].icon;
-                    return <Icon className="h-5 w-5 text-primary" />;
-                  })()}
-                </div>
-                <div>
-                  <h3 className="font-semibold text-sm flex items-center gap-2">
-                    {insights[activeInsightIndex].title}
-                    {insights.length > 1 && (
-                      <span className="text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded-full font-normal">
-                        {activeInsightIndex + 1}/{insights.length}
-                      </span>
-                    )}
-                  </h3>
-                  <p className="text-xs text-muted-foreground">{insights[activeInsightIndex].description}</p>
-                </div>
-              </div>
-              
-              <div className="flex items-center justify-between w-full sm:w-auto gap-2">
-                {insights.length > 1 && (
-                  <div className="flex items-center gap-1">
-                    <Button 
-                      variant="ghost" 
-                      size="icon" 
-                      className="h-8 w-8 rounded-full hover:bg-white/50 dark:hover:bg-slate-800/50" 
-                      onClick={() => setActiveInsightIndex(prev => (prev - 1 + insights.length) % insights.length)}
-                    >
-                      <ChevronLeft className="h-4 w-4" />
-                    </Button>
-                    <Button 
-                      variant="ghost" 
-                      size="icon" 
-                      className="h-8 w-8 rounded-full hover:bg-white/50 dark:hover:bg-slate-800/50" 
-                      onClick={() => setActiveInsightIndex(prev => (prev + 1) % insights.length)}
-                    >
-                      <ChevronRight className="h-4 w-4" />
-                    </Button>
-                  </div>
-                )}
-                
-                {insights[activeInsightIndex].buttonLabel && (
-                  <Button 
-                    size="sm" 
-                    className="gap-2 shadow-sm font-medium"
-                    onClick={() => applyInsight(insights[activeInsightIndex])}
-                  >
-                    {insights[activeInsightIndex].buttonLabel}
-                  </Button>
-                )}
-              </div>
-            </div>
-          </CardContent>
-          
-          {/* Progress bar for auto-rotation */}
-          {insights.length > 1 && (
-            <div className="absolute bottom-0 left-0 w-full h-0.5 bg-primary/5">
-              <div 
-                style={{ transitionDuration: '15s', width: '100%' }}
-                className="h-full bg-primary/20 transition-all ease-linear"
-                key={activeInsightIndex}
-              />
-            </div>
-          )}
-        </Card>
-      )}
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
