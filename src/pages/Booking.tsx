@@ -1637,10 +1637,12 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
         p_client_name: clientForm.full_name ?? null,
         p_client_whatsapp: formattedWhatsapp ?? null,
         p_notes: null as string | null,
-        p_promotion_id: promoData?.id ?? null,
+        p_promotion_id: currentPromo?.id ?? null,
         p_services: aptServicesPayload,
         p_cashback_ids: useCashback && cashbackCredits.length > 0 ? cashbackCredits.map(c => c.id) : [],
-        p_user_id: user?.id ?? null
+        p_user_id: user?.id ?? null,
+        p_booking_origin: 'public_booking',
+        p_client_email: clientForm.email || null,
       };
 
       console.log('[BOOKING_INSERT_ATTEMPT]', { 
