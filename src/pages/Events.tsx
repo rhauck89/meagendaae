@@ -1348,8 +1348,8 @@ const Events = () => {
             {renderWizardStepIndicator()}
           </div>
 
-          <DialogBody className="p-4 sm:p-6">
-            <div className="min-h-[300px]">
+          <DialogBody className="p-4 sm:p-6 pt-2 sm:pt-6">
+            <div className="flex-1 flex flex-col">
               {wizardStep === 0 && renderStep1Details()}
               {wizardStep === 1 && renderStep2Schedule()}
               {wizardStep === 2 && renderStep3Prices()}
