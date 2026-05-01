@@ -27,7 +27,37 @@ import { formatWhatsApp, displayWhatsApp, buildWhatsAppUrl, trackWhatsAppClick }
 
 interface Promotion {
   id: string;
-...
+  title: string;
+  description: string | null;
+  slug: string | null;
+  service_id: string | null;
+  service_ids: string[] | null;
+  promotion_price: number | null;
+  original_price: number | null;
+  discount_type: string;
+  discount_value: number | null;
+  start_date: string;
+  end_date: string;
+  start_time: string | null;
+  end_time: string | null;
+  use_business_hours?: boolean;
+  valid_days?: number[];
+  min_interval_minutes?: number;
+  max_slots: number;
+  used_slots: number;
+  client_filter: string;
+  client_filter_value: number | null;
+  professional_filter: string;
+  professional_ids: string[] | null;
+  message_template: string | null;
+  status: string;
+  created_at: string;
+  created_by: string | null;
+  promotion_type: string;
+  cashback_validity_days: number | null;
+  cashback_rules_text: string | null;
+  cashback_cumulative: boolean;
+  promotion_mode?: 'manual' | 'smart';
   source_insight?: string;
   booking_opens_at: string | null;
   booking_closes_at: string | null;
