@@ -2376,7 +2376,11 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                             start: currentWeekStart,
                             end: addDays(currentWeekStart, 6)
                           }).map((date) => {
-                            const isPast = date < startOfDay(new Date());
+                            const isOutsidePromo = isPromoMode && promoData && (
+                              format(date, 'yyyy-MM-dd') < promoData.start_date ||
+                              format(date, 'yyyy-MM-dd') > promoData.end_date
+                            );
+                            const isPast = date < startOfDay(new Date()) || isOutsidePromo;
                             const isSel = selectedDate && isSameDay(date, selectedDate);
                             const isTod = isToday(date);
                             const dayName = format(date, "EEE", { locale: ptBR });
