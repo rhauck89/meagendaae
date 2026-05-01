@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 
 const DISMISSED_KEY = 'dismissed_platform_messages';
 
@@ -17,6 +17,12 @@ const getDismissedIds = (): string[] => {
 export const usePlatformMessages = () => {
   const { companyId } = useAuth();
   const [dismissedIds, setDismissedIds] = useState<string[]>(getDismissedIds);
+
+  useEffect(() => {
+    const count = (window as any)._trace_usePlatformMessages = ((window as any)._trace_usePlatformMessages || 0) + 1;
+    console.log('[SUPER_ADMIN_EFFECT_TRACE]', { component: "usePlatformMessages", effect: "render", count, deps: [companyId] });
+  });
+
 
   const dismiss = useCallback((id: string) => {
     setDismissedIds(prev => {

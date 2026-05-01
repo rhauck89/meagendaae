@@ -13,6 +13,13 @@ const SuperAdminDashboard = () => {
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
+  // Trace logs
+  useEffect(() => {
+    const count = (window as any)._trace_SuperAdminDashboard = ((window as any)._trace_SuperAdminDashboard || 0) + 1;
+    console.log('[SUPER_ADMIN_RENDER_TRACE]', { component: "SuperAdminDashboard", count, pathname: window.location.pathname, timestamp: Date.now() });
+  });
+
+
   useEffect(() => {
     const fetchAll = async () => {
       const [compRes, ticketRes] = await Promise.all([

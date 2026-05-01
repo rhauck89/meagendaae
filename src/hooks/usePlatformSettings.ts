@@ -46,7 +46,11 @@ export const usePlatformSettings = (): PlatformSettings | null => {
   const [settings, setSettings] = useState<PlatformSettings | null>(cachedSettings);
 
   useEffect(() => {
+    const count = (window as any)._trace_usePlatformSettings = ((window as any)._trace_usePlatformSettings || 0) + 1;
+    console.log('[SUPER_ADMIN_EFFECT_TRACE]', { component: "usePlatformSettings", effect: "init", count });
+    
     if (cachedSettings) {
+
       setSettings(cachedSettings);
       return;
     }

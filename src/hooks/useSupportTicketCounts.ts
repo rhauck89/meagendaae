@@ -12,7 +12,11 @@ export const useSupportTicketCounts = (isSuperAdmin: boolean) => {
   const [counts, setCounts] = useState<TicketCounts>({ open: 0, in_progress: 0, answered: 0, total_pending: 0 });
 
   useEffect(() => {
+    const count = (window as any)._trace_useSupportTicketCounts = ((window as any)._trace_useSupportTicketCounts || 0) + 1;
+    console.log('[SUPER_ADMIN_EFFECT_TRACE]', { component: "useSupportTicketCounts", effect: "isSuperAdmin-change", count, deps: [isSuperAdmin] });
+    
     if (!isSuperAdmin) return;
+
 
     const fetchCounts = async () => {
       const { data } = await supabase

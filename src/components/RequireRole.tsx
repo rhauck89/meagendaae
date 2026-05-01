@@ -1,5 +1,6 @@
 import { useAuth } from '@/contexts/AuthContext';
 import { Navigate } from 'react-router-dom';
+import { useEffect } from 'react';
 
 interface RequireRoleProps {
   role: string;
@@ -9,6 +10,12 @@ interface RequireRoleProps {
 
 const RequireRole = ({ role, children, fallback }: RequireRoleProps) => {
   const { user, loading, roles } = useAuth();
+  
+  useEffect(() => {
+    const count = (window as any)._trace_RequireRole = ((window as any)._trace_RequireRole || 0) + 1;
+    console.log('[SUPER_ADMIN_RENDER_TRACE]', { component: `RequireRole(${role})`, count, loading, hasUser: !!user, roles: roles?.join(','), timestamp: Date.now() });
+  });
+
 
   if (loading) {
     return (
