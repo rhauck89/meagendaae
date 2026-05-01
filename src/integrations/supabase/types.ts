@@ -6775,44 +6775,26 @@ export type Database = {
         Args: { p_appointment_id: string; p_services: Json }
         Returns: undefined
       }
-      create_appointment_v2:
-        | {
-            Args: {
-              p_cashback_ids?: string[]
-              p_client_id: string
-              p_client_name: string
-              p_client_whatsapp: string
-              p_company_id: string
-              p_end_time: string
-              p_notes: string
-              p_professional_id: string
-              p_promotion_id: string
-              p_services: Json
-              p_start_time: string
-              p_total_price: number
-              p_user_id?: string
-            }
-            Returns: string
-          }
-        | {
-            Args: {
-              p_booking_origin?: string
-              p_cashback_ids?: string[]
-              p_client_id: string
-              p_client_name: string
-              p_client_whatsapp: string
-              p_company_id: string
-              p_end_time: string
-              p_notes: string
-              p_professional_id: string
-              p_promotion_id: string
-              p_services: Json
-              p_start_time: string
-              p_total_price: number
-              p_user_id?: string
-            }
-            Returns: string
-          }
+      create_appointment_v2: {
+        Args: {
+          p_booking_origin?: string
+          p_cashback_ids?: string[]
+          p_client_email?: string
+          p_client_id: string
+          p_client_name: string
+          p_client_whatsapp: string
+          p_company_id: string
+          p_end_time: string
+          p_notes: string
+          p_professional_id: string
+          p_promotion_id: string
+          p_services: Json
+          p_start_time: string
+          p_total_price: number
+          p_user_id?: string
+        }
+        Returns: string
+      }
       create_client: {
         Args: {
           p_birth_date?: string
