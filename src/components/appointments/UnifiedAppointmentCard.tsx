@@ -199,17 +199,20 @@ export function UnifiedAppointmentCard({
 
       <div className="flex justify-between items-start gap-3">
         <div className="flex gap-3 sm:gap-4 items-start">
-          <div className="flex flex-col items-center justify-center bg-background/60 backdrop-blur-sm rounded-xl px-2.5 py-1.5 min-w-[70px] border border-border/40 shadow-sm">
+          <div className="flex flex-col items-center justify-center bg-background/60 backdrop-blur-sm rounded-xl px-2.5 py-1.5 min-w-[75px] border border-border/40 shadow-sm">
             <p className="text-lg font-display font-bold text-foreground tracking-tight">
               {format(startTime, 'HH:mm')}
             </p>
             {variant === 'business' && (
-              <p className="text-[10px] text-muted-foreground font-medium -mt-1 mb-0.5">
+              <p className="text-[9px] text-muted-foreground/70 font-medium -mt-1 mb-0.5">
                 até {format(endTime, 'HH:mm')}
               </p>
             )}
-            <p className="text-[10px] font-bold text-primary uppercase tracking-wider text-center">
-              {format(startTime, "d 'de' MMM", { locale: ptBR })}
+            <p className="text-[10px] font-bold text-primary uppercase tracking-wider text-center leading-none">
+              {referenceDate && isSameDay(startTime, referenceDate) 
+                ? 'HOJE' 
+                : format(startTime, "dd 'DE' MMM", { locale: ptBR }).toUpperCase()
+              }
             </p>
           </div>
 
