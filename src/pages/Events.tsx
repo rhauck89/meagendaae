@@ -921,6 +921,17 @@ const Events = () => {
       )}
 
       {/* Cover Image Upload */}
+      {!formCoverPreview && (
+        <Button 
+          variant="outline" 
+          size="sm" 
+          className="w-full sm:hidden gap-2 mb-2" 
+          onClick={(e) => { e.preventDefault(); coverInputRef.current?.click(); }}
+          disabled={uploadingCover}
+        >
+          <Upload className="h-4 w-4" /> {uploadingCover ? 'Enviando...' : 'Adicionar imagem de capa'}
+        </Button>
+      )}
       <div className={cn(!formCoverPreview && "hidden sm:block")}>
         <Label>Imagem de capa</Label>
         <p className="text-xs text-muted-foreground mb-2">Recomendado: 1200×400 px · JPG ou PNG</p>
