@@ -271,13 +271,7 @@ export default function Promotions() {
   useEffect(() => {
     const interval = setInterval(() => {
       setNow(new Date());
-      setInsights(prev => {
-        if (prev.length > 1) {
-          setActiveInsightIndex(current => (current + 1) % prev.length);
-        }
-        return prev;
-      });
-    }, 15000); // Rotate every 15s
+    }, 15000); // Update clock every 15s
     return () => clearInterval(interval);
   }, []);
 
