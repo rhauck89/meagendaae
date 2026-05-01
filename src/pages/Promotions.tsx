@@ -1637,8 +1637,8 @@ export default function Promotions() {
               Nova Promoção
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-3xl p-0 flex flex-col overflow-hidden">
-            <DialogHeader>
+          <DialogContent className="fixed inset-0 w-screen h-[100dvh] max-w-none max-h-[100dvh] rounded-none p-0 flex flex-col overflow-hidden sm:relative sm:inset-auto sm:max-w-3xl sm:h-auto sm:max-h-[90vh] sm:rounded-2xl sm:translate-none">
+            <DialogHeader className="shrink-0">
               <DialogTitle>
                 {isEditing ? 'Editar Promoção' : 
                  creationMode === 'choice' ? 'Como deseja criar?' :
@@ -1647,10 +1647,10 @@ export default function Promotions() {
               </DialogTitle>
             </DialogHeader>
 
-            {/* Step indicator (Manual only) */}
+            {/* Step indicator (Manual only) - Desktop only here */}
             {creationMode === 'manual' && (
-              <div className="shrink-0 px-4 py-2.5 sm:py-3 border-b bg-background sm:px-6">
-                <div className="space-y-2 sm:space-y-3">
+              <div className="hidden sm:block shrink-0 px-6 py-3 border-b bg-background">
+                <div className="space-y-3">
                   <div className="flex items-center justify-between text-xs text-muted-foreground">
                     {WIZARD_STEPS.map((step) => (
                       <div key={step.num} className={`flex items-center gap-1.5 ${wizardStep >= step.num ? 'text-primary font-medium' : ''}`}>
@@ -1670,7 +1670,30 @@ export default function Promotions() {
               </div>
             )}
 
-            <DialogBody className="p-4 sm:p-6 pt-2 sm:pt-6">
+            <DialogBody className="flex-1 overflow-y-auto p-4 sm:p-6 sm:pt-6">
+              {/* Step indicator (Manual only) - Mobile only here */}
+              {creationMode === 'manual' && (
+                <div className="block sm:hidden mb-6">
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between text-xs text-muted-foreground">
+                      {WIZARD_STEPS.map((step) => (
+                        <div key={step.num} className={`flex items-center gap-1.5 ${wizardStep >= step.num ? 'text-primary font-medium' : ''}`}>
+                          <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] border-2 transition-colors ${
+                            wizardStep > step.num ? 'bg-primary border-primary text-primary-foreground' :
+                            wizardStep === step.num ? 'border-primary text-primary' :
+                            'border-muted-foreground/30'
+                          }`}>
+                            {wizardStep > step.num ? <Check className="h-2.5 w-2.5" /> : step.num}
+                          </div>
+                          <span className="text-[10px]">{step.label}</span>
+                        </div>
+                      ))}
+                    </div>
+                    <Progress value={(wizardStep / totalSteps) * 100} className="h-1" />
+                  </div>
+                </div>
+              )}
+
               {/* Step content */}
               {creationMode === 'choice' && !isEditing && renderChoiceScreen()}
               {creationMode === 'smart' && !isEditing && renderSmartScreen()}
@@ -1687,7 +1710,7 @@ export default function Promotions() {
 
             {/* Navigation (Manual only) */}
             {creationMode === 'manual' && (
-              <DialogFooter className="flex-row items-center justify-between border-t bg-background p-4 sm:p-6">
+              <DialogFooter className="shrink-0 flex-row items-center justify-between border-t bg-background p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:p-6">
                 {wizardStep > 1 ? (
                   <Button variant="outline" onClick={goBack} className="h-10 px-4">
                     <ChevronLeft className="h-4 w-4 mr-1" /> <span className="hidden sm:inline">Voltar</span>
@@ -1712,7 +1735,7 @@ export default function Promotions() {
             )}
 
             {creationMode === 'smart' && (
-              <DialogFooter className="flex-row items-center justify-start border-t bg-background p-4 sm:p-6">
+              <DialogFooter className="shrink-0 flex-row items-center justify-start border-t bg-background p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:p-6">
                 <Button variant="outline" onClick={() => setCreationMode('choice')} className="h-10 px-4">
                   <ChevronLeft className="h-4 w-4 mr-1" /> <span className="hidden sm:inline">Voltar</span>
                 </Button>
