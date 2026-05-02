@@ -596,15 +596,31 @@ const AppointmentRequests = () => {
               <Check className="h-10 w-10 text-green-600" />
             </div>
             <DialogHeader>
-              <DialogTitle className="text-xl">✅ Solicitação aceita com sucesso</DialogTitle>
+              <DialogTitle className="text-xl">
+                {actionType === 'accept' && "✅ Solicitação aceita"}
+                {actionType === 'suggest' && "🕒 Sugestão enviada"}
+                {actionType === 'reject' && "❌ Solicitação recusada"}
+              </DialogTitle>
             </DialogHeader>
             
             <div className="bg-muted/30 p-4 rounded-lg w-full space-y-2 border">
               <p className="text-sm flex justify-between"><span className="text-muted-foreground">Cliente:</span> <span className="font-semibold">{selectedRequest?.client_name}</span></p>
-              <p className="text-sm flex justify-between">
-                <span className="text-muted-foreground">Data:</span> <span className="font-semibold">{selectedRequest && format(new Date(selectedRequest.requested_date + 'T12:00:00'), "dd/MM/yyyy", { locale: ptBR })}</span>
-              </p>
-              <p className="text-sm flex justify-between"><span className="text-muted-foreground">Hora:</span> <span className="font-semibold">{selectedRequest?.requested_time.slice(0, 5)}</span></p>
+              
+              {actionType === 'suggest' ? (
+                <>
+                  <p className="text-sm flex justify-between">
+                    <span className="text-muted-foreground">Nova data:</span> <span className="font-semibold">{suggestedDate && format(new Date(suggestedDate + 'T12:00:00'), "dd/MM/yyyy", { locale: ptBR })}</span>
+                  </p>
+                  <p className="text-sm flex justify-between"><span className="text-muted-foreground">Novo horário:</span> <span className="font-semibold">{suggestedTime?.slice(0, 5)}</span></p>
+                </>
+              ) : (
+                <>
+                  <p className="text-sm flex justify-between">
+                    <span className="text-muted-foreground">Data:</span> <span className="font-semibold">{selectedRequest && format(new Date(selectedRequest.requested_date + 'T12:00:00'), "dd/MM/yyyy", { locale: ptBR })}</span>
+                  </p>
+                  <p className="text-sm flex justify-between"><span className="text-muted-foreground">Hora:</span> <span className="font-semibold">{selectedRequest?.requested_time.slice(0, 5)}</span></p>
+                </>
+              )}
             </div>
 
             <div className="w-full pt-4 space-y-2">
