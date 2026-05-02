@@ -134,9 +134,15 @@ const Clients = () => {
   });
 
   // Derive client IDs from appointments for professional view
+  // Matches the logic in the RPC 'get_company_dashboard_stats'
   const professionalClientIds = useMemo(() => {
     if (isAdmin) return null;
-    return new Set(appointments.map(a => a.client_id).filter(Boolean));
+    return new Set(
+      appointments
+        .filter(a => ['completed', 'confirmed', 'pending'].includes(a.status))
+        .map(a => a.client_id)
+        .filter(Boolean)
+    );
   }, [isAdmin, appointments]);
 
   // Fetch all clients
@@ -213,12 +219,12 @@ const Clients = () => {
 
   // Analytics metrics - respects professional filter
   const { data: serverMetrics, isLoading: loadingMetrics } = useQuery({
-    queryKey: ['client-dashboard-stats', companyId, profFilter],
+    queryKey: ['client-dashboard-stats', companyId, isAdmin, profileId, profFilter],
     queryFn: async () => {
       if (!companyId) return null;
       const { data, error } = await supabase.rpc('get_company_dashboard_stats', {
         p_company_id: companyId,
-        p_professional_id: profFilter === 'all' ? null : profFilter
+        p_professional_id: !isAdmin ? profileId : (profFilter === 'all' ? null : profFilter)
       });
       if (error) throw error;
       return data[0];
@@ -757,6 +763,7 @@ interface ClientProfileProps {
 }
 
 const ClientProfile = ({ client, companyId, profileMap, onBack }: ClientProfileProps) => {
+  const { isAdmin, profileId } = useUserRole();
   const { refresh } = useRefreshData();
   const [editOpen, setEditOpen] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -770,14 +777,19 @@ const ClientProfile = ({ client, companyId, profileMap, onBack }: ClientProfileP
 
   // Fetch appointments for this client
   const { data: appointments = [] } = useQuery({
-    queryKey: ['client-detail-appointments', client.id, companyId],
+    queryKey: ['client-detail-appointments', client.id, companyId, isAdmin, profileId],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from('appointments')
         .select('id, start_time, total_price, status, professional_id')
         .eq('company_id', companyId)
-        .eq('client_id', client.id)
-        .order('start_time', { ascending: false });
+        .eq('client_id', client.id);
+      
+      if (!isAdmin && profileId) {
+        query = query.eq('professional_id', profileId);
+      }
+
+      const { data, error } = await query.order('start_time', { ascending: false });
       if (error) throw error;
       return data;
     },
