@@ -736,27 +736,32 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
               .maybeSingle();
 
             if (appt) {
-              const [{ data: apptSvcs }, { data: prof }] = await Promise.all([
+              const [apptSvcsRes, profRes] = await Promise.all([
                 supabase.from('appointment_services').select('service_id, duration_minutes, price').eq('appointment_id', appt.id),
                 supabase.from('public_professionals' as any).select('id, name, avatar_url, active').eq('id', appt.professional_id).maybeSingle(),
               ]);
 
+              const apptSvcs = apptSvcsRes.data;
+              const prof = profRes.data as any;
+
               if (prof && prof.active) {
                 const svcIds = (apptSvcs || []).map((s: any) => s.service_id);
-                const { data: svcs } = await supabase.from('public_services' as any).select('id, name, active').in('id', svcIds);
+                const { data: svcs } = await (supabase.from('public_services' as any)
+                  .select('id, name, active')
+                  .in('id', svcIds) as any);
                 
-                const activeSvcIds = svcIds.filter(id => svcs?.find(s => s.id === id && s.active));
+                const activeSvcIds = svcIds.filter(id => (svcs as any[])?.find(s => s.id === id && s.active));
                 
                 if (activeSvcIds.length > 0) {
                   bookingToUse = {
                     serviceIds: activeSvcIds,
-                    serviceNames: activeSvcIds.map(id => svcs?.find(s => s.id === id)?.name).filter(Boolean),
+                    serviceNames: activeSvcIds.map(id => (svcs as any[])?.find(s => s.id === id)?.name).filter(Boolean),
                     serviceDurations: (apptSvcs || []).filter(s => activeSvcIds.includes(s.service_id)).map(s => s.duration_minutes),
                     professionalId: appt.professional_id,
                     professionalName: prof.name || 'Profissional',
                     professionalAvatar: prof.avatar_url || null,
                     totalPrice: Number(appt.total_price || 0),
-                    totalDuration: (apptSvcs || []).filter(s => activeSvcIds.includes(s.service_id)).reduce((sum, s) => sum + (s.duration_minutes || 0), 0),
+                    totalDuration: (apptSvcs || []).filter(s => activeSvcIds.includes(s.service_id)).reduce((sum: number, s: any) => sum + (s.duration_minutes || 0), 0),
                     bookedAt: appt.start_time,
                   };
                 }
