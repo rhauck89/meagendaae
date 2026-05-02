@@ -18,7 +18,7 @@ interface OpportunityPromotionModalProps {
   onSave: (payload: any) => Promise<void>;
   slotData: {
     date: string;
-    time: string;
+    times: string[];
     professionalId: string;
     serviceId?: string;
   } | null;
