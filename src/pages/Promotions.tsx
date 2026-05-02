@@ -745,73 +745,99 @@ export default function Promotions() {
   };
 
   const handleOpportunitySave = async (data: any) => {
-    const slug = generateSlug(data.title);
+    // data.times will be an array of strings like ["09:00", "11:30"]
+    // We create one promotion per slot to ensure only selected slots get the discount
     
-    // Calculate prices for the primary service
-    let payloadOrigPrice: number | null = null;
-    let payloadPromoPrice: number | null = null;
+    const baseSlug = generateSlug(data.title);
     
-    const primaryServiceId = data.service_id;
-    const primarySvc = primaryServiceId ? services.find(s => s.id === primaryServiceId) : null;
-    
-    if (primarySvc) {
-      payloadOrigPrice = Number(primarySvc.price);
-      if (data.discount_type === 'fixed_price') {
-        payloadPromoPrice = data.promotion_price;
-      } else if (data.discount_type === 'percentage') {
-        payloadPromoPrice = payloadOrigPrice * (1 - data.discount_value / 100);
-      } else {
-        payloadPromoPrice = Math.max(0, payloadOrigPrice - data.discount_value);
+    // We'll map through each time slot and create a promotion
+    const creationPromises = data.times.map(async (time: string, index: number) => {
+      const slug = data.times.length > 1 ? `${baseSlug}-${time.replace(':', '')}` : baseSlug;
+      
+      // Calculate prices for the primary service
+      let payloadOrigPrice: number | null = null;
+      let payloadPromoPrice: number | null = null;
+      
+      const primaryServiceId = data.service_id;
+      const primarySvc = primaryServiceId ? services.find(s => s.id === primaryServiceId) : null;
+      
+      if (primarySvc) {
+        payloadOrigPrice = Number(primarySvc.price);
+        if (data.discount_type === 'fixed_price') {
+          payloadPromoPrice = data.promotion_price;
+        } else if (data.discount_type === 'percentage') {
+          payloadPromoPrice = payloadOrigPrice * (1 - data.discount_value / 100);
+        } else {
+          payloadPromoPrice = Math.max(0, payloadOrigPrice - data.discount_value);
+        }
       }
-    }
 
-    const payload: any = {
-      company_id: companyId!,
-      title: data.title,
-      slug,
-      description: data.description || null,
-      service_id: data.service_id,
-      service_ids: data.service_ids,
-      discount_type: data.discount_type,
-      discount_value: data.discount_value,
-      promotion_price: payloadPromoPrice,
-      original_price: payloadOrigPrice,
-      start_date: data.start_date,
-      end_date: data.end_date,
-      start_time: data.start_time,
-      end_time: data.end_time,
-      use_business_hours: false,
-      valid_days: [0, 1, 2, 3, 4, 5, 6],
-      min_interval_minutes: 0,
-      max_slots: 1,
-      client_filter: 'all',
-      professional_filter: 'selected',
-      professional_ids: data.professional_ids,
-      message_template: DEFAULT_TEMPLATE,
-      created_by: profile?.id || null,
-      status: 'active',
-      promotion_type: 'traditional',
-      promotion_mode: 'manual',
-      booking_opens_at: data.booking_opens_at_date ? fromZonedTime(`${data.booking_opens_at_date} ${data.booking_opens_at_time || '00:00'}:00`, DEFAULT_TZ).toISOString() : null,
-      booking_closes_at: data.booking_closes_at_date ? fromZonedTime(`${data.booking_closes_at_date} ${data.booking_closes_at_time || '23:59'}:00`, DEFAULT_TZ).toISOString() : null,
-    };
+      // Calculate end time for this specific slot based on service duration
+      const [h, m] = time.split(':').map(Number);
+      const duration = primarySvc?.duration_minutes || 30;
+      const endTotal = h * 60 + m + duration;
+      const endH = Math.floor(endTotal / 60);
+      const endM = endTotal % 60;
+      const endTime = `${String(endH).padStart(2, '0')}:${String(endM).padStart(2, '0')}`;
 
-    const { data: insertedData, error } = await supabase.from('promotions').insert(payload).select('id').single();
+      const payload: any = {
+        company_id: companyId!,
+        title: data.title,
+        slug,
+        description: data.description || null,
+        service_id: data.service_id,
+        service_ids: data.service_ids,
+        discount_type: data.discount_type,
+        discount_value: data.discount_value,
+        promotion_price: payloadPromoPrice,
+        original_price: payloadOrigPrice,
+        start_date: data.date,
+        end_date: data.date,
+        start_time: time,
+        end_time: endTime,
+        use_business_hours: false,
+        valid_days: [0, 1, 2, 3, 4, 5, 6],
+        min_interval_minutes: 0,
+        max_slots: 1,
+        client_filter: 'all',
+        professional_filter: 'selected',
+        professional_ids: data.professional_ids,
+        message_template: DEFAULT_TEMPLATE,
+        created_by: profile?.id || null,
+        status: 'active',
+        promotion_type: 'traditional',
+        promotion_mode: 'manual',
+        // Release immediately ("now")
+        booking_opens_at: new Date().toISOString(),
+        // No expiry defined explicitly here to keep it simple, or same as slot start if needed
+        booking_closes_at: null,
+      };
+
+      return supabase.from('promotions').insert(payload).select('id').single();
+    });
+
+    const results = await Promise.all(creationPromises);
+    const errors = results.filter(r => r.error);
     
-    if (error) {
-      toast({ title: 'Erro ao criar promoção', description: error.message, variant: 'destructive' });
-      throw error;
+    if (errors.length > 0) {
+      console.error('Errors creating some promotions:', errors);
+      toast({ 
+        title: 'Algumas promoções falharam', 
+        description: 'Verifique o log para detalhes.', 
+        variant: 'destructive' 
+      });
+    } else {
+      toast({ title: `${data.times.length} promoções criadas com sucesso! 🎉` });
+      
+      const lastInserted = results[results.length - 1].data;
+      if (lastInserted?.id) setHighlightedPromoId(lastInserted.id);
     }
-    
-    toast({ title: 'Promoção criada com sucesso! 🎉' });
-    if (insertedData?.id) setHighlightedPromoId(insertedData.id);
     
     setOpportunityDialogOpen(false);
     setSelectedOpportunity(null);
     
-    const promoStartDt = new Date(data.start_date + 'T' + data.start_time + ':00');
-    const targetTab = promoStartDt > new Date() ? 'scheduled' : 'active';
-    setActiveTab(targetTab);
+    // Always move to active tab since we release "now"
+    setActiveTab('active');
     
     await fetchPromotions();
   };
