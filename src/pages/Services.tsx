@@ -584,16 +584,29 @@ const Services = () => {
               <span className="text-sm text-muted-foreground">({uncategorizedServices.length})</span>
             </div>
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {uncategorizedServices.map((service: any) => (
-                <ServiceCard 
-                  key={service.id} 
-                  service={service} 
-                  onEdit={openEdit} 
-                  onToggle={toggleActive} 
-                  onDelete={deleteService} 
-                  canManage={canManageServices}
-                />
-              ))}
+              {uncategorizedServices.map((service: any) => {
+                if (isProfessionalMode) {
+                  const profSetting = profServices.find((ps: any) => ps.service_id === service.id);
+                  return (
+                    <ProfessionalServiceCard
+                      key={service.id}
+                      service={service}
+                      profSetting={profSetting}
+                      onSave={handleSaveProfService}
+                    />
+                  );
+                }
+                return (
+                  <ServiceCard 
+                    key={service.id} 
+                    service={service} 
+                    onEdit={openEdit} 
+                    onToggle={toggleActive} 
+                    onDelete={deleteService} 
+                    canManage={canManageServices}
+                  />
+                );
+              })}
             </div>
           </div>
         )}
