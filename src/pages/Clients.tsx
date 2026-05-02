@@ -218,7 +218,7 @@ const Clients = () => {
       if (!companyId) return null;
       const { data, error } = await supabase.rpc('get_company_dashboard_stats', {
         p_company_id: companyId,
-        p_professional_id: profFilter === 'all' ? null : profFilter
+        p_professional_id: !isAdmin ? profileId : (profFilter === 'all' ? null : profFilter)
       });
       if (error) throw error;
       return data[0];
