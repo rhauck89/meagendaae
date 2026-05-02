@@ -544,16 +544,29 @@ const Services = () => {
             </div>
             
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {cat.services.map((service: any) => (
-                <ServiceCard 
-                  key={service.id} 
-                  service={service} 
-                  onEdit={openEdit} 
-                  onToggle={toggleActive} 
-                  onDelete={deleteService} 
-                  canManage={canManageServices}
-                />
-              ))}
+              {cat.services.map((service: any) => {
+                if (isProfessionalMode) {
+                  const profSetting = profServices.find((ps: any) => ps.service_id === service.id);
+                  return (
+                    <ProfessionalServiceCard
+                      key={service.id}
+                      service={service}
+                      profSetting={profSetting}
+                      onSave={handleSaveProfService}
+                    />
+                  );
+                }
+                return (
+                  <ServiceCard 
+                    key={service.id} 
+                    service={service} 
+                    onEdit={openEdit} 
+                    onToggle={toggleActive} 
+                    onDelete={deleteService} 
+                    canManage={canManageServices}
+                  />
+                );
+              })}
               {cat.services.length === 0 && (
                 <div className="col-span-full py-6 text-center text-muted-foreground border-2 border-dashed rounded-lg">
                   <p>Nenhum serviço nesta categoria</p>
