@@ -319,6 +319,32 @@ const Services = () => {
     setDialogOpen(true);
   };
 
+  const handleSaveProfService = async (serviceId: string, isActive: boolean, customPrice?: number, customDuration?: number) => {
+    if (!profileId || !companyId) return;
+    
+    try {
+      const { error } = await supabase
+        .from('service_professionals')
+        .upsert({
+          company_id: companyId,
+          professional_id: profileId,
+          service_id: serviceId,
+          is_active: isActive,
+          price_override: customPrice === undefined ? null : customPrice,
+          duration_override: customDuration === undefined ? null : customDuration
+        }, { 
+          onConflict: 'company_id,professional_id,service_id' 
+        });
+
+      if (error) throw error;
+      toast.success('Configurações do serviço atualizadas');
+      await refreshAll();
+    } catch (err: any) {
+      console.error('[SERVICES] Error saving professional service:', err);
+      toast.error(err.message || 'Erro ao salvar configurações do serviço');
+    }
+  };
+
   const groupedServices = useMemo(() => {
     if (!Array.isArray(categories)) return [];
     return categories.map((cat: any) => ({
