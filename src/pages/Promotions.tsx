@@ -1967,11 +1967,12 @@ export default function Promotions() {
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="flex flex-wrap h-auto gap-1">
-          <TabsTrigger value="active">Ativas ({promotions.filter(p => isActivePromo(p)).length})</TabsTrigger>
-          <TabsTrigger value="scheduled">Programadas ({promotions.filter(p => isScheduled(p)).length})</TabsTrigger>
-          <TabsTrigger value="paused">Pausadas ({promotions.filter(p => p.status === 'paused').length})</TabsTrigger>
-          <TabsTrigger value="expired">Encerradas ({promotions.filter(p => isExpiredPromo(p)).length})</TabsTrigger>
+          <TabsTrigger value="active">Ativas ({groupedPromotions.filter(g => isActivePromo(g.promotions[0])).length})</TabsTrigger>
+          <TabsTrigger value="scheduled">Programadas ({groupedPromotions.filter(g => isScheduled(g.promotions[0])).length})</TabsTrigger>
+          <TabsTrigger value="paused">Pausadas ({groupedPromotions.filter(g => g.promotions[0].status === 'paused').length})</TabsTrigger>
+          <TabsTrigger value="expired">Encerradas ({groupedPromotions.filter(g => isExpiredPromo(g.promotions[0])).length})</TabsTrigger>
         </TabsList>
+
 
         <TabsContent value={activeTab} className="mt-4">
           {loading ? (
