@@ -142,6 +142,7 @@ export function CustomRequestForm({
         professional_id: form.professional_id || null,
         client_name: form.client_name.trim(),
         client_whatsapp: formatWhatsApp(form.client_whatsapp),
+        client_email: form.client_email?.trim() || null,
         requested_date: form.requested_date,
         requested_time: form.requested_time,
         message: form.message.trim() || null,
