@@ -415,12 +415,21 @@ const Dashboard = () => {
     const monthEnd = endOfMonth(new Date());
 
     const [apptsRes, bizHoursRes, collaboratorsRes, companyRes] = await Promise.all([
-      supabase
-        .from('appointments')
-        .select('status, total_price, client_id, start_time, client:clients!appointments_client_id_fkey(name)')
-        .eq('company_id', companyId!)
-        .gte('start_time', toSpStart(monthStart))
-        .lte('start_time', toSpEnd(monthEnd)),
+      (() => {
+        let query = supabase
+          .from('appointments')
+          .select('status, total_price, client_id, start_time, client:clients!appointments_client_id_fkey(name)')
+          .eq('company_id', companyId!)
+          .gte('start_time', toSpStart(monthStart))
+          .lte('start_time', toSpEnd(monthEnd));
+
+        if (!isAdmin && profileId) {
+          query = query.eq('professional_id', profileId);
+        } else if (filterProfessional !== 'all') {
+          query = query.eq('professional_id', filterProfessional);
+        }
+        return query;
+      })(),
       supabase
         .from('business_hours')
         .select('*')
@@ -507,12 +516,21 @@ const Dashboard = () => {
     const startDateStr = format(startDate, 'yyyy-MM-dd');
 
     const [apptsRes, bizHoursRes, collaboratorsRes, companyRes] = await Promise.all([
-      supabase
-        .from('appointments')
-        .select('start_time, status, total_price')
-        .eq('company_id', companyId)
-        .gte('start_time', `${startDateStr}T00:00:00`)
-        .order('start_time', { ascending: true }),
+      (() => {
+        let query = supabase
+          .from('appointments')
+          .select('start_time, status, total_price')
+          .eq('company_id', companyId)
+          .gte('start_time', `${startDateStr}T00:00:00`)
+          .order('start_time', { ascending: true });
+
+        if (!isAdmin && profileId) {
+          query = query.eq('professional_id', profileId);
+        } else if (filterProfessional !== 'all') {
+          query = query.eq('professional_id', filterProfessional);
+        }
+        return query;
+      })(),
       supabase
         .from('business_hours')
         .select('*')

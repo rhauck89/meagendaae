@@ -12,15 +12,16 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Pencil, Trash2, Clock, DollarSign, RefreshCw, Zap, Grid3X3, FolderPlus, Tag } from 'lucide-react';
+import { Plus, Pencil, Trash2, Clock, DollarSign, RefreshCw, Zap, Grid3X3, FolderPlus, Tag, CheckCircle2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { cn } from '@/lib/utils';
 
 const NO_CATEGORY_VALUE = '__no_category__';
 const NO_GLOBAL_CATEGORY_VALUE = '__no_global_category__';
 
 const Services = () => {
   const { companyId, loginMode, roles } = useAuth();
-  const { isAdmin, isProfessionalMode } = useUserRole();
+  const { isAdmin, isProfessionalMode, profileId } = useUserRole();
   const canManageServices =
     roles.includes('super_admin') ||
     loginMode === 'admin' ||
@@ -108,9 +109,26 @@ const Services = () => {
     },
   });
 
+  const { data: profServices = [], refetch: refetchProfServices } = useQuery({
+    queryKey: ['professional_services', profileId],
+    enabled: Boolean(isProfessionalMode && profileId),
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('service_professionals')
+        .select('*')
+        .eq('professional_id', profileId!);
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
   const refreshAll = async () => {
     refresh('services');
-    await Promise.all([refetchServices(), refetchCategories()]);
+    await Promise.all([
+      refetchServices(), 
+      refetchCategories(),
+      isProfessionalMode ? refetchProfServices() : Promise.resolve()
+    ]);
   };
 
   const resetForm = () => {
@@ -300,6 +318,32 @@ const Services = () => {
       global_category_id: service.global_category_id || '',
     });
     setDialogOpen(true);
+  };
+
+  const handleSaveProfService = async (serviceId: string, isActive: boolean, customPrice?: number, customDuration?: number) => {
+    if (!profileId || !companyId) return;
+    
+    try {
+      const { error } = await supabase
+        .from('service_professionals')
+        .upsert({
+          company_id: companyId,
+          professional_id: profileId,
+          service_id: serviceId,
+          is_active: isActive,
+          price_override: customPrice === undefined ? null : customPrice,
+          duration_override: customDuration === undefined ? null : customDuration
+        }, { 
+          onConflict: 'company_id,professional_id,service_id' 
+        });
+
+      if (error) throw error;
+      toast.success('Configurações do serviço atualizadas');
+      await refreshAll();
+    } catch (err: any) {
+      console.error('[SERVICES] Error saving professional service:', err);
+      toast.error(err.message || 'Erro ao salvar configurações do serviço');
+    }
   };
 
   const groupedServices = useMemo(() => {
@@ -501,16 +545,29 @@ const Services = () => {
             </div>
             
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {cat.services.map((service: any) => (
-                <ServiceCard 
-                  key={service.id} 
-                  service={service} 
-                  onEdit={openEdit} 
-                  onToggle={toggleActive} 
-                  onDelete={deleteService} 
-                  canManage={canManageServices}
-                />
-              ))}
+              {cat.services.map((service: any) => {
+                if (isProfessionalMode) {
+                  const profSetting = profServices.find((ps: any) => ps.service_id === service.id);
+                  return (
+                    <ProfessionalServiceCard
+                      key={service.id}
+                      service={service}
+                      profSetting={profSetting}
+                      onSave={handleSaveProfService}
+                    />
+                  );
+                }
+                return (
+                  <ServiceCard 
+                    key={service.id} 
+                    service={service} 
+                    onEdit={openEdit} 
+                    onToggle={toggleActive} 
+                    onDelete={deleteService} 
+                    canManage={canManageServices}
+                  />
+                );
+              })}
               {cat.services.length === 0 && (
                 <div className="col-span-full py-6 text-center text-muted-foreground border-2 border-dashed rounded-lg">
                   <p>Nenhum serviço nesta categoria</p>
@@ -528,16 +585,29 @@ const Services = () => {
               <span className="text-sm text-muted-foreground">({uncategorizedServices.length})</span>
             </div>
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {uncategorizedServices.map((service: any) => (
-                <ServiceCard 
-                  key={service.id} 
-                  service={service} 
-                  onEdit={openEdit} 
-                  onToggle={toggleActive} 
-                  onDelete={deleteService} 
-                  canManage={canManageServices}
-                />
-              ))}
+              {uncategorizedServices.map((service: any) => {
+                if (isProfessionalMode) {
+                  const profSetting = profServices.find((ps: any) => ps.service_id === service.id);
+                  return (
+                    <ProfessionalServiceCard
+                      key={service.id}
+                      service={service}
+                      profSetting={profSetting}
+                      onSave={handleSaveProfService}
+                    />
+                  );
+                }
+                return (
+                  <ServiceCard 
+                    key={service.id} 
+                    service={service} 
+                    onEdit={openEdit} 
+                    onToggle={toggleActive} 
+                    onDelete={deleteService} 
+                    canManage={canManageServices}
+                  />
+                );
+              })}
             </div>
           </div>
         )}
@@ -555,6 +625,99 @@ const Services = () => {
     </div>
   );
 };
+const ProfessionalServiceCard = ({ service, profSetting, onSave }: any) => {
+  const [isActive, setIsActive] = useState(profSetting?.is_active ?? false);
+  const [customPrice, setCustomPrice] = useState(profSetting?.price_override ?? '');
+  const [customDuration, setCustomDuration] = useState(profSetting?.duration_override ?? '');
+  const [isSaving, setIsSaving] = useState(false);
+
+  useEffect(() => {
+    setIsActive(profSetting?.is_active ?? false);
+    setCustomPrice(profSetting?.price_override ?? '');
+    setCustomDuration(profSetting?.duration_override ?? '');
+  }, [profSetting]);
+
+  const handleSave = async () => {
+    setIsSaving(true);
+    await onSave(
+      service.id, 
+      isActive, 
+      customPrice === '' ? undefined : Number(customPrice), 
+      customDuration === '' ? undefined : Number(customDuration)
+    );
+    setIsSaving(false);
+  };
+
+  return (
+    <Card className={!isActive ? 'opacity-70 bg-muted/30 transition-all' : 'hover:shadow-md transition-all'}>
+      <CardContent className="p-5 space-y-4">
+        <div className="flex items-start justify-between">
+          <div className="space-y-1">
+            <h3 className={cn("text-lg font-semibold line-clamp-1", !isActive && "text-muted-foreground line-through decoration-1")}>
+              {service.name}
+            </h3>
+            <div className="flex flex-wrap gap-2">
+              <Badge variant="outline" className="text-[10px] font-normal">
+                Padrao: R$ {Number(service.price).toFixed(2)} | {service.duration_minutes}min
+              </Badge>
+            </div>
+          </div>
+          <Switch 
+            checked={isActive} 
+            onCheckedChange={(checked) => {
+              setIsActive(checked);
+              onSave(service.id, checked, customPrice === '' ? undefined : Number(customPrice), customDuration === '' ? undefined : Number(customDuration));
+            }} 
+          />
+        </div>
+
+        {isActive && (
+          <div className="space-y-3 pt-2 border-t border-dashed">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label className="text-xs">Meu Preço (R$)</Label>
+                <Input 
+                  type="number" 
+                  step="0.01"
+                  value={customPrice} 
+                  onChange={(e) => setCustomPrice(e.target.value)}
+                  placeholder={Number(service.price).toFixed(2)}
+                  className="h-8 text-sm"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">Minha Duração (min)</Label>
+                <Input 
+                  type="number" 
+                  value={customDuration} 
+                  onChange={(e) => setCustomDuration(e.target.value)}
+                  placeholder={service.duration_minutes.toString()}
+                  className="h-8 text-sm"
+                />
+              </div>
+            </div>
+            <Button 
+              size="sm" 
+              className="w-full h-8" 
+              onClick={handleSave}
+              disabled={isSaving}
+            >
+              <CheckCircle2 className="mr-2 h-3 w-3" />
+              {isSaving ? 'Salvando...' : 'Salvar Alterações'}
+            </Button>
+          </div>
+        )}
+        
+        {!isActive && (
+          <p className="text-[10px] text-muted-foreground italic">
+            Ative para oferecer este serviço em sua agenda.
+          </p>
+        )}
+      </CardContent>
+    </Card>
+  );
+};
+
 
 const ServiceCard = ({ service, onEdit, onToggle, onDelete, canManage }: any) => (
   <Card className={!service.active ? 'opacity-50' : 'hover:shadow-md transition-shadow'}>

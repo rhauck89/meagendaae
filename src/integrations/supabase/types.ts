@@ -4852,21 +4852,27 @@ export type Database = {
       service_professionals: {
         Row: {
           company_id: string | null
+          duration_override: number | null
           id: string
+          is_active: boolean | null
           price_override: number | null
           professional_id: string
           service_id: string
         }
         Insert: {
           company_id?: string | null
+          duration_override?: number | null
           id?: string
+          is_active?: boolean | null
           price_override?: number | null
           professional_id: string
           service_id: string
         }
         Update: {
           company_id?: string | null
+          duration_override?: number | null
           id?: string
+          is_active?: boolean | null
           price_override?: number | null
           professional_id?: string
           service_id?: string

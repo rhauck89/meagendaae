@@ -970,17 +970,33 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
 
         const { data: profServices } = await supabase
           .from('service_professionals')
-          .select('service_id, price_override')
+          .select('service_id, price_override, duration_override, is_active')
           .eq('professional_id', profileId);
 
         if (profServices && profServices.length > 0) {
-          const profServiceIds = profServices.map((ps: any) => ps.service_id);
-          const filteredServices = (servicesRes.data || []).filter((s: any) => profServiceIds.includes(s.id));
+          // Filter out inactive services or services not in the profServices list (if list exists)
+          const activeProfServices = profServices.filter(ps => ps.is_active !== false);
+          const activeProfServiceIds = activeProfServices.map((ps: any) => ps.service_id);
+          
+          const filteredServices = (servicesRes.data || []).filter((s: any) => activeProfServiceIds.includes(s.id));
+          
           const withOverrides = filteredServices.map((s: any) => {
-            const override = profServices.find((ps: any) => ps.service_id === s.id);
-            return override?.price_override != null ? { ...s, price: override.price_override } : s;
+            const override = activeProfServices.find((ps: any) => ps.service_id === s.id);
+            return {
+              ...s,
+              price: override?.price_override != null ? override.price_override : s.price,
+              duration_minutes: override?.duration_override != null ? override.duration_override : s.duration_minutes
+            };
           });
           setServices(withOverrides);
+        } else if (profServices && profServices.length === 0) {
+          // If a professional has NO services linked (even inactive ones), 
+          // we might want to show all company services or none.
+          // Based on user request: "O profissional pode escolher quais serviços ele atende."
+          // If no links exist yet, maybe show all (legacy behavior) or none?
+          // I'll stick to legacy behavior (show all) if no links exist, 
+          // but if they exist, respect them.
+          setServices(servicesRes.data || []);
         }
 
         const { data: profHours } = await supabase
@@ -1091,6 +1107,46 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
         }
       }
       promoIdRef.current = null;
+    }
+  };
+
+  const updateServicesForProfessional = async (profId: string) => {
+    if (!company?.id) return;
+    
+    // Fetch all services first to have a base
+    const { data: allServices } = await supabase
+      .from('public_services' as any)
+      .select('*')
+      .eq('company_id', company.id)
+      .order('name');
+      
+    if (!allServices) return;
+
+    const { data: profServices } = await supabase
+      .from('service_professionals')
+      .select('service_id, price_override, duration_override, is_active')
+      .eq('professional_id', profId);
+
+    if (profServices && profServices.length > 0) {
+      const activeProfServices = profServices.filter(ps => ps.is_active !== false);
+      const activeProfServiceIds = activeProfServices.map((ps: any) => ps.service_id);
+      
+      const filteredServices = allServices.filter((s: any) => activeProfServiceIds.includes(s.id));
+      
+      const withOverrides = filteredServices.map((s: any) => {
+        const override = activeProfServices.find((ps: any) => ps.service_id === s.id);
+        return {
+          ...s,
+          price: override?.price_override != null ? override.price_override : s.price,
+          duration_minutes: override?.duration_override != null ? override.duration_override : s.duration_minutes
+        };
+      });
+      setServices(withOverrides);
+      
+      // If any selected service is now hidden, remove it
+      setSelectedServices(prev => prev.filter(sid => activeProfServiceIds.includes(sid)));
+    } else {
+      setServices(allServices);
     }
   };
 
@@ -2291,6 +2347,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                       setSelectedProfessional(p.id); 
                       fetchProfessionalHours(p.id); 
                       fetchRecentBookings(p.id); 
+                      updateServicesForProfessional(p.id);
                       setStep(selectedServices.length > 0 ? 'datetime' : 'services'); 
                     }}
                     className="p-6 rounded-[2.5rem] cursor-pointer transition-all duration-300 relative group overflow-hidden"
