@@ -393,11 +393,20 @@ export function UnifiedAppointmentCard({
                 : 'Serviço não informado'}
             </p>
             
-            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 pt-1">
-              <p className="text-[11px] sm:text-xs font-semibold text-primary/80 flex items-center gap-1">
+            {variant !== 'client' && professionalName && (
+              <p className="text-[11px] sm:text-xs font-semibold text-primary/80 flex items-center gap-1 pt-0.5">
                 <User className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
                 {professionalName}
               </p>
+            )}
+            
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 pt-1">
+              {variant === 'client' && professionalName && (
+                <p className="text-[11px] sm:text-xs font-semibold text-primary/80 flex items-center gap-1">
+                  <User className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
+                  {professionalName}
+                </p>
+              )}
               {showCompany && (
                 <p className="text-[11px] sm:text-xs font-medium text-muted-foreground flex items-center gap-1">
                   <Building2 className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
