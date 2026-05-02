@@ -43,6 +43,7 @@ const AppointmentRequests = () => {
   const [suggestedTime, setSuggestedTime] = useState('');
   const [rejectionReason, setRejectionReason] = useState('');
   const [processing, setProcessing] = useState(false);
+  const [actionType, setActionType] = useState<'accept' | 'suggest' | 'reject'>('accept');
 
   // Fee states
   const [feeType, setFeeType] = useState<'none' | '10' | '20' | '30' | 'fixed'>('none');
