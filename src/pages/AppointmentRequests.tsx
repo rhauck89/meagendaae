@@ -434,7 +434,7 @@ const AppointmentRequests = () => {
                         <Button size="sm" variant="outline" className="gap-1 text-green-700 border-green-200 hover:bg-green-50" onClick={() => handleAcceptClick(req)} disabled={processing}>
                           <Check className="h-3.5 w-3.5" /> Aceitar
                         </Button>
-                        <Button size="sm" variant="outline" className="gap-1 text-blue-700 border-blue-200 hover:bg-blue-50" onClick={() => { setSelectedRequest(req); setSuggestDialogOpen(true); }} disabled={processing}>
+                        <Button size="sm" variant="outline" className="gap-1 text-blue-700 border-blue-200 hover:bg-blue-50" onClick={() => { setSelectedRequest(req); setSuggestedDate(req.requested_date); setSuggestedTime(req.requested_time); setSuggestDialogOpen(true); }} disabled={processing}>
                           <MessageCircle className="h-3.5 w-3.5" /> Sugerir
                         </Button>
                         <Button size="sm" variant="outline" className="gap-1 text-red-700 border-red-200 hover:bg-red-50" onClick={() => { setSelectedRequest(req); setRejectDialogOpen(true); }} disabled={processing}>
