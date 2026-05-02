@@ -111,7 +111,7 @@ export function UnifiedAppointmentCard({
   const isNow = now >= startTime && now <= endTime;
   
   const clientName = apt.client_name || apt.client?.name || 'Cliente';
-  const professionalName = apt.professional?.full_name || apt.professional?.name || 'Profissional';
+  const professionalName = apt.professional?.full_name || apt.professional?.name || '';
   const companyName = apt.company?.name || 'Empresa';
   
   const formattedPrice = new Intl.NumberFormat('pt-BR', {
