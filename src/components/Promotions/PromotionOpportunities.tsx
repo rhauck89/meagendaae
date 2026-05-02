@@ -32,6 +32,7 @@ export function PromotionOpportunities({
   const [selectedProfessionalId, setSelectedProfessionalId] = useState(isAdmin ? 'all' : (profile?.id || ''));
   const [selectedServiceId, setSelectedServiceId] = useState('all');
   const [slots, setSlots] = useState<any[]>([]);
+  const [selectedSlots, setSelectedSlots] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
 
   // Sync professional ID when profile loads or mode changes
