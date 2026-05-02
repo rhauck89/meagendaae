@@ -270,6 +270,16 @@ export function CustomRequestForm({
           </div>
 
           <div className="space-y-1.5">
+            <Label className="text-sm font-medium">Email (opcional)</Label>
+            <Input
+              type="email"
+              value={form.client_email}
+              onChange={(e) => setForm({ ...form, client_email: e.target.value })}
+              placeholder="seu@email.com"
+            />
+          </div>
+
+          <div className="space-y-1.5">
             <Label className="text-sm font-medium">Serviço *</Label>
             <Select value={form.service_id} onValueChange={(v) => setForm({ ...form, service_id: v })}>
               <SelectTrigger>
