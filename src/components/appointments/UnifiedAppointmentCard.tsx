@@ -149,7 +149,7 @@ export function UnifiedAppointmentCard({
               <p className="text-[10px] font-bold text-primary uppercase">
                 {isSameDay(startTime, new Date()) 
                   ? 'HOJE' 
-                  : format(startTime, "d 'DE' MMM", { locale: ptBR })
+                  : format(startTime, "d 'DE' MMM", { locale: ptBR }).toUpperCase()
                 }
               </p>
             </div>
