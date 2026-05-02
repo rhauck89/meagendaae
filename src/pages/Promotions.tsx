@@ -1251,9 +1251,10 @@ export default function Promotions() {
     }
 
     if (status === 'scheduled') {
-      const promoDate = parseISO(promo.start_date);
+      const promoDate = fromZonedTime(`${promo.start_date}T00:00:00`, DEFAULT_TZ);
       const today = toZonedTime(now, DEFAULT_TZ);
       const days = differenceInCalendarDays(promoDate, today);
+
       
       let countdownText = '';
       if (days > 0) {
