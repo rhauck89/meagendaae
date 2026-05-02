@@ -196,7 +196,7 @@ export function CustomRequestForm({
     if (submitted) {
       setSubmitted(false);
       setWhatsAppUrl(null);
-      setForm({ client_name: '', client_whatsapp: '', service_id: '', professional_id: '', requested_date: '', requested_time: '', message: '' });
+      setForm({ client_name: '', client_whatsapp: '', client_email: '', service_id: '', professional_id: '', requested_date: '', requested_time: '', message: '' });
     }
   };
 
