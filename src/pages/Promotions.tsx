@@ -1158,7 +1158,8 @@ export default function Promotions() {
 
 
   // --- Status badge renderer ---
-  const renderStatusBadge = (promo: Promotion) => {
+  const renderStatusBadge = (group: GroupedPromotion) => {
+    const promo = group.promotions[0];
     const validityStatus = promoVisualStatus(promo, now);
     const startsAt = getPromoStart(promo);
     const opensAt = promo.booking_opens_at ? new Date(promo.booking_opens_at) : startsAt;
@@ -1173,6 +1174,19 @@ export default function Promotions() {
         <Badge variant="outline" className="gap-1.5 text-muted-foreground py-1 px-3 bg-muted/30">
           <div className="w-2 h-2 rounded-full bg-muted-foreground/50" />
           Encerrada
+        </Badge>
+      );
+    }
+
+    // Check if filled
+    const filledCount = group.promotions.filter(p => isSlotFilled(p, appointments)).length;
+    const totalCount = group.promotions.length;
+
+    if (filledCount === totalCount && totalCount > 0) {
+      return (
+        <Badge variant="secondary" className="bg-slate-100 text-slate-600 border-slate-200 gap-1.5 py-1 px-3">
+          <Check className="h-3 w-3" />
+          Vaga{totalCount > 1 ? 's' : ''} Preenchida{totalCount > 1 ? 's' : ''}
         </Badge>
       );
     }
@@ -1210,8 +1224,8 @@ export default function Promotions() {
     );
   };
 
-  // --- Countdown for active promos ---
-  const renderCountdown = (promo: Promotion) => {
+  const renderCountdown = (group: GroupedPromotion) => {
+    const promo = group.promotions[0];
     const status = promoVisualStatus(promo, now);
     
     if (status === 'active') {
@@ -1230,21 +1244,24 @@ export default function Promotions() {
     }
 
     if (status === 'scheduled') {
-      const start = getPromoStart(promo);
-      const remaining = start.getTime() - now.getTime();
-      if (remaining <= 0) return null;
-      
-      const hours = Math.floor(remaining / (1000 * 60 * 60));
-      const days = Math.floor(hours / 24);
+      const promoDate = parseISO(promo.start_date);
+      const today = toZonedTime(now, DEFAULT_TZ);
+      const days = differenceInCalendarDays(promoDate, today);
       
       let countdownText = '';
       if (days > 0) {
         countdownText = `Faltam ${days} ${days === 1 ? 'dia' : 'dias'}`;
-      } else if (hours > 0) {
-        countdownText = `Em ${hours} ${hours === 1 ? 'hora' : 'horas'}`;
       } else {
-        const minutes = Math.floor(remaining / (1000 * 60));
-        countdownText = `Em ${minutes} min`;
+        const start = getPromoStart(promo);
+        const remainingMs = start.getTime() - now.getTime();
+        const hours = Math.floor(remainingMs / (1000 * 60 * 60));
+        
+        if (hours > 0) {
+          countdownText = `Em ${hours} ${hours === 1 ? 'hora' : 'horas'}`;
+        } else {
+          const minutes = Math.floor(remainingMs / (1000 * 60));
+          countdownText = `Em ${minutes} min`;
+        }
       }
       
       return (
@@ -1254,6 +1271,9 @@ export default function Promotions() {
         </div>
       );
     }
+    return null;
+  };
+
     
     return null;
   };
