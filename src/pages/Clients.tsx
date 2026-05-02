@@ -757,6 +757,7 @@ interface ClientProfileProps {
 }
 
 const ClientProfile = ({ client, companyId, profileMap, onBack }: ClientProfileProps) => {
+  const { isAdmin, profileId } = useUserRole();
   const { refresh } = useRefreshData();
   const [editOpen, setEditOpen] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -770,14 +771,19 @@ const ClientProfile = ({ client, companyId, profileMap, onBack }: ClientProfileP
 
   // Fetch appointments for this client
   const { data: appointments = [] } = useQuery({
-    queryKey: ['client-detail-appointments', client.id, companyId],
+    queryKey: ['client-detail-appointments', client.id, companyId, isAdmin, profileId],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from('appointments')
         .select('id, start_time, total_price, status, professional_id')
         .eq('company_id', companyId)
-        .eq('client_id', client.id)
-        .order('start_time', { ascending: false });
+        .eq('client_id', client.id);
+      
+      if (!isAdmin && profileId) {
+        query = query.eq('professional_id', profileId);
+      }
+
+      const { data, error } = await query.order('start_time', { ascending: false });
       if (error) throw error;
       return data;
     },
