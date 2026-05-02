@@ -1,5 +1,6 @@
-import { format, parseISO } from 'date-fns';
+import { format, parseISO, isSameDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { toZonedTime } from 'date-fns-tz';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -82,9 +83,15 @@ export function UnifiedAppointmentCard({
   className,
   showCompany = false
 }: UnifiedAppointmentCardProps) {
-  const startTime = parseISO(apt.start_time);
-  const endTime = parseISO(apt.end_time);
-  const now = new Date();
+  const timezone = 'America/Sao_Paulo';
+  const startTime = toZonedTime(parseISO(apt.start_time), timezone);
+  const endTime = toZonedTime(parseISO(apt.end_time), timezone);
+  const now = toZonedTime(new Date(), timezone);
+  const isToday = isSameDay(startTime, now);
+
+  const displayDateShort = isToday 
+    ? 'HOJE' 
+    : format(startTime, "d 'DE' MMM", { locale: ptBR }).toUpperCase();
   
   const getDisplayStatus = () => {
     if (['completed', 'cancelled', 'no_show', 'rescheduled'].includes(apt.status)) {
@@ -147,14 +154,15 @@ export function UnifiedAppointmentCard({
 
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-3 min-w-0">
-            <div className="text-center min-w-[60px] border-r pr-3">
+            <div className="text-center min-w-[70px] border-r pr-3">
               <p className="text-sm font-bold leading-tight">{format(startTime, 'HH:mm')}</p>
-              <p className="text-[10px] font-bold text-primary uppercase">{format(startTime, "d 'DE' MMM", { locale: ptBR })}</p>
+              <p className="text-[9px] text-muted-foreground leading-none mt-0.5">até {format(endTime, 'HH:mm')}</p>
+              <p className="text-[10px] font-bold text-primary uppercase mt-1">{displayDateShort}</p>
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-1 min-w-0">
                 <p className="text-sm font-bold truncate leading-tight capitalize">
-                  {format(startTime, "d 'de' MMMM", { locale: ptBR })}
+                  {clientName}
                 </p>
                 <div className="flex gap-0.5 ml-1">
                   {apt.promotion_id && (
@@ -325,12 +333,13 @@ export function UnifiedAppointmentCard({
       <div className="flex justify-between items-start gap-3">
         <div className="flex gap-3 sm:gap-4 items-start">
           {/* Time Column */}
-            <div className="flex flex-col items-center justify-center bg-background/60 backdrop-blur-sm rounded-xl px-2.5 py-1.5 sm:px-3 sm:py-2 min-w-[70px] sm:min-w-[75px] border border-border/40 shadow-sm">
+            <div className="flex flex-col items-center justify-center bg-background/60 backdrop-blur-sm rounded-xl px-2.5 py-1.5 sm:px-3 sm:py-2 min-w-[70px] sm:min-w-[85px] border border-border/40 shadow-sm">
               <p className="text-lg sm:text-xl font-display font-bold text-foreground tracking-tight">
                 {format(startTime, 'HH:mm')}
               </p>
+              <p className="text-[9px] text-muted-foreground leading-none -mt-0.5 mb-1 whitespace-nowrap">até {format(endTime, 'HH:mm')}</p>
               <p className="text-[10px] font-bold text-primary uppercase tracking-wider text-center">
-                {format(startTime, "d 'de' MMM", { locale: ptBR })}
+                {displayDateShort}
               </p>
             </div>
 
