@@ -43,6 +43,7 @@ const AppointmentRequests = () => {
   const [suggestedTime, setSuggestedTime] = useState('');
   const [rejectionReason, setRejectionReason] = useState('');
   const [processing, setProcessing] = useState(false);
+  const [actionType, setActionType] = useState<'accept' | 'suggest' | 'reject'>('accept');
 
   // Fee states
   const [feeType, setFeeType] = useState<'none' | '10' | '20' | '30' | 'fixed'>('none');
@@ -227,6 +228,7 @@ const AppointmentRequests = () => {
         .update({ status: 'accepted', updated_at: new Date().toISOString() })
         .eq('id', selectedRequest.id);
 
+      setActionType('accept');
       setAcceptDialogOpen(false);
       setSuccessDialogOpen(true);
       fetchRequests();
@@ -242,21 +244,60 @@ const AppointmentRequests = () => {
     if (!selectedRequest) return "";
     const dateStr = format(new Date(selectedRequest.requested_date + 'T12:00:00'), "dd/MM/yyyy", { locale: ptBR });
     const timeStr = selectedRequest.requested_time.slice(0, 5);
-    const extraFee = calculateExtraFee();
-    
-    let message = `Olá ${selectedRequest.client_name}! Seu horário solicitado para ${dateStr} às ${timeStr} foi *aceito*. `;
-    if (extraFee > 0) {
-      message += `Como é um horário especial, haverá uma taxa adicional de R$ ${extraFee.toFixed(2)}. `;
+    const professionalName = professionals[selectedRequest.professional_id] || 'Profissional';
+    const serviceName = services[selectedRequest.service_id] || 'Serviço';
+
+    if (actionType === 'accept') {
+      const extraFee = calculateExtraFee();
+      let message = `Olá, ${selectedRequest.client_name}! Seu horário personalizado foi aceito ✅\n\n`;
+      message += `Serviço: ${serviceName}\n`;
+      message += `Profissional: ${professionalName}\n`;
+      message += `Data: ${dateStr}\n`;
+      message += `Horário: ${timeStr}\n\n`;
+      
+      if (extraFee > 0) {
+        message += `Obs: Como é um horário especial, haverá uma taxa adicional de R$ ${extraFee.toFixed(2)}.\n\n`;
+      }
+      
+      message += `Até lá!`;
+      return message;
     }
-    message += `Estamos aguardando você!`;
-    return message;
+
+    if (actionType === 'suggest') {
+      const suggestedDateStr = suggestedDate ? format(new Date(suggestedDate + 'T12:00:00'), "dd/MM/yyyy", { locale: ptBR }) : '';
+      const suggestedTimeStr = suggestedTime?.slice(0, 5) || '';
+      
+      let message = `Olá, ${selectedRequest.client_name}! O profissional sugeriu um novo horário para sua solicitação:\n\n`;
+      message += `Serviço: ${serviceName}\n`;
+      message += `Profissional: ${professionalName}\n`;
+      message += `Nova data: ${suggestedDateStr}\n`;
+      message += `Novo horário: ${suggestedTimeStr}\n\n`;
+      message += `Responda esta mensagem para confirmar.`;
+      return message;
+    }
+
+    if (actionType === 'reject') {
+      let message = `Olá, ${selectedRequest.client_name}! No momento não conseguimos atender sua solicitação de horário personalizado para:\n\n`;
+      message += `Serviço: ${serviceName}\n`;
+      message += `Profissional: ${professionalName}\n`;
+      message += `Data solicitada: ${dateStr}\n`;
+      message += `Horário solicitado: ${timeStr}\n\n`;
+      
+      if (rejectionReason) {
+        message += `Motivo: ${rejectionReason}\n\n`;
+      }
+      
+      message += `Você pode escolher outro horário disponível na agenda.`;
+      return message;
+    }
+
+    return "";
   };
 
   const handleNotifyWhatsApp = () => {
     if (!selectedRequest) return;
     const message = getWhatsAppMessage();
-    const url = `https://wa.me/${selectedRequest.client_whatsapp.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`;
-    window.open(url, '_blank');
+    openWhatsApp(selectedRequest.client_whatsapp, { source: 'appointment-requests', message });
   };
 
   const handleCopyMessage = () => {
@@ -279,13 +320,9 @@ const AppointmentRequests = () => {
         })
         .eq('id', selectedRequest.id);
 
-      const message = `Olá ${selectedRequest.client_name}! Não temos disponibilidade no horário solicitado, mas gostaríamos de sugerir: *${format(new Date(suggestedDate + 'T12:00:00'), "dd/MM/yyyy", { locale: ptBR })} às ${suggestedTime}*. Pode ser?`;
-      openWhatsApp(selectedRequest.client_whatsapp, { source: 'appointment-requests', message });
-
-      toast.success('Sugestão enviada');
+      setActionType('suggest');
       setSuggestDialogOpen(false);
-      setSuggestedDate('');
-      setSuggestedTime('');
+      setSuccessDialogOpen(true);
       fetchRequests();
     } catch {
       toast.error('Erro ao sugerir horário');
@@ -306,12 +343,9 @@ const AppointmentRequests = () => {
         })
         .eq('id', selectedRequest.id);
 
-      const message = `Olá ${selectedRequest.client_name}! Infelizmente não conseguimos atender sua solicitação de horário.${rejectionReason ? ` Motivo: ${rejectionReason}` : ''} Por favor, tente agendar em outro horário pelo nosso link.`;
-      openWhatsApp(selectedRequest.client_whatsapp, { source: 'appointment-requests', message });
-
-      toast.success('Solicitação recusada');
+      setActionType('reject');
       setRejectDialogOpen(false);
-      setRejectionReason('');
+      setSuccessDialogOpen(true);
       fetchRequests();
     } catch {
       toast.error('Erro ao recusar solicitação');
@@ -400,7 +434,7 @@ const AppointmentRequests = () => {
                         <Button size="sm" variant="outline" className="gap-1 text-green-700 border-green-200 hover:bg-green-50" onClick={() => handleAcceptClick(req)} disabled={processing}>
                           <Check className="h-3.5 w-3.5" /> Aceitar
                         </Button>
-                        <Button size="sm" variant="outline" className="gap-1 text-blue-700 border-blue-200 hover:bg-blue-50" onClick={() => { setSelectedRequest(req); setSuggestDialogOpen(true); }} disabled={processing}>
+                        <Button size="sm" variant="outline" className="gap-1 text-blue-700 border-blue-200 hover:bg-blue-50" onClick={() => { setSelectedRequest(req); setSuggestedDate(req.requested_date); setSuggestedTime(req.requested_time); setSuggestDialogOpen(true); }} disabled={processing}>
                           <MessageCircle className="h-3.5 w-3.5" /> Sugerir
                         </Button>
                         <Button size="sm" variant="outline" className="gap-1 text-red-700 border-red-200 hover:bg-red-50" onClick={() => { setSelectedRequest(req); setRejectDialogOpen(true); }} disabled={processing}>
@@ -423,6 +457,12 @@ const AppointmentRequests = () => {
             <DialogTitle>Sugerir outro horário</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
+            <div className="bg-muted/30 p-3 rounded-lg border text-sm space-y-1">
+              <p className="font-semibold text-primary">Solicitado pelo cliente:</p>
+              <p>
+                {selectedRequest && format(new Date(selectedRequest.requested_date + 'T12:00:00'), "dd/MM/yyyy", { locale: ptBR })} às {selectedRequest?.requested_time.slice(0, 5)}
+              </p>
+            </div>
             <p className="text-sm text-muted-foreground">
               Sugira uma data e horário alternativos para {selectedRequest?.client_name}.
             </p>
@@ -556,15 +596,31 @@ const AppointmentRequests = () => {
               <Check className="h-10 w-10 text-green-600" />
             </div>
             <DialogHeader>
-              <DialogTitle className="text-xl">✅ Solicitação aceita com sucesso</DialogTitle>
+              <DialogTitle className="text-xl">
+                {actionType === 'accept' && "✅ Solicitação aceita"}
+                {actionType === 'suggest' && "🕒 Sugestão enviada"}
+                {actionType === 'reject' && "❌ Solicitação recusada"}
+              </DialogTitle>
             </DialogHeader>
             
             <div className="bg-muted/30 p-4 rounded-lg w-full space-y-2 border">
               <p className="text-sm flex justify-between"><span className="text-muted-foreground">Cliente:</span> <span className="font-semibold">{selectedRequest?.client_name}</span></p>
-              <p className="text-sm flex justify-between">
-                <span className="text-muted-foreground">Data:</span> <span className="font-semibold">{selectedRequest && format(new Date(selectedRequest.requested_date + 'T12:00:00'), "dd/MM/yyyy", { locale: ptBR })}</span>
-              </p>
-              <p className="text-sm flex justify-between"><span className="text-muted-foreground">Hora:</span> <span className="font-semibold">{selectedRequest?.requested_time.slice(0, 5)}</span></p>
+              
+              {actionType === 'suggest' ? (
+                <>
+                  <p className="text-sm flex justify-between">
+                    <span className="text-muted-foreground">Nova data:</span> <span className="font-semibold">{suggestedDate && format(new Date(suggestedDate + 'T12:00:00'), "dd/MM/yyyy", { locale: ptBR })}</span>
+                  </p>
+                  <p className="text-sm flex justify-between"><span className="text-muted-foreground">Novo horário:</span> <span className="font-semibold">{suggestedTime?.slice(0, 5)}</span></p>
+                </>
+              ) : (
+                <>
+                  <p className="text-sm flex justify-between">
+                    <span className="text-muted-foreground">Data:</span> <span className="font-semibold">{selectedRequest && format(new Date(selectedRequest.requested_date + 'T12:00:00'), "dd/MM/yyyy", { locale: ptBR })}</span>
+                  </p>
+                  <p className="text-sm flex justify-between"><span className="text-muted-foreground">Hora:</span> <span className="font-semibold">{selectedRequest?.requested_time.slice(0, 5)}</span></p>
+                </>
+              )}
             </div>
 
             <div className="w-full pt-4 space-y-2">
