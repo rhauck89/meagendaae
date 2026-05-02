@@ -24,7 +24,9 @@ import { format, parseISO, isToday, isTomorrow, differenceInCalendarDays } from 
 import { fromZonedTime, toZonedTime } from 'date-fns-tz';
 import { ptBR } from 'date-fns/locale';
 import { Plus, MessageCircle, Send, Users, Tag, Megaphone, Copy, BarChart3, Eye, TrendingUp, MousePointerClick, CalendarCheck, ChevronLeft, ChevronRight, Check, Clock, Flame, Timer, Zap, ChevronDown, ChevronUp } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { formatWhatsApp, displayWhatsApp, buildWhatsAppUrl, trackWhatsAppClick } from '@/lib/whatsapp';
+
 import { PromotionOpportunities } from '@/components/Promotions/PromotionOpportunities';
 import { OpportunityPromotionModal } from '@/components/Promotions/OpportunityPromotionModal';
 
