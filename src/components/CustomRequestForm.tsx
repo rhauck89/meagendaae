@@ -79,6 +79,7 @@ export function CustomRequestForm({
   const [form, setForm] = useState({
     client_name: '',
     client_whatsapp: '',
+    client_email: '',
     service_id: '',
     professional_id: '',
     requested_date: '',
