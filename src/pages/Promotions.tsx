@@ -352,8 +352,46 @@ export default function Promotions() {
     }
     
     const { data } = await query;
-    if (data) setPromotions(data as unknown as Promotion[]);
+    if (data) {
+      setPromotions(data as unknown as Promotion[]);
+      return data as unknown as Promotion[];
+    }
+    return [];
   };
+
+  const fetchAppointmentsForPromos = async (promos: Promotion[]) => {
+    const activeAndScheduled = promos.filter(p => {
+      const status = promoVisualStatus(p, now);
+      return status === 'active' || status === 'scheduled';
+    });
+    
+    if (activeAndScheduled.length === 0) {
+      setAppointments([]);
+      return;
+    }
+
+    const professionalIds = Array.from(new Set(activeAndScheduled.flatMap(p => p.professional_ids || [])));
+    const dates = Array.from(new Set(activeAndScheduled.map(p => p.start_date)));
+
+    if (professionalIds.length === 0 || dates.length === 0) {
+      setAppointments([]);
+      return;
+    }
+
+    const minDate = dates.sort()[0];
+    const maxDate = [...dates].sort().reverse()[0];
+
+    const { data } = await supabase
+      .from('appointments')
+      .select('id, professional_id, start_time, end_time, status')
+      .in('professional_id', professionalIds)
+      .gte('start_time', `${minDate}T00:00:00Z`)
+      .lte('start_time', `${maxDate}T23:59:59Z`)
+      .neq('status', 'cancelled');
+
+    if (data) setAppointments(data);
+  };
+
 
   const fetchServices = async () => {
     const { data } = await supabase.from('services').select('id, name, price, duration_minutes').eq('company_id', companyId!).eq('active', true).order('name');
