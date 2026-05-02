@@ -108,9 +108,26 @@ const Services = () => {
     },
   });
 
+  const { data: profServices = [], refetch: refetchProfServices } = useQuery({
+    queryKey: ['professional_services', profileId],
+    enabled: Boolean(isProfessionalMode && profileId),
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('service_professionals')
+        .select('*')
+        .eq('professional_id', profileId!);
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
   const refreshAll = async () => {
     refresh('services');
-    await Promise.all([refetchServices(), refetchCategories()]);
+    await Promise.all([
+      refetchServices(), 
+      refetchCategories(),
+      isProfessionalMode ? refetchProfServices() : Promise.resolve()
+    ]);
   };
 
   const resetForm = () => {
