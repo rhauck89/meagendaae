@@ -28,6 +28,7 @@ interface CustomRequestFormProps {
   initialData?: {
     clientName?: string;
     clientWhatsApp?: string;
+    clientEmail?: string;
   };
   preSelectedProfessionalId?: string | null;
   themeColors?: {
