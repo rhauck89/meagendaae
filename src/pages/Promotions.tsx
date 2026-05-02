@@ -25,6 +25,8 @@ import { fromZonedTime, toZonedTime } from 'date-fns-tz';
 import { ptBR } from 'date-fns/locale';
 import { Plus, MessageCircle, Send, Users, Tag, Megaphone, Copy, BarChart3, Eye, TrendingUp, MousePointerClick, CalendarCheck, ChevronLeft, ChevronRight, Check, Clock, Flame, Timer, Zap } from 'lucide-react';
 import { formatWhatsApp, displayWhatsApp, buildWhatsAppUrl, trackWhatsAppClick } from '@/lib/whatsapp';
+import { PromotionOpportunities } from '@/components/Promotions/PromotionOpportunities';
+
 
 const DEFAULT_TZ = 'America/Sao_Paulo';
 
