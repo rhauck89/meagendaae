@@ -26,6 +26,7 @@ import { ptBR } from 'date-fns/locale';
 import { Plus, MessageCircle, Send, Users, Tag, Megaphone, Copy, BarChart3, Eye, TrendingUp, MousePointerClick, CalendarCheck, ChevronLeft, ChevronRight, Check, Clock, Flame, Timer, Zap } from 'lucide-react';
 import { formatWhatsApp, displayWhatsApp, buildWhatsAppUrl, trackWhatsAppClick } from '@/lib/whatsapp';
 import { PromotionOpportunities } from '@/components/Promotions/PromotionOpportunities';
+import { OpportunityPromotionModal } from '@/components/Promotions/OpportunityPromotionModal';
 
 
 const DEFAULT_TZ = 'America/Sao_Paulo';
@@ -217,6 +218,8 @@ export default function Promotions() {
   const [sourceInsight, setSourceInsight] = useState<string | null>(null);
   const [clientsDialogOpen, setClientsDialogOpen] = useState(false);
   const [metricsDialogOpen, setMetricsDialogOpen] = useState(false);
+  const [opportunityDialogOpen, setOpportunityDialogOpen] = useState(false);
+  const [selectedOpportunity, setSelectedOpportunity] = useState<{ date: string; time: string; professionalId: string; serviceId?: string } | null>(null);
   const [activeTab, setActiveTab] = useState('active');
   const [highlightedPromoId, setHighlightedPromoId] = useState<string | null>(null);
   const [now, setNow] = useState(new Date());
@@ -738,6 +741,78 @@ export default function Promotions() {
     const targetTab = promoStartDt > new Date() ? 'scheduled' : 'active';
     setActiveTab(targetTab);
 
+    await fetchPromotions();
+  };
+
+  const handleOpportunitySave = async (data: any) => {
+    const slug = generateSlug(data.title);
+    
+    // Calculate prices for the primary service
+    let payloadOrigPrice: number | null = null;
+    let payloadPromoPrice: number | null = null;
+    
+    const primaryServiceId = data.service_id;
+    const primarySvc = primaryServiceId ? services.find(s => s.id === primaryServiceId) : null;
+    
+    if (primarySvc) {
+      payloadOrigPrice = Number(primarySvc.price);
+      if (data.discount_type === 'fixed_price') {
+        payloadPromoPrice = data.promotion_price;
+      } else if (data.discount_type === 'percentage') {
+        payloadPromoPrice = payloadOrigPrice * (1 - data.discount_value / 100);
+      } else {
+        payloadPromoPrice = Math.max(0, payloadOrigPrice - data.discount_value);
+      }
+    }
+
+    const payload: any = {
+      company_id: companyId!,
+      title: data.title,
+      slug,
+      description: data.description || null,
+      service_id: data.service_id,
+      service_ids: data.service_ids,
+      discount_type: data.discount_type,
+      discount_value: data.discount_value,
+      promotion_price: payloadPromoPrice,
+      original_price: payloadOrigPrice,
+      start_date: data.start_date,
+      end_date: data.end_date,
+      start_time: data.start_time,
+      end_time: data.end_time,
+      use_business_hours: false,
+      valid_days: [0, 1, 2, 3, 4, 5, 6],
+      min_interval_minutes: 0,
+      max_slots: 1,
+      client_filter: 'all',
+      professional_filter: 'selected',
+      professional_ids: data.professional_ids,
+      message_template: DEFAULT_TEMPLATE,
+      created_by: profile?.id || null,
+      status: 'active',
+      promotion_type: 'traditional',
+      promotion_mode: 'manual',
+      booking_opens_at: data.booking_opens_at_date ? fromZonedTime(`${data.booking_opens_at_date} ${data.booking_opens_at_time || '00:00'}:00`, DEFAULT_TZ).toISOString() : null,
+      booking_closes_at: data.booking_closes_at_date ? fromZonedTime(`${data.booking_closes_at_date} ${data.booking_closes_at_time || '23:59'}:00`, DEFAULT_TZ).toISOString() : null,
+    };
+
+    const { data: insertedData, error } = await supabase.from('promotions').insert(payload).select('id').single();
+    
+    if (error) {
+      toast({ title: 'Erro ao criar promoção', description: error.message, variant: 'destructive' });
+      throw error;
+    }
+    
+    toast({ title: 'Promoção criada com sucesso! 🎉' });
+    if (insertedData?.id) setHighlightedPromoId(insertedData.id);
+    
+    setOpportunityDialogOpen(false);
+    setSelectedOpportunity(null);
+    
+    const promoStartDt = new Date(data.start_date + 'T' + data.start_time + ':00');
+    const targetTab = promoStartDt > new Date() ? 'scheduled' : 'active';
+    setActiveTab(targetTab);
+    
     await fetchPromotions();
   };
 
@@ -1704,34 +1779,21 @@ export default function Promotions() {
         professionals={professionals}
         isAdmin={isAdmin}
         onSelectSlot={(data) => {
-          resetForm();
-          setIsEditing(false);
-          setCreationMode('manual');
-          setStartDate(data.date);
-          setEndDate(data.date);
-          setSingleDay(true);
-          setStartTime(data.time);
-          
-          // Calculate end time (start + 30 or service duration)
-          const [h, m] = data.time.split(':').map(Number);
-          const dur = data.serviceId ? (services.find(s => s.id === data.serviceId)?.duration_minutes || 30) : 30;
-          const endTotal = h * 60 + m + dur;
-          const endH = Math.floor(endTotal / 60);
-          const endM = endTotal % 60;
-          setEndTime(`${String(endH).padStart(2, '0')}:${String(endM).padStart(2, '0')}`);
-          
-          setUseBusinessHours(false);
-          setProfessionalFilter('selected');
-          setSelectedProfessionalIds([data.professionalId]);
-          
-          if (data.serviceId) {
-            setSelectedServiceId(data.serviceId);
-            setSelectedServiceIds([data.serviceId]);
-            setServiceSelectionMode('single');
-          }
-          
-          setDialogOpen(true);
+          setSelectedOpportunity(data);
+          setOpportunityDialogOpen(true);
         }}
+      />
+
+      <OpportunityPromotionModal
+        isOpen={opportunityDialogOpen}
+        onClose={() => {
+          setOpportunityDialogOpen(false);
+          setSelectedOpportunity(null);
+        }}
+        onSave={handleOpportunitySave}
+        slotData={selectedOpportunity}
+        services={services}
+        professionals={professionals}
       />
 
 
