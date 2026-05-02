@@ -231,6 +231,9 @@ export default function Promotions() {
   const [activeTab, setActiveTab] = useState('active');
   const [highlightedPromoId, setHighlightedPromoId] = useState<string | null>(null);
   const [now, setNow] = useState(new Date());
+  const [appointments, setAppointments] = useState<any[]>([]);
+  const [expandedGroups, setExpandedGroups] = useState<string[]>([]);
+
 
   // Wizard step
   const [wizardStep, setWizardStep] = useState(1);
