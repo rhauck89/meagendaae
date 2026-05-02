@@ -44,6 +44,10 @@ const ProfilePage = () => {
     newPassword: '',
     confirmPassword: '',
   });
+  
+  const [collaborator, setCollaborator] = useState<any>(null);
+  const [companyCover, setCompanyCover] = useState<string | null>(null);
+
   const [form, setForm] = useState({
     full_name: '',
     email: '',
@@ -288,28 +292,44 @@ const ProfilePage = () => {
       <Card className="overflow-hidden">
         {/* Banner */}
         <div className="relative h-32 md:h-44 bg-muted">
-          {form.banner_url ? (
-            <img src={form.banner_url} alt="Banner" className="w-full h-full object-cover" />
+          {(collaborator?.use_company_banner ? (companyCover || form.banner_url) : form.banner_url) ? (
+            <img 
+              src={collaborator?.use_company_banner ? (companyCover || form.banner_url) : form.banner_url} 
+              alt="Banner" 
+              className="w-full h-full object-cover" 
+            />
           ) : (
             <div className="w-full h-full bg-gradient-to-r from-primary/20 to-primary/5" />
           )}
-          <input
-            ref={bannerInputRef}
-            type="file"
-            accept="image/*"
-            className="hidden"
-            onChange={(e) => handleFileSelect(e, 'cover')}
-          />
-          <Button
-            variant="secondary"
-            size="sm"
-            className="absolute bottom-2 right-2 gap-1.5 opacity-80 hover:opacity-100"
-            onClick={() => bannerInputRef.current?.click()}
-            disabled={uploadingBanner}
-          >
-            {uploadingBanner ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ImagePlus className="h-3.5 w-3.5" />}
-            {uploadingBanner ? 'Enviando...' : 'Alterar banner'}
-          </Button>
+          
+          {!collaborator?.use_company_banner && (
+            <>
+              <input
+                ref={bannerInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => handleFileSelect(e, 'cover')}
+              />
+              <Button
+                variant="secondary"
+                size="sm"
+                className="absolute bottom-2 right-2 gap-1.5 opacity-80 hover:opacity-100"
+                onClick={() => bannerInputRef.current?.click()}
+                disabled={uploadingBanner}
+              >
+                {uploadingBanner ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ImagePlus className="h-3.5 w-3.5" />}
+                {uploadingBanner ? 'Enviando...' : 'Alterar banner'}
+              </Button>
+            </>
+          )}
+
+          {collaborator?.use_company_banner && (
+            <div className="absolute bottom-2 right-2 flex items-center gap-1.5 bg-black/40 backdrop-blur-sm px-2 py-1 rounded text-[10px] text-white">
+              <Lock className="h-3 w-3" />
+              Capa herdada da empresa
+            </div>
+          )}
           <p className="absolute bottom-2 left-2 text-[10px] text-white/60">Recomendado: 1200×400</p>
         </div>
         <CardHeader>

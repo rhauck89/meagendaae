@@ -371,8 +371,8 @@ export default function ProfessionalPublicProfile() {
       <section className="relative w-full">
         <div className="relative h-[420px] sm:h-[460px] overflow-hidden">
           <motion.div style={{ y: y1 }} className="absolute inset-0">
-            {profile?.banner_url || company?.cover_url ? (
-              <img src={profile?.banner_url || company?.cover_url} alt="Banner" className="w-full h-full object-cover" />
+            {profile?.banner_url ? (
+              <img src={profile.banner_url} alt="Banner" className="w-full h-full object-cover" />
             ) : (
               <div className="w-full h-full" style={{ background: `linear-gradient(135deg, ${T.accent}40, ${T.bg})` }} />
             )}
