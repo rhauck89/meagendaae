@@ -718,6 +718,7 @@ const ProfessionalServiceCard = ({ service, profSetting, onSave }: any) => {
 };
 
 
+const ServiceCard = ({ service, onEdit, onToggle, onDelete, canManage }: any) => (
   <Card className={!service.active ? 'opacity-50' : 'hover:shadow-md transition-shadow'}>
     <CardContent className="p-5">
       <div className="mb-3 flex items-start justify-between">
