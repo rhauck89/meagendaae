@@ -150,6 +150,7 @@ export function CustomRequestForm({
 
       // Build WhatsApp URL using company whatsapp (accessible to anon users)
       const serviceName = services.find(s => s.id === form.service_id)?.name || '';
+      const professionalName = professionals?.find(p => p.id === form.professional_id)?.full_name || 'A definir';
 
       try {
         const { data: companyData } = await supabase
@@ -163,7 +164,9 @@ export function CustomRequestForm({
           const normalizedPhone = formatWhatsApp(whatsappNumber);
           const url = buildRequestWhatsAppUrl(normalizedPhone, {
             clientName: form.client_name.trim(),
+            clientWhatsApp: form.client_whatsapp.trim(),
             serviceName,
+            professionalName,
             requestedDate: form.requested_date,
             requestedTime: form.requested_time,
             message: form.message.trim() || null,
