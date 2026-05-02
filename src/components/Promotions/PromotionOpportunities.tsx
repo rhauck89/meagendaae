@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { format, isToday, parseISO, startOfDay, addDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { supabase } from '@/integrations/supabase/client';
@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Calendar as CalendarIcon, User, Scissors, Clock, Loader2, Tag, Check } from 'lucide-react';
+import { Calendar as CalendarIcon, User, Scissors, Clock, Loader2, Tag, Check, Zap, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface PromotionOpportunitiesProps {
@@ -34,8 +34,41 @@ export function PromotionOpportunities({
   const [slots, setSlots] = useState<any[]>([]);
   const [selectedSlots, setSelectedSlots] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
+  const [showSuggestion, setShowSuggestion] = useState(true);
 
   // Sync professional ID when profile loads or mode changes
+  useEffect(() => {
+    setShowSuggestion(true);
+  }, [selectedDate, selectedProfessionalId]);
+
+  const freeSlots = useMemo(() => slots.filter(s => s.isFree && !s.hasPromo), [slots]);
+  
+  const hasGaps = useMemo(() => {
+    if (freeSlots.length <= 1) return false;
+    
+    // Check if slots are continuous
+    for (let i = 0; i < freeSlots.length - 1; i++) {
+      const current = freeSlots[i];
+      const next = freeSlots[i+1];
+      
+      const [h1, m1] = current.time.split(':').map(Number);
+      const [h2, m2] = next.time.split(':').map(Number);
+      
+      const diff = (h2 * 60 + m2) - (h1 * 60 + m1);
+      if (diff > 30) return true; // Gap found (assuming 30min intervals)
+    }
+    return false;
+  }, [freeSlots]);
+
+  const shouldShowSuggestion = useMemo(() => {
+    return (
+      showSuggestion &&
+      selectedProfessionalId !== 'all' &&
+      freeSlots.length >= 1 &&
+      freeSlots.length <= 7 &&
+      hasGaps
+    );
+  }, [showSuggestion, selectedProfessionalId, freeSlots, hasGaps]);
   useEffect(() => {
     if (!isAdmin && profile?.id) {
       setSelectedProfessionalId(profile.id);
@@ -162,6 +195,69 @@ export function PromotionOpportunities({
             </Button>
           )}
         </div>
+
+        {shouldShowSuggestion && (
+          <div className="bg-primary/10 border border-primary/20 rounded-xl p-4 animate-in fade-in slide-in-from-top-4 duration-300">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div className="flex items-start gap-3">
+                <div className="bg-primary/20 p-2 rounded-lg shrink-0">
+                  <Zap className="h-5 w-5 text-primary fill-primary/20" />
+                </div>
+                <div className="space-y-1">
+                  <h4 className="text-sm font-bold text-primary flex items-center gap-1.5">
+                    Sugestão Inteligente
+                  </h4>
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    {professionals.find(p => p.profile_id === selectedProfessionalId)?.profiles?.full_name?.split(' ')[0]}, 
+                    encontramos <strong>{freeSlots.length} horários vagos</strong> para {format(parseISO(selectedDate), 'dd/MM')}. 
+                    Deseja criar uma promoção para preencher esses espaços?
+                  </p>
+                  <div className="flex flex-wrap gap-1.5 mt-2">
+                    {freeSlots.map(s => (
+                      <Badge key={s.time} variant="outline" className="text-[10px] bg-background/50 border-primary/20 py-0 h-4">
+                        {s.time}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              </div>
+              <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+                <Button 
+                  size="sm" 
+                  variant="outline" 
+                  className="text-xs h-8 flex-1 sm:flex-none border-primary/30 hover:bg-primary/5"
+                  onClick={() => setSelectedSlots(freeSlots.map(s => s.time))}
+                >
+                  Selecionar todos
+                </Button>
+                <Button 
+                  size="sm" 
+                  className="text-xs h-8 flex-1 sm:flex-none bg-primary hover:bg-primary/90"
+                  onClick={() => {
+                    const times = freeSlots.map(s => s.time);
+                    setSelectedSlots(times);
+                    onSelectSlot({
+                      date: selectedDate,
+                      times: times,
+                      professionalId: selectedProfessionalId,
+                      serviceId: selectedServiceId === 'all' ? undefined : selectedServiceId
+                    });
+                  }}
+                >
+                  Criar promoção
+                </Button>
+                <Button 
+                  size="sm" 
+                  variant="ghost" 
+                  className="h-8 w-8 p-0 text-muted-foreground"
+                  onClick={() => setShowSuggestion(false)}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           {/* ... existing select inputs ... */}
