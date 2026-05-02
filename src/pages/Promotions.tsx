@@ -218,6 +218,8 @@ export default function Promotions() {
   const [sourceInsight, setSourceInsight] = useState<string | null>(null);
   const [clientsDialogOpen, setClientsDialogOpen] = useState(false);
   const [metricsDialogOpen, setMetricsDialogOpen] = useState(false);
+  const [opportunityDialogOpen, setOpportunityDialogOpen] = useState(false);
+  const [selectedOpportunity, setSelectedOpportunity] = useState<{ date: string; time: string; professionalId: string; serviceId?: string } | null>(null);
   const [activeTab, setActiveTab] = useState('active');
   const [highlightedPromoId, setHighlightedPromoId] = useState<string | null>(null);
   const [now, setNow] = useState(new Date());
