@@ -697,13 +697,28 @@ export default function Promotions() {
 
   const fetchMetrics = async (promo: Promotion) => {
     setSelectedPromotion(promo);
+    
+    // Find all promotions in the group if it's a grouped promotion
+    const group = groupedPromotions.find(g => g.promotions.some(p => p.id === promo.id));
+    const promoIds = group ? group.promotions.map(p => p.id) : [promo.id];
+    
     const [clicksRes, bookingsRes] = await Promise.all([
-      supabase.from('promotion_clicks').select('id', { count: 'exact' }).eq('promotion_id', promo.id),
-      supabase.from('promotion_bookings').select('id', { count: 'exact' }).eq('promotion_id', promo.id),
+      supabase.from('promotion_clicks').select('id', { count: 'exact' }).in('promotion_id', promoIds),
+      supabase.from('promotion_bookings').select('id', { count: 'exact' }).in('promotion_id', promoIds),
     ]);
+    
+    // Also check for appointments directly linked to these promotions
+    const { count: directAppointmentsCount } = await supabase
+      .from('appointments')
+      .select('id', { count: 'exact' })
+      .in('promotion_id', promoIds)
+      .neq('status', 'cancelled');
+
+    const totalBookings = Math.max(bookingsRes.count || 0, directAppointmentsCount || 0);
+
     setMetrics({
       clicks: clicksRes.count || 0,
-      bookings: bookingsRes.count || 0,
+      bookings: totalBookings,
       clientsReached: 0,
     });
     setMetricsDialogOpen(true);
