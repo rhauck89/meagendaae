@@ -196,6 +196,69 @@ export function PromotionOpportunities({
           )}
         </div>
 
+        {shouldShowSuggestion && (
+          <div className="bg-primary/10 border border-primary/20 rounded-xl p-4 animate-in fade-in slide-in-from-top-4 duration-300">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div className="flex items-start gap-3">
+                <div className="bg-primary/20 p-2 rounded-lg shrink-0">
+                  <Zap className="h-5 w-5 text-primary fill-primary/20" />
+                </div>
+                <div className="space-y-1">
+                  <h4 className="text-sm font-bold text-primary flex items-center gap-1.5">
+                    Sugestão Inteligente
+                  </h4>
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    {professionals.find(p => p.profile_id === selectedProfessionalId)?.profiles?.full_name?.split(' ')[0]}, 
+                    encontramos <strong>{freeSlots.length} horários vagos</strong> para {format(parseISO(selectedDate), 'dd/MM')}. 
+                    Deseja criar uma promoção para preencher esses espaços?
+                  </p>
+                  <div className="flex flex-wrap gap-1.5 mt-2">
+                    {freeSlots.map(s => (
+                      <Badge key={s.time} variant="outline" className="text-[10px] bg-background/50 border-primary/20 py-0 h-4">
+                        {s.time}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              </div>
+              <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+                <Button 
+                  size="sm" 
+                  variant="outline" 
+                  className="text-xs h-8 flex-1 sm:flex-none border-primary/30 hover:bg-primary/5"
+                  onClick={() => setSelectedSlots(freeSlots.map(s => s.time))}
+                >
+                  Selecionar todos
+                </Button>
+                <Button 
+                  size="sm" 
+                  className="text-xs h-8 flex-1 sm:flex-none bg-primary hover:bg-primary/90"
+                  onClick={() => {
+                    const times = freeSlots.map(s => s.time);
+                    setSelectedSlots(times);
+                    onSelectSlot({
+                      date: selectedDate,
+                      times: times,
+                      professionalId: selectedProfessionalId,
+                      serviceId: selectedServiceId === 'all' ? undefined : selectedServiceId
+                    });
+                  }}
+                >
+                  Criar promoção
+                </Button>
+                <Button 
+                  size="sm" 
+                  variant="ghost" 
+                  className="h-8 w-8 p-0 text-muted-foreground"
+                  onClick={() => setShowSuggestion(false)}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           {/* ... existing select inputs ... */}
           <div className="space-y-1.5">
