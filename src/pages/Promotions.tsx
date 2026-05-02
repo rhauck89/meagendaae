@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useFeatureDiscovery } from '@/hooks/useFeatureDiscovery';
 import { FeatureIntroModal } from '@/components/FeatureIntroModal';
@@ -23,8 +23,10 @@ import { toast } from '@/hooks/use-toast';
 import { format, parseISO, isToday, isTomorrow, differenceInCalendarDays } from 'date-fns';
 import { fromZonedTime, toZonedTime } from 'date-fns-tz';
 import { ptBR } from 'date-fns/locale';
-import { Plus, MessageCircle, Send, Users, Tag, Megaphone, Copy, BarChart3, Eye, TrendingUp, MousePointerClick, CalendarCheck, ChevronLeft, ChevronRight, Check, Clock, Flame, Timer, Zap } from 'lucide-react';
+import { Plus, MessageCircle, Send, Users, Tag, Megaphone, Copy, BarChart3, Eye, TrendingUp, MousePointerClick, CalendarCheck, ChevronLeft, ChevronRight, Check, Clock, Flame, Timer, Zap, ChevronDown, ChevronUp } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { formatWhatsApp, displayWhatsApp, buildWhatsAppUrl, trackWhatsAppClick } from '@/lib/whatsapp';
+
 import { PromotionOpportunities } from '@/components/Promotions/PromotionOpportunities';
 import { OpportunityPromotionModal } from '@/components/Promotions/OpportunityPromotionModal';
 
@@ -67,6 +69,14 @@ interface Promotion {
   source_insight?: string;
   booking_opens_at: string | null;
   booking_closes_at: string | null;
+}
+
+interface GroupedPromotion extends Omit<Promotion, 'id' | 'start_time' | 'end_time' | 'slug'> {
+  id: string;
+  slug: string | null;
+  promotions: Promotion[];
+  // If we need specific times for the group summary
+  times: string[];
 }
 
 interface ClientRow {
@@ -176,11 +186,12 @@ function normalizeTime(t: string | null, fallback: string): string {
   return `${hh}:${mm}:${ss}`;
 }
 function getPromoStart(p: Promotion): Date {
-  return new Date(`${p.start_date}T${normalizeTime(p.start_time, '00:00:00')}`);
+  return fromZonedTime(`${p.start_date}T${normalizeTime(p.start_time, '00:00:00')}`, DEFAULT_TZ);
 }
 function getPromoEnd(p: Promotion): Date {
-  return new Date(`${p.end_date}T${normalizeTime(p.end_time, '23:59:59')}`);
+  return fromZonedTime(`${p.end_date}T${normalizeTime(p.end_time, '23:59:59')}`, DEFAULT_TZ);
 }
+
 
 function promoVisualStatus(p: Promotion, now: Date): 'scheduled' | 'active' | 'paused' | 'expired' {
   if (p.status === 'paused') return 'paused';
@@ -223,6 +234,9 @@ export default function Promotions() {
   const [activeTab, setActiveTab] = useState('active');
   const [highlightedPromoId, setHighlightedPromoId] = useState<string | null>(null);
   const [now, setNow] = useState(new Date());
+  const [appointments, setAppointments] = useState<any[]>([]);
+  const [expandedGroups, setExpandedGroups] = useState<string[]>([]);
+
 
   // Wizard step
   const [wizardStep, setWizardStep] = useState(1);
@@ -301,7 +315,14 @@ export default function Promotions() {
   useOnDataRefresh('promotions', handlePromotionsRefresh);
   useOnDataRefresh('promotions', handlePromotionsRefresh);
 
+  useEffect(() => {
+    if (promotions.length > 0) {
+      fetchAppointmentsForPromos(promotions);
+    }
+  }, [promotions]);
+
   // Clear highlight after a few seconds
+
   useEffect(() => {
     if (highlightedPromoId) {
       const t = setTimeout(() => setHighlightedPromoId(null), 4000);
@@ -311,14 +332,16 @@ export default function Promotions() {
 
   const fetchAll = async () => {
     setLoading(true);
+    const fetchedPromos = await fetchPromotions();
     await Promise.all([
-      fetchPromotions(), 
       fetchServices(), 
       fetchProfessionals(), 
-      fetchCompanyInfo()
+      fetchCompanyInfo(),
+      fetchAppointmentsForPromos(fetchedPromos || [])
     ]);
     setLoading(false);
   };
+
 
   const fetchCompanyInfo = async () => {
     const { data } = await supabase.from('companies').select('name, slug, business_type').eq('id', companyId!).single();
@@ -339,8 +362,46 @@ export default function Promotions() {
     }
     
     const { data } = await query;
-    if (data) setPromotions(data as unknown as Promotion[]);
+    if (data) {
+      setPromotions(data as unknown as Promotion[]);
+      return data as unknown as Promotion[];
+    }
+    return [];
   };
+
+  const fetchAppointmentsForPromos = async (promos: Promotion[]) => {
+    const activeAndScheduled = promos.filter(p => {
+      const status = promoVisualStatus(p, now);
+      return status === 'active' || status === 'scheduled';
+    });
+    
+    if (activeAndScheduled.length === 0) {
+      setAppointments([]);
+      return;
+    }
+
+    const professionalIds = Array.from(new Set(activeAndScheduled.flatMap(p => p.professional_ids || [])));
+    const dates = Array.from(new Set(activeAndScheduled.map(p => p.start_date)));
+
+    if (professionalIds.length === 0 || dates.length === 0) {
+      setAppointments([]);
+      return;
+    }
+
+    const minDate = dates.sort()[0];
+    const maxDate = [...dates].sort().reverse()[0];
+
+    const { data } = await supabase
+      .from('appointments')
+      .select('id, professional_id, start_time, end_time, status')
+      .in('professional_id', professionalIds)
+      .gte('start_time', `${minDate}T00:00:00Z`)
+      .lte('start_time', `${maxDate}T23:59:59Z`)
+      .neq('status', 'cancelled');
+
+    if (data) setAppointments(data);
+  };
+
 
   const fetchServices = async () => {
     const { data } = await supabase.from('services').select('id, name, price, duration_minutes').eq('company_id', companyId!).eq('active', true).order('name');
@@ -927,22 +988,25 @@ export default function Promotions() {
     setTitle(`${promo.title} (Cópia)`);
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm('Tem certeza que deseja excluir esta promoção?')) return;
-    const { error } = await supabase.from('promotions').delete().eq('id', id);
+  const handleDelete = async (id: string, ids?: string[]) => {
+    const idsToDelete = ids || [id];
+    if (!confirm(`Tem certeza que deseja excluir ${idsToDelete.length > 1 ? 'estas promoções' : 'esta promoção'}?`)) return;
+    const { error } = await supabase.from('promotions').delete().in('id', idsToDelete);
     if (error) {
       toast({ title: 'Erro ao excluir promoção', description: error.message, variant: 'destructive' });
       return;
     }
-    toast({ title: 'Promoção excluída' });
+    toast({ title: idsToDelete.length > 1 ? 'Promoções excluídas' : 'Promoção excluída' });
     fetchPromotions();
   };
 
-  const toggleStatus = async (promo: Promotion) => {
+  const toggleStatus = async (promo: Promotion, ids?: string[]) => {
+    const idsToUpdate = ids || [promo.id];
     const newStatus = promo.status === 'active' ? 'paused' : 'active';
-    await supabase.from('promotions').update({ status: newStatus } as any).eq('id', promo.id);
+    await supabase.from('promotions').update({ status: newStatus } as any).in('id', idsToUpdate);
     fetchPromotions();
   };
+
 
   const getPromoLink = (promo: Promotion) => {
     const routeType = companyBusinessType === 'esthetic' ? 'estetica' : 'barbearia';
@@ -1014,23 +1078,45 @@ export default function Promotions() {
     return buildWhatsAppUrl(number, msg);
   };
 
-  const handleEndNow = async (promo: Promotion) => {
-    if (!confirm('Deseja encerrar esta promoção imediatamente?')) return;
+  const handleEndNow = async (promo: Promotion, ids?: string[]) => {
+    const idsToEnd = ids || [promo.id];
+    if (!confirm(`Deseja encerrar ${idsToEnd.length > 1 ? 'estas promoções' : 'esta promoção'} imediatamente?`)) return;
     const yesterday = new Date();
     yesterday.setDate(yesterday.getDate() - 1);
     const dateStr = format(yesterday, 'yyyy-MM-dd');
-    const { error } = await supabase.from('promotions').update({ end_date: dateStr, status: 'expired' } as any).eq('id', promo.id);
+    const { error } = await supabase.from('promotions').update({ end_date: dateStr, status: 'expired' } as any).in('id', idsToEnd);
     if (error) {
       toast({ title: 'Erro ao encerrar promoção', variant: 'destructive' });
       return;
     }
-    toast({ title: 'Promoção encerrada' });
+    toast({ title: idsToEnd.length > 1 ? 'Promoções encerradas' : 'Promoção encerrada' });
     fetchPromotions();
   };
+
 
   const getFilterLabel = (f: string) => {
     const m: Record<string, string> = { all: 'Todos', birthday_month: 'Aniversariantes', top_spending: 'Maiores gastos', inactive: 'Inativos', new_clients: 'Novos', frequent: 'Frequentes' };
     return m[f] || f;
+  };
+
+  const isSlotFilled = (promo: Promotion, appts: any[]) => {
+    if (!promo.start_time || !promo.end_time || !promo.professional_ids?.[0]) return false;
+    
+    const promoDate = promo.start_date;
+    const promoStartStr = `${promoDate}T${promo.start_time}`;
+    const promoEndStr = `${promoDate}T${promo.end_time}`;
+    
+    const promoStart = fromZonedTime(promoStartStr, DEFAULT_TZ);
+    const promoEnd = fromZonedTime(promoEndStr, DEFAULT_TZ);
+    
+    return appts.some(appt => {
+      if (appt.professional_id !== promo.professional_ids![0]) return false;
+      
+      const apptStart = new Date(appt.start_time);
+      const apptEnd = new Date(appt.end_time);
+      
+      return promoStart < apptEnd && promoEnd > apptStart;
+    });
   };
 
   // --- Status-based filtering using datetime ---
@@ -1038,7 +1124,46 @@ export default function Promotions() {
   const isActivePromo = (p: Promotion) => promoVisualStatus(p, now) === 'active';
   const isExpiredPromo = (p: Promotion) => promoVisualStatus(p, now) === 'expired';
 
-  const filteredPromotions = promotions.filter(p => {
+  const groupedPromotions = useMemo(() => {
+    const groups: Map<string, GroupedPromotion> = new Map();
+    
+    const sorted = [...promotions].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+    
+    sorted.forEach(p => {
+      const svcIds = [...(p.service_ids || [])].sort().join(',');
+      const profIds = [...(p.professional_ids || [])].sort().join(',');
+      const createdAt = new Date(p.created_at).getTime();
+      
+      const groupKeyBase = `${p.title}|${p.description}|${svcIds}|${profIds}|${p.discount_type}|${p.discount_value}|${p.start_date}|${p.end_date}|${p.status}|${p.promotion_mode}`;
+      
+      let matchedGroupId = Array.from(groups.keys()).find(key => {
+        const [keyAttrs, keyTime] = key.split('@@@');
+        if (keyAttrs !== groupKeyBase) return false;
+        const groupTime = parseInt(keyTime);
+        return Math.abs(groupTime - createdAt) < 15000; // Increased to 15s to be safe
+      });
+      
+      if (matchedGroupId) {
+        const group = groups.get(matchedGroupId)!;
+        group.promotions.push(p);
+        if (p.start_time) group.times.push(p.start_time);
+        group.times.sort();
+      } else {
+        const fullKey = `${groupKeyBase}@@@${createdAt}`;
+        groups.set(fullKey, {
+          ...p,
+          promotions: [p],
+          times: p.start_time ? [p.start_time] : []
+        });
+      }
+    });
+    
+    return Array.from(groups.values());
+  }, [promotions]);
+
+  const filteredGroupedPromotions = groupedPromotions.filter(group => {
+    // For grouping status, we check the first promotion in the group
+    const p = group.promotions[0];
     if (activeTab === 'active') return isActivePromo(p);
     if (activeTab === 'scheduled') return isScheduled(p);
     if (activeTab === 'paused') return p.status === 'paused';
@@ -1046,8 +1171,10 @@ export default function Promotions() {
     return true;
   });
 
+
   // --- Status badge renderer ---
-  const renderStatusBadge = (promo: Promotion) => {
+  const renderStatusBadge = (group: GroupedPromotion) => {
+    const promo = group.promotions[0];
     const validityStatus = promoVisualStatus(promo, now);
     const startsAt = getPromoStart(promo);
     const opensAt = promo.booking_opens_at ? new Date(promo.booking_opens_at) : startsAt;
@@ -1062,6 +1189,19 @@ export default function Promotions() {
         <Badge variant="outline" className="gap-1.5 text-muted-foreground py-1 px-3 bg-muted/30">
           <div className="w-2 h-2 rounded-full bg-muted-foreground/50" />
           Encerrada
+        </Badge>
+      );
+    }
+
+    // Check if filled
+    const filledCount = group.promotions.filter(p => isSlotFilled(p, appointments)).length;
+    const totalCount = group.promotions.length;
+
+    if (filledCount === totalCount && totalCount > 0) {
+      return (
+        <Badge variant="secondary" className="bg-slate-100 text-slate-600 border-slate-200 gap-1.5 py-1 px-3">
+          <Check className="h-3 w-3" />
+          Vaga{totalCount > 1 ? 's' : ''} Preenchida{totalCount > 1 ? 's' : ''}
         </Badge>
       );
     }
@@ -1099,8 +1239,8 @@ export default function Promotions() {
     );
   };
 
-  // --- Countdown for active promos ---
-  const renderCountdown = (promo: Promotion) => {
+  const renderCountdown = (group: GroupedPromotion) => {
+    const promo = group.promotions[0];
     const status = promoVisualStatus(promo, now);
     
     if (status === 'active') {
@@ -1119,21 +1259,25 @@ export default function Promotions() {
     }
 
     if (status === 'scheduled') {
-      const start = getPromoStart(promo);
-      const remaining = start.getTime() - now.getTime();
-      if (remaining <= 0) return null;
-      
-      const hours = Math.floor(remaining / (1000 * 60 * 60));
-      const days = Math.floor(hours / 24);
+      const promoDate = fromZonedTime(`${promo.start_date}T00:00:00`, DEFAULT_TZ);
+      const today = toZonedTime(now, DEFAULT_TZ);
+      const days = differenceInCalendarDays(promoDate, today);
+
       
       let countdownText = '';
       if (days > 0) {
         countdownText = `Faltam ${days} ${days === 1 ? 'dia' : 'dias'}`;
-      } else if (hours > 0) {
-        countdownText = `Em ${hours} ${hours === 1 ? 'hora' : 'horas'}`;
       } else {
-        const minutes = Math.floor(remaining / (1000 * 60));
-        countdownText = `Em ${minutes} min`;
+        const start = getPromoStart(promo);
+        const remainingMs = start.getTime() - now.getTime();
+        const hours = Math.floor(remainingMs / (1000 * 60 * 60));
+        
+        if (hours > 0) {
+          countdownText = `Em ${hours} ${hours === 1 ? 'hora' : 'horas'}`;
+        } else {
+          const minutes = Math.floor(remainingMs / (1000 * 60));
+          countdownText = `Em ${minutes} min`;
+        }
       }
       
       return (
@@ -1143,9 +1287,9 @@ export default function Promotions() {
         </div>
       );
     }
-    
     return null;
   };
+
 
   // --- Wizard step rendering ---
   const renderStep1 = () => {
@@ -1832,16 +1976,17 @@ export default function Promotions() {
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="flex flex-wrap h-auto gap-1">
-          <TabsTrigger value="active">Ativas ({promotions.filter(p => isActivePromo(p)).length})</TabsTrigger>
-          <TabsTrigger value="scheduled">Programadas ({promotions.filter(p => isScheduled(p)).length})</TabsTrigger>
-          <TabsTrigger value="paused">Pausadas ({promotions.filter(p => p.status === 'paused').length})</TabsTrigger>
-          <TabsTrigger value="expired">Encerradas ({promotions.filter(p => isExpiredPromo(p)).length})</TabsTrigger>
+          <TabsTrigger value="active">Ativas ({groupedPromotions.filter(g => isActivePromo(g.promotions[0])).length})</TabsTrigger>
+          <TabsTrigger value="scheduled">Programadas ({groupedPromotions.filter(g => isScheduled(g.promotions[0])).length})</TabsTrigger>
+          <TabsTrigger value="paused">Pausadas ({groupedPromotions.filter(g => g.promotions[0].status === 'paused').length})</TabsTrigger>
+          <TabsTrigger value="expired">Encerradas ({groupedPromotions.filter(g => isExpiredPromo(g.promotions[0])).length})</TabsTrigger>
         </TabsList>
+
 
         <TabsContent value={activeTab} className="mt-4">
           {loading ? (
             <p className="text-muted-foreground">Carregando...</p>
-          ) : filteredPromotions.length === 0 ? (
+          ) : filteredGroupedPromotions.length === 0 ? (
             <Card>
               <CardContent className="py-12 text-center">
                 <Megaphone className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
@@ -1851,8 +1996,12 @@ export default function Promotions() {
             </Card>
           ) : (
             <div className="grid gap-4 grid-cols-1 md:grid-cols-2">
-              {filteredPromotions.map(promo => {
-                const remaining = promo.max_slots > 0 ? promo.max_slots - promo.used_slots : null;
+              {filteredGroupedPromotions.map(group => {
+                const promo = group.promotions[0];
+                const isGroup = group.promotions.length > 1;
+                const isExpanded = expandedGroups.includes(group.id);
+                
+                const remaining = promo.max_slots > 0 ? (group.promotions.reduce((acc, p) => acc + (p.max_slots - p.used_slots), 0)) : null;
                 const status = promoVisualStatus(promo, now);
                 const svc = services.find(s => s.id === promo.service_id);
                 const promoServiceIds = promo.service_ids || (promo.service_id ? [promo.service_id] : []);
@@ -1871,12 +2020,26 @@ export default function Promotions() {
                     ? `R$ ${Number(promo.discount_value).toFixed(2)} OFF`
                     : null);
 
+                // Check filled status for the group
+                const slotsStatus = group.promotions.map(p => ({
+                  time: p.start_time,
+                  isFilled: isSlotFilled(p, appointments)
+                }));
+                const filledCount = slotsStatus.filter(s => s.isFilled).length;
+                const availableCount = slotsStatus.length - filledCount;
+                const allFilled = filledCount === slotsStatus.length && slotsStatus.length > 0;
+
                 return (
-                  <Card key={promo.id} className={`transition-all duration-500 ${status === 'expired' || status === 'paused' ? 'opacity-70' : ''} ${isHighlighted ? 'ring-2 ring-primary shadow-lg animate-pulse' : ''}`}>
+                  <Card key={group.id} className={cn(
+                    "transition-all duration-500 flex flex-col h-full",
+                    (status === 'expired' || status === 'paused' || allFilled) ? 'opacity-70' : '',
+                    isHighlighted ? 'ring-2 ring-primary shadow-lg animate-pulse' : ''
+                  )}>
                     <CardHeader className="pb-2">
                       <div className="flex items-start justify-between gap-2">
                         <CardTitle className="text-lg flex items-center gap-2">
                           {promo.title}
+                          {isGroup && <Badge variant="secondary" className="bg-primary/10 text-primary border-primary/20">{group.promotions.length} horários</Badge>}
                           {promo.promotion_mode === 'smart' ? (
                             <Badge variant="outline" className="text-[10px] uppercase font-bold text-primary border-primary/20 bg-primary/5 py-0 px-1.5 h-4">🤖 IA</Badge>
                           ) : (
@@ -1884,7 +2047,7 @@ export default function Promotions() {
                           )}
                         </CardTitle>
                         <div className="flex items-center gap-1">
-                          {renderStatusBadge(promo)}
+                          {renderStatusBadge(group)}
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                               <Button variant="ghost" size="icon" className="h-8 w-8">
@@ -1898,15 +2061,15 @@ export default function Promotions() {
                               <DropdownMenuItem onClick={() => handleDuplicate(promo)}>
                                 <RefreshCw className="h-4 w-4 mr-2" />Duplicar
                               </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => toggleStatus(promo)}>
+                              <DropdownMenuItem onClick={() => toggleStatus(promo, group.promotions.map(p => p.id))}>
                                 {promo.status === 'active' ? (
-                                  <><Pause className="h-4 w-4 mr-2" />Pausar</>
+                                  <><Pause className="h-4 w-4 mr-2" />Pausar {isGroup ? 'Grupo' : ''}</>
                                 ) : (
-                                  <><Play className="h-4 w-4 mr-2" />Ativar</>
+                                  <><Play className="h-4 w-4 mr-2" />Ativar {isGroup ? 'Grupo' : ''}</>
                                 )}
                               </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => handleEndNow(promo)}>
-                                <X className="h-4 w-4 mr-2" />Encerrar agora
+                              <DropdownMenuItem onClick={() => handleEndNow(promo, group.promotions.map(p => p.id))}>
+                                <X className="h-4 w-4 mr-2" />Encerrar {isGroup ? 'Grupo' : ''}
                               </DropdownMenuItem>
                               <DropdownMenuSeparator />
                               <DropdownMenuItem asChild>
@@ -1921,8 +2084,8 @@ export default function Promotions() {
                                 <BarChart3 className="h-4 w-4 mr-2" />Métricas
                               </DropdownMenuItem>
                               <DropdownMenuSeparator />
-                              <DropdownMenuItem onClick={() => handleDelete(promo.id)} className="text-destructive">
-                                <Trash2 className="h-4 w-4 mr-2" />Excluir
+                              <DropdownMenuItem onClick={() => handleDelete(promo.id, group.promotions.map(p => p.id))} className="text-destructive">
+                                <Trash2 className="h-4 w-4 mr-2" />Excluir {isGroup ? 'Grupo' : ''}
                               </DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>
@@ -1934,7 +2097,7 @@ export default function Promotions() {
                         </p>
                       )}
                     </CardHeader>
-                    <CardContent className="space-y-3">
+                    <CardContent className="space-y-3 flex-1 flex flex-col">
                       {promo.description && <p className="text-sm text-muted-foreground">{promo.description}</p>}
 
                       {/* Type + Discount badge */}
@@ -1953,9 +2116,6 @@ export default function Promotions() {
                         )}
                         {discountLabel && (
                           <Badge className={isCashback ? 'bg-emerald-50 text-emerald-600 border-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-400' : 'bg-primary/10 text-primary border-primary/20'}>{discountLabel}</Badge>
-                        )}
-                        {isCashback && promo.cashback_validity_days && (
-                          <Badge variant="outline" className="text-xs">Validade: {promo.cashback_validity_days} dias</Badge>
                         )}
                       </div>
 
@@ -1989,7 +2149,8 @@ export default function Promotions() {
                               ) : (
                                 `${format(parseISO(promo.start_date), 'dd/MM/yyyy')} até ${format(parseISO(promo.end_date), 'dd/MM/yyyy')}`
                               )}
-                              {promo.use_business_hours !== false ? ' (Horário comercial)' : ` (${promo.start_time?.slice(0, 5) || '00:00'} às ${promo.end_time?.slice(0, 5) || '23:59'})`}
+                              {!isGroup && (promo.use_business_hours !== false ? ' (Horário comercial)' : ` (${promo.start_time?.slice(0, 5) || '00:00'} às ${promo.end_time?.slice(0, 5) || '23:59'})`)}
+                              {isGroup && ` (${group.promotions.length} horários selecionados)`}
                             </span>
                           </div>
                         </div>
@@ -2011,8 +2172,40 @@ export default function Promotions() {
                         </div>
                       </div>
 
+                      {/* Group slots visualization */}
+                      {isGroup && (
+                        <div className="space-y-2">
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className="w-full h-8 text-xs flex items-center justify-between px-2 hover:bg-primary/5 border border-dashed border-primary/20"
+                            onClick={() => setExpandedGroups(prev => prev.includes(group.id) ? prev.filter(id => id !== group.id) : [...prev, group.id])}
+                          >
+                            <span className="flex items-center gap-1.5">
+                              <Timer className="h-3.5 w-3.5 text-primary" />
+                              {availableCount} disponíveis · {filledCount} preenchidos
+                            </span>
+                            {isExpanded ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+                          </Button>
+
+                          {isExpanded && (
+                            <div className="grid grid-cols-2 gap-1.5 animate-in fade-in slide-in-from-top-2 duration-200">
+                              {slotsStatus.map((s, idx) => (
+                                <div key={idx} className={cn(
+                                  "flex items-center justify-between p-1.5 rounded border text-[10px]",
+                                  s.isFilled ? "bg-muted/50 text-muted-foreground border-muted/20" : "bg-emerald-50/50 text-emerald-700 border-emerald-100"
+                                )}>
+                                  <span className="font-bold">{s.time}</span>
+                                  <span>{s.isFilled ? 'Vaga preenchida' : 'Disponível'}</span>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      )}
+
                       {/* Countdown timer for active promos */}
-                      {renderCountdown(promo)}
+                      {renderCountdown(group)}
 
                       {/* Slots + urgency */}
                       <div className="flex flex-wrap gap-2 text-xs">
@@ -2039,15 +2232,7 @@ export default function Promotions() {
                         </div>
                       )}
 
-                      {/* Cashback auto-apply indicator */}
-                      {isCashback && status === 'active' && (
-                        <div className="flex items-center gap-2 text-xs text-emerald-600 bg-emerald-50 dark:bg-emerald-950/20 p-2 rounded-lg">
-                          <Flame className="h-3 w-3" />
-                          <span>Cashback aplicado automaticamente ao concluir atendimentos elegíveis</span>
-                        </div>
-                      )}
-
-                      <div className="flex gap-2 pt-2 flex-wrap">
+                      <div className="flex gap-2 pt-2 flex-wrap mt-auto">
                         <Button size="sm" onClick={() => fetchFilteredClients(promo)} disabled={status === 'expired'}>
                           <Send className="h-3 w-3 mr-1" />Divulgar
                         </Button>
@@ -2066,6 +2251,7 @@ export default function Promotions() {
               })}
             </div>
           )}
+
         </TabsContent>
       </Tabs>
 
