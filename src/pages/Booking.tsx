@@ -1110,6 +1110,46 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
     }
   };
 
+  const updateServicesForProfessional = async (profId: string) => {
+    if (!company?.id) return;
+    
+    // Fetch all services first to have a base
+    const { data: allServices } = await supabase
+      .from('public_services' as any)
+      .select('*')
+      .eq('company_id', company.id)
+      .order('name');
+      
+    if (!allServices) return;
+
+    const { data: profServices } = await supabase
+      .from('service_professionals')
+      .select('service_id, price_override, duration_override, is_active')
+      .eq('professional_id', profId);
+
+    if (profServices && profServices.length > 0) {
+      const activeProfServices = profServices.filter(ps => ps.is_active !== false);
+      const activeProfServiceIds = activeProfServices.map((ps: any) => ps.service_id);
+      
+      const filteredServices = allServices.filter((s: any) => activeProfServiceIds.includes(s.id));
+      
+      const withOverrides = filteredServices.map((s: any) => {
+        const override = activeProfServices.find((ps: any) => ps.service_id === s.id);
+        return {
+          ...s,
+          price: override?.price_override != null ? override.price_override : s.price,
+          duration_minutes: override?.duration_override != null ? override.duration_override : s.duration_minutes
+        };
+      });
+      setServices(withOverrides);
+      
+      // If any selected service is now hidden, remove it
+      setSelectedServices(prev => prev.filter(sid => activeProfServiceIds.includes(sid)));
+    } else {
+      setServices(allServices);
+    }
+  };
+
   const fetchRecentBookings = async (profileId: string) => {
     const { data: recentCount } = await supabase.rpc('get_professional_recent_bookings' as any, { p_professional_id: profileId });
     if (typeof recentCount === 'number') setRecentBookings(recentCount);
