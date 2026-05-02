@@ -137,17 +137,34 @@ export function PromotionOpportunities({
   return (
     <Card className="border-primary/20 bg-primary/5">
       <CardContent className="pt-6 space-y-6">
-        <div className="flex flex-col gap-1">
-          <h3 className="text-lg font-bold flex items-center gap-2">
-            <Tag className="h-5 w-5 text-primary" />
-            Oportunidades de Promoção
-          </h3>
-          <p className="text-sm text-muted-foreground">
-            Veja horários vazios na agenda e crie campanhas para preencher sua agenda.
-          </p>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex flex-col gap-1">
+            <h3 className="text-lg font-bold flex items-center gap-2">
+              <Tag className="h-5 w-5 text-primary" />
+              Oportunidades de Promoção
+            </h3>
+            <p className="text-sm text-muted-foreground">
+              Selecione horários vazios para criar promoções e preencher sua agenda.
+            </p>
+          </div>
+
+          {selectedSlots.length > 0 && (
+            <Button 
+              onClick={() => onSelectSlot({
+                date: selectedDate,
+                times: selectedSlots,
+                professionalId: selectedProfessionalId,
+                serviceId: selectedServiceId === 'all' ? undefined : selectedServiceId
+              })}
+              className="bg-primary hover:bg-primary/90 text-white shadow-lg animate-in fade-in slide-in-from-right-4"
+            >
+              Criar promoção para {selectedSlots.length} {selectedSlots.length === 1 ? 'horário' : 'horários'}
+            </Button>
+          )}
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          {/* ... existing select inputs ... */}
           <div className="space-y-1.5">
             <label className="text-xs font-medium flex items-center gap-1.5">
               <CalendarIcon className="h-3.5 w-3.5" /> Data
@@ -155,7 +172,10 @@ export function PromotionOpportunities({
             <input
               type="date"
               value={selectedDate}
-              onChange={(e) => setSelectedDate(e.target.value)}
+              onChange={(e) => {
+                setSelectedDate(e.target.value);
+                setSelectedSlots([]);
+              }}
               className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
             />
           </div>
@@ -166,7 +186,10 @@ export function PromotionOpportunities({
             </label>
             <Select 
               value={selectedProfessionalId} 
-              onValueChange={setSelectedProfessionalId}
+              onValueChange={(v) => {
+                setSelectedProfessionalId(v);
+                setSelectedSlots([]);
+              }}
               disabled={!isAdmin}
             >
               <SelectTrigger>
@@ -187,7 +210,10 @@ export function PromotionOpportunities({
             <label className="text-xs font-medium flex items-center gap-1.5">
               <Scissors className="h-3.5 w-3.5" /> Serviço (opcional)
             </label>
-            <Select value={selectedServiceId} onValueChange={setSelectedServiceId}>
+            <Select value={selectedServiceId} onValueChange={(v) => {
+              setSelectedServiceId(v);
+              setSelectedSlots([]);
+            }}>
               <SelectTrigger>
                 <SelectValue placeholder="Todos os serviços" />
               </SelectTrigger>
@@ -219,6 +245,7 @@ export function PromotionOpportunities({
               {slots.map((slot) => {
                 const isPromo = slot.hasPromo;
                 const isOccupied = slot.isOccupied || !slot.isFree;
+                const isSelected = selectedSlots.includes(slot.time);
                 
                 return (
                   <Button
@@ -226,23 +253,30 @@ export function PromotionOpportunities({
                     variant="outline"
                     className={cn(
                       "h-auto py-3 px-2 flex flex-col gap-1 items-center justify-center transition-all relative",
-                      isOccupied ? "opacity-50 cursor-not-allowed bg-muted" : "hover:border-primary hover:bg-primary/5",
-                      isPromo && "border-amber-500/50 bg-amber-500/5 dark:bg-amber-500/10"
+                      isOccupied ? "opacity-50 cursor-not-allowed bg-muted" : "hover:border-primary",
+                      isPromo && "border-amber-500/50 bg-amber-500/5 dark:bg-amber-500/10",
+                      isSelected && "border-primary bg-primary/10 ring-2 ring-primary ring-offset-1"
                     )}
-                    disabled={isOccupied}
-                    onClick={() => onSelectSlot({
-                      date: selectedDate,
-                      time: slot.time,
-                      professionalId: selectedProfessionalId,
-                      serviceId: selectedServiceId === 'all' ? undefined : selectedServiceId
-                    })}
+                    disabled={isOccupied || isPromo} // Do not allow selecting slots that already have a promo
+                    onClick={() => {
+                      setSelectedSlots(prev => 
+                        prev.includes(slot.time) 
+                          ? prev.filter(t => t !== slot.time) 
+                          : [...prev, slot.time].sort()
+                      );
+                    }}
                   >
                     <span className={cn("text-xs font-bold", isOccupied ? "text-muted-foreground" : "text-foreground")}>
                       {slot.time}
                     </span>
                     <span className="text-[10px] leading-tight">
-                      {isOccupied ? "Ocupado" : "Livre"}
+                      {isOccupied ? "Ocupado" : isSelected ? "Selecionado" : "Livre"}
                     </span>
+                    {isSelected && (
+                      <div className="absolute top-1 right-1">
+                        <Check className="h-3 w-3 text-primary" />
+                      </div>
+                    )}
                     {isPromo && (
                       <Badge className="absolute -top-2 -right-2 px-1 py-0 h-4 text-[9px] bg-amber-500 hover:bg-amber-600 border-none shadow-sm">
                         PROMO
