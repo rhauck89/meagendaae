@@ -25,6 +25,11 @@ interface CustomRequestFormProps {
   companyId: string;
   services: Array<{ id: string; name: string }>;
   professionals?: Array<{ id: string; full_name: string }>;
+  initialData?: {
+    clientName?: string;
+    clientWhatsApp?: string;
+  };
+  preSelectedProfessionalId?: string | null;
   themeColors?: {
     accent: string;
     card: string;
@@ -37,7 +42,9 @@ interface CustomRequestFormProps {
 
 function buildRequestWhatsAppUrl(professionalWhatsApp: string, data: {
   clientName: string;
+  clientWhatsApp: string;
   serviceName: string;
+  professionalName: string;
   requestedDate: string;
   requestedTime: string;
   message: string | null;
@@ -47,7 +54,7 @@ function buildRequestWhatsAppUrl(professionalWhatsApp: string, data: {
     ? `${dateParts[2]}/${dateParts[1]}/${dateParts[0]}`
     : data.requestedDate;
 
-  let text = `Olá! Acabei de solicitar um horário personalizado pelo Me Agendaê.\n\nNome: ${data.clientName}\nServiço: ${data.serviceName}\nData desejada: ${formattedDate}\nHorário desejado: ${data.requestedTime}`;
+  let text = `Olá! Acabei de solicitar um horário personalizado pelo Me Agendaê.\n\nNome: ${data.clientName}\nWhatsApp: ${data.clientWhatsApp}\nProfissional: ${data.professionalName}\nServiço: ${data.serviceName}\nData desejada: ${formattedDate}\nHorário desejado: ${data.requestedTime}`;
 
   if (data.message) {
     text += `\n\nMensagem:\n${data.message}`;
