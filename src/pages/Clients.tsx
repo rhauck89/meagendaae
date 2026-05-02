@@ -134,9 +134,15 @@ const Clients = () => {
   });
 
   // Derive client IDs from appointments for professional view
+  // Matches the logic in the RPC 'get_company_dashboard_stats'
   const professionalClientIds = useMemo(() => {
     if (isAdmin) return null;
-    return new Set(appointments.map(a => a.client_id).filter(Boolean));
+    return new Set(
+      appointments
+        .filter(a => ['completed', 'confirmed', 'pending'].includes(a.status))
+        .map(a => a.client_id)
+        .filter(Boolean)
+    );
   }, [isAdmin, appointments]);
 
   // Fetch all clients
