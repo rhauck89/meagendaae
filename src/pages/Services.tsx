@@ -624,8 +624,100 @@ const Services = () => {
     </div>
   );
 };
+const ProfessionalServiceCard = ({ service, profSetting, onSave }: any) => {
+  const [isActive, setIsActive] = useState(profSetting?.is_active ?? false);
+  const [customPrice, setCustomPrice] = useState(profSetting?.price_override ?? '');
+  const [customDuration, setCustomDuration] = useState(profSetting?.duration_override ?? '');
+  const [isSaving, setIsSaving] = useState(false);
 
-const ServiceCard = ({ service, onEdit, onToggle, onDelete, canManage }: any) => (
+  useEffect(() => {
+    setIsActive(profSetting?.is_active ?? false);
+    setCustomPrice(profSetting?.price_override ?? '');
+    setCustomDuration(profSetting?.duration_override ?? '');
+  }, [profSetting]);
+
+  const handleSave = async () => {
+    setIsSaving(true);
+    await onSave(
+      service.id, 
+      isActive, 
+      customPrice === '' ? undefined : Number(customPrice), 
+      customDuration === '' ? undefined : Number(customDuration)
+    );
+    setIsSaving(false);
+  };
+
+  return (
+    <Card className={!isActive ? 'opacity-70 bg-muted/30 transition-all' : 'hover:shadow-md transition-all'}>
+      <CardContent className="p-5 space-y-4">
+        <div className="flex items-start justify-between">
+          <div className="space-y-1">
+            <h3 className={cn("text-lg font-semibold line-clamp-1", !isActive && "text-muted-foreground line-through decoration-1")}>
+              {service.name}
+            </h3>
+            <div className="flex flex-wrap gap-2">
+              <Badge variant="outline" className="text-[10px] font-normal">
+                Padrao: R$ {Number(service.price).toFixed(2)} | {service.duration_minutes}min
+              </Badge>
+            </div>
+          </div>
+          <Switch 
+            checked={isActive} 
+            onCheckedChange={(checked) => {
+              setIsActive(checked);
+              onSave(service.id, checked, customPrice === '' ? undefined : Number(customPrice), customDuration === '' ? undefined : Number(customDuration));
+            }} 
+          />
+        </div>
+
+        {isActive && (
+          <div className="space-y-3 pt-2 border-t border-dashed">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label className="text-xs">Meu Preço (R$)</Label>
+                <Input 
+                  type="number" 
+                  step="0.01"
+                  value={customPrice} 
+                  onChange={(e) => setCustomPrice(e.target.value)}
+                  placeholder={Number(service.price).toFixed(2)}
+                  className="h-8 text-sm"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">Minha Duração (min)</Label>
+                <Input 
+                  type="number" 
+                  value={customDuration} 
+                  onChange={(e) => setCustomDuration(e.target.value)}
+                  placeholder={service.duration_minutes.toString()}
+                  className="h-8 text-sm"
+                />
+              </div>
+            </div>
+            <Button 
+              size="sm" 
+              className="w-full h-8" 
+              onClick={handleSave}
+              disabled={isSaving}
+            >
+              <CheckCircle2 className="mr-2 h-3 w-3" />
+              {isSaving ? 'Salvando...' : 'Salvar Alterações'}
+            </Button>
+          </div>
+        )}
+        
+        {!isActive && (
+          <p className="text-[10px] text-muted-foreground italic">
+            Ative para oferecer este serviço em sua agenda.
+          </p>
+        )}
+      </CardContent>
+    </Card>
+  );
+};
+
+
   <Card className={!service.active ? 'opacity-50' : 'hover:shadow-md transition-shadow'}>
     <CardContent className="p-5">
       <div className="mb-3 flex items-start justify-between">
