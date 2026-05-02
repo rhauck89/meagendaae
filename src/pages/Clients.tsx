@@ -213,7 +213,7 @@ const Clients = () => {
 
   // Analytics metrics - respects professional filter
   const { data: serverMetrics, isLoading: loadingMetrics } = useQuery({
-    queryKey: ['client-dashboard-stats', companyId, profFilter],
+    queryKey: ['client-dashboard-stats', companyId, isAdmin, profileId, profFilter],
     queryFn: async () => {
       if (!companyId) return null;
       const { data, error } = await supabase.rpc('get_company_dashboard_stats', {
