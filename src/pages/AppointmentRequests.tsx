@@ -339,6 +339,12 @@ const AppointmentRequests = () => {
                       </div>
                       <div className="flex items-center gap-3 text-xs text-muted-foreground flex-wrap">
                         <span>{displayWhatsApp(req.client_whatsapp)}</span>
+                        {req.client_email && (
+                          <>
+                            <span>•</span>
+                            <span>{req.client_email}</span>
+                          </>
+                        )}
                         <span>•</span>
                         <span>{services[req.service_id] || 'Serviço'}</span>
                         {req.professional_id && professionals[req.professional_id] && (
