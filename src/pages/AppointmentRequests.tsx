@@ -457,6 +457,12 @@ const AppointmentRequests = () => {
             <DialogTitle>Sugerir outro horário</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
+            <div className="bg-muted/30 p-3 rounded-lg border text-sm space-y-1">
+              <p className="font-semibold text-primary">Solicitado pelo cliente:</p>
+              <p>
+                {selectedRequest && format(new Date(selectedRequest.requested_date + 'T12:00:00'), "dd/MM/yyyy", { locale: ptBR })} às {selectedRequest?.requested_time.slice(0, 5)}
+              </p>
+            </div>
             <p className="text-sm text-muted-foreground">
               Sugira uma data e horário alternativos para {selectedRequest?.client_name}.
             </p>
