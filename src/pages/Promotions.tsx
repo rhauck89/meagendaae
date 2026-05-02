@@ -25,6 +25,8 @@ import { fromZonedTime, toZonedTime } from 'date-fns-tz';
 import { ptBR } from 'date-fns/locale';
 import { Plus, MessageCircle, Send, Users, Tag, Megaphone, Copy, BarChart3, Eye, TrendingUp, MousePointerClick, CalendarCheck, ChevronLeft, ChevronRight, Check, Clock, Flame, Timer, Zap } from 'lucide-react';
 import { formatWhatsApp, displayWhatsApp, buildWhatsAppUrl, trackWhatsAppClick } from '@/lib/whatsapp';
+import { PromotionOpportunities } from '@/components/Promotions/PromotionOpportunities';
+
 
 const DEFAULT_TZ = 'America/Sao_Paulo';
 
@@ -1694,6 +1696,44 @@ export default function Promotions() {
           </DialogContent>
         </Dialog>
       </div>
+
+      {/* Promotion Opportunities Block */}
+      <PromotionOpportunities
+        promotions={promotions}
+        services={services}
+        professionals={professionals}
+        isAdmin={isAdmin}
+        onSelectSlot={(data) => {
+          resetForm();
+          setIsEditing(false);
+          setCreationMode('manual');
+          setStartDate(data.date);
+          setEndDate(data.date);
+          setSingleDay(true);
+          setStartTime(data.time);
+          
+          // Calculate end time (start + 30 or service duration)
+          const [h, m] = data.time.split(':').map(Number);
+          const dur = data.serviceId ? (services.find(s => s.id === data.serviceId)?.duration_minutes || 30) : 30;
+          const endTotal = h * 60 + m + dur;
+          const endH = Math.floor(endTotal / 60);
+          const endM = endTotal % 60;
+          setEndTime(`${String(endH).padStart(2, '0')}:${String(endM).padStart(2, '0')}`);
+          
+          setUseBusinessHours(false);
+          setProfessionalFilter('selected');
+          setSelectedProfessionalIds([data.professionalId]);
+          
+          if (data.serviceId) {
+            setSelectedServiceId(data.serviceId);
+            setSelectedServiceIds([data.serviceId]);
+            setServiceSelectionMode('single');
+          }
+          
+          setDialogOpen(true);
+        }}
+      />
+
 
 
       {/* Tabs */}
