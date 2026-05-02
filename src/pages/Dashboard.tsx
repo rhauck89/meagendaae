@@ -599,7 +599,7 @@ const Dashboard = () => {
         onConverted={() => { fetchAppointments(); fetchUpcomingAppointments(); fetchMonthlyStats(); }}
       />
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="space-y-6">
         <Card className="bg-gradient-to-br from-card to-muted/30 border-primary/10 shadow-sm overflow-hidden">
           <CardHeader className="pb-3 bg-primary/5">
             <CardTitle className="text-lg font-display flex items-center justify-between">
