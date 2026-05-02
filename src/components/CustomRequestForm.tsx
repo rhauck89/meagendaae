@@ -25,6 +25,11 @@ interface CustomRequestFormProps {
   companyId: string;
   services: Array<{ id: string; name: string }>;
   professionals?: Array<{ id: string; full_name: string }>;
+  initialData?: {
+    clientName?: string;
+    clientWhatsApp?: string;
+  };
+  preSelectedProfessionalId?: string | null;
   themeColors?: {
     accent: string;
     card: string;
@@ -37,7 +42,9 @@ interface CustomRequestFormProps {
 
 function buildRequestWhatsAppUrl(professionalWhatsApp: string, data: {
   clientName: string;
+  clientWhatsApp: string;
   serviceName: string;
+  professionalName: string;
   requestedDate: string;
   requestedTime: string;
   message: string | null;
@@ -47,7 +54,7 @@ function buildRequestWhatsAppUrl(professionalWhatsApp: string, data: {
     ? `${dateParts[2]}/${dateParts[1]}/${dateParts[0]}`
     : data.requestedDate;
 
-  let text = `Olá! Acabei de solicitar um horário personalizado pelo Me Agendaê.\n\nNome: ${data.clientName}\nServiço: ${data.serviceName}\nData desejada: ${formattedDate}\nHorário desejado: ${data.requestedTime}`;
+  let text = `Olá! Acabei de solicitar um horário personalizado pelo Me Agendaê.\n\nNome: ${data.clientName}\nWhatsApp: ${data.clientWhatsApp}\nProfissional: ${data.professionalName}\nServiço: ${data.serviceName}\nData desejada: ${formattedDate}\nHorário desejado: ${data.requestedTime}`;
 
   if (data.message) {
     text += `\n\nMensagem:\n${data.message}`;
@@ -56,7 +63,16 @@ function buildRequestWhatsAppUrl(professionalWhatsApp: string, data: {
   return buildWhatsAppUrl(professionalWhatsApp, text);
 }
 
-export function CustomRequestForm({ open, onOpenChange, companyId, services, professionals, themeColors }: CustomRequestFormProps) {
+export function CustomRequestForm({ 
+  open, 
+  onOpenChange, 
+  companyId, 
+  services, 
+  professionals, 
+  initialData,
+  preSelectedProfessionalId,
+  themeColors 
+}: CustomRequestFormProps) {
   const T = themeColors || { accent: 'hsl(var(--primary))', card: 'hsl(var(--card))', border: 'hsl(var(--border))', text: 'hsl(var(--foreground))', textSec: 'hsl(var(--muted-foreground))', bg: 'hsl(var(--background))' };
 
   const [form, setForm] = useState({
@@ -71,6 +87,18 @@ export function CustomRequestForm({ open, onOpenChange, companyId, services, pro
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [whatsAppUrl, setWhatsAppUrl] = useState<string | null>(null);
+
+  // Initialize form with initialData and preSelectedProfessionalId when opening
+  useEffect(() => {
+    if (open) {
+      setForm(prev => ({
+        ...prev,
+        client_name: prev.client_name || initialData?.clientName || '',
+        client_whatsapp: prev.client_whatsapp || initialData?.clientWhatsApp || '',
+        professional_id: prev.professional_id || preSelectedProfessionalId || '',
+      }));
+    }
+  }, [open, initialData, preSelectedProfessionalId]);
 
   const handleWhatsAppChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const masked = applyWhatsAppMask(e.target.value);
@@ -122,6 +150,7 @@ export function CustomRequestForm({ open, onOpenChange, companyId, services, pro
 
       // Build WhatsApp URL using company whatsapp (accessible to anon users)
       const serviceName = services.find(s => s.id === form.service_id)?.name || '';
+      const professionalName = professionals?.find(p => p.id === form.professional_id)?.full_name || 'A definir';
 
       try {
         const { data: companyData } = await supabase
@@ -135,7 +164,9 @@ export function CustomRequestForm({ open, onOpenChange, companyId, services, pro
           const normalizedPhone = formatWhatsApp(whatsappNumber);
           const url = buildRequestWhatsAppUrl(normalizedPhone, {
             clientName: form.client_name.trim(),
+            clientWhatsApp: form.client_whatsapp.trim(),
             serviceName,
+            professionalName,
             requestedDate: form.requested_date,
             requestedTime: form.requested_time,
             message: form.message.trim() || null,
@@ -195,16 +226,21 @@ export function CustomRequestForm({ open, onOpenChange, companyId, services, pro
     );
   }
 
+  const firstName = form.client_name ? form.client_name.split(' ')[0] : null;
+
   return (
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Clock className="h-5 w-5" />
-            Solicitar horário personalizado
+            {firstName ? `${firstName}, solicitar horário personalizado` : 'Solicitar horário personalizado'}
           </DialogTitle>
           <p className="text-sm text-muted-foreground">
-            Não encontrou o horário ideal? Solicite um horário personalizado e o profissional irá avaliar sua disponibilidade.
+            {firstName 
+              ? `${firstName}, não encontrou o horário ideal? Solicite um horário personalizado e o profissional irá avaliar sua disponibilidade.`
+              : 'Não encontrou o horário ideal? Solicite um horário personalizado e o profissional irá avaliar sua disponibilidade.'
+            }
           </p>
         </DialogHeader>
 
