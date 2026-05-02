@@ -119,12 +119,23 @@ export default function ProfessionalPublicProfile() {
       setProfessional(prof);
       console.log('[PROFILE] Professional found:', prof.id);
 
+      // Fetch collaborator flag directly to ensure it respects company setting
+      const { data: collabData } = await supabase
+        .from('collaborators')
+        .select('use_company_banner')
+        .eq('profile_id', prof.id)
+        .eq('company_id', comp.id)
+        .maybeSingle();
+
+      const useCompanyBanner = collabData?.use_company_banner ?? true;
+      const effectiveBanner = useCompanyBanner ? companyFull.cover_url : prof.banner_url;
+
       setProfile({ 
         bio: prof.bio, 
         social_links: prof.social_links, 
         whatsapp: prof.whatsapp, 
         avatar_url: prof.avatar_url, 
-        banner_url: prof.banner_url,
+        banner_url: effectiveBanner,
         specialty: prof.specialty || (companyFull.business_type === 'barbershop' ? 'Especialista em barba e corte' : 'Especialista em estética facial'),
         experience_years: prof.experience_years || 5
       });
