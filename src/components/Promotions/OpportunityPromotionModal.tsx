@@ -44,8 +44,12 @@ export function OpportunityPromotionModal({
 
   useEffect(() => {
     if (isOpen && slotData) {
-      setTitle('Promoção Relâmpago');
-      setDescription(`Desconto especial para o horário de ${slotData.time}`);
+      setTitle(slotData.times.length > 1 ? 'Promoção Combinada' : 'Promoção Relâmpago');
+      setDescription(
+        slotData.times.length > 1 
+          ? `Desconto para ${slotData.times.length} horários selecionados` 
+          : `Desconto especial para o horário de ${slotData.times[0]}`
+      );
       
       if (slotData.serviceId) {
         setSelectedServiceIds([slotData.serviceId]);
@@ -53,15 +57,9 @@ export function OpportunityPromotionModal({
         setSelectedServiceIds([]);
       }
       
-      const now = new Date();
-      setBookingOpensAtDate(format(now, 'yyyy-MM-dd'));
-      setBookingOpensAtTime(format(now, 'HH:mm'));
-      
       setDiscountType('percentage');
       setDiscountValue('10');
       setPromotionPrice('');
-      setBookingClosesAtDate('');
-      setBookingClosesAtTime('');
     }
   }, [isOpen, slotData]);
 
@@ -78,33 +76,18 @@ export function OpportunityPromotionModal({
 
     setLoading(true);
     try {
-      const [h, m] = slotData.time.split(':').map(Number);
-      const firstSvc = services.find(s => s.id === selectedServiceIds[0]);
-      const duration = firstSvc?.duration_minutes || 30;
-      
-      const endTotal = h * 60 + m + duration;
-      const endH = Math.floor(endTotal / 60);
-      const endM = endTotal % 60;
-      const endTime = `${String(endH).padStart(2, '0')}:${String(endM).padStart(2, '0')}`;
-
       const payload = {
         title,
         description,
         discount_type: discountType,
         discount_value: discountType !== 'fixed_price' ? parseFloat(discountValue) : null,
         promotion_price: discountType === 'fixed_price' ? parseFloat(promotionPrice) : null,
-        start_date: slotData.date,
-        end_date: slotData.date,
-        start_time: slotData.time,
-        end_time: endTime,
+        date: slotData.date,
+        times: slotData.times,
         service_ids: selectedServiceIds,
         service_id: selectedServiceIds.length === 1 ? selectedServiceIds[0] : null,
         professional_filter: 'selected',
         professional_ids: [slotData.professionalId],
-        booking_opens_at_date: bookingOpensAtDate,
-        booking_opens_at_time: bookingOpensAtTime,
-        booking_closes_at_date: bookingClosesAtDate,
-        booking_closes_at_time: bookingClosesAtTime,
         promotion_mode: 'manual'
       };
 
