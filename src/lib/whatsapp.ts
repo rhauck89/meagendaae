@@ -198,17 +198,25 @@ export function trackWhatsAppClick(source: WhatsAppSource): void {
  *
  * Use this everywhere instead of manual `window.open` / `wa.me` / `api.whatsapp` links.
  */
+/**
+ * Open WhatsApp using the universal `wa.me` link.
+ *
+ * Validates the phone, shows a toast if invalid/empty, logs to console for
+ * debugging, and opens the link in a new tab (works on every platform).
+ *
+ * If window.open fails (popup blocked), it falls back to copying the message
+ * to the clipboard and notifying the user.
+ *
+ * Use this everywhere instead of manual `window.open` / `wa.me` / `api.whatsapp` links.
+ */
 export function openWhatsApp(phone: string, messageOrOptions?: string | OpenWhatsAppOptions): void {
   const opts: OpenWhatsAppOptions =
     typeof messageOrOptions === 'string' ? { message: messageOrOptions } : (messageOrOptions || {});
 
-  // `source` is the new canonical field; fall back to the legacy `origin` if present.
   const source = opts.source || opts.origin || 'unknown';
 
-  // Lazy import to avoid circular deps and keep tree-shakeable in non-UI contexts.
-  const showToast = (type: 'error', text: string) => {
+  const showToast = (type: 'error' | 'success', text: string) => {
     try {
-      // eslint-disable-next-line @typescript-eslint/no-var-requires
       const { toast } = require('sonner');
       toast?.[type]?.(text);
     } catch {
@@ -218,36 +226,37 @@ export function openWhatsApp(phone: string, messageOrOptions?: string | OpenWhat
 
   if (!phone || !String(phone).trim()) {
     showToast('error', 'Cliente sem WhatsApp cadastrado.');
-    if (typeof console !== 'undefined') {
-      console.warn('[WHATSAPP] empty phone', { source });
-    }
     return;
   }
 
   const digits = formatWhatsApp(phone);
   if (!isValidWhatsApp(digits)) {
     showToast('error', 'Número de WhatsApp inválido.');
-    if (typeof console !== 'undefined') {
-      console.warn('[WHATSAPP] invalid phone', { phone, digits, source });
-    }
     return;
   }
 
   const url = buildWhatsAppUrl(digits, opts.message);
   const device = isMobileDevice() ? 'mobile' : 'desktop';
 
-  // Record the click for internal metrics.
   bumpMetric(source);
 
-  if (typeof console !== 'undefined') {
-    console.info(`[WHATSAPP] device=${device} phone=${digits} target=wa.me source=${source}`);
-  }
-
   if (typeof window !== 'undefined') {
-    const win = window.open(url, '_blank', 'noopener,noreferrer');
-    if (!win) {
-      // Popup blocked — fall back to same-tab navigation.
-      window.location.href = url;
+    try {
+      const win = window.open(url, '_blank', 'noopener,noreferrer');
+      if (!win) {
+        // Popup blocked — copy to clipboard as fallback
+        if (opts.message) {
+          navigator.clipboard.writeText(opts.message);
+          showToast('success', 'WhatsApp bloqueado. Mensagem copiada para a área de transferência!');
+        } else {
+          window.location.href = url;
+        }
+      }
+    } catch (err) {
+      if (opts.message) {
+        navigator.clipboard.writeText(opts.message);
+        showToast('success', 'Não foi possível abrir o WhatsApp. Mensagem copiada!');
+      }
     }
   }
 }
