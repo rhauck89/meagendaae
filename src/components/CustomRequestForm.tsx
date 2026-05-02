@@ -226,16 +226,21 @@ export function CustomRequestForm({
     );
   }
 
+  const firstName = form.client_name ? form.client_name.split(' ')[0] : null;
+
   return (
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Clock className="h-5 w-5" />
-            Solicitar horário personalizado
+            {firstName ? `${firstName}, solicitar horário personalizado` : 'Solicitar horário personalizado'}
           </DialogTitle>
           <p className="text-sm text-muted-foreground">
-            Não encontrou o horário ideal? Solicite um horário personalizado e o profissional irá avaliar sua disponibilidade.
+            {firstName 
+              ? `${firstName}, não encontrou o horário ideal? Solicite um horário personalizado e o profissional irá avaliar sua disponibilidade.`
+              : 'Não encontrou o horário ideal? Solicite um horário personalizado e o profissional irá avaliar sua disponibilidade.'
+            }
           </p>
         </DialogHeader>
 
