@@ -20,7 +20,7 @@ const NO_GLOBAL_CATEGORY_VALUE = '__no_global_category__';
 
 const Services = () => {
   const { companyId, loginMode, roles } = useAuth();
-  const { isAdmin, isProfessionalMode } = useUserRole();
+  const { isAdmin, isProfessionalMode, profileId } = useUserRole();
   const canManageServices =
     roles.includes('super_admin') ||
     loginMode === 'admin' ||
