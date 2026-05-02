@@ -69,6 +69,14 @@ interface Promotion {
   booking_closes_at: string | null;
 }
 
+interface GroupedPromotion extends Omit<Promotion, 'id' | 'start_time' | 'end_time' | 'slug'> {
+  id: string;
+  slug: string | null;
+  promotions: Promotion[];
+  // If we need specific times for the group summary
+  times: string[];
+}
+
 interface ClientRow {
   id: string;
   name: string;
