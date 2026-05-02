@@ -1779,34 +1779,21 @@ export default function Promotions() {
         professionals={professionals}
         isAdmin={isAdmin}
         onSelectSlot={(data) => {
-          resetForm();
-          setIsEditing(false);
-          setCreationMode('manual');
-          setStartDate(data.date);
-          setEndDate(data.date);
-          setSingleDay(true);
-          setStartTime(data.time);
-          
-          // Calculate end time (start + 30 or service duration)
-          const [h, m] = data.time.split(':').map(Number);
-          const dur = data.serviceId ? (services.find(s => s.id === data.serviceId)?.duration_minutes || 30) : 30;
-          const endTotal = h * 60 + m + dur;
-          const endH = Math.floor(endTotal / 60);
-          const endM = endTotal % 60;
-          setEndTime(`${String(endH).padStart(2, '0')}:${String(endM).padStart(2, '0')}`);
-          
-          setUseBusinessHours(false);
-          setProfessionalFilter('selected');
-          setSelectedProfessionalIds([data.professionalId]);
-          
-          if (data.serviceId) {
-            setSelectedServiceId(data.serviceId);
-            setSelectedServiceIds([data.serviceId]);
-            setServiceSelectionMode('single');
-          }
-          
-          setDialogOpen(true);
+          setSelectedOpportunity(data);
+          setOpportunityDialogOpen(true);
         }}
+      />
+
+      <OpportunityPromotionModal
+        isOpen={opportunityDialogOpen}
+        onClose={() => {
+          setOpportunityDialogOpen(false);
+          setSelectedOpportunity(null);
+        }}
+        onSave={handleOpportunitySave}
+        slotData={selectedOpportunity}
+        services={services}
+        professionals={professionals}
       />
 
 
