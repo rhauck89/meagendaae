@@ -111,7 +111,7 @@ export function UnifiedAppointmentCard({
   const isNow = now >= startTime && now <= endTime;
   
   const clientName = apt.client_name || apt.client?.name || 'Cliente';
-  const professionalName = apt.professional?.full_name || apt.professional?.name || 'Profissional';
+  const professionalName = apt.professional?.full_name || apt.professional?.name || '';
   const companyName = apt.company?.name || 'Empresa';
   
   const formattedPrice = new Intl.NumberFormat('pt-BR', {
@@ -185,6 +185,12 @@ export function UnifiedAppointmentCard({
               <p className="text-[10px] text-muted-foreground truncate font-medium">
                 {formatServicesWithDuration(apt.appointment_services)}
               </p>
+              {professionalName && (
+                <p className="text-[10px] text-primary/80 truncate font-semibold flex items-center gap-1 mt-0.5">
+                  <User className="h-2.5 w-2.5" />
+                  {professionalName}
+                </p>
+              )}
             </div>
           </div>
 
@@ -387,11 +393,20 @@ export function UnifiedAppointmentCard({
                 : 'Serviço não informado'}
             </p>
             
-            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 pt-1">
-              <p className="text-[11px] sm:text-xs font-semibold text-primary/80 flex items-center gap-1">
+            {variant !== 'client' && professionalName && (
+              <p className="text-[11px] sm:text-xs font-semibold text-primary/80 flex items-center gap-1 pt-0.5">
                 <User className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
                 {professionalName}
               </p>
+            )}
+            
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 pt-1">
+              {variant === 'client' && professionalName && (
+                <p className="text-[11px] sm:text-xs font-semibold text-primary/80 flex items-center gap-1">
+                  <User className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
+                  {professionalName}
+                </p>
+              )}
               {showCompany && (
                 <p className="text-[11px] sm:text-xs font-medium text-muted-foreground flex items-center gap-1">
                   <Building2 className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
