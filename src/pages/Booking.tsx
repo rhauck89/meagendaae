@@ -970,17 +970,33 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
 
         const { data: profServices } = await supabase
           .from('service_professionals')
-          .select('service_id, price_override')
+          .select('service_id, price_override, duration_override, is_active')
           .eq('professional_id', profileId);
 
         if (profServices && profServices.length > 0) {
-          const profServiceIds = profServices.map((ps: any) => ps.service_id);
-          const filteredServices = (servicesRes.data || []).filter((s: any) => profServiceIds.includes(s.id));
+          // Filter out inactive services or services not in the profServices list (if list exists)
+          const activeProfServices = profServices.filter(ps => ps.is_active !== false);
+          const activeProfServiceIds = activeProfServices.map((ps: any) => ps.service_id);
+          
+          const filteredServices = (servicesRes.data || []).filter((s: any) => activeProfServiceIds.includes(s.id));
+          
           const withOverrides = filteredServices.map((s: any) => {
-            const override = profServices.find((ps: any) => ps.service_id === s.id);
-            return override?.price_override != null ? { ...s, price: override.price_override } : s;
+            const override = activeProfServices.find((ps: any) => ps.service_id === s.id);
+            return {
+              ...s,
+              price: override?.price_override != null ? override.price_override : s.price,
+              duration_minutes: override?.duration_override != null ? override.duration_override : s.duration_minutes
+            };
           });
           setServices(withOverrides);
+        } else if (profServices && profServices.length === 0) {
+          // If a professional has NO services linked (even inactive ones), 
+          // we might want to show all company services or none.
+          // Based on user request: "O profissional pode escolher quais serviços ele atende."
+          // If no links exist yet, maybe show all (legacy behavior) or none?
+          // I'll stick to legacy behavior (show all) if no links exist, 
+          // but if they exist, respect them.
+          setServices(servicesRes.data || []);
         }
 
         const { data: profHours } = await supabase
