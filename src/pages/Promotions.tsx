@@ -1084,18 +1084,78 @@ export default function Promotions() {
     return m[f] || f;
   };
 
+  const isSlotFilled = (promo: Promotion, appts: any[]) => {
+    if (!promo.start_time || !promo.end_time || !promo.professional_ids?.[0]) return false;
+    
+    const promoDate = promo.start_date;
+    const promoStartStr = `${promoDate}T${promo.start_time}`;
+    const promoEndStr = `${promoDate}T${promo.end_time}`;
+    
+    const promoStart = fromZonedTime(promoStartStr, DEFAULT_TZ);
+    const promoEnd = fromZonedTime(promoEndStr, DEFAULT_TZ);
+    
+    return appts.some(appt => {
+      if (appt.professional_id !== promo.professional_ids![0]) return false;
+      
+      const apptStart = new Date(appt.start_time);
+      const apptEnd = new Date(appt.end_time);
+      
+      return promoStart < apptEnd && promoEnd > apptStart;
+    });
+  };
+
   // --- Status-based filtering using datetime ---
   const isScheduled = (p: Promotion) => promoVisualStatus(p, now) === 'scheduled';
   const isActivePromo = (p: Promotion) => promoVisualStatus(p, now) === 'active';
   const isExpiredPromo = (p: Promotion) => promoVisualStatus(p, now) === 'expired';
 
-  const filteredPromotions = promotions.filter(p => {
+  const groupedPromotions = useMemo(() => {
+    const groups: Map<string, GroupedPromotion> = new Map();
+    
+    const sorted = [...promotions].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+    
+    sorted.forEach(p => {
+      const svcIds = [...(p.service_ids || [])].sort().join(',');
+      const profIds = [...(p.professional_ids || [])].sort().join(',');
+      const createdAt = new Date(p.created_at).getTime();
+      
+      const groupKeyBase = `${p.title}|${p.description}|${svcIds}|${profIds}|${p.discount_type}|${p.discount_value}|${p.start_date}|${p.end_date}|${p.status}|${p.promotion_mode}`;
+      
+      let matchedGroupId = Array.from(groups.keys()).find(key => {
+        const [keyAttrs, keyTime] = key.split('@@@');
+        if (keyAttrs !== groupKeyBase) return false;
+        const groupTime = parseInt(keyTime);
+        return Math.abs(groupTime - createdAt) < 15000; // Increased to 15s to be safe
+      });
+      
+      if (matchedGroupId) {
+        const group = groups.get(matchedGroupId)!;
+        group.promotions.push(p);
+        if (p.start_time) group.times.push(p.start_time);
+        group.times.sort();
+      } else {
+        const fullKey = `${groupKeyBase}@@@${createdAt}`;
+        groups.set(fullKey, {
+          ...p,
+          promotions: [p],
+          times: p.start_time ? [p.start_time] : []
+        });
+      }
+    });
+    
+    return Array.from(groups.values());
+  }, [promotions]);
+
+  const filteredGroupedPromotions = groupedPromotions.filter(group => {
+    // For grouping status, we check the first promotion in the group
+    const p = group.promotions[0];
     if (activeTab === 'active') return isActivePromo(p);
     if (activeTab === 'scheduled') return isScheduled(p);
     if (activeTab === 'paused') return p.status === 'paused';
     if (activeTab === 'expired') return isExpiredPromo(p);
     return true;
   });
+
 
   // --- Status badge renderer ---
   const renderStatusBadge = (promo: Promotion) => {
