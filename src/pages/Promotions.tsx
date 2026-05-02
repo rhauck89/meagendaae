@@ -1805,7 +1805,12 @@ export default function Promotions() {
         professionals={professionals}
         isAdmin={isAdmin}
         onSelectSlot={(data) => {
-          setSelectedOpportunity(data);
+          setSelectedOpportunity({
+            date: data.date,
+            times: data.times,
+            professionalId: data.professionalId,
+            serviceId: data.serviceId
+          });
           setOpportunityDialogOpen(true);
         }}
       />
