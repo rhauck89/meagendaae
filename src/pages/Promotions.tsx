@@ -186,11 +186,12 @@ function normalizeTime(t: string | null, fallback: string): string {
   return `${hh}:${mm}:${ss}`;
 }
 function getPromoStart(p: Promotion): Date {
-  return new Date(`${p.start_date}T${normalizeTime(p.start_time, '00:00:00')}`);
+  return fromZonedTime(`${p.start_date}T${normalizeTime(p.start_time, '00:00:00')}`, DEFAULT_TZ);
 }
 function getPromoEnd(p: Promotion): Date {
-  return new Date(`${p.end_date}T${normalizeTime(p.end_time, '23:59:59')}`);
+  return fromZonedTime(`${p.end_date}T${normalizeTime(p.end_time, '23:59:59')}`, DEFAULT_TZ);
 }
+
 
 function promoVisualStatus(p: Promotion, now: Date): 'scheduled' | 'active' | 'paused' | 'expired' {
   if (p.status === 'paused') return 'paused';
