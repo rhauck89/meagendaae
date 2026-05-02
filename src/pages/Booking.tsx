@@ -708,39 +708,117 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
     } catch { /* ignore */ }
   }, [company?.id, services, professionals, isPromoMode]);
 
-  // Auto-rebook when ?rebook=1 is present in URL (triggered from BarbershopLanding)
+  // Auto-rebook when ?rebook=1 is present in URL
   const rebookTriggered = useRef(false);
   useEffect(() => {
     if (rebookTriggered.current) return;
-    if (searchParams.get('rebook') !== '1') return;
-    if (!lastBooking || !company?.id || services.length === 0) return;
+    const rebookParam = searchParams.get('rebook');
+    if (rebookParam !== '1' && rebookParam !== 'true') return;
+    if (!company?.id || services.length === 0) return;
+
     rebookTriggered.current = true;
     (async () => {
-      setSelectedServices(lastBooking.serviceIds);
-      if (!professionalSlug) {
-        setSelectedProfessional(lastBooking.professionalId);
-        const profs = await fetchProfessionals();
-        const profStillExists = profs.some((p: any) => p.id === lastBooking.professionalId);
-        if (!profStillExists) {
-          toast.error('Esse profissional não está disponível no momento. Escolha outro.');
-          setSelectedProfessional(null);
-          setStep('professional');
-          return;
+      let bookingToUse = lastBooking;
+
+      // If lastBooking is not in state (e.g. not in localStorage), try fetching from DB
+      if (!bookingToUse && isAuthenticated) {
+        try {
+          const { data: { session } } = await supabase.auth.getSession();
+          if (session?.user) {
+            const { data: appt } = await supabase
+              .from('appointments')
+              .select('id, start_time, total_price, professional_id')
+              .eq('company_id', company.id)
+              .eq('user_id', session.user.id)
+              .in('status', ['completed', 'confirmed'])
+              .order('start_time', { ascending: false })
+              .limit(1)
+              .maybeSingle();
+
+            if (appt) {
+              const [apptSvcsRes, profRes] = await Promise.all([
+                supabase.from('appointment_services').select('service_id, duration_minutes, price').eq('appointment_id', appt.id),
+                supabase.from('public_professionals' as any).select('id, name, avatar_url, active').eq('id', appt.professional_id).maybeSingle(),
+              ]);
+
+              const apptSvcs = apptSvcsRes.data;
+              const prof = profRes.data as any;
+
+              if (prof && prof.active) {
+                const svcIds = (apptSvcs || []).map((s: any) => s.service_id);
+                const { data: svcs } = await (supabase.from('public_services' as any)
+                  .select('id, name, active')
+                  .in('id', svcIds) as any);
+                
+                const activeSvcIds = svcIds.filter(id => (svcs as any[])?.find(s => s.id === id && s.active));
+                
+                if (activeSvcIds.length > 0) {
+                  bookingToUse = {
+                    serviceIds: activeSvcIds,
+                    serviceNames: activeSvcIds.map(id => (svcs as any[])?.find(s => s.id === id)?.name).filter(Boolean),
+                    serviceDurations: (apptSvcs || []).filter(s => activeSvcIds.includes(s.service_id)).map(s => s.duration_minutes),
+                    professionalId: appt.professional_id,
+                    professionalName: prof.name || 'Profissional',
+                    professionalAvatar: prof.avatar_url || null,
+                    totalPrice: Number(appt.total_price || 0),
+                    totalDuration: (apptSvcs || []).filter(s => activeSvcIds.includes(s.service_id)).reduce((sum: number, s: any) => sum + (s.duration_minutes || 0), 0),
+                    bookedAt: appt.start_time,
+                  };
+                }
+              }
+            }
+          }
+        } catch (err) {
+          console.error('[REBOOK] Error fetching from DB:', err);
         }
       }
-      const { data: spLinks } = await supabase
-        .from('service_professionals')
-        .select('service_id')
-        .eq('professional_id', lastBooking.professionalId)
-        .in('service_id', lastBooking.serviceIds);
-      if (!spLinks || spLinks.length !== lastBooking.serviceIds.length) {
-        toast.error('Serviço não disponível com esse profissional. Escolha manualmente.');
+
+      if (!bookingToUse) {
+        console.warn('[REBOOK] No booking data found to repeat.');
+        return;
+      }
+
+      // Final validation of services and professional
+      const profStillActive = professionals.length > 0 
+        ? professionals.some(p => p.id === bookingToUse!.professionalId)
+        : true; // If not loaded yet, we'll trust the fetch above or wait
+
+      if (!profStillActive) {
+        toast.error('Esse profissional não está mais disponível. Escolha outro profissional.');
+        setStep('professional');
+        return;
+      }
+
+      const activeServices = bookingToUse.serviceIds.filter(sid => services.find(s => s.id === sid && s.active !== false));
+      if (activeServices.length === 0) {
+        toast.error('Esse serviço não está mais disponível. Escolha outro serviço.');
         setStep('services');
         return;
       }
+
+      if (activeServices.length < bookingToUse.serviceIds.length) {
+        toast.info('Alguns serviços do seu último agendamento não estão mais disponíveis.');
+      }
+
+      setSelectedServices(activeServices);
+      setSelectedProfessional(bookingToUse.professionalId);
+      
+      // Check if professional can perform these services
+      const { data: spLinks } = await supabase
+        .from('service_professionals')
+        .select('service_id')
+        .eq('professional_id', bookingToUse.professionalId)
+        .in('service_id', activeServices);
+
+      if (!spLinks || spLinks.length !== activeServices.length) {
+        toast.error('Este profissional não realiza mais todos os serviços selecionados.');
+        setStep('professional');
+        return;
+      }
+
       setStep('datetime');
     })();
-  }, [lastBooking, company?.id, services, searchParams, professionalSlug]);
+  }, [lastBooking, company?.id, services, professionals, searchParams, isAuthenticated]);
 
   useEffect(() => {
     if (!company?.id) return;
