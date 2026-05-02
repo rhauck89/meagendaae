@@ -415,12 +415,21 @@ const Dashboard = () => {
     const monthEnd = endOfMonth(new Date());
 
     const [apptsRes, bizHoursRes, collaboratorsRes, companyRes] = await Promise.all([
-      supabase
-        .from('appointments')
-        .select('status, total_price, client_id, start_time, client:clients!appointments_client_id_fkey(name)')
-        .eq('company_id', companyId!)
-        .gte('start_time', toSpStart(monthStart))
-        .lte('start_time', toSpEnd(monthEnd)),
+      (() => {
+        let query = supabase
+          .from('appointments')
+          .select('status, total_price, client_id, start_time, client:clients!appointments_client_id_fkey(name)')
+          .eq('company_id', companyId!)
+          .gte('start_time', toSpStart(monthStart))
+          .lte('start_time', toSpEnd(monthEnd));
+
+        if (!isAdmin && profileId) {
+          query = query.eq('professional_id', profileId);
+        } else if (filterProfessional !== 'all') {
+          query = query.eq('professional_id', filterProfessional);
+        }
+        return query;
+      })(),
       supabase
         .from('business_hours')
         .select('*')
