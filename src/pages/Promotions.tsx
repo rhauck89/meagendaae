@@ -315,7 +315,14 @@ export default function Promotions() {
   useOnDataRefresh('promotions', handlePromotionsRefresh);
   useOnDataRefresh('promotions', handlePromotionsRefresh);
 
+  useEffect(() => {
+    if (promotions.length > 0) {
+      fetchAppointmentsForPromos(promotions);
+    }
+  }, [promotions]);
+
   // Clear highlight after a few seconds
+
   useEffect(() => {
     if (highlightedPromoId) {
       const t = setTimeout(() => setHighlightedPromoId(null), 4000);
