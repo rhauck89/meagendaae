@@ -322,14 +322,16 @@ export default function Promotions() {
 
   const fetchAll = async () => {
     setLoading(true);
+    const fetchedPromos = await fetchPromotions();
     await Promise.all([
-      fetchPromotions(), 
       fetchServices(), 
       fetchProfessionals(), 
-      fetchCompanyInfo()
+      fetchCompanyInfo(),
+      fetchAppointmentsForPromos(fetchedPromos || [])
     ]);
     setLoading(false);
   };
+
 
   const fetchCompanyInfo = async () => {
     const { data } = await supabase.from('companies').select('name, slug, business_type').eq('id', companyId!).single();
