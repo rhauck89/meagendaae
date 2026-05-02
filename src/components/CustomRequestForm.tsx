@@ -97,6 +97,7 @@ export function CustomRequestForm({
         ...prev,
         client_name: prev.client_name || initialData?.clientName || '',
         client_whatsapp: prev.client_whatsapp || initialData?.clientWhatsApp || '',
+        client_email: prev.client_email || initialData?.clientEmail || '',
         professional_id: prev.professional_id || preSelectedProfessionalId || '',
       }));
     }
