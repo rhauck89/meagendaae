@@ -228,6 +228,7 @@ const AppointmentRequests = () => {
         .update({ status: 'accepted', updated_at: new Date().toISOString() })
         .eq('id', selectedRequest.id);
 
+      setActionType('accept');
       setAcceptDialogOpen(false);
       setSuccessDialogOpen(true);
       fetchRequests();
@@ -243,21 +244,60 @@ const AppointmentRequests = () => {
     if (!selectedRequest) return "";
     const dateStr = format(new Date(selectedRequest.requested_date + 'T12:00:00'), "dd/MM/yyyy", { locale: ptBR });
     const timeStr = selectedRequest.requested_time.slice(0, 5);
-    const extraFee = calculateExtraFee();
-    
-    let message = `Olá ${selectedRequest.client_name}! Seu horário solicitado para ${dateStr} às ${timeStr} foi *aceito*. `;
-    if (extraFee > 0) {
-      message += `Como é um horário especial, haverá uma taxa adicional de R$ ${extraFee.toFixed(2)}. `;
+    const professionalName = professionals[selectedRequest.professional_id] || 'Profissional';
+    const serviceName = services[selectedRequest.service_id] || 'Serviço';
+
+    if (actionType === 'accept') {
+      const extraFee = calculateExtraFee();
+      let message = `Olá, ${selectedRequest.client_name}! Seu horário personalizado foi aceito ✅\n\n`;
+      message += `Serviço: ${serviceName}\n`;
+      message += `Profissional: ${professionalName}\n`;
+      message += `Data: ${dateStr}\n`;
+      message += `Horário: ${timeStr}\n\n`;
+      
+      if (extraFee > 0) {
+        message += `Obs: Como é um horário especial, haverá uma taxa adicional de R$ ${extraFee.toFixed(2)}.\n\n`;
+      }
+      
+      message += `Até lá!`;
+      return message;
     }
-    message += `Estamos aguardando você!`;
-    return message;
+
+    if (actionType === 'suggest') {
+      const suggestedDateStr = suggestedDate ? format(new Date(suggestedDate + 'T12:00:00'), "dd/MM/yyyy", { locale: ptBR }) : '';
+      const suggestedTimeStr = suggestedTime?.slice(0, 5) || '';
+      
+      let message = `Olá, ${selectedRequest.client_name}! O profissional sugeriu um novo horário para sua solicitação:\n\n`;
+      message += `Serviço: ${serviceName}\n`;
+      message += `Profissional: ${professionalName}\n`;
+      message += `Nova data: ${suggestedDateStr}\n`;
+      message += `Novo horário: ${suggestedTimeStr}\n\n`;
+      message += `Responda esta mensagem para confirmar.`;
+      return message;
+    }
+
+    if (actionType === 'reject') {
+      let message = `Olá, ${selectedRequest.client_name}! No momento não conseguimos atender sua solicitação de horário personalizado para:\n\n`;
+      message += `Serviço: ${serviceName}\n`;
+      message += `Profissional: ${professionalName}\n`;
+      message += `Data solicitada: ${dateStr}\n`;
+      message += `Horário solicitado: ${timeStr}\n\n`;
+      
+      if (rejectionReason) {
+        message += `Motivo: ${rejectionReason}\n\n`;
+      }
+      
+      message += `Você pode escolher outro horário disponível na agenda.`;
+      return message;
+    }
+
+    return "";
   };
 
   const handleNotifyWhatsApp = () => {
     if (!selectedRequest) return;
     const message = getWhatsAppMessage();
-    const url = `https://wa.me/${selectedRequest.client_whatsapp.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`;
-    window.open(url, '_blank');
+    openWhatsApp(selectedRequest.client_whatsapp, { source: 'appointment-requests', message });
   };
 
   const handleCopyMessage = () => {
@@ -280,13 +320,9 @@ const AppointmentRequests = () => {
         })
         .eq('id', selectedRequest.id);
 
-      const message = `Olá ${selectedRequest.client_name}! Não temos disponibilidade no horário solicitado, mas gostaríamos de sugerir: *${format(new Date(suggestedDate + 'T12:00:00'), "dd/MM/yyyy", { locale: ptBR })} às ${suggestedTime}*. Pode ser?`;
-      openWhatsApp(selectedRequest.client_whatsapp, { source: 'appointment-requests', message });
-
-      toast.success('Sugestão enviada');
+      setActionType('suggest');
       setSuggestDialogOpen(false);
-      setSuggestedDate('');
-      setSuggestedTime('');
+      setSuccessDialogOpen(true);
       fetchRequests();
     } catch {
       toast.error('Erro ao sugerir horário');
@@ -307,12 +343,9 @@ const AppointmentRequests = () => {
         })
         .eq('id', selectedRequest.id);
 
-      const message = `Olá ${selectedRequest.client_name}! Infelizmente não conseguimos atender sua solicitação de horário.${rejectionReason ? ` Motivo: ${rejectionReason}` : ''} Por favor, tente agendar em outro horário pelo nosso link.`;
-      openWhatsApp(selectedRequest.client_whatsapp, { source: 'appointment-requests', message });
-
-      toast.success('Solicitação recusada');
+      setActionType('reject');
       setRejectDialogOpen(false);
-      setRejectionReason('');
+      setSuccessDialogOpen(true);
       fetchRequests();
     } catch {
       toast.error('Erro ao recusar solicitação');
