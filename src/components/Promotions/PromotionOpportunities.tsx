@@ -17,7 +17,7 @@ interface PromotionOpportunitiesProps {
   services: any[];
   professionals: any[];
   isAdmin: boolean;
-  onSelectSlot: (data: { date: string; time: string; professionalId: string; serviceId?: string }) => void;
+  onSelectSlot: (data: { date: string; times: string[]; professionalId: string; serviceId?: string }) => void;
 }
 
 export function PromotionOpportunities({
