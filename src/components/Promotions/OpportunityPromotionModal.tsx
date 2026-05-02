@@ -118,20 +118,32 @@ export function OpportunityPromotionModal({
           <div className="bg-muted/50 p-4 rounded-lg space-y-2 border">
             <div className="flex items-center gap-2 text-sm">
               <Calendar className="h-4 w-4 text-muted-foreground" />
-              <span className="font-medium">{formattedDate}</span>
+              <span className="font-medium text-muted-foreground">Data:</span>
+              <span className="font-semibold">{formattedDate}</span>
             </div>
-            <div className="flex items-center gap-2 text-sm">
-              <Clock className="h-4 w-4 text-muted-foreground" />
-              <span className="font-medium">{slotData.time}</span>
+            <div className="flex items-start gap-2 text-sm">
+              <Clock className="h-4 w-4 text-muted-foreground mt-0.5" />
+              <div className="flex flex-col">
+                <span className="font-medium text-muted-foreground">Horários selecionados ({slotData.times.length}):</span>
+                <div className="flex flex-wrap gap-1.5 mt-1">
+                  {slotData.times.map(t => (
+                    <Badge key={t} variant="outline" className="text-[10px] bg-background">
+                      {t}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
             </div>
             <div className="flex items-center gap-2 text-sm">
               <User className="h-4 w-4 text-muted-foreground" />
-              <span className="font-medium">{selectedProfessional?.profiles?.full_name}</span>
+              <span className="font-medium text-muted-foreground">Profissional:</span>
+              <span className="font-semibold">{selectedProfessional?.profiles?.full_name}</span>
             </div>
             {slotData.serviceId && (
               <div className="flex items-center gap-2 text-sm">
                 <Scissors className="h-4 w-4 text-muted-foreground" />
-                <span className="font-medium">{services.find(s => s.id === slotData.serviceId)?.name}</span>
+                <span className="font-medium text-muted-foreground">Serviço:</span>
+                <span className="font-semibold">{services.find(s => s.id === slotData.serviceId)?.name}</span>
               </div>
             )}
           </div>
@@ -142,7 +154,7 @@ export function OpportunityPromotionModal({
               <Input 
                 value={title} 
                 onChange={e => setTitle(e.target.value)} 
-                placeholder="Ex: Flash Deal 14h"
+                placeholder="Ex: Flash Deal"
               />
             </div>
 
@@ -209,51 +221,6 @@ export function OpportunityPromotionModal({
                     placeholder="0"
                   />
                 )}
-              </div>
-            </div>
-
-            <div className="space-y-4 pt-2 border-t">
-              <Label className="text-xs font-bold uppercase text-muted-foreground">Liberação do agendamento</Label>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1">
-                  <Label className="text-xs">Data liberação</Label>
-                  <Input 
-                    type="date" 
-                    value={bookingOpensAtDate} 
-                    onChange={e => setBookingOpensAtDate(e.target.value)}
-                    className="h-8"
-                  />
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-xs">Hora liberação</Label>
-                  <Input 
-                    type="time" 
-                    value={bookingOpensAtTime} 
-                    onChange={e => setBookingOpensAtTime(e.target.value)}
-                    className="h-8"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1">
-                  <Label className="text-xs">Data encerramento (opcional)</Label>
-                  <Input 
-                    type="date" 
-                    value={bookingClosesAtDate} 
-                    onChange={e => setBookingClosesAtDate(e.target.value)}
-                    className="h-8"
-                  />
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-xs">Hora encerramento</Label>
-                  <Input 
-                    type="time" 
-                    value={bookingClosesAtTime} 
-                    onChange={e => setBookingClosesAtTime(e.target.value)}
-                    className="h-8"
-                  />
-                </div>
               </div>
             </div>
           </div>
