@@ -2352,14 +2352,7 @@ export default function Promotions() {
           <DialogHeader>
             <DialogTitle>Métricas — {selectedPromotion?.title}</DialogTitle>
           </DialogHeader>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <Card>
-              <CardContent className="pt-6 text-center">
-                <MousePointerClick className="h-8 w-8 mx-auto text-primary mb-2" />
-                <p className="text-2xl font-bold">{metrics.clicks}</p>
-                <p className="text-xs text-muted-foreground">Cliques</p>
-              </CardContent>
-            </Card>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Card>
               <CardContent className="pt-6 text-center">
                 <CalendarCheck className="h-8 w-8 mx-auto text-primary mb-2" />
@@ -2371,17 +2364,23 @@ export default function Promotions() {
               <CardContent className="pt-6 text-center">
                 <TrendingUp className="h-8 w-8 mx-auto text-primary mb-2" />
                 <p className="text-2xl font-bold">
-                  {metrics.clicks > 0 ? `${Math.round((metrics.bookings / metrics.clicks) * 100)}%` : '0%'}
+                  {(() => {
+                    const group = groupedPromotions.find(g => g.promotions.some(p => p.id === selectedPromotion?.id));
+                    if (!group) return '0/0';
+                    const filledCount = group.promotions.filter(p => isSlotFilled(p, appointments)).length;
+                    return `${filledCount}/${group.promotions.length}`;
+                  })()}
                 </p>
-                <p className="text-xs text-muted-foreground">Conversão</p>
+                <p className="text-xs text-muted-foreground">Vagas utilizadas</p>
               </CardContent>
             </Card>
           </div>
-          {selectedPromotion && (
-            <div className="mt-4 text-sm text-muted-foreground">
-              <p>Vagas utilizadas: {selectedPromotion.used_slots} / {selectedPromotion.max_slots || '∞'}</p>
-            </div>
-          )}
+          
+          {/* Tracking message if clicks are not available */}
+          <div className="mt-4 p-3 rounded-lg bg-muted/50 border text-xs text-muted-foreground flex items-center gap-2">
+            <MousePointerClick className="h-4 w-4" />
+            <span>Cliques e conversão: Rastreamento não disponível para esta campanha.</span>
+          </div>
         </DialogContent>
       </Dialog>
       <FeatureIntroModal
