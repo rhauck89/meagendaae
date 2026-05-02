@@ -978,22 +978,25 @@ export default function Promotions() {
     setTitle(`${promo.title} (Cópia)`);
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm('Tem certeza que deseja excluir esta promoção?')) return;
-    const { error } = await supabase.from('promotions').delete().eq('id', id);
+  const handleDelete = async (id: string, ids?: string[]) => {
+    const idsToDelete = ids || [id];
+    if (!confirm(`Tem certeza que deseja excluir ${idsToDelete.length > 1 ? 'estas promoções' : 'esta promoção'}?`)) return;
+    const { error } = await supabase.from('promotions').delete().in('id', idsToDelete);
     if (error) {
       toast({ title: 'Erro ao excluir promoção', description: error.message, variant: 'destructive' });
       return;
     }
-    toast({ title: 'Promoção excluída' });
+    toast({ title: idsToDelete.length > 1 ? 'Promoções excluídas' : 'Promoção excluída' });
     fetchPromotions();
   };
 
-  const toggleStatus = async (promo: Promotion) => {
+  const toggleStatus = async (promo: Promotion, ids?: string[]) => {
+    const idsToUpdate = ids || [promo.id];
     const newStatus = promo.status === 'active' ? 'paused' : 'active';
-    await supabase.from('promotions').update({ status: newStatus } as any).eq('id', promo.id);
+    await supabase.from('promotions').update({ status: newStatus } as any).in('id', idsToUpdate);
     fetchPromotions();
   };
+
 
   const getPromoLink = (promo: Promotion) => {
     const routeType = companyBusinessType === 'esthetic' ? 'estetica' : 'barbearia';
