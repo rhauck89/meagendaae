@@ -63,7 +63,16 @@ function buildRequestWhatsAppUrl(professionalWhatsApp: string, data: {
   return buildWhatsAppUrl(professionalWhatsApp, text);
 }
 
-export function CustomRequestForm({ open, onOpenChange, companyId, services, professionals, themeColors }: CustomRequestFormProps) {
+export function CustomRequestForm({ 
+  open, 
+  onOpenChange, 
+  companyId, 
+  services, 
+  professionals, 
+  initialData,
+  preSelectedProfessionalId,
+  themeColors 
+}: CustomRequestFormProps) {
   const T = themeColors || { accent: 'hsl(var(--primary))', card: 'hsl(var(--card))', border: 'hsl(var(--border))', text: 'hsl(var(--foreground))', textSec: 'hsl(var(--muted-foreground))', bg: 'hsl(var(--background))' };
 
   const [form, setForm] = useState({
@@ -78,6 +87,18 @@ export function CustomRequestForm({ open, onOpenChange, companyId, services, pro
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [whatsAppUrl, setWhatsAppUrl] = useState<string | null>(null);
+
+  // Initialize form with initialData and preSelectedProfessionalId when opening
+  useEffect(() => {
+    if (open) {
+      setForm(prev => ({
+        ...prev,
+        client_name: prev.client_name || initialData?.clientName || '',
+        client_whatsapp: prev.client_whatsapp || initialData?.clientWhatsApp || '',
+        professional_id: prev.professional_id || preSelectedProfessionalId || '',
+      }));
+    }
+  }, [open, initialData, preSelectedProfessionalId]);
 
   const handleWhatsAppChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const masked = applyWhatsAppMask(e.target.value);
