@@ -516,12 +516,21 @@ const Dashboard = () => {
     const startDateStr = format(startDate, 'yyyy-MM-dd');
 
     const [apptsRes, bizHoursRes, collaboratorsRes, companyRes] = await Promise.all([
-      supabase
-        .from('appointments')
-        .select('start_time, status, total_price')
-        .eq('company_id', companyId)
-        .gte('start_time', `${startDateStr}T00:00:00`)
-        .order('start_time', { ascending: true }),
+      (() => {
+        let query = supabase
+          .from('appointments')
+          .select('start_time, status, total_price')
+          .eq('company_id', companyId)
+          .gte('start_time', `${startDateStr}T00:00:00`)
+          .order('start_time', { ascending: true });
+
+        if (!isAdmin && profileId) {
+          query = query.eq('professional_id', profileId);
+        } else if (filterProfessional !== 'all') {
+          query = query.eq('professional_id', filterProfessional);
+        }
+        return query;
+      })(),
       supabase
         .from('business_hours')
         .select('*')
