@@ -60,7 +60,7 @@ const Team = () => {
   // Edit modal state
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<any>(null);
-  const [editForm, setEditForm] = useState({ name: '', email: '', collaborator_type: 'commissioned' as string, commission_type: 'percentage' as string, commission_value: '' as string | number, booking_mode: 'hybrid' as string, grid_interval: 15 as number, break_time: 0 as number });
+  const [editForm, setEditForm] = useState({ name: '', email: '', collaborator_type: 'commissioned' as string, commission_type: 'percentage' as string, commission_value: '' as string | number, booking_mode: 'hybrid' as string, grid_interval: 15 as number, break_time: 0 as number, use_company_banner: true as boolean });
   // New unified business model form
   const [editBM, setEditBM] = useState<BusinessModelForm>({
     business_model: 'employee',
@@ -456,6 +456,7 @@ const Team = () => {
       booking_mode: (collaborator as any).booking_mode || 'hybrid',
       grid_interval: (collaborator as any).grid_interval || 15,
       break_time: (collaborator as any).break_time || 0,
+      use_company_banner: (collaborator as any).use_company_banner ?? true,
     });
     setEditServiceSearch('');
     setEditSlugDirty(false);
@@ -542,6 +543,7 @@ const Team = () => {
         commission_type: legacy.commission_type as any,
         commission_value: legacy.commission_value,
         break_time: editForm.break_time,
+        use_company_banner: editForm.use_company_banner,
       };
       // Only allow booking_mode change if permitted
       if ((company as any)?.prof_perm_booking_mode) {
@@ -2073,6 +2075,21 @@ const Team = () => {
                   <p className="text-xs text-muted-foreground">
                     Use apenas letras minúsculas, números e hifens.
                   </p>
+                </div>
+
+                <div className="space-y-4 pt-2 border-t mt-4">
+                  <div className="flex items-center justify-between p-3 rounded-lg border bg-muted/20">
+                    <div className="space-y-0.5">
+                      <Label className="text-sm font-medium">Banner da página</Label>
+                      <p className="text-[10px] text-muted-foreground">
+                        {editForm.use_company_banner ? 'Usando capa padrão da empresa' : 'Usando capa personalizada do profissional'}
+                      </p>
+                    </div>
+                    <Switch
+                      checked={!editForm.use_company_banner}
+                      onCheckedChange={(checked) => setEditForm({ ...editForm, use_company_banner: !checked })}
+                    />
+                  </div>
                 </div>
 
                 {editPublicLink && (
