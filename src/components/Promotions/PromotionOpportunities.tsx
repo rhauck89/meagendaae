@@ -34,8 +34,41 @@ export function PromotionOpportunities({
   const [slots, setSlots] = useState<any[]>([]);
   const [selectedSlots, setSelectedSlots] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
+  const [showSuggestion, setShowSuggestion] = useState(true);
 
   // Sync professional ID when profile loads or mode changes
+  useEffect(() => {
+    setShowSuggestion(true);
+  }, [selectedDate, selectedProfessionalId]);
+
+  const freeSlots = useMemo(() => slots.filter(s => s.isFree && !s.hasPromo), [slots]);
+  
+  const hasGaps = useMemo(() => {
+    if (freeSlots.length <= 1) return false;
+    
+    // Check if slots are continuous
+    for (let i = 0; i < freeSlots.length - 1; i++) {
+      const current = freeSlots[i];
+      const next = freeSlots[i+1];
+      
+      const [h1, m1] = current.time.split(':').map(Number);
+      const [h2, m2] = next.time.split(':').map(Number);
+      
+      const diff = (h2 * 60 + m2) - (h1 * 60 + m1);
+      if (diff > 30) return true; // Gap found (assuming 30min intervals)
+    }
+    return false;
+  }, [freeSlots]);
+
+  const shouldShowSuggestion = useMemo(() => {
+    return (
+      showSuggestion &&
+      selectedProfessionalId !== 'all' &&
+      freeSlots.length >= 1 &&
+      freeSlots.length <= 7 &&
+      hasGaps
+    );
+  }, [showSuggestion, selectedProfessionalId, freeSlots, hasGaps]);
   useEffect(() => {
     if (!isAdmin && profile?.id) {
       setSelectedProfessionalId(profile.id);
