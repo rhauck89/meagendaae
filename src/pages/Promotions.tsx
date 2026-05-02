@@ -744,6 +744,78 @@ export default function Promotions() {
     await fetchPromotions();
   };
 
+  const handleOpportunitySave = async (data: any) => {
+    const slug = generateSlug(data.title);
+    
+    // Calculate prices for the primary service
+    let payloadOrigPrice: number | null = null;
+    let payloadPromoPrice: number | null = null;
+    
+    const primaryServiceId = data.service_id;
+    const primarySvc = primaryServiceId ? services.find(s => s.id === primaryServiceId) : null;
+    
+    if (primarySvc) {
+      payloadOrigPrice = Number(primarySvc.price);
+      if (data.discount_type === 'fixed_price') {
+        payloadPromoPrice = data.promotion_price;
+      } else if (data.discount_type === 'percentage') {
+        payloadPromoPrice = payloadOrigPrice * (1 - data.discount_value / 100);
+      } else {
+        payloadPromoPrice = Math.max(0, payloadOrigPrice - data.discount_value);
+      }
+    }
+
+    const payload: any = {
+      company_id: companyId!,
+      title: data.title,
+      slug,
+      description: data.description || null,
+      service_id: data.service_id,
+      service_ids: data.service_ids,
+      discount_type: data.discount_type,
+      discount_value: data.discount_value,
+      promotion_price: payloadPromoPrice,
+      original_price: payloadOrigPrice,
+      start_date: data.start_date,
+      end_date: data.end_date,
+      start_time: data.start_time,
+      end_time: data.end_time,
+      use_business_hours: false,
+      valid_days: [0, 1, 2, 3, 4, 5, 6],
+      min_interval_minutes: 0,
+      max_slots: 1,
+      client_filter: 'all',
+      professional_filter: 'selected',
+      professional_ids: data.professional_ids,
+      message_template: DEFAULT_TEMPLATE,
+      created_by: profile?.id || null,
+      status: 'active',
+      promotion_type: 'traditional',
+      promotion_mode: 'manual',
+      booking_opens_at: data.booking_opens_at_date ? fromZonedTime(`${data.booking_opens_at_date} ${data.booking_opens_at_time || '00:00'}:00`, DEFAULT_TZ).toISOString() : null,
+      booking_closes_at: data.booking_closes_at_date ? fromZonedTime(`${data.booking_closes_at_date} ${data.booking_closes_at_time || '23:59'}:00`, DEFAULT_TZ).toISOString() : null,
+    };
+
+    const { data: insertedData, error } = await supabase.from('promotions').insert(payload).select('id').single();
+    
+    if (error) {
+      toast({ title: 'Erro ao criar promoção', description: error.message, variant: 'destructive' });
+      throw error;
+    }
+    
+    toast({ title: 'Promoção criada com sucesso! 🎉' });
+    if (insertedData?.id) setHighlightedPromoId(insertedData.id);
+    
+    setOpportunityDialogOpen(false);
+    setSelectedOpportunity(null);
+    
+    const promoStartDt = new Date(data.start_date + 'T' + data.start_time + ':00');
+    const targetTab = promoStartDt > new Date() ? 'scheduled' : 'active';
+    setActiveTab(targetTab);
+    
+    await fetchPromotions();
+  };
+
   const resetForm = () => {
     setPromotionType('traditional');
     setTitle(''); setDescription(''); setSelectedServiceId(''); setSelectedServiceIds([]);
