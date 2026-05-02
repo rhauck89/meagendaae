@@ -41,10 +41,6 @@ export function OpportunityPromotionModal({
   const [discountValue, setDiscountValue] = useState('10');
   const [promotionPrice, setPromotionPrice] = useState('');
   const [selectedServiceIds, setSelectedServiceIds] = useState<string[]>([]);
-  const [bookingOpensAtDate, setBookingOpensAtDate] = useState(format(new Date(), 'yyyy-MM-dd'));
-  const [bookingOpensAtTime, setBookingOpensAtTime] = useState(format(new Date(), 'HH:mm'));
-  const [bookingClosesAtDate, setBookingClosesAtDate] = useState('');
-  const [bookingClosesAtTime, setBookingClosesAtTime] = useState('');
 
   useEffect(() => {
     if (isOpen && slotData) {
