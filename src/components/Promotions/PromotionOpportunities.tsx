@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Calendar as CalendarIcon, User, Scissors, Clock, Loader2, Tag } from 'lucide-react';
+import { Calendar as CalendarIcon, User, Scissors, Clock, Loader2, Tag, Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface PromotionOpportunitiesProps {
