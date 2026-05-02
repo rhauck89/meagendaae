@@ -28,6 +28,7 @@ interface CustomRequestFormProps {
   initialData?: {
     clientName?: string;
     clientWhatsApp?: string;
+    clientEmail?: string;
   };
   preSelectedProfessionalId?: string | null;
   themeColors?: {
@@ -78,6 +79,7 @@ export function CustomRequestForm({
   const [form, setForm] = useState({
     client_name: '',
     client_whatsapp: '',
+    client_email: '',
     service_id: '',
     professional_id: '',
     requested_date: '',
@@ -95,6 +97,7 @@ export function CustomRequestForm({
         ...prev,
         client_name: prev.client_name || initialData?.clientName || '',
         client_whatsapp: prev.client_whatsapp || initialData?.clientWhatsApp || '',
+        client_email: prev.client_email || initialData?.clientEmail || '',
         professional_id: prev.professional_id || preSelectedProfessionalId || '',
       }));
     }
@@ -139,6 +142,7 @@ export function CustomRequestForm({
         professional_id: form.professional_id || null,
         client_name: form.client_name.trim(),
         client_whatsapp: formatWhatsApp(form.client_whatsapp),
+        client_email: form.client_email?.trim() || null,
         requested_date: form.requested_date,
         requested_time: form.requested_time,
         message: form.message.trim() || null,
@@ -192,7 +196,7 @@ export function CustomRequestForm({
     if (submitted) {
       setSubmitted(false);
       setWhatsAppUrl(null);
-      setForm({ client_name: '', client_whatsapp: '', service_id: '', professional_id: '', requested_date: '', requested_time: '', message: '' });
+      setForm({ client_name: '', client_whatsapp: '', client_email: '', service_id: '', professional_id: '', requested_date: '', requested_time: '', message: '' });
     }
   };
 
@@ -262,6 +266,16 @@ export function CustomRequestForm({
               placeholder="(00) 00000-0000"
               maxLength={15}
               inputMode="numeric"
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <Label className="text-sm font-medium">Email (opcional)</Label>
+            <Input
+              type="email"
+              value={form.client_email}
+              onChange={(e) => setForm({ ...form, client_email: e.target.value })}
+              placeholder="seu@email.com"
             />
           </div>
 

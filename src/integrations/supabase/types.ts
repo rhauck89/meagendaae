@@ -37,6 +37,7 @@ export type Database = {
       }
       appointment_requests: {
         Row: {
+          client_email: string | null
           client_name: string
           client_whatsapp: string
           company_id: string
@@ -54,6 +55,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          client_email?: string | null
           client_name: string
           client_whatsapp: string
           company_id: string
@@ -71,6 +73,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          client_email?: string | null
           client_name?: string
           client_whatsapp?: string
           company_id?: string

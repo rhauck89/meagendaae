@@ -2693,7 +2693,8 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                     professionals={professionals.map(p => ({ id: p.id, full_name: p.full_name }))}
                     initialData={{
                       clientName: clientForm.full_name,
-                      clientWhatsApp: clientForm.whatsapp
+                      clientWhatsApp: clientForm.whatsapp,
+                      clientEmail: clientForm.email
                     }}
                     preSelectedProfessionalId={selectedProfessional}
                     themeColors={T}
