@@ -1277,9 +1277,6 @@ export default function Promotions() {
     return null;
   };
 
-    
-    return null;
-  };
 
   // --- Wizard step rendering ---
   const renderStep1 = () => {
