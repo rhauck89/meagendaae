@@ -18,7 +18,7 @@ interface OpportunityPromotionModalProps {
   onSave: (payload: any) => Promise<void>;
   slotData: {
     date: string;
-    time: string;
+    times: string[];
     professionalId: string;
     serviceId?: string;
   } | null;
@@ -41,15 +41,15 @@ export function OpportunityPromotionModal({
   const [discountValue, setDiscountValue] = useState('10');
   const [promotionPrice, setPromotionPrice] = useState('');
   const [selectedServiceIds, setSelectedServiceIds] = useState<string[]>([]);
-  const [bookingOpensAtDate, setBookingOpensAtDate] = useState(format(new Date(), 'yyyy-MM-dd'));
-  const [bookingOpensAtTime, setBookingOpensAtTime] = useState(format(new Date(), 'HH:mm'));
-  const [bookingClosesAtDate, setBookingClosesAtDate] = useState('');
-  const [bookingClosesAtTime, setBookingClosesAtTime] = useState('');
 
   useEffect(() => {
     if (isOpen && slotData) {
-      setTitle('Promoção Relâmpago');
-      setDescription(`Desconto especial para o horário de ${slotData.time}`);
+      setTitle(slotData.times.length > 1 ? 'Promoção Combinada' : 'Promoção Relâmpago');
+      setDescription(
+        slotData.times.length > 1 
+          ? `Desconto para ${slotData.times.length} horários selecionados` 
+          : `Desconto especial para o horário de ${slotData.times[0]}`
+      );
       
       if (slotData.serviceId) {
         setSelectedServiceIds([slotData.serviceId]);
@@ -57,15 +57,9 @@ export function OpportunityPromotionModal({
         setSelectedServiceIds([]);
       }
       
-      const now = new Date();
-      setBookingOpensAtDate(format(now, 'yyyy-MM-dd'));
-      setBookingOpensAtTime(format(now, 'HH:mm'));
-      
       setDiscountType('percentage');
       setDiscountValue('10');
       setPromotionPrice('');
-      setBookingClosesAtDate('');
-      setBookingClosesAtTime('');
     }
   }, [isOpen, slotData]);
 
@@ -82,33 +76,18 @@ export function OpportunityPromotionModal({
 
     setLoading(true);
     try {
-      const [h, m] = slotData.time.split(':').map(Number);
-      const firstSvc = services.find(s => s.id === selectedServiceIds[0]);
-      const duration = firstSvc?.duration_minutes || 30;
-      
-      const endTotal = h * 60 + m + duration;
-      const endH = Math.floor(endTotal / 60);
-      const endM = endTotal % 60;
-      const endTime = `${String(endH).padStart(2, '0')}:${String(endM).padStart(2, '0')}`;
-
       const payload = {
         title,
         description,
         discount_type: discountType,
         discount_value: discountType !== 'fixed_price' ? parseFloat(discountValue) : null,
         promotion_price: discountType === 'fixed_price' ? parseFloat(promotionPrice) : null,
-        start_date: slotData.date,
-        end_date: slotData.date,
-        start_time: slotData.time,
-        end_time: endTime,
+        date: slotData.date,
+        times: slotData.times,
         service_ids: selectedServiceIds,
         service_id: selectedServiceIds.length === 1 ? selectedServiceIds[0] : null,
         professional_filter: 'selected',
         professional_ids: [slotData.professionalId],
-        booking_opens_at_date: bookingOpensAtDate,
-        booking_opens_at_time: bookingOpensAtTime,
-        booking_closes_at_date: bookingClosesAtDate,
-        booking_closes_at_time: bookingClosesAtTime,
         promotion_mode: 'manual'
       };
 
@@ -139,20 +118,32 @@ export function OpportunityPromotionModal({
           <div className="bg-muted/50 p-4 rounded-lg space-y-2 border">
             <div className="flex items-center gap-2 text-sm">
               <Calendar className="h-4 w-4 text-muted-foreground" />
-              <span className="font-medium">{formattedDate}</span>
+              <span className="font-medium text-muted-foreground">Data:</span>
+              <span className="font-semibold">{formattedDate}</span>
             </div>
-            <div className="flex items-center gap-2 text-sm">
-              <Clock className="h-4 w-4 text-muted-foreground" />
-              <span className="font-medium">{slotData.time}</span>
+            <div className="flex items-start gap-2 text-sm">
+              <Clock className="h-4 w-4 text-muted-foreground mt-0.5" />
+              <div className="flex flex-col">
+                <span className="font-medium text-muted-foreground">Horários selecionados ({slotData.times.length}):</span>
+                <div className="flex flex-wrap gap-1.5 mt-1">
+                  {slotData.times.map(t => (
+                    <Badge key={t} variant="outline" className="text-[10px] bg-background">
+                      {t}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
             </div>
             <div className="flex items-center gap-2 text-sm">
               <User className="h-4 w-4 text-muted-foreground" />
-              <span className="font-medium">{selectedProfessional?.profiles?.full_name}</span>
+              <span className="font-medium text-muted-foreground">Profissional:</span>
+              <span className="font-semibold">{selectedProfessional?.profiles?.full_name}</span>
             </div>
             {slotData.serviceId && (
               <div className="flex items-center gap-2 text-sm">
                 <Scissors className="h-4 w-4 text-muted-foreground" />
-                <span className="font-medium">{services.find(s => s.id === slotData.serviceId)?.name}</span>
+                <span className="font-medium text-muted-foreground">Serviço:</span>
+                <span className="font-semibold">{services.find(s => s.id === slotData.serviceId)?.name}</span>
               </div>
             )}
           </div>
@@ -163,7 +154,7 @@ export function OpportunityPromotionModal({
               <Input 
                 value={title} 
                 onChange={e => setTitle(e.target.value)} 
-                placeholder="Ex: Flash Deal 14h"
+                placeholder="Ex: Flash Deal"
               />
             </div>
 
@@ -230,51 +221,6 @@ export function OpportunityPromotionModal({
                     placeholder="0"
                   />
                 )}
-              </div>
-            </div>
-
-            <div className="space-y-4 pt-2 border-t">
-              <Label className="text-xs font-bold uppercase text-muted-foreground">Liberação do agendamento</Label>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1">
-                  <Label className="text-xs">Data liberação</Label>
-                  <Input 
-                    type="date" 
-                    value={bookingOpensAtDate} 
-                    onChange={e => setBookingOpensAtDate(e.target.value)}
-                    className="h-8"
-                  />
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-xs">Hora liberação</Label>
-                  <Input 
-                    type="time" 
-                    value={bookingOpensAtTime} 
-                    onChange={e => setBookingOpensAtTime(e.target.value)}
-                    className="h-8"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1">
-                  <Label className="text-xs">Data encerramento (opcional)</Label>
-                  <Input 
-                    type="date" 
-                    value={bookingClosesAtDate} 
-                    onChange={e => setBookingClosesAtDate(e.target.value)}
-                    className="h-8"
-                  />
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-xs">Hora encerramento</Label>
-                  <Input 
-                    type="time" 
-                    value={bookingClosesAtTime} 
-                    onChange={e => setBookingClosesAtTime(e.target.value)}
-                    className="h-8"
-                  />
-                </div>
               </div>
             </div>
           </div>
