@@ -50,12 +50,33 @@ const AppointmentRequests = () => {
   const [serviceInfo, setServiceInfo] = useState<{ price: number; duration: number; payment_method?: string } | null>(null);
 
   useEffect(() => {
-    if (companyId) {
-      fetchRequests();
-      fetchServices();
-      fetchProfessionals();
-    }
-  }, [companyId]);
+    if (!companyId) return;
+
+    fetchRequests();
+    fetchServices();
+    fetchProfessionals();
+
+    // Subscribe to real-time updates
+    const channel = supabase
+      .channel('appointment-requests-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'appointment_requests',
+          filter: `company_id=eq.${companyId}`
+        },
+        () => {
+          fetchRequests();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [companyId, isAdmin, profileId]);
 
   const fetchRequests = async () => {
     setLoading(true);
