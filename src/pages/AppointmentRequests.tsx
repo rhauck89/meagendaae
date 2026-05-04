@@ -282,6 +282,7 @@ const AppointmentRequests = () => {
       message += `✅ Confirmar horário:\n${confirmUrl}\n\n`;
       message += `❌ Recusar sugestão:\n${rejectUrl}`;
       return message;
+
     }
 
     if (actionType === 'reject') {
