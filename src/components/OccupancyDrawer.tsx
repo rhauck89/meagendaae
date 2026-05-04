@@ -5,7 +5,8 @@ import {
   SheetContent, 
   SheetHeader, 
   SheetTitle, 
-  SheetDescription 
+  SheetDescription,
+  SheetClose
 } from '@/components/ui/sheet';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -93,10 +94,10 @@ export const OccupancyDrawer = ({ open, onOpenChange, companyId, professionals }
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="w-full sm:max-w-[600px] overflow-y-auto bg-muted/30 p-0 sm:p-0 border-l">
+      <SheetContent className="w-full sm:max-w-[600px] overflow-y-auto bg-muted/30 p-0 sm:p-0 border-l [&>button]:hidden">
         <div className="flex flex-col h-full">
-          <SheetHeader className="p-6 bg-white border-b sticky top-0 z-10 shadow-sm">
-            <div className="flex items-center justify-between">
+          <SheetHeader className="p-6 pt-[calc(1.5rem+env(safe-area-inset-top))] bg-white border-b sticky top-0 z-10 shadow-sm text-left">
+            <div className="flex items-start justify-between">
               <div className="space-y-1">
                 <SheetTitle className="text-2xl font-display font-bold flex items-center gap-2">
                   <BarChart3 className="h-6 w-6 text-primary" />
@@ -106,6 +107,11 @@ export const OccupancyDrawer = ({ open, onOpenChange, companyId, professionals }
                   Relatório detalhado de produtividade e capacidade
                 </SheetDescription>
               </div>
+              <SheetClose asChild>
+                <Button variant="ghost" size="icon" className="h-11 w-11 -mr-2 -mt-2 rounded-full hover:bg-muted transition-colors">
+                  <X className="h-6 w-6 text-muted-foreground" />
+                </Button>
+              </SheetClose>
             </div>
 
             <div className="flex flex-wrap gap-3 mt-6">
