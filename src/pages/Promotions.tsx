@@ -29,6 +29,7 @@ import { formatWhatsApp, displayWhatsApp, buildWhatsAppUrl, trackWhatsAppClick }
 
 import { PromotionOpportunities } from '@/components/Promotions/PromotionOpportunities';
 import { OpportunityPromotionModal } from '@/components/Promotions/OpportunityPromotionModal';
+import { PromotionShareModal } from '@/components/Promotions/PromotionShareModal';
 
 
 const DEFAULT_TZ = 'America/Sao_Paulo';
