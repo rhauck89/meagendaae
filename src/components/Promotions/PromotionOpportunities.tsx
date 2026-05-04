@@ -291,7 +291,7 @@ export function PromotionOpportunities({
                       date: selectedDate,
                       times: times,
                       professionalId: selectedProfessionalId,
-                      serviceId: selectedServiceId === 'all' ? undefined : selectedServiceId
+                      serviceIds: selectedServiceIds.includes('all') ? services.map(s => s.id) : selectedServiceIds
                     });
                   }}
                 >
