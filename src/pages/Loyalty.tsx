@@ -461,9 +461,31 @@ const Loyalty = () => {
   const txTypeLabel: Record<string, string> = { earn: 'Ganho', redeem: 'Resgate', reward_redemption: 'Resgate de Recompensa', expire: 'Expirado', cancel: 'Cancelamento' };
   const txTypeColor: Record<string, string> = { earn: 'text-success', redeem: 'text-destructive', reward_redemption: 'text-destructive', expire: 'text-muted-foreground', cancel: 'text-warning' };
 
+  const mergedTransactions = useMemo(() => {
+    const txs = transactions.map(tx => ({ ...tx, isTransaction: true }));
+    const txRefIds = new Set(transactions.filter((tx: any) => tx.reference_id).map((tx: any) => tx.reference_id));
+    
+    const reds = redemptions
+      .filter((r: any) => r.status !== 'cancelled' && !txRefIds.has(r.id))
+      .map((r: any) => ({
+        id: r.id,
+        client_id: r.client_id,
+        clients: r.clients,
+        points: -Number(r.total_points),
+        transaction_type: 'reward_redemption',
+        description: 'Resgate de recompensa',
+        created_at: r.created_at,
+        company_id: r.company_id,
+        balance_after: null,
+        isTransaction: false
+      }));
+      
+    return [...txs, ...reds].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+  }, [transactions, redemptions]);
+
   const filteredTransactions = txFilter
-    ? transactions.filter((t: any) => (t.clients?.name || '').toLowerCase().includes(txFilter.toLowerCase()))
-    : transactions;
+    ? mergedTransactions.filter((t: any) => (t.clients?.name || '').toLowerCase().includes(txFilter.toLowerCase()))
+    : mergedTransactions;
 
   const formatCurrency = (v: number) => `R$ ${v.toFixed(2).replace('.', ',')}`;
 
