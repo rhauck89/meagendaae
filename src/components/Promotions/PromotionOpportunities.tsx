@@ -334,10 +334,10 @@ export function PromotionOpportunities({
               setSelectedSlots([]);
             }}>
               <SelectTrigger>
-                <SelectValue placeholder="Todos os serviços" />
+                <SelectValue placeholder="Selecione um serviço" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Todos os serviços</SelectItem>
+                <SelectItem value="all">Escolher serviço...</SelectItem>
                 {services.map((s) => (
                   <SelectItem key={s.id} value={s.id}>
                     {s.name}
