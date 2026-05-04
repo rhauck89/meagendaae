@@ -89,7 +89,7 @@ export function PromotionOpportunities({
     } else {
       setSlots([]);
     }
-  }, [companyId, selectedDate, selectedProfessionalId, selectedServiceId]);
+  }, [companyId, selectedDate, selectedProfessionalId, selectedServiceIds]);
 
   const fetchSlots = async () => {
     if (selectedServiceIds.length === 0) {
