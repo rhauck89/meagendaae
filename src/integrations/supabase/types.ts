@@ -6750,6 +6750,10 @@ export type Database = {
         Returns: string
       }
       confirm_reward_redemption: { Args: { p_code: string }; Returns: Json }
+      confirm_suggested_request: {
+        Args: { p_request_id: string }
+        Returns: Json
+      }
       create_appointment: {
         Args: {
           p_booking_origin?: string
@@ -7053,6 +7057,10 @@ export type Database = {
             }
             Returns: Json
           }
+      reject_suggested_request: {
+        Args: { p_request_id: string }
+        Returns: Json
+      }
       reschedule_appointment: {
         Args: {
           p_appointment_id: string
