@@ -391,7 +391,7 @@ export function UnifiedAppointmentCard({
             )}>
               <Scissors className="h-3 w-3 sm:h-3.5 sm:w-3.5 shrink-0" />
               {apt.appointment_services?.length > 0 
-                ? formatServicesWithDuration(apt.appointment_services) 
+                ? (variant === 'default' || variant === 'business' ? servicesText : formatServicesWithDuration(apt.appointment_services))
                 : 'Serviço não informado'}
             </p>
             
