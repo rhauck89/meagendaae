@@ -372,6 +372,7 @@ export async function getAvailableSlots(
       slots: [],
       bookingMode: 'hybrid',
       slotInterval: 15,
+      baseSlotMinutes: 10,
       bufferMinutes: 0,
       existingAppointments: [],
     };
