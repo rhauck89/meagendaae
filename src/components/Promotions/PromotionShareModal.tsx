@@ -263,20 +263,7 @@ ${publicProfileUrl}`;
                     </div>
                   )}
 
-                  {/* Real component hidden for capture */}
-                  <div className="absolute pointer-events-none opacity-0" style={{ transform: 'scale(1)', transformOrigin: 'top left' }}>
-                    <PromotionInstagramArt 
-                      ref={artRef}
-                      promotion={promotion}
-                      companyName={companyName}
-                      companyLogo={companyLogo}
-                      services={services}
-                      professionals={professionals}
-                      publicProfileUrl={publicProfileUrl}
-                      availableSlots={availableSlots}
-                      backgroundImageUrl={backgroundImage}
-                    />
-                  </div>
+                  {/* Capture logic moved to canvas utility */}
                 </div>
 
                 <div className="grid grid-cols-2 gap-2 w-full">
