@@ -266,13 +266,17 @@ const AppointmentRequests = () => {
     if (actionType === 'suggest') {
       const suggestedDateStr = suggestedDate ? format(new Date(suggestedDate + 'T12:00:00'), "dd/MM/yyyy", { locale: ptBR }) : '';
       const suggestedTimeStr = suggestedTime?.slice(0, 5) || '';
+      const baseUrl = window.location.origin;
+      const confirmUrl = `${baseUrl}/request/${selectedRequest.id}?action=confirm`;
+      const rejectUrl = `${baseUrl}/request/${selectedRequest.id}?action=reject`;
       
       let message = `Olá, ${selectedRequest.client_name}! O profissional sugeriu um novo horário para sua solicitação:\n\n`;
       message += `Serviço: ${serviceName}\n`;
       message += `Profissional: ${professionalName}\n`;
       message += `Nova data: ${suggestedDateStr}\n`;
       message += `Novo horário: ${suggestedTimeStr}\n\n`;
-      message += `Responda esta mensagem para confirmar.`;
+      message += `✅ Confirmar horário:\n${confirmUrl}\n\n`;
+      message += `❌ Recusar sugestão:\n${rejectUrl}`;
       return message;
     }
 
