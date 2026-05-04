@@ -386,9 +386,7 @@ const Loyalty = () => {
       confirmed_by: (await supabase.auth.getUser()).data.user?.id
     } as any).eq('id', redemptionId);
 
-    // If confirmed, ensure there's a negative transaction (debit)
     if (action === 'confirmed' && redemption.client_id && companyId) {
-      // Check if transaction already exists
       const { data: existingTx } = await supabase
         .from('loyalty_points_transactions' as any)
         .select('id')
@@ -420,32 +418,44 @@ const Loyalty = () => {
         } as any);
       }
     }
-      const { data: lastTx } = await supabase
+
+    if (action === 'cancelled' && redemption.client_id && companyId) {
+      // Points should only be refunded if they were previously deducted
+      const { data: debitTx } = await supabase
         .from('loyalty_points_transactions' as any)
-        .select('balance_after')
-        .eq('company_id', companyId)
-        .eq('client_id', redemption.client_id)
-        .order('created_at', { ascending: false })
-        .limit(1)
+        .select('id')
+        .eq('reference_id', redemptionId)
+        .eq('transaction_type', 'reward_redemption')
         .maybeSingle();
 
-      const currentBalance = (lastTx as any)?.balance_after || 0;
-      await supabase.from('loyalty_points_transactions' as any).insert({
-        company_id: companyId,
-        client_id: redemption.client_id,
-        points: Math.abs(redemption.total_points),
-        transaction_type: 'cancel',
-        reference_type: 'redemption_cancel',
-        reference_id: redemptionId,
-        description: `Cancelamento do resgate ${redemption.redemption_code}`,
-        balance_after: currentBalance + Math.abs(redemption.total_points),
-      } as any);
+      if (debitTx) {
+        const { data: lastTx } = await supabase
+          .from('loyalty_points_transactions' as any)
+          .select('balance_after')
+          .eq('company_id', companyId)
+          .eq('client_id', redemption.client_id)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        const currentBalance = (lastTx as any)?.balance_after || 0;
+        await supabase.from('loyalty_points_transactions' as any).insert({
+          company_id: companyId,
+          client_id: redemption.client_id,
+          points: Math.abs(redemption.total_points),
+          transaction_type: 'cancel',
+          reference_type: 'redemption_cancel',
+          reference_id: redemptionId,
+          description: `Cancelamento do resgate ${redemption.redemption_code}`,
+          balance_after: currentBalance + Math.abs(redemption.total_points),
+        } as any);
+      }
     }
 
     fetchRedemptions();
     fetchTransactions();
     fetchStats();
-    toast.success(action === 'confirmed' ? 'Resgate confirmado!' : 'Resgate cancelado, pontos devolvidos.');
+    toast.success(action === 'confirmed' ? 'Resgate confirmado!' : 'Resgate cancelado, pontos devolvidos se aplicável.');
   };
 
   const handleValidateCode = async () => {
