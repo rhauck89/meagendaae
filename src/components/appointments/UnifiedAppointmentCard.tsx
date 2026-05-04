@@ -338,7 +338,7 @@ export function UnifiedAppointmentCard({
         statusColors[displayStatus] || 'bg-muted'
       )} />
 
-      <div className="flex justify-between items-start gap-3">
+      <div className="flex justify-between items-start gap-1 sm:gap-3">
         <div className="flex gap-3 sm:gap-4 items-start">
           {/* Time Column */}
             <div className="flex flex-col items-center justify-center bg-background/60 backdrop-blur-sm rounded-xl px-2.5 py-1.5 sm:px-3 sm:py-2 min-w-[70px] sm:min-w-[85px] border border-border/40 shadow-sm">
