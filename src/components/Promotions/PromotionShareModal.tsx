@@ -19,6 +19,7 @@ interface PromotionShareModalProps {
   businessType: string;
   services: any[];
   professionals: any[];
+  availableSlots?: string[];
 }
 
 export function PromotionShareModal({
