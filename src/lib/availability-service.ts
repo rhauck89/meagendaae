@@ -187,6 +187,9 @@ async function getScopedActiveServiceDurations(
 /**
  * Resolve effective booking config: professional override wins over company default.
  */
+/**
+ * Resolve effective booking config: professional override wins over company default.
+ */
 async function resolveBookingConfig(
   source: AvailabilitySource,
   companyId: string,
@@ -207,27 +210,28 @@ async function resolveBookingConfig(
       .select('booking_mode, fixed_slot_interval, buffer_minutes, agenda_engine_version')
       .eq('id', companyId)
       .maybeSingle(),
-    source === 'public'
-      ? supabase
-          .from('public_professionals' as any)
-          .select('booking_mode, grid_interval, break_time')
-          .eq('id', professionalId)
-          .maybeSingle()
-      : supabase
-          .from('collaborators' as any)
-          .select('booking_mode, grid_interval, break_time')
-          .eq('profile_id', professionalId)
-          .eq('company_id', companyId)
-          .maybeSingle(),
+    // We always want to fetch professional settings from the most authoritative source.
+    // collaborators table is accessible to staff, public_professionals to everyone.
+    // They should be identical for active professionals.
+    supabase
+      .from('collaborators' as any)
+      .select('booking_mode, grid_interval, break_time, active')
+      .eq('profile_id', professionalId)
+      .eq('company_id', companyId)
+      .maybeSingle(),
     getScopedActiveServiceDurations(source, companyId, professionalId),
   ]);
 
   const company = (companyRes.data as any) || {};
   const professional = (professionalRes.data as any) || {};
 
+  // If professional is inactive, we should probably return empty, but for now
+  // we follow the engine's lead.
+  
   const resolvedMode = (professional?.booking_mode ?? company?.booking_mode ?? 'fixed_grid') as BookingMode;
 
   // ⚠️ TEMP FORCE OVERRIDE — preserved from previous behavior.
+  // Both flows MUST use the same mode to remain synchronized.
   const FORCE_INTELLIGENT = true;
   const bookingMode: BookingMode = FORCE_INTELLIGENT ? 'intelligent' : resolvedMode;
 
