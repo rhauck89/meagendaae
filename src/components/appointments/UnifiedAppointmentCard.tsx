@@ -184,8 +184,8 @@ export function UnifiedAppointmentCard({
                   )}
                 </div>
               </div>
-              <p className="text-[10px] text-muted-foreground truncate font-medium">
-                {formatServicesWithDuration(apt.appointment_services)}
+              <p className="text-[10px] text-muted-foreground truncate font-medium max-w-[180px] sm:max-w-none" title={formatServicesWithDuration(apt.appointment_services)}>
+                {servicesText}
               </p>
               {professionalName && (
                 <p className="text-[10px] text-primary/80 truncate font-semibold flex items-center gap-1 mt-0.5">
