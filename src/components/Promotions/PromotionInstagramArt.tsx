@@ -12,6 +12,8 @@ interface PromotionInstagramArtProps {
   availableSlots?: string[];
   backgroundImageUrl?: string | null;
   isPreview?: boolean;
+  primaryColor?: string;
+  layout?: 'auto' | 'photo' | 'minimal';
 }
 
 export const PromotionInstagramArt = React.forwardRef<HTMLDivElement, PromotionInstagramArtProps>(
