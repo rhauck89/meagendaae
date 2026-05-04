@@ -176,7 +176,7 @@ export function OpportunityPromotionModal({
               />
             </div>
 
-            {!slotData.serviceId && (
+            {(!slotData.serviceIds || slotData.serviceIds.length === 0) && (
               <div className="space-y-2">
                 <Label>Serviços participantes *</Label>
                 <div className="border rounded-md p-3 max-h-40 overflow-y-auto space-y-2">
