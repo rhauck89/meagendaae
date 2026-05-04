@@ -1968,7 +1968,7 @@ export default function Promotions() {
             date: data.date,
             times: data.times,
             professionalId: data.professionalId,
-            serviceId: data.serviceId
+            serviceIds: data.serviceIds
           });
           setOpportunityDialogOpen(true);
         }}
