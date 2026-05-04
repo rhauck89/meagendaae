@@ -76,6 +76,7 @@ export async function generatePromotionArt(data: PromotionArtData): Promise<stri
   // 1. Draw Background
   if (data.backgroundImageUrl) {
     try {
+      const bgImg = await loadImage(data.backgroundImageUrl);
       console.log('Background image loaded successfully', { width: bgImg.width, height: bgImg.height });
       // Object fit cover logic
       const scale = Math.max(canvas.width / bgImg.width, canvas.height / bgImg.height);
