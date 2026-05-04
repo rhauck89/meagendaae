@@ -135,14 +135,10 @@ const Team = () => {
     },
   });
 
-  useEffect(() => {
-    if (wizardStep === 4 && form.selectedServiceIds.length === 0 && companyServices.length > 0) {
-      setForm(prev => ({
-        ...prev,
-        selectedServiceIds: companyServices.map((s: any) => s.id)
-      }));
-    }
-  }, [wizardStep, companyServices.length]);
+  // Remove auto-selection of services to respect the "unselected by default" rule
+  // We keep the wizardStep condition if we needed any other initialization, 
+  // but for services, we want it empty by default for new professionals.
+
 
   const teamQueryKey = ['collaborators', companyId];
 
