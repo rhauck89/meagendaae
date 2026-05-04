@@ -66,19 +66,23 @@ const RequestConfirmation = () => {
       setService(svcRes.data);
       setProfessional(profRes.data);
 
-      if (requestObj.status === 'suggested' && autoAction) {
+      if ((requestObj.status === 'suggested' || requestObj.status === 'pending_client_confirmation') && autoAction) {
         if (autoAction === 'confirm') {
           handleConfirm(requestObj.id);
         } else if (autoAction === 'reject') {
           handleReject(requestObj.id);
         }
-      } else if (requestObj.status !== 'suggested') {
+      } else if (requestObj.status !== 'suggested' && requestObj.status !== 'pending_client_confirmation') {
+        const isAccepted = requestObj.status === 'accepted';
         setResult({ 
-          success: requestObj.status === 'accepted', 
-          message: requestObj.status === 'accepted' ? 'Esta solicitação já foi confirmada.' : 'Esta solicitação já foi processada ou recusada.',
+          success: isAccepted, 
+          message: isAccepted 
+            ? 'Este horário já foi confirmado com sucesso! Seu agendamento já está na nossa agenda.' 
+            : 'Esta sugestão de horário já foi recusada ou expirou.',
           alreadyProcessed: true
         });
       }
+
     } catch (err) {
       console.error('Error fetching details:', err);
     } finally {
