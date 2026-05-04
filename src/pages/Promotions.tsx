@@ -29,11 +29,12 @@ import { formatWhatsApp, displayWhatsApp, buildWhatsAppUrl, trackWhatsAppClick }
 
 import { PromotionOpportunities } from '@/components/Promotions/PromotionOpportunities';
 import { OpportunityPromotionModal } from '@/components/Promotions/OpportunityPromotionModal';
+import { PromotionShareModal } from '@/components/Promotions/PromotionShareModal';
 
 
 const DEFAULT_TZ = 'America/Sao_Paulo';
 
-interface Promotion {
+export interface Promotion {
   id: string;
   title: string;
   description: string | null;
@@ -236,6 +237,9 @@ export default function Promotions() {
   const [now, setNow] = useState(new Date());
   const [appointments, setAppointments] = useState<any[]>([]);
   const [expandedGroups, setExpandedGroups] = useState<string[]>([]);
+  const [shareModalOpen, setShareModalOpen] = useState(false);
+  const [companyLogo, setCompanyLogo] = useState<string | null>(null);
+  const [availableSlotsForShare, setAvailableSlotsForShare] = useState<string[]>([]);
 
 
   // Wizard step
@@ -344,8 +348,13 @@ export default function Promotions() {
 
 
   const fetchCompanyInfo = async () => {
-    const { data } = await supabase.from('companies').select('name, slug, business_type').eq('id', companyId!).single();
-    if (data) { setCompanyName(data.name); setCompanySlug(data.slug); setCompanyBusinessType((data as any).business_type || 'barbershop'); }
+    const { data } = await supabase.from('companies').select('name, slug, business_type, logo_url').eq('id', companyId!).single();
+    if (data) { 
+      setCompanyName(data.name); 
+      setCompanySlug(data.slug); 
+      setCompanyBusinessType((data as any).business_type || 'barbershop');
+      setCompanyLogo(data.logo_url);
+    }
   };
 
   const fetchPromotions = async () => {
@@ -411,7 +420,7 @@ export default function Promotions() {
   const fetchProfessionals = async () => {
     const { data } = await supabase
       .from('collaborators')
-      .select('profile_id, profiles!collaborators_profile_id_fkey(id, full_name, avatar_url)')
+      .select('profile_id, slug, profiles!collaborators_profile_id_fkey(id, full_name, avatar_url)')
       .eq('company_id', companyId!)
       .eq('active', true);
     if (data) setProfessionals(data);
@@ -1023,15 +1032,23 @@ export default function Promotions() {
   };
 
 
-  const getPromoLink = (promo: Promotion) => {
+  const getPublicProfileLink = (promo: Promotion) => {
     const routeType = companyBusinessType === 'esthetic' ? 'estetica' : 'barbearia';
-    return `${window.location.origin}/${routeType}/${companySlug}?promo=${promo.id}`;
+    const baseUrl = `${window.location.origin}/${routeType}/${companySlug}`;
+    
+    if (promo.professional_ids?.length === 1) {
+      const prof = professionals.find((p: any) => p.profile_id === promo.professional_ids![0]);
+      if (prof?.slug) {
+        return `${baseUrl}/${prof.slug}`;
+      }
+    }
+    return baseUrl;
   };
 
   const buildWhatsAppLink = (client: ClientRow, promotion: Promotion) => {
     if (!client.whatsapp) return '';
     const number = formatWhatsApp(client.whatsapp);
-    const promoLink = getPromoLink(promotion);
+    const profileLink = getPublicProfileLink(promotion);
 
     const profName = (() => {
       if (promotion.professional_ids?.length === 1) {
@@ -1078,7 +1095,7 @@ export default function Promotions() {
     msg = msg.replace(/\{\{profissionais_promocao\}\}/g, profissionaisText);
     msg = msg.replace(/\{\{valor_normal\}\}/g, promotion.original_price ? `R$ ${Number(promotion.original_price).toFixed(2)}` : '');
     msg = msg.replace(/\{\{valor_promocional\}\}/g, promotion.promotion_price ? `R$ ${Number(promotion.promotion_price).toFixed(2)}` : '');
-    msg = msg.replace(/\{\{link_promocao\}\}/g, promoLink);
+    msg = msg.replace(/\{\{link_promocao\}\}/g, profileLink);
     // Cashback-specific tags
     if (promotion.promotion_type === 'cashback') {
       const cashbackVal = promotion.discount_type === 'percentage'
@@ -2086,15 +2103,6 @@ export default function Promotions() {
                               <DropdownMenuItem onClick={() => handleEndNow(promo, group.promotions.map(p => p.id))}>
                                 <X className="h-4 w-4 mr-2" />Encerrar {isGroup ? 'Grupo' : ''}
                               </DropdownMenuItem>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem asChild>
-                                <a href={getPromoLink(promo)} target="_blank" rel="noopener noreferrer" className="flex items-center">
-                                  <ExternalLink className="h-4 w-4 mr-2" />Ver no Perfil
-                                </a>
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => { navigator.clipboard.writeText(getPromoLink(promo)); toast({ title: 'Link copiado!' }); }}>
-                                <Copy className="h-4 w-4 mr-2" />Copiar Link
-                              </DropdownMenuItem>
                               <DropdownMenuItem onClick={() => fetchMetrics(promo)}>
                                 <BarChart3 className="h-4 w-4 mr-2" />Métricas
                               </DropdownMenuItem>
@@ -2148,7 +2156,12 @@ export default function Promotions() {
                       )}
                       {promoSvcs.length > 1 && (
                         <div className="text-sm text-muted-foreground">
-                          ✂️ {promoSvcs.length} serviços: {promoSvcs.slice(0, 3).map(s => s.name).join(', ')}{promoSvcs.length > 3 ? ` +${promoSvcs.length - 3}` : ''}
+                          ✂️ {promoSvcs.length === services.length ? "Todos os serviços" : `${promoSvcs.length} serviços: ${promoSvcs.slice(0, 3).map(s => s.name).join(', ')}${promoSvcs.length > 3 ? ` +${promoSvcs.length - 3}` : ''}`}
+                        </div>
+                      )}
+                      {promoSvcs.length === 0 && (
+                         <div className="text-sm text-muted-foreground">
+                          ✂️ Todos os serviços
                         </div>
                       )}
 
@@ -2237,27 +2250,16 @@ export default function Promotions() {
                         )}
                       </div>
 
-                      {/* Link — only for traditional promos */}
-                      {!isCashback && promo.slug && (
-                        <div className="flex items-center gap-2">
-                          <Input readOnly value={getPromoLink(promo)} className="text-xs h-8 bg-muted" />
-                          <Button size="sm" variant="ghost" className="h-8" onClick={() => { navigator.clipboard.writeText(getPromoLink(promo)); toast({ title: 'Link copiado!' }); }}>
-                            <Copy className="h-3 w-3" />
-                          </Button>
-                        </div>
-                      )}
-
                       <div className="flex gap-2 pt-2 flex-wrap mt-auto">
-                        <Button size="sm" onClick={() => fetchFilteredClients(promo)} disabled={status === 'expired'}>
+                        <Button size="sm" onClick={() => { 
+                          setSelectedPromotion(promo); 
+                          setAvailableSlotsForShare(slotsStatus.filter(s => !s.isFilled).map(s => s.time || '').filter(Boolean));
+                          setShareModalOpen(true); 
+                        }} disabled={status === 'expired'}>
                           <Send className="h-3 w-3 mr-1" />Divulgar
                         </Button>
                         <Button size="sm" variant="outline" onClick={() => handleEdit(promo)}>
                           <Edit2 className="h-3 w-3 mr-1" />Editar
-                        </Button>
-                        <Button size="sm" variant="ghost" asChild>
-                          <a href={getPromoLink(promo)} target="_blank" rel="noopener noreferrer">
-                            <Eye className="h-3 w-3 mr-1" />Ver
-                          </a>
                         </Button>
                       </div>
                     </CardContent>
@@ -2383,6 +2385,18 @@ export default function Promotions() {
           </div>
         </DialogContent>
       </Dialog>
+      <PromotionShareModal
+        open={shareModalOpen}
+        onOpenChange={setShareModalOpen}
+        promotion={selectedPromotion}
+        companyName={companyName}
+        companyLogo={companyLogo}
+        companySlug={companySlug}
+        businessType={companyBusinessType}
+        services={services}
+        professionals={professionals}
+        availableSlots={availableSlotsForShare}
+      />
       <FeatureIntroModal
         featureKey="promotions"
         open={showIntro}
