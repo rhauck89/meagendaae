@@ -2097,8 +2097,6 @@ export default function Promotions() {
                               <DropdownMenuItem onClick={() => fetchMetrics(promo)}>
                                 <BarChart3 className="h-4 w-4 mr-2" />Métricas
                               </DropdownMenuItem>
-                                <BarChart3 className="h-4 w-4 mr-2" />Métricas
-                              </DropdownMenuItem>
                               <DropdownMenuSeparator />
                               <DropdownMenuItem onClick={() => handleDelete(promo.id, group.promotions.map(p => p.id))} className="text-destructive">
                                 <Trash2 className="h-4 w-4 mr-2" />Excluir {isGroup ? 'Grupo' : ''}
