@@ -1023,7 +1023,7 @@ const Loyalty = () => {
                           <td className="p-3 text-right text-xs text-muted-foreground">
                             {pointValue > 0 ? formatCurrency(Math.abs(t.points) * pointValue) : '—'}
                           </td>
-                          <td className="p-3 text-right">{t.balance_after}</td>
+                          <td className="p-3 text-right">{typeof t.balance_after === 'number' ? t.balance_after : '—'}</td>
                           <td className="p-3 text-xs text-muted-foreground max-w-[200px] truncate">{t.description || '—'}</td>
                         </tr>
                       ))}
