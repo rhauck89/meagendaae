@@ -1335,6 +1335,9 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
     return 0;
   })();
 
+  const cashbackDiscount = useCashback ? Math.min(cashbackTotal, totalPrice) : 0;
+  const finalPrice = Math.max(0, totalPrice - cashbackDiscount);
+
   const predictedLoyaltyPoints = (() => {
     if (!loyaltyConfig || !loyaltyConfig.enabled || !selectedProfessional || selectedServices.length === 0) return 0;
     
@@ -1374,9 +1377,6 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
     
     return 0;
   })();
-
-  const cashbackDiscount = useCashback ? Math.min(cashbackTotal, totalPrice) : 0;
-  const finalPrice = Math.max(0, totalPrice - cashbackDiscount);
 
   const toggleService = (id: string) => {
     setSelectedServices((prev) =>
