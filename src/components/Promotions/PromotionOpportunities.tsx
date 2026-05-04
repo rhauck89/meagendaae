@@ -294,7 +294,7 @@ export function PromotionOpportunities({
                       date: selectedDate,
                       times: times,
                       professionalId: selectedProfessionalId,
-                      serviceIds: selectedServiceIds.includes('all') ? services.map(s => s.id) : selectedServiceIds
+                      serviceIds: selectedServiceIds.includes('all') ? [] : selectedServiceIds
                     });
                   }}
                 >
