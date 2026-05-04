@@ -3,8 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogBody } from '@/
 import { Button } from '@/components/ui/button';
 import { Promotion } from '@/pages/Promotions';
 import { Instagram, MessageCircle, Copy, Download, Loader2, Check, Camera, Image as ImageIcon, ArrowLeft } from 'lucide-react';
-import { toPng } from 'html-to-image';
-import { PromotionInstagramArt } from './PromotionInstagramArt';
+import { generatePromotionArt } from '@/utils/promotionArtGenerator';
 import { toast } from '@/hooks/use-toast';
 import { format, parseISO } from 'date-fns';
 import { Textarea } from '@/components/ui/textarea';
@@ -41,7 +40,6 @@ export function PromotionShareModal({
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [isGeneratingPreview, setIsGeneratingPreview] = useState(false);
   
-  const artRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const routeType = businessType === 'esthetic' ? 'estetica' : 'barbearia';
@@ -105,20 +103,34 @@ ${publicProfileUrl}`;
   }, [activeTab, promotion, backgroundImage]);
 
   const generatePreview = async () => {
-    if (!artRef.current) return;
+    if (!promotion) return;
     setIsGeneratingPreview(true);
     setPreviewUrl(null);
     
     try {
-      // Small delay to ensure DOM is ready
-      await new Promise(resolve => setTimeout(resolve, 300));
-      
-      const dataUrl = await toPng(artRef.current, {
-        width: 1080,
-        height: 1920,
-        cacheBust: true,
-        pixelRatio: 1, // Use lower ratio for preview
+      console.log('Starting preview generation...', { backgroundImage: !!backgroundImage });
+      const dataUrl = await generatePromotionArt({
+        title: promotion.title,
+        discount_type: promotion.discount_type || '',
+        discount_value: promotion.discount_value || 0,
+        original_price: promotion.original_price ? Number(promotion.original_price) : null,
+        promotion_price: Number(promotion.promotion_price),
+        end_date: promotion.end_date,
+        service_ids: promotion.service_ids || (promotion.service_id ? [promotion.service_id] : []),
+        professional_ids: promotion.professional_ids,
+        services,
+        professionals,
+        companyName,
+        companyLogo,
+        publicProfileUrl,
+        availableSlots,
+        backgroundImageUrl: backgroundImage
       });
+
+      if (!dataUrl || !dataUrl.startsWith('data:image/png;base64,')) {
+        throw new Error('DataURL inválido gerado');
+      }
+
       setPreviewUrl(dataUrl);
     } catch (err) {
       console.error('Error generating preview:', err);
@@ -129,19 +141,12 @@ ${publicProfileUrl}`;
   };
 
   const handleGenerateArt = async () => {
-    if (!artRef.current) return;
+    if (!previewUrl) return;
     setGenerating(true);
     try {
-      const dataUrl = await toPng(artRef.current, {
-        width: 1080,
-        height: 1920,
-        cacheBust: true,
-        pixelRatio: 2, // High quality for final download
-      });
-      
       const link = document.createElement('a');
       link.download = `promocao-${promotion?.title || 'art'}.png`;
-      link.href = dataUrl;
+      link.href = previewUrl;
       link.click();
       toast({ title: 'Arte baixada com sucesso!' });
     } catch (err) {
@@ -258,20 +263,7 @@ ${publicProfileUrl}`;
                     </div>
                   )}
 
-                  {/* Real component hidden for capture */}
-                  <div className="absolute pointer-events-none opacity-0" style={{ transform: 'scale(1)', transformOrigin: 'top left' }}>
-                    <PromotionInstagramArt 
-                      ref={artRef}
-                      promotion={promotion}
-                      companyName={companyName}
-                      companyLogo={companyLogo}
-                      services={services}
-                      professionals={professionals}
-                      publicProfileUrl={publicProfileUrl}
-                      availableSlots={availableSlots}
-                      backgroundImageUrl={backgroundImage}
-                    />
-                  </div>
+                  {/* Capture logic moved to canvas utility */}
                 </div>
 
                 <div className="grid grid-cols-2 gap-2 w-full">
