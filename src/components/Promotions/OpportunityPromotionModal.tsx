@@ -52,7 +52,9 @@ export function OpportunityPromotionModal({
       );
       
       if (slotData.serviceIds && slotData.serviceIds.length > 0) {
-        setSelectedServiceIds(slotData.serviceIds);
+        // If 'all' is in the list, we treat it as an empty selection that means "all" 
+        // in the database, but we show "All services" in the UI.
+        setSelectedServiceIds(slotData.serviceIds.includes('all') ? [] : slotData.serviceIds);
       } else {
         setSelectedServiceIds([]);
       }
