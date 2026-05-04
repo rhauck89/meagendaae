@@ -213,10 +213,9 @@ export function PromotionCampaignModal({
 
       if (logsError) throw logsError;
 
-      toast.success('Campanha preparada com sucesso!', {
-        description: 'O envio automático será ativado na próxima etapa.'
-      });
-      onOpenChange(false);
+      setLastCampaignCount(selectedIds.size);
+      setSuccess(true);
+      toast.success('Campanha preparada com sucesso!');
     } catch (error) {
       console.error('Error creating campaign:', error);
       toast.error('Erro ao preparar campanha');
