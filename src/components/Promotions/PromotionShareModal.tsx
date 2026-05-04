@@ -271,23 +271,55 @@ ${publicProfileUrl}`;
                   {/* Capture logic moved to canvas utility */}
                 </div>
 
-                <div className="grid grid-cols-2 gap-2 w-full">
-                  <Button 
-                    variant={!backgroundImage ? "default" : "outline"} 
-                    className="gap-2"
-                    onClick={() => setBackgroundImage(null)}
-                  >
-                    <ImageIcon className="h-4 w-4" />
-                    Automática
-                  </Button>
-                  <Button 
-                    variant={backgroundImage ? "default" : "outline"} 
-                    className="gap-2"
-                    onClick={() => fileInputRef.current?.click()}
-                  >
-                    <Camera className="h-4 w-4" />
-                    {backgroundImage ? "Trocar Foto" : "Usar Foto"}
-                  </Button>
+                <div className="w-full space-y-3">
+                  <div className="flex flex-col gap-2">
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Escolha o Estilo</p>
+                    <div className="grid grid-cols-3 gap-2">
+                      <Button 
+                        variant={layout === 'auto' ? "default" : "outline"} 
+                        className="h-9 px-2 text-[10px] font-bold"
+                        onClick={() => {
+                          setLayout('auto');
+                          setBackgroundImage(null);
+                        }}
+                      >
+                        Automático
+                      </Button>
+                      <Button 
+                        variant={layout === 'photo' ? "default" : "outline"} 
+                        className="h-9 px-2 text-[10px] font-bold"
+                        onClick={() => {
+                          setLayout('photo');
+                          if (!backgroundImage) fileInputRef.current?.click();
+                        }}
+                      >
+                        Com Foto
+                      </Button>
+                      <Button 
+                        variant={layout === 'minimal' ? "default" : "outline"} 
+                        className="h-9 px-2 text-[10px] font-bold"
+                        onClick={() => {
+                          setLayout('minimal');
+                          setBackgroundImage(null);
+                        }}
+                      >
+                        Minimalista
+                      </Button>
+                    </div>
+                  </div>
+
+                  {layout === 'photo' && (
+                    <Button 
+                      variant="secondary" 
+                      size="sm"
+                      className="w-full gap-2 h-9 text-xs"
+                      onClick={() => fileInputRef.current?.click()}
+                    >
+                      <Camera className="h-4 w-4" />
+                      {backgroundImage ? "Trocar Foto" : "Selecionar Foto"}
+                    </Button>
+                  )}
+
                   <input 
                     type="file" 
                     ref={fileInputRef} 
