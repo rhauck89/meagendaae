@@ -355,24 +355,56 @@ export function PromotionOpportunities({
 
           <div className="space-y-1.5">
             <label className="text-xs font-medium flex items-center gap-1.5">
-              <Scissors className="h-3.5 w-3.5" /> Serviço (opcional)
+              <Scissors className="h-3.5 w-3.5" /> Serviços selecionados
             </label>
-            <Select value={selectedServiceId} onValueChange={(v) => {
-              setSelectedServiceId(v);
-              setSelectedSlots([]);
-            }}>
-              <SelectTrigger>
-                <SelectValue placeholder="Selecione um serviço" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Escolher serviço...</SelectItem>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" className="w-full justify-between font-normal h-10">
+                  <span className="truncate">
+                    {selectedServiceIds.length === 0 ? "Escolher serviço..." : 
+                     selectedServiceIds.includes('all') ? "Todos os serviços" :
+                     selectedServiceIds.length === 1 ? services.find(s => s.id === selectedServiceIds[0])?.name :
+                     `${selectedServiceIds.length} serviços selecionados`}
+                  </span>
+                  <ChevronDown className="h-4 w-4 opacity-50" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent className="w-[var(--radix-dropdown-menu-trigger-width)] max-h-[300px] overflow-y-auto">
+                <DropdownMenuCheckboxItem
+                  checked={selectedServiceIds.includes('all')}
+                  onCheckedChange={(checked) => {
+                    if (checked) {
+                      setSelectedServiceIds(['all']);
+                    } else {
+                      setSelectedServiceIds([]);
+                    }
+                    setSelectedSlots([]);
+                  }}
+                >
+                  <strong>Todos os serviços</strong>
+                </DropdownMenuCheckboxItem>
+                <DropdownMenuSeparator />
                 {services.map((s) => (
-                  <SelectItem key={s.id} value={s.id}>
+                  <DropdownMenuCheckboxItem
+                    key={s.id}
+                    checked={selectedServiceIds.includes(s.id)}
+                    onCheckedChange={(checked) => {
+                      setSelectedServiceIds(prev => {
+                        const withoutAll = prev.filter(id => id !== 'all');
+                        if (checked) {
+                          return [...withoutAll, s.id];
+                        } else {
+                          return withoutAll.filter(id => id !== s.id);
+                        }
+                      });
+                      setSelectedSlots([]);
+                    }}
+                  >
                     {s.name}
-                  </SelectItem>
+                  </DropdownMenuCheckboxItem>
                 ))}
-              </SelectContent>
-            </Select>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
 
