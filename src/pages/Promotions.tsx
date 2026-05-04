@@ -2367,6 +2367,17 @@ export default function Promotions() {
           </div>
         </DialogContent>
       </Dialog>
+      <PromotionShareModal
+        open={shareModalOpen}
+        onOpenChange={setShareModalOpen}
+        promotion={selectedPromotion}
+        companyName={companyName}
+        companyLogo={companyLogo}
+        companySlug={companySlug}
+        businessType={companyBusinessType}
+        services={services}
+        professionals={professionals}
+      />
       <FeatureIntroModal
         featureKey="promotions"
         open={showIntro}
