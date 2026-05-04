@@ -17,6 +17,8 @@ export interface PromotionArtData {
   publicProfileUrl: string;
   availableSlots?: string[];
   backgroundImageUrl?: string | null;
+  primaryColor?: string;
+  layout?: 'auto' | 'photo' | 'minimal';
 }
 
 function loadImage(src: string): Promise<HTMLImageElement> {
