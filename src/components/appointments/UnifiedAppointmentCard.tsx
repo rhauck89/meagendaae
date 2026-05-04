@@ -386,7 +386,7 @@ export function UnifiedAppointmentCard({
             </div>
             
             <p className={cn(
-              "font-medium text-muted-foreground/90 flex items-center gap-1.5 truncate",
+              "font-medium text-muted-foreground/90 flex items-center gap-1.5 truncate max-w-[200px] sm:max-w-none",
               variant === 'detailed' ? 'text-sm sm:text-base' : 'text-xs sm:text-sm'
             )}>
               <Scissors className="h-3 w-3 sm:h-3.5 sm:w-3.5 shrink-0" />
