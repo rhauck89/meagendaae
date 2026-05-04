@@ -1095,7 +1095,7 @@ export default function Promotions() {
     msg = msg.replace(/\{\{profissionais_promocao\}\}/g, profissionaisText);
     msg = msg.replace(/\{\{valor_normal\}\}/g, promotion.original_price ? `R$ ${Number(promotion.original_price).toFixed(2)}` : '');
     msg = msg.replace(/\{\{valor_promocional\}\}/g, promotion.promotion_price ? `R$ ${Number(promotion.promotion_price).toFixed(2)}` : '');
-    msg = msg.replace(/\{\{link_promocao\}\}/g, promoLink);
+    msg = msg.replace(/\{\{link_promocao\}\}/g, profileLink);
     // Cashback-specific tags
     if (promotion.promotion_type === 'cashback') {
       const cashbackVal = promotion.discount_type === 'percentage'
