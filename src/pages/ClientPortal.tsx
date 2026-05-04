@@ -1190,12 +1190,12 @@ const ClientPortal = () => {
 
                     <div className="space-y-2">
                       <h3 className="text-sm font-semibold text-muted-foreground">Movimentações recentes</h3>
-                      {allLoyaltyTxs.length === 0 ? (
+                      {mergedLoyaltyMovements.length === 0 ? (
                         <Card><CardContent className="p-6 text-center text-sm text-muted-foreground">
                           Nenhuma movimentação ainda
                         </CardContent></Card>
                       ) : (
-                        allLoyaltyTxs.slice(0, 30).map(tx => (
+                        mergedLoyaltyMovements.slice(0, 30).map(tx => (
                           <Card key={tx.id}>
                             <CardContent className="p-3">
                               <div className="flex justify-between items-center gap-2">
