@@ -151,32 +151,54 @@ const Loyalty = () => {
 
   const fetchStats = useCallback(async () => {
     if (!companyId) return;
-    const { data: txs } = await supabase
-      .from('loyalty_points_transactions' as any)
-      .select('points, transaction_type')
-      .eq('company_id', companyId);
+    const [txsRes, redRes] = await Promise.all([
+      supabase
+        .from('loyalty_points_transactions' as any)
+        .select('points, transaction_type, client_id, clients:client_id(name)')
+        .eq('company_id', companyId),
+      supabase
+        .from('loyalty_redemptions' as any)
+        .select('total_points, status, client_id')
+        .eq('company_id', companyId)
+        .neq('status', 'cancelled')
+    ]);
+
+    const txs = txsRes.data || [];
+    const redemptionsData = redRes.data || [];
 
     if (txs) {
-      let issued = 0, redeemed = 0;
+      let issued = 0;
+      
       (txs as any[]).forEach(t => {
-        if (t.transaction_type === 'earn') issued += t.points;
-        if (t.transaction_type === 'redeem') redeemed += Math.abs(t.points);
-        if (t.transaction_type === 'expire') redeemed += Math.abs(t.points);
+        if (t.transaction_type === 'earn' || t.points > 0) issued += t.points;
       });
-      setStats({ totalIssued: issued, totalRedeemed: redeemed, totalActive: issued - redeemed });
-    }
 
-    const { data: clientTx } = await supabase
-      .from('loyalty_points_transactions' as any)
-      .select('client_id, points, transaction_type, clients:client_id(name)')
-      .eq('company_id', companyId);
+      const totalRedeemedFromRecords = redemptionsData
+        .filter(r => r.status === 'confirmed')
+        .reduce((sum, r) => sum + (Number(r.total_points) || 0), 0);
+        
+      const totalPendingRedeemed = redemptionsData
+        .filter(r => r.status === 'pending')
+        .reduce((sum, r) => sum + (Number(r.total_points) || 0), 0);
 
-    if (clientTx) {
+      setStats({ 
+        totalIssued: issued, 
+        totalRedeemed: totalRedeemedFromRecords, 
+        totalActive: issued - totalRedeemedFromRecords - totalPendingRedeemed 
+      });
+
       const balanceMap: Record<string, { name: string; balance: number }> = {};
-      (clientTx as any[]).forEach(t => {
+      
+      (txs as any[]).forEach(t => {
         if (!balanceMap[t.client_id]) balanceMap[t.client_id] = { name: t.clients?.name || 'Cliente', balance: 0 };
-        balanceMap[t.client_id].balance += t.points;
+        if (t.points > 0) balanceMap[t.client_id].balance += t.points;
       });
+      
+      (redemptionsData as any[]).forEach(r => {
+        if (!balanceMap[r.client_id]) balanceMap[r.client_id] = { name: 'Cliente', balance: 0 };
+        balanceMap[r.client_id].balance -= (Number(r.total_points) || 0);
+      });
+
       const sorted = Object.entries(balanceMap)
         .map(([id, v]) => ({ id, ...v }))
         .sort((a, b) => b.balance - a.balance)
