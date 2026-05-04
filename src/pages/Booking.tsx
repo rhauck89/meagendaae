@@ -2971,18 +2971,38 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
               </div>
 
               {/* Benefits Info */}
-              {(cashbackEarnAmount > 0 || useCashback) && (
+              {(cashbackEarnAmount > 0 || predictedLoyaltyPoints > 0 || useCashback) && (
                 <div className="space-y-3">
-                  {cashbackEarnAmount > 0 && (
-                    <div className="rounded-2xl p-4 flex items-center gap-3 animate-in zoom-in duration-500" style={{ background: 'linear-gradient(135deg, #10b98110, #10b98120)', border: '1px solid #10b98130' }}>
-                      <div className="w-8 h-8 rounded-full bg-[#10b98120] flex items-center justify-center shrink-0">
-                        <span className="text-sm">🎁</span>
+                  {(cashbackEarnAmount > 0 || predictedLoyaltyPoints > 0) && (
+                    <div className="rounded-2xl p-5 space-y-3 animate-in zoom-in duration-500" style={{ background: 'rgba(255,255,255,0.02)', border: `1px solid ${T.border}` }}>
+                      <p className="text-[10px] font-black uppercase tracking-[0.2em] opacity-40">Você vai ganhar neste agendamento</p>
+                      
+                      <div className="space-y-2">
+                        {predictedLoyaltyPoints > 0 && (
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-full bg-amber-500/10 flex items-center justify-center shrink-0">
+                              <span className="text-sm">⭐</span>
+                            </div>
+                            <p className="text-sm font-black text-amber-500">
+                              {predictedLoyaltyPoints} pontos
+                            </p>
+                          </div>
+                        )}
+                        
+                        {cashbackEarnAmount > 0 && (
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-full bg-green-500/10 flex items-center justify-center shrink-0">
+                              <span className="text-sm">💵</span>
+                            </div>
+                            <p className="text-sm font-black text-green-500">
+                              R$ {cashbackEarnAmount.toFixed(2).replace('.', ',')} de cashback
+                            </p>
+                          </div>
+                        )}
                       </div>
-                      <p className="text-xs font-bold" style={{ color: '#10b981' }}>
-                        Você ganhará <span className="text-sm font-black">R$ {(Number(cashbackEarnAmount) || 0).toFixed(2)}</span> de cashback
-                      </p>
                     </div>
                   )}
+
                   {cashbackCredits.length > 0 && (
                     <div 
                       className="rounded-2xl p-4 flex items-center justify-between gap-3 cursor-pointer select-none border-2 transition-all" 
