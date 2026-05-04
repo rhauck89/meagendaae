@@ -233,9 +233,6 @@ export const PromotionInstagramArt = React.forwardRef<HTMLDivElement, PromotionI
       </div>
     );
   }
-      </div>
-    );
-  }
 );
 
 PromotionInstagramArt.displayName = 'PromotionInstagramArt';
