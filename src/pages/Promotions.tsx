@@ -237,6 +237,8 @@ export default function Promotions() {
   const [now, setNow] = useState(new Date());
   const [appointments, setAppointments] = useState<any[]>([]);
   const [expandedGroups, setExpandedGroups] = useState<string[]>([]);
+  const [shareModalOpen, setShareModalOpen] = useState(false);
+  const [companyLogo, setCompanyLogo] = useState<string | null>(null);
 
 
   // Wizard step
