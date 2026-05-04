@@ -96,7 +96,7 @@ export const OccupancyDrawer = ({ open, onOpenChange, companyId, professionals }
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent className="w-full sm:max-w-[600px] overflow-y-auto bg-muted/30 p-0 sm:p-0 border-l [&>button]:hidden">
         <div className="flex flex-col h-full">
-          <SheetHeader className="p-6 pt-[calc(1.5rem+env(safe-area-inset-top))] bg-white border-b sticky top-0 z-10 shadow-sm">
+          <SheetHeader className="p-6 pt-[calc(1.5rem+env(safe-area-inset-top))] bg-white border-b sticky top-0 z-10 shadow-sm text-left">
             <div className="flex items-start justify-between">
               <div className="space-y-1">
                 <SheetTitle className="text-2xl font-display font-bold flex items-center gap-2">
