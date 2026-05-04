@@ -1212,7 +1212,9 @@ const ClientPortal = () => {
                                   <p className="text-xs text-muted-foreground">
                                     {format(parseISO(tx.created_at), 'dd/MM/yy')}
                                   </p>
-                                  <p className="text-xs">Saldo: {tx.balance_after}</p>
+                                  {typeof tx.balance_after === 'number' && (
+                                    <p className="text-xs">Saldo: {tx.balance_after}</p>
+                                  )}
                                 </div>
                               </div>
                             </CardContent>
