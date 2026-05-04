@@ -20,7 +20,7 @@ interface OpportunityPromotionModalProps {
     date: string;
     times: string[];
     professionalId: string;
-    serviceId?: string;
+    serviceIds?: string[];
   } | null;
   services: any[];
   professionals: any[];
@@ -51,8 +51,8 @@ export function OpportunityPromotionModal({
           : `Desconto especial para o horário de ${slotData.times[0]}`
       );
       
-      if (slotData.serviceId) {
-        setSelectedServiceIds([slotData.serviceId]);
+      if (slotData.serviceIds && slotData.serviceIds.length > 0) {
+        setSelectedServiceIds(slotData.serviceIds);
       } else {
         setSelectedServiceIds([]);
       }
@@ -139,11 +139,19 @@ export function OpportunityPromotionModal({
               <span className="font-medium text-muted-foreground">Profissional:</span>
               <span className="font-semibold">{selectedProfessional?.profiles?.full_name}</span>
             </div>
-            {slotData.serviceId && (
+            {slotData.serviceIds && slotData.serviceIds.length > 0 && (
               <div className="flex items-center gap-2 text-sm">
                 <Scissors className="h-4 w-4 text-muted-foreground" />
-                <span className="font-medium text-muted-foreground">Serviço:</span>
-                <span className="font-semibold">{services.find(s => s.id === slotData.serviceId)?.name}</span>
+                <span className="font-medium text-muted-foreground">
+                  {slotData.serviceIds.length === 1 ? "Serviço:" : "Serviços:"}
+                </span>
+                <span className="font-semibold text-wrap">
+                  {slotData.serviceIds.length === services.length 
+                    ? "Todos os serviços" 
+                    : slotData.serviceIds.length === 1 
+                      ? services.find(s => s.id === slotData.serviceIds![0])?.name
+                      : `${slotData.serviceIds.length} selecionados`}
+                </span>
               </div>
             )}
           </div>
@@ -168,7 +176,7 @@ export function OpportunityPromotionModal({
               />
             </div>
 
-            {!slotData.serviceId && (
+            {(!slotData.serviceIds || slotData.serviceIds.length === 0) && (
               <div className="space-y-2">
                 <Label>Serviços participantes *</Label>
                 <div className="border rounded-md p-3 max-h-40 overflow-y-auto space-y-2">

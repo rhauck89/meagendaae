@@ -7,9 +7,16 @@ import { getAvailableSlots } from '@/lib/availability-service';
 import { isSlotEligible } from '@/lib/promotion-period';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Calendar as CalendarIcon, User, Scissors, Clock, Loader2, Tag, Check, Zap, X } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { 
+  DropdownMenu, 
+  DropdownMenuContent, 
+  DropdownMenuCheckboxItem, 
+  DropdownMenuTrigger,
+  DropdownMenuSeparator
+} from '@/components/ui/dropdown-menu';
+import { Calendar as CalendarIcon, User, Scissors, Clock, Loader2, Tag, Check, Zap, X, ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface PromotionOpportunitiesProps {
@@ -17,7 +24,7 @@ interface PromotionOpportunitiesProps {
   services: any[];
   professionals: any[];
   isAdmin: boolean;
-  onSelectSlot: (data: { date: string; times: string[]; professionalId: string; serviceId?: string }) => void;
+  onSelectSlot: (data: { date: string; times: string[]; professionalId: string; serviceIds?: string[] }) => void;
 }
 
 export function PromotionOpportunities({
@@ -30,7 +37,7 @@ export function PromotionOpportunities({
   const { companyId, profile } = useAuth();
   const [selectedDate, setSelectedDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [selectedProfessionalId, setSelectedProfessionalId] = useState(isAdmin ? 'all' : (profile?.id || ''));
-  const [selectedServiceId, setSelectedServiceId] = useState('all');
+  const [selectedServiceIds, setSelectedServiceIds] = useState<string[]>([]);
   const [slots, setSlots] = useState<any[]>([]);
   const [slotInterval, setSlotInterval] = useState(15);
   const [selectedSlots, setSelectedSlots] = useState<string[]>([]);
@@ -82,10 +89,10 @@ export function PromotionOpportunities({
     } else {
       setSlots([]);
     }
-  }, [companyId, selectedDate, selectedProfessionalId, selectedServiceId]);
+  }, [companyId, selectedDate, selectedProfessionalId, selectedServiceIds]);
 
   const fetchSlots = async () => {
-    if (selectedServiceId === 'all') {
+    if (selectedServiceIds.length === 0) {
       setSlots([]);
       return;
     }
@@ -93,8 +100,14 @@ export function PromotionOpportunities({
     setLoading(true);
     try {
       const date = parseISO(selectedDate);
-      const selectedService = services.find(s => s.id === selectedServiceId);
-      const duration = selectedService?.duration_minutes || 30;
+      
+      let duration = 30;
+      if (selectedServiceIds.includes('all')) {
+        duration = services.length > 0 ? Math.max(...services.map(s => s.duration_minutes)) : 30;
+      } else {
+        const selectedServices = services.filter(s => selectedServiceIds.includes(s.id));
+        duration = selectedServices.length > 0 ? Math.max(...selectedServices.map(s => s.duration_minutes)) : 30;
+      }
 
       // Get available slots using the core service with "public" source
       // to match exactly what the client sees on the booking page.
@@ -156,7 +169,12 @@ export function PromotionOpportunities({
           }
 
           const pSvcIds = promo.service_ids || (promo.service_id ? [promo.service_id] : []);
-          if (pSvcIds.length > 0 && !pSvcIds.includes(selectedServiceId)) return false;
+          if (pSvcIds.length > 0) {
+            if (!selectedServiceIds.includes('all')) {
+              const intersects = selectedServiceIds.some(id => pSvcIds.includes(id));
+              if (!intersects) return false;
+            }
+          }
 
           return isSlotEligible(promo, slotStart);
         });
@@ -220,7 +238,7 @@ export function PromotionOpportunities({
                 date: selectedDate,
                 times: selectedSlots,
                 professionalId: selectedProfessionalId,
-                serviceId: selectedServiceId === 'all' ? undefined : selectedServiceId
+                serviceIds: selectedServiceIds.includes('all') ? services.map(s => s.id) : selectedServiceIds
               })}
               className="bg-primary hover:bg-primary/90 text-white shadow-lg animate-in fade-in slide-in-from-right-4"
             >
@@ -273,7 +291,7 @@ export function PromotionOpportunities({
                       date: selectedDate,
                       times: times,
                       professionalId: selectedProfessionalId,
-                      serviceId: selectedServiceId === 'all' ? undefined : selectedServiceId
+                      serviceIds: selectedServiceIds.includes('all') ? services.map(s => s.id) : selectedServiceIds
                     });
                   }}
                 >
@@ -337,24 +355,56 @@ export function PromotionOpportunities({
 
           <div className="space-y-1.5">
             <label className="text-xs font-medium flex items-center gap-1.5">
-              <Scissors className="h-3.5 w-3.5" /> Serviço (opcional)
+              <Scissors className="h-3.5 w-3.5" /> Serviços selecionados
             </label>
-            <Select value={selectedServiceId} onValueChange={(v) => {
-              setSelectedServiceId(v);
-              setSelectedSlots([]);
-            }}>
-              <SelectTrigger>
-                <SelectValue placeholder="Selecione um serviço" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Escolher serviço...</SelectItem>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" className="w-full justify-between font-normal h-10">
+                  <span className="truncate">
+                    {selectedServiceIds.length === 0 ? "Escolher serviço..." : 
+                     selectedServiceIds.includes('all') ? "Todos os serviços" :
+                     selectedServiceIds.length === 1 ? services.find(s => s.id === selectedServiceIds[0])?.name :
+                     `${selectedServiceIds.length} serviços selecionados`}
+                  </span>
+                  <ChevronDown className="h-4 w-4 opacity-50" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent className="w-[var(--radix-dropdown-menu-trigger-width)] max-h-[300px] overflow-y-auto">
+                <DropdownMenuCheckboxItem
+                  checked={selectedServiceIds.includes('all')}
+                  onCheckedChange={(checked) => {
+                    if (checked) {
+                      setSelectedServiceIds(['all']);
+                    } else {
+                      setSelectedServiceIds([]);
+                    }
+                    setSelectedSlots([]);
+                  }}
+                >
+                  <strong>Todos os serviços</strong>
+                </DropdownMenuCheckboxItem>
+                <DropdownMenuSeparator />
                 {services.map((s) => (
-                  <SelectItem key={s.id} value={s.id}>
+                  <DropdownMenuCheckboxItem
+                    key={s.id}
+                    checked={selectedServiceIds.includes(s.id)}
+                    onCheckedChange={(checked) => {
+                      setSelectedServiceIds(prev => {
+                        const withoutAll = prev.filter(id => id !== 'all');
+                        if (checked) {
+                          return [...withoutAll, s.id];
+                        } else {
+                          return withoutAll.filter(id => id !== s.id);
+                        }
+                      });
+                      setSelectedSlots([]);
+                    }}
+                  >
                     {s.name}
-                  </SelectItem>
+                  </DropdownMenuCheckboxItem>
                 ))}
-              </SelectContent>
-            </Select>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
 
@@ -363,7 +413,7 @@ export function PromotionOpportunities({
             <User className="h-10 w-10 mx-auto text-muted-foreground/40 mb-3" />
             <p className="text-sm text-muted-foreground">Selecione um profissional para ver as oportunidades do dia.</p>
           </div>
-        ) : selectedServiceId === 'all' ? (
+        ) : selectedServiceIds.length === 0 ? (
           <div className="py-12 text-center border-2 border-dashed rounded-xl border-muted-foreground/20">
             <Scissors className="h-10 w-10 mx-auto text-muted-foreground/40 mb-3" />
             <p className="text-sm text-muted-foreground font-medium">Selecione um serviço para visualizar a disponibilidade real.</p>
