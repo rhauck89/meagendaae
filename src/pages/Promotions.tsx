@@ -2243,7 +2243,11 @@ export default function Promotions() {
                       </div>
 
                       <div className="flex gap-2 pt-2 flex-wrap mt-auto">
-                        <Button size="sm" onClick={() => { setSelectedPromotion(promo); setShareModalOpen(true); }} disabled={status === 'expired'}>
+                        <Button size="sm" onClick={() => { 
+                          setSelectedPromotion(promo); 
+                          setAvailableSlotsForShare(slotsStatus.filter(s => !s.isFilled).map(s => s.time || '').filter(Boolean));
+                          setShareModalOpen(true); 
+                        }} disabled={status === 'expired'}>
                           <Send className="h-3 w-3 mr-1" />Divulgar
                         </Button>
                         <Button size="sm" variant="outline" onClick={() => handleEdit(promo)}>
