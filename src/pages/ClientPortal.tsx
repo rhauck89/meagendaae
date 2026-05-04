@@ -389,11 +389,23 @@ const ClientPortal = () => {
 
   const pointsByCompany = useMemo(() => {
     const map: Record<string, number> = {};
+    
+    // Total Credits (Earnings)
     for (const tx of allLoyaltyTxs) {
-      if (map[tx.company_id] === undefined) map[tx.company_id] = tx.balance_after;
+      if (tx.points > 0) {
+        map[tx.company_id] = (map[tx.company_id] || 0) + tx.points;
+      }
     }
+    
+    // Total Debits (Redemptions)
+    for (const red of redemptions) {
+      if (red.status !== 'cancelled') {
+        map[red.company_id] = (map[red.company_id] || 0) - (Number(red.total_points) || 0);
+      }
+    }
+    
     return map;
-  }, [allLoyaltyTxs]);
+  }, [allLoyaltyTxs, redemptions]);
   const totalPoints = useMemo(
     () => Object.values(pointsByCompany).reduce((s, v) => s + v, 0), [pointsByCompany]);
 
