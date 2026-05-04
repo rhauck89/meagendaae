@@ -3123,11 +3123,21 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
               '⚠ Promoção válida apenas para este horário.',
               '',
             ].filter(Boolean) : [];
+
+            const benefitLines = [];
+            if (bookingResult.pointsEarned > 0 || bookingResult.cashbackEarned > 0) {
+              benefitLines.push('🎁 Benefícios deste agendamento:');
+              if (bookingResult.pointsEarned > 0) benefitLines.push(`⭐ ${bookingResult.pointsEarned} pontos`);
+              if (bookingResult.cashbackEarned > 0) benefitLines.push(`💵 R$ ${bookingResult.cashbackEarned.toFixed(2).replace('.', ',')} de cashback`);
+              benefitLines.push('');
+            }
+
             const msg = [
               'Olá! 👋',
               '',
               `Seu agendamento foi confirmado na *${bookingResult.companyName}* 💈`,
               '',
+              ...benefitLines,
               ...promoLines,
               `📅 Data: ${format(bookingResult.date, "dd 'de' MMMM, yyyy", { locale: ptBR })}`,
               `⏰ Horário: ${bookingResult.time}`,
