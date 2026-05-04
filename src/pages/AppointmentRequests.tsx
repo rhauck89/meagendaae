@@ -344,8 +344,21 @@ const AppointmentRequests = () => {
 
       setActionType('suggest');
       setSuggestDialogOpen(false);
+      
+      // Send automatic WhatsApp
+      setWhatsappSent(null);
+      try {
+        const message = getWhatsAppMessage();
+        await sendTest(companyId!, selectedRequest.client_whatsapp, message);
+        setWhatsappSent(true);
+      } catch (err) {
+        console.error('Error sending automatic WhatsApp:', err);
+        setWhatsappSent(false);
+      }
+
       setSuccessDialogOpen(true);
       fetchRequests();
+
     } catch {
       toast.error('Erro ao sugerir horário');
     } finally {
