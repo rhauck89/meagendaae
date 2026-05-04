@@ -183,6 +183,7 @@ export function PromotionOpportunities({
         });
       }
 
+      setSlotInterval(interval);
       setSlots(fullGrid);
     } catch (error) {
       console.error('Error fetching slots:', error);
