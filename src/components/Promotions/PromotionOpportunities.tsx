@@ -32,6 +32,7 @@ export function PromotionOpportunities({
   const [selectedProfessionalId, setSelectedProfessionalId] = useState(isAdmin ? 'all' : (profile?.id || ''));
   const [selectedServiceId, setSelectedServiceId] = useState('all');
   const [slots, setSlots] = useState<any[]>([]);
+  const [slotInterval, setSlotInterval] = useState(15);
   const [selectedSlots, setSelectedSlots] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [showSuggestion, setShowSuggestion] = useState(true);
@@ -46,7 +47,7 @@ export function PromotionOpportunities({
   const hasGaps = useMemo(() => {
     if (freeSlots.length <= 1) return false;
     
-    // Check if slots are continuous
+    // Check if slots are continuous based on the detected interval
     for (let i = 0; i < freeSlots.length - 1; i++) {
       const current = freeSlots[i];
       const next = freeSlots[i+1];
@@ -55,10 +56,10 @@ export function PromotionOpportunities({
       const [h2, m2] = next.time.split(':').map(Number);
       
       const diff = (h2 * 60 + m2) - (h1 * 60 + m1);
-      if (diff > 30) return true; // Gap found (assuming 30min intervals)
+      if (diff > slotInterval) return true; // Gap found relative to the agenda's interval
     }
     return false;
-  }, [freeSlots]);
+  }, [freeSlots, slotInterval]);
 
   const shouldShowSuggestion = useMemo(() => {
     return (
