@@ -103,10 +103,13 @@ export function PromotionOpportunities({
       
       let duration = 30;
       if (selectedServiceIds.includes('all')) {
-        duration = services.length > 0 ? Math.max(...services.map(s => s.duration_minutes)) : 30;
+        // Find the minimum duration among all active services to identify slots 
+        // that can accommodate at least one service.
+        duration = services.length > 0 ? Math.min(...services.map(s => s.duration_minutes)) : 30;
       } else {
         const selectedServices = services.filter(s => selectedServiceIds.includes(s.id));
-        duration = selectedServices.length > 0 ? Math.max(...selectedServices.map(s => s.duration_minutes)) : 30;
+        // Use the minimum duration of selected services to find slots that fit at least one.
+        duration = selectedServices.length > 0 ? Math.min(...selectedServices.map(s => s.duration_minutes)) : 30;
       }
 
       // Get available slots using the core service with "public" source
