@@ -31,7 +31,8 @@ export function PromotionShareModal({
   companySlug,
   businessType,
   services,
-  professionals
+  professionals,
+  availableSlots
 }: PromotionShareModalProps) {
   const [activeTab, setActiveTab] = useState<'options' | 'instagram' | 'whatsapp'>('options');
   const [generating, setGenerating] = useState(false);
