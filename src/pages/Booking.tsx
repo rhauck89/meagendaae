@@ -232,6 +232,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
   const cashbackTotal = cashbackCredits.reduce((s, c) => s + Number(c.amount), 0);
   const [autoCashbackPromos, setAutoCashbackPromos] = useState<any[]>([]);
   const [loyaltyPoints, setLoyaltyPoints] = useState(0);
+  const [loyaltyConfig, setLoyaltyConfig] = useState<any>(null);
   const [loyaltyPointValue, setLoyaltyPointValue] = useState(0);
   const slotRequestRef = useRef(0);
   const { isAuthenticated: isAuthAuthenticated, user, profile, loading: authLoading, isAdmin } = useAuth();
@@ -287,6 +288,8 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
     companyCity?: string | null;
     companyState?: string | null;
     companyPostalCode?: string | null;
+    cashbackEarned?: number;
+    pointsEarned?: number;
   } | null>(null);
 
   const isDark = businessType === 'barbershop';
@@ -509,12 +512,15 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
         // Fetch point value from config
         const { data: lc } = await supabase
           .from('loyalty_config' as any)
-          .select('point_value, enabled')
+          .select('*')
           .eq('company_id', company.id)
           .maybeSingle();
         
         if (lc && (lc as any).enabled) {
+          setLoyaltyConfig(lc);
           setLoyaltyPointValue(Number((lc as any).point_value) || 0);
+        } else {
+          setLoyaltyConfig(null);
         }
       }
     };
@@ -1332,6 +1338,46 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
   const cashbackDiscount = useCashback ? Math.min(cashbackTotal, totalPrice) : 0;
   const finalPrice = Math.max(0, totalPrice - cashbackDiscount);
 
+  const predictedLoyaltyPoints = (() => {
+    if (!loyaltyConfig || !loyaltyConfig.enabled || !selectedProfessional || selectedServices.length === 0) return 0;
+    
+    // Check professional eligibility
+    if (loyaltyConfig.participating_professionals === 'specific' && loyaltyConfig.specific_professional_ids) {
+      if (!loyaltyConfig.specific_professional_ids.includes(selectedProfessional)) return 0;
+    }
+
+    const selectedServicesData = services.filter(s => selectedServices.includes(s.id));
+    
+    // Check service eligibility
+    const eligibleServices = selectedServicesData.filter(s => {
+      if (loyaltyConfig.participating_services === 'all') return true;
+      if (loyaltyConfig.participating_services === 'specific' && loyaltyConfig.specific_service_ids) {
+        return loyaltyConfig.specific_service_ids.includes(s.id);
+      }
+      return false;
+    });
+
+    if (eligibleServices.length === 0) return 0;
+
+    if (loyaltyConfig.scoring_type === 'per_service') {
+      return eligibleServices.length * (loyaltyConfig.points_per_service || 0);
+    } else if (loyaltyConfig.scoring_type === 'per_currency') {
+      // Calculate based on final price of eligible services
+      // User says: "Usar o valor final que o cliente vai pagar."
+      
+      // Calculate the proportion of the price that comes from eligible services
+      const eligibleSubtotal = eligibleServices.reduce((sum, s) => sum + Number(s.price), 0);
+      if (originalSubtotal === 0) return 0;
+      
+      const proportion = eligibleSubtotal / originalSubtotal;
+      const finalPriceForPoints = finalPrice * proportion;
+      
+      return Math.floor(finalPriceForPoints * (Number(loyaltyConfig.points_per_currency) || 0));
+    }
+    
+    return 0;
+  })();
+
   const toggleService = (id: string) => {
     setSelectedServices((prev) =>
       prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
@@ -1858,6 +1904,8 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
         companyCity: (company as any)?.city || null,
         companyState: (company as any)?.state || null,
         companyPostalCode: (company as any)?.postal_code || null,
+        cashbackEarned: Number(cashbackEarnAmount || 0),
+        pointsEarned: Number(predictedLoyaltyPoints || 0),
       });
 
       // Save last booking for smart rebooking
@@ -2923,18 +2971,38 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
               </div>
 
               {/* Benefits Info */}
-              {(cashbackEarnAmount > 0 || useCashback) && (
+              {(cashbackEarnAmount > 0 || predictedLoyaltyPoints > 0 || useCashback) && (
                 <div className="space-y-3">
-                  {cashbackEarnAmount > 0 && (
-                    <div className="rounded-2xl p-4 flex items-center gap-3 animate-in zoom-in duration-500" style={{ background: 'linear-gradient(135deg, #10b98110, #10b98120)', border: '1px solid #10b98130' }}>
-                      <div className="w-8 h-8 rounded-full bg-[#10b98120] flex items-center justify-center shrink-0">
-                        <span className="text-sm">🎁</span>
+                  {(cashbackEarnAmount > 0 || predictedLoyaltyPoints > 0) && (
+                    <div className="rounded-2xl p-5 space-y-3 animate-in zoom-in duration-500" style={{ background: 'rgba(255,255,255,0.02)', border: `1px solid ${T.border}` }}>
+                      <p className="text-[10px] font-black uppercase tracking-[0.2em] opacity-40">Você vai ganhar neste agendamento</p>
+                      
+                      <div className="space-y-2">
+                        {predictedLoyaltyPoints > 0 && (
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-full bg-amber-500/10 flex items-center justify-center shrink-0">
+                              <span className="text-sm">⭐</span>
+                            </div>
+                            <p className="text-sm font-black text-amber-500">
+                              {predictedLoyaltyPoints} pontos
+                            </p>
+                          </div>
+                        )}
+                        
+                        {cashbackEarnAmount > 0 && (
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-full bg-green-500/10 flex items-center justify-center shrink-0">
+                              <span className="text-sm">💵</span>
+                            </div>
+                            <p className="text-sm font-black text-green-500">
+                              R$ {cashbackEarnAmount.toFixed(2).replace('.', ',')} de cashback
+                            </p>
+                          </div>
+                        )}
                       </div>
-                      <p className="text-xs font-bold" style={{ color: '#10b981' }}>
-                        Você ganhará <span className="text-sm font-black">R$ {(Number(cashbackEarnAmount) || 0).toFixed(2)}</span> de cashback
-                      </p>
                     </div>
                   )}
+
                   {cashbackCredits.length > 0 && (
                     <div 
                       className="rounded-2xl p-4 flex items-center justify-between gap-3 cursor-pointer select-none border-2 transition-all" 
@@ -3055,11 +3123,21 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
               '⚠ Promoção válida apenas para este horário.',
               '',
             ].filter(Boolean) : [];
+
+            const benefitLines = [];
+            if (bookingResult.pointsEarned > 0 || bookingResult.cashbackEarned > 0) {
+              benefitLines.push('🎁 Benefícios deste agendamento:');
+              if (bookingResult.pointsEarned > 0) benefitLines.push(`⭐ ${bookingResult.pointsEarned} pontos`);
+              if (bookingResult.cashbackEarned > 0) benefitLines.push(`💵 R$ ${bookingResult.cashbackEarned.toFixed(2).replace('.', ',')} de cashback`);
+              benefitLines.push('');
+            }
+
             const msg = [
               'Olá! 👋',
               '',
               `Seu agendamento foi confirmado na *${bookingResult.companyName}* 💈`,
               '',
+              ...benefitLines,
               ...promoLines,
               `📅 Data: ${format(bookingResult.date, "dd 'de' MMMM, yyyy", { locale: ptBR })}`,
               `⏰ Horário: ${bookingResult.time}`,
@@ -3160,6 +3238,41 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                   </div>
                 </div>
               </div>
+
+              {(bookingResult.cashbackEarned > 0 || bookingResult.pointsEarned > 0) && (
+                <div 
+                  className="rounded-[2.5rem] p-8 space-y-4 animate-in slide-in-from-bottom-4 duration-700"
+                  style={{ background: 'rgba(255,255,255,0.02)', border: `2px solid ${T.border}` }}
+                >
+                  <p className="text-[10px] font-black uppercase tracking-[0.4em] opacity-40 text-center mb-2">Benefícios previstos</p>
+                  
+                  <div className="space-y-3">
+                    {bookingResult.pointsEarned > 0 && (
+                      <div className="flex items-center gap-4 bg-amber-500/5 p-4 rounded-3xl border border-amber-500/10">
+                        <div className="w-10 h-10 rounded-full bg-amber-500/10 flex items-center justify-center shrink-0">
+                          <span className="text-xl">⭐</span>
+                        </div>
+                        <div>
+                          <p className="font-black text-amber-500">{bookingResult.pointsEarned} pontos</p>
+                          <p className="text-[10px] font-bold opacity-60 uppercase tracking-tight" style={{ color: T.textSec }}>Serão creditados após o atendimento</p>
+                        </div>
+                      </div>
+                    )}
+                    
+                    {bookingResult.cashbackEarned > 0 && (
+                      <div className="flex items-center gap-4 bg-green-500/5 p-4 rounded-3xl border border-green-500/10">
+                        <div className="w-10 h-10 rounded-full bg-green-500/10 flex items-center justify-center shrink-0">
+                          <span className="text-xl">💵</span>
+                        </div>
+                        <div>
+                          <p className="font-black text-green-500">R$ {bookingResult.cashbackEarned.toFixed(2).replace('.', ',')} de cashback</p>
+                          <p className="text-[10px] font-bold opacity-60 uppercase tracking-tight" style={{ color: T.textSec }}>Serão liberados após o atendimento</p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <Button
