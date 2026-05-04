@@ -21,8 +21,8 @@ import { sendAppointmentCreatedWebhook } from '@/lib/automations';
 const statusLabels: Record<string, { label: string; color: string }> = {
   pending: { label: 'Pendente', color: 'bg-yellow-100 text-yellow-800' },
   accepted: { label: 'Aceito pelo Cliente', color: 'bg-green-100 text-green-800' },
-  suggested: { label: 'Aguardando Cliente', color: 'bg-blue-100 text-blue-800' },
-  rejected: { label: 'Recusado/Cancelado', color: 'bg-red-100 text-red-800' },
+  suggested: { label: 'Aguardando confirmação do cliente', color: 'bg-blue-100 text-blue-800' },
+  rejected: { label: 'Recusado', color: 'bg-red-100 text-red-800' },
 };
 
 const AppointmentRequests = () => {
@@ -390,14 +390,21 @@ const AppointmentRequests = () => {
             return (
               <Card key={req.id}>
                 <CardContent className="p-4">
-                  <div className="flex flex-col sm:flex-row sm:items-center gap-3 justify-between">
-                    <div className="space-y-1 flex-1">
+                  <div className="flex flex-col sm:flex-row sm:items-start gap-4 justify-between">
+                    <div className="space-y-1.5 flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-semibold text-sm">{req.client_name}</span>
-                        <Badge className={`text-xs ${status.color}`}>{status.label}</Badge>
+                        <span className="font-bold text-base">{req.client_name}</span>
+                        <Badge className={`text-[10px] uppercase font-bold px-2 py-0.5 ${status.color}`}>{status.label}</Badge>
+                        {isAdmin && req.professional_id && req.professional_id !== profileId && (
+                          <Badge variant="secondary" className="text-[10px] uppercase font-bold">Visualização</Badge>
+                        )}
                       </div>
+                      
                       <div className="flex items-center gap-3 text-xs text-muted-foreground flex-wrap">
-                        <span>{displayWhatsApp(req.client_whatsapp)}</span>
+                        <span className="flex items-center gap-1">
+                          <MessageCircle className="h-3 w-3" />
+                          {displayWhatsApp(req.client_whatsapp)}
+                        </span>
                         {req.client_email && (
                           <>
                             <span>•</span>
@@ -405,53 +412,79 @@ const AppointmentRequests = () => {
                           </>
                         )}
                         <span>•</span>
-                        <span>{services[req.service_id] || 'Serviço'}</span>
+                        <span className="font-medium text-foreground">{services[req.service_id] || 'Serviço'}</span>
                         {req.professional_id && professionals[req.professional_id] && (
                           <>
                             <span>•</span>
-                            <span>{professionals[req.professional_id]}</span>
+                            <span className="font-medium text-foreground">{professionals[req.professional_id]}</span>
                           </>
                         )}
-                        {isAdmin && req.professional_id && req.professional_id !== profileId && (
-                          <Badge variant="secondary" className="text-[10px] ml-1">Visualização</Badge>
-                        )}
                       </div>
-                      <div className="flex items-center gap-2 text-sm">
-                        <Clock className="h-3.5 w-3.5 text-muted-foreground" />
-                        <span className="font-medium">
+
+                      <div className="flex items-center gap-2 text-sm pt-1">
+                        <Clock className="h-4 w-4 text-muted-foreground" />
+                        <span className="font-bold">
                           {format(new Date(req.requested_date + 'T12:00:00'), "dd/MM/yyyy", { locale: ptBR })} às {req.requested_time?.slice(0, 5)}
                         </span>
                       </div>
+
                       {req.message && (
-                        <p className="text-xs text-muted-foreground italic mt-1">"{req.message}"</p>
+                        <p className="text-xs text-muted-foreground italic bg-muted/30 p-2 rounded border border-dashed mt-2">
+                          "{req.message}"
+                        </p>
                       )}
+
                       {req.status === 'suggested' && req.suggested_date && (
-                        <div className="flex flex-col gap-1 mt-1">
-                          <div className="flex items-center gap-1 text-xs text-blue-600">
-                            <ArrowRight className="h-3 w-3" />
+                        <div className="flex flex-col gap-1.5 mt-3 p-3 bg-blue-50/50 rounded-lg border border-blue-100 animate-in fade-in duration-500">
+                          <div className="flex items-center gap-2 text-xs font-bold text-blue-700">
+                            <ArrowRight className="h-3.5 w-3.5" />
                             Sugerido: {format(new Date(req.suggested_date + 'T12:00:00'), "dd/MM/yyyy", { locale: ptBR })} às {req.suggested_time?.slice(0, 5)}
                           </div>
-                          <span className="text-[10px] text-muted-foreground italic">Link enviado ao cliente para confirmação automática</span>
+                          <div className="flex items-center gap-2">
+                            <div className="h-1.5 w-1.5 rounded-full bg-blue-400 animate-pulse" />
+                            <span className="text-[10px] text-blue-600 font-medium uppercase tracking-wider">Aguardando confirmação do cliente via link seguro</span>
+                          </div>
                         </div>
                       )}
+
                       {req.status === 'rejected' && req.rejection_reason === 'Recusado pelo cliente' && (
-                        <div className="flex items-center gap-1 text-xs text-red-600 mt-1 font-medium">
-                          <X className="h-3 w-3" />
-                          Cliente recusou a sugestão
+                        <div className="flex items-center gap-2 text-xs text-red-600 mt-2 font-bold p-2 bg-red-50 rounded border border-red-100">
+                          <X className="h-4 w-4" />
+                          O cliente recusou a sugestão de horário
                         </div>
                       )}
                     </div>
 
                     {req.status === 'pending' && (req.professional_id === profileId || (!req.professional_id && isAdmin)) && (
-                      <div className="flex items-center gap-2 shrink-0">
-                        <Button size="sm" variant="outline" className="gap-1 text-green-700 border-green-200 hover:bg-green-50" onClick={() => handleAcceptClick(req)} disabled={processing}>
-                          <Check className="h-3.5 w-3.5" /> Aceitar
-                        </Button>
-                        <Button size="sm" variant="outline" className="gap-1 text-blue-700 border-blue-200 hover:bg-blue-50" onClick={() => { setSelectedRequest(req); setSuggestedDate(req.requested_date); setSuggestedTime(req.requested_time); setSuggestDialogOpen(true); }} disabled={processing}>
-                          <MessageCircle className="h-3.5 w-3.5" /> Sugerir
-                        </Button>
-                        <Button size="sm" variant="outline" className="gap-1 text-red-700 border-red-200 hover:bg-red-50" onClick={() => { setSelectedRequest(req); setRejectDialogOpen(true); }} disabled={processing}>
-                          <X className="h-3.5 w-3.5" /> Recusar
+                      <div className="flex flex-col gap-2 shrink-0 pt-2 sm:pt-0">
+                        <div className="flex flex-row sm:flex-col gap-2">
+                          <Button 
+                            size="sm" 
+                            variant="outline" 
+                            className="flex-1 sm:w-32 justify-start gap-2 text-green-700 border-green-200 hover:bg-green-50 font-bold" 
+                            onClick={() => handleAcceptClick(req)} 
+                            disabled={processing}
+                          >
+                            <Check className="h-4 w-4" /> Aceitar
+                          </Button>
+                          <Button 
+                            size="sm" 
+                            variant="outline" 
+                            className="flex-1 sm:w-32 justify-start gap-2 text-blue-700 border-blue-200 hover:bg-blue-50 font-bold" 
+                            onClick={() => { setSelectedRequest(req); setSuggestedDate(req.requested_date); setSuggestedTime(req.requested_time); setSuggestDialogOpen(true); }} 
+                            disabled={processing}
+                          >
+                            <MessageCircle className="h-4 w-4" /> Sugerir
+                          </Button>
+                        </div>
+                        <Button 
+                          size="sm" 
+                          variant="outline" 
+                          className="w-full sm:w-32 justify-start gap-2 text-red-700 border-red-200 hover:bg-red-50 font-bold" 
+                          onClick={() => { setSelectedRequest(req); setRejectDialogOpen(true); }} 
+                          disabled={processing}
+                        >
+                          <X className="h-4 w-4" /> Recusar
                         </Button>
                       </div>
                     )}
