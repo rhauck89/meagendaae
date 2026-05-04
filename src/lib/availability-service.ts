@@ -30,6 +30,7 @@ const COMPANY_TZ = 'America/Sao_Paulo';
 import { supabase } from '@/integrations/supabase/client';
 import {
   calculateAvailableSlots,
+  resolveWorkingHours,
   type BookingMode,
   type BusinessHours,
   type BusinessException,
