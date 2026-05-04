@@ -7,9 +7,15 @@ import { getAvailableSlots } from '@/lib/availability-service';
 import { isSlotEligible } from '@/lib/promotion-period';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Calendar as CalendarIcon, User, Scissors, Clock, Loader2, Tag, Check, Zap, X } from 'lucide-react';
+import { 
+  DropdownMenu, 
+  DropdownMenuContent, 
+  DropdownMenuCheckboxItem, 
+  DropdownMenuTrigger,
+  DropdownMenuSeparator
+} from '@/components/ui/dropdown-menu';
+import { Calendar as CalendarIcon, User, Scissors, Clock, Loader2, Tag, Check, Zap, X, ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface PromotionOpportunitiesProps {
