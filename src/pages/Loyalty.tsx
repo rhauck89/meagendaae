@@ -173,11 +173,11 @@ const Loyalty = () => {
         if (t.transaction_type === 'earn' || t.points > 0) issued += t.points;
       });
 
-      const totalRedeemedFromRecords = redemptionsData
+      const totalRedeemedFromRecords = (redemptionsData as any[])
         .filter(r => r.status === 'confirmed')
         .reduce((sum, r) => sum + (Number(r.total_points) || 0), 0);
         
-      const totalPendingRedeemed = redemptionsData
+      const totalPendingRedeemed = (redemptionsData as any[])
         .filter(r => r.status === 'pending')
         .reduce((sum, r) => sum + (Number(r.total_points) || 0), 0);
 
