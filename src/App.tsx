@@ -67,6 +67,7 @@ import CompanySelector from "./pages/CompanySelector";
 import AppointmentRequests from "./pages/AppointmentRequests";
 import ClientPortal from "./pages/ClientPortal";
 import ClientAuth from "./pages/ClientAuth";
+import RequestConfirmation from "./pages/RequestConfirmation";
 import TestLogin from "./pages/TestLogin";
 import DebugAuthContext from "./pages/DebugAuthContext";
 
@@ -233,6 +234,7 @@ const PlatformRoutes = () => (
     <Route path="/my-appointments" element={<MyAppointments />} />
     <Route path="/minha-conta" element={<ClientPortal />} />
     <Route path="/cliente/auth" element={<ClientAuth />} />
+    <Route path="/request/:requestId" element={<RequestConfirmation />} />
     <Route path="/review/:appointmentId" element={<ReviewPage />} />
     <Route path="/test-login" element={<TestLogin />} />
     <Route path="/cancel/:appointmentId" element={<CancelAppointment />} />
