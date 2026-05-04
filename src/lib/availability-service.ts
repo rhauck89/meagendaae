@@ -465,6 +465,8 @@ export async function getAvailableSlots(
     slotInterval: config.slotInterval,
     baseSlotMinutes: config.baseSlotMinutes,
     bufferMinutes: config.bufferMinutes,
+    openTime: resolved?.openTimeStr,
+    closeTime: resolved?.closeTimeStr,
     existingAppointments: inputs.existingAppointments,
   };
 }
