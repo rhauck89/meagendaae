@@ -49,6 +49,7 @@ interface CashbackRow {
 interface LoyaltyTx {
   id: string; points: number; transaction_type: string;
   description: string | null; balance_after: number; created_at: string; company_id: string;
+  reference_id?: string | null; reference_type?: string | null;
 }
 interface CashbackTx {
   id: string;
