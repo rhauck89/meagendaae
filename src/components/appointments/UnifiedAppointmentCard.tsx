@@ -132,6 +132,8 @@ export function UnifiedAppointmentCard({
   }).format(val);
 
   // --- COMPACT VARIANT (Used in "Next Appointments" and summaries) ---
+  const servicesText = formatServicesWithDuration(apt.appointment_services, 2);
+
   if (variant === 'compact') {
     return (
       <motion.div
