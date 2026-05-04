@@ -108,7 +108,7 @@ export const OccupancyDrawer = ({ open, onOpenChange, companyId, professionals }
                 </SheetDescription>
               </div>
               <SheetClose asChild>
-                <Button variant="ghost" size="icon" className="h-10 w-10 -mr-2 -mt-1 rounded-full hover:bg-muted transition-colors">
+                <Button variant="ghost" size="icon" className="h-11 w-11 -mr-2 -mt-2 rounded-full hover:bg-muted transition-colors">
                   <X className="h-6 w-6 text-muted-foreground" />
                 </Button>
               </SheetClose>
