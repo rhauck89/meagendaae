@@ -1423,8 +1423,9 @@ const Team = () => {
                               }}
                             />
                             <Label htmlFor="select-all-wizard" className="text-sm font-bold cursor-pointer flex-1">
-                              Selecionar todos
+                              {companyServices.length > 0 && form.selectedServiceIds.length === companyServices.length ? 'Desmarcar todos' : 'Selecionar todos'}
                             </Label>
+
                           </div>
 
                           <div className="space-y-2 max-h-60 overflow-y-auto pr-1 mt-2">
