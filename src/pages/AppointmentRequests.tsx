@@ -12,11 +12,13 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Textarea } from '@/components/ui/textarea';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { toast } from 'sonner';
-import { Clock, Check, X, MessageCircle, ArrowRight, Inbox, DollarSign, ExternalLink } from 'lucide-react';
+import { Clock, Check, X, MessageCircle, ArrowRight, Inbox, DollarSign, ExternalLink, AlertCircle } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { displayWhatsApp, openWhatsApp } from '@/lib/whatsapp';
 import { sendAppointmentCreatedWebhook } from '@/lib/automations';
+import { sendTest } from '@/integrations/whatsapp/service';
+
 
 const statusLabels: Record<string, { label: string; color: string }> = {
   pending: { label: 'Pendente', color: 'bg-yellow-100 text-yellow-800' },
@@ -44,6 +46,8 @@ const AppointmentRequests = () => {
   const [rejectionReason, setRejectionReason] = useState('');
   const [processing, setProcessing] = useState(false);
   const [actionType, setActionType] = useState<'accept' | 'suggest' | 'reject'>('accept');
+  const [whatsappSent, setWhatsappSent] = useState<boolean | null>(null);
+
 
   // Fee states
   const [feeType, setFeeType] = useState<'none' | '10' | '20' | '30' | 'fixed'>('none');
@@ -230,8 +234,21 @@ const AppointmentRequests = () => {
 
       setActionType('accept');
       setAcceptDialogOpen(false);
+      
+      // Send automatic WhatsApp
+      setWhatsappSent(null);
+      try {
+        const message = getWhatsAppMessage();
+        await sendTest(companyId!, selectedRequest.client_whatsapp, message);
+        setWhatsappSent(true);
+      } catch (err) {
+        console.error('Error sending automatic WhatsApp:', err);
+        setWhatsappSent(false);
+      }
+
       setSuccessDialogOpen(true);
       fetchRequests();
+
     } catch (err: any) {
       console.error('Error accepting request:', err);
       toast.error(`Erro ao aceitar solicitação: ${err.message || 'Erro desconhecido'}`);
@@ -278,6 +295,7 @@ const AppointmentRequests = () => {
       message += `✅ Confirmar horário:\n${confirmUrl}\n\n`;
       message += `❌ Recusar sugestão:\n${rejectUrl}`;
       return message;
+
     }
 
     if (actionType === 'reject') {
@@ -326,8 +344,21 @@ const AppointmentRequests = () => {
 
       setActionType('suggest');
       setSuggestDialogOpen(false);
+      
+      // Send automatic WhatsApp
+      setWhatsappSent(null);
+      try {
+        const message = getWhatsAppMessage();
+        await sendTest(companyId!, selectedRequest.client_whatsapp, message);
+        setWhatsappSent(true);
+      } catch (err) {
+        console.error('Error sending automatic WhatsApp:', err);
+        setWhatsappSent(false);
+      }
+
       setSuccessDialogOpen(true);
       fetchRequests();
+
     } catch {
       toast.error('Erro ao sugerir horário');
     } finally {
@@ -349,8 +380,21 @@ const AppointmentRequests = () => {
 
       setActionType('reject');
       setRejectDialogOpen(false);
+      
+      // Send automatic WhatsApp
+      setWhatsappSent(null);
+      try {
+        const message = getWhatsAppMessage();
+        await sendTest(companyId!, selectedRequest.client_whatsapp, message);
+        setWhatsappSent(true);
+      } catch (err) {
+        console.error('Error sending automatic WhatsApp:', err);
+        setWhatsappSent(false);
+      }
+
       setSuccessDialogOpen(true);
       fetchRequests();
+
     } catch {
       toast.error('Erro ao recusar solicitação');
     } finally {
@@ -638,8 +682,12 @@ const AppointmentRequests = () => {
       <Dialog open={successDialogOpen} onOpenChange={setSuccessDialogOpen}>
         <DialogContent className="sm:max-w-[400px]">
           <div className="flex flex-col items-center text-center py-6 space-y-4">
-            <div className="h-16 w-16 bg-green-100 rounded-full flex items-center justify-center mb-2">
-              <Check className="h-10 w-10 text-green-600" />
+            <div className={`h-16 w-16 ${whatsappSent === false ? 'bg-amber-100' : 'bg-green-100'} rounded-full flex items-center justify-center mb-2`}>
+              {whatsappSent === false ? (
+                <AlertCircle className="h-10 w-10 text-amber-600" />
+              ) : (
+                <Check className="h-10 w-10 text-green-600" />
+              )}
             </div>
             <DialogHeader>
               <DialogTitle className="text-xl">
@@ -649,7 +697,7 @@ const AppointmentRequests = () => {
               </DialogTitle>
             </DialogHeader>
             
-            <div className="bg-muted/30 p-4 rounded-lg w-full space-y-2 border">
+            <div className="bg-muted/30 p-4 rounded-lg w-full space-y-2 border text-left">
               <p className="text-sm flex justify-between"><span className="text-muted-foreground">Cliente:</span> <span className="font-semibold">{selectedRequest?.client_name}</span></p>
               
               {actionType === 'suggest' ? (
@@ -669,34 +717,60 @@ const AppointmentRequests = () => {
               )}
             </div>
 
-            <div className="w-full pt-4 space-y-2">
-              <Button 
-                onClick={handleNotifyWhatsApp} 
-                className="w-full gap-2 bg-[#25D366] hover:bg-[#128C7E] text-white"
-              >
-                <MessageCircle className="h-5 w-5" />
-                Avisar no WhatsApp
-                <ExternalLink className="h-4 w-4 ml-auto opacity-50" />
-              </Button>
-              <div className="grid grid-cols-2 gap-2 w-full">
-                <Button 
-                  variant="outline" 
-                  onClick={handleCopyMessage} 
-                  className="gap-2"
-                >
-                  Copiar mensagem
-                </Button>
-                <Button 
-                  variant="outline" 
-                  onClick={() => setSuccessDialogOpen(false)} 
-                >
-                  Apenas fechar
-                </Button>
+            <div className="w-full space-y-3 pt-2">
+              {whatsappSent === true ? (
+                <div className="flex items-center justify-center gap-2 p-3 bg-green-50 text-green-700 rounded-lg border border-green-100 text-sm font-medium">
+                  <Check className="h-4 w-4" />
+                  Mensagem enviada automaticamente pelo WhatsApp.
+                </div>
+              ) : whatsappSent === false ? (
+                <div className="flex flex-col gap-2 p-3 bg-amber-50 text-amber-700 rounded-lg border border-amber-100 text-sm">
+                  <div className="flex items-center gap-2 font-medium">
+                    <AlertCircle className="h-4 w-4" />
+                    Sugestão salva, mas não conseguimos enviar o WhatsApp automaticamente.
+                  </div>
+                  <p className="text-xs opacity-80">Você pode copiar a mensagem abaixo e enviar manualmente.</p>
+                </div>
+              ) : (
+                <div className="flex items-center justify-center gap-2 p-3 bg-blue-50 text-blue-700 rounded-lg border border-blue-100 text-sm animate-pulse">
+                  <Clock className="h-4 w-4" />
+                  Enviando notificação...
+                </div>
+              )}
+
+              <div className="grid grid-cols-1 gap-2 w-full pt-2">
+                {whatsappSent === false && (
+                  <Button 
+                    onClick={handleNotifyWhatsApp} 
+                    className="w-full gap-2 bg-[#25D366] hover:bg-[#128C7E] text-white"
+                  >
+                    <MessageCircle className="h-5 w-5" />
+                    Avisar no WhatsApp (Manual)
+                    <ExternalLink className="h-4 w-4 ml-auto opacity-50" />
+                  </Button>
+                )}
+                <div className="flex gap-2 w-full">
+                  <Button 
+                    variant="outline" 
+                    onClick={handleCopyMessage} 
+                    className="flex-1 gap-2"
+                  >
+                    Copiar mensagem
+                  </Button>
+                  <Button 
+                    variant="default" 
+                    onClick={() => setSuccessDialogOpen(false)} 
+                    className="flex-1"
+                  >
+                    Fechar
+                  </Button>
+                </div>
               </div>
             </div>
           </div>
         </DialogContent>
       </Dialog>
+
 
       {/* Reject Dialog */}
       <Dialog open={rejectDialogOpen} onOpenChange={setRejectDialogOpen}>
