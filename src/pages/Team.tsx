@@ -135,14 +135,10 @@ const Team = () => {
     },
   });
 
-  useEffect(() => {
-    if (wizardStep === 4 && form.selectedServiceIds.length === 0 && companyServices.length > 0) {
-      setForm(prev => ({
-        ...prev,
-        selectedServiceIds: companyServices.map((s: any) => s.id)
-      }));
-    }
-  }, [wizardStep, companyServices.length]);
+  // Remove auto-selection of services to respect the "unselected by default" rule
+  // We keep the wizardStep condition if we needed any other initialization, 
+  // but for services, we want it empty by default for new professionals.
+
 
   const teamQueryKey = ['collaborators', companyId];
 
@@ -1405,7 +1401,7 @@ const Team = () => {
                       <div className="flex items-center justify-between mb-2">
                         <div>
                           <p className="text-sm font-medium">Serviços ({companyServices.length} disponíveis)</p>
-                          <p className="text-xs text-muted-foreground">{form.selectedServiceIds.length} selecionado(s)</p>
+                          <p className="text-xs text-muted-foreground">{form.selectedServiceIds.length} de {companyServices.length} selecionados</p>
                         </div>
                       </div>
 
@@ -1427,8 +1423,9 @@ const Team = () => {
                               }}
                             />
                             <Label htmlFor="select-all-wizard" className="text-sm font-bold cursor-pointer flex-1">
-                              Selecionar todos
+                              {companyServices.length > 0 && form.selectedServiceIds.length === companyServices.length ? 'Desmarcar todos' : 'Selecionar todos'}
                             </Label>
+
                           </div>
 
                           <div className="space-y-2 max-h-60 overflow-y-auto pr-1 mt-2">
@@ -1978,30 +1975,77 @@ const Team = () => {
                   <div className="min-w-0">
                     <Label className="text-sm font-semibold">Serviços atendidos</Label>
                     <p className="text-xs text-muted-foreground mt-0.5">
-                      {editAssignedServiceIds.length} de {companyServices.length} serviços vinculados
+                      {editAssignedServiceIds.length} de {companyServices.length} selecionados
                     </p>
+
                   </div>
                 </div>
 
-                <div className="relative">
-                  <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    placeholder="Buscar serviço..."
-                    value={editServiceSearch}
-                    onChange={(e) => setEditServiceSearch(e.target.value)}
-                    className="pl-9 pr-8 h-9"
-                  />
-                  {editServiceSearch && (
-                    <button
-                      type="button"
-                      onClick={() => setEditServiceSearch('')}
-                      className="absolute right-2.5 top-2.5 text-muted-foreground hover:text-foreground"
-                      aria-label="Limpar busca"
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <div className="relative flex-1">
+                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Buscar serviço..."
+                      value={editServiceSearch}
+                      onChange={(e) => setEditServiceSearch(e.target.value)}
+                      className="pl-9 pr-8 h-9"
+                    />
+                    {editServiceSearch && (
+                      <button
+                        type="button"
+                        onClick={() => setEditServiceSearch('')}
+                        className="absolute right-2.5 top-2.5 text-muted-foreground hover:text-foreground"
+                        aria-label="Limpar busca"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    )}
+                  </div>
+                  
+                  {companyServices.length > 0 && (
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="h-9 whitespace-nowrap"
+                      onClick={async () => {
+                        const allIds = companyServices.map((s: any) => s.id);
+                        const allSelected = allIds.every(id => editAssignedServiceIds.includes(id));
+                        
+                        try {
+                          if (allSelected) {
+                            // Deselect all
+                            await supabase
+                              .from('service_professionals')
+                              .delete()
+                              .eq('professional_id', editTarget.profile_id);
+                            setEditAssignedServiceIds([]);
+                            toast.success('Todos os serviços removidos');
+                          } else {
+                            // Select all (only those not already assigned)
+                            const toAdd = allIds.filter(id => !editAssignedServiceIds.includes(id));
+                            if (toAdd.length > 0) {
+                              const inserts = toAdd.map(id => ({
+                                service_id: id,
+                                professional_id: editTarget.profile_id,
+                                company_id: companyId,
+                              }));
+                              await supabase.from('service_professionals').insert(inserts as any);
+                            }
+                            setEditAssignedServiceIds(allIds);
+                            toast.success('Todos os serviços vinculados');
+                          }
+                        } catch (err) {
+                          toast.error('Erro ao atualizar serviços');
+                        }
+                      }}
                     >
-                      <X className="h-4 w-4" />
-                    </button>
+                      {companyServices.map((s: any) => s.id).every(id => editAssignedServiceIds.includes(id)) 
+                        ? 'Desmarcar todos' 
+                        : 'Selecionar todos'}
+                    </Button>
                   )}
                 </div>
+
 
                 <div className="max-h-[360px] overflow-y-auto space-y-2 pr-1">
                   {(() => {

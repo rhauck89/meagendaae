@@ -76,8 +76,37 @@ const ProfilePage = () => {
   useEffect(() => {
     if (companyId && profileId) {
       fetchBookingLink();
+      fetchCollaboratorData();
     }
   }, [companyId, profileId]);
+
+  const fetchCollaboratorData = async () => {
+    try {
+      // Fetch collaborator info (including use_company_banner)
+      const { data: collabData, error: collabError } = await supabase
+        .from('collaborators')
+        .select('use_company_banner')
+        .eq('profile_id', profileId!)
+        .eq('company_id', companyId!)
+        .maybeSingle();
+
+      if (collabError) throw collabError;
+      setCollaborator(collabData);
+
+      // Fetch company banner
+      const { data: companyData, error: companyError } = await supabase
+        .from('companies')
+        .select('cover_url')
+        .eq('id', companyId!)
+        .single();
+
+      if (companyError) throw companyError;
+      setCompanyCover(companyData?.cover_url || null);
+    } catch (err) {
+      console.error('[PROFILE] Error fetching collaborator/company data:', err);
+    }
+  };
+
 
   useEffect(() => {
     if (profileId) fetchReviews();
