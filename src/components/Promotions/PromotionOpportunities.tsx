@@ -8,6 +8,7 @@ import { isSlotEligible } from '@/lib/promotion-period';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { 
   DropdownMenu, 
   DropdownMenuContent, 
@@ -23,7 +24,7 @@ interface PromotionOpportunitiesProps {
   services: any[];
   professionals: any[];
   isAdmin: boolean;
-  onSelectSlot: (data: { date: string; times: string[]; professionalId: string; serviceId?: string }) => void;
+  onSelectSlot: (data: { date: string; times: string[]; professionalId: string; serviceIds?: string[] }) => void;
 }
 
 export function PromotionOpportunities({
