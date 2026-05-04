@@ -1974,8 +1974,9 @@ const Team = () => {
                   <div className="min-w-0">
                     <Label className="text-sm font-semibold">Serviços atendidos</Label>
                     <p className="text-xs text-muted-foreground mt-0.5">
-                      {editAssignedServiceIds.length} de {companyServices.length} serviços vinculados
+                      {editAssignedServiceIds.length} de {companyServices.length} selecionados
                     </p>
+
                   </div>
                 </div>
 
