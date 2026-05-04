@@ -32,7 +32,8 @@ export function PromotionShareModal({
   businessType,
   services,
   professionals,
-  availableSlots
+  availableSlots,
+  primaryColor = '#eab308'
 }: PromotionShareModalProps) {
   const [activeTab, setActiveTab] = useState<'options' | 'instagram' | 'whatsapp'>('options');
   const [generating, setGenerating] = useState(false);
@@ -40,7 +41,8 @@ export function PromotionShareModal({
   const [backgroundImage, setBackgroundImage] = useState<string | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [isGeneratingPreview, setIsGeneratingPreview] = useState(false);
-  
+  const [layout, setLayout] = useState<'auto' | 'photo' | 'minimal'>('auto');
+
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const routeType = businessType === 'esthetic' ? 'estetica' : 'barbearia';
