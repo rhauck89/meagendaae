@@ -395,7 +395,7 @@ export function PromotionCampaignModal({
                       <span className="text-xs font-bold">Aviso: Segmento grande</span>
                     </div>
                     <p className="text-[10px] text-amber-700 leading-tight">
-                      Você selecionou {selectedIds.size} clientes. Para evitar bloqueios, o sistema enviará as mensagens com intervalos aleatórios.
+                      Você selecionou {selectedIds.size} clientes. Na próxima etapa, o envio automático terá intervalos para evitar bloqueios.
                     </p>
                     <div className="flex items-center gap-2 pt-1">
                       <Checkbox 
