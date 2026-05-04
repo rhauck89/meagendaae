@@ -2402,6 +2402,7 @@ export default function Promotions() {
         services={services}
         professionals={professionals}
         availableSlots={availableSlotsForShare}
+        primaryColor={companyColor}
       />
       <FeatureIntroModal
         featureKey="promotions"
