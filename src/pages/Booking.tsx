@@ -288,6 +288,8 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
     companyCity?: string | null;
     companyState?: string | null;
     companyPostalCode?: string | null;
+    cashbackEarned?: number;
+    pointsEarned?: number;
   } | null>(null);
 
   const isDark = businessType === 'barbershop';
