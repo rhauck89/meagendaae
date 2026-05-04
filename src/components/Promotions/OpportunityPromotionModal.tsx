@@ -20,7 +20,7 @@ interface OpportunityPromotionModalProps {
     date: string;
     times: string[];
     professionalId: string;
-    serviceId?: string;
+    serviceIds?: string[];
   } | null;
   services: any[];
   professionals: any[];
