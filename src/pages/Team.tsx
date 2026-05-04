@@ -1401,7 +1401,7 @@ const Team = () => {
                       <div className="flex items-center justify-between mb-2">
                         <div>
                           <p className="text-sm font-medium">Serviços ({companyServices.length} disponíveis)</p>
-                          <p className="text-xs text-muted-foreground">{form.selectedServiceIds.length} selecionado(s)</p>
+                          <p className="text-xs text-muted-foreground">{form.selectedServiceIds.length} de {companyServices.length} selecionados</p>
                         </div>
                       </div>
 
