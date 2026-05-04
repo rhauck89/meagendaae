@@ -43,6 +43,8 @@ export function PromotionCampaignModal({
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [confirmSpam, setConfirmSpam] = useState(false);
   const [creating, setCreating] = useState(false);
+  const [success, setSuccess] = useState(false);
+  const [lastCampaignCount, setLastCampaignCount] = useState(0);
 
   const isAdmin = roles.some(r => ['super_admin', 'professional', 'collaborator'].includes(r));
 
