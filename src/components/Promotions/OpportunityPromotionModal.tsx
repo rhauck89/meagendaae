@@ -52,7 +52,11 @@ export function OpportunityPromotionModal({
       );
       
       if (slotData.serviceIds && slotData.serviceIds.length > 0) {
-        setSelectedServiceIds(slotData.serviceIds);
+        if (slotData.serviceIds.includes('all')) {
+          setSelectedServiceIds(services.map(s => s.id));
+        } else {
+          setSelectedServiceIds(slotData.serviceIds);
+        }
       } else {
         setSelectedServiceIds([]);
       }
@@ -143,10 +147,10 @@ export function OpportunityPromotionModal({
               <div className="flex items-center gap-2 text-sm">
                 <Scissors className="h-4 w-4 text-muted-foreground" />
                 <span className="font-medium text-muted-foreground">
-                  {slotData.serviceIds.length === 1 ? "Serviço:" : "Serviços:"}
+                  {slotData.serviceIds.includes('all') || slotData.serviceIds.length === services.length ? "Serviço:" : "Serviços:"}
                 </span>
                 <span className="font-semibold text-wrap">
-                  {slotData.serviceIds.length === services.length 
+                  {(slotData.serviceIds.includes('all') || slotData.serviceIds.length === services.length)
                     ? "Todos os serviços" 
                     : slotData.serviceIds.length === 1 
                       ? services.find(s => s.id === slotData.serviceIds![0])?.name
