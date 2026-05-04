@@ -510,12 +510,15 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
         // Fetch point value from config
         const { data: lc } = await supabase
           .from('loyalty_config' as any)
-          .select('point_value, enabled')
+          .select('*')
           .eq('company_id', company.id)
           .maybeSingle();
         
         if (lc && (lc as any).enabled) {
+          setLoyaltyConfig(lc);
           setLoyaltyPointValue(Number((lc as any).point_value) || 0);
+        } else {
+          setLoyaltyConfig(null);
         }
       }
     };
