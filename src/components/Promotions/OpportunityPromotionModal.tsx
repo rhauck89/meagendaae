@@ -146,7 +146,7 @@ export function OpportunityPromotionModal({
                   {slotData.serviceIds.length === 1 ? "Serviço:" : "Serviços:"}
                 </span>
                 <span className="font-semibold text-wrap">
-                  {slotData.serviceIds.length === services.length 
+                  {(!slotData.serviceIds || slotData.serviceIds.length === 0)
                     ? "Todos os serviços" 
                     : slotData.serviceIds.length === 1 
                       ? services.find(s => s.id === slotData.serviceIds![0])?.name
