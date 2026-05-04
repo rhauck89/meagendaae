@@ -32,6 +32,7 @@ export function PromotionOpportunities({
   const [selectedProfessionalId, setSelectedProfessionalId] = useState(isAdmin ? 'all' : (profile?.id || ''));
   const [selectedServiceId, setSelectedServiceId] = useState('all');
   const [slots, setSlots] = useState<any[]>([]);
+  const [slotInterval, setSlotInterval] = useState(15);
   const [selectedSlots, setSelectedSlots] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [showSuggestion, setShowSuggestion] = useState(true);
@@ -46,7 +47,7 @@ export function PromotionOpportunities({
   const hasGaps = useMemo(() => {
     if (freeSlots.length <= 1) return false;
     
-    // Check if slots are continuous
+    // Check if slots are continuous based on the detected interval
     for (let i = 0; i < freeSlots.length - 1; i++) {
       const current = freeSlots[i];
       const next = freeSlots[i+1];
@@ -55,10 +56,10 @@ export function PromotionOpportunities({
       const [h2, m2] = next.time.split(':').map(Number);
       
       const diff = (h2 * 60 + m2) - (h1 * 60 + m1);
-      if (diff > 30) return true; // Gap found (assuming 30min intervals)
+      if (diff > slotInterval) return true; // Gap found relative to the agenda's interval
     }
     return false;
-  }, [freeSlots]);
+  }, [freeSlots, slotInterval]);
 
   const shouldShowSuggestion = useMemo(() => {
     return (
@@ -84,18 +85,21 @@ export function PromotionOpportunities({
   }, [companyId, selectedDate, selectedProfessionalId, selectedServiceId]);
 
   const fetchSlots = async () => {
+    if (selectedServiceId === 'all') {
+      setSlots([]);
+      return;
+    }
+
     setLoading(true);
     try {
       const date = parseISO(selectedDate);
-      
-      // Calculate average duration if "all" services or specific
-      const duration = selectedServiceId === 'all' 
-        ? (services.length > 0 ? Math.round(services.reduce((acc, s) => acc + (s.duration_minutes || 30), 0) / services.length) : 30)
-        : (services.find(s => s.id === selectedServiceId)?.duration_minutes || 30);
+      const selectedService = services.find(s => s.id === selectedServiceId);
+      const duration = selectedService?.duration_minutes || 30;
 
-      // Get available slots using the core service
+      // Get available slots using the core service with "public" source
+      // to match exactly what the client sees on the booking page.
       const result = await getAvailableSlots({
-        source: 'manual',
+        source: 'public',
         companyId: companyId!,
         professionalId: selectedProfessionalId,
         date,
@@ -103,30 +107,34 @@ export function PromotionOpportunities({
         filterPastForToday: false
       });
 
-      // Now we need to reconstruct the full day timeline (free + occupied)
-      // Since getAvailableSlots doesn't give us the full "grid" (only free ones), 
-      // we generate a theoretical grid based on business hours or a fixed interval (e.g. 30min)
-      // and check which ones are in result.slots.
+      if (!result.openTime || !result.closeTime) {
+        setSlots([]);
+        return;
+      }
+
+      const [openH, openM] = result.openTime.split(':').map(Number);
+      const [closeH, closeM] = result.closeTime.split(':').map(Number);
       
-      const startTime = 7 * 60; // 07:00
-      const endTime = 22 * 60; // 22:00
-      const interval = 30; // default 30 min steps for the opportunities view
+      const startTime = openH * 60 + openM;
+      const endTime = closeH * 60 + closeM;
+      
+      // Use the same slotInterval from the engine result to build the grid
+      const interval = result.bookingMode === 'intelligent' ? result.baseSlotMinutes : result.slotInterval;
       
       const fullGrid: any[] = [];
-      for (let time = startTime; time <= endTime; time += interval) {
+      for (let time = startTime; time < endTime; time += interval) {
         const hh = Math.floor(time / 60);
         const mm = time % 60;
         const timeStr = `${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}`;
         
         const isFree = result.slots.includes(timeStr);
         
-        // Check if it's occupied by checking result.existingAppointments
-        // A slot is occupied if there is an appointment overlapping [time, time + duration]
         const slotStart = new Date(date);
         slotStart.setHours(hh, mm, 0, 0);
         const slotEnd = new Date(slotStart.getTime() + duration * 60000);
 
-        const isOccupied = result.existingAppointments.some((appt: any) => {
+        // Check if it's occupied by checking result.existingAppointments
+        const isOccupied = !isFree && result.existingAppointments.some((appt: any) => {
           const apptStart = new Date(appt.start_time);
           const apptEnd = new Date(appt.end_time);
           return slotStart < apptEnd && slotEnd > apptStart;
@@ -136,16 +144,12 @@ export function PromotionOpportunities({
         const hasPromo = promotions.some(promo => {
           if (promo.status !== 'active') return false;
           
-          // Filter by professional
-          if (promo.professional_filter === 'selected' && promo.professional_ids) {
+          if (promo.professional_filter === 'specific' && promo.professional_ids) {
             if (!promo.professional_ids.includes(selectedProfessionalId)) return false;
           }
 
-          // Filter by service if specified
-          if (selectedServiceId !== 'all') {
-            const pSvcIds = promo.service_ids || (promo.service_id ? [promo.service_id] : []);
-            if (pSvcIds.length > 0 && !pSvcIds.includes(selectedServiceId)) return false;
-          }
+          const pSvcIds = promo.service_ids || (promo.service_id ? [promo.service_id] : []);
+          if (pSvcIds.length > 0 && !pSvcIds.includes(selectedServiceId)) return false;
 
           return isSlotEligible(promo, slotStart);
         });
@@ -159,6 +163,7 @@ export function PromotionOpportunities({
         });
       }
 
+      setSlotInterval(interval);
       setSlots(fullGrid);
     } catch (error) {
       console.error('Error fetching slots:', error);
@@ -311,10 +316,10 @@ export function PromotionOpportunities({
               setSelectedSlots([]);
             }}>
               <SelectTrigger>
-                <SelectValue placeholder="Todos os serviços" />
+                <SelectValue placeholder="Selecione um serviço" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Todos os serviços</SelectItem>
+                <SelectItem value="all">Escolher serviço...</SelectItem>
                 {services.map((s) => (
                   <SelectItem key={s.id} value={s.id}>
                     {s.name}
@@ -329,6 +334,14 @@ export function PromotionOpportunities({
           <div className="py-12 text-center border-2 border-dashed rounded-xl border-muted-foreground/20">
             <User className="h-10 w-10 mx-auto text-muted-foreground/40 mb-3" />
             <p className="text-sm text-muted-foreground">Selecione um profissional para ver as oportunidades do dia.</p>
+          </div>
+        ) : selectedServiceId === 'all' ? (
+          <div className="py-12 text-center border-2 border-dashed rounded-xl border-muted-foreground/20">
+            <Scissors className="h-10 w-10 mx-auto text-muted-foreground/40 mb-3" />
+            <p className="text-sm text-muted-foreground font-medium">Selecione um serviço para visualizar a disponibilidade real.</p>
+            <p className="text-xs text-muted-foreground/70 mt-1 px-4 max-w-sm mx-auto">
+              Precisamos saber o serviço para calcular a duração e os intervalos exatos da sua agenda.
+            </p>
           </div>
         ) : loading ? (
           <div className="py-12 text-center">

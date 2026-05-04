@@ -30,6 +30,7 @@ const COMPANY_TZ = 'America/Sao_Paulo';
 import { supabase } from '@/integrations/supabase/client';
 import {
   calculateAvailableSlots,
+  resolveWorkingHours,
   type BookingMode,
   type BusinessHours,
   type BusinessException,
@@ -65,7 +66,10 @@ export interface GetAvailableSlotsResult {
   slots: string[];
   bookingMode: BookingMode;
   slotInterval: number;
+  baseSlotMinutes: number;
   bufferMinutes: number;
+  openTime?: string;
+  closeTime?: string;
   existingAppointments: ExistingAppointment[];
 }
 
@@ -371,6 +375,7 @@ export async function getAvailableSlots(
       slots: [],
       bookingMode: 'hybrid',
       slotInterval: 15,
+      baseSlotMinutes: 10,
       bufferMinutes: 0,
       existingAppointments: [],
     };
@@ -381,21 +386,12 @@ export async function getAvailableSlots(
     fetchSlotInputs(source, companyId, professionalId, date, prefetchData),
   ]);
 
-  console.log('[SERVICE INPUT]', {
-    bookingMode: config.bookingMode,
-    slotInterval: config.slotInterval,
-    serviceDuration: totalDuration,
-  });
-
-  console.log('[AGENDA_V2_DEBUG]', {
-    menorServico: config.smallestServiceMinutes,
-    intervalo: config.bufferMinutes,
-    slotBase: config.baseSlotMinutes,
-    serviceCount: config.serviceCount,
-    professionalId,
-    companyId,
-    date: format(date, 'yyyy-MM-dd'),
-  });
+  const resolved = resolveWorkingHours(
+    date, 
+    inputs.businessHours, 
+    inputs.professionalHours.length > 0 ? inputs.professionalHours : undefined, 
+    inputs.exceptions
+  );
 
   let slots: string[] = [];
   try {
@@ -467,7 +463,10 @@ export async function getAvailableSlots(
     slots,
     bookingMode: config.bookingMode,
     slotInterval: config.slotInterval,
+    baseSlotMinutes: config.baseSlotMinutes,
     bufferMinutes: config.bufferMinutes,
+    openTime: resolved?.openTimeStr,
+    closeTime: resolved?.closeTimeStr,
     existingAppointments: inputs.existingAppointments,
   };
 }
