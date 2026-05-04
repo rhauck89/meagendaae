@@ -485,6 +485,10 @@ const ClientPortal = () => {
       return null;
     }
     const newId = (data as any)?.id as string | undefined;
+    
+    // Refresh client data to update points balance immediately
+    await loadClientData(true);
+    
     const list = await refreshRedemptions();
     const created = list?.find(r => r.id === newId) || null;
     return created;
