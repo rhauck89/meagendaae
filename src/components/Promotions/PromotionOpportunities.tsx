@@ -169,7 +169,12 @@ export function PromotionOpportunities({
           }
 
           const pSvcIds = promo.service_ids || (promo.service_id ? [promo.service_id] : []);
-          if (pSvcIds.length > 0 && !pSvcIds.includes(selectedServiceId)) return false;
+          if (pSvcIds.length > 0) {
+            if (!selectedServiceIds.includes('all')) {
+              const intersects = selectedServiceIds.some(id => pSvcIds.includes(id));
+              if (!intersects) return false;
+            }
+          }
 
           return isSlotEligible(promo, slotStart);
         });
