@@ -411,7 +411,7 @@ export default function Promotions() {
   const fetchProfessionals = async () => {
     const { data } = await supabase
       .from('collaborators')
-      .select('profile_id, profiles!collaborators_profile_id_fkey(id, full_name, avatar_url)')
+      .select('profile_id, slug, profiles!collaborators_profile_id_fkey(id, full_name, avatar_url)')
       .eq('company_id', companyId!)
       .eq('active', true);
     if (data) setProfessionals(data);
