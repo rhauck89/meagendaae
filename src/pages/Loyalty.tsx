@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useEffect, useState, useCallback, useRef, useMemo } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
@@ -151,32 +151,54 @@ const Loyalty = () => {
 
   const fetchStats = useCallback(async () => {
     if (!companyId) return;
-    const { data: txs } = await supabase
-      .from('loyalty_points_transactions' as any)
-      .select('points, transaction_type')
-      .eq('company_id', companyId);
+    const [txsRes, redRes] = await Promise.all([
+      supabase
+        .from('loyalty_points_transactions' as any)
+        .select('points, transaction_type, client_id, clients:client_id(name)')
+        .eq('company_id', companyId),
+      supabase
+        .from('loyalty_redemptions' as any)
+        .select('total_points, status, client_id')
+        .eq('company_id', companyId)
+        .neq('status', 'cancelled')
+    ]);
+
+    const txs = txsRes.data || [];
+    const redemptionsData = redRes.data || [];
 
     if (txs) {
-      let issued = 0, redeemed = 0;
+      let issued = 0;
+      
       (txs as any[]).forEach(t => {
-        if (t.transaction_type === 'earn') issued += t.points;
-        if (t.transaction_type === 'redeem') redeemed += Math.abs(t.points);
-        if (t.transaction_type === 'expire') redeemed += Math.abs(t.points);
+        if (t.transaction_type === 'earn' || t.points > 0) issued += t.points;
       });
-      setStats({ totalIssued: issued, totalRedeemed: redeemed, totalActive: issued - redeemed });
-    }
 
-    const { data: clientTx } = await supabase
-      .from('loyalty_points_transactions' as any)
-      .select('client_id, points, transaction_type, clients:client_id(name)')
-      .eq('company_id', companyId);
+      const totalRedeemedFromRecords = (redemptionsData as any[])
+        .filter(r => r.status === 'confirmed')
+        .reduce((sum, r) => sum + (Number(r.total_points) || 0), 0);
+        
+      const totalPendingRedeemed = (redemptionsData as any[])
+        .filter(r => r.status === 'pending')
+        .reduce((sum, r) => sum + (Number(r.total_points) || 0), 0);
 
-    if (clientTx) {
+      setStats({ 
+        totalIssued: issued, 
+        totalRedeemed: totalRedeemedFromRecords, 
+        totalActive: issued - totalRedeemedFromRecords - totalPendingRedeemed 
+      });
+
       const balanceMap: Record<string, { name: string; balance: number }> = {};
-      (clientTx as any[]).forEach(t => {
+      
+      (txs as any[]).forEach(t => {
         if (!balanceMap[t.client_id]) balanceMap[t.client_id] = { name: t.clients?.name || 'Cliente', balance: 0 };
-        balanceMap[t.client_id].balance += t.points;
+        if (t.points > 0) balanceMap[t.client_id].balance += t.points;
       });
+      
+      (redemptionsData as any[]).forEach(r => {
+        if (!balanceMap[r.client_id]) balanceMap[r.client_id] = { name: 'Cliente', balance: 0 };
+        balanceMap[r.client_id].balance -= (Number(r.total_points) || 0);
+      });
+
       const sorted = Object.entries(balanceMap)
         .map(([id, v]) => ({ id, ...v }))
         .sort((a, b) => b.balance - a.balance)
@@ -361,35 +383,79 @@ const Loyalty = () => {
     await supabase.from('loyalty_redemptions' as any).update({
       status: action,
       confirmed_at: action === 'confirmed' ? new Date().toISOString() : null,
+      confirmed_by: (await supabase.auth.getUser()).data.user?.id
     } as any).eq('id', redemptionId);
 
-    if (action === 'cancelled' && redemption.client_id && companyId) {
-      const { data: lastTx } = await supabase
+    if (action === 'confirmed' && redemption.client_id && companyId) {
+      const { data: existingTx } = await supabase
         .from('loyalty_points_transactions' as any)
-        .select('balance_after')
-        .eq('company_id', companyId)
-        .eq('client_id', redemption.client_id)
-        .order('created_at', { ascending: false })
-        .limit(1)
+        .select('id')
+        .eq('reference_id', redemptionId)
+        .eq('transaction_type', 'reward_redemption')
         .maybeSingle();
 
-      const currentBalance = (lastTx as any)?.balance_after || 0;
-      await supabase.from('loyalty_points_transactions' as any).insert({
-        company_id: companyId,
-        client_id: redemption.client_id,
-        points: Math.abs(redemption.total_points),
-        transaction_type: 'cancel',
-        reference_type: 'redemption_cancel',
-        reference_id: redemptionId,
-        description: `Cancelamento do resgate ${redemption.redemption_code}`,
-        balance_after: currentBalance + Math.abs(redemption.total_points),
-      } as any);
+      if (!existingTx) {
+        const { data: lastTx } = await supabase
+          .from('loyalty_points_transactions' as any)
+          .select('balance_after')
+          .eq('company_id', companyId)
+          .eq('client_id', redemption.client_id)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        const currentBalance = (lastTx as any)?.balance_after || 0;
+        await supabase.from('loyalty_points_transactions' as any).insert({
+          company_id: companyId,
+          client_id: redemption.client_id,
+          points: -Math.abs(redemption.total_points),
+          transaction_type: 'reward_redemption',
+          reference_type: 'loyalty_redemptions',
+          reference_id: redemptionId,
+          description: `Resgate de recompensa (${redemption.redemption_code})`,
+          balance_after: currentBalance - Math.abs(redemption.total_points),
+          user_id: (await supabase.auth.getUser()).data.user?.id
+        } as any);
+      }
+    }
+
+    if (action === 'cancelled' && redemption.client_id && companyId) {
+      // Points should only be refunded if they were previously deducted
+      const { data: debitTx } = await supabase
+        .from('loyalty_points_transactions' as any)
+        .select('id')
+        .eq('reference_id', redemptionId)
+        .eq('transaction_type', 'reward_redemption')
+        .maybeSingle();
+
+      if (debitTx) {
+        const { data: lastTx } = await supabase
+          .from('loyalty_points_transactions' as any)
+          .select('balance_after')
+          .eq('company_id', companyId)
+          .eq('client_id', redemption.client_id)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        const currentBalance = (lastTx as any)?.balance_after || 0;
+        await supabase.from('loyalty_points_transactions' as any).insert({
+          company_id: companyId,
+          client_id: redemption.client_id,
+          points: Math.abs(redemption.total_points),
+          transaction_type: 'cancel',
+          reference_type: 'redemption_cancel',
+          reference_id: redemptionId,
+          description: `Cancelamento do resgate ${redemption.redemption_code}`,
+          balance_after: currentBalance + Math.abs(redemption.total_points),
+        } as any);
+      }
     }
 
     fetchRedemptions();
     fetchTransactions();
     fetchStats();
-    toast.success(action === 'confirmed' ? 'Resgate confirmado!' : 'Resgate cancelado, pontos devolvidos.');
+    toast.success(action === 'confirmed' ? 'Resgate confirmado!' : 'Resgate cancelado, pontos devolvidos se aplicável.');
   };
 
   const handleValidateCode = async () => {
@@ -436,12 +502,34 @@ const Loyalty = () => {
   };
 
   const typeLabel: Record<string, string> = { product: 'Produto', service: 'Serviço', discount: 'Desconto' };
-  const txTypeLabel: Record<string, string> = { earn: 'Ganho', redeem: 'Resgate', expire: 'Expirado', cancel: 'Cancelamento' };
-  const txTypeColor: Record<string, string> = { earn: 'text-success', redeem: 'text-destructive', expire: 'text-muted-foreground', cancel: 'text-warning' };
+  const txTypeLabel: Record<string, string> = { earn: 'Ganho', redeem: 'Resgate', reward_redemption: 'Resgate de Recompensa', expire: 'Expirado', cancel: 'Cancelamento' };
+  const txTypeColor: Record<string, string> = { earn: 'text-success', redeem: 'text-destructive', reward_redemption: 'text-destructive', expire: 'text-muted-foreground', cancel: 'text-warning' };
+
+  const mergedTransactions = useMemo(() => {
+    const txs = transactions.map(tx => ({ ...tx, isTransaction: true }));
+    const txRefIds = new Set(transactions.filter((tx: any) => tx.reference_id).map((tx: any) => tx.reference_id));
+    
+    const reds = redemptions
+      .filter((r: any) => r.status !== 'cancelled' && !txRefIds.has(r.id))
+      .map((r: any) => ({
+        id: r.id,
+        client_id: r.client_id,
+        clients: r.clients,
+        points: -Number(r.total_points),
+        transaction_type: 'reward_redemption',
+        description: 'Resgate de recompensa',
+        created_at: r.created_at,
+        company_id: r.company_id,
+        balance_after: null,
+        isTransaction: false
+      }));
+      
+    return [...txs, ...reds].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+  }, [transactions, redemptions]);
 
   const filteredTransactions = txFilter
-    ? transactions.filter((t: any) => (t.clients?.name || '').toLowerCase().includes(txFilter.toLowerCase()))
-    : transactions;
+    ? mergedTransactions.filter((t: any) => (t.clients?.name || '').toLowerCase().includes(txFilter.toLowerCase()))
+    : mergedTransactions;
 
   const formatCurrency = (v: number) => `R$ ${v.toFixed(2).replace('.', ',')}`;
 
@@ -979,7 +1067,7 @@ const Loyalty = () => {
                           <td className="p-3 text-right text-xs text-muted-foreground">
                             {pointValue > 0 ? formatCurrency(Math.abs(t.points) * pointValue) : '—'}
                           </td>
-                          <td className="p-3 text-right">{t.balance_after}</td>
+                          <td className="p-3 text-right">{typeof t.balance_after === 'number' ? t.balance_after : '—'}</td>
                           <td className="p-3 text-xs text-muted-foreground max-w-[200px] truncate">{t.description || '—'}</td>
                         </tr>
                       ))}

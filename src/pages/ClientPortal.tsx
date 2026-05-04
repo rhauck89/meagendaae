@@ -49,6 +49,7 @@ interface CashbackRow {
 interface LoyaltyTx {
   id: string; points: number; transaction_type: string;
   description: string | null; balance_after: number; created_at: string; company_id: string;
+  reference_id?: string | null; reference_type?: string | null;
 }
 interface CashbackTx {
   id: string;
@@ -389,13 +390,49 @@ const ClientPortal = () => {
 
   const pointsByCompany = useMemo(() => {
     const map: Record<string, number> = {};
+    
+    // Total Credits (Earnings)
     for (const tx of allLoyaltyTxs) {
-      if (map[tx.company_id] === undefined) map[tx.company_id] = tx.balance_after;
+      if (tx.points > 0) {
+        map[tx.company_id] = (map[tx.company_id] || 0) + tx.points;
+      }
     }
+    
+    // Total Debits (Redemptions)
+    for (const red of redemptions) {
+      if (red.status !== 'cancelled') {
+        map[red.company_id] = (map[red.company_id] || 0) - (Number(red.total_points) || 0);
+      }
+    }
+    
     return map;
-  }, [allLoyaltyTxs]);
+  }, [allLoyaltyTxs, redemptions]);
   const totalPoints = useMemo(
     () => Object.values(pointsByCompany).reduce((s, v) => s + v, 0), [pointsByCompany]);
+
+  const mergedLoyaltyMovements = useMemo(() => {
+    const txs = allLoyaltyTxs.map(tx => ({
+      ...tx,
+      isTransaction: true
+    }));
+    
+    const txRefIds = new Set(allLoyaltyTxs.filter(tx => tx.reference_id).map(tx => tx.reference_id));
+    
+    const reds = redemptions
+      .filter(r => r.status !== 'cancelled' && !txRefIds.has(r.id))
+      .map(r => ({
+        id: r.id,
+        points: -Number(r.total_points),
+        transaction_type: 'redeem',
+        description: 'Resgate de recompensa',
+        created_at: r.created_at,
+        company_id: r.company_id,
+        balance_after: null as number | null,
+        isTransaction: false
+      }));
+      
+    return [...txs, ...reds].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+  }, [allLoyaltyTxs, redemptions]);
 
   const upcomingAppointments = useMemo(
     () => appointments.filter(a => !isPast(parseISO(a.start_time)) && !['cancelled', 'no_show'].includes(a.status)),
@@ -1153,12 +1190,12 @@ const ClientPortal = () => {
 
                     <div className="space-y-2">
                       <h3 className="text-sm font-semibold text-muted-foreground">Movimentações recentes</h3>
-                      {allLoyaltyTxs.length === 0 ? (
+                      {mergedLoyaltyMovements.length === 0 ? (
                         <Card><CardContent className="p-6 text-center text-sm text-muted-foreground">
                           Nenhuma movimentação ainda
                         </CardContent></Card>
                       ) : (
-                        allLoyaltyTxs.slice(0, 30).map(tx => (
+                        mergedLoyaltyMovements.slice(0, 30).map(tx => (
                           <Card key={tx.id}>
                             <CardContent className="p-3">
                               <div className="flex justify-between items-center gap-2">
@@ -1175,7 +1212,9 @@ const ClientPortal = () => {
                                   <p className="text-xs text-muted-foreground">
                                     {format(parseISO(tx.created_at), 'dd/MM/yy')}
                                   </p>
-                                  <p className="text-xs">Saldo: {tx.balance_after}</p>
+                                  {typeof tx.balance_after === 'number' && (
+                                    <p className="text-xs">Saldo: {tx.balance_after}</p>
+                                  )}
                                 </div>
                               </div>
                             </CardContent>
