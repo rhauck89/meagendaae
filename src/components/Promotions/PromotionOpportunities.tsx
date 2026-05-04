@@ -238,7 +238,7 @@ export function PromotionOpportunities({
                 date: selectedDate,
                 times: selectedSlots,
                 professionalId: selectedProfessionalId,
-                serviceId: selectedServiceId === 'all' ? undefined : selectedServiceId
+                serviceIds: selectedServiceIds.includes('all') ? services.map(s => s.id) : selectedServiceIds
               })}
               className="bg-primary hover:bg-primary/90 text-white shadow-lg animate-in fade-in slide-in-from-right-4"
             >
