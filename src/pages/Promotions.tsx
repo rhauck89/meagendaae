@@ -2094,16 +2094,9 @@ export default function Promotions() {
                               <DropdownMenuItem onClick={() => handleEndNow(promo, group.promotions.map(p => p.id))}>
                                 <X className="h-4 w-4 mr-2" />Encerrar {isGroup ? 'Grupo' : ''}
                               </DropdownMenuItem>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem asChild>
-                                <a href={getPromoLink(promo)} target="_blank" rel="noopener noreferrer" className="flex items-center">
-                                  <ExternalLink className="h-4 w-4 mr-2" />Ver no Perfil
-                                </a>
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => { navigator.clipboard.writeText(getPromoLink(promo)); toast({ title: 'Link copiado!' }); }}>
-                                <Copy className="h-4 w-4 mr-2" />Copiar Link
-                              </DropdownMenuItem>
                               <DropdownMenuItem onClick={() => fetchMetrics(promo)}>
+                                <BarChart3 className="h-4 w-4 mr-2" />Métricas
+                              </DropdownMenuItem>
                                 <BarChart3 className="h-4 w-4 mr-2" />Métricas
                               </DropdownMenuItem>
                               <DropdownMenuSeparator />
