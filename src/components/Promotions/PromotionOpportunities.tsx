@@ -92,7 +92,7 @@ export function PromotionOpportunities({
   }, [companyId, selectedDate, selectedProfessionalId, selectedServiceId]);
 
   const fetchSlots = async () => {
-    if (selectedServiceId === 'all') {
+    if (selectedServiceIds.length === 0) {
       setSlots([]);
       return;
     }
@@ -100,8 +100,14 @@ export function PromotionOpportunities({
     setLoading(true);
     try {
       const date = parseISO(selectedDate);
-      const selectedService = services.find(s => s.id === selectedServiceId);
-      const duration = selectedService?.duration_minutes || 30;
+      
+      let duration = 30;
+      if (selectedServiceIds.includes('all')) {
+        duration = services.length > 0 ? Math.max(...services.map(s => s.duration_minutes)) : 30;
+      } else {
+        const selectedServices = services.filter(s => selectedServiceIds.includes(s.id));
+        duration = selectedServices.length > 0 ? Math.max(...selectedServices.map(s => s.duration_minutes)) : 30;
+      }
 
       // Get available slots using the core service with "public" source
       // to match exactly what the client sees on the booking page.
