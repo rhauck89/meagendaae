@@ -76,11 +76,15 @@ export function PromotionShareModal({
       ? `${promotion.discount_value}% OFF` 
       : `R$ ${promotion.discount_value} de desconto`;
 
+    const slotsText = availableSlots && availableSlots.length > 0
+      ? `\n📅 Horários disponíveis: ${availableSlots.join(', ')}`
+      : '';
+
     return `🔥 Promoção especial na ${companyName}!
 
 *${promotion.title}*
 ${discountLabel} em serviços selecionados
-
+${slotsText}
 📅 Válida de ${format(parseISO(promotion.start_date), 'dd/MM/yyyy')} até ${format(parseISO(promotion.end_date), 'dd/MM/yyyy')}
 ✂️ Serviços: ${servicesText}
 💰 ${promotion.original_price ? `De R$ ${Number(promotion.original_price).toFixed(2)} por ` : ''}*R$ ${Number(promotion.promotion_price).toFixed(2)}*
