@@ -103,7 +103,7 @@ ${publicProfileUrl}`;
     if (activeTab === 'instagram' && promotion) {
       generatePreview();
     }
-  }, [activeTab, promotion, backgroundImage]);
+  }, [activeTab, promotion, backgroundImage, layout, primaryColor]);
 
   const generatePreview = async () => {
     if (!promotion) return;
