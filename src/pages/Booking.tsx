@@ -1335,6 +1335,46 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
     return 0;
   })();
 
+  const predictedLoyaltyPoints = (() => {
+    if (!loyaltyConfig || !loyaltyConfig.enabled || !selectedProfessional || selectedServices.length === 0) return 0;
+    
+    // Check professional eligibility
+    if (loyaltyConfig.participating_professionals === 'specific' && loyaltyConfig.specific_professional_ids) {
+      if (!loyaltyConfig.specific_professional_ids.includes(selectedProfessional)) return 0;
+    }
+
+    const selectedServicesData = services.filter(s => selectedServices.includes(s.id));
+    
+    // Check service eligibility
+    const eligibleServices = selectedServicesData.filter(s => {
+      if (loyaltyConfig.participating_services === 'all') return true;
+      if (loyaltyConfig.participating_services === 'specific' && loyaltyConfig.specific_service_ids) {
+        return loyaltyConfig.specific_service_ids.includes(s.id);
+      }
+      return false;
+    });
+
+    if (eligibleServices.length === 0) return 0;
+
+    if (loyaltyConfig.scoring_type === 'per_service') {
+      return eligibleServices.length * (loyaltyConfig.points_per_service || 0);
+    } else if (loyaltyConfig.scoring_type === 'per_currency') {
+      // Calculate based on final price of eligible services
+      // User says: "Usar o valor final que o cliente vai pagar."
+      
+      // Calculate the proportion of the price that comes from eligible services
+      const eligibleSubtotal = eligibleServices.reduce((sum, s) => sum + Number(s.price), 0);
+      if (originalSubtotal === 0) return 0;
+      
+      const proportion = eligibleSubtotal / originalSubtotal;
+      const finalPriceForPoints = finalPrice * proportion;
+      
+      return Math.floor(finalPriceForPoints * (Number(loyaltyConfig.points_per_currency) || 0));
+    }
+    
+    return 0;
+  })();
+
   const cashbackDiscount = useCashback ? Math.min(cashbackTotal, totalPrice) : 0;
   const finalPrice = Math.max(0, totalPrice - cashbackDiscount);
 
