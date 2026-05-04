@@ -239,6 +239,7 @@ export default function Promotions() {
   const [expandedGroups, setExpandedGroups] = useState<string[]>([]);
   const [shareModalOpen, setShareModalOpen] = useState(false);
   const [companyLogo, setCompanyLogo] = useState<string | null>(null);
+  const [companyColor, setCompanyColor] = useState<string>('#eab308');
   const [availableSlotsForShare, setAvailableSlotsForShare] = useState<string[]>([]);
 
 
@@ -348,12 +349,17 @@ export default function Promotions() {
 
 
   const fetchCompanyInfo = async () => {
-    const { data } = await supabase.from('companies').select('name, slug, business_type, logo_url').eq('id', companyId!).single();
-    if (data) { 
-      setCompanyName(data.name); 
-      setCompanySlug(data.slug); 
-      setCompanyBusinessType((data as any).business_type || 'barbershop');
-      setCompanyLogo(data.logo_url);
+    const { data: companyData } = await supabase.from('companies').select('name, slug, business_type, logo_url').eq('id', companyId!).single();
+    if (companyData) { 
+      setCompanyName(companyData.name); 
+      setCompanySlug(companyData.slug); 
+      setCompanyBusinessType((companyData as any).business_type || 'barbershop');
+      setCompanyLogo(companyData.logo_url);
+    }
+
+    const { data: settingsData } = await supabase.from('company_settings').select('primary_color').eq('company_id', companyId!).single();
+    if (settingsData?.primary_color) {
+      setCompanyColor(settingsData.primary_color);
     }
   };
 
@@ -2396,6 +2402,7 @@ export default function Promotions() {
         services={services}
         professionals={professionals}
         availableSlots={availableSlotsForShare}
+        primaryColor={companyColor}
       />
       <FeatureIntroModal
         featureKey="promotions"

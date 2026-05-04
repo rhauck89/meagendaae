@@ -19,6 +19,7 @@ interface PromotionShareModalProps {
   services: any[];
   professionals: any[];
   availableSlots?: string[];
+  primaryColor?: string;
 }
 
 export function PromotionShareModal({
@@ -31,7 +32,8 @@ export function PromotionShareModal({
   businessType,
   services,
   professionals,
-  availableSlots
+  availableSlots,
+  primaryColor = '#eab308'
 }: PromotionShareModalProps) {
   const [activeTab, setActiveTab] = useState<'options' | 'instagram' | 'whatsapp'>('options');
   const [generating, setGenerating] = useState(false);
@@ -39,7 +41,8 @@ export function PromotionShareModal({
   const [backgroundImage, setBackgroundImage] = useState<string | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [isGeneratingPreview, setIsGeneratingPreview] = useState(false);
-  
+  const [layout, setLayout] = useState<'auto' | 'photo' | 'minimal'>('auto');
+
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const routeType = businessType === 'esthetic' ? 'estetica' : 'barbearia';
@@ -100,7 +103,7 @@ ${publicProfileUrl}`;
     if (activeTab === 'instagram' && promotion) {
       generatePreview();
     }
-  }, [activeTab, promotion, backgroundImage]);
+  }, [activeTab, promotion, backgroundImage, layout, primaryColor]);
 
   const generatePreview = async () => {
     if (!promotion) return;
@@ -124,7 +127,9 @@ ${publicProfileUrl}`;
         companyLogo,
         publicProfileUrl,
         availableSlots,
-        backgroundImageUrl: backgroundImage
+        backgroundImageUrl: backgroundImage,
+        primaryColor,
+        layout
       });
 
       if (!dataUrl || !dataUrl.startsWith('data:image/png;base64,')) {
@@ -266,23 +271,55 @@ ${publicProfileUrl}`;
                   {/* Capture logic moved to canvas utility */}
                 </div>
 
-                <div className="grid grid-cols-2 gap-2 w-full">
-                  <Button 
-                    variant={!backgroundImage ? "default" : "outline"} 
-                    className="gap-2"
-                    onClick={() => setBackgroundImage(null)}
-                  >
-                    <ImageIcon className="h-4 w-4" />
-                    Automática
-                  </Button>
-                  <Button 
-                    variant={backgroundImage ? "default" : "outline"} 
-                    className="gap-2"
-                    onClick={() => fileInputRef.current?.click()}
-                  >
-                    <Camera className="h-4 w-4" />
-                    {backgroundImage ? "Trocar Foto" : "Usar Foto"}
-                  </Button>
+                <div className="w-full space-y-3">
+                  <div className="flex flex-col gap-2">
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Escolha o Estilo</p>
+                    <div className="grid grid-cols-3 gap-2">
+                      <Button 
+                        variant={layout === 'auto' ? "default" : "outline"} 
+                        className="h-9 px-2 text-[10px] font-bold"
+                        onClick={() => {
+                          setLayout('auto');
+                          setBackgroundImage(null);
+                        }}
+                      >
+                        Automático
+                      </Button>
+                      <Button 
+                        variant={layout === 'photo' ? "default" : "outline"} 
+                        className="h-9 px-2 text-[10px] font-bold"
+                        onClick={() => {
+                          setLayout('photo');
+                          if (!backgroundImage) fileInputRef.current?.click();
+                        }}
+                      >
+                        Com Foto
+                      </Button>
+                      <Button 
+                        variant={layout === 'minimal' ? "default" : "outline"} 
+                        className="h-9 px-2 text-[10px] font-bold"
+                        onClick={() => {
+                          setLayout('minimal');
+                          setBackgroundImage(null);
+                        }}
+                      >
+                        Minimalista
+                      </Button>
+                    </div>
+                  </div>
+
+                  {layout === 'photo' && (
+                    <Button 
+                      variant="secondary" 
+                      size="sm"
+                      className="w-full gap-2 h-9 text-xs"
+                      onClick={() => fileInputRef.current?.click()}
+                    >
+                      <Camera className="h-4 w-4" />
+                      {backgroundImage ? "Trocar Foto" : "Selecionar Foto"}
+                    </Button>
+                  )}
+
                   <input 
                     type="file" 
                     ref={fileInputRef} 
