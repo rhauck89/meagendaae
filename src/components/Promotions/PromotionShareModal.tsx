@@ -2,11 +2,12 @@ import React, { useState, useRef, useMemo, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogBody } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Promotion } from '@/pages/Promotions';
-import { Instagram, MessageCircle, Copy, Download, Loader2, Check, Camera, Image as ImageIcon, ArrowLeft } from 'lucide-react';
+import { Instagram, MessageCircle, Copy, Download, Loader2, Check, Camera, Image as ImageIcon, ArrowLeft, Send } from 'lucide-react';
 import { generatePromotionArt } from '@/utils/promotionArtGenerator';
 import { toast } from '@/hooks/use-toast';
 import { format, parseISO } from 'date-fns';
 import { Textarea } from '@/components/ui/textarea';
+import { PromotionCampaignModal } from './PromotionCampaignModal';
 
 interface PromotionShareModalProps {
   open: boolean;
@@ -42,6 +43,7 @@ export function PromotionShareModal({
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [isGeneratingPreview, setIsGeneratingPreview] = useState(false);
   const [layout, setLayout] = useState<'auto' | 'photo' | 'minimal'>('auto');
+  const [isCampaignModalOpen, setIsCampaignModalOpen] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -227,8 +229,8 @@ ${publicProfileUrl}`;
                   <MessageCircle className="h-6 w-6" />
                 </div>
                 <div className="text-left">
-                  <p className="font-bold text-base">Mensagem WhatsApp</p>
-                  <p className="text-xs text-muted-foreground">Texto formatado para converter agendamentos</p>
+                  <p className="font-bold text-base">Enviar p/ Clientes (WhatsApp)</p>
+                  <p className="text-xs text-muted-foreground">Envio segmentado com filtros e controle de spam</p>
                 </div>
               </Button>
 
