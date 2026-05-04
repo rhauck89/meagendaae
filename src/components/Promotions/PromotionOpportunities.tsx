@@ -353,6 +353,14 @@ export function PromotionOpportunities({
             <User className="h-10 w-10 mx-auto text-muted-foreground/40 mb-3" />
             <p className="text-sm text-muted-foreground">Selecione um profissional para ver as oportunidades do dia.</p>
           </div>
+        ) : selectedServiceId === 'all' ? (
+          <div className="py-12 text-center border-2 border-dashed rounded-xl border-muted-foreground/20">
+            <Scissors className="h-10 w-10 mx-auto text-muted-foreground/40 mb-3" />
+            <p className="text-sm text-muted-foreground font-medium">Selecione um serviço para visualizar a disponibilidade real.</p>
+            <p className="text-xs text-muted-foreground/70 mt-1 px-4 max-w-sm mx-auto">
+              Precisamos saber o serviço para calcular a duração e os intervalos exatos da sua agenda.
+            </p>
+          </div>
         ) : loading ? (
           <div className="py-12 text-center">
             <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary mb-2" />
