@@ -3229,6 +3229,41 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                 </div>
               </div>
 
+              {(bookingResult.cashbackEarned > 0 || bookingResult.pointsEarned > 0) && (
+                <div 
+                  className="rounded-[2.5rem] p-8 space-y-4 animate-in slide-in-from-bottom-4 duration-700"
+                  style={{ background: 'rgba(255,255,255,0.02)', border: `2px solid ${T.border}` }}
+                >
+                  <p className="text-[10px] font-black uppercase tracking-[0.4em] opacity-40 text-center mb-2">Benefícios previstos</p>
+                  
+                  <div className="space-y-3">
+                    {bookingResult.pointsEarned > 0 && (
+                      <div className="flex items-center gap-4 bg-amber-500/5 p-4 rounded-3xl border border-amber-500/10">
+                        <div className="w-10 h-10 rounded-full bg-amber-500/10 flex items-center justify-center shrink-0">
+                          <span className="text-xl">⭐</span>
+                        </div>
+                        <div>
+                          <p className="font-black text-amber-500">{bookingResult.pointsEarned} pontos</p>
+                          <p className="text-[10px] font-bold opacity-60 uppercase tracking-tight" style={{ color: T.textSec }}>Serão creditados após o atendimento</p>
+                        </div>
+                      </div>
+                    )}
+                    
+                    {bookingResult.cashbackEarned > 0 && (
+                      <div className="flex items-center gap-4 bg-green-500/5 p-4 rounded-3xl border border-green-500/10">
+                        <div className="w-10 h-10 rounded-full bg-green-500/10 flex items-center justify-center shrink-0">
+                          <span className="text-xl">💵</span>
+                        </div>
+                        <div>
+                          <p className="font-black text-green-500">R$ {bookingResult.cashbackEarned.toFixed(2).replace('.', ',')} de cashback</p>
+                          <p className="text-[10px] font-bold opacity-60 uppercase tracking-tight" style={{ color: T.textSec }}>Serão liberados após o atendimento</p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <Button
                   onClick={() => window.open(calUrl(), '_blank')}
