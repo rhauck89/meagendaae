@@ -383,9 +383,43 @@ const Loyalty = () => {
     await supabase.from('loyalty_redemptions' as any).update({
       status: action,
       confirmed_at: action === 'confirmed' ? new Date().toISOString() : null,
+      confirmed_by: (await supabase.auth.getUser()).data.user?.id
     } as any).eq('id', redemptionId);
 
-    if (action === 'cancelled' && redemption.client_id && companyId) {
+    // If confirmed, ensure there's a negative transaction (debit)
+    if (action === 'confirmed' && redemption.client_id && companyId) {
+      // Check if transaction already exists
+      const { data: existingTx } = await supabase
+        .from('loyalty_points_transactions' as any)
+        .select('id')
+        .eq('reference_id', redemptionId)
+        .eq('transaction_type', 'reward_redemption')
+        .maybeSingle();
+
+      if (!existingTx) {
+        const { data: lastTx } = await supabase
+          .from('loyalty_points_transactions' as any)
+          .select('balance_after')
+          .eq('company_id', companyId)
+          .eq('client_id', redemption.client_id)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        const currentBalance = (lastTx as any)?.balance_after || 0;
+        await supabase.from('loyalty_points_transactions' as any).insert({
+          company_id: companyId,
+          client_id: redemption.client_id,
+          points: -Math.abs(redemption.total_points),
+          transaction_type: 'reward_redemption',
+          reference_type: 'loyalty_redemptions',
+          reference_id: redemptionId,
+          description: `Resgate de recompensa (${redemption.redemption_code})`,
+          balance_after: currentBalance - Math.abs(redemption.total_points),
+          user_id: (await supabase.auth.getUser()).data.user?.id
+        } as any);
+      }
+    }
       const { data: lastTx } = await supabase
         .from('loyalty_points_transactions' as any)
         .select('balance_after')
