@@ -2,8 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { CheckCircle2, XCircle, Clock, Calendar, Scissors, User, Loader2, AlertTriangle, Building2 } from 'lucide-react';
+import { CheckCircle2, XCircle, Clock, Scissors, User, Loader2, AlertTriangle, Building2 } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
@@ -43,12 +42,6 @@ const RequestConfirmation = () => {
 
   const fetchRequestDetails = async () => {
     try {
-      // Get basic request data (using direct query as it's public insert/select partially handled by RLS)
-      // Actually we need a safe way to read this. Let's use a small RPC or just select if RLS allows.
-      // Based on my RLS check, anon can insert but not necessarily select everything.
-      // I'll add a small RPC to get public request info safely if needed, 
-      // but let's try selecting first as some tables have public select.
-      
       const { data: reqData, error: reqError } = await supabase
         .from('appointment_requests' as any)
         .select('*')
@@ -60,30 +53,29 @@ const RequestConfirmation = () => {
         return;
       }
 
-      setRequest(reqData);
+      const requestObj = reqData as any;
+      setRequest(requestObj);
 
-      // Fetch related info
       const [compRes, svcRes, profRes] = await Promise.all([
-        supabase.from('companies').select('name, phone, logo_url').eq('id', reqData.company_id).maybeSingle(),
-        supabase.from('services').select('name').eq('id', reqData.service_id).maybeSingle(),
-        supabase.from('profiles').select('full_name').eq('id', reqData.professional_id).maybeSingle()
+        supabase.from('companies').select('name, phone, logo_url').eq('id', requestObj.company_id).maybeSingle(),
+        supabase.from('services').select('name').eq('id', requestObj.service_id).maybeSingle(),
+        supabase.from('profiles').select('full_name').eq('id', requestObj.professional_id).maybeSingle()
       ]);
 
       setCompany(compRes.data);
       setService(svcRes.data);
       setProfessional(profRes.data);
 
-      // Handle auto-action from URL
-      if (reqData.status === 'suggested' && autoAction) {
+      if (requestObj.status === 'suggested' && autoAction) {
         if (autoAction === 'confirm') {
-          handleConfirm(reqData.id);
+          handleConfirm(requestObj.id);
         } else if (autoAction === 'reject') {
-          handleReject(reqData.id);
+          handleReject(requestObj.id);
         }
-      } else if (reqData.status !== 'suggested') {
+      } else if (requestObj.status !== 'suggested') {
         setResult({ 
-          success: reqData.status === 'accepted', 
-          message: reqData.status === 'accepted' ? 'Esta solicitação já foi confirmada.' : 'Esta solicitação já foi processada ou recusada.',
+          success: requestObj.status === 'accepted', 
+          message: requestObj.status === 'accepted' ? 'Esta solicitação já foi confirmada.' : 'Esta solicitação já foi processada ou recusada.',
           alreadyProcessed: true
         });
       }
@@ -165,7 +157,6 @@ const RequestConfirmation = () => {
     <div className="min-h-screen flex items-center justify-center p-4" style={{ background: T.bg, color: T.text }}>
       <div className="w-full max-w-md space-y-6">
         
-        {/* Header / Logo */}
         <div className="text-center space-y-2">
           {company?.logo_url && (
             <img src={company.logo_url} alt={company.name} className="h-16 mx-auto mb-4 rounded-full object-cover" />
