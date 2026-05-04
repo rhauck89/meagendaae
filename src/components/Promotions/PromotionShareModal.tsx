@@ -19,6 +19,7 @@ interface PromotionShareModalProps {
   services: any[];
   professionals: any[];
   availableSlots?: string[];
+  primaryColor?: string;
 }
 
 export function PromotionShareModal({
