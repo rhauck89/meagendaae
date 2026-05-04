@@ -232,6 +232,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
   const cashbackTotal = cashbackCredits.reduce((s, c) => s + Number(c.amount), 0);
   const [autoCashbackPromos, setAutoCashbackPromos] = useState<any[]>([]);
   const [loyaltyPoints, setLoyaltyPoints] = useState(0);
+  const [loyaltyConfig, setLoyaltyConfig] = useState<any>(null);
   const [loyaltyPointValue, setLoyaltyPointValue] = useState(0);
   const slotRequestRef = useRef(0);
   const { isAuthenticated: isAuthAuthenticated, user, profile, loading: authLoading, isAdmin } = useAuth();
