@@ -2147,7 +2147,12 @@ export default function Promotions() {
                       )}
                       {promoSvcs.length > 1 && (
                         <div className="text-sm text-muted-foreground">
-                          ✂️ {promoSvcs.length} serviços: {promoSvcs.slice(0, 3).map(s => s.name).join(', ')}{promoSvcs.length > 3 ? ` +${promoSvcs.length - 3}` : ''}
+                          ✂️ {promoSvcs.length === services.length ? "Todos os serviços" : `${promoSvcs.length} serviços: ${promoSvcs.slice(0, 3).map(s => s.name).join(', ')}${promoSvcs.length > 3 ? ` +${promoSvcs.length - 3}` : ''}`}
+                        </div>
+                      )}
+                      {promoSvcs.length === 0 && (
+                         <div className="text-sm text-muted-foreground">
+                          ✂️ Todos os serviços
                         </div>
                       )}
 
