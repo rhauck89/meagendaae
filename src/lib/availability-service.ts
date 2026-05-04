@@ -386,21 +386,12 @@ export async function getAvailableSlots(
     fetchSlotInputs(source, companyId, professionalId, date, prefetchData),
   ]);
 
-  console.log('[SERVICE INPUT]', {
-    bookingMode: config.bookingMode,
-    slotInterval: config.slotInterval,
-    serviceDuration: totalDuration,
-  });
-
-  console.log('[AGENDA_V2_DEBUG]', {
-    menorServico: config.smallestServiceMinutes,
-    intervalo: config.bufferMinutes,
-    slotBase: config.baseSlotMinutes,
-    serviceCount: config.serviceCount,
-    professionalId,
-    companyId,
-    date: format(date, 'yyyy-MM-dd'),
-  });
+  const resolved = resolveWorkingHours(
+    date, 
+    inputs.businessHours, 
+    inputs.professionalHours.length > 0 ? inputs.professionalHours : undefined, 
+    inputs.exceptions
+  );
 
   let slots: string[] = [];
   try {
