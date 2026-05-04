@@ -40,7 +40,6 @@ export function PromotionShareModal({
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [isGeneratingPreview, setIsGeneratingPreview] = useState(false);
   
-  const artRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const routeType = businessType === 'esthetic' ? 'estetica' : 'barbearia';
