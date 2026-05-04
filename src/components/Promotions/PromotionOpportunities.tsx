@@ -413,7 +413,7 @@ export function PromotionOpportunities({
             <User className="h-10 w-10 mx-auto text-muted-foreground/40 mb-3" />
             <p className="text-sm text-muted-foreground">Selecione um profissional para ver as oportunidades do dia.</p>
           </div>
-        ) : selectedServiceId === 'all' ? (
+        ) : selectedServiceIds.length === 0 ? (
           <div className="py-12 text-center border-2 border-dashed rounded-xl border-muted-foreground/20">
             <Scissors className="h-10 w-10 mx-auto text-muted-foreground/40 mb-3" />
             <p className="text-sm text-muted-foreground font-medium">Selecione um serviço para visualizar a disponibilidade real.</p>
