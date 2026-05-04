@@ -103,20 +103,34 @@ ${publicProfileUrl}`;
   }, [activeTab, promotion, backgroundImage]);
 
   const generatePreview = async () => {
-    if (!artRef.current) return;
+    if (!promotion) return;
     setIsGeneratingPreview(true);
     setPreviewUrl(null);
     
     try {
-      // Small delay to ensure DOM is ready
-      await new Promise(resolve => setTimeout(resolve, 300));
-      
-      const dataUrl = await toPng(artRef.current, {
-        width: 1080,
-        height: 1920,
-        cacheBust: true,
-        pixelRatio: 1, // Use lower ratio for preview
+      console.log('Starting preview generation...', { backgroundImage: !!backgroundImage });
+      const dataUrl = await generatePromotionArt({
+        title: promotion.title,
+        discount_type: promotion.discount_type || '',
+        discount_value: promotion.discount_value || 0,
+        original_price: promotion.original_price ? Number(promotion.original_price) : null,
+        promotion_price: Number(promotion.promotion_price),
+        end_date: promotion.end_date,
+        service_ids: promotion.service_ids || (promotion.service_id ? [promotion.service_id] : []),
+        professional_ids: promotion.professional_ids,
+        services,
+        professionals,
+        companyName,
+        companyLogo,
+        publicProfileUrl,
+        availableSlots,
+        backgroundImageUrl: backgroundImage
       });
+
+      if (!dataUrl || !dataUrl.startsWith('data:image/png;base64,')) {
+        throw new Error('DataURL inválido gerado');
+      }
+
       setPreviewUrl(dataUrl);
     } catch (err) {
       console.error('Error generating preview:', err);
@@ -127,19 +141,12 @@ ${publicProfileUrl}`;
   };
 
   const handleGenerateArt = async () => {
-    if (!artRef.current) return;
+    if (!previewUrl) return;
     setGenerating(true);
     try {
-      const dataUrl = await toPng(artRef.current, {
-        width: 1080,
-        height: 1920,
-        cacheBust: true,
-        pixelRatio: 2, // High quality for final download
-      });
-      
       const link = document.createElement('a');
       link.download = `promocao-${promotion?.title || 'art'}.png`;
-      link.href = dataUrl;
+      link.href = previewUrl;
       link.click();
       toast({ title: 'Arte baixada com sucesso!' });
     } catch (err) {
