@@ -458,8 +458,8 @@ const Loyalty = () => {
   };
 
   const typeLabel: Record<string, string> = { product: 'Produto', service: 'Serviço', discount: 'Desconto' };
-  const txTypeLabel: Record<string, string> = { earn: 'Ganho', redeem: 'Resgate', expire: 'Expirado', cancel: 'Cancelamento' };
-  const txTypeColor: Record<string, string> = { earn: 'text-success', redeem: 'text-destructive', expire: 'text-muted-foreground', cancel: 'text-warning' };
+  const txTypeLabel: Record<string, string> = { earn: 'Ganho', redeem: 'Resgate', reward_redemption: 'Resgate de Recompensa', expire: 'Expirado', cancel: 'Cancelamento' };
+  const txTypeColor: Record<string, string> = { earn: 'text-success', redeem: 'text-destructive', reward_redemption: 'text-destructive', expire: 'text-muted-foreground', cancel: 'text-warning' };
 
   const filteredTransactions = txFilter
     ? transactions.filter((t: any) => (t.clients?.name || '').toLowerCase().includes(txFilter.toLowerCase()))
