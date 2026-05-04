@@ -65,6 +65,7 @@ export interface GetAvailableSlotsResult {
   slots: string[];
   bookingMode: BookingMode;
   slotInterval: number;
+  baseSlotMinutes: number;
   bufferMinutes: number;
   existingAppointments: ExistingAppointment[];
 }
