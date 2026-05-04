@@ -122,21 +122,28 @@ export function PromotionOpportunities({
       const interval = result.bookingMode === 'intelligent' ? result.baseSlotMinutes : result.slotInterval;
       
       const fullGrid: any[] = [];
+      const slotsFromEngine = new Set(result.slots);
+
+      // We still build a grid for the UI, but we ensure it aligns with the
+      // actual slots returned. If a slot exists in result.slots but not on
+      // this grid step, it means our grid is too coarse.
+      
       for (let time = startTime; time < endTime; time += interval) {
         const hh = Math.floor(time / 60);
         const mm = time % 60;
         const timeStr = `${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}`;
         
-        const isFree = result.slots.includes(timeStr);
+        const isFree = slotsFromEngine.has(timeStr);
         
         const slotStart = new Date(date);
         slotStart.setHours(hh, mm, 0, 0);
         const slotEnd = new Date(slotStart.getTime() + duration * 60000);
 
-        // Check if it's occupied by checking result.existingAppointments
+        // Check if there's an appointment at this exact time
         const isOccupied = !isFree && result.existingAppointments.some((appt: any) => {
           const apptStart = new Date(appt.start_time);
           const apptEnd = new Date(appt.end_time);
+          // Standard overlap check: if the candidate slot overlaps any appointment
           return slotStart < apptEnd && slotEnd > apptStart;
         });
 
@@ -162,6 +169,27 @@ export function PromotionOpportunities({
           fullDate: slotStart
         });
       }
+
+      // ── CRITICAL FIX: If the engine returned slots that fell BETWEEN our grid steps,
+      // we must include them so the Admin doesn't miss available spots.
+      result.slots.forEach(s => {
+        if (!fullGrid.some(g => g.time === s)) {
+          const [sh, sm] = s.split(':').map(Number);
+          const sStart = new Date(date);
+          sStart.setHours(sh, sm, 0, 0);
+          
+          fullGrid.push({
+            time: s,
+            isFree: true,
+            isOccupied: false,
+            hasPromo: false, // will be checked in sort
+            fullDate: sStart
+          });
+        }
+      });
+
+      // Sort full grid by time
+      fullGrid.sort((a, b) => a.time.localeCompare(b.time));
 
       setSlotInterval(interval);
       setSlots(fullGrid);

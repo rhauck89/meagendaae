@@ -82,6 +82,11 @@ export function ManualAppointmentDialog({
       fetchServices();
     }
   }, [open]);
+  useEffect(() => {
+    if (open && selectedDate && selectedProfessional && selectedServices.length > 0) {
+      fetchSlots(selectedDate);
+    }
+  }, [selectedProfessional, selectedServices, selectedDate, open]);
 
   const resetForm = () => {
     setStep(1);
