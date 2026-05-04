@@ -1904,6 +1904,8 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
         companyCity: (company as any)?.city || null,
         companyState: (company as any)?.state || null,
         companyPostalCode: (company as any)?.postal_code || null,
+        cashbackEarned: Number(cashbackEarnAmount || 0),
+        pointsEarned: Number(predictedLoyaltyPoints || 0),
       });
 
       // Save last booking for smart rebooking
