@@ -234,8 +234,21 @@ const AppointmentRequests = () => {
 
       setActionType('accept');
       setAcceptDialogOpen(false);
+      
+      // Send automatic WhatsApp
+      setWhatsappSent(null);
+      try {
+        const message = getWhatsAppMessage();
+        await sendTest(companyId!, selectedRequest.client_whatsapp, message);
+        setWhatsappSent(true);
+      } catch (err) {
+        console.error('Error sending automatic WhatsApp:', err);
+        setWhatsappSent(false);
+      }
+
       setSuccessDialogOpen(true);
       fetchRequests();
+
     } catch (err: any) {
       console.error('Error accepting request:', err);
       toast.error(`Erro ao aceitar solicitação: ${err.message || 'Erro desconhecido'}`);
