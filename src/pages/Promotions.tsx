@@ -33,7 +33,7 @@ import { OpportunityPromotionModal } from '@/components/Promotions/OpportunityPr
 
 const DEFAULT_TZ = 'America/Sao_Paulo';
 
-interface Promotion {
+export interface Promotion {
   id: string;
   title: string;
   description: string | null;
