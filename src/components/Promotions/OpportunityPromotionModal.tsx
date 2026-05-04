@@ -51,8 +51,8 @@ export function OpportunityPromotionModal({
           : `Desconto especial para o horário de ${slotData.times[0]}`
       );
       
-      if (slotData.serviceId) {
-        setSelectedServiceIds([slotData.serviceId]);
+      if (slotData.serviceIds && slotData.serviceIds.length > 0) {
+        setSelectedServiceIds(slotData.serviceIds);
       } else {
         setSelectedServiceIds([]);
       }
