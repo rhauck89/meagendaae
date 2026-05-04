@@ -2,11 +2,12 @@ import React, { useState, useRef, useMemo, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogBody } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Promotion } from '@/pages/Promotions';
-import { Instagram, MessageCircle, Copy, Download, Loader2, Check, Camera, Image as ImageIcon, ArrowLeft } from 'lucide-react';
+import { Instagram, MessageCircle, Copy, Download, Loader2, Check, Camera, Image as ImageIcon, ArrowLeft, Send } from 'lucide-react';
 import { generatePromotionArt } from '@/utils/promotionArtGenerator';
 import { toast } from '@/hooks/use-toast';
 import { format, parseISO } from 'date-fns';
 import { Textarea } from '@/components/ui/textarea';
+import { PromotionCampaignModal } from './PromotionCampaignModal';
 
 interface PromotionShareModalProps {
   open: boolean;
@@ -42,6 +43,7 @@ export function PromotionShareModal({
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [isGeneratingPreview, setIsGeneratingPreview] = useState(false);
   const [layout, setLayout] = useState<'auto' | 'photo' | 'minimal'>('auto');
+  const [isCampaignModalOpen, setIsCampaignModalOpen] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -188,196 +190,209 @@ ${publicProfileUrl}`;
   if (!promotion) return null;
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md max-h-[90vh] overflow-hidden flex flex-col p-0">
-        <DialogHeader className="p-4 border-b flex-row items-center justify-between space-y-0">
-          <div className="flex items-center gap-2">
-            {activeTab !== 'options' && (
-              <Button variant="ghost" size="icon" onClick={() => setActiveTab('options')} className="h-8 w-8">
-                <ArrowLeft className="h-4 w-4" />
-              </Button>
-            )}
-            <DialogTitle className="text-lg">Divulgar Promoção</DialogTitle>
-          </div>
-        </DialogHeader>
-
-        <DialogBody className="flex-1 overflow-y-auto p-4 space-y-4">
-          {activeTab === 'options' && (
-            <div className="grid grid-cols-1 gap-3">
-              <Button 
-                variant="outline" 
-                className="h-20 justify-start gap-4 px-6 border-2 hover:border-primary hover:bg-primary/5"
-                onClick={() => setActiveTab('instagram')}
-              >
-                <div className="bg-gradient-to-tr from-yellow-400 via-red-500 to-purple-600 p-2 rounded-lg text-white">
-                  <Instagram className="h-6 w-6" />
-                </div>
-                <div className="text-left">
-                  <p className="font-bold text-base">Arte Instagram (Stories)</p>
-                  <p className="text-xs text-muted-foreground">Imagem 1080x1920 com sua foto ou arte auto</p>
-                </div>
-              </Button>
-
-              <Button 
-                variant="outline" 
-                className="h-20 justify-start gap-4 px-6 border-2 hover:border-emerald-500 hover:bg-emerald-50"
-                onClick={() => setActiveTab('whatsapp')}
-              >
-                <div className="bg-emerald-500 p-2 rounded-lg text-white">
-                  <MessageCircle className="h-6 w-6" />
-                </div>
-                <div className="text-left">
-                  <p className="font-bold text-base">Mensagem WhatsApp</p>
-                  <p className="text-xs text-muted-foreground">Texto formatado para converter agendamentos</p>
-                </div>
-              </Button>
-
-              <Button 
-                variant="outline" 
-                className="h-20 justify-start gap-4 px-6 border-2 hover:border-primary hover:bg-primary/5"
-                onClick={handleCopyText}
-              >
-                <div className="bg-primary p-2 rounded-lg text-white">
-                  <Copy className="h-6 w-6" />
-                </div>
-                <div className="text-left">
-                  <p className="font-bold text-base">Copiar texto simples</p>
-                  <p className="text-xs text-muted-foreground">Apenas o conteúdo para colar onde quiser</p>
-                </div>
-              </Button>
+    <>
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="sm:max-w-md max-h-[90vh] overflow-hidden flex flex-col p-0">
+          <DialogHeader className="p-4 border-b flex-row items-center justify-between space-y-0">
+            <div className="flex items-center gap-2">
+              {activeTab !== 'options' && (
+                <Button variant="ghost" size="icon" onClick={() => setActiveTab('options')} className="h-8 w-8">
+                  <ArrowLeft className="h-4 w-4" />
+                </Button>
+              )}
+              <DialogTitle className="text-lg">Divulgar Promoção</DialogTitle>
             </div>
-          )}
+          </DialogHeader>
 
-          {activeTab === 'instagram' && (
-            <div className="space-y-4">
-              <div className="flex flex-col items-center gap-4">
-                <div className="relative aspect-[9/16] w-full max-w-[240px] bg-muted rounded-xl border-2 overflow-hidden shadow-xl mx-auto">
-                  {isGeneratingPreview && (
-                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-background/80 z-20 backdrop-blur-sm">
-                      <Loader2 className="h-8 w-8 animate-spin text-primary mb-2" />
-                      <p className="text-xs font-medium">Gerando arte...</p>
-                    </div>
-                  )}
-                  
-                  {previewUrl ? (
-                    <img src={previewUrl} alt="Preview" className="w-full h-full object-contain" />
-                  ) : (
-                    <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center">
-                      <Instagram className="h-10 w-10 text-muted-foreground mb-3 opacity-20" />
-                      <p className="text-xs text-muted-foreground">Aguarde a geração do preview...</p>
-                    </div>
-                  )}
+          <DialogBody className="flex-1 overflow-y-auto p-4 space-y-4">
+            {activeTab === 'options' && (
+              <div className="grid grid-cols-1 gap-3">
+                <Button 
+                  variant="outline" 
+                  className="h-20 justify-start gap-4 px-6 border-2 hover:border-primary hover:bg-primary/5"
+                  onClick={() => setActiveTab('instagram')}
+                >
+                  <div className="bg-gradient-to-tr from-yellow-400 via-red-500 to-purple-600 p-2 rounded-lg text-white">
+                    <Instagram className="h-6 w-6" />
+                  </div>
+                  <div className="text-left">
+                    <p className="font-bold text-base">Arte Instagram (Stories)</p>
+                    <p className="text-xs text-muted-foreground">Imagem 1080x1920 com sua foto ou arte auto</p>
+                  </div>
+                </Button>
 
-                  {/* Capture logic moved to canvas utility */}
-                </div>
+                <Button 
+                  variant="outline" 
+                  className="h-20 justify-start gap-4 px-6 border-2 hover:border-emerald-500 hover:bg-emerald-50"
+                  onClick={() => setActiveTab('whatsapp')}
+                >
+                  <div className="bg-emerald-500 p-2 rounded-lg text-white">
+                    <MessageCircle className="h-6 w-6" />
+                  </div>
+                  <div className="text-left">
+                    <p className="font-bold text-base">Enviar p/ Clientes (WhatsApp)</p>
+                    <p className="text-xs text-muted-foreground">Envio segmentado com filtros e controle de spam</p>
+                  </div>
+                </Button>
 
-                <div className="w-full space-y-3">
-                  <div className="flex flex-col gap-2">
-                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Escolha o Estilo</p>
-                    <div className="grid grid-cols-3 gap-2">
-                      <Button 
-                        variant={layout === 'auto' ? "default" : "outline"} 
-                        className="h-9 px-2 text-[10px] font-bold"
-                        onClick={() => {
-                          setLayout('auto');
-                          setBackgroundImage(null);
-                        }}
-                      >
-                        Automático
-                      </Button>
-                      <Button 
-                        variant={layout === 'photo' ? "default" : "outline"} 
-                        className="h-9 px-2 text-[10px] font-bold"
-                        onClick={() => {
-                          setLayout('photo');
-                          if (!backgroundImage) fileInputRef.current?.click();
-                        }}
-                      >
-                        Com Foto
-                      </Button>
-                      <Button 
-                        variant={layout === 'minimal' ? "default" : "outline"} 
-                        className="h-9 px-2 text-[10px] font-bold"
-                        onClick={() => {
-                          setLayout('minimal');
-                          setBackgroundImage(null);
-                        }}
-                      >
-                        Minimalista
-                      </Button>
-                    </div>
+                <Button 
+                  variant="outline" 
+                  className="h-20 justify-start gap-4 px-6 border-2 hover:border-primary hover:bg-primary/5"
+                  onClick={handleCopyText}
+                >
+                  <div className="bg-primary p-2 rounded-lg text-white">
+                    <Copy className="h-6 w-6" />
+                  </div>
+                  <div className="text-left">
+                    <p className="font-bold text-base">Copiar texto simples</p>
+                    <p className="text-xs text-muted-foreground">Apenas o conteúdo para colar onde quiser</p>
+                  </div>
+                </Button>
+              </div>
+            )}
+
+            {activeTab === 'instagram' && (
+              <div className="space-y-4">
+                <div className="flex flex-col items-center gap-4">
+                  <div className="relative aspect-[9/16] w-full max-w-[240px] bg-muted rounded-xl border-2 overflow-hidden shadow-xl mx-auto">
+                    {isGeneratingPreview && (
+                      <div className="absolute inset-0 flex flex-col items-center justify-center bg-background/80 z-20 backdrop-blur-sm">
+                        <Loader2 className="h-8 w-8 animate-spin text-primary mb-2" />
+                        <p className="text-xs font-medium">Gerando arte...</p>
+                      </div>
+                    )}
+                    
+                    {previewUrl ? (
+                      <img src={previewUrl} alt="Preview" className="w-full h-full object-contain" />
+                    ) : (
+                      <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center">
+                        <Instagram className="h-10 w-10 text-muted-foreground mb-3 opacity-20" />
+                        <p className="text-xs text-muted-foreground">Aguarde a geração do preview...</p>
+                      </div>
+                    )}
                   </div>
 
-                  {layout === 'photo' && (
-                    <Button 
-                      variant="secondary" 
-                      size="sm"
-                      className="w-full gap-2 h-9 text-xs"
-                      onClick={() => fileInputRef.current?.click()}
-                    >
-                      <Camera className="h-4 w-4" />
-                      {backgroundImage ? "Trocar Foto" : "Selecionar Foto"}
-                    </Button>
-                  )}
+                  <div className="w-full space-y-3">
+                    <div className="flex flex-col gap-2">
+                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Escolha o Estilo</p>
+                      <div className="grid grid-cols-3 gap-2">
+                        <Button 
+                          variant={layout === 'auto' ? "default" : "outline"} 
+                          className="h-9 px-2 text-[10px] font-bold"
+                          onClick={() => {
+                            setLayout('auto');
+                            setBackgroundImage(null);
+                          }}
+                        >
+                          Automático
+                        </Button>
+                        <Button 
+                          variant={layout === 'photo' ? "default" : "outline"} 
+                          className="h-9 px-2 text-[10px] font-bold"
+                          onClick={() => {
+                            setLayout('photo');
+                            if (!backgroundImage) fileInputRef.current?.click();
+                          }}
+                        >
+                          Com Foto
+                        </Button>
+                        <Button 
+                          variant={layout === 'minimal' ? "default" : "outline"} 
+                          className="h-9 px-2 text-[10px] font-bold"
+                          onClick={() => {
+                            setLayout('minimal');
+                            setBackgroundImage(null);
+                          }}
+                        >
+                          Minimalista
+                        </Button>
+                      </div>
+                    </div>
 
-                  <input 
-                    type="file" 
-                    ref={fileInputRef} 
-                    className="hidden" 
-                    accept="image/*" 
-                    capture="environment"
-                    onChange={handlePhotoUpload}
-                  />
+                    {layout === 'photo' && (
+                      <Button 
+                        variant="secondary" 
+                        size="sm"
+                        className="w-full gap-2 h-9 text-xs"
+                        onClick={() => fileInputRef.current?.click()}
+                      >
+                        <Camera className="h-4 w-4" />
+                        {backgroundImage ? "Trocar Foto" : "Selecionar Foto"}
+                      </Button>
+                    )}
+
+                    <input 
+                      type="file" 
+                      ref={fileInputRef} 
+                      className="hidden" 
+                      accept="image/*" 
+                      capture="environment"
+                      onChange={handlePhotoUpload}
+                    />
+                  </div>
+                </div>
+
+                <div className="pt-2 border-t flex gap-2">
+                  <Button 
+                    className="flex-1 gap-2 h-12 text-base font-bold" 
+                    onClick={handleGenerateArt} 
+                    disabled={generating || !previewUrl || isGeneratingPreview}
+                  >
+                    {generating ? (
+                      <>
+                        <Loader2 className="h-5 w-5 animate-spin" />
+                        Gerando Arquivo...
+                      </>
+                    ) : (
+                      <>
+                        <Download className="h-5 w-5" />
+                        Baixar Imagem (Stories)
+                      </>
+                    )}
+                  </Button>
                 </div>
               </div>
+            )}
 
-              <div className="pt-2 border-t flex gap-2">
-                <Button 
-                  className="flex-1 gap-2 h-12 text-base font-bold" 
-                  onClick={handleGenerateArt} 
-                  disabled={generating || !previewUrl || isGeneratingPreview}
-                >
-                  {generating ? (
-                    <>
-                      <Loader2 className="h-5 w-5 animate-spin" />
-                      Gerando Arquivo...
-                    </>
-                  ) : (
-                    <>
-                      <Download className="h-5 w-5" />
-                      Baixar Imagem (Stories)
-                    </>
-                  )}
-                </Button>
+            {activeTab === 'whatsapp' && (
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <p className="text-sm font-medium">Prévia da mensagem:</p>
+                  <Textarea 
+                    value={whatsappMessage} 
+                    readOnly 
+                    rows={10} 
+                    className="text-sm bg-muted resize-none focus-visible:ring-0 leading-relaxed"
+                  />
+                </div>
+                <div className="flex flex-col gap-2">
+                  <Button className="w-full gap-2 h-12 bg-emerald-600 hover:bg-emerald-700 text-white font-bold" onClick={() => setIsCampaignModalOpen(true)}>
+                    <Send className="h-4 w-4" />
+                    Preparar Envio Segmentado
+                  </Button>
+                  <div className="flex gap-2">
+                    <Button variant="outline" className="flex-1 gap-2 h-10" onClick={handleCopyText}>
+                      {copied ? <Check className="h-4 w-4 text-emerald-500" /> : <Copy className="h-4 w-4" />}
+                      Copiar texto
+                    </Button>
+                    <Button variant="outline" className="flex-1 gap-2 h-10 border-emerald-200 text-emerald-600 hover:bg-emerald-50" onClick={handleSendWhatsApp}>
+                      <MessageCircle className="h-4 w-4" />
+                      Abrir conversa
+                    </Button>
+                  </div>
+                </div>
               </div>
-            </div>
-          )}
+            )}
+          </DialogBody>
+        </DialogContent>
+      </Dialog>
 
-          {activeTab === 'whatsapp' && (
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <p className="text-sm font-medium">Prévia da mensagem:</p>
-                <Textarea 
-                  value={whatsappMessage} 
-                  readOnly 
-                  rows={10} 
-                  className="text-sm bg-muted resize-none focus-visible:ring-0 leading-relaxed"
-                />
-              </div>
-              <div className="flex gap-2">
-                <Button variant="outline" className="flex-1 gap-2" onClick={handleCopyText}>
-                  {copied ? <Check className="h-4 w-4 text-emerald-500" /> : <Copy className="h-4 w-4" />}
-                  Copiar
-                </Button>
-                <Button className="flex-1 gap-2 bg-emerald-600 hover:bg-emerald-700 text-white" onClick={handleSendWhatsApp}>
-                  <MessageCircle className="h-4 w-4" />
-                  Enviar WhatsApp
-                </Button>
-              </div>
-            </div>
-          )}
-        </DialogBody>
-      </DialogContent>
-    </Dialog>
+      <PromotionCampaignModal 
+        open={isCampaignModalOpen}
+        onOpenChange={setIsCampaignModalOpen}
+        promotion={promotion}
+        whatsappMessage={whatsappMessage}
+      />
+    </>
   );
 }
