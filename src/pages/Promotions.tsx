@@ -1032,15 +1032,23 @@ export default function Promotions() {
   };
 
 
-  const getPromoLink = (promo: Promotion) => {
+  const getPublicProfileLink = (promo: Promotion) => {
     const routeType = companyBusinessType === 'esthetic' ? 'estetica' : 'barbearia';
-    return `${window.location.origin}/${routeType}/${companySlug}?promo=${promo.id}`;
+    const baseUrl = `${window.location.origin}/${routeType}/${companySlug}`;
+    
+    if (promo.professional_ids?.length === 1) {
+      const prof = professionals.find((p: any) => p.profile_id === promo.professional_ids![0]);
+      if (prof?.slug) {
+        return `${baseUrl}/${prof.slug}`;
+      }
+    }
+    return baseUrl;
   };
 
   const buildWhatsAppLink = (client: ClientRow, promotion: Promotion) => {
     if (!client.whatsapp) return '';
     const number = formatWhatsApp(client.whatsapp);
-    const promoLink = getPromoLink(promotion);
+    const profileLink = getPublicProfileLink(promotion);
 
     const profName = (() => {
       if (promotion.professional_ids?.length === 1) {
