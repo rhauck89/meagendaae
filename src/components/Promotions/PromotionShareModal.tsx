@@ -127,7 +127,9 @@ ${publicProfileUrl}`;
         companyLogo,
         publicProfileUrl,
         availableSlots,
-        backgroundImageUrl: backgroundImage
+        backgroundImageUrl: backgroundImage,
+        primaryColor,
+        layout
       });
 
       if (!dataUrl || !dataUrl.startsWith('data:image/png;base64,')) {
