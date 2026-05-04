@@ -139,7 +139,7 @@ export function PromotionOpportunities({
       const endTime = closeH * 60 + closeM;
       
       // Use the same slotInterval from the engine result to build the grid
-      const interval = result.slotInterval || 15;
+      const interval = result.bookingMode === 'intelligent' ? result.baseSlotMinutes : result.slotInterval;
       
       const fullGrid: any[] = [];
       for (let time = startTime; time < endTime; time += interval) {
