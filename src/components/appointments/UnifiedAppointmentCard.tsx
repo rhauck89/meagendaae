@@ -161,9 +161,9 @@ export function UnifiedAppointmentCard({
               <p className="text-[9px] text-muted-foreground leading-none mt-0.5">até {format(endTime, 'HH:mm')}</p>
               <p className="text-[10px] font-bold text-primary uppercase mt-1">{displayDateShort}</p>
             </div>
-            <div className="flex-1 min-w-0">
+            <div className="flex-1 min-w-0 pr-1">
               <div className="flex items-center gap-1 min-w-0">
-                <p className="text-sm font-bold truncate leading-tight capitalize">
+                <p className="text-sm font-bold truncate leading-tight capitalize max-w-[140px] sm:max-w-none">
                   {clientName}
                 </p>
                 <div className="flex gap-0.5 ml-1">
