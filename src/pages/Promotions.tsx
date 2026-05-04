@@ -2236,27 +2236,12 @@ export default function Promotions() {
                         )}
                       </div>
 
-                      {/* Link — only for traditional promos */}
-                      {!isCashback && promo.slug && (
-                        <div className="flex items-center gap-2">
-                          <Input readOnly value={getPromoLink(promo)} className="text-xs h-8 bg-muted" />
-                          <Button size="sm" variant="ghost" className="h-8" onClick={() => { navigator.clipboard.writeText(getPromoLink(promo)); toast({ title: 'Link copiado!' }); }}>
-                            <Copy className="h-3 w-3" />
-                          </Button>
-                        </div>
-                      )}
-
                       <div className="flex gap-2 pt-2 flex-wrap mt-auto">
-                        <Button size="sm" onClick={() => fetchFilteredClients(promo)} disabled={status === 'expired'}>
+                        <Button size="sm" onClick={() => { setSelectedPromotion(promo); setShareModalOpen(true); }} disabled={status === 'expired'}>
                           <Send className="h-3 w-3 mr-1" />Divulgar
                         </Button>
                         <Button size="sm" variant="outline" onClick={() => handleEdit(promo)}>
                           <Edit2 className="h-3 w-3 mr-1" />Editar
-                        </Button>
-                        <Button size="sm" variant="ghost" asChild>
-                          <a href={getPromoLink(promo)} target="_blank" rel="noopener noreferrer">
-                            <Eye className="h-3 w-3 mr-1" />Ver
-                          </a>
                         </Button>
                       </div>
                     </CardContent>
