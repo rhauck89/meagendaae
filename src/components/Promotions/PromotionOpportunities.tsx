@@ -37,7 +37,7 @@ export function PromotionOpportunities({
   const { companyId, profile } = useAuth();
   const [selectedDate, setSelectedDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [selectedProfessionalId, setSelectedProfessionalId] = useState(isAdmin ? 'all' : (profile?.id || ''));
-  const [selectedServiceId, setSelectedServiceId] = useState('all');
+  const [selectedServiceIds, setSelectedServiceIds] = useState<string[]>([]);
   const [slots, setSlots] = useState<any[]>([]);
   const [slotInterval, setSlotInterval] = useState(15);
   const [selectedSlots, setSelectedSlots] = useState<string[]>([]);
