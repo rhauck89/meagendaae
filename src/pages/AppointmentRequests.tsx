@@ -20,9 +20,9 @@ import { sendAppointmentCreatedWebhook } from '@/lib/automations';
 
 const statusLabels: Record<string, { label: string; color: string }> = {
   pending: { label: 'Pendente', color: 'bg-yellow-100 text-yellow-800' },
-  accepted: { label: 'Aceito', color: 'bg-green-100 text-green-800' },
-  suggested: { label: 'Sugerido', color: 'bg-blue-100 text-blue-800' },
-  rejected: { label: 'Recusado', color: 'bg-red-100 text-red-800' },
+  accepted: { label: 'Aceito pelo Cliente', color: 'bg-green-100 text-green-800' },
+  suggested: { label: 'Aguardando Cliente', color: 'bg-blue-100 text-blue-800' },
+  rejected: { label: 'Recusado/Cancelado', color: 'bg-red-100 text-red-800' },
 };
 
 const AppointmentRequests = () => {
@@ -426,9 +426,18 @@ const AppointmentRequests = () => {
                         <p className="text-xs text-muted-foreground italic mt-1">"{req.message}"</p>
                       )}
                       {req.status === 'suggested' && req.suggested_date && (
-                        <div className="flex items-center gap-1 text-xs text-blue-600 mt-1">
-                          <ArrowRight className="h-3 w-3" />
-                          Sugerido: {format(new Date(req.suggested_date + 'T12:00:00'), "dd/MM/yyyy", { locale: ptBR })} às {req.suggested_time?.slice(0, 5)}
+                        <div className="flex flex-col gap-1 mt-1">
+                          <div className="flex items-center gap-1 text-xs text-blue-600">
+                            <ArrowRight className="h-3 w-3" />
+                            Sugerido: {format(new Date(req.suggested_date + 'T12:00:00'), "dd/MM/yyyy", { locale: ptBR })} às {req.suggested_time?.slice(0, 5)}
+                          </div>
+                          <span className="text-[10px] text-muted-foreground italic">Link enviado ao cliente para confirmação automática</span>
+                        </div>
+                      )}
+                      {req.status === 'rejected' && req.rejection_reason === 'Recusado pelo cliente' && (
+                        <div className="flex items-center gap-1 text-xs text-red-600 mt-1 font-medium">
+                          <X className="h-3 w-3" />
+                          Cliente recusou a sugestão
                         </div>
                       )}
                     </div>
