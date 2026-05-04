@@ -107,33 +107,13 @@ export function PromotionOpportunities({
         filterPastForToday: false
       });
 
-      // Get business hours to know the day's range
-      const { data: bizHours } = await supabase
-        .from('business_hours')
-        .select('*')
-        .eq('company_id', companyId!)
-        .eq('day_of_week', date.getDay())
-        .maybeSingle();
-
-      const { data: profHours } = await supabase
-        .from('professional_working_hours')
-        .select('*')
-        .eq('professional_id', selectedProfessionalId)
-        .eq('day_of_week', date.getDay())
-        .maybeSingle();
-
-      // Effective hours (professional override)
-      const hours = profHours || bizHours;
-      
-      if (!hours || hours.is_closed) {
+      if (!result.openTime || !result.closeTime) {
         setSlots([]);
         return;
       }
 
-      const openTimeStr = hours.open_time;
-      const closeTimeStr = hours.close_time;
-      const [openH, openM] = openTimeStr.split(':').map(Number);
-      const [closeH, closeM] = closeTimeStr.split(':').map(Number);
+      const [openH, openM] = result.openTime.split(':').map(Number);
+      const [closeH, closeM] = result.closeTime.split(':').map(Number);
       
       const startTime = openH * 60 + openM;
       const endTime = closeH * 60 + closeM;
