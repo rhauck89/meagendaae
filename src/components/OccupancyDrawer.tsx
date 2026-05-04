@@ -97,7 +97,7 @@ export const OccupancyDrawer = ({ open, onOpenChange, companyId, professionals }
       <SheetContent className="w-full sm:max-w-[600px] overflow-y-auto bg-muted/30 p-0 sm:p-0 border-l">
         <div className="flex flex-col h-full">
           <SheetHeader className="p-6 bg-white border-b sticky top-0 z-10 shadow-sm">
-            <div className="flex items-center justify-between">
+            <div className="flex items-start justify-between">
               <div className="space-y-1">
                 <SheetTitle className="text-2xl font-display font-bold flex items-center gap-2">
                   <BarChart3 className="h-6 w-6 text-primary" />
@@ -107,6 +107,11 @@ export const OccupancyDrawer = ({ open, onOpenChange, companyId, professionals }
                   Relatório detalhado de produtividade e capacidade
                 </SheetDescription>
               </div>
+              <SheetClose asChild>
+                <Button variant="ghost" size="icon" className="h-10 w-10 -mr-2 -mt-1 rounded-full hover:bg-muted transition-colors">
+                  <X className="h-6 w-6 text-muted-foreground" />
+                </Button>
+              </SheetClose>
             </div>
 
             <div className="flex flex-wrap gap-3 mt-6">
