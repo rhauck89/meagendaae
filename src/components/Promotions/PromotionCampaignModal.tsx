@@ -235,184 +235,210 @@ export function PromotionCampaignModal({
         </DialogHeader>
 
         <DialogBody className="flex-1 overflow-hidden flex flex-col p-0">
-          <div className="grid grid-cols-1 md:grid-cols-2 h-full">
-            {/* Left Column: Client Selection */}
-            <div className="flex flex-col border-r p-4 space-y-4 overflow-hidden">
-              <div className="space-y-3">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input 
-                    placeholder="Buscar por nome ou WhatsApp..." 
-                    className="pl-9"
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                  />
-                </div>
-
-                <div className="flex flex-wrap gap-2">
-                  <Button 
-                    variant={filter === 'all' ? 'default' : 'outline'} 
-                    size="sm" 
-                    className="h-8 text-xs"
-                    onClick={() => setFilter('all')}
-                  >
-                    Todos
-                  </Button>
-                  <Button 
-                    variant={filter === 'customers' ? 'default' : 'outline'} 
-                    size="sm" 
-                    className="h-8 text-xs"
-                    onClick={() => setFilter('customers')}
-                  >
-                    Já agendaram
-                  </Button>
-                  <Button 
-                    variant={filter === 'prospects' ? 'default' : 'outline'} 
-                    size="sm" 
-                    className="h-8 text-xs"
-                    onClick={() => setFilter('prospects')}
-                  >
-                    Nunca agendaram
-                  </Button>
-                  <Button 
-                    variant={filter === 'birthday' ? 'default' : 'outline'} 
-                    size="sm" 
-                    className="h-8 text-xs"
-                    onClick={() => setFilter('birthday')}
-                  >
-                    Aniversariantes
-                  </Button>
-                </div>
+          {success ? (
+            <div className="flex flex-col items-center justify-center p-8 text-center space-y-6 animate-in fade-in zoom-in duration-300">
+              <div className="h-20 w-20 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center">
+                <PartyPopper className="h-10 w-10" />
               </div>
-
-              <div className="flex items-center justify-between py-2 border-b">
-                <div className="flex items-center gap-2">
-                  <Checkbox 
-                    id="select-all" 
-                    checked={filteredClients.length > 0 && selectedIds.size === filteredClients.filter(c => !c.has_opt_out).length}
-                    onCheckedChange={handleSelectAll}
-                  />
-                  <label htmlFor="select-all" className="text-xs font-medium cursor-pointer">
-                    Selecionar todos visíveis
-                  </label>
-                </div>
-                <span className="text-[10px] text-muted-foreground">
-                  {selectedIds.size} selecionados
-                </span>
-              </div>
-
-              <ScrollArea className="flex-1 pr-4">
-                {loading ? (
-                  <div className="flex items-center justify-center py-10">
-                    <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-                  </div>
-                ) : filteredClients.length === 0 ? (
-                  <div className="text-center py-10 space-y-2">
-                    <Users className="h-10 w-10 text-muted-foreground/20 mx-auto" />
-                    <p className="text-sm text-muted-foreground">Nenhum cliente encontrado.</p>
-                  </div>
-                ) : (
-                  <div className="space-y-1">
-                    {filteredClients.map((client) => (
-                      <div 
-                        key={client.id}
-                        className={cn(
-                          "flex items-center gap-3 p-2 rounded-lg transition-colors border border-transparent",
-                          client.has_opt_out ? "opacity-50 cursor-not-allowed bg-muted/30" : "hover:bg-muted/50 cursor-pointer",
-                          selectedIds.has(client.id) && "bg-primary/5 border-primary/20"
-                        )}
-                        onClick={() => handleToggleSelect(client.id, client.has_opt_out)}
-                      >
-                        <Checkbox 
-                          checked={selectedIds.has(client.id)} 
-                          disabled={client.has_opt_out}
-                          onCheckedChange={() => handleToggleSelect(client.id, client.has_opt_out)}
-                        />
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium truncate">{client.name}</p>
-                          <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
-                            <span>{client.whatsapp}</span>
-                            {client.appointments_count! > 0 && (
-                              <Badge variant="secondary" className="px-1 h-3 text-[8px]">Cliente</Badge>
-                            )}
-                          </div>
-                        </div>
-                        {client.has_opt_out && (
-                          <Badge variant="outline" className="text-[8px] border-red-200 text-red-500 whitespace-nowrap">Opt-out</Badge>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </ScrollArea>
-            </div>
-
-            {/* Right Column: Preview & Confirmation */}
-            <div className="flex flex-col p-4 bg-muted/20 space-y-4">
+              
               <div className="space-y-2">
-                <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Prévia da Mensagem</h4>
-                <div className="relative">
-                  <div className="absolute top-2 right-2 bg-emerald-500 text-white p-1 rounded-full shadow-lg">
-                    <Check className="h-3 w-3" />
-                  </div>
-                  <Textarea 
-                    value={whatsappMessage} 
-                    readOnly 
-                    className="min-h-[300px] text-sm bg-white resize-none shadow-sm leading-relaxed"
-                  />
-                </div>
+                <h3 className="text-xl font-bold text-foreground">Campanha preparada com {lastCampaignCount} clientes.</h3>
+                <p className="text-muted-foreground">Nenhuma mensagem foi enviada ainda.</p>
+                <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 py-1 px-3">
+                  Envio automático será ativado na próxima etapa.
+                </Badge>
               </div>
 
-              {selectedIds.size > 20 && (
-                <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg space-y-2">
-                  <div className="flex items-center gap-2 text-amber-800">
-                    <AlertCircle className="h-4 w-4" />
-                    <span className="text-xs font-bold">Aviso: Segmento grande</span>
-                  </div>
-                  <p className="text-[10px] text-amber-700 leading-tight">
-                    Você selecionou {selectedIds.size} clientes. Para evitar bloqueios, o sistema enviará as mensagens com intervalos aleatórios.
-                  </p>
-                  <div className="flex items-center gap-2 pt-1">
-                    <Checkbox 
-                      id="confirm-spam" 
-                      checked={confirmSpam}
-                      onCheckedChange={(checked) => setConfirmSpam(checked as boolean)}
+              <Button 
+                onClick={() => {
+                  setSuccess(false);
+                  onOpenChange(false);
+                }}
+                className="w-full max-w-xs"
+              >
+                Fechar
+              </Button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 h-full">
+              {/* Left Column: Client Selection */}
+              <div className="flex flex-col border-r p-4 space-y-4 overflow-hidden">
+                <div className="space-y-3">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input 
+                      placeholder="Buscar por nome ou WhatsApp..." 
+                      className="pl-9"
+                      value={search}
+                      onChange={(e) => setSearch(e.target.value)}
                     />
-                    <label htmlFor="confirm-spam" className="text-[10px] font-medium text-amber-900 leading-tight cursor-pointer">
-                      Confirmo que estes clientes podem receber comunicações promocionais.
+                  </div>
+
+                  <div className="flex flex-wrap gap-2">
+                    <Button 
+                      variant={filter === 'all' ? 'default' : 'outline'} 
+                      size="sm" 
+                      className="h-8 text-xs"
+                      onClick={() => setFilter('all')}
+                    >
+                      Todos
+                    </Button>
+                    <Button 
+                      variant={filter === 'customers' ? 'default' : 'outline'} 
+                      size="sm" 
+                      className="h-8 text-xs"
+                      onClick={() => setFilter('customers')}
+                    >
+                      Já agendaram
+                    </Button>
+                    <Button 
+                      variant={filter === 'prospects' ? 'default' : 'outline'} 
+                      size="sm" 
+                      className="h-8 text-xs"
+                      onClick={() => setFilter('prospects')}
+                    >
+                      Nunca agendaram
+                    </Button>
+                    <Button 
+                      variant={filter === 'birthday' ? 'default' : 'outline'} 
+                      size="sm" 
+                      className="h-8 text-xs"
+                      onClick={() => setFilter('birthday')}
+                    >
+                      Aniversariantes
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between py-2 border-b">
+                  <div className="flex items-center gap-2">
+                    <Checkbox 
+                      id="select-all" 
+                      checked={filteredClients.length > 0 && selectedIds.size === filteredClients.filter(c => !c.has_opt_out).length}
+                      onCheckedChange={handleSelectAll}
+                    />
+                    <label htmlFor="select-all" className="text-xs font-medium cursor-pointer">
+                      Selecionar todos visíveis
                     </label>
                   </div>
+                  <span className="text-[10px] text-muted-foreground">
+                    {selectedIds.size} selecionados
+                  </span>
                 </div>
-              )}
 
-              <div className="mt-auto space-y-3">
-                <div className="flex items-center justify-between text-xs">
-                  <span className="text-muted-foreground">Total de destinatários:</span>
-                  <span className="font-bold">{selectedIds.size}</span>
-                </div>
-                <Button 
-                  className="w-full gap-2 h-12 bg-emerald-600 hover:bg-emerald-700 text-white font-bold"
-                  disabled={selectedIds.size === 0 || creating || (selectedIds.size > 20 && !confirmSpam)}
-                  onClick={handleCreateCampaign}
-                >
-                  {creating ? (
-                    <>
-                      <Loader2 className="h-5 w-5 animate-spin" />
-                      Preparando...
-                    </>
+                <ScrollArea className="flex-1 pr-4">
+                  {loading ? (
+                    <div className="flex items-center justify-center py-10">
+                      <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                    </div>
+                  ) : filteredClients.length === 0 ? (
+                    <div className="text-center py-10 space-y-2">
+                      <Users className="h-10 w-10 text-muted-foreground/20 mx-auto" />
+                      <p className="text-sm text-muted-foreground">Nenhum cliente encontrado.</p>
+                    </div>
                   ) : (
-                    <>
-                      <Check className="h-5 w-5" />
-                      Confirmar Campanha
-                    </>
+                    <div className="space-y-1">
+                      {filteredClients.map((client) => (
+                        <div 
+                          key={client.id}
+                          className={cn(
+                            "flex items-center gap-3 p-2 rounded-lg transition-colors border border-transparent",
+                            client.has_opt_out ? "opacity-50 cursor-not-allowed bg-muted/30" : "hover:bg-muted/50 cursor-pointer",
+                            selectedIds.has(client.id) && "bg-primary/5 border-primary/20"
+                          )}
+                          onClick={() => handleToggleSelect(client.id, client.has_opt_out)}
+                        >
+                          <Checkbox 
+                            checked={selectedIds.has(client.id)} 
+                            disabled={client.has_opt_out}
+                            onCheckedChange={() => handleToggleSelect(client.id, client.has_opt_out)}
+                          />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium truncate">{client.name}</p>
+                            <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
+                              <span>{client.whatsapp}</span>
+                              {client.appointments_count! > 0 && (
+                                <Badge variant="secondary" className="px-1 h-3 text-[8px]">Cliente</Badge>
+                              )}
+                            </div>
+                          </div>
+                          {client.has_opt_out && (
+                            <Badge variant="outline" className="text-[8px] border-red-200 text-red-500 whitespace-nowrap">Opt-out</Badge>
+                          )}
+                        </div>
+                      ))}
+                    </div>
                   )}
-                </Button>
-                <p className="text-[10px] text-center text-muted-foreground">
-                  A campanha será registrada e enviada em fila.
-                </p>
+                </ScrollArea>
+              </div>
+
+              {/* Right Column: Preview & Confirmation */}
+              <div className="flex flex-col p-4 bg-muted/20 space-y-4">
+                <div className="space-y-2">
+                  <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Prévia da Mensagem</h4>
+                  <div className="relative">
+                    <div className="absolute top-2 right-2 bg-emerald-500 text-white p-1 rounded-full shadow-lg">
+                      <Check className="h-3 w-3" />
+                    </div>
+                    <Textarea 
+                      value={whatsappMessage} 
+                      readOnly 
+                      className="min-h-[300px] text-sm bg-white resize-none shadow-sm leading-relaxed"
+                    />
+                  </div>
+                </div>
+
+                {selectedIds.size > 20 && (
+                  <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg space-y-2">
+                    <div className="flex items-center gap-2 text-amber-800">
+                      <AlertCircle className="h-4 w-4" />
+                      <span className="text-xs font-bold">Aviso: Segmento grande</span>
+                    </div>
+                    <p className="text-[10px] text-amber-700 leading-tight">
+                      Você selecionou {selectedIds.size} clientes. Para evitar bloqueios, o sistema enviará as mensagens com intervalos aleatórios.
+                    </p>
+                    <div className="flex items-center gap-2 pt-1">
+                      <Checkbox 
+                        id="confirm-spam" 
+                        checked={confirmSpam}
+                        onCheckedChange={(checked) => setConfirmSpam(checked as boolean)}
+                      />
+                      <label htmlFor="confirm-spam" className="text-[10px] font-medium text-amber-900 leading-tight cursor-pointer">
+                        Confirmo que estes clientes podem receber comunicações promocionais.
+                      </label>
+                    </div>
+                  </div>
+                )}
+
+                <div className="mt-auto space-y-3">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-muted-foreground">Total de destinatários:</span>
+                    <span className="font-bold">{selectedIds.size}</span>
+                  </div>
+                  <Button 
+                    className="w-full gap-2 h-12 bg-emerald-600 hover:bg-emerald-700 text-white font-bold"
+                    disabled={selectedIds.size === 0 || creating || (selectedIds.size > 20 && !confirmSpam)}
+                    onClick={handleCreateCampaign}
+                  >
+                    {creating ? (
+                      <>
+                        <Loader2 className="h-5 w-5 animate-spin" />
+                        Preparando...
+                      </>
+                    ) : (
+                      <>
+                        <Check className="h-5 w-5" />
+                        Confirmar Campanha
+                      </>
+                    )}
+                  </Button>
+                  <p className="text-[10px] text-center text-muted-foreground">
+                    A campanha será registrada e enviada em fila.
+                  </p>
+                </div>
               </div>
             </div>
-          </div>
+          )}
         </DialogBody>
       </DialogContent>
     </Dialog>
