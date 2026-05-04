@@ -84,18 +84,21 @@ export function PromotionOpportunities({
   }, [companyId, selectedDate, selectedProfessionalId, selectedServiceId]);
 
   const fetchSlots = async () => {
+    if (selectedServiceId === 'all') {
+      setSlots([]);
+      return;
+    }
+
     setLoading(true);
     try {
       const date = parseISO(selectedDate);
-      
-      // Calculate average duration if "all" services or specific
-      const duration = selectedServiceId === 'all' 
-        ? (services.length > 0 ? Math.round(services.reduce((acc, s) => acc + (s.duration_minutes || 30), 0) / services.length) : 30)
-        : (services.find(s => s.id === selectedServiceId)?.duration_minutes || 30);
+      const selectedService = services.find(s => s.id === selectedServiceId);
+      const duration = selectedService?.duration_minutes || 30;
 
-      // Get available slots using the core service
+      // Get available slots using the core service with "public" source
+      // to match exactly what the client sees on the booking page.
       const result = await getAvailableSlots({
-        source: 'manual',
+        source: 'public',
         companyId: companyId!,
         professionalId: selectedProfessionalId,
         date,
@@ -103,30 +106,54 @@ export function PromotionOpportunities({
         filterPastForToday: false
       });
 
-      // Now we need to reconstruct the full day timeline (free + occupied)
-      // Since getAvailableSlots doesn't give us the full "grid" (only free ones), 
-      // we generate a theoretical grid based on business hours or a fixed interval (e.g. 30min)
-      // and check which ones are in result.slots.
+      // Get business hours to know the day's range
+      const { data: bizHours } = await supabase
+        .from('business_hours')
+        .select('*')
+        .eq('company_id', companyId!)
+        .eq('day_of_week', date.getDay())
+        .maybeSingle();
+
+      const { data: profHours } = await supabase
+        .from('professional_working_hours')
+        .select('*')
+        .eq('professional_id', selectedProfessionalId)
+        .eq('day_of_week', date.getDay())
+        .maybeSingle();
+
+      // Effective hours (professional override)
+      const hours = profHours || bizHours;
       
-      const startTime = 7 * 60; // 07:00
-      const endTime = 22 * 60; // 22:00
-      const interval = 30; // default 30 min steps for the opportunities view
+      if (!hours || hours.is_closed) {
+        setSlots([]);
+        return;
+      }
+
+      const openTimeStr = hours.open_time;
+      const closeTimeStr = hours.close_time;
+      const [openH, openM] = openTimeStr.split(':').map(Number);
+      const [closeH, closeM] = closeTimeStr.split(':').map(Number);
+      
+      const startTime = openH * 60 + openM;
+      const endTime = closeH * 60 + closeM;
+      
+      // Use the same slotInterval from the engine result to build the grid
+      const interval = result.slotInterval || 15;
       
       const fullGrid: any[] = [];
-      for (let time = startTime; time <= endTime; time += interval) {
+      for (let time = startTime; time < endTime; time += interval) {
         const hh = Math.floor(time / 60);
         const mm = time % 60;
         const timeStr = `${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}`;
         
         const isFree = result.slots.includes(timeStr);
         
-        // Check if it's occupied by checking result.existingAppointments
-        // A slot is occupied if there is an appointment overlapping [time, time + duration]
         const slotStart = new Date(date);
         slotStart.setHours(hh, mm, 0, 0);
         const slotEnd = new Date(slotStart.getTime() + duration * 60000);
 
-        const isOccupied = result.existingAppointments.some((appt: any) => {
+        // Check if it's occupied by checking result.existingAppointments
+        const isOccupied = !isFree && result.existingAppointments.some((appt: any) => {
           const apptStart = new Date(appt.start_time);
           const apptEnd = new Date(appt.end_time);
           return slotStart < apptEnd && slotEnd > apptStart;
@@ -136,16 +163,12 @@ export function PromotionOpportunities({
         const hasPromo = promotions.some(promo => {
           if (promo.status !== 'active') return false;
           
-          // Filter by professional
-          if (promo.professional_filter === 'selected' && promo.professional_ids) {
+          if (promo.professional_filter === 'specific' && promo.professional_ids) {
             if (!promo.professional_ids.includes(selectedProfessionalId)) return false;
           }
 
-          // Filter by service if specified
-          if (selectedServiceId !== 'all') {
-            const pSvcIds = promo.service_ids || (promo.service_id ? [promo.service_id] : []);
-            if (pSvcIds.length > 0 && !pSvcIds.includes(selectedServiceId)) return false;
-          }
+          const pSvcIds = promo.service_ids || (promo.service_id ? [promo.service_id] : []);
+          if (pSvcIds.length > 0 && !pSvcIds.includes(selectedServiceId)) return false;
 
           return isSlotEligible(promo, slotStart);
         });
