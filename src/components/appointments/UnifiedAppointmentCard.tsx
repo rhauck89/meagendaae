@@ -355,7 +355,7 @@ export function UnifiedAppointmentCard({
           <div className="space-y-1 min-w-0 flex-1">
             <div className="flex items-center gap-2 flex-wrap min-w-0">
               <h3 className={cn(
-                "font-bold text-foreground leading-tight truncate capitalize",
+                "font-bold text-foreground leading-tight truncate capitalize max-w-[150px] sm:max-w-none",
                 variant === 'detailed' ? 'text-lg' : 'text-sm sm:text-base'
               )}>
                 {variant === 'client' 
