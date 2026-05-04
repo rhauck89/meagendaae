@@ -347,8 +347,13 @@ export default function Promotions() {
 
 
   const fetchCompanyInfo = async () => {
-    const { data } = await supabase.from('companies').select('name, slug, business_type').eq('id', companyId!).single();
-    if (data) { setCompanyName(data.name); setCompanySlug(data.slug); setCompanyBusinessType((data as any).business_type || 'barbershop'); }
+    const { data } = await supabase.from('companies').select('name, slug, business_type, logo_url').eq('id', companyId!).single();
+    if (data) { 
+      setCompanyName(data.name); 
+      setCompanySlug(data.slug); 
+      setCompanyBusinessType((data as any).business_type || 'barbershop');
+      setCompanyLogo(data.logo_url);
+    }
   };
 
   const fetchPromotions = async () => {
