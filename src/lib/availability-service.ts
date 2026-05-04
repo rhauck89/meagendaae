@@ -144,44 +144,51 @@ const configCache = new Map<string, {
 
 const CACHE_TTL = 30000; // 30 seconds
 
+/**
+ * Get the durations of all active services that the professional is linked to.
+ * This is used to calculate the base stepping interval (baseSlotMinutes).
+ */
 async function getScopedActiveServiceDurations(
   source: AvailabilitySource,
   companyId: string,
   professionalId: string,
 ) {
-  const servicesTable = source === 'public' ? 'public_services' : 'services';
-  const servicesSelect = source === 'public' ? 'id, duration_minutes' : 'id, duration_minutes, active';
-
-  // We can optimize this by only fetching what's needed.
-  // Actually, fetching all and filtering is often faster than complex joins in Supabase JS client
-  // but we should at least use the public views when appropriate.
+  // We use 'services' instead of 'public_services' even for public source
+  // because admins and professionals might want to see slots based on all active services.
+  // The 'public_services' view is just a subset of 'services' (active=true).
   const [serviceLinksRes, servicesRes] = await Promise.all([
     supabase
       .from('service_professionals' as any)
       .select('service_id')
       .eq('professional_id', professionalId),
     supabase
-      .from(servicesTable as any)
-      .select(servicesSelect)
-      .eq('company_id', companyId),
+      .from('services' as any)
+      .select('id, duration_minutes, active')
+      .eq('company_id', companyId)
+      .eq('active', true),
   ]);
 
   const linkedServiceIds = new Set(
     (((serviceLinksRes.data as any[]) || []).map((link) => link?.service_id).filter(Boolean)) as string[],
   );
 
-  const allServices = ((servicesRes.data as any[]) || []).filter((service) => {
-    if (source === 'public') return true;
-    return service?.active !== false;
-  });
+  const allActiveServices = (servicesRes.data as any[]) || [];
 
   const scopedServices = linkedServiceIds.size > 0
-    ? allServices.filter((service) => linkedServiceIds.has(service.id))
-    : allServices;
+    ? allActiveServices.filter((service) => linkedServiceIds.has(service.id))
+    : allActiveServices;
 
-  return scopedServices
+  const durations = scopedServices
     .map((service) => Number(service?.duration_minutes))
     .filter((duration) => Number.isFinite(duration) && duration > 0);
+
+  console.log('[AVAILABILITY_DURATIONS]', {
+    professionalId,
+    serviceCount: durations.length,
+    minDuration: durations.length > 0 ? Math.min(...durations) : 'N/A',
+  });
+
+  return durations;
 }
 
 /**
