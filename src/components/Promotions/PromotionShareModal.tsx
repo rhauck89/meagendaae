@@ -1,8 +1,8 @@
-import React, { useState, useRef, useMemo } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogBody, DialogFooter } from '@/components/ui/dialog';
+import React, { useState, useRef, useMemo, useEffect } from 'react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogBody } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Promotion } from '@/pages/Promotions';
-import { Instagram, MessageCircle, Copy, Download, Loader2, Check } from 'lucide-react';
+import { Instagram, MessageCircle, Copy, Download, Loader2, Check, Camera, Image as ImageIcon, ArrowLeft } from 'lucide-react';
 import { toPng } from 'html-to-image';
 import { PromotionInstagramArt } from './PromotionInstagramArt';
 import { toast } from '@/hooks/use-toast';
@@ -37,7 +37,12 @@ export function PromotionShareModal({
   const [activeTab, setActiveTab] = useState<'options' | 'instagram' | 'whatsapp'>('options');
   const [generating, setGenerating] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [backgroundImage, setBackgroundImage] = useState<string | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [isGeneratingPreview, setIsGeneratingPreview] = useState(false);
+  
   const artRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const routeType = businessType === 'esthetic' ? 'estetica' : 'barbearia';
   
@@ -45,7 +50,6 @@ export function PromotionShareModal({
     if (!promotion) return '';
     const baseUrl = `${window.location.origin}/${routeType}/${companySlug}`;
     
-    // If only one professional is associated, link to their profile
     if (promotion.professional_ids?.length === 1) {
       const prof = professionals.find(p => p.profile_id === promotion.professional_ids![0]);
       if (prof?.slug) {
@@ -85,35 +89,77 @@ export function PromotionShareModal({
 *${promotion.title}*
 ${discountLabel} em serviços selecionados
 ${slotsText}
-📅 Válida de ${format(parseISO(promotion.start_date), 'dd/MM/yyyy')} até ${format(parseISO(promotion.end_date), 'dd/MM/yyyy')}
+📅 Válida até ${format(parseISO(promotion.end_date), 'dd/MM/yyyy')}
 ✂️ Serviços: ${servicesText}
 💰 ${promotion.original_price ? `De R$ ${Number(promotion.original_price).toFixed(2)} por ` : ''}*R$ ${Number(promotion.promotion_price).toFixed(2)}*
 
 Agende pelo perfil:
 ${publicProfileUrl}`;
-  }, [promotion, companyName, publicProfileUrl, services]);
+  }, [promotion, companyName, publicProfileUrl, services, availableSlots]);
+
+  // Generate preview whenever promotion or background changes
+  useEffect(() => {
+    if (activeTab === 'instagram' && promotion) {
+      generatePreview();
+    }
+  }, [activeTab, promotion, backgroundImage]);
+
+  const generatePreview = async () => {
+    if (!artRef.current) return;
+    setIsGeneratingPreview(true);
+    setPreviewUrl(null);
+    
+    try {
+      // Small delay to ensure DOM is ready
+      await new Promise(resolve => setTimeout(resolve, 300));
+      
+      const dataUrl = await toPng(artRef.current, {
+        width: 1080,
+        height: 1920,
+        cacheBust: true,
+        pixelRatio: 1, // Use lower ratio for preview
+      });
+      setPreviewUrl(dataUrl);
+    } catch (err) {
+      console.error('Error generating preview:', err);
+      toast({ title: 'Erro ao gerar prévia', variant: 'destructive' });
+    } finally {
+      setIsGeneratingPreview(false);
+    }
+  };
 
   const handleGenerateArt = async () => {
     if (!artRef.current) return;
     setGenerating(true);
     try {
-      // Use toPng to generate the image
       const dataUrl = await toPng(artRef.current, {
         width: 1080,
         height: 1920,
         cacheBust: true,
+        pixelRatio: 2, // High quality for final download
       });
       
       const link = document.createElement('a');
       link.download = `promocao-${promotion?.title || 'art'}.png`;
       link.href = dataUrl;
       link.click();
-      toast({ title: 'Arte gerada com sucesso!' });
+      toast({ title: 'Arte baixada com sucesso!' });
     } catch (err) {
       console.error(err);
-      toast({ title: 'Erro ao gerar arte', variant: 'destructive' });
+      toast({ title: 'Erro ao baixar arte', variant: 'destructive' });
     } finally {
       setGenerating(false);
+    }
+  };
+
+  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        setBackgroundImage(event.target?.result as string);
+      };
+      reader.readAsDataURL(file);
     }
   };
 
@@ -133,12 +179,19 @@ ${publicProfileUrl}`;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>Divulgar Promoção</DialogTitle>
+      <DialogContent className="sm:max-w-md max-h-[90vh] overflow-hidden flex flex-col p-0">
+        <DialogHeader className="p-4 border-b flex-row items-center justify-between space-y-0">
+          <div className="flex items-center gap-2">
+            {activeTab !== 'options' && (
+              <Button variant="ghost" size="icon" onClick={() => setActiveTab('options')} className="h-8 w-8">
+                <ArrowLeft className="h-4 w-4" />
+              </Button>
+            )}
+            <DialogTitle className="text-lg">Divulgar Promoção</DialogTitle>
+          </div>
         </DialogHeader>
 
-        <DialogBody className="space-y-4 pt-4">
+        <DialogBody className="flex-1 overflow-y-auto p-4 space-y-4">
           {activeTab === 'options' && (
             <div className="grid grid-cols-1 gap-3">
               <Button 
@@ -150,8 +203,8 @@ ${publicProfileUrl}`;
                   <Instagram className="h-6 w-6" />
                 </div>
                 <div className="text-left">
-                  <p className="font-bold">Gerar arte Instagram</p>
-                  <p className="text-xs text-muted-foreground">Imagem 1080x1920 para Stories</p>
+                  <p className="font-bold text-base">Arte Instagram (Stories)</p>
+                  <p className="text-xs text-muted-foreground">Imagem 1080x1920 com sua foto ou arte auto</p>
                 </div>
               </Button>
 
@@ -164,8 +217,8 @@ ${publicProfileUrl}`;
                   <MessageCircle className="h-6 w-6" />
                 </div>
                 <div className="text-left">
-                  <p className="font-bold">Mensagem WhatsApp</p>
-                  <p className="text-xs text-muted-foreground">Texto pronto para enviar ou copiar</p>
+                  <p className="font-bold text-base">Mensagem WhatsApp</p>
+                  <p className="text-xs text-muted-foreground">Texto formatado para converter agendamentos</p>
                 </div>
               </Button>
 
@@ -178,8 +231,8 @@ ${publicProfileUrl}`;
                   <Copy className="h-6 w-6" />
                 </div>
                 <div className="text-left">
-                  <p className="font-bold">Copiar apenas texto</p>
-                  <p className="text-xs text-muted-foreground">Copia o resumo para a área de transferência</p>
+                  <p className="font-bold text-base">Copiar texto simples</p>
+                  <p className="text-xs text-muted-foreground">Apenas o conteúdo para colar onde quiser</p>
                 </div>
               </Button>
             </div>
@@ -187,32 +240,85 @@ ${publicProfileUrl}`;
 
           {activeTab === 'instagram' && (
             <div className="space-y-4">
-              <div className="aspect-[9/16] w-full max-w-[200px] mx-auto bg-muted rounded-lg border-2 border-dashed flex items-center justify-center text-center p-4">
-                <div>
-                  <Instagram className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
-                  <p className="text-xs text-muted-foreground">A arte será gerada com as informações da promoção.</p>
+              <div className="flex flex-col items-center gap-4">
+                <div className="relative aspect-[9/16] w-full max-w-[240px] bg-muted rounded-xl border-2 overflow-hidden shadow-xl mx-auto">
+                  {isGeneratingPreview && (
+                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-background/80 z-20 backdrop-blur-sm">
+                      <Loader2 className="h-8 w-8 animate-spin text-primary mb-2" />
+                      <p className="text-xs font-medium">Gerando arte...</p>
+                    </div>
+                  )}
+                  
+                  {previewUrl ? (
+                    <img src={previewUrl} alt="Preview" className="w-full h-full object-contain" />
+                  ) : (
+                    <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center">
+                      <Instagram className="h-10 w-10 text-muted-foreground mb-3 opacity-20" />
+                      <p className="text-xs text-muted-foreground">Aguarde a geração do preview...</p>
+                    </div>
+                  )}
+
+                  {/* Real component hidden for capture */}
+                  <div className="absolute pointer-events-none opacity-0" style={{ transform: 'scale(1)', transformOrigin: 'top left' }}>
+                    <PromotionInstagramArt 
+                      ref={artRef}
+                      promotion={promotion}
+                      companyName={companyName}
+                      companyLogo={companyLogo}
+                      services={services}
+                      professionals={professionals}
+                      publicProfileUrl={publicProfileUrl}
+                      availableSlots={availableSlots}
+                      backgroundImageUrl={backgroundImage}
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2 w-full">
+                  <Button 
+                    variant={!backgroundImage ? "default" : "outline"} 
+                    className="gap-2"
+                    onClick={() => setBackgroundImage(null)}
+                  >
+                    <ImageIcon className="h-4 w-4" />
+                    Automática
+                  </Button>
+                  <Button 
+                    variant={backgroundImage ? "default" : "outline"} 
+                    className="gap-2"
+                    onClick={() => fileInputRef.current?.click()}
+                  >
+                    <Camera className="h-4 w-4" />
+                    {backgroundImage ? "Trocar Foto" : "Usar Foto"}
+                  </Button>
+                  <input 
+                    type="file" 
+                    ref={fileInputRef} 
+                    className="hidden" 
+                    accept="image/*" 
+                    capture="environment"
+                    onChange={handlePhotoUpload}
+                  />
                 </div>
               </div>
-              <p className="text-xs text-center text-muted-foreground">
-                Dica: A imagem terá alta resolução (1080x1920) ideal para Stories.
-              </p>
-              
-              {/* Hidden art component for capture */}
-              <PromotionInstagramArt 
-                ref={artRef}
-                promotion={promotion}
-                companyName={companyName}
-                companyLogo={companyLogo}
-                services={services}
-                professionals={professionals}
-                publicProfileUrl={publicProfileUrl}
-              />
 
-              <div className="flex gap-2">
-                <Button variant="outline" className="flex-1" onClick={() => setActiveTab('options')}>Voltar</Button>
-                <Button className="flex-1 gap-2" onClick={handleGenerateArt} disabled={generating}>
-                  {generating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
-                  Baixar Imagem
+              <div className="pt-2 border-t flex gap-2">
+                <Button 
+                  className="flex-1 gap-2 h-12 text-base font-bold" 
+                  onClick={handleGenerateArt} 
+                  disabled={generating || !previewUrl || isGeneratingPreview}
+                >
+                  {generating ? (
+                    <>
+                      <Loader2 className="h-5 w-5 animate-spin" />
+                      Gerando Arquivo...
+                    </>
+                  ) : (
+                    <>
+                      <Download className="h-5 w-5" />
+                      Baixar Imagem (Stories)
+                    </>
+                  )}
                 </Button>
               </div>
             </div>
@@ -226,18 +332,17 @@ ${publicProfileUrl}`;
                   value={whatsappMessage} 
                   readOnly 
                   rows={10} 
-                  className="text-sm bg-muted resize-none focus-visible:ring-0"
+                  className="text-sm bg-muted resize-none focus-visible:ring-0 leading-relaxed"
                 />
               </div>
               <div className="flex gap-2">
-                <Button variant="outline" className="flex-1" onClick={() => setActiveTab('options')}>Voltar</Button>
                 <Button variant="outline" className="flex-1 gap-2" onClick={handleCopyText}>
                   {copied ? <Check className="h-4 w-4 text-emerald-500" /> : <Copy className="h-4 w-4" />}
                   Copiar
                 </Button>
                 <Button className="flex-1 gap-2 bg-emerald-600 hover:bg-emerald-700 text-white" onClick={handleSendWhatsApp}>
                   <MessageCircle className="h-4 w-4" />
-                  Enviar
+                  Enviar WhatsApp
                 </Button>
               </div>
             </div>
