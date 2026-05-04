@@ -132,6 +132,8 @@ export function UnifiedAppointmentCard({
   }).format(val);
 
   // --- COMPACT VARIANT (Used in "Next Appointments" and summaries) ---
+  const servicesText = formatServicesWithDuration(apt.appointment_services, 2);
+
   if (variant === 'compact') {
     return (
       <motion.div
@@ -159,9 +161,9 @@ export function UnifiedAppointmentCard({
               <p className="text-[9px] text-muted-foreground leading-none mt-0.5">até {format(endTime, 'HH:mm')}</p>
               <p className="text-[10px] font-bold text-primary uppercase mt-1">{displayDateShort}</p>
             </div>
-            <div className="flex-1 min-w-0">
+            <div className="flex-1 min-w-0 pr-1">
               <div className="flex items-center gap-1 min-w-0">
-                <p className="text-sm font-bold truncate leading-tight capitalize">
+                <p className="text-sm font-bold truncate leading-tight capitalize max-w-[140px] sm:max-w-none">
                   {clientName}
                 </p>
                 <div className="flex gap-0.5 ml-1">
@@ -182,8 +184,8 @@ export function UnifiedAppointmentCard({
                   )}
                 </div>
               </div>
-              <p className="text-[10px] text-muted-foreground truncate font-medium">
-                {formatServicesWithDuration(apt.appointment_services)}
+              <p className="text-[10px] text-muted-foreground truncate font-medium max-w-[180px] sm:max-w-none" title={formatServicesWithDuration(apt.appointment_services)}>
+                {servicesText}
               </p>
               {professionalName && (
                 <p className="text-[10px] text-primary/80 truncate font-semibold flex items-center gap-1 mt-0.5">
@@ -336,10 +338,10 @@ export function UnifiedAppointmentCard({
         statusColors[displayStatus] || 'bg-muted'
       )} />
 
-      <div className="flex justify-between items-start gap-3">
+      <div className="flex justify-between items-start gap-1 sm:gap-3">
         <div className="flex gap-3 sm:gap-4 items-start">
           {/* Time Column */}
-            <div className="flex flex-col items-center justify-center bg-background/60 backdrop-blur-sm rounded-xl px-2.5 py-1.5 sm:px-3 sm:py-2 min-w-[70px] sm:min-w-[85px] border border-border/40 shadow-sm">
+            <div className="flex flex-col items-center justify-center bg-background/60 backdrop-blur-sm rounded-xl px-2.5 py-1.5 sm:px-3 sm:py-2 min-w-[70px] sm:min-w-[85px] border border-border/40 shadow-sm shrink-0">
               <p className="text-lg sm:text-xl font-display font-bold text-foreground tracking-tight">
                 {format(startTime, 'HH:mm')}
               </p>
@@ -351,9 +353,9 @@ export function UnifiedAppointmentCard({
 
           {/* Info Column */}
           <div className="space-y-1 min-w-0 flex-1">
-            <div className="flex items-center gap-2 flex-wrap">
+            <div className="flex items-center gap-2 flex-wrap min-w-0">
               <h3 className={cn(
-                "font-bold text-foreground leading-tight truncate capitalize",
+                "font-bold text-foreground leading-tight truncate capitalize max-w-[150px] sm:max-w-none",
                 variant === 'detailed' ? 'text-lg' : 'text-sm sm:text-base'
               )}>
                 {variant === 'client' 
@@ -384,12 +386,12 @@ export function UnifiedAppointmentCard({
             </div>
             
             <p className={cn(
-              "font-medium text-muted-foreground/90 flex items-center gap-1.5 truncate",
+              "font-medium text-muted-foreground/90 flex items-center gap-1.5 truncate max-w-[200px] sm:max-w-none",
               variant === 'detailed' ? 'text-sm sm:text-base' : 'text-xs sm:text-sm'
             )}>
               <Scissors className="h-3 w-3 sm:h-3.5 sm:w-3.5 shrink-0" />
               {apt.appointment_services?.length > 0 
-                ? formatServicesWithDuration(apt.appointment_services) 
+                ? (variant === 'default' || variant === 'business' ? servicesText : formatServicesWithDuration(apt.appointment_services))
                 : 'Serviço não informado'}
             </p>
             
@@ -472,10 +474,10 @@ export function UnifiedAppointmentCard({
         </div>
 
         {/* Right Section: Actions & Badges */}
-        <div className="flex flex-col items-end gap-2 shrink-0">
+        <div className="flex flex-col items-end gap-2 shrink-0 z-10">
           <DropdownMenu>
             <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-              <Button variant="ghost" size="icon" className="h-9 w-9 sm:h-10 sm:w-10 rounded-full hover:bg-background/80 shadow-sm border border-border/20">
+              <Button variant="ghost" size="icon" className="h-9 w-9 sm:h-10 sm:w-10 rounded-full hover:bg-background/80 shadow-sm border border-border/20 bg-background/50">
                 <MoreHorizontal className="h-5 w-5 sm:h-6 sm:w-6" />
               </Button>
             </DropdownMenuTrigger>
