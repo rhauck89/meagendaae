@@ -433,7 +433,7 @@ export function PromotionCampaignModal({
                     )}
                   </Button>
                   <p className="text-[10px] text-center text-muted-foreground">
-                    A campanha será registrada e enviada em fila.
+                    A campanha será apenas preparada nesta etapa.
                   </p>
                 </div>
               </div>
