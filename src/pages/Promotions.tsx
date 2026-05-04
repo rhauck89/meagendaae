@@ -2387,6 +2387,7 @@ export default function Promotions() {
         businessType={companyBusinessType}
         services={services}
         professionals={professionals}
+        availableSlots={availableSlotsForShare}
       />
       <FeatureIntroModal
         featureKey="promotions"
