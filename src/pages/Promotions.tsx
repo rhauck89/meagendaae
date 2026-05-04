@@ -239,6 +239,7 @@ export default function Promotions() {
   const [expandedGroups, setExpandedGroups] = useState<string[]>([]);
   const [shareModalOpen, setShareModalOpen] = useState(false);
   const [companyLogo, setCompanyLogo] = useState<string | null>(null);
+  const [companyColor, setCompanyColor] = useState<string>('#eab308');
   const [availableSlotsForShare, setAvailableSlotsForShare] = useState<string[]>([]);
 
 
