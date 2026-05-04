@@ -243,10 +243,10 @@ export function PromotionCampaignModal({
               
               <div className="space-y-2">
                 <h3 className="text-xl font-bold text-foreground">Campanha preparada com {lastCampaignCount} clientes.</h3>
-                <p className="text-muted-foreground">Nenhuma mensagem foi enviada ainda.</p>
-                <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 py-1 px-3">
+                <p className="text-muted-foreground font-medium">Nenhuma mensagem foi enviada ainda.</p>
+                <p className="text-sm text-amber-600 bg-amber-50 border border-amber-100 rounded-md py-2 px-4 inline-block">
                   Envio automático será ativado na próxima etapa.
-                </Badge>
+                </p>
               </div>
 
               <Button 
