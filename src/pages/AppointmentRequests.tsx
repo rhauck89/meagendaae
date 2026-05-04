@@ -456,29 +456,31 @@ const AppointmentRequests = () => {
                     </div>
 
                     {req.status === 'pending' && (req.professional_id === profileId || (!req.professional_id && isAdmin)) && (
-                      <div className="flex flex-row sm:flex-col gap-2 shrink-0 pt-2 sm:pt-0">
+                      <div className="flex flex-col gap-2 shrink-0 pt-2 sm:pt-0">
+                        <div className="flex flex-row sm:flex-col gap-2">
+                          <Button 
+                            size="sm" 
+                            variant="outline" 
+                            className="flex-1 sm:w-32 justify-start gap-2 text-green-700 border-green-200 hover:bg-green-50 font-bold" 
+                            onClick={() => handleAcceptClick(req)} 
+                            disabled={processing}
+                          >
+                            <Check className="h-4 w-4" /> Aceitar
+                          </Button>
+                          <Button 
+                            size="sm" 
+                            variant="outline" 
+                            className="flex-1 sm:w-32 justify-start gap-2 text-blue-700 border-blue-200 hover:bg-blue-50 font-bold" 
+                            onClick={() => { setSelectedRequest(req); setSuggestedDate(req.requested_date); setSuggestedTime(req.requested_time); setSuggestDialogOpen(true); }} 
+                            disabled={processing}
+                          >
+                            <MessageCircle className="h-4 w-4" /> Sugerir
+                          </Button>
+                        </div>
                         <Button 
                           size="sm" 
                           variant="outline" 
-                          className="flex-1 sm:w-32 justify-start gap-2 text-green-700 border-green-200 hover:bg-green-50 font-bold" 
-                          onClick={() => handleAcceptClick(req)} 
-                          disabled={processing}
-                        >
-                          <Check className="h-4 w-4" /> Aceitar
-                        </Button>
-                        <Button 
-                          size="sm" 
-                          variant="outline" 
-                          className="flex-1 sm:w-32 justify-start gap-2 text-blue-700 border-blue-200 hover:bg-blue-50 font-bold" 
-                          onClick={() => { setSelectedRequest(req); setSuggestedDate(req.requested_date); setSuggestedTime(req.requested_time); setSuggestDialogOpen(true); }} 
-                          disabled={processing}
-                        >
-                          <MessageCircle className="h-4 w-4" /> Sugerir
-                        </Button>
-                        <Button 
-                          size="sm" 
-                          variant="outline" 
-                          className="flex-1 sm:w-32 justify-start gap-2 text-red-700 border-red-200 hover:bg-red-50 font-bold" 
+                          className="w-full sm:w-32 justify-start gap-2 text-red-700 border-red-200 hover:bg-red-50 font-bold" 
                           onClick={() => { setSelectedRequest(req); setRejectDialogOpen(true); }} 
                           disabled={processing}
                         >
