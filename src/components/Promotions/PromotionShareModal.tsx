@@ -3,8 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogBody } from '@/
 import { Button } from '@/components/ui/button';
 import { Promotion } from '@/pages/Promotions';
 import { Instagram, MessageCircle, Copy, Download, Loader2, Check, Camera, Image as ImageIcon, ArrowLeft } from 'lucide-react';
-import { toPng } from 'html-to-image';
-import { PromotionInstagramArt } from './PromotionInstagramArt';
+import { generatePromotionArt } from '@/utils/promotionArtGenerator';
 import { toast } from '@/hooks/use-toast';
 import { format, parseISO } from 'date-fns';
 import { Textarea } from '@/components/ui/textarea';
