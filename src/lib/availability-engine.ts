@@ -182,7 +182,7 @@ function getEarliestSlotTime(date: Date, roundTo: number): Date | null {
 /**
  * Resolve working hours for a given date, considering exceptions and professional overrides.
  */
-function resolveWorkingHours(
+export function resolveWorkingHours(
   date: Date,
   businessHours: BusinessHours[],
   professionalHours: BusinessHours[] | undefined,
