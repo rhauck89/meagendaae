@@ -123,12 +123,15 @@ const SuperAdminMarketplace = () => {
     setLoading(true);
     try {
       // Sincronizar status antes de buscar
-      await supabase.rpc('sync_marketplace_banner_statuses');
+      await Promise.all([
+        supabase.rpc('sync_marketplace_banner_statuses'),
+        supabase.rpc('sync_marketplace_featured_statuses')
+      ]);
 
       const [homeRes, bannersRes, featuredRes] = await Promise.all([
         supabase.from('marketplace_home_settings').select('*').single(),
         supabase.from('marketplace_banners').select('*').order('created_at', { ascending: false }),
-        supabase.from('marketplace_featured_items').select('*, companies(name, logo_url), profiles(full_name, avatar_url)').order('created_at', { ascending: false })
+        supabase.from('marketplace_featured_items').select('*, companies(name, logo_url), profiles(full_name, avatar_url)').order('priority', { ascending: false })
       ]);
 
       if (homeRes.data) setHomeSettings(homeRes.data);
