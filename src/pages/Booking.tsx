@@ -3178,7 +3178,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
             const benefitLines = [];
             if (bookingResult.pointsEarned > 0 || bookingResult.cashbackEarned > 0) {
               benefitLines.push('🎁 Benefícios deste agendamento:');
-              if (bookingResult.pointsEarned > 0) benefitLines.push(`⭐ ${bookingResult.pointsEarned} pontos`);
+              if (bookingResult.pointsEarned > 0) benefitLines.push(`⭐ ${bookingResult.pointsEarned} pontos de fidelidade`);
               if (bookingResult.cashbackEarned > 0) benefitLines.push(`💵 R$ ${bookingResult.cashbackEarned.toFixed(2).replace('.', ',')} de cashback`);
               benefitLines.push('');
             }
