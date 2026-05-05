@@ -422,39 +422,77 @@ const SuperAdminMarketplace = () => {
             </Card>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Próximos Banners a Expirar</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Banner</TableHead>
-                      <TableHead>Expira em</TableHead>
-                      <TableHead>Status</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {banners.filter(b => b.status === 'active').slice(0, 5).map(b => (
-                      <TableRow key={b.id}>
-                        <TableCell className="font-medium">{b.name}</TableCell>
-                        <TableCell>{format(new Date(b.end_date), 'dd/MM/yyyy')}</TableCell>
-                        <TableCell><Badge variant="outline" className="bg-success/10 text-success border-success/20">Ativo</Badge></TableCell>
-                      </TableRow>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-2 space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <AlertTriangle className="h-5 w-5 text-warning" /> 
+                    Alertas Operacionais
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {getBannerAlerts().map((alert) => (
+                      <div key={alert.id} className={`flex gap-3 p-3 rounded-lg border ${
+                        alert.type === 'warning' ? 'bg-amber-50 border-amber-200 text-amber-800' :
+                        alert.type === 'info' ? 'bg-blue-50 border-blue-200 text-blue-800' :
+                        'bg-muted/50 border-border text-muted-foreground'
+                      }`}>
+                        <alert.icon className="h-5 w-5 shrink-0" />
+                        <div className="space-y-1">
+                          <p className="text-sm font-semibold leading-none">{alert.title}</p>
+                          <p className="text-sm opacity-90">{alert.message}</p>
+                        </div>
+                      </div>
                     ))}
-                    {banners.filter(b => b.status === 'active').length === 0 && (
-                      <TableRow>
-                        <TableCell colSpan={3} className="text-center py-4 text-muted-foreground text-sm">Nenhum banner ativo expirando em breve.</TableCell>
-                      </TableRow>
+                    {getBannerAlerts().length === 0 && (
+                      <div className="text-center py-8 text-muted-foreground italic text-sm">
+                        Nenhum alerta operacional no momento.
+                      </div>
                     )}
-                  </TableBody>
-                </Table>
-              </CardContent>
-            </Card>
+                  </div>
+                </CardContent>
+              </Card>
 
-            <Card>
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Próximos Banners a Expirar</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Banner</TableHead>
+                        <TableHead>Expira em</TableHead>
+                        <TableHead>Status</TableHead>
+                      </TableHeader>
+                    </TableHeader>
+                    <TableBody>
+                      {banners.filter(b => b.status === 'active' && !b.deleted_at).sort((a,b) => new Date(a.end_date).getTime() - new Date(b.end_date).getTime()).slice(0, 5).map(b => (
+                        <TableRow key={b.id}>
+                          <TableCell className="font-medium text-sm">{b.name}</TableCell>
+                          <TableCell className="text-sm">{format(new Date(b.end_date), 'dd/MM/yyyy')}</TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              <Badge variant="outline" className="bg-success/10 text-success border-success/20 text-[10px] uppercase font-bold">Ativo</Badge>
+                              {getUsageBadge(b)}
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                      {banners.filter(b => b.status === 'active' && !b.deleted_at).length === 0 && (
+                        <TableRow>
+                          <TableCell colSpan={3} className="text-center py-4 text-muted-foreground text-sm">Nenhum banner ativo expirando em breve.</TableCell>
+                        </TableRow>
+                      )}
+                    </TableBody>
+                  </Table>
+                </CardContent>
+              </Card>
+            </div>
+
+            <Card className="h-fit">
               <CardHeader>
                 <CardTitle className="text-lg">Destaques Manuais</CardTitle>
               </CardHeader>
@@ -463,15 +501,17 @@ const SuperAdminMarketplace = () => {
                   {featuredItems.slice(0, 5).map(item => (
                     <div key={item.id} className="flex items-center justify-between p-3 rounded-lg border border-border">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded bg-muted flex items-center justify-center">
-                          {item.item_type === 'company' ? <Building2 className="h-5 w-5" /> : <Users className="h-5 w-5" />}
+                        <div className="w-10 h-10 rounded bg-muted flex items-center justify-center overflow-hidden">
+                          {item.companies?.logo_url ? (
+                            <img src={item.companies.logo_url} className="w-full h-full object-cover" />
+                          ) : item.item_type === 'company' ? <Building2 className="h-5 w-5" /> : <Users className="h-5 w-5" />}
                         </div>
                         <div>
-                          <p className="text-sm font-medium">{item.companies?.name || item.profiles?.full_name || 'Desconhecido'}</p>
-                          <p className="text-xs text-muted-foreground">{item.position} · {item.city || 'Todas cidades'}</p>
+                          <p className="text-sm font-medium leading-tight">{item.companies?.name || item.profiles?.full_name || 'Desconhecido'}</p>
+                          <p className="text-[10px] text-muted-foreground uppercase mt-0.5">{item.position.replace('_', ' ')}</p>
                         </div>
                       </div>
-                      <Badge variant={item.status === 'active' ? 'default' : 'secondary'}>{item.status}</Badge>
+                      <Badge variant={item.status === 'active' ? 'default' : 'secondary'} className="text-[10px] uppercase font-bold">{item.status}</Badge>
                     </div>
                   ))}
                   {featuredItems.length === 0 && (
