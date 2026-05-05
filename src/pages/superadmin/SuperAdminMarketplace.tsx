@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -35,6 +35,7 @@ import { format } from 'date-fns';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import BannerForm from './components/BannerForm';
 
 const BUCKET = 'marketplace-assets';
 
@@ -53,6 +54,15 @@ const SuperAdminMarketplace = () => {
     monthlyImpressions: 0,
     featuredCompanies: 0
   });
+
+  // UI States
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [selectedBanner, setSelectedBanner] = useState<any>(null);
+  const [filters, setFilters] = useState({
+    status: 'all',
+    position: 'all'
+  });
+  const [searchTerm, setSearchTerm] = useState('');
 
   const fetchAll = async () => {
     setLoading(true);
@@ -104,6 +114,43 @@ const SuperAdminMarketplace = () => {
       toast.success('Configurações da Home salvas com sucesso');
     } catch (error: any) {
       toast.error(`Erro ao salvar: ${error.message}`);
+    }
+  };
+
+  const handleDeleteBanner = async (id: string) => {
+    if (!confirm('Tem certeza que deseja excluir este banner?')) return;
+    
+    try {
+      // Usar soft delete
+      const { error } = await supabase
+        .from('marketplace_banners')
+        .update({ deleted_at: new Date().toISOString() })
+        .eq('id', id);
+      
+      if (error) throw error;
+      toast.success('Banner excluído com sucesso');
+      fetchAll();
+    } catch (error: any) {
+      toast.error(`Erro ao excluir: ${error.message}`);
+    }
+  };
+
+  const handleDuplicateBanner = async (banner: any) => {
+    try {
+      const { id, created_at, updated_at, deleted_at, current_clicks, current_impressions, ...rest } = banner;
+      const { error } = await supabase
+        .from('marketplace_banners')
+        .insert([{
+          ...rest,
+          name: `Cópia de ${banner.name}`,
+          status: 'draft'
+        }]);
+      
+      if (error) throw error;
+      toast.success('Banner duplicado como rascunho');
+      fetchAll();
+    } catch (error: any) {
+      toast.error(`Erro ao duplicar: ${error.message}`);
     }
   };
 
@@ -381,11 +428,62 @@ const SuperAdminMarketplace = () => {
         </TabsContent>
 
         <TabsContent value="banners" className="space-y-6">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <h3 className="text-lg font-semibold">Gestão de Anúncios</h3>
-            <Button size="sm" className="gap-2" onClick={() => toast.info('Funcionalidade de criação em breve na Fase 2')}>
-              <Plus className="h-4 w-4" /> Novo Banner
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button size="sm" variant="outline" className="gap-2" onClick={() => { setFilters({ status: 'all', position: 'all' }); setSearchTerm(''); }}>
+                <X className="h-4 w-4" /> Limpar
+              </Button>
+              <Button size="sm" className="gap-2" onClick={() => { setSelectedBanner(null); setIsDialogOpen(true); }}>
+                <Plus className="h-4 w-4" /> Novo Banner
+              </Button>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 bg-muted/30 p-4 rounded-lg">
+            <div className="space-y-1">
+              <Label className="text-[10px] uppercase">Status</Label>
+              <Select value={filters.status} onValueChange={v => setFilters({...filters, status: v})}>
+                <SelectTrigger className="h-9">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos Status</SelectItem>
+                  <SelectItem value="active">Ativo</SelectItem>
+                  <SelectItem value="draft">Rascunho</SelectItem>
+                  <SelectItem value="paused">Pausado</SelectItem>
+                  <SelectItem value="scheduled">Programado</SelectItem>
+                  <SelectItem value="ended">Encerrado</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <Label className="text-[10px] uppercase">Posição</Label>
+              <Select value={filters.position} onValueChange={v => setFilters({...filters, position: v})}>
+                <SelectTrigger className="h-9">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todas Posições</SelectItem>
+                  <SelectItem value="hero_secondary">Hero Secundário</SelectItem>
+                  <SelectItem value="sections">Banner entre Seções</SelectItem>
+                  <SelectItem value="category">Banner de Categoria</SelectItem>
+                  <SelectItem value="footer">Rodapé</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1 md:col-span-2">
+              <Label className="text-[10px] uppercase">Pesquisar</Label>
+              <div className="relative">
+                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input 
+                  placeholder="Nome do banner ou anunciante..." 
+                  className="pl-9 h-9" 
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+              </div>
+            </div>
           </div>
           
           <Card>
@@ -399,11 +497,19 @@ const SuperAdminMarketplace = () => {
                     <TableHead>Período</TableHead>
                     <TableHead>Performance</TableHead>
                     <TableHead>Status</TableHead>
-                    <TableHead className="w-[50px]"></TableHead>
+                    <TableHead>Ações</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {banners.map(b => (
+                  {banners
+                    .filter(b => !b.deleted_at)
+                    .filter(b => filters.status === 'all' || b.status === filters.status)
+                    .filter(b => filters.position === 'all' || b.position === filters.position)
+                    .filter(b => !searchTerm || 
+                      b.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                      (b.client_name && b.client_name.toLowerCase().includes(searchTerm.toLowerCase()))
+                    )
+                    .map(b => (
                     <TableRow key={b.id}>
                       <TableCell>
                         <div className="flex items-center gap-3">
@@ -431,24 +537,41 @@ const SuperAdminMarketplace = () => {
                         </div>
                       </TableCell>
                       <TableCell>
-                        <Badge variant={b.status === 'active' ? 'default' : b.status === 'draft' ? 'outline' : 'secondary'} className="text-[10px] h-5">
+                        <Badge variant={b.status === 'active' ? 'default' : b.status === 'draft' ? 'outline' : 'secondary'} className="text-[10px] h-5 capitalize">
                           {b.status}
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        <Button variant="ghost" size="icon" className="h-8 w-8"><MoreHorizontal className="h-4 w-4" /></Button>
+                        <div className="flex items-center gap-1">
+                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => { setSelectedBanner(b); setIsDialogOpen(true); }}><Edit className="h-4 w-4" /></Button>
+                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleDuplicateBanner(b)}><Plus className="h-4 w-4" /></Button>
+                          <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => handleDeleteBanner(b.id)}><Trash2 className="h-4 w-4" /></Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}
-                  {banners.length === 0 && (
+                  {banners.filter(b => !b.deleted_at).length === 0 && (
                     <TableRow>
-                      <TableCell colSpan={7} className="text-center py-12 text-muted-foreground">Nenhum banner encontrado. Clique em "Novo Banner" para começar.</TableCell>
+                      <TableCell colSpan={7} className="text-center py-12 text-muted-foreground">Nenhum banner cadastrado.</TableCell>
                     </TableRow>
                   )}
                 </TableBody>
               </Table>
             </CardContent>
           </Card>
+
+          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>{selectedBanner ? 'Editar Banner' : 'Novo Banner'}</DialogTitle>
+              </DialogHeader>
+              <BannerForm 
+                banner={selectedBanner} 
+                onSuccess={() => { setIsDialogOpen(false); fetchAll(); }} 
+                onCancel={() => setIsDialogOpen(false)} 
+              />
+            </DialogContent>
+          </Dialog>
         </TabsContent>
 
         <TabsContent value="featured" className="space-y-6">
@@ -536,8 +659,6 @@ const SuperAdminMarketplace = () => {
   );
 };
 
-// Auxiliary components that were missing in code--write (mocking CardFooter for build pass)
-const CardFooter = ({ children, className }: any) => <div className={`p-6 ${className}`}>{children}</div>;
 
 
 export default SuperAdminMarketplace;
