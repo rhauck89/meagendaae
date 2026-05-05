@@ -960,16 +960,22 @@ const ClientPortal = () => {
                               </p>
                             </div>
 
-                            <div className="grid grid-cols-2 gap-3 pt-2 border-t border-primary/10">
+                            <div className="grid grid-cols-3 gap-2 pt-2 border-t border-primary/10">
                               <div>
-                                <p className="text-[10px] text-muted-foreground uppercase font-bold">Total Ganho</p>
-                                <p className="text-lg font-bold text-green-600">
+                                <p className="text-[9px] text-muted-foreground uppercase font-bold">Ganho</p>
+                                <p className="text-sm font-bold text-green-600">
                                   + R$ {cashbackTotals.gained.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                                 </p>
                               </div>
                               <div>
-                                <p className="text-[10px] text-muted-foreground uppercase font-bold">Total Usado</p>
-                                <p className="text-lg font-bold text-red-500">
+                                <p className="text-[9px] text-muted-foreground uppercase font-bold">Pendente</p>
+                                <p className="text-sm font-bold text-orange-500">
+                                  R$ {cashbackTotals.pending.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                                </p>
+                              </div>
+                              <div>
+                                <p className="text-[9px] text-muted-foreground uppercase font-bold">Usado</p>
+                                <p className="text-sm font-bold text-red-500">
                                   - R$ {cashbackTotals.used.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                                 </p>
                               </div>
