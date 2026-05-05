@@ -4288,6 +4288,8 @@ export type Database = {
           created_at: string
           error_message: string | null
           id: string
+          message_body: string | null
+          processed_at: string | null
           sent_at: string | null
           status: string
           whatsapp: string
@@ -4299,6 +4301,8 @@ export type Database = {
           created_at?: string
           error_message?: string | null
           id?: string
+          message_body?: string | null
+          processed_at?: string | null
           sent_at?: string | null
           status?: string
           whatsapp: string
@@ -4310,6 +4314,8 @@ export type Database = {
           created_at?: string
           error_message?: string | null
           id?: string
+          message_body?: string | null
+          processed_at?: string | null
           sent_at?: string | null
           status?: string
           whatsapp?: string
@@ -4369,36 +4375,57 @@ export type Database = {
       promotion_campaigns: {
         Row: {
           company_id: string
+          completed_at: string | null
           created_at: string
+          error_count: number
           id: string
+          last_error: string | null
           message_body: string
+          opt_out_count: number
           professional_id: string | null
           promotion_id: string | null
+          skipped_count: number
+          started_at: string | null
           status: string
+          success_count: number
           title: string
           total_clients: number
           updated_at: string
         }
         Insert: {
           company_id: string
+          completed_at?: string | null
           created_at?: string
+          error_count?: number
           id?: string
+          last_error?: string | null
           message_body: string
+          opt_out_count?: number
           professional_id?: string | null
           promotion_id?: string | null
+          skipped_count?: number
+          started_at?: string | null
           status?: string
+          success_count?: number
           title: string
           total_clients?: number
           updated_at?: string
         }
         Update: {
           company_id?: string
+          completed_at?: string | null
           created_at?: string
+          error_count?: number
           id?: string
+          last_error?: string | null
           message_body?: string
+          opt_out_count?: number
           professional_id?: string | null
           promotion_id?: string | null
+          skipped_count?: number
+          started_at?: string | null
           status?: string
+          success_count?: number
           title?: string
           total_clients?: number
           updated_at?: string
@@ -7303,6 +7330,10 @@ export type Database = {
             }
             Returns: Json
           }
+      register_promotional_opt_out: {
+        Args: { p_company_id: string; p_whatsapp: string }
+        Returns: undefined
+      }
       reject_suggested_request: {
         Args: { p_request_id: string }
         Returns: Json
