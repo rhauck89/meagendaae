@@ -238,7 +238,26 @@ const ReportsTab = () => {
               </Select>
             </div>
 
-            <div className="space-y-2 flex-1 min-w-[200px]">
+            <div className="space-y-2">
+              <Label className="text-xs">Estado</Label>
+              <Select value={filters.state} onValueChange={(v) => setFilters({...filters, state: v})}>
+                <SelectTrigger className="w-[120px] h-9">
+                  <SelectValue placeholder="Estado" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos</SelectItem>
+                  <SelectItem value="SP">São Paulo</SelectItem>
+                  <SelectItem value="RJ">Rio de Janeiro</SelectItem>
+                  <SelectItem value="MG">Minas Gerais</SelectItem>
+                  <SelectItem value="PR">Paraná</SelectItem>
+                  <SelectItem value="RS">Rio Grande do Sul</SelectItem>
+                  <SelectItem value="SC">Santa Catarina</SelectItem>
+                  <SelectItem value="DF">Distrito Federal</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2 flex-1 min-w-[150px]">
               <Label className="text-xs">Anunciante</Label>
               <div className="relative">
                 <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
