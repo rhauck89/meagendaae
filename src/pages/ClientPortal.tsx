@@ -197,10 +197,9 @@ const ClientPortal = () => {
   const loadClientData = async (isRevalidation = false) => {
     if (!isRevalidation) setLoading(true);
     try {
-      const currentUserId = isAdmin ? null : user?.id;
-      
-      // If admin, we don't use these new RPCs because they are locked to auth.uid()
-      // For now, let's focus on the client experience (auth.uid())
+      console.log('[CLIENT_PORTAL_DEBUG] Starting data load');
+      console.log('[CLIENT_PORTAL_DEBUG] auth.uid():', user?.id);
+      console.log('[CLIENT_PORTAL_DEBUG] user.email:', user?.email);
       
       const [
         summaryRes,
@@ -220,6 +219,12 @@ const ClientPortal = () => {
         supabase.from('loyalty_redemptions').select('id, redemption_code, status, created_at, total_points, reward_id, company_id, client_id').eq('user_id', user?.id).order('created_at', { ascending: false }).limit(50)
       ]);
 
+      console.log('[CLIENT_PORTAL_DEBUG] summaryRes:', summaryRes.data);
+      console.log('[CLIENT_PORTAL_DEBUG] apptsRes:', apptsRes.data);
+      console.log('[CLIENT_PORTAL_DEBUG] pointsRes:', pointsRes.data);
+      console.log('[CLIENT_PORTAL_DEBUG] cashbackRes:', cashbackRes.data);
+      console.log('[CLIENT_PORTAL_DEBUG] clientsRes:', clientsRes.data);
+
       const summaryData = summaryRes.data;
       const appointmentsData = (apptsRes.data || []) as any[];
       const pointsDataObj = pointsRes.data;
@@ -227,6 +232,7 @@ const ClientPortal = () => {
       const rewardsData = (rewardsRes.data || []) as any[];
       const clientsData = (clientsRes.data || []) as ClientRecord[];
       const redemptionsData = (redemptionsRes.data || []) as Redemption[];
+
 
       setSummary(summaryData);
       setAppointments(appointmentsData);
