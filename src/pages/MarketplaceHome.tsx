@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { SEOHead } from '@/components/SEOHead';
 import { usePlatformSettings } from '@/hooks/usePlatformSettings';
 import { useGeolocation, calculateDistance, formatDistance } from '@/hooks/useGeolocation';
+import { MarketplaceBanner } from '@/components/marketplace/MarketplaceBanner';
 import {
   Scissors, ArrowRight, Star, MapPin, Search, Sparkles,
   Users, Heart, Shield, Loader2, Crown, Calendar, ShieldCheck,
@@ -103,7 +104,12 @@ export default function MarketplaceHome() {
     try {
       const [settingsRes, bannersRes] = await Promise.all([
         supabase.from('marketplace_home_settings').select('*').single(),
-        supabase.from('marketplace_banners').select('*').eq('status', 'active')
+        supabase.from('marketplace_banners')
+          .select('*')
+          .eq('status', 'active')
+          .is('deleted_at', null)
+          .lte('start_date', new Date().toISOString())
+          .gte('end_date', new Date().toISOString())
       ]);
       
       if (settingsRes.data) setHomeSettings(settingsRes.data);
@@ -112,6 +118,54 @@ export default function MarketplaceHome() {
       console.error('[MARKETPLACE] Error loading settings:', err);
     }
   };
+
+  const selectBanner = (position: string) => {
+    const validBanners = banners.filter(b => b.position === position);
+    if (validBanners.length === 0) return null;
+
+    // Filter by category and region
+    const filteredBanners = validBanners.filter(b => {
+      // If banner has a category, it must match the selected filterCategory
+      if (b.category && filterCategory !== 'all' && b.category !== filterCategory) return false;
+      if (b.category && filterCategory === 'all') return false; // Category-specific banners only show when category is selected
+      
+      // If banner has a city, it must match the filterCity
+      if (b.city) {
+        if (!filterCity.trim()) return false; // City-specific banners only show when city is filtered
+        if (!b.city.toLowerCase().includes(filterCity.trim().toLowerCase())) return false;
+      }
+      
+      return true;
+    });
+
+    const sourceBanners = filteredBanners.length > 0 
+      ? filteredBanners 
+      : validBanners.filter(b => !b.category && !b.city); // Fallback to global banners
+
+    if (sourceBanners.length === 0) return null;
+
+    // Sort by priority (descending)
+    const maxPriority = Math.max(...sourceBanners.map(b => b.priority || 0));
+    const topPriorityBanners = sourceBanners.filter(b => (b.priority || 0) === maxPriority);
+
+    if (topPriorityBanners.length === 1) return topPriorityBanners[0];
+
+    // Simple weighted rotation for same priority
+    const totalWeight = topPriorityBanners.reduce((sum, b) => sum + (b.rotation_weight || 1), 0);
+    let random = Math.random() * totalWeight;
+    
+    for (const banner of topPriorityBanners) {
+      random -= (banner.rotation_weight || 1);
+      if (random <= 0) return banner;
+    }
+
+    return topPriorityBanners[0];
+  };
+
+  const heroSecondaryBanner = useMemo(() => selectBanner('hero_secondary'), [banners, filterCategory, filterCity]);
+  const betweenSectionsBanner = useMemo(() => selectBanner('between_sections'), [banners, filterCategory, filterCity]);
+  const footerBanner = useMemo(() => selectBanner('footer'), [banners, filterCategory, filterCity]);
+  const categoryBanner = useMemo(() => selectBanner('category_page'), [banners, filterCategory, filterCity]);
 
   useEffect(() => {
     if (geo.latitude && geo.longitude) {
@@ -350,6 +404,13 @@ export default function MarketplaceHome() {
 
       <div id="marketplace-results" />
 
+      {/* Hero Secondary Banner */}
+      {heroSecondaryBanner && (
+        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-6">
+          <MarketplaceBanner banner={heroSecondaryBanner} className="h-40 md:h-48" />
+        </section>
+      )}
+
       {/* Special offers banner */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-8">
         <div className="relative rounded-2xl overflow-hidden border border-border shadow-sm" style={{ background: 'linear-gradient(90deg, #3a2410 0%, #5a3a1f 30%, #f5e6c5 70%, #f0d9a8 100%)' }}>
@@ -520,24 +581,35 @@ export default function MarketplaceHome() {
         </section>
       )}
 
-      {/* Publicidade roxa */}
+      {/* Dynamic or static between sections banner */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="relative rounded-2xl overflow-hidden border border-border shadow-sm h-32 md:h-36">
-          <img src={adPurple} alt="" className="absolute inset-0 w-full h-full object-cover" loading="lazy" />
-          <div className="absolute inset-0 bg-gradient-to-r from-purple-900/90 via-purple-800/70 to-purple-900/40" />
-          <div className="relative h-full flex items-center justify-between px-6 md:px-10">
-            <div>
-              <span className="inline-block bg-white/15 text-white/90 text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded mb-2">Publicidade</span>
-              <p className="text-white text-lg md:text-2xl font-display font-bold leading-tight max-w-md">
-                Destaque sua marca<br />para milhares de clientes
-              </p>
+        {betweenSectionsBanner ? (
+          <MarketplaceBanner banner={betweenSectionsBanner} className="h-32 md:h-36" />
+        ) : (
+          <div className="relative rounded-2xl overflow-hidden border border-border shadow-sm h-32 md:h-36">
+            <img src={adPurple} alt="" className="absolute inset-0 w-full h-full object-cover" loading="lazy" />
+            <div className="absolute inset-0 bg-gradient-to-r from-purple-900/90 via-purple-800/70 to-purple-900/40" />
+            <div className="relative h-full flex items-center justify-between px-6 md:px-10">
+              <div>
+                <span className="inline-block bg-white/15 text-white/90 text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded mb-2">Publicidade</span>
+                <p className="text-white text-lg md:text-2xl font-display font-bold leading-tight max-w-md">
+                  Destaque sua marca<br />para milhares de clientes
+                </p>
+              </div>
+              <Button variant="outline" className="bg-transparent border-white text-white hover:bg-white hover:text-purple-900 rounded-md">
+                Anuncie aqui
+              </Button>
             </div>
-            <Button variant="outline" className="bg-transparent border-white text-white hover:bg-white hover:text-purple-900 rounded-md">
-              Anuncie aqui
-            </Button>
           </div>
-        </div>
+        )}
       </section>
+
+      {/* Category Specific Banner */}
+      {categoryBanner && filterCategory !== 'all' && (
+        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+          <MarketplaceBanner banner={categoryBanner} className="h-32 md:h-40" />
+        </section>
+      )}
 
       {/* Categories grid */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
@@ -638,6 +710,13 @@ export default function MarketplaceHome() {
           </div>
         </div>
       </section>
+
+      {/* Marketplace Footer Banner */}
+      {footerBanner && (
+        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <MarketplaceBanner banner={footerBanner} className="h-24 md:h-32" />
+        </section>
+      )}
 
       {/* Footer */}
       <footer className="border-t border-border py-8">
