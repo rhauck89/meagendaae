@@ -3506,6 +3506,7 @@ export type Database = {
           created_at: string | null
           current_clicks: number | null
           current_impressions: number | null
+          deleted_at: string | null
           desktop_image_url: string
           destination_link: string | null
           end_date: string
@@ -3516,6 +3517,7 @@ export type Database = {
           mobile_image_url: string | null
           name: string
           neighborhood: string | null
+          open_in_new_tab: boolean | null
           position: string
           priority: number | null
           rotation_weight: number | null
@@ -3534,6 +3536,7 @@ export type Database = {
           created_at?: string | null
           current_clicks?: number | null
           current_impressions?: number | null
+          deleted_at?: string | null
           desktop_image_url: string
           destination_link?: string | null
           end_date: string
@@ -3544,6 +3547,7 @@ export type Database = {
           mobile_image_url?: string | null
           name: string
           neighborhood?: string | null
+          open_in_new_tab?: boolean | null
           position: string
           priority?: number | null
           rotation_weight?: number | null
@@ -3562,6 +3566,7 @@ export type Database = {
           created_at?: string | null
           current_clicks?: number | null
           current_impressions?: number | null
+          deleted_at?: string | null
           desktop_image_url?: string
           destination_link?: string | null
           end_date?: string
@@ -3572,6 +3577,7 @@ export type Database = {
           mobile_image_url?: string | null
           name?: string
           neighborhood?: string | null
+          open_in_new_tab?: boolean | null
           position?: string
           priority?: number | null
           rotation_weight?: number | null
