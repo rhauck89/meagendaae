@@ -105,12 +105,19 @@ const SuperAdminMarketplace = () => {
 
   // UI States
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isFeaturedDialogOpen, setIsFeaturedDialogOpen] = useState(false);
   const [selectedBanner, setSelectedBanner] = useState<any>(null);
+  const [selectedFeaturedItem, setSelectedFeaturedItem] = useState<any>(null);
   const [filters, setFilters] = useState({
     status: 'all',
     position: 'all'
   });
+  const [featuredFilters, setFeaturedFilters] = useState({
+    status: 'all',
+    type: 'all'
+  });
   const [searchTerm, setSearchTerm] = useState('');
+  const [featuredSearchTerm, setFeaturedSearchTerm] = useState('');
 
   const fetchAll = async () => {
     setLoading(true);
