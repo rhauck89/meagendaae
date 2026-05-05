@@ -3455,6 +3455,337 @@ export type Database = {
           },
         ]
       }
+      marketplace_banner_events: {
+        Row: {
+          banner_id: string | null
+          created_at: string | null
+          event_type: string
+          id: string
+          ip_address: string | null
+          metadata: Json | null
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          banner_id?: string | null
+          created_at?: string | null
+          event_type: string
+          id?: string
+          ip_address?: string | null
+          metadata?: Json | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          banner_id?: string | null
+          created_at?: string | null
+          event_type?: string
+          id?: string
+          ip_address?: string | null
+          metadata?: Json | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketplace_banner_events_banner_id_fkey"
+            columns: ["banner_id"]
+            isOneToOne: false
+            referencedRelation: "marketplace_banners"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      marketplace_banners: {
+        Row: {
+          category: string | null
+          city: string | null
+          client_name: string | null
+          company_id: string | null
+          country: string | null
+          created_at: string | null
+          current_clicks: number | null
+          current_impressions: number | null
+          desktop_image_url: string
+          destination_link: string | null
+          end_date: string
+          id: string
+          internal_notes: string | null
+          limit_clicks: number | null
+          limit_impressions: number | null
+          mobile_image_url: string | null
+          name: string
+          neighborhood: string | null
+          position: string
+          priority: number | null
+          rotation_weight: number | null
+          sale_model: string
+          start_date: string
+          state: string | null
+          status: string
+          updated_at: string | null
+        }
+        Insert: {
+          category?: string | null
+          city?: string | null
+          client_name?: string | null
+          company_id?: string | null
+          country?: string | null
+          created_at?: string | null
+          current_clicks?: number | null
+          current_impressions?: number | null
+          desktop_image_url: string
+          destination_link?: string | null
+          end_date: string
+          id?: string
+          internal_notes?: string | null
+          limit_clicks?: number | null
+          limit_impressions?: number | null
+          mobile_image_url?: string | null
+          name: string
+          neighborhood?: string | null
+          position: string
+          priority?: number | null
+          rotation_weight?: number | null
+          sale_model?: string
+          start_date: string
+          state?: string | null
+          status?: string
+          updated_at?: string | null
+        }
+        Update: {
+          category?: string | null
+          city?: string | null
+          client_name?: string | null
+          company_id?: string | null
+          country?: string | null
+          created_at?: string | null
+          current_clicks?: number | null
+          current_impressions?: number | null
+          desktop_image_url?: string
+          destination_link?: string | null
+          end_date?: string
+          id?: string
+          internal_notes?: string | null
+          limit_clicks?: number | null
+          limit_impressions?: number | null
+          mobile_image_url?: string | null
+          name?: string
+          neighborhood?: string | null
+          position?: string
+          priority?: number | null
+          rotation_weight?: number | null
+          sale_model?: string
+          start_date?: string
+          state?: string | null
+          status?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketplace_banners_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "marketplace_banners_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies_billing"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "marketplace_banners_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "marketplace_active_services"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "marketplace_banners_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "public_company"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "marketplace_banners_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "public_company_view"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      marketplace_featured_items: {
+        Row: {
+          category: string | null
+          city: string | null
+          company_id: string | null
+          created_at: string | null
+          end_date: string
+          id: string
+          internal_notes: string | null
+          item_type: string
+          neighborhood: string | null
+          position: string
+          priority: number | null
+          professional_id: string | null
+          start_date: string
+          state: string | null
+          status: string
+          updated_at: string | null
+        }
+        Insert: {
+          category?: string | null
+          city?: string | null
+          company_id?: string | null
+          created_at?: string | null
+          end_date: string
+          id?: string
+          internal_notes?: string | null
+          item_type: string
+          neighborhood?: string | null
+          position: string
+          priority?: number | null
+          professional_id?: string | null
+          start_date: string
+          state?: string | null
+          status?: string
+          updated_at?: string | null
+        }
+        Update: {
+          category?: string | null
+          city?: string | null
+          company_id?: string | null
+          created_at?: string | null
+          end_date?: string
+          id?: string
+          internal_notes?: string | null
+          item_type?: string
+          neighborhood?: string | null
+          position?: string
+          priority?: number | null
+          professional_id?: string | null
+          start_date?: string
+          state?: string | null
+          status?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketplace_featured_items_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "marketplace_featured_items_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies_billing"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "marketplace_featured_items_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "marketplace_active_services"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "marketplace_featured_items_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "public_company"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "marketplace_featured_items_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "public_company_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "marketplace_featured_items_professional_id_fkey"
+            columns: ["professional_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "marketplace_featured_items_professional_id_fkey"
+            columns: ["professional_id"]
+            isOneToOne: false
+            referencedRelation: "public_professionals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      marketplace_home_settings: {
+        Row: {
+          benefit_1_description: string | null
+          benefit_1_title: string | null
+          benefit_2_description: string | null
+          benefit_2_title: string | null
+          benefit_3_description: string | null
+          benefit_3_title: string | null
+          cta_professional_button_text: string | null
+          cta_professional_image_url: string | null
+          cta_professional_subtitle: string | null
+          cta_professional_title: string | null
+          hero_badge: string | null
+          hero_image_url: string | null
+          hero_subtitle: string | null
+          hero_title: string | null
+          id: string
+          updated_at: string | null
+          updated_by: string | null
+        }
+        Insert: {
+          benefit_1_description?: string | null
+          benefit_1_title?: string | null
+          benefit_2_description?: string | null
+          benefit_2_title?: string | null
+          benefit_3_description?: string | null
+          benefit_3_title?: string | null
+          cta_professional_button_text?: string | null
+          cta_professional_image_url?: string | null
+          cta_professional_subtitle?: string | null
+          cta_professional_title?: string | null
+          hero_badge?: string | null
+          hero_image_url?: string | null
+          hero_subtitle?: string | null
+          hero_title?: string | null
+          id?: string
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Update: {
+          benefit_1_description?: string | null
+          benefit_1_title?: string | null
+          benefit_2_description?: string | null
+          benefit_2_title?: string | null
+          benefit_3_description?: string | null
+          benefit_3_title?: string | null
+          cta_professional_button_text?: string | null
+          cta_professional_image_url?: string | null
+          cta_professional_subtitle?: string | null
+          cta_professional_title?: string | null
+          hero_badge?: string | null
+          hero_image_url?: string | null
+          hero_subtitle?: string | null
+          hero_title?: string | null
+          id?: string
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       migration_audit_log: {
         Row: {
           action: string
