@@ -28,10 +28,15 @@ import {
   Trash2,
   Edit,
   ExternalLink,
-  Save
+  Save,
+  AlertTriangle,
+  Clock,
+  CheckCircle2,
+  TrendingUp,
+  AlertCircle
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { format } from 'date-fns';
+import { format, differenceInDays, addDays } from 'date-fns';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
@@ -39,6 +44,47 @@ import BannerForm from './components/BannerForm';
 import ReportsTab from './components/ReportsTab';
 
 const BUCKET = 'marketplace-assets';
+
+const Progress = ({ value, label }: { value: number; label: string }) => (
+  <div className="space-y-1 w-full max-w-[100px]">
+    <div className="flex justify-between text-[10px] text-muted-foreground uppercase font-medium">
+      <span>{label}</span>
+      <span>{Math.min(100, Math.round(value))}%</span>
+    </div>
+    <div className="h-1 w-full bg-muted rounded-full overflow-hidden">
+      <div 
+        className={`h-full transition-all ${value >= 100 ? 'bg-destructive' : value >= 80 ? 'bg-orange-500' : 'bg-primary'}`} 
+        style={{ width: `${Math.min(100, value)}%` }} 
+      />
+    </div>
+  </div>
+);
+
+const getUsageBadge = (banner: any) => {
+  if (banner.status !== 'active' && banner.status !== 'ended') return null;
+  
+  const now = new Date();
+  const endDate = new Date(banner.end_date);
+  const daysLeft = differenceInDays(endDate, now);
+
+  if (banner.status === 'active' && daysLeft >= 0 && daysLeft <= 3) {
+    return <Badge variant="outline" className="bg-amber-50 text-amber-600 border-amber-200 text-[10px] h-5">Expira em breve</Badge>;
+  }
+
+  if (banner.sale_model === 'impressions' && banner.limit_impressions) {
+    const usage = (banner.current_impressions / banner.limit_impressions) * 100;
+    if (usage >= 100) return <Badge variant="destructive" className="text-[10px] h-5">Limite atingido</Badge>;
+    if (usage >= 80) return <Badge variant="outline" className="bg-orange-50 text-orange-600 border-orange-200 text-[10px] h-5">Perto do limite</Badge>;
+  }
+
+  if (banner.sale_model === 'clicks' && banner.limit_clicks) {
+    const usage = (banner.current_clicks / banner.limit_clicks) * 100;
+    if (usage >= 100) return <Badge variant="destructive" className="text-[10px] h-5">Limite atingido</Badge>;
+    if (usage >= 80) return <Badge variant="outline" className="bg-orange-50 text-orange-600 border-orange-200 text-[10px] h-5">Perto do limite</Badge>;
+  }
+
+  return null;
+};
 
 const SuperAdminMarketplace = () => {
   const [activeTab, setActiveTab] = useState('overview');
@@ -68,6 +114,9 @@ const SuperAdminMarketplace = () => {
   const fetchAll = async () => {
     setLoading(true);
     try {
+      // Sincronizar status antes de buscar
+      await supabase.rpc('sync_marketplace_banner_statuses');
+
       const [homeRes, bannersRes, featuredRes] = await Promise.all([
         supabase.from('marketplace_home_settings').select('*').single(),
         supabase.from('marketplace_banners').select('*').order('created_at', { ascending: false }),
@@ -77,11 +126,15 @@ const SuperAdminMarketplace = () => {
       if (homeRes.data) setHomeSettings(homeRes.data);
       if (bannersRes.data) {
         setBanners(bannersRes.data);
-        const now = new Date();
+        const monthlyImpressions = bannersRes.data.reduce((sum, b) => sum + (b.current_impressions || 0), 0);
+        const monthlyClicks = bannersRes.data.reduce((sum, b) => sum + (b.current_clicks || 0), 0);
+
         setStats(prev => ({
           ...prev,
-          activeBanners: bannersRes.data.filter(b => b.status === 'active').length,
-          scheduledBanners: bannersRes.data.filter(b => b.status === 'scheduled').length
+          activeBanners: bannersRes.data.filter(b => b.status === 'active' && !b.deleted_at).length,
+          scheduledBanners: bannersRes.data.filter(b => b.status === 'scheduled' && !b.deleted_at).length,
+          monthlyImpressions,
+          monthlyClicks
         }));
       }
       if (featuredRes.data) {
@@ -222,6 +275,73 @@ const SuperAdminMarketplace = () => {
     );
   };
 
+  const getBannerAlerts = () => {
+    const alerts: any[] = [];
+    const now = new Date();
+
+    banners.filter(b => !b.deleted_at).forEach(b => {
+      // Expirando em breve (3 dias)
+      if (b.status === 'active') {
+        const endDate = new Date(b.end_date);
+        const daysLeft = differenceInDays(endDate, now);
+        if (daysLeft >= 0 && daysLeft <= 3) {
+          alerts.push({
+            id: `exp-${b.id}`,
+            type: 'warning',
+            title: 'Expira em breve',
+            message: `O banner "${b.name}" expira em ${daysLeft === 0 ? 'hoje' : daysLeft === 1 ? '1 dia' : daysLeft + ' dias'}.`,
+            icon: Clock
+          });
+        }
+
+        // Limite de impressões (80%+)
+        if (b.sale_model === 'impressions' && b.limit_impressions) {
+          const usage = (b.current_impressions / b.limit_impressions) * 100;
+          if (usage >= 80 && usage < 100) {
+            alerts.push({
+              id: `lim-imp-${b.id}`,
+              type: 'info',
+              title: 'Perto do limite de impressões',
+              message: `O banner "${b.name}" atingiu ${Math.round(usage)}% do limite de impressões.`,
+              icon: TrendingUp
+            });
+          }
+        }
+
+        // Limite de cliques (80%+)
+        if (b.sale_model === 'clicks' && b.limit_clicks) {
+          const usage = (b.current_clicks / b.limit_clicks) * 100;
+          if (usage >= 80 && usage < 100) {
+            alerts.push({
+              id: `lim-clk-${b.id}`,
+              type: 'info',
+              title: 'Perto do limite de cliques',
+              message: `O banner "${b.name}" atingiu ${Math.round(usage)}% do limite de cliques.`,
+              icon: TrendingUp
+            });
+          }
+        }
+      }
+
+      // Encerrados recentemente (últimos 2 dias)
+      if (b.status === 'ended') {
+        const updatedAt = new Date(b.updated_at);
+        const daysSinceEnd = differenceInDays(now, updatedAt);
+        if (daysSinceEnd <= 2) {
+          alerts.push({
+            id: `end-${b.id}`,
+            type: 'muted',
+            title: 'Encerrado recentemente',
+            message: `O banner "${b.name}" foi finalizado automaticamente.`,
+            icon: CheckCircle2
+          });
+        }
+      }
+    });
+
+    return alerts;
+  };
+
   if (loading && !homeSettings) {
     return <div className="flex items-center justify-center py-20"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
   }
@@ -300,39 +420,77 @@ const SuperAdminMarketplace = () => {
             </Card>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Próximos Banners a Expirar</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Banner</TableHead>
-                      <TableHead>Expira em</TableHead>
-                      <TableHead>Status</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {banners.filter(b => b.status === 'active').slice(0, 5).map(b => (
-                      <TableRow key={b.id}>
-                        <TableCell className="font-medium">{b.name}</TableCell>
-                        <TableCell>{format(new Date(b.end_date), 'dd/MM/yyyy')}</TableCell>
-                        <TableCell><Badge variant="outline" className="bg-success/10 text-success border-success/20">Ativo</Badge></TableCell>
-                      </TableRow>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-2 space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <AlertTriangle className="h-5 w-5 text-warning" /> 
+                    Alertas Operacionais
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {getBannerAlerts().map((alert) => (
+                      <div key={alert.id} className={`flex gap-3 p-3 rounded-lg border ${
+                        alert.type === 'warning' ? 'bg-amber-50 border-amber-200 text-amber-800' :
+                        alert.type === 'info' ? 'bg-blue-50 border-blue-200 text-blue-800' :
+                        'bg-muted/50 border-border text-muted-foreground'
+                      }`}>
+                        <alert.icon className="h-5 w-5 shrink-0" />
+                        <div className="space-y-1">
+                          <p className="text-sm font-semibold leading-none">{alert.title}</p>
+                          <p className="text-sm opacity-90">{alert.message}</p>
+                        </div>
+                      </div>
                     ))}
-                    {banners.filter(b => b.status === 'active').length === 0 && (
-                      <TableRow>
-                        <TableCell colSpan={3} className="text-center py-4 text-muted-foreground text-sm">Nenhum banner ativo expirando em breve.</TableCell>
-                      </TableRow>
+                    {getBannerAlerts().length === 0 && (
+                      <div className="text-center py-8 text-muted-foreground italic text-sm">
+                        Nenhum alerta operacional no momento.
+                      </div>
                     )}
-                  </TableBody>
-                </Table>
-              </CardContent>
-            </Card>
+                  </div>
+                </CardContent>
+              </Card>
 
-            <Card>
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Próximos Banners a Expirar</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Banner</TableHead>
+                        <TableHead>Expira em</TableHead>
+                        <TableHead>Status</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {banners.filter(b => b.status === 'active' && !b.deleted_at).sort((a,b) => new Date(a.end_date).getTime() - new Date(b.end_date).getTime()).slice(0, 5).map(b => (
+                        <TableRow key={b.id}>
+                          <TableCell className="font-medium text-sm">{b.name}</TableCell>
+                          <TableCell className="text-sm">{format(new Date(b.end_date), 'dd/MM/yyyy')}</TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              <Badge variant="outline" className="bg-success/10 text-success border-success/20 text-[10px] uppercase font-bold">Ativo</Badge>
+                              {getUsageBadge(b)}
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                      {banners.filter(b => b.status === 'active' && !b.deleted_at).length === 0 && (
+                        <TableRow>
+                          <TableCell colSpan={3} className="text-center py-4 text-muted-foreground text-sm">Nenhum banner ativo expirando em breve.</TableCell>
+                        </TableRow>
+                      )}
+                    </TableBody>
+                  </Table>
+                </CardContent>
+              </Card>
+            </div>
+
+            <Card className="h-fit">
               <CardHeader>
                 <CardTitle className="text-lg">Destaques Manuais</CardTitle>
               </CardHeader>
@@ -341,15 +499,17 @@ const SuperAdminMarketplace = () => {
                   {featuredItems.slice(0, 5).map(item => (
                     <div key={item.id} className="flex items-center justify-between p-3 rounded-lg border border-border">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded bg-muted flex items-center justify-center">
-                          {item.item_type === 'company' ? <Building2 className="h-5 w-5" /> : <Users className="h-5 w-5" />}
+                        <div className="w-10 h-10 rounded bg-muted flex items-center justify-center overflow-hidden">
+                          {item.companies?.logo_url ? (
+                            <img src={item.companies.logo_url} className="w-full h-full object-cover" />
+                          ) : item.item_type === 'company' ? <Building2 className="h-5 w-5" /> : <Users className="h-5 w-5" />}
                         </div>
                         <div>
-                          <p className="text-sm font-medium">{item.companies?.name || item.profiles?.full_name || 'Desconhecido'}</p>
-                          <p className="text-xs text-muted-foreground">{item.position} · {item.city || 'Todas cidades'}</p>
+                          <p className="text-sm font-medium leading-tight">{item.companies?.name || item.profiles?.full_name || 'Desconhecido'}</p>
+                          <p className="text-[10px] text-muted-foreground uppercase mt-0.5">{item.position.replace('_', ' ')}</p>
                         </div>
                       </div>
-                      <Badge variant={item.status === 'active' ? 'default' : 'secondary'}>{item.status}</Badge>
+                      <Badge variant={item.status === 'active' ? 'default' : 'secondary'} className="text-[10px] uppercase font-bold">{item.status}</Badge>
                     </div>
                   ))}
                   {featuredItems.length === 0 && (
@@ -529,18 +689,53 @@ const SuperAdminMarketplace = () => {
                         </div>
                       </TableCell>
                       <TableCell className="text-xs">
-                        {format(new Date(b.start_date), 'dd/MM')} - {format(new Date(b.end_date), 'dd/MM/yy')}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex flex-col gap-1">
-                          <span className="text-[10px] text-muted-foreground">{b.current_impressions} imps</span>
-                          <span className="text-[10px] text-muted-foreground">{b.current_clicks} cliques</span>
+                        <div className="flex flex-col gap-0.5">
+                          <span>{format(new Date(b.start_date), 'dd/MM')} - {format(new Date(b.end_date), 'dd/MM/yy')}</span>
+                          {b.status === 'active' && differenceInDays(new Date(b.end_date), new Date()) <= 3 && (
+                            <span className="text-[10px] text-amber-600 font-medium flex items-center gap-1">
+                              <Clock className="h-2 w-2" /> Expira em breve
+                            </span>
+                          )}
                         </div>
                       </TableCell>
                       <TableCell>
-                        <Badge variant={b.status === 'active' ? 'default' : b.status === 'draft' ? 'outline' : 'secondary'} className="text-[10px] h-5 capitalize">
-                          {b.status}
-                        </Badge>
+                        <div className="flex flex-col gap-2 min-w-[120px]">
+                          {b.sale_model === 'impressions' && b.limit_impressions && (
+                            <Progress 
+                              value={(b.current_impressions / b.limit_impressions) * 100} 
+                              label={`${b.current_impressions}/${b.limit_impressions} imps`} 
+                            />
+                          )}
+                          {b.sale_model === 'clicks' && b.limit_clicks && (
+                            <Progress 
+                              value={(b.current_clicks / b.limit_clicks) * 100} 
+                              label={`${b.current_clicks}/${b.limit_clicks} cliques`} 
+                            />
+                          )}
+                          {b.sale_model === 'fixed_period' && (
+                            <div className="flex flex-col gap-1">
+                              <span className="text-[10px] text-muted-foreground font-medium uppercase">Performance</span>
+                              <div className="flex gap-2 text-[10px]">
+                                <span title="Impressões">{b.current_impressions} i</span>
+                                <span title="Cliques">{b.current_clicks} c</span>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex flex-col gap-1 items-start">
+                          <Badge 
+                            variant={b.status === 'active' ? 'default' : b.status === 'ended' ? 'secondary' : 'outline'} 
+                            className={`text-[10px] h-5 capitalize font-bold ${
+                              b.status === 'active' ? 'bg-success hover:bg-success text-white' : 
+                              b.status === 'ended' ? 'bg-muted text-muted-foreground' : ''
+                            }`}
+                          >
+                            {b.status === 'ended' ? 'Encerrado' : b.status}
+                          </Badge>
+                          {getUsageBadge(b)}
+                        </div>
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-1">
@@ -647,7 +842,5 @@ const SuperAdminMarketplace = () => {
     </div>
   );
 };
-
-
 
 export default SuperAdminMarketplace;

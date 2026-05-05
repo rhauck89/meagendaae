@@ -7799,6 +7799,7 @@ export type Database = {
         Args: { _company_id: string }
         Returns: undefined
       }
+      sync_marketplace_banner_statuses: { Args: never; Returns: Json }
       track_booking_metric: {
         Args: {
           p_company_id: string

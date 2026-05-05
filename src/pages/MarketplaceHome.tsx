@@ -102,6 +102,9 @@ export default function MarketplaceHome() {
 
   const loadMarketplaceSettings = async () => {
     try {
+      // Sincronizar status dos banners antes de carregar
+      await supabase.rpc('sync_marketplace_banner_statuses');
+
       const [settingsRes, bannersRes] = await Promise.all([
         supabase.from('marketplace_home_settings').select('*').single(),
         supabase.from('marketplace_banners')
