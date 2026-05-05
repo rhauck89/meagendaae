@@ -219,6 +219,39 @@ const SuperAdminMarketplace = () => {
     }
   };
 
+  const handleDeleteFeaturedItem = async (id: string) => {
+    if (!confirm('Tem certeza que deseja remover este destaque?')) return;
+    
+    try {
+      const { error } = await supabase
+        .from('marketplace_featured_items')
+        .delete()
+        .eq('id', id);
+      
+      if (error) throw error;
+      toast.success('Destaque removido com sucesso');
+      fetchAll();
+    } catch (error: any) {
+      toast.error(`Erro ao remover: ${error.message}`);
+    }
+  };
+
+  const handleToggleFeaturedStatus = async (item: any) => {
+    const newStatus = item.status === 'active' ? 'paused' : 'active';
+    try {
+      const { error } = await supabase
+        .from('marketplace_featured_items')
+        .update({ status: newStatus })
+        .eq('id', item.id);
+      
+      if (error) throw error;
+      toast.success(`Destaque ${newStatus === 'active' ? 'ativado' : 'pausado'} com sucesso`);
+      fetchAll();
+    } catch (error: any) {
+      toast.error(`Erro ao alterar status: ${error.message}`);
+    }
+  };
+
   const getPublicUrl = (path: string) => {
     const { data } = supabase.storage.from(BUCKET).getPublicUrl(path);
     return data.publicUrl;
