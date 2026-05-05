@@ -3019,7 +3019,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                               <span className="text-sm">⭐</span>
                             </div>
                             <p className="text-sm font-black text-amber-500">
-                              {predictedLoyaltyPoints} pontos
+                              {predictedLoyaltyPoints} pontos de fidelidade
                             </p>
                           </div>
                         )}
@@ -3038,11 +3038,16 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                     </div>
                   )}
 
-                  {cashbackEarnAmount > 0 && (
+                  {(cashbackEarnAmount > 0 || predictedLoyaltyPoints > 0) && (
                     <div className="px-4 py-2 rounded-xl bg-white/5 border border-white/10">
                       <p className="text-[10px] font-bold opacity-40 uppercase">Aviso</p>
                       <p className="text-[10px] opacity-60">
-                        O cashback é creditado somente após a conclusão do atendimento e segue as regras do estabelecimento.
+                        {cashbackEarnAmount > 0 && predictedLoyaltyPoints > 0 
+                          ? "O cashback e os pontos são creditados somente após a conclusão do atendimento e seguem as regras do estabelecimento."
+                          : cashbackEarnAmount > 0 
+                            ? "O cashback é creditado somente após a conclusão do atendimento e segue as regras do estabelecimento."
+                            : "Os pontos são creditados somente após a conclusão do atendimento e seguem as regras do estabelecimento."
+                        }
                       </p>
                     </div>
                   )}
