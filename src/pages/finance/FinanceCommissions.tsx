@@ -57,63 +57,142 @@ const FinanceCommissions = () => {
     const end = endOfDay(endDate);
 
     try {
+      // Fetch Collaborator info for the professional if in professional mode
+      let collaboratorInfo: any = null;
+      if (!isAdmin && profileId) {
+        const { data: coll } = await supabase
+          .from('collaborators')
+          .select('collaborator_type, commission_type, commission_value, commission_percent, profile:profiles(full_name)')
+          .eq('profile_id', profileId)
+          .eq('company_id', companyId!)
+          .maybeSingle();
+        collaboratorInfo = coll;
+      }
+
       let query = supabase
         .from('appointments')
-        .select('id, professional_id, final_price, total_price, status, start_time')
+        .select(`
+          id, 
+          professional_id, 
+          final_price, 
+          total_price, 
+          status, 
+          start_time,
+          client_name,
+          client:profiles!appointments_client_id_fkey(full_name),
+          appointment_services(
+            service:services(name)
+          )
+        `)
         .eq('company_id', companyId!)
-        .eq('status', 'completed')
         .gte('start_time', start.toISOString())
         .lte('start_time', end.toISOString());
 
-      if (!isAdmin && profileId) query = query.eq('professional_id', profileId);
+      if (filterStatus !== 'all') {
+        query = query.eq('status', filterStatus);
+      } else {
+        // Por padrão no admin era apenas completed, mas vamos permitir all
+        // query = query.eq('status', 'completed'); 
+      }
+
+      if (!isAdmin && profileId) {
+        query = query.eq('professional_id', profileId);
+      }
 
       const { data: appointments, error: appError } = await query;
       if (appError) throw appError;
 
-      const professionalIds = Array.from(new Set((appointments || []).map((a: any) => a.professional_id).filter(Boolean)));
-      const profileMap: Record<string, string> = {};
-      if (professionalIds.length > 0) {
-        const { data: profiles, error: profilesError } = await supabase
-          .from('profiles')
-          .select('id, full_name')
-          .in('id', professionalIds);
-        if (profilesError) throw profilesError;
-        profiles?.forEach((p: any) => {
-          profileMap[p.id] = p.full_name || 'Sem nome';
+      // Se for Admin, mantém a lógica de agrupamento por profissional
+      if (isAdmin) {
+        const professionalIds = Array.from(new Set((appointments || []).map((a: any) => a.professional_id).filter(Boolean)));
+        const profileMap: Record<string, string> = {};
+        if (professionalIds.length > 0) {
+          const { data: profiles, error: profilesError } = await supabase
+            .from('profiles')
+            .select('id, full_name')
+            .in('id', professionalIds);
+          if (profilesError) throw profilesError;
+          profiles?.forEach((p: any) => {
+            profileMap[p.id] = p.full_name || 'Sem nome';
+          });
+        }
+
+        const { data: collaborators, error: collError } = await supabase
+          .from('collaborators')
+          .select('profile_id, collaborator_type, commission_type, commission_value, commission_percent')
+          .eq('company_id', companyId!);
+        if (collError) throw collError;
+
+        const collabMap: Record<string, any> = {};
+        collaborators?.forEach(c => {
+          collabMap[c.profile_id] = { 
+            type: c.collaborator_type, 
+            commType: c.commission_type, 
+            value: c.commission_value ?? c.commission_percent ?? 0 
+          };
+        });
+
+        const grouped: Record<string, { name: string; revenue: number; count: number }> = {};
+        appointments?.forEach(a => {
+          const pid = a.professional_id;
+          if (!pid) return;
+          if (!grouped[pid]) grouped[pid] = { name: profileMap[pid] || 'Sem nome', revenue: 0, count: 0 };
+          grouped[pid].revenue += Number(a.final_price || a.total_price || 0);
+          grouped[pid].count += 1;
+        });
+
+        const result = Object.entries(grouped).map(([id, g]) => {
+          const collab = collabMap[id] || { type: 'commissioned', commType: 'none', value: 0 };
+          const fin = calculateFinancials(g.revenue, g.count, collab.type, collab.commType, collab.value);
+          return { id, ...g, ...collab, professionalValue: fin.professionalValue, companyValue: fin.companyValue };
+        });
+
+        setRows(result);
+      } else {
+        // Se for Profissional, cria a lista detalhada
+        const collab = collaboratorInfo || { collaborator_type: 'commissioned', commission_type: 'none', commission_value: 0 };
+        const detailed = (appointments || []).map(a => {
+          const revenue = Number(a.final_price || a.total_price || 0);
+          const fin = calculateFinancials(
+            revenue, 
+            1, 
+            collab.collaborator_type, 
+            collab.commission_type, 
+            collab.commission_value ?? collab.commission_percent ?? 0
+          );
+          
+          const serviceNames = a.appointment_services?.map((as: any) => as.service?.name).filter(Boolean).join(', ') || 'Sem serviço';
+          const clientName = a.client?.full_name || a.client_name || 'Cliente';
+
+          return {
+            id: a.id,
+            date: a.start_time,
+            clientName,
+            serviceName: serviceNames,
+            revenue,
+            commType: collab.commission_type,
+            commValue: collab.commission_value ?? collab.commission_percent ?? 0,
+            professionalValue: fin.professionalValue,
+            companyValue: fin.companyValue,
+            status: a.status
+          };
+        });
+
+        setDetailedRows(detailed);
+        
+        // Calcular sumário
+        const totalBilled = detailed.reduce((acc, r) => acc + r.revenue, 0);
+        const totalCommission = detailed.reduce((acc, r) => acc + r.professionalValue, 0);
+        const companyNet = detailed.reduce((acc, r) => acc + r.companyValue, 0);
+        
+        setSummary({
+          totalBilled,
+          totalAppointments: detailed.length,
+          totalCommission,
+          companyNet,
+          avgTicket: detailed.length > 0 ? totalBilled / detailed.length : 0
         });
       }
-
-      const { data: collaborators, error: collError } = await supabase
-        .from('collaborators')
-        .select('profile_id, collaborator_type, commission_type, commission_value, commission_percent')
-        .eq('company_id', companyId!);
-      if (collError) throw collError;
-
-      const collabMap: Record<string, any> = {};
-      collaborators?.forEach(c => {
-        collabMap[c.profile_id] = { 
-          type: c.collaborator_type, 
-          commType: c.commission_type, 
-          value: c.commission_value ?? c.commission_percent ?? 0 
-        };
-      });
-
-      const grouped: Record<string, { name: string; revenue: number; count: number }> = {};
-      appointments?.forEach(a => {
-        const pid = a.professional_id;
-        if (!pid) return;
-        if (!grouped[pid]) grouped[pid] = { name: profileMap[pid] || 'Sem nome', revenue: 0, count: 0 };
-        grouped[pid].revenue += Number(a.final_price || a.total_price || 0);
-        grouped[pid].count += 1;
-      });
-
-      const result = Object.entries(grouped).map(([id, g]) => {
-        const collab = collabMap[id] || { type: 'commissioned', commType: 'none', value: 0 };
-        const fin = calculateFinancials(g.revenue, g.count, collab.type, collab.commType, collab.value);
-        return { id, ...g, ...collab, professionalValue: fin.professionalValue, companyValue: fin.companyValue };
-      });
-
-      setRows(result);
     } catch (error) {
       console.error('Error fetching data:', error);
       toast.error(error instanceof Error ? error.message : 'Erro ao carregar dados');
