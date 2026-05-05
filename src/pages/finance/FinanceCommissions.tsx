@@ -199,35 +199,70 @@ const FinanceCommissions = () => {
   };
 
   const filteredAndSortedRows = useMemo(() => {
-    let result = [...rows];
+    if (isAdmin) {
+      let result = [...rows];
 
-    // Busca por nome
-    if (searchTerm) {
-      result = result.filter(r => r.name.toLowerCase().includes(searchTerm.toLowerCase()));
-    }
-
-    // Filtro por tipo
-    if (filterType !== 'all') {
-      result = result.filter(r => r.type === filterType);
-    }
-
-    // Filtro por profissional específico
-    if (selectedProfessional !== 'all') {
-      result = result.filter(r => r.id === selectedProfessional);
-    }
-
-    // Ordenação
-    result.sort((a, b) => {
-      const aValue = a[sortConfig.key];
-      const bValue = b[sortConfig.key];
-      if (sortConfig.direction === 'asc') {
-        return aValue > bValue ? 1 : -1;
+      // Busca por nome
+      if (searchTerm) {
+        result = result.filter(r => r.name.toLowerCase().includes(searchTerm.toLowerCase()));
       }
-      return aValue < bValue ? 1 : -1;
-    });
 
-    return result;
-  }, [rows, searchTerm, filterType, selectedProfessional, sortConfig]);
+      // Filtro por tipo
+      if (filterType !== 'all') {
+        result = result.filter(r => r.type === filterType);
+      }
+
+      // Filtro por profissional específico
+      if (selectedProfessional !== 'all') {
+        result = result.filter(r => r.id === selectedProfessional);
+      }
+
+      // Ordenação
+      result.sort((a, b) => {
+        const aValue = a[sortConfig.key];
+        const bValue = b[sortConfig.key];
+        if (sortConfig.direction === 'asc') {
+          return aValue > bValue ? 1 : -1;
+        }
+        return aValue < bValue ? 1 : -1;
+      });
+
+      return result;
+    } else {
+      let result = [...detailedRows];
+
+      // Busca por cliente
+      if (searchTerm) {
+        result = result.filter(r => 
+          r.clientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          r.serviceName.toLowerCase().includes(searchTerm.toLowerCase())
+        );
+      }
+
+      // Filtro por status (já feito na query, mas garante consistência)
+      if (filterStatus !== 'all') {
+        result = result.filter(r => r.status === filterStatus);
+      }
+
+      // Ordenação
+      result.sort((a, b) => {
+        let aValue = a[sortConfig.key === 'revenue' ? 'revenue' : sortConfig.key];
+        let bValue = b[sortConfig.key === 'revenue' ? 'revenue' : sortConfig.key];
+        
+        if (sortConfig.key === 'date') {
+          aValue = new Date(a.date).getTime();
+          bValue = new Date(b.date).getTime();
+        }
+
+        if (sortConfig.direction === 'asc') {
+          return aValue > bValue ? 1 : -1;
+        }
+        return aValue < bValue ? 1 : -1;
+      });
+
+      return result;
+    }
+  }, [rows, detailedRows, searchTerm, filterType, selectedProfessional, filterStatus, sortConfig, isAdmin]);
 
   const requestSort = (key: string) => {
     let direction = 'desc';
