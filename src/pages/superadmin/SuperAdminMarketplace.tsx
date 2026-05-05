@@ -36,7 +36,7 @@ import {
   AlertCircle
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { format, differenceInDays, isAfter, isBefore, addDays } from 'date-fns';
+import { format, differenceInDays, addDays } from 'date-fns';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
@@ -126,7 +126,6 @@ const SuperAdminMarketplace = () => {
       if (homeRes.data) setHomeSettings(homeRes.data);
       if (bannersRes.data) {
         setBanners(bannersRes.data);
-        const now = new Date();
         const monthlyImpressions = bannersRes.data.reduce((sum, b) => sum + (b.current_impressions || 0), 0);
         const monthlyClicks = bannersRes.data.reduce((sum, b) => sum + (b.current_clicks || 0), 0);
 
@@ -279,7 +278,6 @@ const SuperAdminMarketplace = () => {
   const getBannerAlerts = () => {
     const alerts: any[] = [];
     const now = new Date();
-    const threeDaysFromNow = addDays(now, 3);
 
     banners.filter(b => !b.deleted_at).forEach(b => {
       // Expirando em breve (3 dias)
@@ -343,7 +341,6 @@ const SuperAdminMarketplace = () => {
 
     return alerts;
   };
-
 
   if (loading && !homeSettings) {
     return <div className="flex items-center justify-center py-20"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
@@ -467,7 +464,7 @@ const SuperAdminMarketplace = () => {
                         <TableHead>Banner</TableHead>
                         <TableHead>Expira em</TableHead>
                         <TableHead>Status</TableHead>
-                      </TableHeader>
+                      </TableRow>
                     </TableHeader>
                     <TableBody>
                       {banners.filter(b => b.status === 'active' && !b.deleted_at).sort((a,b) => new Date(a.end_date).getTime() - new Date(b.end_date).getTime()).slice(0, 5).map(b => (
@@ -845,7 +842,5 @@ const SuperAdminMarketplace = () => {
     </div>
   );
 };
-
-
 
 export default SuperAdminMarketplace;
