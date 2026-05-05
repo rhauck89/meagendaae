@@ -1002,16 +1002,24 @@ const ClientPortal = () => {
                       
                       {/* Saldo por estabelecimento */}
                       <div className="space-y-2">
-                        {companiesWithCashback.map(co => (
-                          <div key={co.id} className="flex items-center justify-between p-3 rounded-xl bg-card border shadow-sm">
-                            <CompanyHeader company={co} size="sm" />
-                            <div className="text-right">
-                              <p className="text-sm font-bold text-primary">
-                                R$ {(cashbackByCompany[co.id] || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                              </p>
+                        {companiesWithCashback.map(co => {
+                          const bal = cashbackByCompany[co.id];
+                          return (
+                            <div key={co.id} className="flex items-center justify-between p-3 rounded-xl bg-card border shadow-sm">
+                              <CompanyHeader company={co} size="sm" />
+                              <div className="text-right">
+                                <p className="text-sm font-bold text-primary">
+                                  R$ {(bal?.available || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                                </p>
+                                {(bal?.pending || 0) > 0 && (
+                                  <p className="text-[10px] text-muted-foreground">
+                                    + R$ {bal?.pending.toLocaleString('pt-BR', { minimumFractionDigits: 2 })} pendente
+                                  </p>
+                                )}
+                              </div>
                             </div>
-                          </div>
-                        ))}
+                          );
+                        })}
                       </div>
 
                       {/* Lista cronológica do extrato */}
