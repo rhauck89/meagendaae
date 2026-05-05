@@ -492,22 +492,36 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
         const { data: cbData } = await cashbackQuery;
         setCashbackCredits(cbData || []);
 
-        // Query loyalty points
-        const loyaltyQuery = supabase
-          .from('loyalty_points_transactions' as any)
-          .select('balance_after')
-          .eq('company_id', company.id)
-          .order('created_at', { ascending: false })
-          .limit(1);
+        // Query loyalty points using the new RPC for higher accuracy across redemptions and multiple IDs
+        const { data: pointsBalance, error: pointsError } = await supabase.rpc('get_client_loyalty_balance', {
+          p_company_id: company.id,
+          p_client_id: savedClientId || null,
+          p_user_id: effectiveUserId || null,
+          p_email: clientForm.email || null,
+          p_whatsapp: clientForm.whatsapp ? normalizePhone(clientForm.whatsapp) : null
+        });
 
-        if (effectiveUserId) {
-          loyaltyQuery.eq('user_id', effectiveUserId);
+        if (!pointsError) {
+          setLoyaltyPoints(Number(pointsBalance) || 0);
         } else {
-          loyaltyQuery.eq('client_id', savedClientId);
-        }
+          console.error('[LOYALTY_BALANCE_ERROR]', pointsError);
+          // Fallback to simple query if RPC fails
+          const loyaltyQuery = supabase
+            .from('loyalty_points_transactions' as any)
+            .select('balance_after')
+            .eq('company_id', company.id)
+            .order('created_at', { ascending: false })
+            .limit(1);
 
-        const { data: txs } = await loyaltyQuery.maybeSingle();
-        setLoyaltyPoints((txs as any)?.balance_after || 0);
+          if (effectiveUserId) {
+            loyaltyQuery.eq('user_id', effectiveUserId);
+          } else {
+            loyaltyQuery.eq('client_id', savedClientId);
+          }
+
+          const { data: txs } = await loyaltyQuery.maybeSingle();
+          setLoyaltyPoints((txs as any)?.balance_after || 0);
+        }
 
         // Fetch point value from config
         const { data: lc } = await supabase
@@ -526,7 +540,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
     };
     
     checkBenefits();
-  }, [savedClientId, company?.id, isAuthenticated]);
+  }, [savedClientId, company?.id, isAuthenticated, clientForm.email, clientForm.whatsapp]);
 
   // Check if client is logged in - Refined to ignore admin sessions
   // Identification Gatekeeper - require a valid client identity before booking.
