@@ -273,16 +273,34 @@ const FinanceCommissions = () => {
   };
 
   const exportToCSV = () => {
-    const headers = ['Profissional', 'Tipo', 'Serviços', 'Faturado', 'Comissão', 'Valor Prof.', 'Valor Empresa'];
-    const data = filteredAndSortedRows.map(r => [
-      r.name,
-      collaboratorTypeLabel(r.type),
-      r.count,
-      r.revenue.toFixed(2),
-      commissionLabel(r.commType, r.value),
-      r.professionalValue.toFixed(2),
-      r.companyValue.toFixed(2)
-    ]);
+    let headers = [];
+    let data = [];
+
+    if (isAdmin) {
+      headers = ['Profissional', 'Tipo', 'Serviços', 'Faturado', 'Comissão', 'Valor Prof.', 'Valor Empresa'];
+      data = filteredAndSortedRows.map(r => [
+        r.name,
+        collaboratorTypeLabel(r.type),
+        r.count,
+        r.revenue.toFixed(2),
+        commissionLabel(r.commType, r.value),
+        r.professionalValue.toFixed(2),
+        r.companyValue.toFixed(2)
+      ]);
+    } else {
+      headers = ['Data', 'Cliente', 'Serviço', 'Valor', 'Comissão %', 'Vlr Comissão', 'Vlr Prof.', 'Vlr Empresa', 'Status'];
+      data = filteredAndSortedRows.map(r => [
+        format(new Date(r.date), 'dd/MM/yyyy HH:mm'),
+        r.clientName,
+        r.serviceName,
+        r.revenue.toFixed(2),
+        r.commValue,
+        (r.revenue - r.companyValue).toFixed(2),
+        r.professionalValue.toFixed(2),
+        r.companyValue.toFixed(2),
+        r.status
+      ]);
+    }
 
     const csvContent = [headers, ...data].map(e => e.join(',')).join('\n');
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
