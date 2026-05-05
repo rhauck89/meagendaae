@@ -125,18 +125,24 @@ export default function MarketplaceHome() {
 
     // Filter by category and region
     const filteredBanners = validBanners.filter(b => {
-      // Category filter
-      if (filterCategory !== 'all' && b.category && b.category !== filterCategory) return false;
+      // If banner has a category, it must match the selected filterCategory
+      if (b.category && filterCategory !== 'all' && b.category !== filterCategory) return false;
+      if (b.category && filterCategory === 'all') return false; // Category-specific banners only show when category is selected
       
-      // Region filter (simple match for now)
-      if (filterCity.trim() && b.city) {
+      // If banner has a city, it must match the filterCity
+      if (b.city) {
+        if (!filterCity.trim()) return false; // City-specific banners only show when city is filtered
         if (!b.city.toLowerCase().includes(filterCity.trim().toLowerCase())) return false;
       }
       
       return true;
     });
 
-    const sourceBanners = filteredBanners.length > 0 ? filteredBanners : validBanners;
+    const sourceBanners = filteredBanners.length > 0 
+      ? filteredBanners 
+      : validBanners.filter(b => !b.category && !b.city); // Fallback to global banners
+
+    if (sourceBanners.length === 0) return null;
 
     // Sort by priority (descending)
     const maxPriority = Math.max(...sourceBanners.map(b => b.priority || 0));
