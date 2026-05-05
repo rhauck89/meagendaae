@@ -1385,7 +1385,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
     const eligibleServices = selectedServicesData.filter(s => {
       if (loyaltyConfig.participating_services === 'all') return true;
       if (loyaltyConfig.participating_services === 'specific' && loyaltyConfig.specific_service_ids) {
-        return loyaltyConfig.specific_service_ids.includes(s.id);
+        return (loyaltyConfig.specific_service_ids as string[]).includes(s.id);
       }
       return false;
     });
@@ -1394,14 +1394,16 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
 
     if (loyaltyConfig.scoring_type === 'per_service') {
       return eligibleServices.length * (loyaltyConfig.points_per_service || 0);
-    } else if (loyaltyConfig.scoring_type === 'per_currency') {
+    } else if (loyaltyConfig.scoring_type === 'per_value') {
       // Calculate based on final price of eligible services
-      // User says: "Usar o valor final que o cliente vai pagar."
+      // Use the final price after discounts/cashback use
       
-      // Calculate the proportion of the price that comes from eligible services
+      const originalSubtotal = selectedServicesData.reduce((sum, s) => sum + Number(s.price), 0);
       const eligibleSubtotal = eligibleServices.reduce((sum, s) => sum + Number(s.price), 0);
+      
       if (originalSubtotal === 0) return 0;
       
+      // Calculate the proportion of the price that comes from eligible services
       const proportion = eligibleSubtotal / originalSubtotal;
       const finalPriceForPoints = finalPrice * proportion;
       
@@ -3017,7 +3019,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                               <span className="text-sm">⭐</span>
                             </div>
                             <p className="text-sm font-black text-amber-500">
-                              {predictedLoyaltyPoints} pontos
+                              {predictedLoyaltyPoints} pontos de fidelidade
                             </p>
                           </div>
                         )}
@@ -3036,11 +3038,16 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                     </div>
                   )}
 
-                  {cashbackEarnAmount > 0 && (
+                  {(cashbackEarnAmount > 0 || predictedLoyaltyPoints > 0) && (
                     <div className="px-4 py-2 rounded-xl bg-white/5 border border-white/10">
                       <p className="text-[10px] font-bold opacity-40 uppercase">Aviso</p>
                       <p className="text-[10px] opacity-60">
-                        O cashback é creditado somente após a conclusão do atendimento e segue as regras do estabelecimento.
+                        {cashbackEarnAmount > 0 && predictedLoyaltyPoints > 0 
+                          ? "O cashback e os pontos são creditados somente após a conclusão do atendimento e seguem as regras do estabelecimento."
+                          : cashbackEarnAmount > 0 
+                            ? "O cashback é creditado somente após a conclusão do atendimento e segue as regras do estabelecimento."
+                            : "Os pontos são creditados somente após a conclusão do atendimento e seguem as regras do estabelecimento."
+                        }
                       </p>
                     </div>
                   )}
@@ -3171,7 +3178,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
             const benefitLines = [];
             if (bookingResult.pointsEarned > 0 || bookingResult.cashbackEarned > 0) {
               benefitLines.push('🎁 Benefícios deste agendamento:');
-              if (bookingResult.pointsEarned > 0) benefitLines.push(`⭐ ${bookingResult.pointsEarned} pontos`);
+              if (bookingResult.pointsEarned > 0) benefitLines.push(`⭐ ${bookingResult.pointsEarned} pontos de fidelidade`);
               if (bookingResult.cashbackEarned > 0) benefitLines.push(`💵 R$ ${bookingResult.cashbackEarned.toFixed(2).replace('.', ',')} de cashback`);
               benefitLines.push('');
             }
@@ -3297,7 +3304,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                           <span className="text-xl">⭐</span>
                         </div>
                         <div>
-                          <p className="font-black text-amber-500">{bookingResult.pointsEarned} pontos</p>
+                          <p className="font-black text-amber-500">{bookingResult.pointsEarned} pontos de fidelidade</p>
                           <p className="text-[10px] font-bold opacity-60 uppercase tracking-tight" style={{ color: T.textSec }}>Serão creditados após o atendimento</p>
                         </div>
                       </div>
