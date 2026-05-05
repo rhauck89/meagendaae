@@ -360,6 +360,9 @@ const ReportsTab = () => {
                   <TableHead className="text-right">Impressões</TableHead>
                   <TableHead className="text-right">Cliques</TableHead>
                   <TableHead className="text-right">CTR</TableHead>
+                  <TableHead>Período</TableHead>
+                  <TableHead>Modelo</TableHead>
+                  <TableHead>Limites</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead className="w-[50px]"></TableHead>
                 </TableRow>
