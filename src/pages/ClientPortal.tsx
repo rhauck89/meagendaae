@@ -320,24 +320,36 @@ const ClientPortal = () => {
 
   // ---------- Aggregations ----------
   const cashbackByCompany = useMemo(() => {
-    const map: Record<string, number> = {};
+    const map: Record<string, { available: number; pending: number }> = {};
     if (cashbackData?.balances) {
       Object.entries(cashbackData.balances).forEach(([cid, bal]: [string, any]) => {
-        map[cid] = Number(bal.available) || 0;
+        map[cid] = {
+          available: Number(bal.available) || 0,
+          pending: Number(bal.pending) || 0
+        };
       });
     }
     return map;
   }, [cashbackData]);
 
+  const totalUsedCashback = useMemo(() => {
+    return (cashbackData?.history || [])
+      .filter((h: any) => h.type === 'debit')
+      .reduce((acc: number, h: any) => acc + (Number(h.amount) || 0), 0);
+  }, [cashbackData]);
+
   const cashbackTotals = useMemo(() => {
     return {
-      gained: summary?.cashback_active || 0,
-      used: 0, // We'll focus on what's available
+      available: summary?.cashback_active || 0,
+      pending: summary?.cashback_pending || 0,
+      gained: (summary?.cashback_active || 0) + totalUsedCashback,
+      used: totalUsedCashback,
       expired: 0
     };
-  }, [summary]);
+  }, [summary, totalUsedCashback]);
 
   const totalCashback = summary?.cashback_active || 0;
+  const pendingCashback = summary?.cashback_pending || 0;
 
   const pointsByCompany = useMemo(() => {
     const map: Record<string, number> = {};
