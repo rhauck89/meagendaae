@@ -235,6 +235,115 @@ const SuperAdminMarketplace = () => {
     );
   };
 
+  const getBannerAlerts = () => {
+    const alerts: any[] = [];
+    const now = new Date();
+    const threeDaysFromNow = addDays(now, 3);
+
+    banners.filter(b => !b.deleted_at).forEach(b => {
+      // Expirando em breve (3 dias)
+      if (b.status === 'active') {
+        const endDate = new Date(b.end_date);
+        const daysLeft = differenceInDays(endDate, now);
+        if (daysLeft >= 0 && daysLeft <= 3) {
+          alerts.push({
+            id: `exp-${b.id}`,
+            type: 'warning',
+            title: 'Expira em breve',
+            message: `O banner "${b.name}" expira em ${daysLeft === 0 ? 'hoje' : daysLeft === 1 ? '1 dia' : daysLeft + ' dias'}.`,
+            icon: Clock
+          });
+        }
+
+        // Limite de impressões (80%+)
+        if (b.sale_model === 'impressions' && b.limit_impressions) {
+          const usage = (b.current_impressions / b.limit_impressions) * 100;
+          if (usage >= 80 && usage < 100) {
+            alerts.push({
+              id: `lim-imp-${b.id}`,
+              type: 'info',
+              title: 'Perto do limite de impressões',
+              message: `O banner "${b.name}" atingiu ${Math.round(usage)}% do limite de impressões.`,
+              icon: TrendingUp
+            });
+          }
+        }
+
+        // Limite de cliques (80%+)
+        if (b.sale_model === 'clicks' && b.limit_clicks) {
+          const usage = (b.current_clicks / b.limit_clicks) * 100;
+          if (usage >= 80 && usage < 100) {
+            alerts.push({
+              id: `lim-clk-${b.id}`,
+              type: 'info',
+              title: 'Perto do limite de cliques',
+              message: `O banner "${b.name}" atingiu ${Math.round(usage)}% do limite de cliques.`,
+              icon: TrendingUp
+            });
+          }
+        }
+      }
+
+      // Encerrados recentemente (últimos 2 dias)
+      if (b.status === 'ended') {
+        const updatedAt = new Date(b.updated_at);
+        const daysSinceEnd = differenceInDays(now, updatedAt);
+        if (daysSinceEnd <= 2) {
+          alerts.push({
+            id: `end-${b.id}`,
+            type: 'muted',
+            title: 'Encerrado recentemente',
+            message: `O banner "${b.name}" foi finalizado automaticamente.`,
+            icon: CheckCircle2
+          });
+        }
+      }
+    });
+
+    return alerts;
+  };
+
+  const getUsageBadge = (banner: any) => {
+    if (banner.status !== 'active' && banner.status !== 'ended') return null;
+    
+    const now = new Date();
+    const endDate = new Date(banner.end_date);
+    const daysLeft = differenceInDays(endDate, now);
+
+    if (banner.status === 'active' && daysLeft >= 0 && daysLeft <= 3) {
+      return <Badge variant="outline" className="bg-amber-50 text-amber-600 border-amber-200 text-[10px] h-5">Expira em breve</Badge>;
+    }
+
+    if (banner.sale_model === 'impressions' && banner.limit_impressions) {
+      const usage = (banner.current_impressions / banner.limit_impressions) * 100;
+      if (usage >= 100) return <Badge variant="destructive" className="text-[10px] h-5">Limite atingido</Badge>;
+      if (usage >= 80) return <Badge variant="outline" className="bg-orange-50 text-orange-600 border-orange-200 text-[10px] h-5">Perto do limite</Badge>;
+    }
+
+    if (banner.sale_model === 'clicks' && banner.limit_clicks) {
+      const usage = (banner.current_clicks / banner.limit_clicks) * 100;
+      if (usage >= 100) return <Badge variant="destructive" className="text-[10px] h-5">Limite atingido</Badge>;
+      if (usage >= 80) return <Badge variant="outline" className="bg-orange-50 text-orange-600 border-orange-200 text-[10px] h-5">Perto do limite</Badge>;
+    }
+
+    return null;
+  };
+
+  const Progress = ({ value, label }: { value: number; label: string }) => (
+    <div className="space-y-1 w-full max-w-[100px]">
+      <div className="flex justify-between text-[10px] text-muted-foreground uppercase font-medium">
+        <span>{label}</span>
+        <span>{Math.min(100, Math.round(value))}%</span>
+      </div>
+      <div className="h-1 w-full bg-muted rounded-full overflow-hidden">
+        <div 
+          className={`h-full transition-all ${value >= 100 ? 'bg-destructive' : value >= 80 ? 'bg-orange-500' : 'bg-primary'}`} 
+          style={{ width: `${Math.min(100, value)}%` }} 
+        />
+      </div>
+    </div>
+  );
+
   if (loading && !homeSettings) {
     return <div className="flex items-center justify-center py-20"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
   }
