@@ -9,6 +9,8 @@ import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { 
   LayoutDashboard, 
+  Building2,
+  Users,
   Image as ImageIcon, 
   Megaphone, 
   Star, 
