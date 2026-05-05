@@ -40,6 +40,7 @@ import PromotionPublic from "./pages/PromotionPublic";
 import DashboardLayout from "./components/DashboardLayout";
 import SuperAdminLayout from "./components/SuperAdminLayout";
 import SuperAdminDashboard from "./pages/superadmin/SuperAdminDashboard";
+import SuperAdminMarketplace from "./pages/superadmin/SuperAdminMarketplace";
 import SuperAdminCompanies from "./pages/superadmin/SuperAdminCompanies";
 import SuperAdminPlans from "./pages/superadmin/SuperAdminPlans";
 import SuperAdminFinance from "./pages/superadmin/SuperAdminFinance";
