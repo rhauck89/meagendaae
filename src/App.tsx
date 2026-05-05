@@ -68,6 +68,7 @@ import AppointmentRequests from "./pages/AppointmentRequests";
 import ClientPortal from "./pages/ClientPortal";
 import ClientAuth from "./pages/ClientAuth";
 import RequestConfirmation from "./pages/RequestConfirmation";
+import PromotionOptOut from "./pages/PromotionOptOut";
 import TestLogin from "./pages/TestLogin";
 import DebugAuthContext from "./pages/DebugAuthContext";
 
@@ -235,6 +236,8 @@ const PlatformRoutes = () => (
     <Route path="/minha-conta" element={<ClientPortal />} />
     <Route path="/cliente/auth" element={<ClientAuth />} />
     <Route path="/request/:requestId" element={<RequestConfirmation />} />
+    <Route path="/promocoes/descadastrar" element={<PromotionOptOut />} />
+    <Route path="/no-promo" element={<PromotionOptOut />} />
     <Route path="/review/:appointmentId" element={<ReviewPage />} />
     <Route path="/test-login" element={<TestLogin />} />
     <Route path="/cancel/:appointmentId" element={<CancelAppointment />} />

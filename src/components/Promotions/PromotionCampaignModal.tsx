@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Textarea } from '@/components/ui/textarea';
-import { Search, Users, Calendar, Filter, Check, AlertCircle, Loader2, MessageCircle, PartyPopper } from 'lucide-react';
+import { Search, Users, Calendar, Filter, Check, AlertCircle, Loader2, MessageCircle, PartyPopper, Send } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
@@ -45,6 +45,9 @@ export function PromotionCampaignModal({
   const [creating, setCreating] = useState(false);
   const [success, setSuccess] = useState(false);
   const [lastCampaignCount, setLastCampaignCount] = useState(0);
+  const [lastCampaignId, setLastCampaignId] = useState<string | null>(null);
+  const [startingSend, setStartingSend] = useState(false);
+  const [sendStarted, setSendStarted] = useState(false);
 
   const isAdmin = roles.some(r => ['super_admin', 'professional', 'collaborator'].includes(r));
 
@@ -214,6 +217,8 @@ export function PromotionCampaignModal({
       if (logsError) throw logsError;
 
       setLastCampaignCount(selectedIds.size);
+      setLastCampaignId(campaign.id);
+      setSendStarted(false);
       setSuccess(true);
       toast.success('Campanha preparada com sucesso!');
     } catch (error) {
@@ -221,6 +226,36 @@ export function PromotionCampaignModal({
       toast.error('Erro ao preparar campanha');
     } finally {
       setCreating(false);
+    }
+  };
+
+  const handleStartSending = async () => {
+    if (!lastCampaignId) {
+      toast.error('Campanha não localizada');
+      return;
+    }
+
+    setStartingSend(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('process-promotion-campaign', {
+        body: {
+          campaign_id: lastCampaignId,
+          origin: window.location.origin,
+        },
+      });
+
+      if (error) throw error;
+      if (data && data.success === false) {
+        throw new Error(data.error || 'Não foi possível iniciar o envio');
+      }
+
+      setSendStarted(true);
+      toast.success('Envio automático iniciado');
+    } catch (error) {
+      console.error('Error starting promotion campaign:', error);
+      toast.error(error instanceof Error ? error.message : 'Erro ao iniciar envio automático');
+    } finally {
+      setStartingSend(false);
     }
   };
 
@@ -238,20 +273,54 @@ export function PromotionCampaignModal({
           {success ? (
             <div className="flex flex-col items-center justify-center p-8 text-center space-y-6 animate-in fade-in zoom-in duration-300">
               <div className="h-20 w-20 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center">
-                <PartyPopper className="h-10 w-10" />
+                {sendStarted ? <Send className="h-10 w-10" /> : <PartyPopper className="h-10 w-10" />}
               </div>
               
-              <div className="space-y-2">
+              {sendStarted && (
+                <div className="space-y-2">
+                  <h3 className="text-xl font-bold text-foreground">Envio iniciado</h3>
+                  <p className="text-muted-foreground">
+                    Mensagens serão enviadas com intervalo para evitar bloqueios.
+                  </p>
+                  <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 py-1 px-3">
+                    Você pode fechar esta janela.
+                  </Badge>
+                </div>
+              )}
+
+              <div className={sendStarted ? "hidden" : "space-y-2"}>
                 <h3 className="text-xl font-bold text-foreground">Campanha preparada com {lastCampaignCount} clientes.</h3>
-                <p className="text-muted-foreground font-medium">Nenhuma mensagem foi enviada ainda.</p>
-                <p className="text-sm text-amber-600 bg-amber-50 border border-amber-100 rounded-md py-2 px-4 inline-block">
+                <p className="text-muted-foreground">Nenhuma mensagem foi enviada ainda.</p>
+                <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 py-1 px-3">
                   Envio automático será ativado na próxima etapa.
-                </p>
+                </Badge>
               </div>
+
+              {!sendStarted && (
+                <Button
+                  onClick={handleStartSending}
+                  disabled={startingSend || !lastCampaignId}
+                  className="w-full max-w-xs gap-2 bg-emerald-600 hover:bg-emerald-700"
+                >
+                  {startingSend ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Iniciando envio...
+                    </>
+                  ) : (
+                    <>
+                      <Send className="h-4 w-4" />
+                      Iniciar envio automático
+                    </>
+                  )}
+                </Button>
+              )}
 
               <Button 
                 onClick={() => {
                   setSuccess(false);
+                  setLastCampaignId(null);
+                  setSendStarted(false);
                   onOpenChange(false);
                 }}
                 className="w-full max-w-xs"
@@ -395,7 +464,7 @@ export function PromotionCampaignModal({
                       <span className="text-xs font-bold">Aviso: Segmento grande</span>
                     </div>
                     <p className="text-[10px] text-amber-700 leading-tight">
-                      Você selecionou {selectedIds.size} clientes. Na próxima etapa, o envio automático terá intervalos para evitar bloqueios.
+                      Você selecionou {selectedIds.size} clientes. Para evitar bloqueios, o sistema enviará as mensagens com intervalos aleatórios.
                     </p>
                     <div className="flex items-center gap-2 pt-1">
                       <Checkbox 
