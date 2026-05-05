@@ -393,7 +393,9 @@ const ClientPortal = () => {
 
   const companiesWithCashback = useMemo(
     () => Object.values(companies).filter(c => 
-      companyCashbackActive[c.id] || (cashbackByCompany[c.id] || 0) > 0
+      companyCashbackActive[c.id] || 
+      (cashbackByCompany[c.id]?.available || 0) > 0 || 
+      (cashbackByCompany[c.id]?.pending || 0) > 0
     ),
     [companies, companyCashbackActive, cashbackByCompany]);
     
