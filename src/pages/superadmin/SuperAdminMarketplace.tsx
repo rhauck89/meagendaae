@@ -60,9 +60,9 @@ const SuperAdminMarketplace = () => {
   const [selectedBanner, setSelectedBanner] = useState<any>(null);
   const [filters, setFilters] = useState({
     status: 'all',
-    position: 'all',
-    city: 'all'
+    position: 'all'
   });
+  const [searchTerm, setSearchTerm] = useState('');
 
   const fetchAll = async () => {
     setLoading(true);
@@ -428,11 +428,62 @@ const SuperAdminMarketplace = () => {
         </TabsContent>
 
         <TabsContent value="banners" className="space-y-6">
-          <div className="flex items-center justify-between gap-4">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <h3 className="text-lg font-semibold">Gestão de Anúncios</h3>
-            <Button size="sm" className="gap-2" onClick={() => { setSelectedBanner(null); setIsDialogOpen(true); }}>
-              <Plus className="h-4 w-4" /> Novo Banner
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button size="sm" variant="outline" className="gap-2" onClick={() => { setFilters({ status: 'all', position: 'all' }); setSearchTerm(''); }}>
+                <X className="h-4 w-4" /> Limpar
+              </Button>
+              <Button size="sm" className="gap-2" onClick={() => { setSelectedBanner(null); setIsDialogOpen(true); }}>
+                <Plus className="h-4 w-4" /> Novo Banner
+              </Button>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 bg-muted/30 p-4 rounded-lg">
+            <div className="space-y-1">
+              <Label className="text-[10px] uppercase">Status</Label>
+              <Select value={filters.status} onValueChange={v => setFilters({...filters, status: v})}>
+                <SelectTrigger className="h-9">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos Status</SelectItem>
+                  <SelectItem value="active">Ativo</SelectItem>
+                  <SelectItem value="draft">Rascunho</SelectItem>
+                  <SelectItem value="paused">Pausado</SelectItem>
+                  <SelectItem value="scheduled">Programado</SelectItem>
+                  <SelectItem value="ended">Encerrado</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <Label className="text-[10px] uppercase">Posição</Label>
+              <Select value={filters.position} onValueChange={v => setFilters({...filters, position: v})}>
+                <SelectTrigger className="h-9">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todas Posições</SelectItem>
+                  <SelectItem value="hero_secondary">Hero Secundário</SelectItem>
+                  <SelectItem value="sections">Banner entre Seções</SelectItem>
+                  <SelectItem value="category">Banner de Categoria</SelectItem>
+                  <SelectItem value="footer">Rodapé</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1 md:col-span-2">
+              <Label className="text-[10px] uppercase">Pesquisar</Label>
+              <div className="relative">
+                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input 
+                  placeholder="Nome do banner ou anunciante..." 
+                  className="pl-9 h-9" 
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+              </div>
+            </div>
           </div>
           
           <Card>
@@ -450,7 +501,15 @@ const SuperAdminMarketplace = () => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {banners.filter(b => !b.deleted_at).map(b => (
+                  {banners
+                    .filter(b => !b.deleted_at)
+                    .filter(b => filters.status === 'all' || b.status === filters.status)
+                    .filter(b => filters.position === 'all' || b.position === filters.position)
+                    .filter(b => !searchTerm || 
+                      b.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                      (b.client_name && b.client_name.toLowerCase().includes(searchTerm.toLowerCase()))
+                    )
+                    .map(b => (
                     <TableRow key={b.id}>
                       <TableCell>
                         <div className="flex items-center gap-3">
