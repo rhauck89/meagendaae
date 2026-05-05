@@ -381,9 +381,9 @@ const SuperAdminMarketplace = () => {
         </TabsContent>
 
         <TabsContent value="banners" className="space-y-6">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between gap-4">
             <h3 className="text-lg font-semibold">Gestão de Anúncios</h3>
-            <Button size="sm" className="gap-2" onClick={() => toast.info('Funcionalidade de criação em breve na Fase 2')}>
+            <Button size="sm" className="gap-2" onClick={() => { setSelectedBanner(null); setIsDialogOpen(true); }}>
               <Plus className="h-4 w-4" /> Novo Banner
             </Button>
           </div>
@@ -399,11 +399,11 @@ const SuperAdminMarketplace = () => {
                     <TableHead>Período</TableHead>
                     <TableHead>Performance</TableHead>
                     <TableHead>Status</TableHead>
-                    <TableHead className="w-[50px]"></TableHead>
+                    <TableHead>Ações</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {banners.map(b => (
+                  {banners.filter(b => !b.deleted_at).map(b => (
                     <TableRow key={b.id}>
                       <TableCell>
                         <div className="flex items-center gap-3">
@@ -431,24 +431,41 @@ const SuperAdminMarketplace = () => {
                         </div>
                       </TableCell>
                       <TableCell>
-                        <Badge variant={b.status === 'active' ? 'default' : b.status === 'draft' ? 'outline' : 'secondary'} className="text-[10px] h-5">
+                        <Badge variant={b.status === 'active' ? 'default' : b.status === 'draft' ? 'outline' : 'secondary'} className="text-[10px] h-5 capitalize">
                           {b.status}
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        <Button variant="ghost" size="icon" className="h-8 w-8"><MoreHorizontal className="h-4 w-4" /></Button>
+                        <div className="flex items-center gap-1">
+                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => { setSelectedBanner(b); setIsDialogOpen(true); }}><Edit className="h-4 w-4" /></Button>
+                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleDuplicateBanner(b)}><Plus className="h-4 w-4" /></Button>
+                          <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => handleDeleteBanner(b.id)}><Trash2 className="h-4 w-4" /></Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}
-                  {banners.length === 0 && (
+                  {banners.filter(b => !b.deleted_at).length === 0 && (
                     <TableRow>
-                      <TableCell colSpan={7} className="text-center py-12 text-muted-foreground">Nenhum banner encontrado. Clique em "Novo Banner" para começar.</TableCell>
+                      <TableCell colSpan={7} className="text-center py-12 text-muted-foreground">Nenhum banner cadastrado.</TableCell>
                     </TableRow>
                   )}
                 </TableBody>
               </Table>
             </CardContent>
           </Card>
+
+          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>{selectedBanner ? 'Editar Banner' : 'Novo Banner'}</DialogTitle>
+              </DialogHeader>
+              <BannerForm 
+                banner={selectedBanner} 
+                onSuccess={() => { setIsDialogOpen(false); fetchAll(); }} 
+                onCancel={() => setIsDialogOpen(false)} 
+              />
+            </DialogContent>
+          </Dialog>
         </TabsContent>
 
         <TabsContent value="featured" className="space-y-6">
