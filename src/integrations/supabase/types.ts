@@ -7141,6 +7141,14 @@ export type Database = {
         }
         Returns: number
       }
+      get_client_identity_v2: {
+        Args: never
+        Returns: {
+          client_ids: string[]
+          emails: string[]
+          whatsapps: string[]
+        }[]
+      }
       get_client_loyalty_balance: {
         Args: {
           p_client_id?: string
@@ -7151,6 +7159,10 @@ export type Database = {
         }
         Returns: number
       }
+      get_client_portal_appointments: { Args: never; Returns: Json[] }
+      get_client_portal_cashback: { Args: never; Returns: Json }
+      get_client_portal_points: { Args: never; Returns: Json }
+      get_client_portal_summary: { Args: never; Returns: Json }
       get_company_by_slug: {
         Args: { _slug: string }
         Returns: {
