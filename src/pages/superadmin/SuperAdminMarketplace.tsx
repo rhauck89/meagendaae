@@ -35,6 +35,7 @@ import { format } from 'date-fns';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import BannerForm from './components/BannerForm';
 
 const BUCKET = 'marketplace-assets';
 
@@ -52,6 +53,15 @@ const SuperAdminMarketplace = () => {
     monthlyClicks: 0,
     monthlyImpressions: 0,
     featuredCompanies: 0
+  });
+
+  // UI States
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [selectedBanner, setSelectedBanner] = useState<any>(null);
+  const [filters, setFilters] = useState({
+    status: 'all',
+    position: 'all',
+    city: 'all'
   });
 
   const fetchAll = async () => {
@@ -104,6 +114,43 @@ const SuperAdminMarketplace = () => {
       toast.success('Configurações da Home salvas com sucesso');
     } catch (error: any) {
       toast.error(`Erro ao salvar: ${error.message}`);
+    }
+  };
+
+  const handleDeleteBanner = async (id: string) => {
+    if (!confirm('Tem certeza que deseja excluir este banner?')) return;
+    
+    try {
+      // Usar soft delete
+      const { error } = await supabase
+        .from('marketplace_banners')
+        .update({ deleted_at: new Date().toISOString() })
+        .eq('id', id);
+      
+      if (error) throw error;
+      toast.success('Banner excluído com sucesso');
+      fetchAll();
+    } catch (error: any) {
+      toast.error(`Erro ao excluir: ${error.message}`);
+    }
+  };
+
+  const handleDuplicateBanner = async (banner: any) => {
+    try {
+      const { id, created_at, updated_at, deleted_at, current_clicks, current_impressions, ...rest } = banner;
+      const { error } = await supabase
+        .from('marketplace_banners')
+        .insert([{
+          ...rest,
+          name: `Cópia de ${banner.name}`,
+          status: 'draft'
+        }]);
+      
+      if (error) throw error;
+      toast.success('Banner duplicado como rascunho');
+      fetchAll();
+    } catch (error: any) {
+      toast.error(`Erro ao duplicar: ${error.message}`);
     }
   };
 
