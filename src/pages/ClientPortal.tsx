@@ -107,7 +107,6 @@ const ClientPortal = () => {
   };
 
   const [clients, setClients] = useState<ClientRecord[]>([]);
-  const [appointments, setAppointments] = useState<AppointmentRow[]>([]);
   const [summary, setSummary] = useState<any>(null);
   const [pointsData, setPointsData] = useState<any>(null);
   const [cashbackData, setCashbackData] = useState<any>(null);
@@ -876,7 +875,7 @@ const ClientPortal = () => {
 
               {/* CASHBACK */}
               <TabsContent value="cashback" className="space-y-4 mt-4">
-                {!anyCashback && allCashbackTxs.length === 0 ? (
+                {!anyCashback && (cashbackData?.history || []).length === 0 ? (
                   <Card>
                     <CardContent className="p-8 text-center space-y-3">
                       <Wallet className="h-12 w-12 mx-auto text-muted-foreground/40" />
@@ -964,12 +963,12 @@ const ClientPortal = () => {
 
                       {/* Lista cronológica do extrato */}
                       <div className="space-y-2">
-                        {allCashbackTxs.length === 0 ? (
+                        {(cashbackData?.history || []).length === 0 ? (
                           <Card><CardContent className="p-6 text-center text-sm text-muted-foreground italic">
                             Nenhuma movimentação registrada ainda
                           </CardContent></Card>
                         ) : (
-                          allCashbackTxs.map(tx => {
+                          (cashbackData?.history || []).map((tx: any) => {
                             const isCredit = tx.type === 'credit';
                             const isDebit = tx.type === 'debit';
                             const isExpiration = tx.type === 'expiration' || (tx as any).type === 'expire';
