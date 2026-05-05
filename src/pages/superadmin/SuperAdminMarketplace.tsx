@@ -538,6 +538,6 @@ const SuperAdminMarketplace = () => {
 
 // Auxiliary components that were missing in code--write (mocking CardFooter for build pass)
 const CardFooter = ({ children, className }: any) => <div className={`p-6 ${className}`}>{children}</div>;
-const Users = ({ className }: any) => <div className={className}>👤</div>;
+
 
 export default SuperAdminMarketplace;
