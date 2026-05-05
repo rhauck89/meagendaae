@@ -7131,6 +7131,16 @@ export type Database = {
           user_id: string
         }[]
       }
+      get_client_loyalty_balance: {
+        Args: {
+          p_client_id?: string
+          p_company_id: string
+          p_email?: string
+          p_user_id?: string
+          p_whatsapp?: string
+        }
+        Returns: number
+      }
       get_company_by_slug: {
         Args: { _slug: string }
         Returns: {
