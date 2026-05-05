@@ -691,18 +691,53 @@ const SuperAdminMarketplace = () => {
                         </div>
                       </TableCell>
                       <TableCell className="text-xs">
-                        {format(new Date(b.start_date), 'dd/MM')} - {format(new Date(b.end_date), 'dd/MM/yy')}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex flex-col gap-1">
-                          <span className="text-[10px] text-muted-foreground">{b.current_impressions} imps</span>
-                          <span className="text-[10px] text-muted-foreground">{b.current_clicks} cliques</span>
+                        <div className="flex flex-col gap-0.5">
+                          <span>{format(new Date(b.start_date), 'dd/MM')} - {format(new Date(b.end_date), 'dd/MM/yy')}</span>
+                          {b.status === 'active' && differenceInDays(new Date(b.end_date), new Date()) <= 3 && (
+                            <span className="text-[10px] text-amber-600 font-medium flex items-center gap-1">
+                              <Clock className="h-2 w-2" /> Expira em breve
+                            </span>
+                          )}
                         </div>
                       </TableCell>
                       <TableCell>
-                        <Badge variant={b.status === 'active' ? 'default' : b.status === 'draft' ? 'outline' : 'secondary'} className="text-[10px] h-5 capitalize">
-                          {b.status}
-                        </Badge>
+                        <div className="flex flex-col gap-2 min-w-[120px]">
+                          {b.sale_model === 'impressions' && b.limit_impressions && (
+                            <Progress 
+                              value={(b.current_impressions / b.limit_impressions) * 100} 
+                              label={`${b.current_impressions}/${b.limit_impressions} imps`} 
+                            />
+                          )}
+                          {b.sale_model === 'clicks' && b.limit_clicks && (
+                            <Progress 
+                              value={(b.current_clicks / b.limit_clicks) * 100} 
+                              label={`${b.current_clicks}/${b.limit_clicks} cliques`} 
+                            />
+                          )}
+                          {b.sale_model === 'fixed_period' && (
+                            <div className="flex flex-col gap-1">
+                              <span className="text-[10px] text-muted-foreground font-medium uppercase">Performance</span>
+                              <div className="flex gap-2 text-[10px]">
+                                <span title="Impressões">{b.current_impressions} i</span>
+                                <span title="Cliques">{b.current_clicks} c</span>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex flex-col gap-1 items-start">
+                          <Badge 
+                            variant={b.status === 'active' ? 'default' : b.status === 'ended' ? 'secondary' : 'outline'} 
+                            className={`text-[10px] h-5 capitalize font-bold ${
+                              b.status === 'active' ? 'bg-success hover:bg-success text-white' : 
+                              b.status === 'ended' ? 'bg-muted text-muted-foreground' : ''
+                            }`}
+                          >
+                            {b.status === 'ended' ? 'Encerrado' : b.status}
+                          </Badge>
+                          {getUsageBadge(b)}
+                        </div>
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-1">
