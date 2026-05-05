@@ -14,6 +14,7 @@ import {
   Users, Heart, Shield, Loader2, Crown, Calendar, ShieldCheck,
   Tag, Navigation as NavIcon, ChevronDown, Hand, Eye, Smile,
   CalendarCheck, Bell, MessageCircle, CreditCard, ChevronLeft, ChevronRight,
+  Building2,
 } from 'lucide-react';
 
 import heroImg from '@/assets/marketplace-hero.jpg';
