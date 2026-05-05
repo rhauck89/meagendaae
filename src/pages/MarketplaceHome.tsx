@@ -85,6 +85,8 @@ export default function MarketplaceHome() {
   const geo = useGeolocation();
 
   const [allCompanies, setAllCompanies] = useState<MarketCompany[]>([]);
+  const [homeSettings, setHomeSettings] = useState<any>(null);
+  const [banners, setBanners] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   const [search, setSearch] = useState('');
@@ -92,7 +94,24 @@ export default function MarketplaceHome() {
   const [filterCity, setFilterCity] = useState<string>('');
   const [filterRating, setFilterRating] = useState<string>('all');
 
-  useEffect(() => { loadCompanies(); }, []);
+  useEffect(() => { 
+    loadCompanies(); 
+    loadMarketplaceSettings();
+  }, []);
+
+  const loadMarketplaceSettings = async () => {
+    try {
+      const [settingsRes, bannersRes] = await Promise.all([
+        supabase.from('marketplace_home_settings').select('*').single(),
+        supabase.from('marketplace_banners').select('*').eq('status', 'active')
+      ]);
+      
+      if (settingsRes.data) setHomeSettings(settingsRes.data);
+      if (bannersRes.data) setBanners(bannersRes.data);
+    } catch (err) {
+      console.error('[MARKETPLACE] Error loading settings:', err);
+    }
+  };
 
   useEffect(() => {
     if (geo.latitude && geo.longitude) {
@@ -111,6 +130,12 @@ export default function MarketplaceHome() {
   const loadCompanies = async () => {
     setLoading(true);
     try {
+      // Prioridade para destaques manuais (Fase 1)
+      const { data: featuredManual } = await supabase
+        .from('marketplace_featured_items')
+        .select('company_id, professional_id')
+        .eq('status', 'active');
+
       const { data, error } = await withTimeout(supabase
         .from('public_company' as any)
         .select('id, name, slug, logo_url, cover_url, city, state, average_rating, review_count, business_type, latitude, longitude')
