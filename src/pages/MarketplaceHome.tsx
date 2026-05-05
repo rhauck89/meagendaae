@@ -620,20 +620,20 @@ export default function MarketplaceHome() {
           <div className="grid md:grid-cols-2 items-center">
             <div className="px-8 md:px-12 py-10 md:py-12">
               <h2 className="text-2xl md:text-3xl font-display font-bold mb-3">
-                É profissional de beleza?
+                {homeSettings?.cta_professional_title || 'É profissional de beleza?'}
               </h2>
               <p className="text-white/80 mb-6 text-sm md:text-base">
-                Cadastre-se gratuitamente e receba agendamentos todos os dias
+                {homeSettings?.cta_professional_subtitle || 'Cadastre-se gratuitamente e receba agendamentos todos os dias'}
               </p>
               <Link to="/profissionais">
                 <Button className="bg-emerald-500 hover:bg-emerald-600 text-white rounded-md">
-                  Criar perfil profissional
+                  {homeSettings?.cta_professional_button_text || 'Criar perfil profissional'}
                   <ArrowRight className="h-4 w-4 ml-2" />
                 </Button>
               </Link>
             </div>
             <div className="hidden md:block relative h-full min-h-[220px]">
-              <img src={ctaProImg} alt="Profissional de beleza" className="absolute inset-0 w-full h-full object-cover object-top" loading="lazy" />
+              <img src={homeSettings?.cta_professional_image_url || ctaProImg} alt="Profissional" className="absolute inset-0 w-full h-full object-cover object-top" loading="lazy" />
             </div>
           </div>
         </div>
