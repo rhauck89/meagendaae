@@ -340,22 +340,6 @@ const ClientPortal = () => {
       isTransaction: h.type === 'transaction'
     }));
   }, [pointsData]);
-    
-    const reds = redemptions
-      .filter(r => r.status !== 'cancelled' && !txRefIds.has(r.id))
-      .map(r => ({
-        id: r.id,
-        points: -Number(r.total_points),
-        transaction_type: 'redeem',
-        description: 'Resgate de recompensa',
-        created_at: r.created_at,
-        company_id: r.company_id,
-        balance_after: null as number | null,
-        isTransaction: false
-      }));
-      
-    return [...txs, ...reds].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-  }, [allLoyaltyTxs, redemptions]);
 
   const upcomingAppointments = useMemo(
     () => appointments.filter(a => !isPast(parseISO(a.start_time)) && !['cancelled', 'no_show'].includes(a.status)),
