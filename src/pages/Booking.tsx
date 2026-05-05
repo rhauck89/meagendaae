@@ -1385,7 +1385,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
     const eligibleServices = selectedServicesData.filter(s => {
       if (loyaltyConfig.participating_services === 'all') return true;
       if (loyaltyConfig.participating_services === 'specific' && loyaltyConfig.specific_service_ids) {
-        return loyaltyConfig.specific_service_ids.includes(s.id);
+        return (loyaltyConfig.specific_service_ids as string[]).includes(s.id);
       }
       return false;
     });
@@ -1394,14 +1394,16 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
 
     if (loyaltyConfig.scoring_type === 'per_service') {
       return eligibleServices.length * (loyaltyConfig.points_per_service || 0);
-    } else if (loyaltyConfig.scoring_type === 'per_currency') {
+    } else if (loyaltyConfig.scoring_type === 'per_value') {
       // Calculate based on final price of eligible services
-      // User says: "Usar o valor final que o cliente vai pagar."
+      // Use the final price after discounts/cashback use
       
-      // Calculate the proportion of the price that comes from eligible services
+      const originalSubtotal = selectedServicesData.reduce((sum, s) => sum + Number(s.price), 0);
       const eligibleSubtotal = eligibleServices.reduce((sum, s) => sum + Number(s.price), 0);
+      
       if (originalSubtotal === 0) return 0;
       
+      // Calculate the proportion of the price that comes from eligible services
       const proportion = eligibleSubtotal / originalSubtotal;
       const finalPriceForPoints = finalPrice * proportion;
       
