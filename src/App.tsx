@@ -245,6 +245,7 @@ const PlatformRoutes = () => (
     <Route path="/reschedule/:appointmentId" element={<RescheduleAppointment />} />
     <Route path="/admin" element={<RequireRole role="super_admin"><Admin /></RequireRole>} />
     <Route path="/super-admin" element={<RequireRole role="super_admin"><SuperAdminLayout><SuperAdminDashboard /></SuperAdminLayout></RequireRole>} />
+    <Route path="/super-admin/marketplace" element={<RequireRole role="super_admin"><SuperAdminLayout><SuperAdminMarketplace /></SuperAdminLayout></RequireRole>} />
     <Route path="/super-admin/companies" element={<RequireRole role="super_admin"><SuperAdminLayout><SuperAdminCompanies /></SuperAdminLayout></RequireRole>} />
     <Route path="/super-admin/plans" element={<RequireRole role="super_admin"><SuperAdminLayout><SuperAdminPlans /></SuperAdminLayout></RequireRole>} />
     <Route path="/super-admin/finance" element={<RequireRole role="super_admin"><SuperAdminLayout><SuperAdminFinance /></SuperAdminLayout></RequireRole>} />
