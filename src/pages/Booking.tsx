@@ -490,7 +490,6 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
         }
 
         const { data: cbData } = await cashbackQuery;
-        const { data: cbData } = await cashbackQuery;
         // Also fetch total balance using the secure RPC for better client identification coverage
         const { data: cbBalance } = await supabase.rpc('get_client_cashback_balance', {
           p_company_id: company.id,
