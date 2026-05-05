@@ -49,7 +49,7 @@ const FinanceCommissions = () => {
 
   useEffect(() => {
     if (companyId) fetchData();
-  }, [companyId, startDate, endDate]);
+  }, [companyId, startDate, endDate, filterStatus]);
 
   const fetchData = async () => {
     setLoading(true);
