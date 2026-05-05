@@ -320,24 +320,36 @@ const ClientPortal = () => {
 
   // ---------- Aggregations ----------
   const cashbackByCompany = useMemo(() => {
-    const map: Record<string, number> = {};
+    const map: Record<string, { available: number; pending: number }> = {};
     if (cashbackData?.balances) {
       Object.entries(cashbackData.balances).forEach(([cid, bal]: [string, any]) => {
-        map[cid] = Number(bal.available) || 0;
+        map[cid] = {
+          available: Number(bal.available) || 0,
+          pending: Number(bal.pending) || 0
+        };
       });
     }
     return map;
   }, [cashbackData]);
 
+  const totalUsedCashback = useMemo(() => {
+    return (cashbackData?.history || [])
+      .filter((h: any) => h.type === 'debit')
+      .reduce((acc: number, h: any) => acc + (Number(h.amount) || 0), 0);
+  }, [cashbackData]);
+
   const cashbackTotals = useMemo(() => {
     return {
-      gained: summary?.cashback_active || 0,
-      used: 0, // We'll focus on what's available
+      available: summary?.cashback_active || 0,
+      pending: summary?.cashback_pending || 0,
+      gained: (summary?.cashback_active || 0) + totalUsedCashback,
+      used: totalUsedCashback,
       expired: 0
     };
-  }, [summary]);
+  }, [summary, totalUsedCashback]);
 
   const totalCashback = summary?.cashback_active || 0;
+  const pendingCashback = summary?.cashback_pending || 0;
 
   const pointsByCompany = useMemo(() => {
     const map: Record<string, number> = {};
@@ -381,7 +393,9 @@ const ClientPortal = () => {
 
   const companiesWithCashback = useMemo(
     () => Object.values(companies).filter(c => 
-      companyCashbackActive[c.id] || (cashbackByCompany[c.id] || 0) > 0
+      companyCashbackActive[c.id] || 
+      (cashbackByCompany[c.id]?.available || 0) > 0 || 
+      (cashbackByCompany[c.id]?.pending || 0) > 0
     ),
     [companies, companyCashbackActive, cashbackByCompany]);
     
@@ -764,16 +778,26 @@ const ClientPortal = () => {
                   </button>
                 </div>
                 <div className="space-y-2">
-                  {companiesWithCashback.map(co => (
-                    <Card key={co.id}>
-                      <CardContent className="p-3 flex items-center justify-between gap-2">
-                        <CompanyHeader company={co} />
-                        <p className="text-base font-bold text-green-600">
-                          R$ {(cashbackByCompany[co.id] || 0).toFixed(2)}
-                        </p>
-                      </CardContent>
-                    </Card>
-                  ))}
+                  {companiesWithCashback.map(co => {
+                    const bal = cashbackByCompany[co.id];
+                    return (
+                      <Card key={co.id}>
+                        <CardContent className="p-3 flex items-center justify-between gap-2">
+                          <CompanyHeader company={co} />
+                          <div className="text-right">
+                            <p className="text-base font-bold text-green-600">
+                              R$ {(bal?.available || 0).toFixed(2)}
+                            </p>
+                            {(bal?.pending || 0) > 0 && (
+                              <p className="text-[10px] text-muted-foreground">
+                                + R$ {bal?.pending.toFixed(2)} pendente
+                              </p>
+                            )}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
                 </div>
               </div>
             )}
@@ -936,16 +960,22 @@ const ClientPortal = () => {
                               </p>
                             </div>
 
-                            <div className="grid grid-cols-2 gap-3 pt-2 border-t border-primary/10">
+                            <div className="grid grid-cols-3 gap-2 pt-2 border-t border-primary/10">
                               <div>
-                                <p className="text-[10px] text-muted-foreground uppercase font-bold">Total Ganho</p>
-                                <p className="text-lg font-bold text-green-600">
+                                <p className="text-[9px] text-muted-foreground uppercase font-bold">Ganho</p>
+                                <p className="text-sm font-bold text-green-600">
                                   + R$ {cashbackTotals.gained.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                                 </p>
                               </div>
                               <div>
-                                <p className="text-[10px] text-muted-foreground uppercase font-bold">Total Usado</p>
-                                <p className="text-lg font-bold text-red-500">
+                                <p className="text-[9px] text-muted-foreground uppercase font-bold">Pendente</p>
+                                <p className="text-sm font-bold text-orange-500">
+                                  R$ {cashbackTotals.pending.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                                </p>
+                              </div>
+                              <div>
+                                <p className="text-[9px] text-muted-foreground uppercase font-bold">Usado</p>
+                                <p className="text-sm font-bold text-red-500">
                                   - R$ {cashbackTotals.used.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                                 </p>
                               </div>
@@ -972,16 +1002,24 @@ const ClientPortal = () => {
                       
                       {/* Saldo por estabelecimento */}
                       <div className="space-y-2">
-                        {companiesWithCashback.map(co => (
-                          <div key={co.id} className="flex items-center justify-between p-3 rounded-xl bg-card border shadow-sm">
-                            <CompanyHeader company={co} size="sm" />
-                            <div className="text-right">
-                              <p className="text-sm font-bold text-primary">
-                                R$ {(cashbackByCompany[co.id] || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                              </p>
+                        {companiesWithCashback.map(co => {
+                          const bal = cashbackByCompany[co.id];
+                          return (
+                            <div key={co.id} className="flex items-center justify-between p-3 rounded-xl bg-card border shadow-sm">
+                              <CompanyHeader company={co} size="sm" />
+                              <div className="text-right">
+                                <p className="text-sm font-bold text-primary">
+                                  R$ {(bal?.available || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                                </p>
+                                {(bal?.pending || 0) > 0 && (
+                                  <p className="text-[10px] text-muted-foreground">
+                                    + R$ {bal?.pending.toLocaleString('pt-BR', { minimumFractionDigits: 2 })} pendente
+                                  </p>
+                                )}
+                              </div>
                             </div>
-                          </div>
-                        ))}
+                          );
+                        })}
                       </div>
 
                       {/* Lista cronológica do extrato */}
