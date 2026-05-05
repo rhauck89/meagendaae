@@ -478,64 +478,117 @@ const FinanceCommissions = () => {
         <CardContent className="p-0">
           <Table>
             <TableHeader className="bg-muted/50">
-              <TableRow>
-                <TableHead className="w-[200px] cursor-pointer" onClick={() => requestSort('name')}>
-                  <div className="flex items-center gap-1">Profissional <ArrowUpDown className="h-3 w-3" /></div>
-                </TableHead>
-                <TableHead className="text-center">Tipo</TableHead>
-                <TableHead className="text-center cursor-pointer" onClick={() => requestSort('count')}>
-                  <div className="flex items-center justify-center gap-1">Serviços <ArrowUpDown className="h-3 w-3" /></div>
-                </TableHead>
-                <TableHead className="text-right cursor-pointer" onClick={() => requestSort('revenue')}>
-                  <div className="flex items-center justify-end gap-1">Faturado <ArrowUpDown className="h-3 w-3" /></div>
-                </TableHead>
-                <TableHead className="text-center">Comissão</TableHead>
-                <TableHead className="text-right cursor-pointer" onClick={() => requestSort('professionalValue')}>
-                  <div className="flex items-center justify-end gap-1">Comissão (R$) <ArrowUpDown className="h-3 w-3" /></div>
-                </TableHead>
-                <TableHead className="text-right">Empresa (Net)</TableHead>
-              </TableRow>
+              {isAdmin ? (
+                <TableRow>
+                  <TableHead className="w-[200px] cursor-pointer" onClick={() => requestSort('name')}>
+                    <div className="flex items-center gap-1">Profissional <ArrowUpDown className="h-3 w-3" /></div>
+                  </TableHead>
+                  <TableHead className="text-center">Tipo</TableHead>
+                  <TableHead className="text-center cursor-pointer" onClick={() => requestSort('count')}>
+                    <div className="flex items-center justify-center gap-1">Serviços <ArrowUpDown className="h-3 w-3" /></div>
+                  </TableHead>
+                  <TableHead className="text-right cursor-pointer" onClick={() => requestSort('revenue')}>
+                    <div className="flex items-center justify-end gap-1">Faturado <ArrowUpDown className="h-3 w-3" /></div>
+                  </TableHead>
+                  <TableHead className="text-center">Comissão</TableHead>
+                  <TableHead className="text-right cursor-pointer" onClick={() => requestSort('professionalValue')}>
+                    <div className="flex items-center justify-end gap-1">Comissão (R$) <ArrowUpDown className="h-3 w-3" /></div>
+                  </TableHead>
+                  <TableHead className="text-right">Empresa (Net)</TableHead>
+                </TableRow>
+              ) : (
+                <TableRow>
+                  <TableHead className="cursor-pointer" onClick={() => requestSort('date')}>
+                    <div className="flex items-center gap-1">Data <ArrowUpDown className="h-3 w-3" /></div>
+                  </TableHead>
+                  <TableHead className="cursor-pointer" onClick={() => requestSort('clientName')}>
+                    <div className="flex items-center gap-1">Cliente <ArrowUpDown className="h-3 w-3" /></div>
+                  </TableHead>
+                  <TableHead>Serviço</TableHead>
+                  <TableHead className="text-right cursor-pointer" onClick={() => requestSort('revenue')}>
+                    <div className="flex items-center justify-end gap-1">Valor <ArrowUpDown className="h-3 w-3" /></div>
+                  </TableHead>
+                  <TableHead className="text-center">Comissão %</TableHead>
+                  <TableHead className="text-right cursor-pointer" onClick={() => requestSort('professionalValue')}>
+                    <div className="flex items-center justify-end gap-1">Sua Comissão <ArrowUpDown className="h-3 w-3" /></div>
+                  </TableHead>
+                  <TableHead className="text-right">Empresa</TableHead>
+                  <TableHead className="text-center">Status</TableHead>
+                </TableRow>
+              )}
             </TableHeader>
             <TableBody>
               {loading ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center py-20 text-muted-foreground">
+                  <TableCell colSpan={isAdmin ? 7 : 8} className="text-center py-20 text-muted-foreground">
                     Carregando dados...
                   </TableCell>
                 </TableRow>
               ) : filteredAndSortedRows.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center py-20 text-muted-foreground">
-                    Nenhum dado encontrado para os filtros aplicados.
+                  <TableCell colSpan={isAdmin ? 7 : 8} className="text-center py-20 text-muted-foreground">
+                    Nenhum atendimento encontrado para este período.
                   </TableCell>
                 </TableRow>
               ) : (
                 filteredAndSortedRows.map(r => (
                   <TableRow key={r.id} className="hover:bg-muted/20 transition-colors">
-                    <TableCell>
-                      <button 
-                        onClick={() => openProfessionalDetail(r)}
-                        className="font-semibold text-primary hover:underline underline-offset-4 decoration-primary/30 text-left"
-                      >
-                        {r.name}
-                      </button>
-                    </TableCell>
-                    <TableCell className="text-center">
-                      <Badge variant="secondary" className="text-[10px] uppercase font-bold tracking-tight px-2 py-0">
-                        {collaboratorTypeLabel(r.type)}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-center font-medium">{r.count}</TableCell>
-                    <TableCell className="text-right font-bold">{maskValue(r.revenue)}</TableCell>
-                    <TableCell className="text-center">
-                      <Badge variant="outline" className="text-[10px] font-medium border-primary/20 text-primary">
-                        {commissionLabel(r.commType, r.value)}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-right font-bold text-warning">{maskValue(r.professionalValue)}</TableCell>
-                    <TableCell className="text-right font-display font-black text-foreground">
-                      {maskValue(r.companyValue)}
-                    </TableCell>
+                    {isAdmin ? (
+                      <>
+                        <TableCell>
+                          <button 
+                            onClick={() => openProfessionalDetail(r)}
+                            className="font-semibold text-primary hover:underline underline-offset-4 decoration-primary/30 text-left"
+                          >
+                            {r.name}
+                          </button>
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <Badge variant="secondary" className="text-[10px] uppercase font-bold tracking-tight px-2 py-0">
+                            {collaboratorTypeLabel(r.type)}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-center font-medium">{r.count}</TableCell>
+                        <TableCell className="text-right font-bold">{maskValue(r.revenue)}</TableCell>
+                        <TableCell className="text-center">
+                          <Badge variant="outline" className="text-[10px] font-medium border-primary/20 text-primary">
+                            {commissionLabel(r.commType, r.value)}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-right font-bold text-warning">{maskValue(r.professionalValue)}</TableCell>
+                        <TableCell className="text-right font-display font-black text-foreground">
+                          {maskValue(r.companyValue)}
+                        </TableCell>
+                      </>
+                    ) : (
+                      <>
+                        <TableCell className="text-xs font-medium">
+                          {format(new Date(r.date), 'dd/MM/yyyy HH:mm')}
+                        </TableCell>
+                        <TableCell className="text-sm font-semibold">{r.clientName}</TableCell>
+                        <TableCell className="text-xs text-muted-foreground truncate max-w-[150px]" title={r.serviceName}>
+                          {r.serviceName}
+                        </TableCell>
+                        <TableCell className="text-right font-bold">{maskValue(r.revenue)}</TableCell>
+                        <TableCell className="text-center">
+                          <Badge variant="outline" className="text-[10px] font-medium border-primary/20 text-primary">
+                            {commissionLabel(r.commType, r.commValue)}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-right font-bold text-warning">{maskValue(r.professionalValue)}</TableCell>
+                        <TableCell className="text-right font-display font-black text-foreground text-xs">
+                          {maskValue(r.companyValue)}
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <Badge 
+                            variant={r.status === 'completed' ? 'secondary' : 'outline'} 
+                            className="text-[9px] uppercase font-bold"
+                          >
+                            {r.status === 'completed' ? 'Concluído' : r.status === 'confirmed' ? 'Confirmado' : r.status}
+                          </Badge>
+                        </TableCell>
+                      </>
+                    )}
                   </TableRow>
                 ))
               )}
