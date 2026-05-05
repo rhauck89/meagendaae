@@ -45,6 +45,47 @@ import ReportsTab from './components/ReportsTab';
 
 const BUCKET = 'marketplace-assets';
 
+const Progress = ({ value, label }: { value: number; label: string }) => (
+  <div className="space-y-1 w-full max-w-[100px]">
+    <div className="flex justify-between text-[10px] text-muted-foreground uppercase font-medium">
+      <span>{label}</span>
+      <span>{Math.min(100, Math.round(value))}%</span>
+    </div>
+    <div className="h-1 w-full bg-muted rounded-full overflow-hidden">
+      <div 
+        className={`h-full transition-all ${value >= 100 ? 'bg-destructive' : value >= 80 ? 'bg-orange-500' : 'bg-primary'}`} 
+        style={{ width: `${Math.min(100, value)}%` }} 
+      />
+    </div>
+  </div>
+);
+
+const getUsageBadge = (banner: any) => {
+  if (banner.status !== 'active' && banner.status !== 'ended') return null;
+  
+  const now = new Date();
+  const endDate = new Date(banner.end_date);
+  const daysLeft = differenceInDays(endDate, now);
+
+  if (banner.status === 'active' && daysLeft >= 0 && daysLeft <= 3) {
+    return <Badge variant="outline" className="bg-amber-50 text-amber-600 border-amber-200 text-[10px] h-5">Expira em breve</Badge>;
+  }
+
+  if (banner.sale_model === 'impressions' && banner.limit_impressions) {
+    const usage = (banner.current_impressions / banner.limit_impressions) * 100;
+    if (usage >= 100) return <Badge variant="destructive" className="text-[10px] h-5">Limite atingido</Badge>;
+    if (usage >= 80) return <Badge variant="outline" className="bg-orange-50 text-orange-600 border-orange-200 text-[10px] h-5">Perto do limite</Badge>;
+  }
+
+  if (banner.sale_model === 'clicks' && banner.limit_clicks) {
+    const usage = (banner.current_clicks / banner.limit_clicks) * 100;
+    if (usage >= 100) return <Badge variant="destructive" className="text-[10px] h-5">Limite atingido</Badge>;
+    if (usage >= 80) return <Badge variant="outline" className="bg-orange-50 text-orange-600 border-orange-200 text-[10px] h-5">Perto do limite</Badge>;
+  }
+
+  return null;
+};
+
 const SuperAdminMarketplace = () => {
   const [activeTab, setActiveTab] = useState('overview');
   const [loading, setLoading] = useState(true);
