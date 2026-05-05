@@ -284,51 +284,56 @@ const ReportsTab = () => {
       </Card>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7 gap-4">
         <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center gap-4">
-              <div className="p-2 bg-primary/10 rounded-lg"><Eye className="h-6 w-6 text-primary" /></div>
-              <div>
-                <p className="text-sm text-muted-foreground">Impressões</p>
-                <p className="text-2xl font-bold">{summary.totalImpressions.toLocaleString()}</p>
-              </div>
-            </div>
+          <CardContent className="p-4">
+            <p className="text-[10px] uppercase text-muted-foreground font-semibold">Ativos</p>
+            <p className="text-xl font-bold">{summary.activeBanners}</p>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center gap-4">
-              <div className="p-2 bg-success/10 rounded-lg"><MousePointer2 className="h-6 w-6 text-success" /></div>
-              <div>
-                <p className="text-sm text-muted-foreground">Cliques</p>
-                <p className="text-2xl font-bold">{summary.totalClicks.toLocaleString()}</p>
-              </div>
-            </div>
+          <CardContent className="p-4">
+            <p className="text-[10px] uppercase text-muted-foreground font-semibold">Impressões</p>
+            <p className="text-xl font-bold">{summary.totalImpressions > 9999 ? (summary.totalImpressions / 1000).toFixed(1) + 'k' : summary.totalImpressions}</p>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center gap-4">
-              <div className="p-2 bg-warning/10 rounded-lg"><TrendingUp className="h-6 w-6 text-warning" /></div>
-              <div>
-                <p className="text-sm text-muted-foreground">CTR Médio</p>
-                <p className="text-2xl font-bold">{summary.avgCtr.toFixed(2)}%</p>
-              </div>
-            </div>
+          <CardContent className="p-4">
+            <p className="text-[10px] uppercase text-muted-foreground font-semibold">Cliques</p>
+            <p className="text-xl font-bold">{summary.totalClicks}</p>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center gap-4">
-              <div className="p-2 bg-accent/10 rounded-lg"><Trophy className="h-6 w-6 text-accent-foreground" /></div>
-              <div>
-                <p className="text-sm text-muted-foreground">Melhor CTR</p>
-                <p className="text-lg font-bold truncate max-w-[150px]" title={summary.bestCtrBanner?.r_name || '-'}>
-                  {summary.bestCtrBanner?.r_name || '-'} ({summary.bestCtrBanner?.r_ctr.toFixed(1)}%)
-                </p>
-              </div>
-            </div>
+          <CardContent className="p-4">
+            <p className="text-[10px] uppercase text-muted-foreground font-semibold">CTR Médio</p>
+            <p className="text-xl font-bold">{summary.avgCtr.toFixed(2)}%</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <p className="text-[10px] uppercase text-muted-foreground font-semibold">Melhor CTR</p>
+            <p className="text-xs font-bold truncate" title={summary.bestCtrBanner?.r_name}>
+              {summary.bestCtrBanner?.r_name || '-'}
+            </p>
+            <p className="text-sm font-bold text-success">{summary.bestCtrBanner?.r_ctr.toFixed(1)}%</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <p className="text-[10px] uppercase text-muted-foreground font-semibold">Mais Impressões</p>
+            <p className="text-xs font-bold truncate" title={summary.mostImpressionsBanner?.r_name}>
+              {summary.mostImpressionsBanner?.r_name || '-'}
+            </p>
+            <p className="text-sm font-bold text-primary">{summary.mostImpressionsBanner?.r_impressions || 0}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <p className="text-[10px] uppercase text-muted-foreground font-semibold">Mais Cliques</p>
+            <p className="text-xs font-bold truncate" title={summary.mostClicksBanner?.r_name}>
+              {summary.mostClicksBanner?.r_name || '-'}
+            </p>
+            <p className="text-sm font-bold text-success">{summary.mostClicksBanner?.r_clicks || 0}</p>
           </CardContent>
         </Card>
       </div>
