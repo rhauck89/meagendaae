@@ -14,6 +14,7 @@ import { PlatformFooter } from './PlatformFooter';
 
 const navItems = [
   { href: '/super-admin', icon: LayoutDashboard, label: 'Dashboard' },
+  { href: '/super-admin/marketplace', icon: Megaphone, label: 'Marketplace' },
   { href: '/super-admin/companies', icon: Building2, label: 'Empresas' },
   { href: '/super-admin/plans', icon: CreditCard, label: 'Planos' },
   { href: '/super-admin/finance', icon: DollarSign, label: 'Financeiro' },

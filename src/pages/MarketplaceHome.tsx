@@ -85,6 +85,8 @@ export default function MarketplaceHome() {
   const geo = useGeolocation();
 
   const [allCompanies, setAllCompanies] = useState<MarketCompany[]>([]);
+  const [homeSettings, setHomeSettings] = useState<any>(null);
+  const [banners, setBanners] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   const [search, setSearch] = useState('');
@@ -92,7 +94,24 @@ export default function MarketplaceHome() {
   const [filterCity, setFilterCity] = useState<string>('');
   const [filterRating, setFilterRating] = useState<string>('all');
 
-  useEffect(() => { loadCompanies(); }, []);
+  useEffect(() => { 
+    loadCompanies(); 
+    loadMarketplaceSettings();
+  }, []);
+
+  const loadMarketplaceSettings = async () => {
+    try {
+      const [settingsRes, bannersRes] = await Promise.all([
+        supabase.from('marketplace_home_settings').select('*').single(),
+        supabase.from('marketplace_banners').select('*').eq('status', 'active')
+      ]);
+      
+      if (settingsRes.data) setHomeSettings(settingsRes.data);
+      if (bannersRes.data) setBanners(bannersRes.data);
+    } catch (err) {
+      console.error('[MARKETPLACE] Error loading settings:', err);
+    }
+  };
 
   useEffect(() => {
     if (geo.latitude && geo.longitude) {
@@ -111,6 +130,12 @@ export default function MarketplaceHome() {
   const loadCompanies = async () => {
     setLoading(true);
     try {
+      // Prioridade para destaques manuais (Fase 1)
+      const { data: featuredManual } = await supabase
+        .from('marketplace_featured_items')
+        .select('company_id, professional_id')
+        .eq('status', 'active');
+
       const { data, error } = await withTimeout(supabase
         .from('public_company' as any)
         .select('id, name, slug, logo_url, cover_url, city, state, average_rating, review_count, business_type, latitude, longitude')
@@ -213,22 +238,23 @@ export default function MarketplaceHome() {
       {/* HERO */}
       <section className="relative bg-slate-900 text-white overflow-hidden">
         <div className="absolute inset-0">
-          <img src={heroImg} alt="" className="w-full h-full object-cover object-right opacity-90" />
+          <img src={homeSettings?.hero_image_url || heroImg} alt="" className="w-full h-full object-cover object-right opacity-90" />
           <div className="absolute inset-0 bg-gradient-to-r from-slate-950 via-slate-950/85 to-transparent" />
         </div>
 
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 md:py-24">
           <div className="max-w-2xl">
-            <div className="inline-flex items-center gap-2 bg-amber-500/10 border border-amber-500/30 text-amber-400 px-4 py-1.5 rounded-md text-xs font-semibold uppercase tracking-wide mb-6">
-              <Sparkles className="h-3.5 w-3.5" />
-              O maior marketplace de beleza e bem-estar
-            </div>
+            {homeSettings?.hero_badge && (
+              <div className="inline-flex items-center gap-2 bg-amber-500/10 border border-amber-500/30 text-amber-400 px-4 py-1.5 rounded-md text-xs font-semibold uppercase tracking-wide mb-6">
+                <Sparkles className="h-3.5 w-3.5" />
+                {homeSettings.hero_badge}
+              </div>
+            )}
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-display font-bold leading-tight mb-5">
-              Encontre os melhores<br />
-              profissionais <span className="text-amber-400">perto de você</span>
+              {homeSettings?.hero_title || 'Encontre os melhores profissionais perto de você'}
             </h1>
             <p className="text-base md:text-lg text-white/80 max-w-xl mb-8">
-              Agende online com praticidade, segurança e os melhores profissionais de beleza, estética e bem-estar.
+              {homeSettings?.hero_subtitle || 'Agende online com praticidade, segurança e os melhores profissionais de beleza, estética e bem-estar.'}
             </p>
 
             {/* Search bar */}
@@ -594,20 +620,20 @@ export default function MarketplaceHome() {
           <div className="grid md:grid-cols-2 items-center">
             <div className="px-8 md:px-12 py-10 md:py-12">
               <h2 className="text-2xl md:text-3xl font-display font-bold mb-3">
-                É profissional de beleza?
+                {homeSettings?.cta_professional_title || 'É profissional de beleza?'}
               </h2>
               <p className="text-white/80 mb-6 text-sm md:text-base">
-                Cadastre-se gratuitamente e receba agendamentos todos os dias
+                {homeSettings?.cta_professional_subtitle || 'Cadastre-se gratuitamente e receba agendamentos todos os dias'}
               </p>
               <Link to="/profissionais">
                 <Button className="bg-emerald-500 hover:bg-emerald-600 text-white rounded-md">
-                  Criar perfil profissional
+                  {homeSettings?.cta_professional_button_text || 'Criar perfil profissional'}
                   <ArrowRight className="h-4 w-4 ml-2" />
                 </Button>
               </Link>
             </div>
             <div className="hidden md:block relative h-full min-h-[220px]">
-              <img src={ctaProImg} alt="Profissional de beleza" className="absolute inset-0 w-full h-full object-cover object-top" loading="lazy" />
+              <img src={homeSettings?.cta_professional_image_url || ctaProImg} alt="Profissional" className="absolute inset-0 w-full h-full object-cover object-top" loading="lazy" />
             </div>
           </div>
         </div>
