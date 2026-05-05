@@ -73,6 +73,9 @@ const SuperAdminMarketplace = () => {
   const fetchAll = async () => {
     setLoading(true);
     try {
+      // Sincronizar status antes de buscar
+      await supabase.rpc('sync_marketplace_banner_statuses');
+
       const [homeRes, bannersRes, featuredRes] = await Promise.all([
         supabase.from('marketplace_home_settings').select('*').single(),
         supabase.from('marketplace_banners').select('*').order('created_at', { ascending: false }),
@@ -83,10 +86,15 @@ const SuperAdminMarketplace = () => {
       if (bannersRes.data) {
         setBanners(bannersRes.data);
         const now = new Date();
+        const monthlyImpressions = bannersRes.data.reduce((sum, b) => sum + (b.current_impressions || 0), 0);
+        const monthlyClicks = bannersRes.data.reduce((sum, b) => sum + (b.current_clicks || 0), 0);
+
         setStats(prev => ({
           ...prev,
-          activeBanners: bannersRes.data.filter(b => b.status === 'active').length,
-          scheduledBanners: bannersRes.data.filter(b => b.status === 'scheduled').length
+          activeBanners: bannersRes.data.filter(b => b.status === 'active' && !b.deleted_at).length,
+          scheduledBanners: bannersRes.data.filter(b => b.status === 'scheduled' && !b.deleted_at).length,
+          monthlyImpressions,
+          monthlyClicks
         }));
       }
       if (featuredRes.data) {
