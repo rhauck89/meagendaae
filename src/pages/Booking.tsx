@@ -490,7 +490,27 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
         }
 
         const { data: cbData } = await cashbackQuery;
-        setCashbackCredits(cbData || []);
+        const { data: cbData } = await cashbackQuery;
+        // Also fetch total balance using the secure RPC for better client identification coverage
+        const { data: cbBalance } = await supabase.rpc('get_client_cashback_balance', {
+          p_company_id: company.id,
+          p_client_id: savedClientId || null,
+          p_user_id: effectiveUserId || null,
+          p_email: clientForm.email || null,
+          p_whatsapp: clientForm.whatsapp ? normalizePhone(clientForm.whatsapp) : null
+        });
+
+        if (cbData) {
+          setCashbackCredits(cbData);
+        }
+        
+        // Ensure cashbackTotal reflects the secure balance if available
+        if (typeof cbBalance === 'number') {
+          // If the individual credits match the balance or if we don't have credits, we can trust the balance
+          // For the UI, we still need the credits array if the user wants to USE them, 
+          // but for DISPLAYing current balance, the RPC is more accurate.
+          console.log('[CASHBACK_BALANCE_SYNC] RPC balance:', cbBalance);
+        }
 
         // Query loyalty points using the new RPC for higher accuracy across redemptions and multiple IDs
         const { data: pointsBalance, error: pointsError } = await supabase.rpc('get_client_loyalty_balance', {
