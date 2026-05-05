@@ -815,11 +815,60 @@ const SuperAdminMarketplace = () => {
         </TabsContent>
 
         <TabsContent value="featured" className="space-y-6">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <h3 className="text-lg font-semibold">Destaques Manuais</h3>
-            <Button size="sm" className="gap-2" onClick={() => toast.info('Busca e seleção em breve na Fase 2')}>
-              <Plus className="h-4 w-4" /> Destacar Empresa/Profissional
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button size="sm" variant="outline" className="gap-2" onClick={() => { setFeaturedFilters({ status: 'all', type: 'all' }); setFeaturedSearchTerm(''); }}>
+                <X className="h-4 w-4" /> Limpar
+              </Button>
+              <Button size="sm" className="gap-2" onClick={() => { setSelectedFeaturedItem(null); setIsFeaturedDialogOpen(true); }}>
+                <Plus className="h-4 w-4" /> Destacar Empresa/Profissional
+              </Button>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 bg-muted/30 p-4 rounded-lg">
+            <div className="space-y-1">
+              <Label className="text-[10px] uppercase font-bold">Status</Label>
+              <Select value={featuredFilters.status} onValueChange={v => setFeaturedFilters({...featuredFilters, status: v})}>
+                <SelectTrigger className="h-9">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos Status</SelectItem>
+                  <SelectItem value="active">Ativo</SelectItem>
+                  <SelectItem value="scheduled">Programado</SelectItem>
+                  <SelectItem value="paused">Pausado</SelectItem>
+                  <SelectItem value="ended">Encerrado</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <Label className="text-[10px] uppercase font-bold">Tipo de Destaque</Label>
+              <Select value={featuredFilters.type} onValueChange={v => setFeaturedFilters({...featuredFilters, type: v})}>
+                <SelectTrigger className="h-9">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos Tipos</SelectItem>
+                  <SelectItem value="featured_large">Destaque Maior</SelectItem>
+                  <SelectItem value="featured_medium">Destaque Mediano</SelectItem>
+                  <SelectItem value="featured_logo">Destaque de Logos</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1 md:col-span-2">
+              <Label className="text-[10px] uppercase font-bold">Pesquisar</Label>
+              <div className="relative">
+                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input 
+                  placeholder="Nome da empresa ou profissional..." 
+                  className="pl-9 h-9" 
+                  value={featuredSearchTerm}
+                  onChange={(e) => setFeaturedSearchTerm(e.target.value)}
+                />
+              </div>
+            </div>
           </div>
 
           <Card>
@@ -828,59 +877,114 @@ const SuperAdminMarketplace = () => {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Item</TableHead>
-                    <TableHead>Posição</TableHead>
+                    <TableHead>Tipo Destaque</TableHead>
                     <TableHead>Região</TableHead>
-                    <TableHead>Prioridade</TableHead>
+                    <TableHead>Período</TableHead>
+                    <TableHead className="text-center">Prioridade</TableHead>
                     <TableHead>Status</TableHead>
-                    <TableHead className="w-[50px]"></TableHead>
+                    <TableHead>Ações</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {featuredItems.map(item => (
-                    <TableRow key={item.id}>
+                  {featuredItems
+                    .filter(f => featuredFilters.status === 'all' || f.status === featuredFilters.status)
+                    .filter(f => featuredFilters.type === 'all' || f.highlight_type === featuredFilters.type)
+                    .filter(f => !featuredSearchTerm || 
+                      (f.companies?.name && f.companies.name.toLowerCase().includes(featuredSearchTerm.toLowerCase())) ||
+                      (f.profiles?.full_name && f.profiles.full_name.toLowerCase().includes(featuredSearchTerm.toLowerCase()))
+                    )
+                    .map(f => (
+                    <TableRow key={f.id}>
                       <TableCell>
                         <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-full bg-muted overflow-hidden flex items-center justify-center">
-                            {(item.companies?.logo_url || item.profiles?.avatar_url) ? (
-                              <img src={item.companies?.logo_url || item.profiles?.avatar_url} className="w-full h-full object-cover" />
+                          <div className="w-10 h-10 rounded bg-muted flex items-center justify-center overflow-hidden border">
+                            {f.companies?.logo_url ? (
+                              <img src={f.companies.logo_url} className="w-full h-full object-cover" />
+                            ) : f.profiles?.avatar_url ? (
+                              <img src={f.profiles.avatar_url} className="w-full h-full object-cover" />
                             ) : (
-                              <Building2 className="h-4 w-4 text-muted-foreground" />
+                              f.company_id ? <Building2 className="h-5 w-5 text-muted-foreground" /> : <Users className="h-5 w-5 text-muted-foreground" />
                             )}
                           </div>
                           <div>
-                            <p className="font-medium text-sm">{item.companies?.name || item.profiles?.full_name}</p>
-                            <p className="text-[10px] text-muted-foreground uppercase">{item.item_type}</p>
+                            <p className="font-medium text-sm">{f.companies?.name || f.profiles?.full_name || 'Desconhecido'}</p>
+                            <Badge variant="outline" className="text-[9px] h-4 uppercase font-bold py-0">
+                              {f.company_id ? 'Empresa' : 'Profissional'}
+                            </Badge>
                           </div>
                         </div>
                       </TableCell>
-                      <TableCell className="text-sm">{item.position}</TableCell>
-                      <TableCell className="text-xs text-muted-foreground">
-                        {item.city || 'Toda plataforma'}
+                      <TableCell>
+                        <Badge variant="secondary" className="text-[10px] h-5 capitalize">
+                          {f.highlight_type ? f.highlight_type.replace('featured_', '').replace('_', ' ') : 'Padrao'}
+                        </Badge>
                       </TableCell>
                       <TableCell>
-                        <Badge variant="outline">{item.priority}</Badge>
+                        <div className="flex flex-col gap-0.5 text-xs">
+                          <span className="flex items-center gap-1"><MapPin className="h-3 w-3" /> {f.city || 'Geral'}, {f.state || 'BR'}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-xs">
+                        <div className="flex flex-col gap-0.5">
+                          <span>{f.start_at ? format(new Date(f.start_at), 'dd/MM/yy') : 'Imediato'}</span>
+                          <span className="text-muted-foreground">até {f.end_at ? format(new Date(f.end_at), 'dd/MM/yy') : 'Permanente'}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <span className="text-sm font-bold bg-muted px-2 py-0.5 rounded">{f.priority}</span>
                       </TableCell>
                       <TableCell>
-                        <Badge variant={item.status === 'active' ? 'default' : 'secondary'} className="text-[10px] h-5">{item.status}</Badge>
+                        <Badge 
+                          variant={f.status === 'active' ? 'default' : f.status === 'ended' ? 'secondary' : 'outline'} 
+                          className={`text-[10px] h-5 capitalize font-bold ${
+                            f.status === 'active' ? 'bg-success hover:bg-success text-white' : ''
+                          }`}
+                        >
+                          {f.status}
+                        </Badge>
                       </TableCell>
                       <TableCell>
-                        <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive"><Trash2 className="h-4 w-4" /></Button>
+                        <div className="flex items-center gap-1">
+                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => { setSelectedFeaturedItem(f); setIsFeaturedDialogOpen(true); }}><Edit className="h-4 w-4" /></Button>
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className={`h-8 w-8 ${f.status === 'active' ? 'text-amber-500' : 'text-success'}`} 
+                            onClick={() => handleToggleFeaturedStatus(f)}
+                          >
+                            <Clock className="h-4 w-4" />
+                          </Button>
+                          <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => handleDeleteFeaturedItem(f.id)}><Trash2 className="h-4 w-4" /></Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}
                   {featuredItems.length === 0 && (
                     <TableRow>
-                      <TableCell colSpan={6} className="text-center py-12 text-muted-foreground">Nenhum destaque manual ativo.</TableCell>
+                      <TableCell colSpan={7} className="text-center py-12 text-muted-foreground">Nenhum destaque cadastrado.</TableCell>
                     </TableRow>
                   )}
                 </TableBody>
               </Table>
             </CardContent>
           </Card>
-        </TabsContent>
 
+          <Dialog open={isFeaturedDialogOpen} onOpenChange={setIsFeaturedDialogOpen}>
+            <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>{selectedFeaturedItem ? 'Editar Destaque' : 'Novo Destaque Manual'}</DialogTitle>
+              </DialogHeader>
+              <FeaturedItemForm 
+                item={selectedFeaturedItem} 
+                onSuccess={() => { setIsFeaturedDialogOpen(false); fetchAll(); }} 
+                onCancel={() => setIsFeaturedDialogOpen(false)} 
+              />
+            </DialogContent>
+          </Dialog>
+        </TabsContent>
+        
         <TabsContent value="reports">
-          <ReportsTab />
+          <ReportsTab banners={banners} />
         </TabsContent>
       </Tabs>
     </div>
