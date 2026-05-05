@@ -640,20 +640,8 @@ const SuperAdminMarketplace = () => {
           </Card>
         </TabsContent>
 
-        <TabsContent value="reports" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Performance de Anúncios</CardTitle>
-              <CardDescription>Métricas em tempo real de cliques e impressões.</CardDescription>
-            </CardHeader>
-            <CardContent className="py-20 text-center">
-              <div className="max-w-md mx-auto space-y-4">
-                <BarChart3 className="h-12 w-12 text-muted-foreground/30 mx-auto" />
-                <h4 className="font-medium text-lg">Módulo de Relatórios em Desenvolvimento</h4>
-                <p className="text-sm text-muted-foreground">Na Fase 2, você terá acesso a gráficos detalhados de CTR, mapas de calor por região e exportação completa para CSV.</p>
-              </div>
-            </CardContent>
-          </Card>
+        <TabsContent value="reports">
+          <ReportsTab />
         </TabsContent>
       </Tabs>
     </div>
