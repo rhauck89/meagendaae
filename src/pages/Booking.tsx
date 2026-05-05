@@ -3066,6 +3066,8 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                       <Checkbox checked={useCashback} onCheckedChange={(v) => setUseCashback(v === true)} className="rounded-full w-6 h-6" />
                     </div>
                   )}
+
+                  {/* Loyalty Points Redeemption (if applicable) would go here, currently only display exists in cards above */}
                 </div>
               )}
 
