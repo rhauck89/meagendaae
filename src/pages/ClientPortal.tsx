@@ -416,8 +416,8 @@ const ClientPortal = () => {
     setRewardsCompanyId(companiesWithRewards[0].id);
   }, [companiesWithRewards, rewardsCompanyId]);
 
-  const anyCashback = companiesWithCashback.length > 0;
-  const anyLoyalty = companiesWithLoyalty.length > 0;
+  const anyCashback = totalCashback > 0 || (cashbackData?.history || []).length > 0 || companiesWithCashback.length > 0;
+  const anyLoyalty = totalPoints > 0 || (pointsData?.history || []).length > 0 || companiesWithLoyalty.length > 0;
   const anyRewards = companiesWithRewards.length > 0;
 
   // ---------- Redemptions: refresh + create (transactional via RPC) ----------
