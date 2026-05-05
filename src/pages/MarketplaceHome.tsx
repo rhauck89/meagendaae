@@ -104,7 +104,12 @@ export default function MarketplaceHome() {
     try {
       const [settingsRes, bannersRes] = await Promise.all([
         supabase.from('marketplace_home_settings').select('*').single(),
-        supabase.from('marketplace_banners').select('*').eq('status', 'active')
+        supabase.from('marketplace_banners')
+          .select('*')
+          .eq('status', 'active')
+          .is('deleted_at', null)
+          .lte('start_date', new Date().toISOString())
+          .gte('end_date', new Date().toISOString())
       ]);
       
       if (settingsRes.data) setHomeSettings(settingsRes.data);
@@ -113,6 +118,39 @@ export default function MarketplaceHome() {
       console.error('[MARKETPLACE] Error loading settings:', err);
     }
   };
+
+  const selectBanner = (position: string) => {
+    const validBanners = banners.filter(b => b.position === position);
+    if (validBanners.length === 0) return null;
+
+    // Filter by category if one is selected
+    const categoryBanners = filterCategory !== 'all' 
+      ? validBanners.filter(b => !b.category || b.category === filterCategory)
+      : validBanners;
+
+    const sourceBanners = categoryBanners.length > 0 ? categoryBanners : validBanners;
+
+    // Sort by priority (descending)
+    const maxPriority = Math.max(...sourceBanners.map(b => b.priority || 0));
+    const topPriorityBanners = sourceBanners.filter(b => (b.priority || 0) === maxPriority);
+
+    if (topPriorityBanners.length === 1) return topPriorityBanners[0];
+
+    // Simple weighted rotation for same priority
+    const totalWeight = topPriorityBanners.reduce((sum, b) => sum + (b.rotation_weight || 1), 0);
+    let random = Math.random() * totalWeight;
+    
+    for (const banner of topPriorityBanners) {
+      random -= (banner.rotation_weight || 1);
+      if (random <= 0) return banner;
+    }
+
+    return topPriorityBanners[0];
+  };
+
+  const heroSecondaryBanner = useMemo(() => selectBanner('hero_secondary'), [banners, filterCategory]);
+  const betweenSectionsBanner = useMemo(() => selectBanner('between_sections'), [banners, filterCategory]);
+  const footerBanner = useMemo(() => selectBanner('footer'), [banners, filterCategory]);
 
   useEffect(() => {
     if (geo.latitude && geo.longitude) {
