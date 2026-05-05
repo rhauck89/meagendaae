@@ -14,6 +14,7 @@ import {
   Users, Heart, Shield, Loader2, Crown, Calendar, ShieldCheck,
   Tag, Navigation as NavIcon, ChevronDown, Hand, Eye, Smile,
   CalendarCheck, Bell, MessageCircle, CreditCard, ChevronLeft, ChevronRight,
+  Building2,
 } from 'lucide-react';
 
 import heroImg from '@/assets/marketplace-hero.jpg';
@@ -86,6 +87,9 @@ export default function MarketplaceHome() {
   const geo = useGeolocation();
 
   const [allCompanies, setAllCompanies] = useState<MarketCompany[]>([]);
+  const [featuredLarge, setFeaturedLarge] = useState<any[]>([]);
+  const [featuredMedium, setFeaturedMedium] = useState<any[]>([]);
+  const [featuredLogos, setFeaturedLogos] = useState<any[]>([]);
   const [homeSettings, setHomeSettings] = useState<any>(null);
   const [banners, setBanners] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -102,21 +106,30 @@ export default function MarketplaceHome() {
 
   const loadMarketplaceSettings = async () => {
     try {
-      // Sincronizar status dos banners antes de carregar
-      await supabase.rpc('sync_marketplace_banner_statuses');
+      // Sincronizar status dos banners e destaques antes de carregar
+      await Promise.all([
+        supabase.rpc('sync_marketplace_banner_statuses'),
+        supabase.rpc('sync_marketplace_featured_statuses')
+      ]);
 
-      const [settingsRes, bannersRes] = await Promise.all([
+      const [settingsRes, bannersRes, largeRes, mediumRes, logosRes] = await Promise.all([
         supabase.from('marketplace_home_settings').select('*').single(),
         supabase.from('marketplace_banners')
           .select('*')
           .eq('status', 'active')
           .is('deleted_at', null)
           .lte('start_date', new Date().toISOString())
-          .gte('end_date', new Date().toISOString())
+          .gte('end_date', new Date().toISOString()),
+        supabase.rpc('get_marketplace_featured_items', { p_highlight_type: 'featured_large', p_limit: 6 }),
+        supabase.rpc('get_marketplace_featured_items', { p_highlight_type: 'featured_medium', p_limit: 12 }),
+        supabase.rpc('get_marketplace_featured_items', { p_highlight_type: 'featured_logo', p_limit: 20 })
       ]);
       
       if (settingsRes.data) setHomeSettings(settingsRes.data);
       if (bannersRes.data) setBanners(bannersRes.data);
+      if (largeRes.data) setFeaturedLarge(largeRes.data);
+      if (mediumRes.data) setFeaturedMedium(mediumRes.data);
+      if (logosRes.data) setFeaturedLogos(logosRes.data);
     } catch (err) {
       console.error('[MARKETPLACE] Error loading settings:', err);
     }
@@ -461,8 +474,43 @@ export default function MarketplaceHome() {
         </section>
       )}
 
-      {/* Featured (Plano Premium) */}
-      {!loading && tiered.featured.length > 0 && (
+      {/* Destaque de Logos (Faixa Horizontal) */}
+      {!loading && featuredLogos.length > 0 && (
+        <section className="bg-muted/30 border-y border-border py-6 mb-8 overflow-hidden">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-3">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
+              <Sparkles className="h-3 w-3 text-amber-500" /> Marcas e Profissionais em evidência
+            </h3>
+          </div>
+          <div className="relative group">
+            <div className="flex gap-4 overflow-x-auto no-scrollbar px-4 sm:px-6 lg:px-8 pb-2">
+              {featuredLogos.map((item) => (
+                <Link 
+                  key={item.id} 
+                  to={getProfileRoute(item)} 
+                  className="flex-shrink-0 flex flex-col items-center gap-2 w-20 sm:w-24 group/logo"
+                >
+                  <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full border-2 border-background bg-white shadow-sm overflow-hidden group-hover/logo:border-primary/30 group-hover/logo:scale-105 transition-all">
+                    {item.logo_url ? (
+                      <img src={item.logo_url} alt={item.name} className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center bg-muted">
+                        {item.item_type === 'company' ? <Building2 className="h-6 w-6 text-muted-foreground" /> : <Users className="h-6 w-6 text-muted-foreground" />}
+                      </div>
+                    )}
+                  </div>
+                  <span className="text-[10px] font-medium text-center line-clamp-1 w-full text-muted-foreground group-hover/logo:text-primary">
+                    {item.name}
+                  </span>
+                </Link>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* Featured Large (Destaque Principal) */}
+      {!loading && (featuredLarge.length > 0 || tiered.featured.length > 0) && (
         <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
           <div className="flex items-end justify-between gap-4 mb-6">
             <div>
@@ -482,7 +530,7 @@ export default function MarketplaceHome() {
 
           <div className="relative">
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-              {tiered.featured.slice(0, 5).map(c => (
+              {[...featuredLarge, ...tiered.featured].slice(0, 5).map(c => (
                 <Link key={c.id} to={getProfileRoute(c)} className="group">
                   <Card className="overflow-hidden border-border hover:shadow-xl hover:-translate-y-0.5 transition-all rounded-xl">
                     <div className="relative aspect-[4/3] bg-muted overflow-hidden">
@@ -553,7 +601,7 @@ export default function MarketplaceHome() {
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3">
-            {tiered.recommended.slice(0, 5).map(c => (
+            {[...featuredMedium, ...tiered.recommended].slice(0, 5).map(c => (
               <Link key={c.id} to={getProfileRoute(c)} className="group">
                 <Card className="overflow-hidden border-border hover:shadow-md transition-all rounded-xl">
                   <CardContent className="p-3 flex items-start gap-3">
