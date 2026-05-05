@@ -540,7 +540,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
     };
     
     checkBenefits();
-  }, [savedClientId, company?.id, isAuthenticated]);
+  }, [savedClientId, company?.id, isAuthenticated, clientForm.email, clientForm.whatsapp]);
 
   // Check if client is logged in - Refined to ignore admin sessions
   // Identification Gatekeeper - require a valid client identity before booking.
