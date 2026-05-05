@@ -602,14 +602,23 @@ const FinanceCommissions = () => {
         {loading ? (
           <div className="text-center py-10">Carregando...</div>
         ) : filteredAndSortedRows.length === 0 ? (
-          <div className="text-center py-10 text-muted-foreground border rounded-lg">Sem dados</div>
+          <div className="text-center py-10 text-muted-foreground border rounded-lg">Nenhum dado encontrado</div>
         ) : filteredAndSortedRows.map(r => (
-          <Card key={r.id} className="border-none shadow-sm overflow-hidden" onClick={() => openProfessionalDetail(r)}>
+          <Card key={r.id} className="border-none shadow-sm overflow-hidden" onClick={isAdmin ? () => openProfessionalDetail(r) : undefined}>
             <CardContent className="p-4 bg-card hover:bg-muted/10 transition-colors">
               <div className="flex items-center justify-between mb-4">
                 <div>
-                  <h3 className="font-bold text-lg text-primary">{r.name}</h3>
-                  <Badge variant="secondary" className="text-[10px] uppercase">{collaboratorTypeLabel(r.type)}</Badge>
+                  <h3 className="font-bold text-lg text-primary">{isAdmin ? r.name : r.clientName}</h3>
+                  <div className="flex items-center gap-2">
+                    {isAdmin ? (
+                      <Badge variant="secondary" className="text-[10px] uppercase">{collaboratorTypeLabel(r.type)}</Badge>
+                    ) : (
+                      <span className="text-xs text-muted-foreground">{format(new Date(r.date), 'dd/MM/yy HH:mm')}</span>
+                    )}
+                    {!isAdmin && (
+                      <Badge variant="outline" className="text-[9px] uppercase">{r.status}</Badge>
+                    )}
+                  </div>
                 </div>
                 <div className="text-right">
                    <p className="text-[10px] text-muted-foreground uppercase font-semibold">Net Empresa</p>
@@ -617,23 +626,33 @@ const FinanceCommissions = () => {
                 </div>
               </div>
               
+              {!isAdmin && (
+                <p className="text-sm font-medium mb-3 text-muted-foreground">{r.serviceName}</p>
+              )}
+
               <div className="grid grid-cols-2 gap-4">
                 <div className="bg-muted/30 p-2 rounded">
                   <span className="text-[10px] text-muted-foreground uppercase block">Faturado</span>
                   <p className="font-bold">{maskValue(r.revenue)}</p>
                 </div>
                 <div className="bg-warning/5 p-2 rounded">
-                  <span className="text-[10px] text-warning uppercase block">Comissão</span>
+                  <span className="text-[10px] text-warning uppercase block">{isAdmin ? "Comissão" : "Sua Comissão"}</span>
                   <p className="font-bold text-warning">{maskValue(r.professionalValue)}</p>
                 </div>
               </div>
               
               <div className="mt-3 flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <span className="text-xs text-muted-foreground">{r.count} Serviços</span>
-                  <Badge variant="outline" className="text-[10px]">{commissionLabel(r.commType, r.value)}</Badge>
+                  {isAdmin ? (
+                    <span className="text-xs text-muted-foreground">{r.count} Serviços</span>
+                  ) : (
+                    <Badge variant="outline" className="text-[10px] border-primary/20 text-primary">
+                      {commissionLabel(isAdmin ? r.commType : r.commType, isAdmin ? r.value : r.commValue)}
+                    </Badge>
+                  )}
+                  {isAdmin && <Badge variant="outline" className="text-[10px]">{commissionLabel(r.commType, r.value)}</Badge>}
                 </div>
-                <span className="text-[10px] text-primary font-bold">VER DETALHES →</span>
+                {isAdmin && <span className="text-[10px] text-primary font-bold">VER DETALHES →</span>}
               </div>
             </CardContent>
           </Card>
