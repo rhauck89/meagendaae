@@ -7538,6 +7538,50 @@ export type Database = {
           user_id: string
         }[]
       }
+      get_marketplace_banner_daily_stats: {
+        Args: {
+          p_banner_id: string
+          p_end_date?: string
+          p_start_date?: string
+        }
+        Returns: {
+          r_clicks: number
+          r_ctr: number
+          r_impressions: number
+          r_stat_date: string
+        }[]
+      }
+      get_marketplace_banner_report: {
+        Args: {
+          p_advertiser?: string
+          p_banner_id?: string
+          p_category?: string
+          p_city?: string
+          p_end_date?: string
+          p_position?: string
+          p_start_date?: string
+          p_state?: string
+          p_status?: string
+        }
+        Returns: {
+          r_banner_id: string
+          r_category: string
+          r_city: string
+          r_clicks: number
+          r_client_name: string
+          r_ctr: number
+          r_end_date: string
+          r_impressions: number
+          r_limit_clicks: number
+          r_limit_impressions: number
+          r_name: string
+          r_position: string
+          r_sale_model: string
+          r_start_date: string
+          r_state: string
+          r_status: string
+        }[]
+      }
       get_my_company_id: { Args: never; Returns: string }
       get_my_profile_id: { Args: never; Returns: string }
       get_or_create_revenue_category: {
