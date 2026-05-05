@@ -69,7 +69,7 @@ const MyAppointments = () => {
       }
     }
 
-    const { data, error } = await supabase.rpc('get_client_appointments_v2');
+    const { data, error } = await supabase.rpc('get_client_portal_appointments');
 
     if (error) {
       console.error('[MyAppointments] fetch error:', error);
