@@ -159,6 +159,7 @@ export default function MarketplaceHome() {
   const heroSecondaryBanner = useMemo(() => selectBanner('hero_secondary'), [banners, filterCategory, filterCity]);
   const betweenSectionsBanner = useMemo(() => selectBanner('between_sections'), [banners, filterCategory, filterCity]);
   const footerBanner = useMemo(() => selectBanner('footer'), [banners, filterCategory, filterCity]);
+  const categoryBanner = useMemo(() => selectBanner('category_page'), [banners, filterCategory, filterCity]);
 
   useEffect(() => {
     if (geo.latitude && geo.longitude) {
