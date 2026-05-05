@@ -225,10 +225,10 @@ const ClientPortal = () => {
       console.log('[CLIENT_PORTAL_DEBUG] cashbackRes:', cashbackRes.data);
       console.log('[CLIENT_PORTAL_DEBUG] clientsRes:', clientsRes.data);
 
-      const summaryData = summaryRes.data;
+      const summaryData = summaryRes.data as any;
       const appointmentsData = (apptsRes.data || []) as any[];
-      const pointsDataObj = pointsRes.data;
-      const cashbackDataObj = cashbackRes.data;
+      const pointsDataObj = pointsRes.data as any;
+      const cashbackDataObj = cashbackRes.data as any;
       const rewardsData = (rewardsRes.data || []) as any[];
       const clientsData = (clientsRes.data || []) as ClientRecord[];
       const redemptionsData = (redemptionsRes.data || []) as Redemption[];
@@ -244,10 +244,18 @@ const ClientPortal = () => {
 
       // Map companies
       const companiesMap: Record<string, CompanyInfo> = {};
+      
+      // Collect all company IDs from all data sources to ensure we load their names/logos
       const companyIds = [...new Set([
         ...appointmentsData.map(a => a.company_id),
-        ...rewardsData.map(r => r.company_id)
-      ])];
+        ...rewardsData.map(r => r.company_id),
+        ...Object.keys(pointsDataObj?.balances || {}),
+        ...Object.keys(cashbackDataObj?.balances || {}),
+        ...(pointsDataObj?.history || []).map((h: any) => h.company_id),
+        ...(cashbackDataObj?.history || []).map((h: any) => h.company_id)
+      ])].filter(Boolean) as string[];
+      
+      console.log('[CLIENT_PORTAL_DEBUG] All involved company IDs:', companyIds);
       
       if (companyIds.length > 0) {
         const { data: companyData } = await supabase.from('companies').select('id, name, logo_url, slug').in('id', companyIds);
@@ -372,11 +380,16 @@ const ClientPortal = () => {
   const rewardsPointValue = rewardsConfig?.point_value || 0.05;
 
   const companiesWithCashback = useMemo(
-    () => Object.values(companies).filter(c => companyCashbackActive[c.id]),
-    [companies, companyCashbackActive]);
+    () => Object.values(companies).filter(c => 
+      companyCashbackActive[c.id] || (cashbackByCompany[c.id] || 0) > 0
+    ),
+    [companies, companyCashbackActive, cashbackByCompany]);
+    
   const companiesWithLoyalty = useMemo(
-    () => Object.values(companies).filter(c => companyLoyaltyActive[c.id]),
-    [companies, companyLoyaltyActive]);
+    () => Object.values(companies).filter(c => 
+      companyLoyaltyActive[c.id] || (pointsByCompany[c.id] || 0) > 0
+    ),
+    [companies, companyLoyaltyActive, pointsByCompany]);
 
   // Loja: empresas com itens ativos, ordenadas (1) com pontos > 0, (2) com histórico, (3) outras
   const appointmentCompanyIds = useMemo(
@@ -403,8 +416,8 @@ const ClientPortal = () => {
     setRewardsCompanyId(companiesWithRewards[0].id);
   }, [companiesWithRewards, rewardsCompanyId]);
 
-  const anyCashback = companiesWithCashback.length > 0;
-  const anyLoyalty = companiesWithLoyalty.length > 0;
+  const anyCashback = totalCashback > 0 || (cashbackData?.history || []).length > 0 || companiesWithCashback.length > 0;
+  const anyLoyalty = totalPoints > 0 || (pointsData?.history || []).length > 0 || companiesWithLoyalty.length > 0;
   const anyRewards = companiesWithRewards.length > 0;
 
   // ---------- Redemptions: refresh + create (transactional via RPC) ----------
