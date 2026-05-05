@@ -984,7 +984,7 @@ const SuperAdminMarketplace = () => {
         </TabsContent>
         
         <TabsContent value="reports">
-          <ReportsTab banners={banners} />
+          <ReportsTab />
         </TabsContent>
       </Tabs>
     </div>
