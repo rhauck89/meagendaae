@@ -244,10 +244,18 @@ const ClientPortal = () => {
 
       // Map companies
       const companiesMap: Record<string, CompanyInfo> = {};
+      
+      // Collect all company IDs from all data sources to ensure we load their names/logos
       const companyIds = [...new Set([
         ...appointmentsData.map(a => a.company_id),
-        ...rewardsData.map(r => r.company_id)
-      ])];
+        ...rewardsData.map(r => r.company_id),
+        ...Object.keys(pointsDataObj?.balances || {}),
+        ...Object.keys(cashbackDataObj?.balances || {}),
+        ...(pointsDataObj?.history || []).map((h: any) => h.company_id),
+        ...(cashbackDataObj?.history || []).map((h: any) => h.company_id)
+      ])].filter(Boolean) as string[];
+      
+      console.log('[CLIENT_PORTAL_DEBUG] All involved company IDs:', companyIds);
       
       if (companyIds.length > 0) {
         const { data: companyData } = await supabase.from('companies').select('id, name, logo_url, slug').in('id', companyIds);
