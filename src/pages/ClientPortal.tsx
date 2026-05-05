@@ -108,9 +108,10 @@ const ClientPortal = () => {
 
   const [clients, setClients] = useState<ClientRecord[]>([]);
   const [appointments, setAppointments] = useState<AppointmentRow[]>([]);
-  const [allCashbacks, setAllCashbacks] = useState<CashbackRow[]>([]);
-  const [allCashbackTxs, setAllCashbackTxs] = useState<CashbackTx[]>([]);
-  const [allLoyaltyTxs, setAllLoyaltyTxs] = useState<LoyaltyTx[]>([]);
+  const [summary, setSummary] = useState<any>(null);
+  const [pointsData, setPointsData] = useState<any>(null);
+  const [cashbackData, setCashbackData] = useState<any>(null);
+  const [appointments, setAppointments] = useState<AppointmentRow[]>([]);
   const [rewards, setRewards] = useState<RewardItem[]>([]);
   const [loyaltyConfigs, setLoyaltyConfigs] = useState<Record<string, any>>({});
   const [companies, setCompanies] = useState<Record<string, CompanyInfo>>({});
@@ -141,13 +142,13 @@ const ClientPortal = () => {
   const [redeemingId, setRedeemingId] = useState<string | null>(null);
 
   // ---------- Cache (instant render + background revalidation) ----------
-  const cacheKey = `client_portal_${user?.id || 'anon'}`;
+  const cacheKey = `client_portal_v2_${user?.id || 'anon'}`;
   const { read: readCache, write: writeCache } = useLocalCache<{
     clients: ClientRecord[];
+    summary: any;
+    pointsData: any;
+    cashbackData: any;
     appointments: AppointmentRow[];
-    allCashbacks: CashbackRow[];
-    allCashbackTxs: CashbackTx[];
-    allLoyaltyTxs: LoyaltyTx[];
     rewards: RewardItem[];
     companies: Record<string, CompanyInfo>;
     loyaltyConfigs: Record<string, any>;
@@ -164,10 +165,10 @@ const ClientPortal = () => {
     if (cached) {
       hasCacheRef.current = true;
       setClients(cached.clients || []);
+      setSummary(cached.summary);
+      setPointsData(cached.pointsData);
+      setCashbackData(cached.cashbackData);
       setAppointments(cached.appointments || []);
-      setAllCashbacks(cached.allCashbacks || []);
-      setAllCashbackTxs(cached.allCashbackTxs || []);
-      setAllLoyaltyTxs(cached.allLoyaltyTxs || []);
       setRewards(cached.rewards || []);
       setCompanies(cached.companies || {});
       setLoyaltyConfigs(cached.loyaltyConfigs || {});
@@ -198,113 +199,55 @@ const ClientPortal = () => {
     if (!isRevalidation) setLoading(true);
     try {
       const currentUserId = isAdmin ? null : user?.id;
-      let profileData = null;
-
-      if (currentUserId) {
-        const { data } = await supabase
-          .from('profiles').select('whatsapp').eq('user_id', currentUserId).maybeSingle();
-        profileData = data;
-      }
-
-      let adminClientContext: any = null;
-      if (isAdmin) {
-        const keys = Object.keys(localStorage).filter(k => k.startsWith('whatsapp_session_'));
-        if (keys.length > 0) {
-          try {
-            adminClientContext = JSON.parse(localStorage.getItem(keys[0]) || '{}');
-          } catch (e) { /* ignore */ }
-        }
-      }
-
-      // Helper for filtering by user/whatsapp/email
-      const buildFilters = (clientEmailField = 'email', clientPhoneField = 'whatsapp') => {
-        const profilePhone = profileData?.whatsapp ? profileData.whatsapp.replace(/\D/g, '') : null;
-        const profilePhoneNoDdi = profilePhone && profilePhone.startsWith('55') ? profilePhone.slice(2) : profilePhone;
-        
-        if (isAdmin && adminClientContext?.whatsapp) {
-          const adminPhone = adminClientContext.whatsapp.replace(/\D/g, '');
-          const adminPhoneNoDdi = adminPhone.startsWith('55') ? adminPhone.slice(2) : adminPhone;
-          
-          const adminConditions = [
-            `${clientPhoneField}.eq.${adminPhone}`,
-            `${clientPhoneField}.eq.${adminPhoneNoDdi}`
-          ];
-          if (adminClientContext.email) adminConditions.push(`${clientEmailField}.eq.${adminClientContext.email}`);
-          
-          return adminConditions.join(',');
-        }
-        
-        const conditions = [`user_id.eq.${currentUserId || '00000000-0000-0000-0000-000000000000'}`];
-        if (profilePhone) {
-          conditions.push(`${clientPhoneField}.eq.${profilePhone}`);
-          if (profilePhoneNoDdi) conditions.push(`${clientPhoneField}.eq.${profilePhoneNoDdi}`);
-        }
-        if (user?.email) {
-          conditions.push(`${clientEmailField}.eq.${user.email}`);
-        }
-        
-        return conditions.join(',');
-      };
-
-      // 1. Fetch Clients first to get IDs
-      const clientRes = await supabase
-        .from('clients')
-        .select('id, company_id, name, whatsapp, email, birth_date, registration_complete, postal_code, street, address_number, district, city, state')
-        .or(buildFilters('email', 'whatsapp'));
-
-      const clientData = (clientRes.data || []) as any[];
-      const clientIds = clientData.map(c => c.id);
       
-      // 2. Fetch everything else using IDs or user_id
-      const idOrUserFilter = (query: any) => {
-        const conditions = [`user_id.eq.${currentUserId || '00000000-0000-0000-0000-000000000000'}`];
-        if (clientIds.length > 0) {
-          conditions.push(`client_id.in.(${clientIds.join(',')})`);
-        }
-        return query.or(conditions.join(','));
-      };
-
+      // If admin, we don't use these new RPCs because they are locked to auth.uid()
+      // For now, let's focus on the client experience (auth.uid())
+      
       const [
+        summaryRes,
         apptsRes,
+        pointsRes,
         cashbackRes,
-        cashbackTxRes,
-        loyaltyTxRes,
         rewardsRes,
-        redemptionsRes
+        clientsRes
       ] = await Promise.all([
-        supabase.rpc('get_client_appointments_v2'),
-        idOrUserFilter(supabase.from('client_cashback').select('id, amount, status, expires_at, created_at, company_id, promotion:promotions!client_cashback_promotion_id_fkey(title)')).order('created_at', { ascending: false }),
-        idOrUserFilter(supabase.from('cashback_transactions').select('*')).order('created_at', { ascending: false }).limit(300),
-        idOrUserFilter(supabase.from('loyalty_points_transactions').select('*')).order('created_at', { ascending: false }).limit(300),
+        supabase.rpc('get_client_portal_summary'),
+        supabase.rpc('get_client_portal_appointments'),
+        supabase.rpc('get_client_portal_points'),
+        supabase.rpc('get_client_portal_cashback'),
         supabase.from('loyalty_reward_items').select('id, name, description, points_required, real_value, extra_cost, image_url, item_type, company_id, stock_total, stock_available, company:companies!loyalty_reward_items_company_id_fkey(id, name, logo_url, slug)').eq('active', true),
-        idOrUserFilter(supabase.from('loyalty_redemptions').select('id, redemption_code, status, created_at, total_points, reward_id, company_id, client_id')).order('created_at', { ascending: false }).limit(50)
+        supabase.from('clients').select('*').eq('user_id', user?.id)
       ]);
 
+      const summaryData = summaryRes.data;
       const appointmentsData = (apptsRes.data || []) as any[];
-      
-      setClients(clientData as ClientRecord[]);
+      const pointsDataObj = pointsRes.data;
+      const cashbackDataObj = cashbackRes.data;
+      const rewardsData = (rewardsRes.data || []) as any[];
+      const clientsData = (clientsRes.data || []) as ClientRecord[];
+
+      setSummary(summaryData);
       setAppointments(appointmentsData);
-      setAllCashbacks((cashbackRes.data || []) as any);
-      setAllCashbackTxs((cashbackTxRes.data || []) as any);
-      setAllLoyaltyTxs((loyaltyTxRes.data || []) as any);
-      setRewards((rewardsRes.data || []) as any);
-      setRedemptions((redemptionsRes.data || []) as Redemption[]);
+      setPointsData(pointsDataObj);
+      setCashbackData(cashbackDataObj);
+      setRewards(rewardsData);
+      setClients(clientsData);
 
       // Map companies
       const companiesMap: Record<string, CompanyInfo> = {};
-      const companyIds = [...new Set(clientData.map((c: any) => c.company_id))] as string[];
+      const companyIds = [...new Set([
+        ...appointmentsData.map(a => a.company_id),
+        ...rewardsData.map(r => r.company_id)
+      ])];
       
-      const { data: companyData } = await supabase.from('companies').select('id, name, logo_url, slug').in('id', companyIds);
-      if (companyData) {
-        companyData.forEach((c: any) => { companiesMap[c.id] = { id: c.id, name: c.name, logo_url: c.logo_url, slug: c.slug }; });
-      }
-
-      // Add companies from rewards and appointments
-      [...(rewardsRes.data || []), ...appointmentsData].forEach((item: any) => {
-        if (item.company && !companiesMap[item.company.id]) {
-          companiesMap[item.company.id] = { id: item.company.id, name: item.company.name, logo_url: item.company.logo_url, slug: item.company.slug };
+      if (companyIds.length > 0) {
+        const { data: companyData } = await supabase.from('companies').select('id, name, logo_url, slug').in('id', companyIds);
+        if (companyData) {
+          companyData.forEach((c: any) => { 
+            companiesMap[c.id] = { id: c.id, name: c.name, logo_url: c.logo_url, slug: c.slug }; 
+          });
         }
-      });
+      }
       setCompanies(companiesMap);
 
       // Load specific loyalty configs
@@ -312,9 +255,7 @@ const ClientPortal = () => {
       const loyalActive: Record<string, boolean> = {};
       const lcMap: Record<string, any> = {};
       
-      const distinctCompanyIds = [...new Set([...companyIds, ...appointmentsData.map(a => a.company_id)])];
-      
-      await Promise.all(distinctCompanyIds.map(async (cid) => {
+      await Promise.all(companyIds.map(async (cid) => {
         const [promoCheck, lcRes] = await Promise.all([
           supabase.from('promotions').select('id').eq('company_id', cid).eq('promotion_type', 'cashback').eq('status', 'active').limit(1),
           supabase.from('loyalty_config').select('*').eq('company_id', cid).single(),
@@ -329,25 +270,25 @@ const ClientPortal = () => {
       setLoyaltyConfigs(lcMap);
 
       // Profile form initialization
-      if (clientData.length > 0) {
-        const c = clientData[0];
+      if (clientsData.length > 0) {
+        const c = clientsData[0];
         setProfileForm({
           name: c.name || '', whatsapp: c.whatsapp || '', email: c.email || '',
           birth_date: c.birth_date || '',
-          postal_code: (c as any).postal_code || '', street: (c as any).street || '',
-          address_number: (c as any).address_number || '', district: (c as any).district || '',
-          city: (c as any).city || '', state: (c as any).state || '',
+          postal_code: c.postal_code || '', street: c.street || '',
+          address_number: c.address_number || '', district: c.district || '',
+          city: c.city || '', state: c.state || '',
         });
       }
 
       // Persist to cache
       writeCache({
-        clients: clientData as ClientRecord[],
+        clients: clientsData,
+        summary: summaryData,
+        pointsData: pointsDataObj,
+        cashbackData: cashbackDataObj,
         appointments: appointmentsData,
-        allCashbacks: (cashbackRes.data || []) as any,
-        allCashbackTxs: (cashbackTxRes.data || []) as any,
-        allLoyaltyTxs: (loyaltyTxRes.data || []) as any,
-        rewards: (rewardsRes.data || []) as any,
+        rewards: rewardsData,
         companies: companiesMap,
         loyaltyConfigs: lcMap,
         companyCashbackActive: cashActive,
@@ -363,60 +304,42 @@ const ClientPortal = () => {
   // ---------- Aggregations ----------
   const cashbackByCompany = useMemo(() => {
     const map: Record<string, number> = {};
-    for (const cb of allCashbacks) {
-      if (cb.status === 'active' && !isPast(parseISO(cb.expires_at))) {
-        map[cb.company_id] = (map[cb.company_id] || 0) + Number(cb.amount);
-      }
+    if (cashbackData?.balances) {
+      Object.entries(cashbackData.balances).forEach(([cid, bal]: [string, any]) => {
+        map[cid] = Number(bal.available) || 0;
+      });
     }
     return map;
-  }, [allCashbacks]);
-  const cashbackTotals = useMemo(() => {
-    let gained = 0;
-    let used = 0;
-    let expired = 0;
-    
-    for (const tx of allCashbackTxs) {
-      const amt = Number(tx.amount) || 0;
-      if (tx.type === 'credit') gained += amt;
-      else if (tx.type === 'debit') used += amt;
-      else if (tx.type === 'expiration' || (tx as any).type === 'expire') expired += amt;
-    }
-    
-    return { gained, used, expired };
-  }, [allCashbackTxs]);
+  }, [cashbackData]);
 
-  const totalCashback = useMemo(
-    () => Object.values(cashbackByCompany).reduce((s, v) => s + v, 0), [cashbackByCompany]);
+  const cashbackTotals = useMemo(() => {
+    return {
+      gained: summary?.cashback_active || 0,
+      used: 0, // We'll focus on what's available
+      expired: 0
+    };
+  }, [summary]);
+
+  const totalCashback = summary?.cashback_active || 0;
 
   const pointsByCompany = useMemo(() => {
     const map: Record<string, number> = {};
-    
-    // Total Credits (Earnings)
-    for (const tx of allLoyaltyTxs) {
-      if (tx.points > 0) {
-        map[tx.company_id] = (map[tx.company_id] || 0) + tx.points;
-      }
+    if (pointsData?.balances) {
+      Object.entries(pointsData.balances).forEach(([cid, bal]: [string, any]) => {
+        map[cid] = Number(bal) || 0;
+      });
     }
-    
-    // Total Debits (Redemptions)
-    for (const red of redemptions) {
-      if (red.status !== 'cancelled') {
-        map[red.company_id] = (map[red.company_id] || 0) - (Number(red.total_points) || 0);
-      }
-    }
-    
     return map;
-  }, [allLoyaltyTxs, redemptions]);
-  const totalPoints = useMemo(
-    () => Object.values(pointsByCompany).reduce((s, v) => s + v, 0), [pointsByCompany]);
+  }, [pointsData]);
+
+  const totalPoints = summary?.total_points || 0;
 
   const mergedLoyaltyMovements = useMemo(() => {
-    const txs = allLoyaltyTxs.map(tx => ({
-      ...tx,
-      isTransaction: true
+    return (pointsData?.history || []).map((h: any) => ({
+      ...h,
+      isTransaction: h.type === 'transaction'
     }));
-    
-    const txRefIds = new Set(allLoyaltyTxs.filter(tx => tx.reference_id).map(tx => tx.reference_id));
+  }, [pointsData]);
     
     const reds = redemptions
       .filter(r => r.status !== 'cancelled' && !txRefIds.has(r.id))
