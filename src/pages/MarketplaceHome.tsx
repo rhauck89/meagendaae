@@ -566,23 +566,27 @@ export default function MarketplaceHome() {
         </section>
       )}
 
-      {/* Publicidade roxa */}
+      {/* Dynamic or static between sections banner */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="relative rounded-2xl overflow-hidden border border-border shadow-sm h-32 md:h-36">
-          <img src={adPurple} alt="" className="absolute inset-0 w-full h-full object-cover" loading="lazy" />
-          <div className="absolute inset-0 bg-gradient-to-r from-purple-900/90 via-purple-800/70 to-purple-900/40" />
-          <div className="relative h-full flex items-center justify-between px-6 md:px-10">
-            <div>
-              <span className="inline-block bg-white/15 text-white/90 text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded mb-2">Publicidade</span>
-              <p className="text-white text-lg md:text-2xl font-display font-bold leading-tight max-w-md">
-                Destaque sua marca<br />para milhares de clientes
-              </p>
+        {betweenSectionsBanner ? (
+          <MarketplaceBanner banner={betweenSectionsBanner} className="h-32 md:h-36" />
+        ) : (
+          <div className="relative rounded-2xl overflow-hidden border border-border shadow-sm h-32 md:h-36">
+            <img src={adPurple} alt="" className="absolute inset-0 w-full h-full object-cover" loading="lazy" />
+            <div className="absolute inset-0 bg-gradient-to-r from-purple-900/90 via-purple-800/70 to-purple-900/40" />
+            <div className="relative h-full flex items-center justify-between px-6 md:px-10">
+              <div>
+                <span className="inline-block bg-white/15 text-white/90 text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded mb-2">Publicidade</span>
+                <p className="text-white text-lg md:text-2xl font-display font-bold leading-tight max-w-md">
+                  Destaque sua marca<br />para milhares de clientes
+                </p>
+              </div>
+              <Button variant="outline" className="bg-transparent border-white text-white hover:bg-white hover:text-purple-900 rounded-md">
+                Anuncie aqui
+              </Button>
             </div>
-            <Button variant="outline" className="bg-transparent border-white text-white hover:bg-white hover:text-purple-900 rounded-md">
-              Anuncie aqui
-            </Button>
           </div>
-        </div>
+        )}
       </section>
 
       {/* Categories grid */}
