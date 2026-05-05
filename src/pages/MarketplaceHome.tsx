@@ -86,6 +86,9 @@ export default function MarketplaceHome() {
   const geo = useGeolocation();
 
   const [allCompanies, setAllCompanies] = useState<MarketCompany[]>([]);
+  const [featuredLarge, setFeaturedLarge] = useState<any[]>([]);
+  const [featuredMedium, setFeaturedMedium] = useState<any[]>([]);
+  const [featuredLogos, setFeaturedLogos] = useState<any[]>([]);
   const [homeSettings, setHomeSettings] = useState<any>(null);
   const [banners, setBanners] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
