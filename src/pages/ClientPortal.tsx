@@ -361,7 +361,9 @@ const ClientPortal = () => {
     return map;
   }, [pointsData]);
 
-  const totalPoints = summary?.total_points || 0;
+  const totalPoints = useMemo(() => {
+    return Object.values(pointsByCompany).reduce((acc, val) => acc + val, 0);
+  }, [pointsByCompany]);
 
   const mergedLoyaltyMovements = useMemo(() => {
     return (pointsData?.history || []).map((h: any) => ({
