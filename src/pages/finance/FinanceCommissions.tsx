@@ -89,10 +89,7 @@ const FinanceCommissions = () => {
         .lte('start_time', end.toISOString());
 
       if (filterStatus !== 'all') {
-        query = query.eq('status', filterStatus);
-      } else {
-        // Por padrão no admin era apenas completed, mas vamos permitir all
-        // query = query.eq('status', 'completed'); 
+        query = query.eq('status', filterStatus as any);
       }
 
       if (!isAdmin && profileId) {
