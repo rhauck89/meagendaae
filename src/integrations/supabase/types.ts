@@ -3630,8 +3630,11 @@ export type Database = {
           category: string | null
           city: string | null
           company_id: string | null
+          country: string | null
           created_at: string | null
+          end_at: string | null
           end_date: string
+          highlight_type: string | null
           id: string
           internal_notes: string | null
           item_type: string
@@ -3639,6 +3642,8 @@ export type Database = {
           position: string
           priority: number | null
           professional_id: string | null
+          rotation_weight: number | null
+          start_at: string | null
           start_date: string
           state: string | null
           status: string
@@ -3648,8 +3653,11 @@ export type Database = {
           category?: string | null
           city?: string | null
           company_id?: string | null
+          country?: string | null
           created_at?: string | null
+          end_at?: string | null
           end_date: string
+          highlight_type?: string | null
           id?: string
           internal_notes?: string | null
           item_type: string
@@ -3657,6 +3665,8 @@ export type Database = {
           position: string
           priority?: number | null
           professional_id?: string | null
+          rotation_weight?: number | null
+          start_at?: string | null
           start_date: string
           state?: string | null
           status?: string
@@ -3666,8 +3676,11 @@ export type Database = {
           category?: string | null
           city?: string | null
           company_id?: string | null
+          country?: string | null
           created_at?: string | null
+          end_at?: string | null
           end_date?: string
+          highlight_type?: string | null
           id?: string
           internal_notes?: string | null
           item_type?: string
@@ -3675,6 +3688,8 @@ export type Database = {
           position?: string
           priority?: number | null
           professional_id?: string | null
+          rotation_weight?: number | null
+          start_at?: string | null
           start_date?: string
           state?: string | null
           status?: string
@@ -7582,6 +7597,27 @@ export type Database = {
           r_status: string
         }[]
       }
+      get_marketplace_featured_items: {
+        Args: { p_city?: string; p_highlight_type: string; p_limit?: number }
+        Returns: {
+          average_rating: number
+          business_type: string
+          city: string
+          cover_url: string
+          id: string
+          is_manual: boolean
+          item_id: string
+          item_type: string
+          latitude: number
+          logo_url: string
+          longitude: number
+          name: string
+          priority: number
+          review_count: number
+          slug: string
+          state: string
+        }[]
+      }
       get_my_company_id: { Args: never; Returns: string }
       get_my_profile_id: { Args: never; Returns: string }
       get_or_create_revenue_category: {
@@ -7800,6 +7836,7 @@ export type Database = {
         Returns: undefined
       }
       sync_marketplace_banner_statuses: { Args: never; Returns: Json }
+      sync_marketplace_featured_statuses: { Args: never; Returns: undefined }
       track_booking_metric: {
         Args: {
           p_company_id: string
