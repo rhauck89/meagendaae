@@ -225,10 +225,10 @@ const ClientPortal = () => {
       console.log('[CLIENT_PORTAL_DEBUG] cashbackRes:', cashbackRes.data);
       console.log('[CLIENT_PORTAL_DEBUG] clientsRes:', clientsRes.data);
 
-      const summaryData = summaryRes.data;
+      const summaryData = summaryRes.data as any;
       const appointmentsData = (apptsRes.data || []) as any[];
-      const pointsDataObj = pointsRes.data;
-      const cashbackDataObj = cashbackRes.data;
+      const pointsDataObj = pointsRes.data as any;
+      const cashbackDataObj = cashbackRes.data as any;
       const rewardsData = (rewardsRes.data || []) as any[];
       const clientsData = (clientsRes.data || []) as ClientRecord[];
       const redemptionsData = (redemptionsRes.data || []) as Redemption[];
