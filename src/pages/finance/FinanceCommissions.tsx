@@ -159,7 +159,7 @@ const FinanceCommissions = () => {
           );
           
           const serviceNames = a.appointment_services?.map((as: any) => as.service?.name).filter(Boolean).join(', ') || 'Sem serviço';
-          const clientName = a.client?.full_name || a.client_name || 'Cliente';
+          const clientName = (Array.isArray(a.client) ? a.client[0]?.full_name : (a.client as any)?.full_name) || a.client_name || 'Cliente';
 
           return {
             id: a.id,
