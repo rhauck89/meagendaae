@@ -11,7 +11,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Calendar } from '@/components/ui/calendar';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { CalendarIcon, RotateCcw, Search, Download, FileText, ArrowUpDown, Filter } from 'lucide-react';
+import { CalendarIcon, RotateCcw, Search, Download, FileText, ArrowUpDown, Filter, DollarSign, Users, Scissors, TrendingUp } from 'lucide-react';
 import { startOfMonth, startOfDay, endOfDay, format } from 'date-fns';
 import { calculateFinancials, collaboratorTypeLabel, commissionLabel } from '@/lib/financial-engine';
 import { ProfessionalDrawer } from '@/components/admin/financial/ProfessionalDrawer';
@@ -24,12 +24,21 @@ const FinanceCommissions = () => {
   const [startDate, setStartDate] = useState<Date>(startOfMonth(new Date()));
   const [endDate, setEndDate] = useState<Date>(new Date());
   const [rows, setRows] = useState<any[]>([]);
+  const [detailedRows, setDetailedRows] = useState<any[]>([]);
+  const [summary, setSummary] = useState({
+    totalBilled: 0,
+    totalAppointments: 0,
+    totalCommission: 0,
+    companyNet: 0,
+    avgTicket: 0
+  });
   const [loading, setLoading] = useState(false);
   
   // Filtros
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState('all');
   const [selectedProfessional, setSelectedProfessional] = useState('all');
+  const [filterStatus, setFilterStatus] = useState('completed');
   
   // Ordenação
   const [sortConfig, setSortConfig] = useState({ key: 'revenue', direction: 'desc' });
@@ -40,7 +49,7 @@ const FinanceCommissions = () => {
 
   useEffect(() => {
     if (companyId) fetchData();
-  }, [companyId, startDate, endDate]);
+  }, [companyId, startDate, endDate, filterStatus]);
 
   const fetchData = async () => {
     setLoading(true);
@@ -48,63 +57,139 @@ const FinanceCommissions = () => {
     const end = endOfDay(endDate);
 
     try {
+      // Fetch Collaborator info for the professional if in professional mode
+      let collaboratorInfo: any = null;
+      if (!isAdmin && profileId) {
+        const { data: coll } = await supabase
+          .from('collaborators')
+          .select('collaborator_type, commission_type, commission_value, commission_percent, profile:profiles(full_name)')
+          .eq('profile_id', profileId)
+          .eq('company_id', companyId!)
+          .maybeSingle();
+        collaboratorInfo = coll;
+      }
+
       let query = supabase
         .from('appointments')
-        .select('id, professional_id, final_price, total_price, status, start_time')
+        .select(`
+          id, 
+          professional_id, 
+          final_price, 
+          total_price, 
+          status, 
+          start_time,
+          client_name,
+          client:profiles!appointments_client_id_fkey(full_name),
+          appointment_services(
+            service:services(name)
+          )
+        `)
         .eq('company_id', companyId!)
-        .eq('status', 'completed')
         .gte('start_time', start.toISOString())
         .lte('start_time', end.toISOString());
 
-      if (!isAdmin && profileId) query = query.eq('professional_id', profileId);
+      if (filterStatus !== 'all') {
+        query = query.eq('status', filterStatus as any);
+      }
+
+      if (!isAdmin && profileId) {
+        query = query.eq('professional_id', profileId);
+      }
 
       const { data: appointments, error: appError } = await query;
       if (appError) throw appError;
 
-      const professionalIds = Array.from(new Set((appointments || []).map((a: any) => a.professional_id).filter(Boolean)));
-      const profileMap: Record<string, string> = {};
-      if (professionalIds.length > 0) {
-        const { data: profiles, error: profilesError } = await supabase
-          .from('profiles')
-          .select('id, full_name')
-          .in('id', professionalIds);
-        if (profilesError) throw profilesError;
-        profiles?.forEach((p: any) => {
-          profileMap[p.id] = p.full_name || 'Sem nome';
+      // Se for Admin, mantém a lógica de agrupamento por profissional
+      if (isAdmin) {
+        const professionalIds = Array.from(new Set((appointments || []).map((a: any) => a.professional_id).filter(Boolean)));
+        const profileMap: Record<string, string> = {};
+        if (professionalIds.length > 0) {
+          const { data: profiles, error: profilesError } = await supabase
+            .from('profiles')
+            .select('id, full_name')
+            .in('id', professionalIds);
+          if (profilesError) throw profilesError;
+          profiles?.forEach((p: any) => {
+            profileMap[p.id] = p.full_name || 'Sem nome';
+          });
+        }
+
+        const { data: collaborators, error: collError } = await supabase
+          .from('collaborators')
+          .select('profile_id, collaborator_type, commission_type, commission_value, commission_percent')
+          .eq('company_id', companyId!);
+        if (collError) throw collError;
+
+        const collabMap: Record<string, any> = {};
+        collaborators?.forEach(c => {
+          collabMap[c.profile_id] = { 
+            type: c.collaborator_type, 
+            commType: c.commission_type, 
+            value: c.commission_value ?? c.commission_percent ?? 0 
+          };
+        });
+
+        const grouped: Record<string, { name: string; revenue: number; count: number }> = {};
+        appointments?.forEach(a => {
+          const pid = a.professional_id;
+          if (!pid) return;
+          if (!grouped[pid]) grouped[pid] = { name: profileMap[pid] || 'Sem nome', revenue: 0, count: 0 };
+          grouped[pid].revenue += Number(a.final_price || a.total_price || 0);
+          grouped[pid].count += 1;
+        });
+
+        const result = Object.entries(grouped).map(([id, g]) => {
+          const collab = collabMap[id] || { type: 'commissioned', commType: 'none', value: 0 };
+          const fin = calculateFinancials(g.revenue, g.count, collab.type, collab.commType, collab.value);
+          return { id, ...g, ...collab, professionalValue: fin.professionalValue, companyValue: fin.companyValue };
+        });
+
+        setRows(result);
+      } else {
+        // Se for Profissional, cria a lista detalhada
+        const collab = collaboratorInfo || { collaborator_type: 'commissioned', commission_type: 'none', commission_value: 0 };
+        const detailed = (appointments || []).map(a => {
+          const revenue = Number(a.final_price || a.total_price || 0);
+          const fin = calculateFinancials(
+            revenue, 
+            1, 
+            collab.collaborator_type, 
+            collab.commission_type, 
+            collab.commission_value ?? collab.commission_percent ?? 0
+          );
+          
+          const serviceNames = a.appointment_services?.map((as: any) => as.service?.name).filter(Boolean).join(', ') || 'Sem serviço';
+          const clientName = (Array.isArray(a.client) ? a.client[0]?.full_name : (a.client as any)?.full_name) || a.client_name || 'Cliente';
+
+          return {
+            id: a.id,
+            date: a.start_time,
+            clientName,
+            serviceName: serviceNames,
+            revenue,
+            commType: collab.commission_type,
+            commValue: collab.commission_value ?? collab.commission_percent ?? 0,
+            professionalValue: fin.professionalValue,
+            companyValue: fin.companyValue,
+            status: a.status
+          };
+        });
+
+        setDetailedRows(detailed);
+        
+        // Calcular sumário
+        const totalBilled = detailed.reduce((acc, r) => acc + r.revenue, 0);
+        const totalCommission = detailed.reduce((acc, r) => acc + r.professionalValue, 0);
+        const companyNet = detailed.reduce((acc, r) => acc + r.companyValue, 0);
+        
+        setSummary({
+          totalBilled,
+          totalAppointments: detailed.length,
+          totalCommission,
+          companyNet,
+          avgTicket: detailed.length > 0 ? totalBilled / detailed.length : 0
         });
       }
-
-      const { data: collaborators, error: collError } = await supabase
-        .from('collaborators')
-        .select('profile_id, collaborator_type, commission_type, commission_value, commission_percent')
-        .eq('company_id', companyId!);
-      if (collError) throw collError;
-
-      const collabMap: Record<string, any> = {};
-      collaborators?.forEach(c => {
-        collabMap[c.profile_id] = { 
-          type: c.collaborator_type, 
-          commType: c.commission_type, 
-          value: c.commission_value ?? c.commission_percent ?? 0 
-        };
-      });
-
-      const grouped: Record<string, { name: string; revenue: number; count: number }> = {};
-      appointments?.forEach(a => {
-        const pid = a.professional_id;
-        if (!pid) return;
-        if (!grouped[pid]) grouped[pid] = { name: profileMap[pid] || 'Sem nome', revenue: 0, count: 0 };
-        grouped[pid].revenue += Number(a.final_price || a.total_price || 0);
-        grouped[pid].count += 1;
-      });
-
-      const result = Object.entries(grouped).map(([id, g]) => {
-        const collab = collabMap[id] || { type: 'commissioned', commType: 'none', value: 0 };
-        const fin = calculateFinancials(g.revenue, g.count, collab.type, collab.commType, collab.value);
-        return { id, ...g, ...collab, professionalValue: fin.professionalValue, companyValue: fin.companyValue };
-      });
-
-      setRows(result);
     } catch (error) {
       console.error('Error fetching data:', error);
       toast.error(error instanceof Error ? error.message : 'Erro ao carregar dados');
@@ -114,35 +199,70 @@ const FinanceCommissions = () => {
   };
 
   const filteredAndSortedRows = useMemo(() => {
-    let result = [...rows];
+    if (isAdmin) {
+      let result = [...rows];
 
-    // Busca por nome
-    if (searchTerm) {
-      result = result.filter(r => r.name.toLowerCase().includes(searchTerm.toLowerCase()));
-    }
-
-    // Filtro por tipo
-    if (filterType !== 'all') {
-      result = result.filter(r => r.type === filterType);
-    }
-
-    // Filtro por profissional específico
-    if (selectedProfessional !== 'all') {
-      result = result.filter(r => r.id === selectedProfessional);
-    }
-
-    // Ordenação
-    result.sort((a, b) => {
-      const aValue = a[sortConfig.key];
-      const bValue = b[sortConfig.key];
-      if (sortConfig.direction === 'asc') {
-        return aValue > bValue ? 1 : -1;
+      // Busca por nome
+      if (searchTerm) {
+        result = result.filter(r => r.name.toLowerCase().includes(searchTerm.toLowerCase()));
       }
-      return aValue < bValue ? 1 : -1;
-    });
 
-    return result;
-  }, [rows, searchTerm, filterType, selectedProfessional, sortConfig]);
+      // Filtro por tipo
+      if (filterType !== 'all') {
+        result = result.filter(r => r.type === filterType);
+      }
+
+      // Filtro por profissional específico
+      if (selectedProfessional !== 'all') {
+        result = result.filter(r => r.id === selectedProfessional);
+      }
+
+      // Ordenação
+      result.sort((a, b) => {
+        const aValue = a[sortConfig.key];
+        const bValue = b[sortConfig.key];
+        if (sortConfig.direction === 'asc') {
+          return aValue > bValue ? 1 : -1;
+        }
+        return aValue < bValue ? 1 : -1;
+      });
+
+      return result;
+    } else {
+      let result = [...detailedRows];
+
+      // Busca por cliente
+      if (searchTerm) {
+        result = result.filter(r => 
+          r.clientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          r.serviceName.toLowerCase().includes(searchTerm.toLowerCase())
+        );
+      }
+
+      // Filtro por status (já feito na query, mas garante consistência)
+      if (filterStatus !== 'all') {
+        result = result.filter(r => r.status === filterStatus);
+      }
+
+      // Ordenação
+      result.sort((a, b) => {
+        let aValue = a[sortConfig.key === 'revenue' ? 'revenue' : sortConfig.key];
+        let bValue = b[sortConfig.key === 'revenue' ? 'revenue' : sortConfig.key];
+        
+        if (sortConfig.key === 'date') {
+          aValue = new Date(a.date).getTime();
+          bValue = new Date(b.date).getTime();
+        }
+
+        if (sortConfig.direction === 'asc') {
+          return aValue > bValue ? 1 : -1;
+        }
+        return aValue < bValue ? 1 : -1;
+      });
+
+      return result;
+    }
+  }, [rows, detailedRows, searchTerm, filterType, selectedProfessional, filterStatus, sortConfig, isAdmin]);
 
   const requestSort = (key: string) => {
     let direction = 'desc';
@@ -153,16 +273,34 @@ const FinanceCommissions = () => {
   };
 
   const exportToCSV = () => {
-    const headers = ['Profissional', 'Tipo', 'Serviços', 'Faturado', 'Comissão', 'Valor Prof.', 'Valor Empresa'];
-    const data = filteredAndSortedRows.map(r => [
-      r.name,
-      collaboratorTypeLabel(r.type),
-      r.count,
-      r.revenue.toFixed(2),
-      commissionLabel(r.commType, r.value),
-      r.professionalValue.toFixed(2),
-      r.companyValue.toFixed(2)
-    ]);
+    let headers = [];
+    let data = [];
+
+    if (isAdmin) {
+      headers = ['Profissional', 'Tipo', 'Serviços', 'Faturado', 'Comissão', 'Valor Prof.', 'Valor Empresa'];
+      data = filteredAndSortedRows.map(r => [
+        r.name,
+        collaboratorTypeLabel(r.type),
+        r.count,
+        r.revenue.toFixed(2),
+        commissionLabel(r.commType, r.value),
+        r.professionalValue.toFixed(2),
+        r.companyValue.toFixed(2)
+      ]);
+    } else {
+      headers = ['Data', 'Cliente', 'Serviço', 'Valor', 'Comissão %', 'Vlr Comissão', 'Vlr Prof.', 'Vlr Empresa', 'Status'];
+      data = filteredAndSortedRows.map(r => [
+        format(new Date(r.date), 'dd/MM/yyyy HH:mm'),
+        r.clientName,
+        r.serviceName,
+        r.revenue.toFixed(2),
+        r.commValue,
+        (r.revenue - r.companyValue).toFixed(2),
+        r.professionalValue.toFixed(2),
+        r.companyValue.toFixed(2),
+        r.status
+      ]);
+    }
 
     const csvContent = [headers, ...data].map(e => e.join(',')).join('\n');
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -197,6 +335,41 @@ const FinanceCommissions = () => {
         </div>
       </div>
 
+      {!isAdmin && (
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+          <Card className="bg-primary/5">
+            <CardContent className="p-4">
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Faturado</p>
+              <p className="text-lg font-bold">{maskValue(summary.totalBilled)}</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4">
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Atendimentos</p>
+              <p className="text-lg font-bold">{summary.totalAppointments}</p>
+            </CardContent>
+          </Card>
+          <Card className="bg-warning/5">
+            <CardContent className="p-4">
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Sua Comissão</p>
+              <p className="text-lg font-bold">{maskValue(summary.totalCommission)}</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4">
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Net Empresa</p>
+              <p className="text-lg font-bold">{maskValue(summary.companyNet)}</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4">
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Ticket Médio</p>
+              <p className="text-lg font-bold">{maskValue(summary.avgTicket)}</p>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
       <Card className="border-none shadow-sm bg-muted/30 print:hidden">
         <CardContent className="p-4 space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-3">
@@ -204,7 +377,7 @@ const FinanceCommissions = () => {
             <div className="relative">
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Buscar profissional..."
+                placeholder={isAdmin ? "Buscar profissional..." : "Buscar cliente/serviço..."}
                 className="pl-9 h-9"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
@@ -212,30 +385,47 @@ const FinanceCommissions = () => {
             </div>
 
             {/* Profissional */}
-            <Select value={selectedProfessional} onValueChange={setSelectedProfessional}>
+            {isAdmin && (
+              <Select value={selectedProfessional} onValueChange={setSelectedProfessional}>
+                <SelectTrigger className="h-9">
+                  <SelectValue placeholder="Profissional" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos Profissionais</SelectItem>
+                  {rows.map(r => (
+                    <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+
+            {/* Status */}
+            <Select value={filterStatus} onValueChange={setFilterStatus}>
               <SelectTrigger className="h-9">
-                <SelectValue placeholder="Profissional" />
+                <SelectValue placeholder="Status" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Todos Profissionais</SelectItem>
-                {rows.map(r => (
-                  <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>
-                ))}
+                <SelectItem value="all">Todos os Status</SelectItem>
+                <SelectItem value="completed">Concluídos</SelectItem>
+                <SelectItem value="confirmed">Confirmados</SelectItem>
+                <SelectItem value="cancelled">Cancelados</SelectItem>
               </SelectContent>
             </Select>
 
-            {/* Tipo */}
-            <Select value={filterType} onValueChange={setFilterType}>
-              <SelectTrigger className="h-9">
-                <SelectValue placeholder="Tipo" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos os Tipos</SelectItem>
-                <SelectItem value="commissioned">Comissionado</SelectItem>
-                <SelectItem value="partner">Sócio</SelectItem>
-                <SelectItem value="freelancer">Freelancer</SelectItem>
-              </SelectContent>
-            </Select>
+            {/* Tipo (Só admin ou profissional) */}
+            {isAdmin && (
+              <Select value={filterType} onValueChange={setFilterType}>
+                <SelectTrigger className="h-9">
+                  <SelectValue placeholder="Tipo" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos os Tipos</SelectItem>
+                  <SelectItem value="commissioned">Comissionado</SelectItem>
+                  <SelectItem value="partner">Sócio</SelectItem>
+                  <SelectItem value="freelancer">Freelancer</SelectItem>
+                </SelectContent>
+              </Select>
+            )}
 
             {/* Período */}
             <div className="flex items-center gap-2 lg:col-span-2">
@@ -288,64 +478,117 @@ const FinanceCommissions = () => {
         <CardContent className="p-0">
           <Table>
             <TableHeader className="bg-muted/50">
-              <TableRow>
-                <TableHead className="w-[200px] cursor-pointer" onClick={() => requestSort('name')}>
-                  <div className="flex items-center gap-1">Profissional <ArrowUpDown className="h-3 w-3" /></div>
-                </TableHead>
-                <TableHead className="text-center">Tipo</TableHead>
-                <TableHead className="text-center cursor-pointer" onClick={() => requestSort('count')}>
-                  <div className="flex items-center justify-center gap-1">Serviços <ArrowUpDown className="h-3 w-3" /></div>
-                </TableHead>
-                <TableHead className="text-right cursor-pointer" onClick={() => requestSort('revenue')}>
-                  <div className="flex items-center justify-end gap-1">Faturado <ArrowUpDown className="h-3 w-3" /></div>
-                </TableHead>
-                <TableHead className="text-center">Comissão</TableHead>
-                <TableHead className="text-right cursor-pointer" onClick={() => requestSort('professionalValue')}>
-                  <div className="flex items-center justify-end gap-1">Comissão (R$) <ArrowUpDown className="h-3 w-3" /></div>
-                </TableHead>
-                <TableHead className="text-right">Empresa (Net)</TableHead>
-              </TableRow>
+              {isAdmin ? (
+                <TableRow>
+                  <TableHead className="w-[200px] cursor-pointer" onClick={() => requestSort('name')}>
+                    <div className="flex items-center gap-1">Profissional <ArrowUpDown className="h-3 w-3" /></div>
+                  </TableHead>
+                  <TableHead className="text-center">Tipo</TableHead>
+                  <TableHead className="text-center cursor-pointer" onClick={() => requestSort('count')}>
+                    <div className="flex items-center justify-center gap-1">Serviços <ArrowUpDown className="h-3 w-3" /></div>
+                  </TableHead>
+                  <TableHead className="text-right cursor-pointer" onClick={() => requestSort('revenue')}>
+                    <div className="flex items-center justify-end gap-1">Faturado <ArrowUpDown className="h-3 w-3" /></div>
+                  </TableHead>
+                  <TableHead className="text-center">Comissão</TableHead>
+                  <TableHead className="text-right cursor-pointer" onClick={() => requestSort('professionalValue')}>
+                    <div className="flex items-center justify-end gap-1">Comissão (R$) <ArrowUpDown className="h-3 w-3" /></div>
+                  </TableHead>
+                  <TableHead className="text-right">Empresa (Net)</TableHead>
+                </TableRow>
+              ) : (
+                <TableRow>
+                  <TableHead className="cursor-pointer" onClick={() => requestSort('date')}>
+                    <div className="flex items-center gap-1">Data <ArrowUpDown className="h-3 w-3" /></div>
+                  </TableHead>
+                  <TableHead className="cursor-pointer" onClick={() => requestSort('clientName')}>
+                    <div className="flex items-center gap-1">Cliente <ArrowUpDown className="h-3 w-3" /></div>
+                  </TableHead>
+                  <TableHead>Serviço</TableHead>
+                  <TableHead className="text-right cursor-pointer" onClick={() => requestSort('revenue')}>
+                    <div className="flex items-center justify-end gap-1">Valor <ArrowUpDown className="h-3 w-3" /></div>
+                  </TableHead>
+                  <TableHead className="text-center">Comissão %</TableHead>
+                  <TableHead className="text-right cursor-pointer" onClick={() => requestSort('professionalValue')}>
+                    <div className="flex items-center justify-end gap-1">Sua Comissão <ArrowUpDown className="h-3 w-3" /></div>
+                  </TableHead>
+                  <TableHead className="text-right">Empresa</TableHead>
+                  <TableHead className="text-center">Status</TableHead>
+                </TableRow>
+              )}
             </TableHeader>
             <TableBody>
               {loading ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center py-20 text-muted-foreground">
+                  <TableCell colSpan={isAdmin ? 7 : 8} className="text-center py-20 text-muted-foreground">
                     Carregando dados...
                   </TableCell>
                 </TableRow>
               ) : filteredAndSortedRows.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center py-20 text-muted-foreground">
-                    Nenhum dado encontrado para os filtros aplicados.
+                  <TableCell colSpan={isAdmin ? 7 : 8} className="text-center py-20 text-muted-foreground">
+                    Nenhum atendimento encontrado para este período.
                   </TableCell>
                 </TableRow>
               ) : (
                 filteredAndSortedRows.map(r => (
                   <TableRow key={r.id} className="hover:bg-muted/20 transition-colors">
-                    <TableCell>
-                      <button 
-                        onClick={() => openProfessionalDetail(r)}
-                        className="font-semibold text-primary hover:underline underline-offset-4 decoration-primary/30 text-left"
-                      >
-                        {r.name}
-                      </button>
-                    </TableCell>
-                    <TableCell className="text-center">
-                      <Badge variant="secondary" className="text-[10px] uppercase font-bold tracking-tight px-2 py-0">
-                        {collaboratorTypeLabel(r.type)}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-center font-medium">{r.count}</TableCell>
-                    <TableCell className="text-right font-bold">{maskValue(r.revenue)}</TableCell>
-                    <TableCell className="text-center">
-                      <Badge variant="outline" className="text-[10px] font-medium border-primary/20 text-primary">
-                        {commissionLabel(r.commType, r.value)}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-right font-bold text-warning">{maskValue(r.professionalValue)}</TableCell>
-                    <TableCell className="text-right font-display font-black text-foreground">
-                      {maskValue(r.companyValue)}
-                    </TableCell>
+                    {isAdmin ? (
+                      <>
+                        <TableCell>
+                          <button 
+                            onClick={() => openProfessionalDetail(r)}
+                            className="font-semibold text-primary hover:underline underline-offset-4 decoration-primary/30 text-left"
+                          >
+                            {r.name}
+                          </button>
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <Badge variant="secondary" className="text-[10px] uppercase font-bold tracking-tight px-2 py-0">
+                            {collaboratorTypeLabel(r.type)}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-center font-medium">{r.count}</TableCell>
+                        <TableCell className="text-right font-bold">{maskValue(r.revenue)}</TableCell>
+                        <TableCell className="text-center">
+                          <Badge variant="outline" className="text-[10px] font-medium border-primary/20 text-primary">
+                            {commissionLabel(r.commType, r.value)}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-right font-bold text-warning">{maskValue(r.professionalValue)}</TableCell>
+                        <TableCell className="text-right font-display font-black text-foreground">
+                          {maskValue(r.companyValue)}
+                        </TableCell>
+                      </>
+                    ) : (
+                      <>
+                        <TableCell className="text-xs font-medium">
+                          {format(new Date(r.date), 'dd/MM/yyyy HH:mm')}
+                        </TableCell>
+                        <TableCell className="text-sm font-semibold">{r.clientName}</TableCell>
+                        <TableCell className="text-xs text-muted-foreground truncate max-w-[150px]" title={r.serviceName}>
+                          {r.serviceName}
+                        </TableCell>
+                        <TableCell className="text-right font-bold">{maskValue(r.revenue)}</TableCell>
+                        <TableCell className="text-center">
+                          <Badge variant="outline" className="text-[10px] font-medium border-primary/20 text-primary">
+                            {commissionLabel(r.commType, r.commValue)}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-right font-bold text-warning">{maskValue(r.professionalValue)}</TableCell>
+                        <TableCell className="text-right font-display font-black text-foreground text-xs">
+                          {maskValue(r.companyValue)}
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <Badge 
+                            variant={r.status === 'completed' ? 'secondary' : 'outline'} 
+                            className="text-[9px] uppercase font-bold"
+                          >
+                            {r.status === 'completed' ? 'Concluído' : r.status === 'confirmed' ? 'Confirmado' : r.status}
+                          </Badge>
+                        </TableCell>
+                      </>
+                    )}
                   </TableRow>
                 ))
               )}
@@ -359,14 +602,23 @@ const FinanceCommissions = () => {
         {loading ? (
           <div className="text-center py-10">Carregando...</div>
         ) : filteredAndSortedRows.length === 0 ? (
-          <div className="text-center py-10 text-muted-foreground border rounded-lg">Sem dados</div>
+          <div className="text-center py-10 text-muted-foreground border rounded-lg">Nenhum dado encontrado</div>
         ) : filteredAndSortedRows.map(r => (
-          <Card key={r.id} className="border-none shadow-sm overflow-hidden" onClick={() => openProfessionalDetail(r)}>
+          <Card key={r.id} className="border-none shadow-sm overflow-hidden" onClick={isAdmin ? () => openProfessionalDetail(r) : undefined}>
             <CardContent className="p-4 bg-card hover:bg-muted/10 transition-colors">
               <div className="flex items-center justify-between mb-4">
                 <div>
-                  <h3 className="font-bold text-lg text-primary">{r.name}</h3>
-                  <Badge variant="secondary" className="text-[10px] uppercase">{collaboratorTypeLabel(r.type)}</Badge>
+                  <h3 className="font-bold text-lg text-primary">{isAdmin ? r.name : r.clientName}</h3>
+                  <div className="flex items-center gap-2">
+                    {isAdmin ? (
+                      <Badge variant="secondary" className="text-[10px] uppercase">{collaboratorTypeLabel(r.type)}</Badge>
+                    ) : (
+                      <span className="text-xs text-muted-foreground">{format(new Date(r.date), 'dd/MM/yy HH:mm')}</span>
+                    )}
+                    {!isAdmin && (
+                      <Badge variant="outline" className="text-[9px] uppercase">{r.status}</Badge>
+                    )}
+                  </div>
                 </div>
                 <div className="text-right">
                    <p className="text-[10px] text-muted-foreground uppercase font-semibold">Net Empresa</p>
@@ -374,23 +626,33 @@ const FinanceCommissions = () => {
                 </div>
               </div>
               
+              {!isAdmin && (
+                <p className="text-sm font-medium mb-3 text-muted-foreground">{r.serviceName}</p>
+              )}
+
               <div className="grid grid-cols-2 gap-4">
                 <div className="bg-muted/30 p-2 rounded">
                   <span className="text-[10px] text-muted-foreground uppercase block">Faturado</span>
                   <p className="font-bold">{maskValue(r.revenue)}</p>
                 </div>
                 <div className="bg-warning/5 p-2 rounded">
-                  <span className="text-[10px] text-warning uppercase block">Comissão</span>
+                  <span className="text-[10px] text-warning uppercase block">{isAdmin ? "Comissão" : "Sua Comissão"}</span>
                   <p className="font-bold text-warning">{maskValue(r.professionalValue)}</p>
                 </div>
               </div>
               
               <div className="mt-3 flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <span className="text-xs text-muted-foreground">{r.count} Serviços</span>
-                  <Badge variant="outline" className="text-[10px]">{commissionLabel(r.commType, r.value)}</Badge>
+                  {isAdmin ? (
+                    <span className="text-xs text-muted-foreground">{r.count} Serviços</span>
+                  ) : (
+                    <Badge variant="outline" className="text-[10px] border-primary/20 text-primary">
+                      {commissionLabel(isAdmin ? r.commType : r.commType, isAdmin ? r.value : r.commValue)}
+                    </Badge>
+                  )}
+                  {isAdmin && <Badge variant="outline" className="text-[10px]">{commissionLabel(r.commType, r.value)}</Badge>}
                 </div>
-                <span className="text-[10px] text-primary font-bold">VER DETALHES →</span>
+                {isAdmin && <span className="text-[10px] text-primary font-bold">VER DETALHES →</span>}
               </div>
             </CardContent>
           </Card>
