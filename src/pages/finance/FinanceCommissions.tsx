@@ -11,7 +11,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Calendar } from '@/components/ui/calendar';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { CalendarIcon, RotateCcw, Search, Download, FileText, ArrowUpDown, Filter } from 'lucide-react';
+import { CalendarIcon, RotateCcw, Search, Download, FileText, ArrowUpDown, Filter, DollarSign, Users, Scissors, TrendingUp } from 'lucide-react';
 import { startOfMonth, startOfDay, endOfDay, format } from 'date-fns';
 import { calculateFinancials, collaboratorTypeLabel, commissionLabel } from '@/lib/financial-engine';
 import { ProfessionalDrawer } from '@/components/admin/financial/ProfessionalDrawer';
@@ -24,12 +24,21 @@ const FinanceCommissions = () => {
   const [startDate, setStartDate] = useState<Date>(startOfMonth(new Date()));
   const [endDate, setEndDate] = useState<Date>(new Date());
   const [rows, setRows] = useState<any[]>([]);
+  const [detailedRows, setDetailedRows] = useState<any[]>([]);
+  const [summary, setSummary] = useState({
+    totalBilled: 0,
+    totalAppointments: 0,
+    totalCommission: 0,
+    companyNet: 0,
+    avgTicket: 0
+  });
   const [loading, setLoading] = useState(false);
   
   // Filtros
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState('all');
   const [selectedProfessional, setSelectedProfessional] = useState('all');
+  const [filterStatus, setFilterStatus] = useState('completed');
   
   // Ordenação
   const [sortConfig, setSortConfig] = useState({ key: 'revenue', direction: 'desc' });
