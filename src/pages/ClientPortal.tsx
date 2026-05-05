@@ -778,16 +778,26 @@ const ClientPortal = () => {
                   </button>
                 </div>
                 <div className="space-y-2">
-                  {companiesWithCashback.map(co => (
-                    <Card key={co.id}>
-                      <CardContent className="p-3 flex items-center justify-between gap-2">
-                        <CompanyHeader company={co} />
-                        <p className="text-base font-bold text-green-600">
-                          R$ {(cashbackByCompany[co.id] || 0).toFixed(2)}
-                        </p>
-                      </CardContent>
-                    </Card>
-                  ))}
+                  {companiesWithCashback.map(co => {
+                    const bal = cashbackByCompany[co.id];
+                    return (
+                      <Card key={co.id}>
+                        <CardContent className="p-3 flex items-center justify-between gap-2">
+                          <CompanyHeader company={co} />
+                          <div className="text-right">
+                            <p className="text-base font-bold text-green-600">
+                              R$ {(bal?.available || 0).toFixed(2)}
+                            </p>
+                            {(bal?.pending || 0) > 0 && (
+                              <p className="text-[10px] text-muted-foreground">
+                                + R$ {bal?.pending.toFixed(2)} pendente
+                              </p>
+                            )}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
                 </div>
               </div>
             )}
