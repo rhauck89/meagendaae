@@ -105,21 +105,30 @@ export default function MarketplaceHome() {
 
   const loadMarketplaceSettings = async () => {
     try {
-      // Sincronizar status dos banners antes de carregar
-      await supabase.rpc('sync_marketplace_banner_statuses');
+      // Sincronizar status dos banners e destaques antes de carregar
+      await Promise.all([
+        supabase.rpc('sync_marketplace_banner_statuses'),
+        supabase.rpc('sync_marketplace_featured_statuses')
+      ]);
 
-      const [settingsRes, bannersRes] = await Promise.all([
+      const [settingsRes, bannersRes, largeRes, mediumRes, logosRes] = await Promise.all([
         supabase.from('marketplace_home_settings').select('*').single(),
         supabase.from('marketplace_banners')
           .select('*')
           .eq('status', 'active')
           .is('deleted_at', null)
           .lte('start_date', new Date().toISOString())
-          .gte('end_date', new Date().toISOString())
+          .gte('end_date', new Date().toISOString()),
+        supabase.rpc('get_marketplace_featured_items', { p_highlight_type: 'featured_large', p_limit: 6 }),
+        supabase.rpc('get_marketplace_featured_items', { p_highlight_type: 'featured_medium', p_limit: 12 }),
+        supabase.rpc('get_marketplace_featured_items', { p_highlight_type: 'featured_logo', p_limit: 20 })
       ]);
       
       if (settingsRes.data) setHomeSettings(settingsRes.data);
       if (bannersRes.data) setBanners(bannersRes.data);
+      if (largeRes.data) setFeaturedLarge(largeRes.data);
+      if (mediumRes.data) setFeaturedMedium(mediumRes.data);
+      if (logosRes.data) setFeaturedLogos(logosRes.data);
     } catch (err) {
       console.error('[MARKETPLACE] Error loading settings:', err);
     }
