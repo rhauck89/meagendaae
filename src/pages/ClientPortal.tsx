@@ -380,11 +380,16 @@ const ClientPortal = () => {
   const rewardsPointValue = rewardsConfig?.point_value || 0.05;
 
   const companiesWithCashback = useMemo(
-    () => Object.values(companies).filter(c => companyCashbackActive[c.id]),
-    [companies, companyCashbackActive]);
+    () => Object.values(companies).filter(c => 
+      companyCashbackActive[c.id] || (cashbackByCompany[c.id] || 0) > 0
+    ),
+    [companies, companyCashbackActive, cashbackByCompany]);
+    
   const companiesWithLoyalty = useMemo(
-    () => Object.values(companies).filter(c => companyLoyaltyActive[c.id]),
-    [companies, companyLoyaltyActive]);
+    () => Object.values(companies).filter(c => 
+      companyLoyaltyActive[c.id] || (pointsByCompany[c.id] || 0) > 0
+    ),
+    [companies, companyLoyaltyActive, pointsByCompany]);
 
   // Loja: empresas com itens ativos, ordenadas (1) com pontos > 0, (2) com histórico, (3) outras
   const appointmentCompanyIds = useMemo(
