@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { SEOHead } from '@/components/SEOHead';
 import { usePlatformSettings } from '@/hooks/usePlatformSettings';
 import { useGeolocation, calculateDistance, formatDistance } from '@/hooks/useGeolocation';
+import { MarketplaceBanner } from '@/components/marketplace/MarketplaceBanner';
 import {
   Scissors, ArrowRight, Star, MapPin, Search, Sparkles,
   Users, Heart, Shield, Loader2, Crown, Calendar, ShieldCheck,
