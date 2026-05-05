@@ -123,12 +123,20 @@ export default function MarketplaceHome() {
     const validBanners = banners.filter(b => b.position === position);
     if (validBanners.length === 0) return null;
 
-    // Filter by category if one is selected
-    const categoryBanners = filterCategory !== 'all' 
-      ? validBanners.filter(b => !b.category || b.category === filterCategory)
-      : validBanners;
+    // Filter by category and region
+    const filteredBanners = validBanners.filter(b => {
+      // Category filter
+      if (filterCategory !== 'all' && b.category && b.category !== filterCategory) return false;
+      
+      // Region filter (simple match for now)
+      if (filterCity.trim() && b.city) {
+        if (!b.city.toLowerCase().includes(filterCity.trim().toLowerCase())) return false;
+      }
+      
+      return true;
+    });
 
-    const sourceBanners = categoryBanners.length > 0 ? categoryBanners : validBanners;
+    const sourceBanners = filteredBanners.length > 0 ? filteredBanners : validBanners;
 
     // Sort by priority (descending)
     const maxPriority = Math.max(...sourceBanners.map(b => b.priority || 0));
@@ -148,9 +156,9 @@ export default function MarketplaceHome() {
     return topPriorityBanners[0];
   };
 
-  const heroSecondaryBanner = useMemo(() => selectBanner('hero_secondary'), [banners, filterCategory]);
-  const betweenSectionsBanner = useMemo(() => selectBanner('between_sections'), [banners, filterCategory]);
-  const footerBanner = useMemo(() => selectBanner('footer'), [banners, filterCategory]);
+  const heroSecondaryBanner = useMemo(() => selectBanner('hero_secondary'), [banners, filterCategory, filterCity]);
+  const betweenSectionsBanner = useMemo(() => selectBanner('between_sections'), [banners, filterCategory, filterCity]);
+  const footerBanner = useMemo(() => selectBanner('footer'), [banners, filterCategory, filterCity]);
 
   useEffect(() => {
     if (geo.latitude && geo.longitude) {
