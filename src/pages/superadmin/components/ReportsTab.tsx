@@ -399,6 +399,15 @@ const ReportsTab = () => {
                       <TableCell className="text-right font-bold text-primary">
                         {banner.r_ctr.toFixed(2)}%
                       </TableCell>
+                      <TableCell className="text-[10px]">
+                        {format(new Date(banner.r_start_date), 'dd/MM/yy')} - {format(new Date(banner.r_end_date), 'dd/MM/yy')}
+                      </TableCell>
+                      <TableCell className="text-[10px] uppercase">
+                        {banner.r_sale_model === 'fixed_period' ? 'Período' : banner.r_sale_model}
+                      </TableCell>
+                      <TableCell className="text-[10px] text-muted-foreground">
+                        {banner.r_limit_impressions ? `${banner.r_limit_impressions} imps` : '∞ imps'} / {banner.r_limit_clicks ? `${banner.r_limit_clicks} cliq` : '∞ cliq'}
+                      </TableCell>
                       <TableCell>{getStatusBadge(banner.r_status)}</TableCell>
                       <TableCell>
                         <BannerDetailDialog 
