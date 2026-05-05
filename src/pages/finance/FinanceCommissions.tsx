@@ -377,7 +377,7 @@ const FinanceCommissions = () => {
             <div className="relative">
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Buscar profissional..."
+                placeholder={isAdmin ? "Buscar profissional..." : "Buscar cliente/serviço..."}
                 className="pl-9 h-9"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
@@ -385,30 +385,47 @@ const FinanceCommissions = () => {
             </div>
 
             {/* Profissional */}
-            <Select value={selectedProfessional} onValueChange={setSelectedProfessional}>
+            {isAdmin && (
+              <Select value={selectedProfessional} onValueChange={setSelectedProfessional}>
+                <SelectTrigger className="h-9">
+                  <SelectValue placeholder="Profissional" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos Profissionais</SelectItem>
+                  {rows.map(r => (
+                    <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+
+            {/* Status */}
+            <Select value={filterStatus} onValueChange={setFilterStatus}>
               <SelectTrigger className="h-9">
-                <SelectValue placeholder="Profissional" />
+                <SelectValue placeholder="Status" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Todos Profissionais</SelectItem>
-                {rows.map(r => (
-                  <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>
-                ))}
+                <SelectItem value="all">Todos os Status</SelectItem>
+                <SelectItem value="completed">Concluídos</SelectItem>
+                <SelectItem value="confirmed">Confirmados</SelectItem>
+                <SelectItem value="cancelled">Cancelados</SelectItem>
               </SelectContent>
             </Select>
 
-            {/* Tipo */}
-            <Select value={filterType} onValueChange={setFilterType}>
-              <SelectTrigger className="h-9">
-                <SelectValue placeholder="Tipo" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos os Tipos</SelectItem>
-                <SelectItem value="commissioned">Comissionado</SelectItem>
-                <SelectItem value="partner">Sócio</SelectItem>
-                <SelectItem value="freelancer">Freelancer</SelectItem>
-              </SelectContent>
-            </Select>
+            {/* Tipo (Só admin ou profissional) */}
+            {isAdmin && (
+              <Select value={filterType} onValueChange={setFilterType}>
+                <SelectTrigger className="h-9">
+                  <SelectValue placeholder="Tipo" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos os Tipos</SelectItem>
+                  <SelectItem value="commissioned">Comissionado</SelectItem>
+                  <SelectItem value="partner">Sócio</SelectItem>
+                  <SelectItem value="freelancer">Freelancer</SelectItem>
+                </SelectContent>
+              </Select>
+            )}
 
             {/* Período */}
             <div className="flex items-center gap-2 lg:col-span-2">
