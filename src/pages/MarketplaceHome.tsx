@@ -389,6 +389,13 @@ export default function MarketplaceHome() {
 
       <div id="marketplace-results" />
 
+      {/* Hero Secondary Banner */}
+      {heroSecondaryBanner && (
+        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-6">
+          <MarketplaceBanner banner={heroSecondaryBanner} className="h-40 md:h-48" />
+        </section>
+      )}
+
       {/* Special offers banner */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-8">
         <div className="relative rounded-2xl overflow-hidden border border-border shadow-sm" style={{ background: 'linear-gradient(90deg, #3a2410 0%, #5a3a1f 30%, #f5e6c5 70%, #f0d9a8 100%)' }}>
