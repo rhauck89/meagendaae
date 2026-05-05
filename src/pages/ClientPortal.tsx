@@ -208,14 +208,16 @@ const ClientPortal = () => {
         pointsRes,
         cashbackRes,
         rewardsRes,
-        clientsRes
+        clientsRes,
+        redemptionsRes
       ] = await Promise.all([
         supabase.rpc('get_client_portal_summary'),
         supabase.rpc('get_client_portal_appointments'),
         supabase.rpc('get_client_portal_points'),
         supabase.rpc('get_client_portal_cashback'),
         supabase.from('loyalty_reward_items').select('id, name, description, points_required, real_value, extra_cost, image_url, item_type, company_id, stock_total, stock_available, company:companies!loyalty_reward_items_company_id_fkey(id, name, logo_url, slug)').eq('active', true),
-        supabase.from('clients').select('*').eq('user_id', user?.id)
+        supabase.from('clients').select('*').eq('user_id', user?.id),
+        supabase.from('loyalty_redemptions').select('id, redemption_code, status, created_at, total_points, reward_id, company_id, client_id').eq('user_id', user?.id).order('created_at', { ascending: false }).limit(50)
       ]);
 
       const summaryData = summaryRes.data;
@@ -224,6 +226,7 @@ const ClientPortal = () => {
       const cashbackDataObj = cashbackRes.data;
       const rewardsData = (rewardsRes.data || []) as any[];
       const clientsData = (clientsRes.data || []) as ClientRecord[];
+      const redemptionsData = (redemptionsRes.data || []) as Redemption[];
 
       setSummary(summaryData);
       setAppointments(appointmentsData);
@@ -231,6 +234,7 @@ const ClientPortal = () => {
       setCashbackData(cashbackDataObj);
       setRewards(rewardsData);
       setClients(clientsData);
+      setRedemptions(redemptionsData);
 
       // Map companies
       const companiesMap: Record<string, CompanyInfo> = {};
