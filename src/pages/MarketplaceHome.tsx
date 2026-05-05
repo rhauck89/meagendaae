@@ -601,7 +601,7 @@ export default function MarketplaceHome() {
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3">
-            {tiered.recommended.slice(0, 5).map(c => (
+            {[...featuredMedium, ...tiered.recommended].slice(0, 5).map(c => (
               <Link key={c.id} to={getProfileRoute(c)} className="group">
                 <Card className="overflow-hidden border-border hover:shadow-md transition-all rounded-xl">
                   <CardContent className="p-3 flex items-start gap-3">
