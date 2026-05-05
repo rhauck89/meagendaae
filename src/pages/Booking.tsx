@@ -3304,7 +3304,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                           <span className="text-xl">⭐</span>
                         </div>
                         <div>
-                          <p className="font-black text-amber-500">{bookingResult.pointsEarned} pontos</p>
+                          <p className="font-black text-amber-500">{bookingResult.pointsEarned} pontos de fidelidade</p>
                           <p className="text-[10px] font-bold opacity-60 uppercase tracking-tight" style={{ color: T.textSec }}>Serão creditados após o atendimento</p>
                         </div>
                       </div>
