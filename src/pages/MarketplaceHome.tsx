@@ -238,22 +238,23 @@ export default function MarketplaceHome() {
       {/* HERO */}
       <section className="relative bg-slate-900 text-white overflow-hidden">
         <div className="absolute inset-0">
-          <img src={heroImg} alt="" className="w-full h-full object-cover object-right opacity-90" />
+          <img src={homeSettings?.hero_image_url || heroImg} alt="" className="w-full h-full object-cover object-right opacity-90" />
           <div className="absolute inset-0 bg-gradient-to-r from-slate-950 via-slate-950/85 to-transparent" />
         </div>
 
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 md:py-24">
           <div className="max-w-2xl">
-            <div className="inline-flex items-center gap-2 bg-amber-500/10 border border-amber-500/30 text-amber-400 px-4 py-1.5 rounded-md text-xs font-semibold uppercase tracking-wide mb-6">
-              <Sparkles className="h-3.5 w-3.5" />
-              O maior marketplace de beleza e bem-estar
-            </div>
+            {homeSettings?.hero_badge && (
+              <div className="inline-flex items-center gap-2 bg-amber-500/10 border border-amber-500/30 text-amber-400 px-4 py-1.5 rounded-md text-xs font-semibold uppercase tracking-wide mb-6">
+                <Sparkles className="h-3.5 w-3.5" />
+                {homeSettings.hero_badge}
+              </div>
+            )}
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-display font-bold leading-tight mb-5">
-              Encontre os melhores<br />
-              profissionais <span className="text-amber-400">perto de você</span>
+              {homeSettings?.hero_title || 'Encontre os melhores profissionais perto de você'}
             </h1>
             <p className="text-base md:text-lg text-white/80 max-w-xl mb-8">
-              Agende online com praticidade, segurança e os melhores profissionais de beleza, estética e bem-estar.
+              {homeSettings?.hero_subtitle || 'Agende online com praticidade, segurança e os melhores profissionais de beleza, estética e bem-estar.'}
             </p>
 
             {/* Search bar */}
