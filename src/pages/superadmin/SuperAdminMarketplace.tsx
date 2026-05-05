@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -659,8 +659,6 @@ const SuperAdminMarketplace = () => {
   );
 };
 
-// Auxiliary components that were missing in code--write (mocking CardFooter for build pass)
-const CardFooter = ({ children, className }: any) => <div className={`p-6 ${className}`}>{children}</div>;
 
 
 export default SuperAdminMarketplace;
