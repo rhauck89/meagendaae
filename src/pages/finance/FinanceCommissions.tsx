@@ -335,6 +335,41 @@ const FinanceCommissions = () => {
         </div>
       </div>
 
+      {!isAdmin && (
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+          <Card className="bg-primary/5">
+            <CardContent className="p-4">
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Faturado</p>
+              <p className="text-lg font-bold">{maskValue(summary.totalBilled)}</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4">
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Atendimentos</p>
+              <p className="text-lg font-bold">{summary.totalAppointments}</p>
+            </CardContent>
+          </Card>
+          <Card className="bg-warning/5">
+            <CardContent className="p-4">
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Sua Comissão</p>
+              <p className="text-lg font-bold">{maskValue(summary.totalCommission)}</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4">
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Net Empresa</p>
+              <p className="text-lg font-bold">{maskValue(summary.companyNet)}</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4">
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Ticket Médio</p>
+              <p className="text-lg font-bold">{maskValue(summary.avgTicket)}</p>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
       <Card className="border-none shadow-sm bg-muted/30 print:hidden">
         <CardContent className="p-4 space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-3">
