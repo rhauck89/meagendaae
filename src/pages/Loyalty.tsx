@@ -523,8 +523,30 @@ const Loyalty = () => {
         balance_after: null,
         isTransaction: false
       }));
-      
-    return [...txs, ...reds].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+
+    const chronological = [...txs, ...reds].sort((a, b) => {
+      const byDate = new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+      if (byDate !== 0) return byDate;
+      return String(a.id).localeCompare(String(b.id));
+    });
+
+    const balancesByClient = new Map<string, number>();
+    const withDisplayBalance = chronological.map((entry: any) => {
+      const clientId = entry.client_id || 'unknown';
+      const points = Number(entry.points) || 0;
+      const previousBalance = balancesByClient.get(clientId) ?? 0;
+      const storedBalance = typeof entry.balance_after === 'number' ? entry.balance_after : null;
+      const displayBalance = storedBalance ?? (previousBalance + points);
+
+      balancesByClient.set(clientId, displayBalance);
+
+      return {
+        ...entry,
+        balance_after_display: displayBalance
+      };
+    });
+
+    return withDisplayBalance.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
   }, [transactions, redemptions]);
 
   const filteredTransactions = txFilter
@@ -1067,7 +1089,13 @@ const Loyalty = () => {
                           <td className="p-3 text-right text-xs text-muted-foreground">
                             {pointValue > 0 ? formatCurrency(Math.abs(t.points) * pointValue) : '—'}
                           </td>
-                          <td className="p-3 text-right">{typeof t.balance_after === 'number' ? t.balance_after : '—'}</td>
+                          <td className="p-3 text-right">
+                            {typeof t.balance_after_display === 'number'
+                              ? t.balance_after_display
+                              : typeof t.balance_after === 'number'
+                                ? t.balance_after
+                                : '—'}
+                          </td>
                           <td className="p-3 text-xs text-muted-foreground max-w-[200px] truncate">{t.description || '—'}</td>
                         </tr>
                       ))}
