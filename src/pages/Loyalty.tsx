@@ -13,7 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Checkbox } from '@/components/ui/checkbox';
 import { Textarea } from '@/components/ui/textarea';
 import { Star, Trophy, Gift, ArrowUpDown, Settings, Eye, Plus, Pencil, Trash2, AlertTriangle, CheckCircle, XCircle, Search, Upload, ImageIcon, ScanLine, Wallet, Sparkles } from 'lucide-react';
-import CashbackTab from '@/components/loyalty/CashbackTab';
+import { Navigate, useSearchParams } from 'react-router-dom';
 import { RewardQRScannerDialog } from '@/components/RewardQRScannerDialog';
 import { SmartRewardCard } from '@/components/loyalty/SmartRewardCard';
 import { suggestSmartReward } from '@/lib/smart-rewards';
