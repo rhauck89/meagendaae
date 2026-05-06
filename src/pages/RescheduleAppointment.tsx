@@ -67,16 +67,22 @@ const RescheduleAppointment = () => {
       const dur = services.reduce((s: number, as_: any) => s + (as_.service?.duration_minutes || as_.duration_minutes || 0), 0);
       setTotalDuration(dur);
 
-      // Fetch business hours & exceptions
-      const companyId = apt.company?.id || apt.company_id;
-      const [bhRes, exRes, phRes] = await Promise.all([
+      // Fetch business hours, exceptions & WhatsApp numbers
+      const [bhRes, exRes, phRes, profWRes, compWRes] = await Promise.all([
         supabase.from('business_hours').select('*').eq('company_id', companyId),
         supabase.from('business_exceptions').select('*').eq('company_id', companyId),
         supabase.from('professional_working_hours').select('*').eq('professional_id', apt.professional_id).eq('company_id', companyId),
+        supabase.from('profiles').select('whatsapp').eq('id', apt.professional_id).maybeSingle(),
+        supabase.from('companies').select('whatsapp').eq('id', companyId).maybeSingle(),
       ]);
+
       if (bhRes.data) setBusinessHours(bhRes.data as BusinessHours[]);
       if (exRes.data) setExceptions(exRes.data as BusinessException[]);
       if (phRes.data && phRes.data.length > 0) setProfessionalHours(phRes.data as BusinessHours[]);
+
+      // Update appointment with whatsapp if found
+      if (profWRes.data) apt.professional = { ...apt.professional, whatsapp: profWRes.data.whatsapp };
+      if (compWRes.data) apt.company = { ...apt.company, whatsapp: compWRes.data.whatsapp };
 
       if (apt.status === 'cancelled' || apt.status === 'completed' || apt.status === 'no_show') {
         // Can't reschedule
