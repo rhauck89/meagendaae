@@ -96,7 +96,13 @@ export function PromotionInsights({ isAdmin, onAction }: PromotionInsightsProps)
       const appointments = appointmentsRes.data || [];
       const services = servicesRes.data || [];
       const professionals = professionalsRes.data || [];
-      const workingHours = workingHoursRes.data || [];
+      let workingHours = workingHoursRes.data || [];
+
+      // Fallback if professional has no specific hours
+      if (currentProfessionalId && workingHours.length === 0) {
+        const { data: bizHours } = await supabase.from('business_hours').select('day_of_week, open_time, close_time, is_closed').eq('company_id', companyId);
+        workingHours = bizHours || [];
+      }
 
       // Filter data if professional
       const filteredAppointments = currentProfessionalId 
