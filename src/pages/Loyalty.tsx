@@ -24,8 +24,12 @@ import { cn } from '@/lib/utils';
 
 const Loyalty = () => {
   const { companyId } = useAuth();
-  const [activeModule, setActiveModule] = useState<'points' | 'cashback'>('points');
+  const [searchParams] = useSearchParams();
   const [tab, setTab] = useState('overview');
+
+  if (searchParams.get('tab') === 'cashback') {
+    return <Navigate to="/dashboard/promotions?section=cashback" replace />;
+  }
 
   // Config state
   const [config, setConfig] = useState<any>(null);
