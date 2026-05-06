@@ -7705,51 +7705,36 @@ export type Database = {
           r_status: string
         }[]
       }
-      get_marketplace_featured_items:
-        | {
-            Args: {
-              p_category?: string
-              p_city_id?: string
-              p_highlight_type: string
-              p_state_id?: string
-              p_user_lat?: number
-              p_user_lon?: number
-            }
-            Returns: {
-              company_id: string
-              highlight_type: string
-              id: string
-              item_details: Json
-              item_type: string
-              professional_id: string
-              relevance_score: number
-            }[]
-          }
-        | {
-            Args: {
-              p_city?: string
-              p_highlight_type: string
-              p_limit?: number
-            }
-            Returns: {
-              average_rating: number
-              business_type: string
-              city: string
-              cover_url: string
-              id: string
-              is_manual: boolean
-              item_id: string
-              item_type: string
-              latitude: number
-              logo_url: string
-              longitude: number
-              name: string
-              priority: number
-              review_count: number
-              slug: string
-              state: string
-            }[]
-          }
+      get_marketplace_featured_items: {
+        Args: {
+          p_category?: string
+          p_city_id?: string
+          p_highlight_type: string
+          p_limit?: number
+          p_state_id?: string
+          p_user_lat?: number
+          p_user_lon?: number
+        }
+        Returns: {
+          average_rating: number
+          business_type: string
+          city: string
+          company_id: string
+          cover_url: string
+          id: string
+          is_manual: boolean
+          item_type: string
+          latitude: number
+          logo_url: string
+          longitude: number
+          name: string
+          priority: number
+          professional_id: string
+          review_count: number
+          slug: string
+          state: string
+        }[]
+      }
       get_my_company_id: { Args: never; Returns: string }
       get_my_profile_id: { Args: never; Returns: string }
       get_or_create_revenue_category: {
