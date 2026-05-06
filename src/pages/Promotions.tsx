@@ -23,7 +23,7 @@ import { toast } from '@/hooks/use-toast';
 import { format, parseISO, isToday, isTomorrow, differenceInCalendarDays } from 'date-fns';
 import { fromZonedTime, toZonedTime } from 'date-fns-tz';
 import { ptBR } from 'date-fns/locale';
-import { Plus, MessageCircle, Send, Users, Tag, Megaphone, Copy, BarChart3, Eye, TrendingUp, MousePointerClick, CalendarCheck, ChevronLeft, ChevronRight, Check, Clock, Flame, Timer, Zap, ChevronDown, ChevronUp } from 'lucide-react';
+import { Plus, MessageCircle, Send, Users, Tag, Megaphone, Copy, BarChart3, Eye, TrendingUp, MousePointerClick, CalendarCheck, ChevronLeft, ChevronRight, Check, Clock, Flame, Timer, Zap, ChevronDown, ChevronUp, Star } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { formatWhatsApp, displayWhatsApp, buildWhatsAppUrl, trackWhatsAppClick } from '@/lib/whatsapp';
 
@@ -461,6 +461,12 @@ export default function Promotions() {
 
 
   const applyInsight = (insight: PromotionInsight) => {
+    console.log('[PROMOTION_INSIGHT_ACTION_DEBUG]', { 
+      action: 'apply_insight', 
+      insight: insight.type, 
+      data: insight.data,
+      promotionType 
+    });
     resetForm();
     setCreationMode('manual');
     setWizardStep(1);
@@ -564,13 +570,6 @@ export default function Promotions() {
         }
         const nextDateStr = format(nextDate, 'yyyy-MM-dd');
 
-        console.log('[PROMOTION_INSIGHTS_LOW_DAY_PREFILL_DEBUG]', {
-          daySugerido: dayName,
-          diaIndex: dayIdx,
-          proximaDataCalculada: nextDateStr,
-          periodo: `${insight.data?.startTime || '09:00'} - ${insight.data?.endTime || '13:00'}`
-        });
-
         setTitle(`${dayName} Especial ✨`);
         setDiscountType('percentage');
         setDiscountValue('15');
@@ -586,32 +585,29 @@ export default function Promotions() {
         if (insight.data?.startTime) setStartTime(insight.data.startTime);
         if (insight.data?.endTime) setEndTime(insight.data.endTime);
         
-        setDescription(`Uma condição especial para movimentar a agenda com mais previsibilidade.`);
+        setDescription(`Uma condição especial para horários selecionados.`);
         setMessageTemplate(`Olá {{cliente_primeiro_nome}}! 👋\n\nPreparamos uma condição especial para agendamentos de ${dayName}, dia ${format(nextDate, 'dd/MM')}. 🎉\n\nGaranta seu horário pelo link abaixo:\n{{link_promocao}}`);
         break;
       case 'today_gap':
       case 'week_gap':
-        setTitle(insight.data?.title || 'Promoção Relâmpago');
-        setDescription(insight.data?.description || '');
+        setTitle(insight.data?.title || 'Oportunidade de Agenda');
+        setDescription(insight.data?.description || 'Condição especial para horários selecionados.');
         setStartDate(insight.data?.startDate || todayStr);
         setEndDate(insight.data?.endDate || todayStr);
         setSingleDay(!!insight.data?.singleDay);
         setStartTime(insight.data?.startTime || '09:00');
-        setEndTime(insight.data?.endTime || '19:00');
+        setEndTime(insight.data?.endTime || '20:00');
         setUseBusinessHours(false);
+        if (insight.data?.validDays) setValidDays(insight.data.validDays);
         if (insight.data?.professionalId) {
-          setProfessionalFilter('specific');
+          setProfessionalFilter('custom');
           setSelectedProfessionalIds([insight.data.professionalId]);
-        } else {
-          setProfessionalFilter('all');
         }
-        if (insight.data?.messageTemplate) {
-          setMessageTemplate(insight.data.messageTemplate);
-        }
+        setMessageTemplate(insight.data?.messageTemplate || DEFAULT_TEMPLATE);
         break;
-
+      default:
+        break;
     }
-    setDialogOpen(true);
   };
 
   const handleServiceChange = (serviceId: string) => {
@@ -1144,7 +1140,13 @@ export default function Promotions() {
   const handleAction = (type: 'promotion' | 'campaign' | 'link', data?: any) => {
     if (type === 'promotion') {
       if (data?.insight) {
-        applyInsight({ type: data.insight, data } as any);
+        console.log('[PROMOTION_INSIGHT_ACTION_DEBUG]', {
+          action: 'open_selection',
+          insight: data.insight,
+          data
+        });
+        setSelectedInsightData(data);
+        setInsightSelectionOpen(true);
         return;
       }
       setCreationMode('manual');
@@ -2123,6 +2125,68 @@ export default function Promotions() {
         </DialogContent>
       </Dialog>
 
+      {/* Insight Selection Dialog */}
+      <Dialog open={insightSelectionOpen} onOpenChange={setInsightSelectionOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Como deseja preencher esses horários?</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 pt-4">
+            <Button 
+              variant="outline" 
+              className="w-full h-auto p-4 flex flex-col items-start gap-1 text-left border-primary/20 hover:border-primary hover:bg-primary/5 transition-all"
+              onClick={() => {
+                setInsightSelectionOpen(false);
+                setPromotionType('traditional');
+                applyInsight({ type: selectedInsightData?.insight, data: selectedInsightData } as any);
+                setDialogOpen(true);
+              }}
+            >
+              <div className="flex items-center gap-2 font-bold text-primary">
+                <Tag className="h-4 w-4" />
+                <span>Promoção com desconto</span>
+              </div>
+              <p className="text-xs text-muted-foreground font-normal">
+                Crie uma oferta com desconto em porcentagem, valor fixo ou preço promocional.
+              </p>
+            </Button>
+
+            <Button 
+              variant="outline" 
+              className="w-full h-auto p-4 flex flex-col items-start gap-1 text-left opacity-70 cursor-not-allowed group relative"
+              disabled
+            >
+              <div className="flex items-center gap-2 font-bold text-muted-foreground">
+                <Wallet className="h-4 w-4" />
+                <span>Cashback em dobro</span>
+                <Badge variant="secondary" className="text-[10px] h-4 ml-auto">Em breve</Badge>
+              </div>
+              <p className="text-xs text-muted-foreground font-normal">
+                Incentive agendamentos oferecendo cashback turbinado.
+              </p>
+            </Button>
+
+            <Button 
+              variant="outline" 
+              className="w-full h-auto p-4 flex flex-col items-start gap-1 text-left opacity-70 cursor-not-allowed group relative"
+              disabled
+            >
+              <div className="flex items-center gap-2 font-bold text-muted-foreground">
+                <Star className="h-4 w-4" />
+                <span>Pontos em dobro</span>
+                <Badge variant="secondary" className="text-[10px] h-4 ml-auto">Em breve</Badge>
+              </div>
+              <p className="text-xs text-muted-foreground font-normal">
+                Aumente a fidelização oferecendo pontos em dobro.
+              </p>
+            </Button>
+          </div>
+          <DialogFooter className="sm:justify-start">
+            <Button variant="ghost" size="sm" onClick={() => setInsightSelectionOpen(false)}>Cancelar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {section === 'campaigns' && (
         <div className="flex items-center justify-between">
           <h3 className="text-lg font-bold flex items-center gap-2">
@@ -2595,8 +2659,3 @@ export default function Promotions() {
     </div>
   );
 }
-
-
-
-
-
