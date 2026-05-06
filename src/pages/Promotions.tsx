@@ -1908,7 +1908,7 @@ export default function Promotions() {
               section === 'opportunities' ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
             )}
           >
-            <Sparkles className="h-4 w-4" /> Oportunidades
+            <Sparkles className="h-4 w-4" /> Oportunidades & Insights
           </button>
           <button 
             onClick={() => handleSectionChange('cashback')}
@@ -1919,204 +1919,196 @@ export default function Promotions() {
           >
             <Wallet className="h-4 w-4" /> Cashback
           </button>
-          <button 
-            onClick={() => handleSectionChange('insights')}
-            className={cn(
-              "px-4 py-2 text-sm font-medium rounded-md transition-all flex items-center gap-2 whitespace-nowrap",
-              section === 'insights' ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
-            )}
-          >
-            <Zap className="h-4 w-4" /> Insights
-          </button>
         </div>
 
       </div>
 
-      {section === 'campaigns' && (
-        <>
-          <div className="flex items-center justify-between">
-            <h3 className="text-lg font-bold flex items-center gap-2">
-              <Megaphone className="h-5 w-5 text-primary" /> Promoções & Ofertas
-            </h3>
+      {/* Dialogo de criação de promoção (Global) */}
+      <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) resetForm(); }}>
+        <DialogContent className="fixed inset-0 w-screen h-[100dvh] max-w-none max-h-[100dvh] rounded-none p-0 flex flex-col overflow-hidden sm:inset-auto sm:left-[50%] sm:top-[50%] sm:translate-x-[-50%] sm:translate-y-[-50%] sm:w-full sm:max-w-3xl sm:h-auto sm:max-h-[90vh] sm:rounded-2xl">
+          <DialogHeader className="shrink-0">
+            <DialogTitle>
+              {isEditing ? 'Editar Promoção' : 
+               creationMode === 'choice' ? 'Como deseja criar?' :
+               creationMode === 'smart' ? 'Oportunidades Inteligentes' :
+               'Criar Promoção Manual'}
+            </DialogTitle>
+          </DialogHeader>
 
+          {/* Step indicator (Manual only) */}
+          {creationMode === 'manual' && (
+            <div className="hidden sm:block shrink-0 px-6 py-3 border-b bg-background">
+              <div className="space-y-3">
+                <div className="flex items-center justify-between text-xs text-muted-foreground">
+                  {WIZARD_STEPS.map((step) => (
+                    <div key={step.num} className={`flex items-center gap-1.5 ${wizardStep >= step.num ? 'text-primary font-medium' : ''}`}>
+                      <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs border-2 transition-colors ${
+                        wizardStep > step.num ? 'bg-primary border-primary text-primary-foreground' :
+                        wizardStep === step.num ? 'border-primary text-primary' :
+                        'border-muted-foreground/30'
+                      }`}>
+                        {wizardStep > step.num ? <Check className="h-3 w-3" /> : step.num}
+                      </div>
+                      <span className="hidden sm:inline">{step.label}</span>
+                    </div>
+                  ))}
+                </div>
+                <Progress value={(wizardStep / totalSteps) * 100} className="h-1.5" />
+              </div>
+            </div>
+          )}
 
-
-
-
-          <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) resetForm(); }}>
-
-          <DialogTrigger asChild>
-            <Button onClick={() => { resetForm(); setIsEditing(false); setCreationMode('manual'); }}>
-              <Plus className="h-4 w-4 mr-2" />
-              Nova Promoção
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="fixed inset-0 w-screen h-[100dvh] max-w-none max-h-[100dvh] rounded-none p-0 flex flex-col overflow-hidden sm:inset-auto sm:left-[50%] sm:top-[50%] sm:translate-x-[-50%] sm:translate-y-[-50%] sm:w-full sm:max-w-3xl sm:h-auto sm:max-h-[90vh] sm:rounded-2xl">
-            <DialogHeader className="shrink-0">
-              <DialogTitle>
-                {isEditing ? 'Editar Promoção' : 
-                 creationMode === 'choice' ? 'Como deseja criar?' :
-                 creationMode === 'smart' ? 'Oportunidades Inteligentes' :
-                 'Criar Promoção Manual'}
-              </DialogTitle>
-            </DialogHeader>
-
-            {/* Step indicator (Manual only) - Desktop only here */}
+          <DialogBody className="flex-1 overflow-y-auto p-4 sm:p-6 sm:pt-6">
+            {/* Step indicator Mobile */}
             {creationMode === 'manual' && (
-              <div className="hidden sm:block shrink-0 px-6 py-3 border-b bg-background">
+              <div className="block sm:hidden mb-6">
                 <div className="space-y-3">
                   <div className="flex items-center justify-between text-xs text-muted-foreground">
                     {WIZARD_STEPS.map((step) => (
                       <div key={step.num} className={`flex items-center gap-1.5 ${wizardStep >= step.num ? 'text-primary font-medium' : ''}`}>
-                        <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs border-2 transition-colors ${
+                        <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] border-2 transition-colors ${
                           wizardStep > step.num ? 'bg-primary border-primary text-primary-foreground' :
                           wizardStep === step.num ? 'border-primary text-primary' :
                           'border-muted-foreground/30'
                         }`}>
-                          {wizardStep > step.num ? <Check className="h-3 w-3" /> : step.num}
+                          {wizardStep > step.num ? <Check className="h-2.5 w-2.5" /> : step.num}
                         </div>
-                        <span className="hidden sm:inline">{step.label}</span>
+                        <span className="text-[10px]">{step.label}</span>
                       </div>
                     ))}
                   </div>
-                  <Progress value={(wizardStep / totalSteps) * 100} className="h-1.5" />
+                  <Progress value={(wizardStep / totalSteps) * 100} className="h-1" />
                 </div>
               </div>
             )}
 
-            <DialogBody className="flex-1 overflow-y-auto p-4 sm:p-6 sm:pt-6">
-              {/* Step indicator (Manual only) - Mobile only here */}
-              {creationMode === 'manual' && (
-                <div className="block sm:hidden mb-6">
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between text-xs text-muted-foreground">
-                      {WIZARD_STEPS.map((step) => (
-                        <div key={step.num} className={`flex items-center gap-1.5 ${wizardStep >= step.num ? 'text-primary font-medium' : ''}`}>
-                          <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] border-2 transition-colors ${
-                            wizardStep > step.num ? 'bg-primary border-primary text-primary-foreground' :
-                            wizardStep === step.num ? 'border-primary text-primary' :
-                            'border-muted-foreground/30'
-                          }`}>
-                            {wizardStep > step.num ? <Check className="h-2.5 w-2.5" /> : step.num}
-                          </div>
-                          <span className="text-[10px]">{step.label}</span>
-                        </div>
-                      ))}
-                    </div>
-                    <Progress value={(wizardStep / totalSteps) * 100} className="h-1" />
-                  </div>
-                </div>
-              )}
-
-              {/* Step content */}
-              {creationMode === 'choice' && !isEditing && renderChoiceScreen()}
-              {creationMode === 'smart' && !isEditing && renderSmartScreen()}
-              
-              {creationMode === 'manual' && (
-                <>
-                  {wizardStep === 1 && renderStep1()}
-                  {promotionType === 'cashback' && wizardStep === 2 && renderCashbackStep()}
-                  {((promotionType === 'cashback' && wizardStep === 3) || (promotionType === 'traditional' && wizardStep === 2)) && renderStep2()}
-                  {((promotionType === 'cashback' && wizardStep === 4) || (promotionType === 'traditional' && wizardStep === 3)) && renderStep3()}
-                </>
-              )}
-            </DialogBody>
-
-            {/* Navigation (Manual only) */}
+            {/* Step content */}
+            {creationMode === 'choice' && !isEditing && renderChoiceScreen()}
+            {creationMode === 'smart' && !isEditing && renderSmartScreen()}
+            
             {creationMode === 'manual' && (
-              <DialogFooter className="shrink-0 flex-row items-center justify-between border-t bg-background p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:p-6">
-                {wizardStep > 1 ? (
-                  <Button variant="outline" onClick={goBack} className="h-10 px-4">
-                    <ChevronLeft className="h-4 w-4 mr-1" /> <span className="hidden sm:inline">Voltar</span>
-                  </Button>
-                ) : (
-                  <Button variant="outline" onClick={() => setDialogOpen(false)} className="h-10 px-4">
-                    <ChevronLeft className="h-4 w-4 mr-1" /> <span className="hidden sm:inline">Fechar</span>
-                  </Button>
-                )}
-
-                {wizardStep < totalSteps ? (
-                  <Button onClick={goNext} className="h-10 px-4">
-                    Próximo<ChevronRight className="h-4 w-4 ml-1" />
-                  </Button>
-                ) : (
-                  <Button onClick={handleSave} className="h-10 px-4 bg-primary text-primary-foreground hover:bg-primary/90">
-                    <Check className="h-4 w-4 mr-2" />
-                    {isEditing ? 'Salvar Alterações' : 'Criar Promoção'}
-                  </Button>
-                )}
-              </DialogFooter>
+              <>
+                {wizardStep === 1 && renderStep1()}
+                {promotionType === 'cashback' && wizardStep === 2 && renderCashbackStep()}
+                {((promotionType === 'cashback' && wizardStep === 3) || (promotionType === 'traditional' && wizardStep === 2)) && renderStep2()}
+                {((promotionType === 'cashback' && wizardStep === 4) || (promotionType === 'traditional' && wizardStep === 3)) && renderStep3()}
+              </>
             )}
+          </DialogBody>
 
-            {creationMode === 'smart' && (
-              <DialogFooter className="shrink-0 flex-row items-center justify-start border-t bg-background p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:p-6">
+          {/* Navigation (Manual only) */}
+          {creationMode === 'manual' && (
+            <DialogFooter className="shrink-0 flex-row items-center justify-between border-t bg-background p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:p-6">
+              {wizardStep > 1 ? (
+                <Button variant="outline" onClick={goBack} className="h-10 px-4">
+                  <ChevronLeft className="h-4 w-4 mr-1" /> <span className="hidden sm:inline">Voltar</span>
+                </Button>
+              ) : (
                 <Button variant="outline" onClick={() => setDialogOpen(false)} className="h-10 px-4">
                   <ChevronLeft className="h-4 w-4 mr-1" /> <span className="hidden sm:inline">Fechar</span>
                 </Button>
-              </DialogFooter>
-            )}
-          </DialogContent>
-        </Dialog>
-      </div>
+              )}
 
-      {section === 'opportunities' && (
-        <PromotionOpportunities
-          promotions={promotions}
-          services={services}
-          professionals={professionals}
-          isAdmin={isAdmin}
-          onSelectSlot={(data) => {
-            setSelectedOpportunity({
-              date: data.date,
-              times: data.times,
-              professionalId: data.professionalId,
-              serviceIds: data.serviceIds
-            });
-            setOpportunityDialogOpen(true);
-          }}
-        />
+              {wizardStep < totalSteps ? (
+                <Button onClick={goNext} className="h-10 px-4">
+                  Próximo<ChevronRight className="h-4 w-4 ml-1" />
+                </Button>
+              ) : (
+                <Button onClick={handleSave} className="h-10 px-4 bg-primary text-primary-foreground hover:bg-primary/90">
+                  <Check className="h-4 w-4 mr-2" />
+                  {isEditing ? 'Salvar Alterações' : 'Criar Promoção'}
+                </Button>
+              )}
+            </DialogFooter>
+          )}
+
+          {creationMode === 'smart' && (
+            <DialogFooter className="shrink-0 flex-row items-center justify-start border-t bg-background p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:p-6">
+              <Button variant="outline" onClick={() => setDialogOpen(false)} className="h-10 px-4">
+                <ChevronLeft className="h-4 w-4 mr-1" /> <span className="hidden sm:inline">Fechar</span>
+              </Button>
+            </DialogFooter>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {section === 'campaigns' && (
+        <div className="flex items-center justify-between">
+          <h3 className="text-lg font-bold flex items-center gap-2">
+            <Megaphone className="h-5 w-5 text-primary" /> Promoções & Ofertas
+          </h3>
+
+          <Button onClick={() => { resetForm(); setIsEditing(false); setCreationMode('manual'); setDialogOpen(true); }}>
+            <Plus className="h-4 w-4 mr-2" />
+            Nova Promoção
+          </Button>
+        </div>
       )}
 
-      {section === 'insights' && (
-        <PromotionInsights 
-          isAdmin={isAdmin} 
-          onAction={(type, data) => {
-            if (type === 'promotion') {
-              resetForm();
-              if (data.type === 'cashback') setPromotionType('cashback');
-              if (data.serviceId) handleServiceChange(data.serviceId);
-              if (data.professionalId) {
-                setProfessionalFilter('selected');
-                setSelectedProfessionalIds([data.professionalId]);
-              }
-              if (data.validDays) setValidDays(data.validDays);
-              if (data.filter) setClientFilter(data.filter);
-              if (data.filterValue) setClientFilterValue(data.filterValue.toString());
-              if (data.insight) setSourceInsight(data.insight);
-              setDialogOpen(true);
-            } else if (type === 'campaign') {
-              // Open campaign for specific clients
-              // This logic needs to be integrated with how campaigns are opened
-              // For now, let's open the promotion manual modal and let them continue to campaign
-              resetForm();
-              if (data.clients) {
-                setClientFilter('all'); // Will filter manually in next step if possible
-                // We'd ideally pass these clients to the campaign modal directly
-              }
-              setDialogOpen(true);
-              toast({ title: "Insight selecionado", description: "Crie a promoção para depois enviar a campanha." });
-            } else if (type === 'link') {
-              const profId = data.professionalId || (profile?.id);
-              if (profId) {
-                const prof = professionals.find((p: any) => p.profile_id === profId);
-                const baseUrl = `${window.location.origin}/${companyBusinessType === 'esthetic' ? 'estetica' : 'barbearia'}/${companySlug}`;
-                const link = prof?.slug ? `${baseUrl}/${prof.slug}` : baseUrl;
-                navigator.clipboard.writeText(link);
-                toast({ title: "Link copiado!", description: "O link da agenda foi copiado para sua área de transferência." });
-              }
-            }
-          }}
-        />
+      {section === 'opportunities' && (
+        <div className="space-y-10">
+          <PromotionOpportunities
+            promotions={promotions}
+            services={services}
+            professionals={professionals}
+            isAdmin={isAdmin}
+            onSelectSlot={(data) => {
+              setSelectedOpportunity({
+                date: data.date,
+                times: data.times,
+                professionalId: data.professionalId,
+                serviceIds: data.serviceIds
+              });
+              setOpportunityDialogOpen(true);
+            }}
+          />
+
+          <div className="space-y-4">
+            <div className="flex items-center gap-2">
+              <div className="h-8 w-1 bg-primary rounded-full" />
+              <h3 className="text-xl font-display font-bold flex items-center gap-2">
+                <Zap className="h-5 w-5 text-primary" />
+                Insights & Análises Inteligentes
+              </h3>
+            </div>
+            
+            <PromotionInsights 
+              isAdmin={isAdmin} 
+              onAction={(type, data) => {
+                if (type === 'promotion') {
+                  resetForm();
+                  if (data.type === 'cashback') setPromotionType('cashback');
+                  if (data.serviceId) handleServiceChange(data.serviceId);
+                  if (data.professionalId) {
+                    setProfessionalFilter('selected');
+                    setSelectedProfessionalIds([data.professionalId]);
+                  }
+                  if (data.validDays) setValidDays(data.validDays);
+                  if (data.filter) setClientFilter(data.filter);
+                  if (data.filterValue) setClientFilterValue(data.filterValue.toString());
+                  if (data.insight) setSourceInsight(data.insight);
+                  setDialogOpen(true);
+                } else if (type === 'campaign') {
+                  resetForm();
+                  if (data.clients) {
+                    setClientFilter('all');
+                  }
+                  setDialogOpen(true);
+                  toast({ title: "Insight selecionado", description: "Crie a promoção para depois enviar a campanha." });
+                } else if (type === 'link') {
+                  const profId = data.professionalId || (profile?.id);
+                  if (profId) {
+                    const prof = professionals.find((p: any) => p.profile_id === profId);
+                    const baseUrl = `${window.location.origin}/${companyBusinessType === 'esthetic' ? 'estetica' : 'barbearia'}/${companySlug}`;
+                    const link = prof?.slug ? `${baseUrl}/${prof.slug}` : baseUrl;
+                    navigator.clipboard.writeText(link);
+                    toast({ title: "Link copiado!", description: "O link da agenda foi copiado para sua área de transferência." });
+                  }
+                }
+              }}
+            />
+          </div>
+        </div>
       )}
 
 
@@ -2539,10 +2531,6 @@ export default function Promotions() {
         onClose={() => { setShowIntro(false); markSeen('promotions'); }}
         onAction={() => setDialogOpen(true)}
       />
-        </TabsContent>
-      </Tabs>
-      </>
-      )}
 
       {section === 'cashback' && (
         <CashbackTab />
