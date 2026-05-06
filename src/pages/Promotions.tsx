@@ -1913,6 +1913,7 @@ export default function Promotions() {
       </div>
     </div>
   );
+};
 
   const renderChoiceScreen = () => (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-5 py-4">
