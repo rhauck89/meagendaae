@@ -529,9 +529,16 @@ const FinanceRevenues = () => {
                       />
                     </TableCell>
                     <TableCell>
-                      <Badge variant={r.is_automatic ? 'default' : 'outline'} className="text-[10px] uppercase font-bold tracking-tight px-1.5 py-0">
-                        {r.is_automatic ? 'Automática' : 'Manual'}
-                      </Badge>
+                      <div className="flex flex-col gap-1">
+                        <Badge variant={r.is_automatic ? 'default' : 'outline'} className="text-[10px] uppercase font-bold tracking-tight px-1.5 py-0 w-fit">
+                          {r.is_automatic ? 'Automática' : 'Manual'}
+                        </Badge>
+                        {r.is_recurring && (
+                          <Badge variant="secondary" className="text-[10px] uppercase font-bold tracking-tight px-1.5 py-0 w-fit bg-blue-100 text-blue-700 hover:bg-blue-100">
+                            <RefreshCw className="h-2 w-2 mr-1" /> Recorrente
+                          </Badge>
+                        )}
+                      </div>
                     </TableCell>
                     <TableCell className="text-xs text-muted-foreground">{paymentMethodLabels[r.payment_method] || '—'}</TableCell>
                     <TableCell className="text-right font-semibold text-success">{maskValue(Number(r.amount))}</TableCell>
