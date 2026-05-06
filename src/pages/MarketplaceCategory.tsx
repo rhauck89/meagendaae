@@ -432,18 +432,18 @@ export default function MarketplaceCategory() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {filtered.map(company => (
               <Link key={company.id} to={getProfileRoute(company)}>
-                <Card className="overflow-hidden hover:shadow-xl transition-all duration-300 hover:-translate-y-1 border-[hsl(var(--border))] group cursor-pointer h-full">
+                <Card className="overflow-hidden hover:shadow-xl transition-all duration-300 hover:-translate-y-1 border-[hsl(var(--border))] group cursor-pointer h-full relative">
                   {/* Cover image */}
-                  <div className="h-36 bg-gradient-to-br from-[hsl(var(--primary))]/10 to-[hsl(var(--accent))]/10 relative overflow-hidden">
+                  <div className="h-36 bg-gradient-to-br from-[hsl(var(--primary))]/10 to-[hsl(var(--accent))]/10 relative">
                     {company.cover_url ? (
-                      <img src={company.cover_url} alt={company.name} className="w-full h-full object-cover" />
+                      <img src={company.cover_url} alt={company.name} className="w-full h-full object-cover rounded-t-2xl" />
                     ) : (
-                      <div className="w-full h-full flex items-center justify-center">
+                      <div className="w-full h-full flex items-center justify-center rounded-t-2xl">
                         <Scissors className="h-10 w-10 text-[hsl(var(--primary))]/20" />
                       </div>
                     )}
                     {company.logo_url && (
-                      <div className="absolute bottom-0 left-4 translate-y-1/2">
+                      <div className="absolute bottom-0 left-4 translate-y-1/2 z-20">
                         <div className="w-16 h-16 rounded-full border-4 border-white bg-white shadow-md overflow-hidden flex items-center justify-center">
                           <img src={company.logo_url} alt={company.name} className="w-full h-full object-contain p-1" />
                         </div>
@@ -451,7 +451,7 @@ export default function MarketplaceCategory() {
                     )}
                     {/* Distance badge */}
                     {company.distance !== undefined && (
-                      <div className="absolute top-3 right-3 bg-white/90 backdrop-blur-sm text-xs font-medium text-[hsl(var(--foreground))] px-2.5 py-1 rounded-full shadow-sm flex items-center gap-1">
+                      <div className="absolute top-3 right-3 bg-white/90 backdrop-blur-sm text-xs font-medium text-[hsl(var(--foreground))] px-2.5 py-1 rounded-full shadow-sm flex items-center gap-1 z-10">
                         <MapPin className="h-3 w-3 text-[hsl(var(--accent))]" />
                         {formatDistance(company.distance)}
                       </div>
