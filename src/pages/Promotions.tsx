@@ -305,6 +305,8 @@ export default function Promotions() {
   const [bookingClosesAtDate, setBookingClosesAtDate] = useState('');
   const [bookingClosesAtTime, setBookingClosesAtTime] = useState('23:59');
   const [hasCustomBookingClosesAt, setHasCustomBookingClosesAt] = useState(false);
+  const [isSlotSpecific, setIsSlotSpecific] = useState(false);
+  const [selectedSlots, setSelectedSlots] = useState<{ date: string; time: string; professionalId: string }[]>([]);
 
   const WIZARD_STEPS = promotionType === 'cashback'
     ? [{ num: 1, label: 'Serviço' }, { num: 2, label: 'Cashback' }, { num: 3, label: 'Agenda' }, { num: 4, label: 'Mensagem' }]
