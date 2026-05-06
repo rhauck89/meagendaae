@@ -153,13 +153,34 @@ export default function MarketplaceHome() {
 
     // Filter by category and region
     const filteredBanners = validBanners.filter(b => {
-      // If banner has a category, it must match the selected filterCategory
+      // 1. Category filter
       if (b.category && filterCategory !== 'all' && b.category !== filterCategory) return false;
       if (b.category && filterCategory === 'all') return false; // Category-specific banners only show when category is selected
       
-      // If banner has a city, it must match the filterCity
-      if (b.city) {
-        if (!filterCity.trim()) return false; // City-specific banners only show when city is filtered
+      // 2. Region filter (Geofencing priority)
+      if (b.latitude && b.longitude && b.radius_km) {
+        if (!geo.latitude || !geo.longitude) return false; // Geofenced banners need user location
+        const distance = calculateDistance(geo.latitude, geo.longitude, b.latitude, b.longitude);
+        if (distance > b.radius_km) return false;
+        return true; // Match by radius
+      }
+
+      // 3. City/State ID filter
+      if (b.city_id || b.state_id) {
+        // Here we'd need to know the user's city/state ID from their selection or geo reverse-coding
+        // For now, if user filtered by city text, we can try to match
+        if (filterCity.trim()) {
+          // If we had city_id of the filtered city, we would check it here
+          // As a fallback, we still check text if IDs don't match yet
+          if (b.city_id && b.city && !b.city.toLowerCase().includes(filterCity.trim().toLowerCase())) return false;
+        } else if (b.city_id || b.state_id) {
+          return false; // Specific location banners only show if city is filtered (unless it's a global banner)
+        }
+      }
+
+      // 4. Fallback for old string-based city filter
+      if (b.city && !b.city_id) {
+        if (!filterCity.trim()) return false; 
         if (!b.city.toLowerCase().includes(filterCity.trim().toLowerCase())) return false;
       }
       
@@ -168,7 +189,7 @@ export default function MarketplaceHome() {
 
     const sourceBanners = filteredBanners.length > 0 
       ? filteredBanners 
-      : validBanners.filter(b => !b.category && !b.city); // Fallback to global banners
+      : validBanners.filter(b => !b.category && !b.city && !b.city_id && !b.state_id && !b.radius_km); // Fallback to global banners
 
     if (sourceBanners.length === 0) return null;
 
