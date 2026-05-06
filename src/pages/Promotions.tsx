@@ -2540,15 +2540,10 @@ export default function Promotions() {
       </>
       )}
 
-
-
-
       {section === 'cashback' && (
         <CashbackTab />
       )}
-
-
-
     </div>
   );
 }
+
