@@ -163,6 +163,7 @@ const FinanceRevenues = () => {
             recurrence_frequency: form.recurrence_frequency,
             recurrence_count: form.recurrence_count ? parseInt(form.recurrence_count) : null,
             recurrence_end_date: form.recurrence_end_date || null,
+            recurrence_due_day: dueDay,
           });
 
           // Calculate next dates
