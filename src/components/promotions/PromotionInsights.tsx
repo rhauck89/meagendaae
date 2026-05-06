@@ -103,7 +103,7 @@ export function PromotionInsights({ isAdmin, onAction }: PromotionInsightsProps)
         ? appointments.filter(a => a.professional_id === currentProfessionalId)
         : appointments;
       
-      const filteredClientsIds = professionalId
+      const filteredClientsIds = currentProfessionalId
         ? new Set(filteredAppointments.map(a => a.client_id))
         : null;
 
@@ -112,7 +112,6 @@ export function PromotionInsights({ isAdmin, onAction }: PromotionInsightsProps)
         : clients;
 
       // 1. Clientes sem retorno 30-40 dias
-      const now = new Date();
       const thirtyDaysAgo = subDays(now, 30);
       const fortyDaysAgo = subDays(now, 40);
 
