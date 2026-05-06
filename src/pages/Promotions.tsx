@@ -547,6 +547,16 @@ export default function Promotions() {
           : `Que tal um trato no visual depois do trabalho? 🌙✂️\n\nNo nosso Happy Hour (17h às 20h) você ganha 15% de desconto!\n\nAgende agora: {{link_promocao}}`
         );
         break;
+      case 'idle_day':
+        const dayNames = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
+        const dayName = insight.data?.validDays?.[0] !== undefined ? dayNames[insight.data.validDays[0]] : 'Semana';
+        setTitle(`Especial de ${dayName} ✨`);
+        setDiscountType('percentage');
+        setDiscountValue('15');
+        setUseBusinessHours(false);
+        setDescription(`Promoção exclusiva para impulsionar o movimento na ${dayName}.`);
+        setMessageTemplate(`Olá {{cliente_primeiro_nome}}! 👋\n\nPreparamos um desconto especial de 15% para agendamentos realizados em qualquer ${dayName}! 🎉\n\nGaranta sua vaga agora: {{link_promocao}}`);
+        break;
     }
     setDialogOpen(true);
   };
