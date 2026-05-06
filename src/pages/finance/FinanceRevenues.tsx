@@ -161,6 +161,10 @@ const FinanceRevenues = () => {
       notes: r.notes || '',
       status: r.status,
       payment_method: r.payment_method || '',
+      is_recurring: r.is_recurring || false,
+      recurrence_frequency: r.recurrence_frequency || 'monthly',
+      recurrence_count: r.recurrence_count ? String(r.recurrence_count) : '',
+      recurrence_end_date: r.recurrence_end_date || '',
     });
     setOpen(true);
   };
