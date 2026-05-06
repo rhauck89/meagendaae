@@ -112,6 +112,13 @@ export default function MarketplaceHome() {
         supabase.rpc('sync_marketplace_featured_statuses')
       ]);
 
+      const commonParams = {
+        p_user_lat: geo.latitude,
+        p_user_lon: geo.longitude,
+        p_location_text: filterCity.trim(),
+        p_category: filterCategory !== 'all' ? categories.find(c => c.slug === filterCategory)?.businessType : null
+      };
+
       const [settingsRes, bannersRes, largeRes, mediumRes, logosRes] = await Promise.all([
         supabase.from('marketplace_home_settings').select('*').single(),
         supabase.from('marketplace_banners')
@@ -121,19 +128,16 @@ export default function MarketplaceHome() {
           .lte('start_date', new Date().toISOString())
           .gte('end_date', new Date().toISOString()),
         supabase.rpc('get_marketplace_featured_items', { 
-          p_highlight_type: 'featured_large', 
-          p_user_lat: geo.latitude, 
-          p_user_lon: geo.longitude 
+          ...commonParams,
+          p_highlight_type: 'featured_large'
         }),
         supabase.rpc('get_marketplace_featured_items', { 
-          p_highlight_type: 'featured_medium', 
-          p_user_lat: geo.latitude, 
-          p_user_lon: geo.longitude 
+          ...commonParams,
+          p_highlight_type: 'featured_medium'
         }),
         supabase.rpc('get_marketplace_featured_items', { 
-          p_highlight_type: 'featured_logo', 
-          p_user_lat: geo.latitude, 
-          p_user_lon: geo.longitude 
+          ...commonParams,
+          p_highlight_type: 'featured_logo'
         })
       ]);
       
@@ -144,7 +148,8 @@ export default function MarketplaceHome() {
       const fMedium = mediumRes.data || [];
       const fLogos = logosRes.data || [];
 
-      console.log('[MARKETPLACE_FEATURED_DEBUG] Destaques carregados:', {
+      console.log('[MARKETPLACE_FEATURED_REGION_DEBUG] Destaques carregados:', {
+        location: filterCity || 'Geral',
         featured_large: fLarge.length,
         featured_medium: fMedium.length,
         featured_logo: fLogos.length,
