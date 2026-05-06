@@ -57,6 +57,8 @@ export function PromotionInsights({ isAdmin, onAction }: PromotionInsightsProps)
   const { companyId, profile } = useAuth();
   const [loading, setLoading] = useState(true);
   const [insights, setInsights] = useState<InsightData[]>([]);
+  const [weeklyPickerOpen, setWeeklyPickerOpen] = useState(false);
+  const [weekGaps, setWeekGaps] = useState<{ date: string; slots: string[]; professionalId: string }[]>([]);
 
   useEffect(() => {
     if (companyId) {
