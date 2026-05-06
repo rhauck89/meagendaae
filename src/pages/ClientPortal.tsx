@@ -653,8 +653,13 @@ const ClientPortal = () => {
                   className="w-56 shrink-0 rounded-2xl bg-card border p-4 text-left shadow-sm active:scale-95 transition-transform"
                 >
                   <Wallet className="h-6 w-6 mb-3 text-green-600" />
-                  <p className="text-3xl font-bold text-green-600">R$ {totalCashback.toFixed(2)}</p>
-                  <p className="text-xs text-muted-foreground">Minha Carteira</p>
+                  <div className="flex flex-col items-center">
+                    <p className="text-3xl font-bold text-green-600">R$ {totalCashback.toFixed(2)}</p>
+                    {pendingCashback > 0 && (
+                      <p className="text-[10px] text-orange-500 font-bold mt-0.5">+ R$ {pendingCashback.toFixed(2)} pendente</p>
+                    )}
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">Minha Carteira</p>
                   <p className="text-[11px] mt-2 flex items-center gap-1 text-muted-foreground">
                     Ver detalhes <ArrowRight className="h-3 w-3" />
                   </p>
