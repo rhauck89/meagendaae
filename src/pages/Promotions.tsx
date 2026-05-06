@@ -470,6 +470,8 @@ export default function Promotions() {
       promotionType 
     });
     resetForm();
+    setIsSlotSpecific(insight.isSlotSpecific || false);
+    setSelectedSlots(insight.selectedSlots || []);
     setCreationMode('manual');
     setWizardStep(1);
     setSmartMode('smart');
