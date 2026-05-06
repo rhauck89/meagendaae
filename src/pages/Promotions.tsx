@@ -1942,6 +1942,7 @@ export default function Promotions() {
 
 
 
+
           <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) resetForm(); }}>
 
           <DialogTrigger asChild>
@@ -2549,6 +2550,7 @@ export default function Promotions() {
     </div>
   );
 }
+
 
 
 
