@@ -23,6 +23,8 @@ import { format, parseISO, startOfMonth, endOfMonth, subDays, startOfWeek, endOf
 import { ptBR } from 'date-fns/locale';
 import { toast } from '@/hooks/use-toast';
 import { getAvailableSlots } from '@/lib/availability-service';
+import { cn } from '@/lib/utils';
+
 
 interface InsightData {
   id: string;
@@ -135,9 +137,11 @@ export function PromotionInsights({ isAdmin, onAction }: PromotionInsightsProps)
       const last30DaysAppts = filteredAppointments.filter(a => new Date(a.start_time) >= thirtyDaysAgo);
       const serviceCounts = new Map<string, number>();
       last30DaysAppts.forEach(a => {
-        if (!a.service_id) return;
-        serviceCounts.set(a.service_id, (serviceCounts.get(a.service_id) || 0) + 1);
+        const serviceId = (a as any).service_id;
+        if (!serviceId) return;
+        serviceCounts.set(serviceId, (serviceCounts.get(serviceId) || 0) + 1);
       });
+
 
       const sortedServices = Array.from(serviceCounts.entries())
         .map(([id, count]) => ({ id, count, name: services.find(s => s.id === id)?.name || 'Serviço' }))
