@@ -1908,7 +1908,7 @@ export default function Promotions() {
               section === 'opportunities' ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
             )}
           >
-            <Sparkles className="h-4 w-4" /> Oportunidades
+            <Sparkles className="h-4 w-4" /> Oportunidades & Insights
           </button>
           <button 
             onClick={() => handleSectionChange('cashback')}
@@ -1918,15 +1918,6 @@ export default function Promotions() {
             )}
           >
             <Wallet className="h-4 w-4" /> Cashback
-          </button>
-          <button 
-            onClick={() => handleSectionChange('insights')}
-            className={cn(
-              "px-4 py-2 text-sm font-medium rounded-md transition-all flex items-center gap-2 whitespace-nowrap",
-              section === 'insights' ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
-            )}
-          >
-            <Zap className="h-4 w-4" /> Insights
           </button>
         </div>
 
