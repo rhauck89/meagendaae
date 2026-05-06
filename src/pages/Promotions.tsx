@@ -237,7 +237,23 @@ export default function Promotions() {
   const [metricsDialogOpen, setMetricsDialogOpen] = useState(false);
   const [opportunityDialogOpen, setOpportunityDialogOpen] = useState(false);
   const [selectedOpportunity, setSelectedOpportunity] = useState<{ date: string; times: string[]; professionalId: string; serviceIds?: string[] } | null>(null);
-  const [activeTab, setActiveTab] = useState('active');
+  const initialActiveTab = searchParams.get('tab') || 'active';
+  const [activeTab, setActiveTab] = useState(initialActiveTab);
+
+  useEffect(() => {
+    const currentSection = searchParams.get('section') || 'campaigns';
+    if (currentSection !== section) {
+      setSection(currentSection);
+    }
+  }, [searchParams]);
+
+  const handleSectionChange = (newSection: string) => {
+    setSection(newSection);
+    setSearchParams(prev => {
+      prev.set('section', newSection);
+      return prev;
+    });
+  };
   const [highlightedPromoId, setHighlightedPromoId] = useState<string | null>(null);
   const [now, setNow] = useState(new Date());
   const [appointments, setAppointments] = useState<any[]>([]);
