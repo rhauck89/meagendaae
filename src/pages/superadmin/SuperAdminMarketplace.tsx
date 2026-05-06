@@ -951,7 +951,8 @@ const SuperAdminMarketplace = () => {
                         <div className="flex flex-col gap-0.5 text-xs">
                           <span className="flex items-center gap-1">
                             <MapPin className="h-3 w-3" /> 
-                            {f.cities?.name || f.city || 'Geral'}, {f.states?.uf || f.state || 'BR'}
+                            {f.city_id || f.city ? `${f.cities?.name || f.city}, ` : ''}
+                            {f.state_id || f.state ? (f.states?.uf || f.state) : 'Brasil'}
                           </span>
                           {f.neighborhood && (
                             <span className="text-[10px] text-muted-foreground pl-4">{f.neighborhood}</span>

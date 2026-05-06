@@ -7711,6 +7711,7 @@ export type Database = {
           p_city_id?: string
           p_highlight_type: string
           p_limit?: number
+          p_location_text?: string
           p_state_id?: string
           p_user_lat?: number
           p_user_lon?: number
