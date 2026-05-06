@@ -13,7 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Checkbox } from '@/components/ui/checkbox';
 import { Textarea } from '@/components/ui/textarea';
 import { Star, Trophy, Gift, ArrowUpDown, Settings, Eye, Plus, Pencil, Trash2, AlertTriangle, CheckCircle, XCircle, Search, Upload, ImageIcon, ScanLine, Wallet, Sparkles } from 'lucide-react';
-import CashbackTab from '@/components/loyalty/CashbackTab';
+import { Navigate, useSearchParams } from 'react-router-dom';
 import { RewardQRScannerDialog } from '@/components/RewardQRScannerDialog';
 import { SmartRewardCard } from '@/components/loyalty/SmartRewardCard';
 import { suggestSmartReward } from '@/lib/smart-rewards';
@@ -24,8 +24,12 @@ import { cn } from '@/lib/utils';
 
 const Loyalty = () => {
   const { companyId } = useAuth();
-  const [activeModule, setActiveModule] = useState<'points' | 'cashback'>('points');
+  const [searchParams] = useSearchParams();
   const [tab, setTab] = useState('overview');
+
+  if (searchParams.get('tab') === 'cashback') {
+    return <Navigate to="/dashboard/promotions?section=cashback" replace />;
+  }
 
   // Config state
   const [config, setConfig] = useState<any>(null);
@@ -560,40 +564,16 @@ const Loyalty = () => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-xl font-display font-bold flex items-center gap-2">
-            {activeModule === 'points' ? <Star className="h-5 w-5 text-amber-500" /> : <Wallet className="h-5 w-5 text-amber-500" />}
-            {activeModule === 'points' ? 'Fidelidade por Pontos' : 'Programa de Cashback'}
+            <Star className="h-5 w-5 text-amber-500" />
+            Fidelidade por Pontos
           </h2>
           <p className="text-sm text-muted-foreground">
-            {activeModule === 'points' 
-              ? 'Gerencie pontos, recompensas e resgates dos seus clientes' 
-              : 'Gerencie regras de cashback e saldo dos seus clientes'}
+            Gerencie pontos, recompensas e resgates dos seus clientes
           </p>
-        </div>
-
-        <div className="flex p-1 bg-muted rounded-lg w-fit border">
-          <button 
-            onClick={() => { setActiveModule('points'); setTab('overview'); }}
-            className={cn(
-              "px-4 py-2 text-sm font-medium rounded-md transition-all flex items-center gap-2",
-              activeModule === 'points' ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
-            )}
-          >
-            <Star className={cn("h-4 w-4", activeModule === 'points' && "text-amber-500")} /> Pontos
-          </button>
-          <button 
-            onClick={() => { setActiveModule('cashback'); setTab('overview'); }}
-            className={cn(
-              "px-4 py-2 text-sm font-medium rounded-md transition-all flex items-center gap-2",
-              activeModule === 'cashback' ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
-            )}
-          >
-            <Wallet className={cn("h-4 w-4", activeModule === 'cashback' && "text-amber-500")} /> Cashback
-          </button>
         </div>
       </div>
 
-      {activeModule === 'points' ? (
-        <Tabs value={tab} onValueChange={setTab}>
+      <Tabs value={tab} onValueChange={setTab}>
           <TabsList className="w-full justify-start border-b rounded-none bg-transparent h-auto p-0 mb-4 overflow-x-auto flex-nowrap">
             <TabsTrigger value="overview" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 py-3 h-auto">Resumo</TabsTrigger>
             <TabsTrigger value="rewards" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 py-3 h-auto">Recompensas</TabsTrigger>
@@ -1106,10 +1086,7 @@ const Loyalty = () => {
             </Card>
           )}
         </TabsContent>
-        </Tabs>
-      ) : (
-        <CashbackTab />
-      )}
+      </Tabs>
     </div>
   );
 };

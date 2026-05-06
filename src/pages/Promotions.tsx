@@ -15,7 +15,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogBody } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
-import { MoreVertical, Edit2, Trash2, Play, Pause, ExternalLink, RefreshCw, X } from 'lucide-react';
+import { MoreVertical, Edit2, Trash2, Play, Pause, ExternalLink, RefreshCw, X, Wallet, Star, Sparkles } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Progress } from '@/components/ui/progress';
@@ -30,6 +30,8 @@ import { formatWhatsApp, displayWhatsApp, buildWhatsAppUrl, trackWhatsAppClick }
 import { PromotionOpportunities } from '@/components/Promotions/PromotionOpportunities';
 import { OpportunityPromotionModal } from '@/components/Promotions/OpportunityPromotionModal';
 import { PromotionShareModal } from '@/components/Promotions/PromotionShareModal';
+import CashbackTab from '@/components/loyalty/CashbackTab';
+import { useSearchParams } from 'react-router-dom';
 
 
 const DEFAULT_TZ = 'America/Sao_Paulo';
@@ -218,6 +220,9 @@ function formatCountdown(ms: number): string {
 export default function Promotions() {
   const { companyId, profile } = useAuth();
   const { isAdmin } = useUserRole();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const initialSection = searchParams.get('section') || 'campaigns';
+  const [section, setSection] = useState(initialSection);
   const { hasSeen, markSeen, loading: discoveryLoading } = useFeatureDiscovery();
   const [showIntro, setShowIntro] = useState(false);
   const [promotions, setPromotions] = useState<Promotion[]>([]);
@@ -232,7 +237,23 @@ export default function Promotions() {
   const [metricsDialogOpen, setMetricsDialogOpen] = useState(false);
   const [opportunityDialogOpen, setOpportunityDialogOpen] = useState(false);
   const [selectedOpportunity, setSelectedOpportunity] = useState<{ date: string; times: string[]; professionalId: string; serviceIds?: string[] } | null>(null);
-  const [activeTab, setActiveTab] = useState('active');
+  const initialActiveTab = searchParams.get('tab') || 'active';
+  const [activeTab, setActiveTab] = useState(initialActiveTab);
+
+  useEffect(() => {
+    const currentSection = searchParams.get('section') || 'campaigns';
+    if (currentSection !== section) {
+      setSection(currentSection);
+    }
+  }, [searchParams]);
+
+  const handleSectionChange = (newSection: string) => {
+    setSection(newSection);
+    setSearchParams(prev => {
+      prev.set('section', newSection);
+      return prev;
+    });
+  };
   const [highlightedPromoId, setHighlightedPromoId] = useState<string | null>(null);
   const [now, setNow] = useState(new Date());
   const [appointments, setAppointments] = useState<any[]>([]);
@@ -1860,11 +1881,40 @@ export default function Promotions() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-display font-bold">Promoções</h2>
-          <p className="text-muted-foreground">Crie campanhas e preencha horários vazios</p>
+          <h2 className="text-2xl font-display font-bold">Marketing & Promoções</h2>
+          <p className="text-muted-foreground">Crie campanhas, preencha horários e gerencie cashback</p>
         </div>
+
+        <div className="flex p-1 bg-muted rounded-lg w-fit border">
+          <button 
+            onClick={() => handleSectionChange('campaigns')}
+            className={cn(
+              "px-4 py-2 text-sm font-medium rounded-md transition-all flex items-center gap-2",
+              section === 'campaigns' ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            <Megaphone className="h-4 w-4" /> Campanhas
+          </button>
+          <button 
+            onClick={() => handleSectionChange('cashback')}
+            className={cn(
+              "px-4 py-2 text-sm font-medium rounded-md transition-all flex items-center gap-2",
+              section === 'cashback' ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            <Wallet className="h-4 w-4" /> Cashback
+          </button>
+        </div>
+      </div>
+
+      {section === 'campaigns' ? (
+        <>
+          <div className="flex items-center justify-between">
+            <h3 className="text-lg font-bold flex items-center gap-2">
+              <Sparkles className="h-5 w-5 text-primary" /> Promoções & Ofertas
+            </h3>
         <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) resetForm(); }}>
           <DialogTrigger asChild>
             <Button onClick={() => { resetForm(); setIsEditing(false); setCreationMode('manual'); }}>
@@ -2410,6 +2460,10 @@ export default function Promotions() {
         onClose={() => { setShowIntro(false); markSeen('promotions'); }}
         onAction={() => setDialogOpen(true)}
       />
+      </>
+      ) : (
+        <CashbackTab />
+      )}
     </div>
   );
 }
