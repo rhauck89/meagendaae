@@ -244,19 +244,12 @@ export function openWhatsApp(phone: string, messageOrOptions?: string | OpenWhat
     try {
       const win = window.open(url, '_blank', 'noopener,noreferrer');
       if (!win) {
-        // Popup blocked — copy to clipboard as fallback
-        if (opts.message) {
-          navigator.clipboard.writeText(opts.message);
-          showToast('success', 'WhatsApp bloqueado. Mensagem copiada para a área de transferência!');
-        } else {
-          window.location.href = url;
-        }
+        // Fallback for popup blockers as requested
+        window.location.href = url;
       }
     } catch (err) {
-      if (opts.message) {
-        navigator.clipboard.writeText(opts.message);
-        showToast('success', 'Não foi possível abrir o WhatsApp. Mensagem copiada!');
-      }
+      // General fallback
+      window.location.href = url;
     }
   }
 }
