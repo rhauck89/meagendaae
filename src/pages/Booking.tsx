@@ -1397,11 +1397,35 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
   const finalPrice = Math.max(0, totalPrice - cashbackDiscount);
 
   const predictedLoyaltyPoints = (() => {
-    if (!loyaltyConfig || !loyaltyConfig.enabled || !selectedProfessional || selectedServices.length === 0) return 0;
+    const debug = (msg: string, extra = {}) => {
+      console.log(`[BOOKING_POINTS_PREVIEW_RENDER_DEBUG] ${msg}`, {
+        step,
+        loyaltyConfig: !!loyaltyConfig,
+        loyaltyEnabled: loyaltyConfig?.enabled,
+        selectedProfessional,
+        selectedServices: selectedServices.length,
+        ...extra
+      });
+    };
+
+    if (!loyaltyConfig || !loyaltyConfig.enabled || !selectedProfessional || selectedServices.length === 0) {
+      debug('Early return 0', { 
+        config: !!loyaltyConfig, 
+        enabled: loyaltyConfig?.enabled,
+        prof: !!selectedProfessional,
+        services: selectedServices.length 
+      });
+      return 0;
+    }
     
     // Check professional eligibility
     if (loyaltyConfig.participating_professionals === 'specific' && loyaltyConfig.specific_professional_ids) {
-      if (!loyaltyConfig.specific_professional_ids.includes(selectedProfessional)) return 0;
+      const isEligible = Array.isArray(loyaltyConfig.specific_professional_ids) && 
+                         loyaltyConfig.specific_professional_ids.includes(selectedProfessional);
+      if (!isEligible) {
+        debug('Professional not eligible', { selectedProfessional, allowed: loyaltyConfig.specific_professional_ids });
+        return 0;
+      }
     }
 
     const selectedServicesData = services.filter(s => selectedServices.includes(s.id));
@@ -1409,32 +1433,31 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
     // Check service eligibility
     const eligibleServices = selectedServicesData.filter(s => {
       if (loyaltyConfig.participating_services === 'all') return true;
-      if (loyaltyConfig.participating_services === 'specific' && loyaltyConfig.specific_service_ids) {
-        return (loyaltyConfig.specific_service_ids as string[]).includes(s.id);
+      if (loyaltyConfig.participating_services === 'specific' && Array.isArray(loyaltyConfig.specific_service_ids)) {
+        return loyaltyConfig.specific_service_ids.includes(s.id);
       }
       return false;
     });
 
-    if (eligibleServices.length === 0) return 0;
+    if (eligibleServices.length === 0) {
+      debug('No eligible services found', { 
+        totalSelected: selectedServicesData.length,
+        participating: loyaltyConfig.participating_services
+      });
+      return 0;
+    }
 
     let points = 0;
     if (loyaltyConfig.scoring_type === 'per_service') {
-      points = eligibleServices.length * (loyaltyConfig.points_per_service || 0);
+      points = eligibleServices.length * (Number(loyaltyConfig.points_per_service) || 0);
     } else if (loyaltyConfig.scoring_type === 'per_value') {
-      // Calculate based on original price of eligible services (GROSS), matching Dashboard logic
       const eligibleSubtotal = eligibleServices.reduce((sum, s) => sum + Number(s.price), 0);
-      points = Math.floor(eligibleSubtotal * (Number(loyaltyConfig.points_per_currency) || 0));
+      const pointsPerCurrency = Number(loyaltyConfig.points_per_currency) || 0;
+      points = Math.floor(eligibleSubtotal * pointsPerCurrency);
+      debug('Calculating by value', { eligibleSubtotal, pointsPerCurrency, points });
     }
 
-    console.log('[BOOKING_POINTS_PREVIEW_DEBUG]', {
-      company_id: company?.id,
-      client_id: savedClientId || user?.id,
-      selected_services: selectedServices,
-      base_value: eligibleServices.reduce((sum, s) => sum + Number(s.price), 0),
-      rule: loyaltyConfig.scoring_type,
-      points_predicted: points
-    });
-    
+    debug('Calculation complete', { points_predicted: points });
     return points;
   })();
 
