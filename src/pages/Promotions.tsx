@@ -2080,11 +2080,11 @@ export default function Promotions() {
                 console.log('[PROMOTION_INSIGHTS_DEBUG] Action triggered:', { type, data });
                 
                 if (type === 'promotion' || type === 'campaign') {
-                  const insightType = data.insight?.startsWith('reactivation') ? 'reactivation' : data.insight;
-                  const validInsights = ['low_occupancy', 'birthdays', 'reactivation', 'lunch_time', 'afternoon_low'];
+                  const insightType = data.insight;
+                  const validInsights = ['low_occupancy', 'birthdays', 'reactivation', 'lunch_time', 'afternoon_low', 'idle_day'];
                   
                   if (insightType && validInsights.includes(insightType)) {
-                    applyInsight({ type: insightType } as any);
+                    applyInsight({ type: insightType, data } as any);
                   } else {
                     resetForm();
                     setIsEditing(false);
@@ -2115,11 +2115,10 @@ export default function Promotions() {
                   if (data.validDays) {
                     setValidDays(data.validDays);
                     setUseBusinessHours(false);
-                    if (!data.insight) {
-                      const dayNames = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
-                      setTitle(`Especial de ${dayNames[data.validDays[0]]}`);
-                    }
                   }
+
+                  if (data.startTime) setStartTime(data.startTime);
+                  if (data.endTime) setEndTime(data.endTime);
                   
                   if (data.filter) setClientFilter(data.filter);
                   if (data.filterValue) setClientFilterValue(data.filterValue.toString());
