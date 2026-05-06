@@ -120,9 +120,21 @@ export default function MarketplaceHome() {
           .is('deleted_at', null)
           .lte('start_date', new Date().toISOString())
           .gte('end_date', new Date().toISOString()),
-        supabase.rpc('get_marketplace_featured_items', { p_highlight_type: 'featured_large', p_limit: 6 }),
-        supabase.rpc('get_marketplace_featured_items', { p_highlight_type: 'featured_medium', p_limit: 12 }),
-        supabase.rpc('get_marketplace_featured_items', { p_highlight_type: 'featured_logo', p_limit: 20 })
+        supabase.rpc('get_marketplace_featured_items', { 
+          p_highlight_type: 'featured_large', 
+          p_user_lat: geo.latitude, 
+          p_user_lon: geo.longitude 
+        }),
+        supabase.rpc('get_marketplace_featured_items', { 
+          p_highlight_type: 'featured_medium', 
+          p_user_lat: geo.latitude, 
+          p_user_lon: geo.longitude 
+        }),
+        supabase.rpc('get_marketplace_featured_items', { 
+          p_highlight_type: 'featured_logo', 
+          p_user_lat: geo.latitude, 
+          p_user_lon: geo.longitude 
+        })
       ]);
       
       if (settingsRes.data) setHomeSettings(settingsRes.data);
