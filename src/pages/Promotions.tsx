@@ -2060,63 +2060,69 @@ export default function Promotions() {
       </div>
 
       {section === 'opportunities' && (
-        <PromotionOpportunities
-          promotions={promotions}
-          services={services}
-          professionals={professionals}
-          isAdmin={isAdmin}
-          onSelectSlot={(data) => {
-            setSelectedOpportunity({
-              date: data.date,
-              times: data.times,
-              professionalId: data.professionalId,
-              serviceIds: data.serviceIds
-            });
-            setOpportunityDialogOpen(true);
-          }}
-        />
-      )}
+        <div className="space-y-10">
+          <PromotionOpportunities
+            promotions={promotions}
+            services={services}
+            professionals={professionals}
+            isAdmin={isAdmin}
+            onSelectSlot={(data) => {
+              setSelectedOpportunity({
+                date: data.date,
+                times: data.times,
+                professionalId: data.professionalId,
+                serviceIds: data.serviceIds
+              });
+              setOpportunityDialogOpen(true);
+            }}
+          />
 
-      {section === 'insights' && (
-        <PromotionInsights 
-          isAdmin={isAdmin} 
-          onAction={(type, data) => {
-            if (type === 'promotion') {
-              resetForm();
-              if (data.type === 'cashback') setPromotionType('cashback');
-              if (data.serviceId) handleServiceChange(data.serviceId);
-              if (data.professionalId) {
-                setProfessionalFilter('selected');
-                setSelectedProfessionalIds([data.professionalId]);
-              }
-              if (data.validDays) setValidDays(data.validDays);
-              if (data.filter) setClientFilter(data.filter);
-              if (data.filterValue) setClientFilterValue(data.filterValue.toString());
-              if (data.insight) setSourceInsight(data.insight);
-              setDialogOpen(true);
-            } else if (type === 'campaign') {
-              // Open campaign for specific clients
-              // This logic needs to be integrated with how campaigns are opened
-              // For now, let's open the promotion manual modal and let them continue to campaign
-              resetForm();
-              if (data.clients) {
-                setClientFilter('all'); // Will filter manually in next step if possible
-                // We'd ideally pass these clients to the campaign modal directly
-              }
-              setDialogOpen(true);
-              toast({ title: "Insight selecionado", description: "Crie a promoção para depois enviar a campanha." });
-            } else if (type === 'link') {
-              const profId = data.professionalId || (profile?.id);
-              if (profId) {
-                const prof = professionals.find((p: any) => p.profile_id === profId);
-                const baseUrl = `${window.location.origin}/${companyBusinessType === 'esthetic' ? 'estetica' : 'barbearia'}/${companySlug}`;
-                const link = prof?.slug ? `${baseUrl}/${prof.slug}` : baseUrl;
-                navigator.clipboard.writeText(link);
-                toast({ title: "Link copiado!", description: "O link da agenda foi copiado para sua área de transferência." });
-              }
-            }
-          }}
-        />
+          <div className="space-y-4">
+            <div className="flex items-center gap-2">
+              <div className="h-8 w-1 bg-primary rounded-full" />
+              <h3 className="text-xl font-display font-bold flex items-center gap-2">
+                <Zap className="h-5 w-5 text-primary" />
+                Insights & Análises Inteligentes
+              </h3>
+            </div>
+            
+            <PromotionInsights 
+              isAdmin={isAdmin} 
+              onAction={(type, data) => {
+                if (type === 'promotion') {
+                  resetForm();
+                  if (data.type === 'cashback') setPromotionType('cashback');
+                  if (data.serviceId) handleServiceChange(data.serviceId);
+                  if (data.professionalId) {
+                    setProfessionalFilter('selected');
+                    setSelectedProfessionalIds([data.professionalId]);
+                  }
+                  if (data.validDays) setValidDays(data.validDays);
+                  if (data.filter) setClientFilter(data.filter);
+                  if (data.filterValue) setClientFilterValue(data.filterValue.toString());
+                  if (data.insight) setSourceInsight(data.insight);
+                  setDialogOpen(true);
+                } else if (type === 'campaign') {
+                  resetForm();
+                  if (data.clients) {
+                    setClientFilter('all');
+                  }
+                  setDialogOpen(true);
+                  toast({ title: "Insight selecionado", description: "Crie a promoção para depois enviar a campanha." });
+                } else if (type === 'link') {
+                  const profId = data.professionalId || (profile?.id);
+                  if (profId) {
+                    const prof = professionals.find((p: any) => p.profile_id === profId);
+                    const baseUrl = `${window.location.origin}/${companyBusinessType === 'esthetic' ? 'estetica' : 'barbearia'}/${companySlug}`;
+                    const link = prof?.slug ? `${baseUrl}/${prof.slug}` : baseUrl;
+                    navigator.clipboard.writeText(link);
+                    toast({ title: "Link copiado!", description: "O link da agenda foi copiado para sua área de transferência." });
+                  }
+                }
+              }}
+            />
+          </div>
+        </div>
       )}
 
 
