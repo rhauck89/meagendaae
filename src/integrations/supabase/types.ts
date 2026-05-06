@@ -2392,6 +2392,7 @@ export type Database = {
           professional_id: string | null
           professional_name: string | null
           recurrence_count: number | null
+          recurrence_due_day: number | null
           recurrence_end_date: string | null
           recurrence_frequency: string | null
           recurrence_interval: number | null
@@ -2421,6 +2422,7 @@ export type Database = {
           professional_id?: string | null
           professional_name?: string | null
           recurrence_count?: number | null
+          recurrence_due_day?: number | null
           recurrence_end_date?: string | null
           recurrence_frequency?: string | null
           recurrence_interval?: number | null
@@ -2450,6 +2452,7 @@ export type Database = {
           professional_id?: string | null
           professional_name?: string | null
           recurrence_count?: number | null
+          recurrence_due_day?: number | null
           recurrence_end_date?: string | null
           recurrence_frequency?: string | null
           recurrence_interval?: number | null
