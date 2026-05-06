@@ -550,19 +550,42 @@ export default function Promotions() {
       case 'idle_day':
         const dayNames = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
         const dayIdx = insight.data?.validDays?.[0];
-        const dayName = dayIdx !== undefined ? dayNames[dayIdx] : 'Semana';
-        setTitle(`Especial de ${dayName} ✨`);
+        const dayName = dayIdx !== undefined ? dayNames[dayIdx] : 'Dia Especial';
+        
+        // Calculate next occurrence of this day
+        const nextDate = new Date();
+        if (dayIdx !== undefined) {
+          const currentDay = nextDate.getDay();
+          let daysUntil = (dayIdx - currentDay + 7) % 7;
+          if (daysUntil === 0) daysUntil = 7; // If today is the day, suggest next week
+          nextDate.setDate(nextDate.getDate() + daysUntil);
+        }
+        const nextDateStr = format(nextDate, 'yyyy-MM-dd');
+
+        console.log('[PROMOTION_INSIGHTS_LOW_DAY_PREFILL_DEBUG]', {
+          daySugerido: dayName,
+          diaIndex: dayIdx,
+          proximaDataCalculada: nextDateStr,
+          periodo: `${insight.data?.startTime || '09:00'} - ${insight.data?.endTime || '13:00'}`
+        });
+
+        setTitle(`${dayName} Especial ✨`);
         setDiscountType('percentage');
         setDiscountValue('15');
         setUseBusinessHours(false);
+        setStartDate(nextDateStr);
+        setEndDate(nextDateStr);
+        setSingleDay(true);
+        
         if (dayIdx !== undefined) {
           setValidDays([dayIdx]);
         }
+        
         if (insight.data?.startTime) setStartTime(insight.data.startTime);
         if (insight.data?.endTime) setEndTime(insight.data.endTime);
         
-        setDescription(`Promoção exclusiva para impulsionar o movimento na ${dayName}.`);
-        setMessageTemplate(`Olá {{cliente_primeiro_nome}}! 👋\n\nPreparamos um desconto especial de 15% para agendamentos realizados em qualquer ${dayName}! 🎉\n\nGaranta sua vaga agora: {{link_promocao}}`);
+        setDescription(`Uma condição especial para movimentar a agenda com mais previsibilidade.`);
+        setMessageTemplate(`Olá {{cliente_primeiro_nome}}! 👋\n\nPreparamos uma condição especial para agendamentos de ${dayName}, dia ${format(nextDate, 'dd/MM')}. 🎉\n\nGaranta seu horário pelo link abaixo:\n{{link_promocao}}`);
         break;
     }
     setDialogOpen(true);

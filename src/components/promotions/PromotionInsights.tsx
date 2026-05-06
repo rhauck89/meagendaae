@@ -355,10 +355,10 @@ export function PromotionInsights({ isAdmin, onAction }: PromotionInsightsProps)
         },
         {
           id: 'idle_day',
-          title: 'Dia com Menos Movimento',
-          description: 'Considerando apenas dias de atendimento.',
+          title: 'Oportunidade de Agenda',
+          description: 'Estratégia para garantir previsibilidade.',
           icon: Calendar,
-          value: idleDayIdx !== -1 ? daysOfWeek[idleDayIdx] : '---',
+          value: idleDayIdx !== -1 ? `${daysOfWeek[idleDayIdx]} Especial` : '---',
           subValue: occupancyInfo,
           empty: idleDayIdx === -1,
           actions: [
@@ -377,8 +377,8 @@ export function PromotionInsights({ isAdmin, onAction }: PromotionInsightsProps)
         },
         {
           id: 'idle_professional',
-          title: isAdmin ? 'Profissional mais Ocioso' : 'Ociosidade da sua Agenda',
-          description: 'Próximos 7 dias.',
+          title: isAdmin ? 'Destaque de Profissional' : 'Sua Agenda em Destaque',
+          description: 'Impulsione agendamentos para os próximos 7 dias.',
           icon: User,
           value: idleProf?.name || '---',
           subValue: idleProf ? `${idleProf.count} agendamentos previstos` : 'Sem dados',
