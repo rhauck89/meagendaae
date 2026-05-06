@@ -9,7 +9,7 @@ import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
 import { calculateAvailableSlots, type BusinessHours, type BusinessException, type ExistingAppointment, type BlockedTime } from '@/lib/availability-engine';
 import { getAvailableSlots } from '@/lib/availability-service';
-import { openWhatsApp } from '@/lib/whatsapp';
+import { openWhatsApp, formatWhatsApp, isValidWhatsApp } from '@/lib/whatsapp';
 
 const T = {
   bg: '#0B132B',
@@ -67,16 +67,24 @@ const RescheduleAppointment = () => {
       const dur = services.reduce((s: number, as_: any) => s + (as_.service?.duration_minutes || as_.duration_minutes || 0), 0);
       setTotalDuration(dur);
 
-      // Fetch business hours & exceptions
       const companyId = apt.company?.id || apt.company_id;
-      const [bhRes, exRes, phRes] = await Promise.all([
+
+      // Fetch business hours, exceptions & WhatsApp numbers
+      const [bhRes, exRes, phRes, profWRes, compWRes] = await Promise.all([
         supabase.from('business_hours').select('*').eq('company_id', companyId),
         supabase.from('business_exceptions').select('*').eq('company_id', companyId),
         supabase.from('professional_working_hours').select('*').eq('professional_id', apt.professional_id).eq('company_id', companyId),
+        supabase.from('profiles').select('whatsapp').eq('id', apt.professional_id).maybeSingle(),
+        supabase.from('companies').select('whatsapp').eq('id', companyId).maybeSingle(),
       ]);
+
       if (bhRes.data) setBusinessHours(bhRes.data as BusinessHours[]);
       if (exRes.data) setExceptions(exRes.data as BusinessException[]);
       if (phRes.data && phRes.data.length > 0) setProfessionalHours(phRes.data as BusinessHours[]);
+
+      // Update appointment with whatsapp if found
+      if (profWRes.data) apt.professional = { ...apt.professional, whatsapp: profWRes.data.whatsapp };
+      if (compWRes.data) apt.company = { ...apt.company, whatsapp: compWRes.data.whatsapp };
 
       if (apt.status === 'cancelled' || apt.status === 'completed' || apt.status === 'no_show') {
         // Can't reschedule
@@ -361,25 +369,28 @@ const RescheduleAppointment = () => {
               </p>
             </div>
 
-            <Button
-              onClick={() => {
-                const profWhatsapp = appointment.professional?.whatsapp;
-                const companyWhatsapp = appointment.company?.whatsapp;
-                const rawPhone = (profWhatsapp || companyWhatsapp || '').replace(/\D/g, '');
-                const phone = rawPhone.startsWith('55') ? rawPhone : '55' + rawPhone;
-                const clientName = appointment.client_name || appointment.client?.name || 'Cliente';
-                const services = appointment.appointment_services?.map((s: any) => s.service?.name).join(', ') || '';
-                const oldDate = format(parseISO(appointment.start_time), "dd/MM/yyyy");
-                const oldTime = format(parseISO(appointment.start_time), 'HH:mm');
-                const newDate = selectedDate ? format(selectedDate, "dd/MM/yyyy") : '';
-                const msg = `Olá! 👋\n\nUm cliente reagendou um horário.\n\nCliente: ${clientName}\n\nServiço: ${services}\n\nReagendado de:\n${oldDate} às ${oldTime}\n\nPara:\n*${newDate} às ${selectedTime}*`;
-                openWhatsApp(phone, { source: 'reschedule-appointment', message: msg });
-              }}
-              className="w-full rounded-xl py-5 font-semibold"
-              style={{ background: '#25D366', color: '#fff' }}
-            >
-              📲 Avisar o profissional
-            </Button>
+            {(() => {
+              const rawPhone = appointment.professional?.whatsapp || appointment.company?.whatsapp || '';
+              const phone = formatWhatsApp(rawPhone);
+              const hasPhone = isValidWhatsApp(phone);
+              const clientName = appointment.client_name || appointment.client?.name || 'Cliente';
+              const services = appointment.appointment_services?.map((s: any) => s.service?.name).join(', ') || '';
+              const newDate = selectedDate ? format(selectedDate, "dd/MM/yyyy") : '';
+              const profName = appointment.professional?.full_name || 'o profissional';
+              
+              const msg = `Olá! Um cliente acabou de reagendar um horário pelo Me Agendaê.\n\nCliente: ${clientName}\nServiço: ${services}\nNovo horário: ${newDate} às ${selectedTime}\nProfissional: ${profName}\n\nConfira no painel do Me Agendaê.`;
+
+              return (
+                <Button
+                  disabled={!hasPhone}
+                  onClick={() => openWhatsApp(phone, { source: 'reschedule-appointment', message: msg })}
+                  className="w-full rounded-xl py-5 font-semibold"
+                  style={{ background: hasPhone ? '#25D366' : T.card, color: '#fff', opacity: hasPhone ? 1 : 0.7 }}
+                >
+                  {hasPhone ? '📲 Avisar o profissional' : 'WhatsApp do profissional não disponível'}
+                </Button>
+              );
+            })()}
 
             <Button
               onClick={() => window.location.href = '/'}
