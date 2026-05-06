@@ -2531,8 +2531,6 @@ export default function Promotions() {
         onClose={() => { setShowIntro(false); markSeen('promotions'); }}
         onAction={() => setDialogOpen(true)}
       />
-      </>
-      )}
 
       {section === 'cashback' && (
         <CashbackTab />
