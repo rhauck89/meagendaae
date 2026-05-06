@@ -218,16 +218,6 @@ const ClientPortal = () => {
         supabase.from('loyalty_redemptions').select('id, redemption_code, status, created_at, total_points, reward_id, company_id, client_id').eq('user_id', user?.id).order('created_at', { ascending: false }).limit(50)
       ]);
 
-      console.log('[CLIENT_CASHBACK_DEBUG] summaryRes:', summaryRes.data);
-      console.log('[CLIENT_CASHBACK_DEBUG] cashbackRes balances:', (cashbackRes.data as any)?.balances);
-      console.log('[CLIENT_CASHBACK_DEBUG] cashbackRes history count:', ((cashbackRes.data as any)?.history || []).length);
-      console.log('[CLIENT_CASHBACK_DEBUG] clientsRes:', (clientsRes.data || []).map(c => ({ id: c.id, name: c.name, user_id: c.user_id, whatsapp: c.whatsapp })));
-      
-      // Get identity details for deep debug
-      const { data: identityData } = await supabase.rpc('get_client_identity_v2');
-      console.log('[CLIENT_PORTAL_DEBUG] Identity result (client_ids):', (identityData as any)?.[0]);
-      console.log('[CLIENT_PORTAL_DEBUG] Identity result (whatsapps):', (identityData as any)?.[1]);
-
       const summaryData = summaryRes.data as any;
       const appointmentsData = (apptsRes.data || []) as any[];
       const pointsDataObj = pointsRes.data as any;
