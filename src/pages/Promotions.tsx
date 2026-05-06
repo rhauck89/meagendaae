@@ -101,7 +101,7 @@ interface PromoMetrics {
 }
 
 interface PromotionInsight {
-  type: 'low_occupancy' | 'birthdays' | 'reactivation' | 'lunch_time' | 'afternoon_low' | 'tip' | 'idle_day';
+  type: 'low_occupancy' | 'birthdays' | 'reactivation' | 'lunch_time' | 'afternoon_low' | 'tip' | 'idle_day' | 'today_gap' | 'week_gap';
   title: string;
   description: string;
   buttonLabel?: string;
