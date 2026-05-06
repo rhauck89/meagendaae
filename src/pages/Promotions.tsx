@@ -15,7 +15,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogBody } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
-import { MoreVertical, Edit2, Trash2, Play, Pause, ExternalLink, RefreshCw, X, Wallet, Star, Sparkles } from 'lucide-react';
+import { MoreVertical, Edit2, Trash2, Play, Pause, ExternalLink, RefreshCw, X, Wallet, Star, Sparkles, Share2 } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Progress } from '@/components/ui/progress';
@@ -30,8 +30,10 @@ import { formatWhatsApp, displayWhatsApp, buildWhatsAppUrl, trackWhatsAppClick }
 import { PromotionOpportunities } from '@/components/Promotions/PromotionOpportunities';
 import { OpportunityPromotionModal } from '@/components/Promotions/OpportunityPromotionModal';
 import { PromotionShareModal } from '@/components/Promotions/PromotionShareModal';
+import { PromotionInsights } from '@/components/promotions/PromotionInsights';
 import CashbackTab from '@/components/loyalty/CashbackTab';
 import { useSearchParams } from 'react-router-dom';
+
 
 
 const DEFAULT_TZ = 'America/Sao_Paulo';
@@ -222,7 +224,9 @@ export default function Promotions() {
   const { isAdmin } = useUserRole();
   const [searchParams, setSearchParams] = useSearchParams();
   const initialSection = searchParams.get('section') || 'campaigns';
-  const [section, setSection] = useState(initialSection);
+  const [section, setSection] = useState<any>(initialSection);
+
+
   const { hasSeen, markSeen, loading: discoveryLoading } = useFeatureDiscovery();
   const [showIntro, setShowIntro] = useState(false);
   const [promotions, setPromotions] = useState<Promotion[]>([]);
@@ -1887,35 +1891,60 @@ export default function Promotions() {
           <p className="text-muted-foreground">Crie campanhas, preencha horários e gerencie cashback</p>
         </div>
 
-        <div className="flex p-1 bg-muted rounded-lg w-fit border">
+        <div className="flex p-1 bg-muted rounded-lg w-fit border overflow-x-auto max-w-full">
           <button 
             onClick={() => handleSectionChange('campaigns')}
             className={cn(
-              "px-4 py-2 text-sm font-medium rounded-md transition-all flex items-center gap-2",
+              "px-4 py-2 text-sm font-medium rounded-md transition-all flex items-center gap-2 whitespace-nowrap",
               section === 'campaigns' ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
             )}
           >
             <Megaphone className="h-4 w-4" /> Campanhas
           </button>
           <button 
+            onClick={() => handleSectionChange('opportunities')}
+            className={cn(
+              "px-4 py-2 text-sm font-medium rounded-md transition-all flex items-center gap-2 whitespace-nowrap",
+              section === 'opportunities' ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            <Sparkles className="h-4 w-4" /> Oportunidades
+          </button>
+          <button 
             onClick={() => handleSectionChange('cashback')}
             className={cn(
-              "px-4 py-2 text-sm font-medium rounded-md transition-all flex items-center gap-2",
+              "px-4 py-2 text-sm font-medium rounded-md transition-all flex items-center gap-2 whitespace-nowrap",
               section === 'cashback' ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
             )}
           >
             <Wallet className="h-4 w-4" /> Cashback
           </button>
+          <button 
+            onClick={() => handleSectionChange('insights')}
+            className={cn(
+              "px-4 py-2 text-sm font-medium rounded-md transition-all flex items-center gap-2 whitespace-nowrap",
+              section === 'insights' ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            <Zap className="h-4 w-4" /> Insights
+          </button>
         </div>
+
       </div>
 
-      {section === 'campaigns' ? (
+      {section === 'campaigns' && (
         <>
           <div className="flex items-center justify-between">
             <h3 className="text-lg font-bold flex items-center gap-2">
-              <Sparkles className="h-5 w-5 text-primary" /> Promoções & Ofertas
+              <Megaphone className="h-5 w-5 text-primary" /> Promoções & Ofertas
             </h3>
-        <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) resetForm(); }}>
+
+
+
+
+
+          <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) resetForm(); }}>
+
           <DialogTrigger asChild>
             <Button onClick={() => { resetForm(); setIsEditing(false); setCreationMode('manual'); }}>
               <Plus className="h-4 w-4 mr-2" />
@@ -2030,22 +2059,66 @@ export default function Promotions() {
         </Dialog>
       </div>
 
-      {/* Promotion Opportunities Block */}
-      <PromotionOpportunities
-        promotions={promotions}
-        services={services}
-        professionals={professionals}
-        isAdmin={isAdmin}
-        onSelectSlot={(data) => {
-          setSelectedOpportunity({
-            date: data.date,
-            times: data.times,
-            professionalId: data.professionalId,
-            serviceIds: data.serviceIds
-          });
-          setOpportunityDialogOpen(true);
-        }}
-      />
+      {section === 'opportunities' && (
+        <PromotionOpportunities
+          promotions={promotions}
+          services={services}
+          professionals={professionals}
+          isAdmin={isAdmin}
+          onSelectSlot={(data) => {
+            setSelectedOpportunity({
+              date: data.date,
+              times: data.times,
+              professionalId: data.professionalId,
+              serviceIds: data.serviceIds
+            });
+            setOpportunityDialogOpen(true);
+          }}
+        />
+      )}
+
+      {section === 'insights' && (
+        <PromotionInsights 
+          isAdmin={isAdmin} 
+          onAction={(type, data) => {
+            if (type === 'promotion') {
+              resetForm();
+              if (data.type === 'cashback') setPromotionType('cashback');
+              if (data.serviceId) handleServiceChange(data.serviceId);
+              if (data.professionalId) {
+                setProfessionalFilter('selected');
+                setSelectedProfessionalIds([data.professionalId]);
+              }
+              if (data.validDays) setValidDays(data.validDays);
+              if (data.filter) setClientFilter(data.filter);
+              if (data.filterValue) setClientFilterValue(data.filterValue.toString());
+              if (data.insight) setSourceInsight(data.insight);
+              setDialogOpen(true);
+            } else if (type === 'campaign') {
+              // Open campaign for specific clients
+              // This logic needs to be integrated with how campaigns are opened
+              // For now, let's open the promotion manual modal and let them continue to campaign
+              resetForm();
+              if (data.clients) {
+                setClientFilter('all'); // Will filter manually in next step if possible
+                // We'd ideally pass these clients to the campaign modal directly
+              }
+              setDialogOpen(true);
+              toast({ title: "Insight selecionado", description: "Crie a promoção para depois enviar a campanha." });
+            } else if (type === 'link') {
+              const profId = data.professionalId || (profile?.id);
+              if (profId) {
+                const prof = professionals.find((p: any) => p.profile_id === profId);
+                const baseUrl = `${window.location.origin}/${companyBusinessType === 'esthetic' ? 'estetica' : 'barbearia'}/${companySlug}`;
+                const link = prof?.slug ? `${baseUrl}/${prof.slug}` : baseUrl;
+                navigator.clipboard.writeText(link);
+                toast({ title: "Link copiado!", description: "O link da agenda foi copiado para sua área de transferência." });
+              }
+            }
+          }}
+        />
+      )}
+
 
       <OpportunityPromotionModal
         isOpen={opportunityDialogOpen}
@@ -2062,6 +2135,7 @@ export default function Promotions() {
 
 
       {/* Tabs */}
+      {section === 'campaigns' && (
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="flex flex-wrap h-auto gap-1">
           <TabsTrigger value="active">Ativas ({groupedPromotions.filter(g => isActivePromo(g.promotions[0])).length})</TabsTrigger>
@@ -2069,6 +2143,9 @@ export default function Promotions() {
           <TabsTrigger value="paused">Pausadas ({groupedPromotions.filter(g => g.promotions[0].status === 'paused').length})</TabsTrigger>
           <TabsTrigger value="expired">Encerradas ({groupedPromotions.filter(g => isExpiredPromo(g.promotions[0])).length})</TabsTrigger>
         </TabsList>
+
+
+
 
 
         <TabsContent value={activeTab} className="mt-4">
@@ -2327,6 +2404,8 @@ export default function Promotions() {
 
         </TabsContent>
       </Tabs>
+      )}
+
 
       {/* Client list dialog */}
       <Dialog open={clientsDialogOpen} onOpenChange={setClientsDialogOpen}>
@@ -2460,10 +2539,19 @@ export default function Promotions() {
         onClose={() => { setShowIntro(false); markSeen('promotions'); }}
         onAction={() => setDialogOpen(true)}
       />
+        </TabsContent>
+      </Tabs>
       </>
-      ) : (
+      )}
+
+      {section === 'cashback' && (
         <CashbackTab />
       )}
     </div>
   );
 }
+
+
+
+
+
