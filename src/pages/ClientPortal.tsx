@@ -227,19 +227,16 @@ const ClientPortal = () => {
       if (cashbackRes.error) console.error('[CLIENT_CASHBACK_RUNTIME] cashback error:', cashbackRes.error);
 
       const summaryData = summaryRes.data as any;
-      const cashbackDataObj = cashbackRes.data as any;
-      
-      console.log('[CLIENT_CASHBACK_RUNTIME] totalCashback (from summary):', summaryData?.cashback_active);
-      console.log('[CLIENT_CASHBACK_RUNTIME] cashback balances (from cashbackRes):', cashbackDataObj?.balances);
-      console.log('[CLIENT_CASHBACK_RUNTIME] history count:', (cashbackDataObj?.history || []).length);
-
-      const summaryData = summaryRes.data as any;
       const appointmentsData = (apptsRes.data || []) as any[];
       const pointsDataObj = pointsRes.data as any;
       const cashbackDataObj = cashbackRes.data as any;
       const rewardsData = (rewardsRes.data || []) as any[];
       const clientsData = (clientsRes.data || []) as ClientRecord[];
       const redemptionsData = (redemptionsRes.data || []) as Redemption[];
+
+      console.log('[CLIENT_CASHBACK_RUNTIME] totalCashback (from summary):', summaryData?.cashback_active);
+      console.log('[CLIENT_CASHBACK_RUNTIME] cashback balances (from cashbackRes):', cashbackDataObj?.balances);
+      console.log('[CLIENT_CASHBACK_RUNTIME] history count:', (cashbackDataObj?.history || []).length);
 
 
       setSummary(summaryData);
