@@ -220,6 +220,9 @@ function formatCountdown(ms: number): string {
 export default function Promotions() {
   const { companyId, profile } = useAuth();
   const { isAdmin } = useUserRole();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const initialSection = searchParams.get('section') || 'campaigns';
+  const [section, setSection] = useState(initialSection);
   const { hasSeen, markSeen, loading: discoveryLoading } = useFeatureDiscovery();
   const [showIntro, setShowIntro] = useState(false);
   const [promotions, setPromotions] = useState<Promotion[]>([]);
