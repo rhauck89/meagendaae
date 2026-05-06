@@ -306,6 +306,47 @@ const FinanceRevenues = () => {
                   </Select>
                 </div>
                 <div><Label>Observações</Label><Textarea value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} /></div>
+                
+                <div className="flex items-center justify-between space-x-2 border p-3 rounded-lg bg-muted/20">
+                  <div className="space-y-0.5">
+                    <Label className="text-sm font-medium">Receita recorrente</Label>
+                    <p className="text-xs text-muted-foreground">Repetir esta receita automaticamente</p>
+                  </div>
+                  <Switch checked={form.is_recurring} onCheckedChange={v => setForm(f => ({ ...f, is_recurring: v }))} disabled={!!editingId} />
+                </div>
+
+                {form.is_recurring && !editingId && (
+                  <div className="space-y-3 border p-3 rounded-lg bg-muted/10 animate-in fade-in slide-in-from-top-2 duration-300">
+                    <p className="text-sm font-bold border-b pb-1">Configuração de recorrência</p>
+                    <div>
+                      <Label>Frequência</Label>
+                      <Select value={form.recurrence_frequency} onValueChange={v => setForm(f => ({ ...f, recurrence_frequency: v }))}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="weekly">Semanal</SelectItem>
+                          <SelectItem value="biweekly">Quinzenal</SelectItem>
+                          <SelectItem value="monthly">Mensal</SelectItem>
+                          <SelectItem value="bimonthly">Bimestral</SelectItem>
+                          <SelectItem value="trimonthly">Trimestral</SelectItem>
+                          <SelectItem value="semiannual">Semestral</SelectItem>
+                          <SelectItem value="annual">Anual</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <Label>Quantidade de ocorrências</Label>
+                        <Input type="number" placeholder="Ex: 12" value={form.recurrence_count} onChange={e => setForm(f => ({ ...f, recurrence_count: e.target.value }))} />
+                      </div>
+                      <div>
+                        <Label>Data final</Label>
+                        <Input type="date" value={form.recurrence_end_date} onChange={e => setForm(f => ({ ...f, recurrence_end_date: e.target.value }))} />
+                      </div>
+                    </div>
+                    <p className="text-[10px] text-muted-foreground italic">As receitas futuras serão criadas com status "Pendente".</p>
+                  </div>
+                )}
+
                 <Button onClick={handleSubmit} className="w-full" disabled={submitting}>{submitting ? 'Salvando...' : 'Salvar'}</Button>
               </div>
             </DialogContent>
