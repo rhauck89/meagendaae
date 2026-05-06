@@ -219,11 +219,11 @@ const ClientPortal = () => {
         supabase.from('loyalty_redemptions').select('id, redemption_code, status, created_at, total_points, reward_id, company_id, client_id').eq('user_id', user?.id).order('created_at', { ascending: false }).limit(50)
       ]);
 
-      console.log('[CLIENT_PORTAL_DEBUG] summaryRes:', summaryRes.data);
-      console.log('[CLIENT_PORTAL_DEBUG] apptsRes:', apptsRes.data);
-      console.log('[CLIENT_PORTAL_DEBUG] pointsRes:', pointsRes.data);
-      console.log('[CLIENT_PORTAL_DEBUG] cashbackRes:', cashbackRes.data);
-      console.log('[CLIENT_PORTAL_DEBUG] clientsRes:', clientsRes.data);
+      console.log('[CLIENT_CASHBACK_DEBUG] summaryRes:', summaryRes.data);
+      console.log('[CLIENT_CASHBACK_DEBUG] apptsRes count:', (apptsRes.data || []).length);
+      console.log('[CLIENT_CASHBACK_DEBUG] pointsRes:', pointsRes.data);
+      console.log('[CLIENT_CASHBACK_DEBUG] cashbackRes:', cashbackRes.data);
+      console.log('[CLIENT_CASHBACK_DEBUG] clientsRes:', clientsRes.data);
 
       const summaryData = summaryRes.data as any;
       const appointmentsData = (apptsRes.data || []) as any[];
