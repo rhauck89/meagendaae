@@ -218,14 +218,6 @@ const ClientPortal = () => {
         supabase.from('loyalty_redemptions').select('id, redemption_code, status, created_at, total_points, reward_id, company_id, client_id').eq('user_id', user?.id).order('created_at', { ascending: false }).limit(50)
       ]);
 
-      console.log('[CLIENT_CASHBACK_RUNTIME] auth.uid:', user?.id);
-      console.log('[CLIENT_CASHBACK_RUNTIME] email:', user?.email);
-      console.log('[CLIENT_CASHBACK_RUNTIME] name:', profile?.full_name);
-      console.log('[CLIENT_CASHBACK_RUNTIME] summaryRes:', summaryRes.data);
-      console.log('[CLIENT_CASHBACK_RUNTIME] cashbackRes:', cashbackRes.data);
-      if (summaryRes.error) console.error('[CLIENT_CASHBACK_RUNTIME] summary error:', summaryRes.error);
-      if (cashbackRes.error) console.error('[CLIENT_CASHBACK_RUNTIME] cashback error:', cashbackRes.error);
-
       const summaryData = summaryRes.data as any;
       const appointmentsData = (apptsRes.data || []) as any[];
       const pointsDataObj = pointsRes.data as any;
@@ -233,10 +225,6 @@ const ClientPortal = () => {
       const rewardsData = (rewardsRes.data || []) as any[];
       const clientsData = (clientsRes.data || []) as ClientRecord[];
       const redemptionsData = (redemptionsRes.data || []) as Redemption[];
-
-      console.log('[CLIENT_CASHBACK_RUNTIME] totalCashback (from summary):', summaryData?.cashback_active);
-      console.log('[CLIENT_CASHBACK_RUNTIME] cashback balances (from cashbackRes):', cashbackDataObj?.balances);
-      console.log('[CLIENT_CASHBACK_RUNTIME] history count:', (cashbackDataObj?.history || []).length);
 
 
       setSummary(summaryData);
