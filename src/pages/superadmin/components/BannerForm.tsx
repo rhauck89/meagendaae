@@ -6,7 +6,20 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
-import { Loader2, Upload, X, ImageIcon, Calendar as CalendarIcon, Link as LinkIcon, MapPin, Target, Settings, Building2 } from 'lucide-react';
+import { 
+  Loader2, 
+  Upload, 
+  X, 
+  ImageIcon, 
+  Calendar as CalendarIcon, 
+  Link as LinkIcon, 
+  MapPin, 
+  Target, 
+  Settings, 
+  Building2, 
+  ExternalLink,
+  Navigation as NavIcon
+} from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { Card, CardContent } from '@/components/ui/card';
@@ -25,6 +38,8 @@ const BannerForm = ({ banner, onSuccess, onCancel }: BannerFormProps) => {
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState<string | null>(null);
   const [companies, setCompanies] = useState<any[]>([]);
+  const [states, setStates] = useState<any[]>([]);
+  const [cities, setCities] = useState<any[]>([]);
   
   const [formData, setFormData] = useState<any>({
     name: banner?.name || '',
@@ -38,6 +53,8 @@ const BannerForm = ({ banner, onSuccess, onCancel }: BannerFormProps) => {
     country: banner?.country || 'Brasil',
     state: banner?.state || '',
     city: banner?.city || '',
+    state_id: banner?.state_id || null,
+    city_id: banner?.city_id || null,
     neighborhood: banner?.neighborhood || '',
     category: banner?.category || '',
     start_date: banner?.start_date ? new Date(banner.start_date).toISOString().slice(0, 16) : format(new Date(), "yyyy-MM-dd'T'HH:mm"),
@@ -49,15 +66,61 @@ const BannerForm = ({ banner, onSuccess, onCancel }: BannerFormProps) => {
     rotation_weight: banner?.rotation_weight || 1,
     status: banner?.status || 'draft',
     internal_notes: banner?.internal_notes || '',
+    latitude: banner?.latitude || '',
+    longitude: banner?.longitude || '',
+    radius_km: banner?.radius_km || '',
   });
 
   useEffect(() => {
-    const fetchCompanies = async () => {
-      const { data } = await supabase.from('companies').select('id, name').order('name');
-      if (data) setCompanies(data);
+    const fetchData = async () => {
+      const { data: companiesData } = await supabase.from('companies').select('id, name').order('name');
+      const { data: statesData } = await supabase.from('states').select('id, uf, name').order('name');
+      
+      if (companiesData) setCompanies(companiesData);
+      if (statesData) setStates(statesData);
+
+      if (banner?.state_id) {
+        fetchCities(banner.state_id);
+      }
     };
-    fetchCompanies();
-  }, []);
+    fetchData();
+  }, [banner]);
+
+  const fetchCities = async (stateId: string) => {
+    const { data } = await supabase
+      .from('cities')
+      .select('id, name')
+      .eq('state_id', stateId)
+      .order('name');
+    
+    if (data) setCities(data);
+  };
+
+  const handleStateChange = (stateId: string) => {
+    const selectedState = states.find(s => s.id === stateId);
+    setFormData({ 
+      ...formData, 
+      state_id: stateId === 'null' ? null : stateId, 
+      city_id: null,
+      state: selectedState ? selectedState.uf : '',
+      city: ''
+    });
+    
+    if (stateId !== 'null') {
+      fetchCities(stateId);
+    } else {
+      setCities([]);
+    }
+  };
+
+  const handleCityChange = (cityId: string) => {
+    const selectedCity = cities.find(c => c.id === cityId);
+    setFormData({ 
+      ...formData, 
+      city_id: cityId === 'null' ? null : cityId,
+      city: selectedCity ? selectedCity.name : ''
+    });
+  };
 
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>, field: string) => {
     const file = e.target.files?.[0];
@@ -106,6 +169,9 @@ const BannerForm = ({ banner, onSuccess, onCancel }: BannerFormProps) => {
         limit_clicks: formData.limit_clicks ? parseInt(formData.limit_clicks) : null,
         priority: parseInt(formData.priority),
         rotation_weight: parseInt(formData.rotation_weight),
+        latitude: formData.latitude ? parseFloat(formData.latitude) : null,
+        longitude: formData.longitude ? parseFloat(formData.longitude) : null,
+        radius_km: formData.radius_km ? parseFloat(formData.radius_km) : null,
       };
 
       if (isEditing) {
@@ -335,20 +401,89 @@ const BannerForm = ({ banner, onSuccess, onCancel }: BannerFormProps) => {
         <TabsContent value="segmentation" className="space-y-4 pt-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="state">Estado (UF)</Label>
-              <Input id="state" value={formData.state} onChange={e => setFormData({...formData, state: e.target.value})} placeholder="Ex: SP" />
+              <Label>País</Label>
+              <Input value={formData.country} onChange={e => setFormData({...formData, country: e.target.value})} />
             </div>
+            
             <div className="space-y-2">
-              <Label htmlFor="city">Cidade</Label>
-              <Input id="city" value={formData.city} onChange={e => setFormData({...formData, city: e.target.value})} placeholder="Ex: São Paulo" />
+              <Label>Estado (Brasil)</Label>
+              <Select 
+                value={formData.state_id || 'null'} 
+                onValueChange={handleStateChange}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione o estado" />
+                </SelectTrigger>
+                <SelectContent className="max-h-60">
+                  <SelectItem value="null">Nacional (Todos)</SelectItem>
+                  {states.map(s => <SelectItem key={s.id} value={s.id}>{s.name} ({s.uf})</SelectItem>)}
+                </SelectContent>
+              </Select>
             </div>
+
             <div className="space-y-2">
-              <Label htmlFor="neighborhood">Bairro</Label>
+              <Label>Cidade</Label>
+              <Select 
+                value={formData.city_id || 'null'} 
+                onValueChange={handleCityChange}
+                disabled={!formData.state_id}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder={!formData.state_id ? "Selecione o estado primeiro" : "Selecione a cidade"} />
+                </SelectTrigger>
+                <SelectContent className="max-h-60">
+                  <SelectItem value="null">Todas as cidades</SelectItem>
+                  {cities.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="neighborhood">Bairro (Campo Livre)</Label>
               <Input id="neighborhood" value={formData.neighborhood} onChange={e => setFormData({...formData, neighborhood: e.target.value})} placeholder="Ex: Jardins" />
             </div>
+
             <div className="space-y-2">
-              <Label htmlFor="category">Categoria</Label>
+              <Label htmlFor="category">Categoria (Slug)</Label>
               <Input id="category" value={formData.category} onChange={e => setFormData({...formData, category: e.target.value})} placeholder="Ex: barbearia" />
+            </div>
+
+            <div className="col-span-1 md:col-span-2 border-t pt-4 mt-2">
+              <h4 className="text-sm font-medium flex items-center gap-2 mb-4">
+                <NavIcon className="h-4 w-4" />
+                Geolocalização (Opcional - Segmentação por Raio)
+              </h4>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <Label>Latitude</Label>
+                  <Input 
+                    type="number" 
+                    step="any" 
+                    value={formData.latitude} 
+                    onChange={e => setFormData({...formData, latitude: e.target.value})} 
+                    placeholder="-23.5505"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Longitude</Label>
+                  <Input 
+                    type="number" 
+                    step="any" 
+                    value={formData.longitude} 
+                    onChange={e => setFormData({...formData, longitude: e.target.value})} 
+                    placeholder="-46.6333"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Raio (km)</Label>
+                  <Input 
+                    type="number" 
+                    value={formData.radius_km} 
+                    onChange={e => setFormData({...formData, radius_km: e.target.value})} 
+                    placeholder="50"
+                  />
+                </div>
+              </div>
             </div>
           </div>
         </TabsContent>
@@ -444,11 +579,7 @@ const BannerForm = ({ banner, onSuccess, onCancel }: BannerFormProps) => {
   );
 };
 
-// Internal icon fix
-const ExternalLink = ({ className }: any) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
-    <path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
-  </svg>
-);
+// ExternalLink is now imported from lucide-react
+
 
 export default BannerForm;
