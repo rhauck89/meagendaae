@@ -139,9 +139,25 @@ export default function MarketplaceHome() {
       
       if (settingsRes.data) setHomeSettings(settingsRes.data);
       if (bannersRes.data) setBanners(bannersRes.data);
-      if (largeRes.data) setFeaturedLarge(largeRes.data);
-      if (mediumRes.data) setFeaturedMedium(mediumRes.data);
-      if (logosRes.data) setFeaturedLogos(logosRes.data);
+      
+      const fLarge = largeRes.data || [];
+      const fMedium = mediumRes.data || [];
+      const fLogos = logosRes.data || [];
+
+      console.log('[MARKETPLACE_FEATURED_DEBUG] Destaques carregados:', {
+        featured_large: fLarge.length,
+        featured_medium: fMedium.length,
+        featured_logo: fLogos.length,
+        items: {
+          large: fLarge.map((i: any) => i.name),
+          medium: fMedium.map((i: any) => i.name),
+          logos: fLogos.map((i: any) => i.name)
+        }
+      });
+
+      setFeaturedLarge(fLarge);
+      setFeaturedMedium(fMedium);
+      setFeaturedLogos(fLogos);
     } catch (err) {
       console.error('[MARKETPLACE] Error loading settings:', err);
     }
@@ -275,8 +291,8 @@ export default function MarketplaceHome() {
 
   const tiered = useMemo(() => {
     const featuredIds = new Set([
-      ...featuredLarge.map(f => f.company_id || f.professional_id),
-      ...featuredMedium.map(f => f.company_id || f.professional_id)
+      ...featuredLarge.map(f => f.company_id || f.id),
+      ...featuredMedium.map(f => f.company_id || f.id)
     ]);
 
     const featured: MarketCompany[] = [];
@@ -581,10 +597,10 @@ export default function MarketplaceHome() {
                           <Scissors className="h-10 w-10 text-slate-400" />
                         </div>
                       )}
-                      {c.average_rating ? (
+                      {(c.average_rating !== undefined && c.average_rating !== null) ? (
                         <div className="absolute top-2 left-2 bg-amber-400 text-slate-900 px-2 py-0.5 rounded-md text-xs font-bold flex items-center gap-1 shadow-md">
                           <Star className="h-3 w-3 fill-slate-900" />
-                          {c.average_rating.toFixed(1)}
+                          {Number(c.average_rating).toFixed(1)}
                         </div>
                       ) : null}
                       {c.logo_url && (
@@ -600,7 +616,7 @@ export default function MarketplaceHome() {
                       </p>
                       <div className="flex items-center gap-1 mt-1.5">
                         <StarRating rating={c.average_rating ?? 0} size={11} />
-                        {c.review_count ? <span className="text-[11px] text-muted-foreground">({c.review_count})</span> : null}
+                        {(c.review_count !== undefined && c.review_count !== null) ? <span className="text-[11px] text-muted-foreground">({c.review_count})</span> : null}
                       </div>
                       {c.distance !== undefined && (
                         <p className="text-[11px] text-accent font-medium mt-1">{formatDistance(c.distance)}</p>
