@@ -25,6 +25,7 @@ import { ptBR } from 'date-fns/locale';
 import { toast } from '@/hooks/use-toast';
 import { getAvailableSlots } from '@/lib/availability-service';
 import { cn } from '@/lib/utils';
+import { WeeklySlotPicker } from './WeeklySlotPicker';
 
 interface InsightData {
   id: string;
