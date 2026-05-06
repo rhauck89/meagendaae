@@ -614,9 +614,16 @@ const FinanceRevenues = () => {
                 </div>
                 <div className="text-right shrink-0">
                   <div className="font-bold text-success text-sm">{maskValue(Number(r.amount))}</div>
-                  <Badge variant={r.is_automatic ? 'default' : 'outline'} className="text-[9px] px-1 py-0 h-4 uppercase mt-1">
-                    {r.is_automatic ? 'AUTO' : 'MANUAL'}
-                  </Badge>
+                  <div className="flex flex-col items-end gap-1 mt-1">
+                    <Badge variant={r.is_automatic ? 'default' : 'outline'} className="text-[9px] px-1 py-0 h-4 uppercase">
+                      {r.is_automatic ? 'AUTO' : 'MANUAL'}
+                    </Badge>
+                    {r.is_recurring && (
+                      <Badge variant="secondary" className="text-[9px] px-1 py-0 h-4 uppercase bg-blue-100 text-blue-700">
+                        RECORRENTE
+                      </Badge>
+                    )}
+                  </div>
                 </div>
               </div>
               
