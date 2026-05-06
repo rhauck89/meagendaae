@@ -224,7 +224,8 @@ export default function Promotions() {
   const { isAdmin } = useUserRole();
   const [searchParams, setSearchParams] = useSearchParams();
   const initialSection = searchParams.get('section') || 'campaigns';
-  const [section, setSection] = useState<string>(initialSection);
+  const [section, setSection] = useState<any>(initialSection);
+
 
   const { hasSeen, markSeen, loading: discoveryLoading } = useFeatureDiscovery();
   const [showIntro, setShowIntro] = useState(false);
