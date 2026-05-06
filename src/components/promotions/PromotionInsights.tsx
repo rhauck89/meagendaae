@@ -69,22 +69,32 @@ export function PromotionInsights({ isAdmin, onAction }: PromotionInsightsProps)
       });
 
       // Fetch data in parallel
+      const fortyFiveDaysAgo = subDays(now, 45);
+      const professionalId = isAdmin ? null : profile?.id;
+
+      const workingHoursQuery = professionalId
+        ? supabase.from('professional_working_hours').select('day_of_week, open_time, close_time, is_closed').eq('professional_id', professionalId)
+        : supabase.from('business_hours').select('day_of_week, open_time, close_time, is_closed').eq('company_id', companyId);
+
       const [
         clientsRes,
         appointmentsRes,
         servicesRes,
-        professionalsRes
+        professionalsRes,
+        workingHoursRes
       ] = await Promise.all([
         supabase.from('clients').select('id, name, birth_date, whatsapp').eq('company_id', companyId),
-        supabase.from('appointments').select('*').eq('company_id', companyId).neq('status', 'cancelled'),
+        supabase.from('appointments').select('*').eq('company_id', companyId).neq('status', 'cancelled').gte('start_time', fortyFiveDaysAgo.toISOString()),
         supabase.from('services').select('id, name, price').eq('company_id', companyId).eq('active', true),
-        supabase.from('collaborators').select('profile_id, profiles(full_name)').eq('company_id', companyId).eq('active', true)
+        supabase.from('collaborators').select('profile_id, profiles(full_name)').eq('company_id', companyId).eq('active', true),
+        workingHoursQuery
       ]);
 
       const clients = clientsRes.data || [];
       const appointments = appointmentsRes.data || [];
       const services = servicesRes.data || [];
       const professionals = professionalsRes.data || [];
+      const workingHours = workingHoursRes.data || [];
 
       // Filter data if professional
       const professionalId = isAdmin ? null : profile?.id;
