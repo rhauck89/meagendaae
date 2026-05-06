@@ -7876,6 +7876,10 @@ export type Database = {
           }
       normalize_slug: { Args: { input_text: string }; Returns: string }
       normalize_whatsapp_v2: { Args: { phone: string }; Returns: string }
+      process_appointment_cashback: {
+        Args: { p_appointment_id: string }
+        Returns: Json
+      }
       recalculate_client_return_stats: {
         Args: { _company_id: string }
         Returns: undefined
