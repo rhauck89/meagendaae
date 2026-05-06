@@ -106,7 +106,7 @@ const FinanceRevenues = () => {
     if (!form.description || !form.amount) { toast.error('Preencha descrição e valor'); return; }
     setSubmitting(true);
     try {
-      const payload = {
+      const basePayload = {
         description: form.description,
         client_name: form.client_name || (form.description.includes(' — ') ? form.description.split(' — ')[0] : form.description),
         professional_name: form.professional_name || null,
@@ -118,19 +118,74 @@ const FinanceRevenues = () => {
         category_id: form.category_id && form.category_id !== 'none' ? form.category_id : null,
         notes: form.notes || null,
         payment_method: form.payment_method || null,
+        company_id: companyId!,
+        is_automatic: false,
+        created_by: user?.id,
       };
 
       if (editingId) {
-        const { error } = await supabase.from('company_revenues').update(payload).eq('id', editingId);
+        const { error } = await supabase.from('company_revenues').update(basePayload).eq('id', editingId);
         if (error) { toast.error('Erro ao atualizar'); return; }
         toast.success('Receita atualizada');
+      } else if (form.is_recurring) {
+        const groupId = crypto.randomUUID();
+        const occurrences: any[] = [];
+        const count = form.recurrence_count ? parseInt(form.recurrence_count) : (form.recurrence_end_date ? 500 : 1); // Safety limit 500
+        const endDate = form.recurrence_end_date ? parseISO(form.recurrence_end_date) : null;
+        
+        let currentDate = parseISO(form.revenue_date);
+        let currentDueDate = form.due_date ? parseISO(form.due_date) : null;
+
+        for (let i = 0; i < count; i++) {
+          if (endDate && isAfter(currentDate, endDate)) break;
+
+          occurrences.push({
+            ...basePayload,
+            revenue_date: format(currentDate, 'yyyy-MM-dd'),
+            due_date: currentDueDate ? format(currentDueDate, 'yyyy-MM-dd') : null,
+            status: i === 0 ? form.status : 'pending',
+            is_recurring: true,
+            recurring_group_id: groupId,
+          });
+
+          // Calculate next dates
+          switch (form.recurrence_frequency) {
+            case 'weekly':
+              currentDate = addWeeks(currentDate, 1);
+              if (currentDueDate) currentDueDate = addWeeks(currentDueDate, 1);
+              break;
+            case 'biweekly':
+              currentDate = addWeeks(currentDate, 2);
+              if (currentDueDate) currentDueDate = addWeeks(currentDueDate, 2);
+              break;
+            case 'monthly':
+              currentDate = addMonths(currentDate, 1);
+              if (currentDueDate) currentDueDate = addMonths(currentDueDate, 1);
+              break;
+            case 'bimonthly':
+              currentDate = addMonths(currentDate, 2);
+              if (currentDueDate) currentDueDate = addMonths(currentDueDate, 2);
+              break;
+            case 'trimonthly':
+              currentDate = addMonths(currentDate, 3);
+              if (currentDueDate) currentDueDate = addMonths(currentDueDate, 3);
+              break;
+            case 'semiannual':
+              currentDate = addMonths(currentDate, 6);
+              if (currentDueDate) currentDueDate = addMonths(currentDueDate, 6);
+              break;
+            case 'annual':
+              currentDate = addYears(currentDate, 1);
+              if (currentDueDate) currentDueDate = addYears(currentDueDate, 1);
+              break;
+          }
+        }
+
+        const { error } = await supabase.from('company_revenues').insert(occurrences);
+        if (error) { toast.error('Erro ao gerar recorrências'); return; }
+        toast.success(`${occurrences.length} receitas geradas`);
       } else {
-        const { error } = await supabase.from('company_revenues').insert({
-          ...payload,
-          company_id: companyId!,
-          is_automatic: false,
-          created_by: user?.id,
-        });
+        const { error } = await supabase.from('company_revenues').insert(basePayload);
         if (error) { toast.error('Erro ao salvar'); return; }
         toast.success('Receita registrada');
       }
