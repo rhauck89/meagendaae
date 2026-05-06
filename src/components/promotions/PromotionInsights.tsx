@@ -177,6 +177,12 @@ export function PromotionInsights({ isAdmin, onAction }: PromotionInsightsProps)
       const daysOfWeek = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
       const openDays = new Set(workingHours.filter((h: any) => !h.is_closed).map((h: any) => h.day_of_week));
       
+      console.log('[PROMOTION_INSIGHTS_LOW_DAY_DEBUG]', {
+        openDaysDetected: Array.from(openDays).map(d => daysOfWeek[d]),
+        allDayCounts: dayCounts.map((count, idx) => `${daysOfWeek[idx]}: ${count}`),
+        workingHours: workingHours.map((h: any) => ({ day: daysOfWeek[h.day_of_week], closed: h.is_closed }))
+      });
+
       let idleDayIdx = -1;
       let minCount = Infinity;
       
@@ -188,6 +194,8 @@ export function PromotionInsights({ isAdmin, onAction }: PromotionInsightsProps)
             minCount = count;
             idleDayIdx = i;
           }
+        } else {
+          console.log(`[PROMOTION_INSIGHTS_LOW_DAY_DEBUG] Ignorando ${daysOfWeek[i]} pois está fechado.`);
         }
       }
 
