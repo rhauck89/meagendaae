@@ -9,7 +9,7 @@ import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
 import { calculateAvailableSlots, type BusinessHours, type BusinessException, type ExistingAppointment, type BlockedTime } from '@/lib/availability-engine';
 import { getAvailableSlots } from '@/lib/availability-service';
-import { openWhatsApp } from '@/lib/whatsapp';
+import { openWhatsApp, formatWhatsApp, isValidWhatsApp } from '@/lib/whatsapp';
 
 const T = {
   bg: '#0B132B',
