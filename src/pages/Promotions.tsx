@@ -2528,28 +2528,16 @@ export default function Promotions() {
         professionals={professionals}
         availableSlots={availableSlotsForShare}
         primaryColor={companyColor}
-      />
-      <PromotionShareModal
-        open={shareModalOpen}
-        onOpenChange={setShareModalOpen}
-        promotion={selectedPromotion}
-        companyName={companyName}
-        companyLogo={companyLogo}
-        companySlug={companySlug}
-        businessType={companyBusinessType}
-        services={services}
-        professionals={professionals}
-        availableSlots={availableSlotsForShare}
-        primaryColor={companyColor}
-      />
       <FeatureIntroModal
         featureKey="promotions"
         open={showIntro}
         onClose={() => { setShowIntro(false); markSeen('promotions'); }}
         onAction={() => setDialogOpen(true)}
       />
+      </Tabs>
       </>
       )}
+
 
       {section === 'cashback' && (
         <CashbackTab />
