@@ -588,28 +588,28 @@ export default function MarketplaceHome() {
             <div className="flex flex-wrap gap-4 justify-start sm:justify-center lg:justify-start">
               {[...featuredLarge, ...tiered.featured].slice(0, 5).map(c => (
                 <Link key={c.id} to={getProfileRoute(c)} className="group w-[calc(50%-8px)] sm:w-[calc(33.333%-11px)] lg:w-[calc(20%-13px)] min-w-[150px]">
-                  <Card className="h-full overflow-hidden border-border hover:shadow-xl hover:-translate-y-0.5 transition-all rounded-xl flex flex-col">
-                    <div className="relative aspect-[4/3] bg-muted overflow-hidden">
+                  <Card className="h-full overflow-hidden border-border hover:shadow-xl hover:-translate-y-0.5 transition-all rounded-xl flex flex-col relative">
+                    <div className="relative aspect-[4/3] bg-muted">
                       {c.cover_url || c.logo_url ? (
-                        <img src={c.cover_url || c.logo_url || ''} alt={c.name} className="w-full h-full object-cover" loading="lazy" />
+                        <img src={c.cover_url || c.logo_url || ''} alt={c.name} className="w-full h-full object-cover rounded-t-xl" loading="lazy" />
                       ) : (
-                        <div className="w-full h-full bg-gradient-to-br from-slate-200 to-slate-300 flex items-center justify-center">
+                        <div className="w-full h-full bg-gradient-to-br from-slate-200 to-slate-300 flex items-center justify-center rounded-t-xl">
                           <Scissors className="h-10 w-10 text-slate-400" />
                         </div>
                       )}
                       {(c.average_rating !== undefined && c.average_rating !== null) ? (
-                        <div className="absolute top-2 left-2 bg-amber-400 text-slate-900 px-2 py-0.5 rounded-md text-xs font-bold flex items-center gap-1 shadow-md">
+                        <div className="absolute top-2 left-2 bg-amber-400 text-slate-900 px-2 py-0.5 rounded-md text-xs font-bold flex items-center gap-1 shadow-md z-10">
                           <Star className="h-3 w-3 fill-slate-900" />
                           {Number(c.average_rating).toFixed(1)}
                         </div>
                       ) : null}
                       {c.logo_url && (
-                        <div className="absolute -bottom-5 left-3 w-12 h-12 rounded-full bg-white shadow-lg ring-2 ring-white overflow-hidden flex items-center justify-center">
+                        <div className="absolute -bottom-6 left-3 w-12 h-12 rounded-full bg-white shadow-lg ring-2 ring-white overflow-hidden flex items-center justify-center z-20">
                           <img src={c.logo_url} alt={c.name} className="w-full h-full object-contain p-1" loading="lazy" />
                         </div>
                       )}
                     </div>
-                    <CardContent className="p-3 pt-7 flex-grow">
+                    <CardContent className="p-3 pt-8 flex-grow">
                       <h3 className="font-semibold text-sm text-foreground line-clamp-1 group-hover:text-primary transition-colors">{c.name}</h3>
                       <p className="text-xs text-muted-foreground line-clamp-1 mt-0.5">
                         {[categories.find(cat => cat.businessType === c.business_type)?.title, c.city].filter(Boolean).join(' • ')}
