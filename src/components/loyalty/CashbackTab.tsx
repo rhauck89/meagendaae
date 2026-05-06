@@ -295,7 +295,7 @@ export default function CashbackTab() {
                     </div>
                   </div>
                   <p className="font-bold text-success">
-                    {formatCurrency(history.reduce((acc, curr) => acc + (Number(curr.amount) || 0), 0))}
+                    {formatCurrency(history.filter(h => h.type === 'credit').reduce((acc, curr) => acc + (Number(curr.amount) || 0), 0))}
                   </p>
                 </div>
                 
@@ -310,7 +310,7 @@ export default function CashbackTab() {
                     </div>
                   </div>
                   <p className="font-bold text-primary">
-                    {formatCurrency(history.filter(h => h.used_at).reduce((acc, curr) => acc + (Number(curr.amount) || 0), 0))}
+                    {formatCurrency(history.filter(h => h.type === 'debit').reduce((acc, curr) => acc + (Number(curr.amount) || 0), 0))}
                   </p>
                 </div>
               </div>
