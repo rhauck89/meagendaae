@@ -488,6 +488,22 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
 
       const effectiveUserId = ignoreSession ? null : currentUserId;
       
+      if (company?.id) {
+        // Fetch loyalty configuration regardless of client identification for preview
+        const { data: lc } = await supabase
+          .from('loyalty_config' as any)
+          .select('*')
+          .eq('company_id', company.id)
+          .maybeSingle();
+        
+        if (lc && (lc as any).enabled) {
+          setLoyaltyConfig(lc);
+          setLoyaltyPointValue(Number((lc as any).point_value) || 0);
+        } else {
+          setLoyaltyConfig(null);
+        }
+      }
+
       if (!effectiveUserId && !savedClientId) {
         setCashbackCredits([]);
         setLoyaltyPoints(0);
@@ -563,19 +579,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
           setLoyaltyPoints((txs as any)?.balance_after || 0);
         }
 
-        // Fetch point value from config
-        const { data: lc } = await supabase
-          .from('loyalty_config' as any)
-          .select('*')
-          .eq('company_id', company.id)
-          .maybeSingle();
-        
-        if (lc && (lc as any).enabled) {
-          setLoyaltyConfig(lc);
-          setLoyaltyPointValue(Number((lc as any).point_value) || 0);
-        } else {
-          setLoyaltyConfig(null);
-        }
+        // loyaltyConfig is now fetched at the beginning of checkBenefits for guest previews
       }
     };
     
@@ -1413,25 +1417,25 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
 
     if (eligibleServices.length === 0) return 0;
 
+    let points = 0;
     if (loyaltyConfig.scoring_type === 'per_service') {
-      return eligibleServices.length * (loyaltyConfig.points_per_service || 0);
+      points = eligibleServices.length * (loyaltyConfig.points_per_service || 0);
     } else if (loyaltyConfig.scoring_type === 'per_value') {
-      // Calculate based on final price of eligible services
-      // Use the final price after discounts/cashback use
-      
-      const originalSubtotal = selectedServicesData.reduce((sum, s) => sum + Number(s.price), 0);
+      // Calculate based on original price of eligible services (GROSS), matching Dashboard logic
       const eligibleSubtotal = eligibleServices.reduce((sum, s) => sum + Number(s.price), 0);
-      
-      if (originalSubtotal === 0) return 0;
-      
-      // Calculate the proportion of the price that comes from eligible services
-      const proportion = eligibleSubtotal / originalSubtotal;
-      const finalPriceForPoints = finalPrice * proportion;
-      
-      return Math.floor(finalPriceForPoints * (Number(loyaltyConfig.points_per_currency) || 0));
+      points = Math.floor(eligibleSubtotal * (Number(loyaltyConfig.points_per_currency) || 0));
     }
+
+    console.log('[BOOKING_POINTS_PREVIEW_DEBUG]', {
+      company_id: company?.id,
+      client_id: savedClientId || user?.id,
+      selected_services: selectedServices,
+      base_value: eligibleServices.reduce((sum, s) => sum + Number(s.price), 0),
+      rule: loyaltyConfig.scoring_type,
+      points_predicted: points
+    });
     
-    return 0;
+    return points;
   })();
 
   const toggleService = (id: string) => {
@@ -3064,7 +3068,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                       <p className="text-[10px] font-bold opacity-40 uppercase">Aviso</p>
                       <p className="text-[10px] opacity-60">
                         {cashbackEarnAmount > 0 && predictedLoyaltyPoints > 0 
-                          ? "O cashback e os pontos são creditados somente após a conclusão do atendimento e seguem as regras do estabelecimento."
+                          ? "Cashback e pontos são creditados somente após a conclusão do atendimento e seguem as regras do estabelecimento."
                           : cashbackEarnAmount > 0 
                             ? "O cashback é creditado somente após a conclusão do atendimento e segue as regras do estabelecimento."
                             : "Os pontos são creditados somente após a conclusão do atendimento e seguem as regras do estabelecimento."
@@ -3326,7 +3330,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                         </div>
                         <div>
                           <p className="font-black text-amber-500">{bookingResult.pointsEarned} pontos de fidelidade</p>
-                          <p className="text-[10px] font-bold opacity-60 uppercase tracking-tight" style={{ color: T.textSec }}>Serão creditados após o atendimento</p>
+                          <p className="text-[10px] font-bold opacity-60 uppercase tracking-tight" style={{ color: T.textSec }}>Serão liberados após o atendimento</p>
                         </div>
                       </div>
                     )}
