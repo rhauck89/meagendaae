@@ -341,6 +341,27 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
     return eligiblePromos.length > 0 ? eligiblePromos[0] : null;
   }, [promoData, publicPromotions, selectedDate, selectedTime, selectedServices, selectedProfessional, bookingTimezone]);
 
+  // Identify any applicable cashback promotion (separate from currentPromo which is for discounts)
+  const activeCashbackPromo = useMemo(() => {
+    if (publicPromotions.length === 0 || !selectedDate || !selectedTime || selectedServices.length === 0) return null;
+    const dateStr = format(selectedDate, 'yyyy-MM-dd');
+    const slotDateTime = fromZonedTime(`${dateStr} ${selectedTime}:00`, bookingTimezone);
+    
+    const cbPromos = publicPromotions.filter(promo => {
+      if (promo.promotion_type !== 'cashback') return false;
+      if (!isPromoActive(promo)) return false;
+      if (!isSlotEligible(promo, slotDateTime)) return false;
+      if (promo.professional_filter === 'specific' && promo.professional_ids) {
+        if (!selectedProfessional || !promo.professional_ids.includes(selectedProfessional)) return false;
+      }
+      const promoServiceIds = promo.service_ids || (promo.service_id ? [promo.service_id] : []);
+      const hasEligibleService = selectedServices.some(sid => promoServiceIds.length === 0 || promoServiceIds.includes(sid));
+      return hasEligibleService;
+    });
+
+    return cbPromos.length > 0 ? cbPromos[0] : null;
+  }, [publicPromotions, selectedDate, selectedTime, selectedServices, selectedProfessional, bookingTimezone]);
+
   const currentPromo = activePromo;
   const hasPromoApplied = !!currentPromo;
 
