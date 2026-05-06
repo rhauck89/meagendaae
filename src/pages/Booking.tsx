@@ -579,19 +579,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
           setLoyaltyPoints((txs as any)?.balance_after || 0);
         }
 
-        // Fetch point value from config
-        const { data: lc } = await supabase
-          .from('loyalty_config' as any)
-          .select('*')
-          .eq('company_id', company.id)
-          .maybeSingle();
-        
-        if (lc && (lc as any).enabled) {
-          setLoyaltyConfig(lc);
-          setLoyaltyPointValue(Number((lc as any).point_value) || 0);
-        } else {
-          setLoyaltyConfig(null);
-        }
+        // loyaltyConfig is now fetched at the beginning of checkBenefits for guest previews
       }
     };
     
