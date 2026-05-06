@@ -448,6 +448,22 @@ export function PromotionInsights({ isAdmin, onAction }: PromotionInsightsProps)
           </CardContent>
         </Card>
       ))}
+
+      <WeeklySlotPicker 
+        open={weeklyPickerOpen}
+        onOpenChange={setWeeklyPickerOpen}
+        slots={weekGaps}
+        onConfirm={(selectedSlots, promoType) => {
+          onAction('promotion', {
+            insight: 'week_gap',
+            isSlotSpecific: true,
+            selectedSlots,
+            promoType,
+            title: 'Agenda Especial da Semana',
+            description: 'Garanta seu horário nesta semana e aproveite benefícios exclusivos.'
+          });
+        }}
+      />
     </div>
   );
 }
