@@ -940,6 +940,57 @@ export default function Promotions() {
         return;
       }
       toast({ title: 'Promoção atualizada com sucesso! 🎉' });
+    } else if (isSlotSpecific && selectedSlots.length > 0) {
+      console.log('[PROMOTION_WEEK_GAPS_DEBUG]', {
+        professional_id: profile?.id,
+        service_ids: effectiveIds,
+        slots_selected: selectedSlots,
+        promotion_type: promotionType,
+        payload_base: payload
+      });
+
+      const baseSlug = payload.slug;
+      
+      const creationPromises = selectedSlots.map(async (slot, index) => {
+        const slotSlug = selectedSlots.length > 1 
+          ? `${baseSlug}-${slot.date}-${slot.time.replace(':', '')}-${index}` 
+          : baseSlug;
+        
+        const [h, m] = slot.time.split(':').map(Number);
+        const duration = primarySvc?.duration_minutes || 30;
+        const endTotal = h * 60 + m + duration;
+        const endH = Math.floor(endTotal / 60);
+        const endM = endTotal % 60;
+        const slotEndTime = `${String(endH).padStart(2, '0')}:${String(endM).padStart(2, '0')}`;
+
+        const slotPayload = {
+          ...payload,
+          slug: slotSlug,
+          start_date: slot.date,
+          end_date: slot.date,
+          start_time: slot.time,
+          end_time: slotEndTime,
+          use_business_hours: false,
+          max_slots: 1,
+          professional_filter: 'selected',
+          professional_ids: [slot.professionalId],
+          created_at: new Date(new Date().getTime() + index * 100).toISOString() // Shift slightly to keep grouped order
+        };
+
+        return supabase.from('promotions').insert(slotPayload).select('id').single();
+      });
+
+      const results = await Promise.all(creationPromises);
+      const errors = results.filter(r => r.error);
+      
+      if (errors.length > 0) {
+        console.error('Errors creating some slot promotions:', errors);
+        toast({ title: 'Erro ao criar algumas promoções', description: 'Alguns horários não puderam ser processados.', variant: 'destructive' });
+      } else {
+        toast({ title: 'Agenda preenchida com sucesso! 🎉', description: `${selectedSlots.length} promoções criadas.` });
+        const firstId = results[0].data?.id;
+        if (firstId) setHighlightedPromoId(firstId);
+      }
     } else {
       const { data, error } = await supabase.from('promotions').insert(payload).select('id').single();
       if (error) {
