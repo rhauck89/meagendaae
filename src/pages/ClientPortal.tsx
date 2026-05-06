@@ -974,11 +974,18 @@ const ClientPortal = () => {
                                   + R$ {cashbackTotals.gained.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                                 </p>
                               </div>
-                              <div>
-                                <p className="text-[9px] text-muted-foreground uppercase font-bold">Pendente</p>
+                              <div className="relative group">
+                                <p className="text-[9px] text-muted-foreground uppercase font-bold flex items-center gap-0.5">
+                                  Pendente <Sparkles className="h-2 w-2 text-orange-500" />
+                                </p>
                                 <p className="text-sm font-bold text-orange-500">
                                   R$ {cashbackTotals.pending.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                                 </p>
+                                {cashbackTotals.pending > 0 && (
+                                  <p className="text-[8px] text-muted-foreground absolute -bottom-3 left-0 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity">
+                                    Libera após o atendimento
+                                  </p>
+                                )}
                               </div>
                               <div>
                                 <p className="text-[9px] text-muted-foreground uppercase font-bold">Usado</p>
