@@ -3529,6 +3529,7 @@ export type Database = {
         Row: {
           category: string | null
           city: string | null
+          city_id: string | null
           client_name: string | null
           company_id: string | null
           country: string | null
@@ -3541,24 +3542,29 @@ export type Database = {
           end_date: string
           id: string
           internal_notes: string | null
+          latitude: number | null
           limit_clicks: number | null
           limit_impressions: number | null
+          longitude: number | null
           mobile_image_url: string | null
           name: string
           neighborhood: string | null
           open_in_new_tab: boolean | null
           position: string
           priority: number | null
+          radius_km: number | null
           rotation_weight: number | null
           sale_model: string
           start_date: string
           state: string | null
+          state_id: string | null
           status: string
           updated_at: string | null
         }
         Insert: {
           category?: string | null
           city?: string | null
+          city_id?: string | null
           client_name?: string | null
           company_id?: string | null
           country?: string | null
@@ -3571,24 +3577,29 @@ export type Database = {
           end_date: string
           id?: string
           internal_notes?: string | null
+          latitude?: number | null
           limit_clicks?: number | null
           limit_impressions?: number | null
+          longitude?: number | null
           mobile_image_url?: string | null
           name: string
           neighborhood?: string | null
           open_in_new_tab?: boolean | null
           position: string
           priority?: number | null
+          radius_km?: number | null
           rotation_weight?: number | null
           sale_model?: string
           start_date: string
           state?: string | null
+          state_id?: string | null
           status?: string
           updated_at?: string | null
         }
         Update: {
           category?: string | null
           city?: string | null
+          city_id?: string | null
           client_name?: string | null
           company_id?: string | null
           country?: string | null
@@ -3601,22 +3612,33 @@ export type Database = {
           end_date?: string
           id?: string
           internal_notes?: string | null
+          latitude?: number | null
           limit_clicks?: number | null
           limit_impressions?: number | null
+          longitude?: number | null
           mobile_image_url?: string | null
           name?: string
           neighborhood?: string | null
           open_in_new_tab?: boolean | null
           position?: string
           priority?: number | null
+          radius_km?: number | null
           rotation_weight?: number | null
           sale_model?: string
           start_date?: string
           state?: string | null
+          state_id?: string | null
           status?: string
           updated_at?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "marketplace_banners_city_id_fkey"
+            columns: ["city_id"]
+            isOneToOne: false
+            referencedRelation: "cities"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "marketplace_banners_company_id_fkey"
             columns: ["company_id"]
@@ -3650,6 +3672,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "public_company_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "marketplace_banners_state_id_fkey"
+            columns: ["state_id"]
+            isOneToOne: false
+            referencedRelation: "states"
             referencedColumns: ["id"]
           },
         ]
