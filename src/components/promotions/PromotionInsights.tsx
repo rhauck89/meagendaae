@@ -355,10 +355,10 @@ export function PromotionInsights({ isAdmin, onAction }: PromotionInsightsProps)
         },
         {
           id: 'idle_day',
-          title: 'Dia com Menos Movimento',
-          description: 'Considerando apenas dias de atendimento.',
+          title: 'Oportunidade de Agenda',
+          description: 'Estratégia para garantir previsibilidade.',
           icon: Calendar,
-          value: idleDayIdx !== -1 ? daysOfWeek[idleDayIdx] : '---',
+          value: idleDayIdx !== -1 ? `${daysOfWeek[idleDayIdx]} Especial` : '---',
           subValue: occupancyInfo,
           empty: idleDayIdx === -1,
           actions: [
