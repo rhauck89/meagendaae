@@ -2545,7 +2545,7 @@ export default function Promotions() {
         <CashbackTab />
       )}
     </div>
-
   );
 }
+
 
