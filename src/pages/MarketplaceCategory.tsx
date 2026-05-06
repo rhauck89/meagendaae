@@ -444,8 +444,8 @@ export default function MarketplaceCategory() {
                     )}
                     {company.logo_url && (
                       <div className="absolute bottom-0 left-4 translate-y-1/2">
-                        <div className="w-16 h-16 rounded-xl border-4 border-white bg-white shadow-md overflow-hidden">
-                          <img src={company.logo_url} alt={company.name} className="w-full h-full object-contain" />
+                        <div className="w-16 h-16 rounded-full border-4 border-white bg-white shadow-md overflow-hidden flex items-center justify-center">
+                          <img src={company.logo_url} alt={company.name} className="w-full h-full object-contain p-1" />
                         </div>
                       </div>
                     )}

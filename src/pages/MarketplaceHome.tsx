@@ -546,9 +546,9 @@ export default function MarketplaceHome() {
                   to={getProfileRoute(item)} 
                   className="flex-shrink-0 flex flex-col items-center gap-2 w-20 sm:w-24 group/logo"
                 >
-                  <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full border-2 border-background bg-white shadow-sm overflow-hidden group-hover/logo:border-primary/30 group-hover/logo:scale-105 transition-all">
+                  <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full border-2 border-background bg-white shadow-sm overflow-hidden flex items-center justify-center group-hover/logo:border-primary/30 group-hover/logo:scale-105 transition-all">
                     {item.logo_url ? (
-                      <img src={item.logo_url} alt={item.name} className="w-full h-full object-cover" />
+                      <img src={item.logo_url} alt={item.name} className="w-full h-full object-contain p-1" />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center bg-muted">
                         {item.item_type === 'company' ? <Building2 className="h-6 w-6 text-muted-foreground" /> : <Users className="h-6 w-6 text-muted-foreground" />}
@@ -585,10 +585,10 @@ export default function MarketplaceHome() {
           </div>
 
           <div className="relative">
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+            <div className="flex flex-wrap gap-4 justify-start sm:justify-center lg:justify-start">
               {[...featuredLarge, ...tiered.featured].slice(0, 5).map(c => (
-                <Link key={c.id} to={getProfileRoute(c)} className="group">
-                  <Card className="overflow-hidden border-border hover:shadow-xl hover:-translate-y-0.5 transition-all rounded-xl">
+                <Link key={c.id} to={getProfileRoute(c)} className="group w-[calc(50%-8px)] sm:w-[calc(33.333%-11px)] lg:w-[calc(20%-13px)] min-w-[150px]">
+                  <Card className="h-full overflow-hidden border-border hover:shadow-xl hover:-translate-y-0.5 transition-all rounded-xl flex flex-col">
                     <div className="relative aspect-[4/3] bg-muted overflow-hidden">
                       {c.cover_url || c.logo_url ? (
                         <img src={c.cover_url || c.logo_url || ''} alt={c.name} className="w-full h-full object-cover" loading="lazy" />
@@ -604,12 +604,12 @@ export default function MarketplaceHome() {
                         </div>
                       ) : null}
                       {c.logo_url && (
-                        <div className="absolute -bottom-5 left-3 w-12 h-12 rounded-full bg-white shadow-lg ring-2 ring-white overflow-hidden">
-                          <img src={c.logo_url} alt={c.name} className="w-full h-full object-cover" loading="lazy" />
+                        <div className="absolute -bottom-5 left-3 w-12 h-12 rounded-full bg-white shadow-lg ring-2 ring-white overflow-hidden flex items-center justify-center">
+                          <img src={c.logo_url} alt={c.name} className="w-full h-full object-contain p-1" loading="lazy" />
                         </div>
                       )}
                     </div>
-                    <CardContent className="p-3 pt-7">
+                    <CardContent className="p-3 pt-7 flex-grow">
                       <h3 className="font-semibold text-sm text-foreground line-clamp-1 group-hover:text-primary transition-colors">{c.name}</h3>
                       <p className="text-xs text-muted-foreground line-clamp-1 mt-0.5">
                         {[categories.find(cat => cat.businessType === c.business_type)?.title, c.city].filter(Boolean).join(' • ')}
@@ -656,14 +656,17 @@ export default function MarketplaceHome() {
             <Button variant="outline" size="sm" className="rounded-lg flex-shrink-0">Ver todos</Button>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3">
-            {[...featuredMedium, ...tiered.recommended].slice(0, 5).map(c => (
+          <div className="flex flex-wrap gap-3">
+            {[...featuredMedium, ...tiered.recommended].slice(0, 10).map(c => (
+              <Link key={c.id} to={getProfileRoute(c)} className="group w-full sm:w-[calc(50%-6px)] lg:w-[calc(33.333%-8px)] xl:w-[calc(20%-10px)]">
               <Link key={c.id} to={getProfileRoute(c)} className="group">
                 <Card className="overflow-hidden border-border hover:shadow-md transition-all rounded-xl">
                   <CardContent className="p-3 flex items-start gap-3">
-                    <div className="w-16 h-16 rounded-lg bg-muted overflow-hidden flex-shrink-0">
-                      {c.cover_url || c.logo_url ? (
-                        <img src={c.cover_url || c.logo_url || ''} alt={c.name} className="w-full h-full object-cover" loading="lazy" />
+                    <div className="w-16 h-16 rounded-full border border-border bg-white overflow-hidden flex-shrink-0 flex items-center justify-center shadow-sm">
+                      {c.logo_url ? (
+                        <img src={c.logo_url} alt={c.name} className="w-full h-full object-contain p-1" loading="lazy" />
+                      ) : c.cover_url ? (
+                        <img src={c.cover_url} alt={c.name} className="w-full h-full object-cover" loading="lazy" />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center">
                           <Scissors className="h-5 w-5 text-muted-foreground" />
