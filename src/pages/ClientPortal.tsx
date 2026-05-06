@@ -323,6 +323,17 @@ const ClientPortal = () => {
     }
   };
 
+  useEffect(() => {
+    if (summary || cashbackData) {
+      console.log('[CLIENT_CASHBACK_RUNTIME] State updated:', {
+        summaryActive: summary?.cashback_active,
+        summaryPending: summary?.cashback_pending,
+        balances: cashbackData?.balances,
+        historyCount: (cashbackData?.history || []).length
+      });
+    }
+  }, [summary, cashbackData]);
+
   // ---------- Aggregations ----------
   const cashbackByCompany = useMemo(() => {
     const map: Record<string, { available: number; pending: number }> = {};
