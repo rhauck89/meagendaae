@@ -32,7 +32,11 @@ const paymentMethodLabels: Record<string, string> = {
 const emptyForm = () => ({
   description: '', amount: '', revenue_date: format(new Date(), 'yyyy-MM-dd'),
   due_date: '', category_id: '', notes: '', status: 'received', payment_method: '',
-  client_name: '', professional_name: '', service_name: ''
+  client_name: '', professional_name: '', service_name: '',
+  is_recurring: false,
+  recurrence_frequency: 'monthly',
+  recurrence_count: '',
+  recurrence_end_date: '',
 });
 
 const FinanceRevenues = () => {
