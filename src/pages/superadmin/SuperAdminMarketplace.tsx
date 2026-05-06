@@ -898,18 +898,27 @@ const SuperAdminMarketplace = () => {
                       <TableCell>
                         <div className="flex items-center gap-3">
                           <div className="w-10 h-10 rounded bg-muted flex items-center justify-center overflow-hidden border">
-                            {f.companies?.logo_url ? (
-                              <img src={f.companies.logo_url} className="w-full h-full object-cover" />
-                            ) : f.profiles?.avatar_url ? (
+                            {f.profiles?.avatar_url ? (
                               <img src={f.profiles.avatar_url} className="w-full h-full object-cover" />
+                            ) : f.companies?.logo_url ? (
+                              <img src={f.companies.logo_url} className="w-full h-full object-cover" />
                             ) : (
-                              f.company_id ? <Building2 className="h-5 w-5 text-muted-foreground" /> : <Users className="h-5 w-5 text-muted-foreground" />
+                              f.professional_id ? <Users className="h-5 w-5 text-muted-foreground" /> : <Building2 className="h-5 w-5 text-muted-foreground" />
                             )}
                           </div>
                           <div>
-                            <p className="font-medium text-sm">{f.companies?.name || f.profiles?.full_name || 'Desconhecido'}</p>
-                            <Badge variant="outline" className="text-[9px] h-4 uppercase font-bold py-0">
-                              {f.company_id ? 'Empresa' : 'Profissional'}
+                            <div className="flex flex-col">
+                              <span className="font-medium text-sm">
+                                {f.profiles?.full_name || f.companies?.name || 'Desconhecido'}
+                              </span>
+                              {f.professional_id && f.companies?.name && (
+                                <span className="text-[10px] text-muted-foreground flex items-center gap-1">
+                                  <Building2 className="h-2 w-2" /> {f.companies.name}
+                                </span>
+                              )}
+                            </div>
+                            <Badge variant="outline" className="text-[9px] h-4 uppercase font-bold py-0 mt-1">
+                              {f.professional_id ? 'Profissional' : 'Empresa'}
                             </Badge>
                           </div>
                         </div>
@@ -921,7 +930,18 @@ const SuperAdminMarketplace = () => {
                       </TableCell>
                       <TableCell>
                         <div className="flex flex-col gap-0.5 text-xs">
-                          <span className="flex items-center gap-1"><MapPin className="h-3 w-3" /> {f.city || 'Geral'}, {f.state || 'BR'}</span>
+                          <span className="flex items-center gap-1">
+                            <MapPin className="h-3 w-3" /> 
+                            {f.cities?.name || f.city || 'Geral'}, {f.states?.uf || f.state || 'BR'}
+                          </span>
+                          {f.neighborhood && (
+                            <span className="text-[10px] text-muted-foreground pl-4">{f.neighborhood}</span>
+                          )}
+                          {f.radius_km && (
+                            <span className="text-[10px] text-primary flex items-center gap-1 pl-4">
+                              <Navigation className="h-2 w-2" /> Raio {f.radius_km}km
+                            </span>
+                          )}
                         </div>
                       </TableCell>
                       <TableCell className="text-xs">
