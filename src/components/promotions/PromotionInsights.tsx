@@ -214,31 +214,63 @@ export function PromotionInsights({ isAdmin, onAction }: PromotionInsightsProps)
         onAction('promotion', {
           insight: 'today_gap',
           title: 'Relâmpago de Hoje',
-          description: 'Aproveite nossos últimos horários disponíveis para hoje com uma condição especial.',
+          description: 'Aproveite nossos horários disponíveis para hoje com uma condição especial.',
           startDate: firstGap.date,
           endDate: firstGap.date,
           startTime: firstGap.slots[0],
           endTime: firstGap.slots[firstGap.slots.length - 1],
+          slots: gapsToday,
           professionalId: isAdmin ? (gapsToday.length === 1 ? firstGap.professionalId : null) : profile?.id,
-          messageTemplate: `Olá {{cliente_primeiro_nome}}! 👋\n\nNotamos que temos alguns horários disponíveis para HOJE na *{{empresa_nome}}*! 🎉\n\nQue tal aproveitar para dar aquele trato com um desconto especial?\n\nDisponível hoje: ${todayExamples.join(', ')}\n\nGaranta sua vaga:\n{{link_promocao}}`,
+          messageTemplate: `Olá {{cliente_primeiro_nome}}! 👋\n\nNotamos que temos alguns horários disponíveis para HOJE na *{{empresa_nome}}*! 🎉\n\nPreparamos uma condição especial para horários selecionados de hoje. Garanta seu momento pelo link.\n\nDisponível hoje: ${todayExamples.join(', ')}\n\nGaranta sua vaga:\n{{link_promocao}}`,
           singleDay: true
         });
       };
 
       const handleWeekFill = () => {
         if (totalSlotsWeek === 0) return;
-        const firstGap = gapsWeek[0];
-        const lastGap = gapsWeek[gapsWeek.length - 1];
+        const sortedGaps = [...gapsWeek].sort((a, b) => a.date.localeCompare(b.date));
+        const firstDate = sortedGaps[0].date;
+        const lastDate = sortedGaps[sortedGaps.length - 1].date;
+        
+        // Identify active days of the week based on gaps
+        const activeDays = Array.from(new Set(sortedGaps.map(d => parseISO(d.date).getDay())));
+
         onAction('promotion', {
           insight: 'week_gap',
           title: 'Agenda Especial da Semana',
           description: 'Garanta seu horário nesta semana e aproveite benefícios exclusivos.',
-          startDate: firstGap.date,
-          endDate: lastGap.date,
+          startDate: firstDate,
+          endDate: lastDate,
           startTime: '09:00',
-          endTime: '19:00',
+          endTime: '20:00',
+          validDays: activeDays,
+          slots: gapsWeek,
           professionalId: isAdmin ? null : profile?.id,
-          messageTemplate: `Olá {{cliente_primeiro_nome}}! 👋\n\nAproveite nossa agenda da semana na *{{empresa_nome}}*! 🎉\n\nPreparamos uma condição especial para você realizar seu serviço nos próximos dias.\n\nReserve agora:\n{{link_promocao}}`
+          messageTemplate: `Olá {{cliente_primeiro_nome}}! 👋\n\nAproveite nossa agenda da semana na *{{empresa_nome}}*! 🎉\n\nPreparamos uma condição especial para horários selecionados desta semana. Garanta seu horário pelo link.\n\nReserve agora:\n{{link_promocao}}`
+        });
+      };
+
+      const handleBirthdays = () => {
+        onAction('promotion', {
+          insight: 'birthdays',
+          clients: birthdayClients
+        });
+      };
+
+      const handleReactivation = () => {
+        onAction('promotion', {
+          insight: 'reactivation',
+          clients: reactivation3040
+        });
+      };
+
+      const handleIdleDay = () => {
+        if (idleDayIdx === -1) return;
+        onAction('promotion', { 
+          insight: 'idle_day',
+          validDays: [idleDayIdx],
+          startTime: '09:00',
+          endTime: '13:00'
         });
       };
 
@@ -246,7 +278,7 @@ export function PromotionInsights({ isAdmin, onAction }: PromotionInsightsProps)
         {
           id: 'gaps_today',
           title: 'Lacunas de Hoje',
-          description: totalSlotsToday > 0 ? `Você tem ${totalSlotsToday} horários livres hoje.` : 'Agenda cheia para hoje.',
+          description: totalSlotsToday > 0 ? `Temos ${totalSlotsToday} horários disponíveis hoje.` : 'Agenda completa para hoje.',
           icon: Flame,
           value: totalSlotsToday,
           subValue: totalSlotsToday === 1 ? 'horário vago' : 'horários vagos',
@@ -254,15 +286,14 @@ export function PromotionInsights({ isAdmin, onAction }: PromotionInsightsProps)
           highlight: totalSlotsToday > 0,
           empty: totalSlotsToday === 0,
           actions: [
-            { label: 'Criar Promoção Relâmpago', icon: Zap, onClick: handleRelampago, primary: true, disabled: totalSlotsToday === 0 },
-            { label: 'Pontos em Dobro', icon: Gift, onClick: () => {}, badge: 'Em breve', disabled: true },
+            { label: 'Preencher Hoje', icon: Zap, onClick: handleRelampago, primary: true, disabled: totalSlotsToday === 0 },
             { label: 'Notificar no WhatsApp', icon: MessageCircle, onClick: () => onAction('campaign', { insight: 'today_gap', type: 'whatsapp' }), disabled: totalSlotsToday === 0 }
           ]
         },
         {
           id: 'gaps_week',
           title: 'Lacunas da Semana',
-          description: `Total de ${totalSlotsWeek} horários nos próximos 7 dias.`,
+          description: `Total de ${totalSlotsWeek} horários disponíveis nos próximos 7 dias.`,
           icon: CalendarCheck,
           value: totalSlotsWeek,
           subValue: 'vagas na semana',
@@ -270,8 +301,7 @@ export function PromotionInsights({ isAdmin, onAction }: PromotionInsightsProps)
           highlight: totalSlotsWeek > 5,
           empty: totalSlotsWeek === 0,
           actions: [
-            { label: 'Preencher Agenda', icon: Tag, onClick: handleWeekFill, primary: true, disabled: totalSlotsWeek === 0 },
-            { label: 'Cashback em Dobro', icon: Wallet, onClick: () => {}, badge: 'Em breve', disabled: true } as any
+            { label: 'Preencher Agenda', icon: Tag, onClick: handleWeekFill, primary: true, disabled: totalSlotsWeek === 0 }
           ]
         },
         {
@@ -290,9 +320,9 @@ export function PromotionInsights({ isAdmin, onAction }: PromotionInsightsProps)
               primary: true 
             },
             { 
-              label: 'Nova Promoção', 
+              label: 'Criar Oferta Especial', 
               icon: Tag, 
-              onClick: () => onAction('promotion', { insight: 'reactivation', filter: 'inactive', filterValue: 30 }) 
+              onClick: handleReactivation
             }
           ]
         },
@@ -310,6 +340,11 @@ export function PromotionInsights({ isAdmin, onAction }: PromotionInsightsProps)
               icon: MessageCircle, 
               onClick: () => onAction('campaign', { insight: 'birthdays', clients: birthdayClients }),
               primary: true 
+            },
+            {
+              label: 'Criar Presente (Promo)',
+              icon: Gift,
+              onClick: handleBirthdays
             }
           ]
         },
@@ -323,14 +358,9 @@ export function PromotionInsights({ isAdmin, onAction }: PromotionInsightsProps)
           empty: idleDayIdx === -1,
           actions: [
             { 
-              label: 'Criar Promoção p/ este Dia', 
+              label: 'Criar Oferta para este Dia', 
               icon: Clock, 
-              onClick: () => onAction('promotion', { 
-                insight: 'idle_day',
-                validDays: [idleDayIdx],
-                startTime: '09:00',
-                endTime: '13:00'
-              }),
+              onClick: handleIdleDay,
               primary: true 
             }
           ]
@@ -381,7 +411,7 @@ export function PromotionInsights({ isAdmin, onAction }: PromotionInsightsProps)
               )}>
                 <insight.icon className="h-5 w-5" />
               </div>
-              {insight.empty && <Badge variant="secondary" className="text-[10px] h-5">Sem Vagas</Badge>}
+              {insight.empty && <Badge variant="secondary" className="text-[10px] h-5">Agenda Completa</Badge>}
             </div>
             <CardTitle className="text-base font-bold pt-2">{insight.title}</CardTitle>
             <p className="text-xs text-muted-foreground line-clamp-1">{insight.description}</p>
