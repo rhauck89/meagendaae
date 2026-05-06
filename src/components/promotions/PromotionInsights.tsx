@@ -230,6 +230,18 @@ export function PromotionInsights({ isAdmin, onAction }: PromotionInsightsProps)
         }
       }
 
+      console.log('[PROMOTION_INSIGHTS_LOW_DAY_DEBUG] Resultado Final:', {
+        diaEscolhido: idleDayIdx !== -1 ? daysOfWeek[idleDayIdx] : 'Nenhum',
+        minAppts: minCount,
+        occupancyInfo,
+        initialValuesSugeridos: idleDayIdx !== -1 ? {
+          insight: 'idle_day',
+          validDays: [idleDayIdx],
+          startTime: recommendedPeriod.start,
+          endTime: recommendedPeriod.end
+        } : null
+      });
+
       // 7. Profissional mais ocioso (next 7 days)
       // This is more complex as it requires availability checking
       // For this phase, let's use a simpler heuristic: professional with fewest appts in next 7 days
