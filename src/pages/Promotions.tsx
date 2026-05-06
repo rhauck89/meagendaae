@@ -1951,8 +1951,8 @@ export default function Promotions() {
                     <ChevronLeft className="h-4 w-4 mr-1" /> <span className="hidden sm:inline">Voltar</span>
                   </Button>
                 ) : (
-                  <Button variant="outline" onClick={() => isEditing ? setDialogOpen(false) : setCreationMode('choice')} className="h-10 px-4">
-                    <ChevronLeft className="h-4 w-4 mr-1" /> <span className="hidden sm:inline">Voltar</span>
+                  <Button variant="outline" onClick={() => setDialogOpen(false)} className="h-10 px-4">
+                    <ChevronLeft className="h-4 w-4 mr-1" /> <span className="hidden sm:inline">Fechar</span>
                   </Button>
                 )}
 
