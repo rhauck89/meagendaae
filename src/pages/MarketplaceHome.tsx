@@ -101,8 +101,11 @@ export default function MarketplaceHome() {
 
   useEffect(() => { 
     loadCompanies(); 
-    loadMarketplaceSettings();
   }, []);
+
+  useEffect(() => {
+    loadMarketplaceSettings();
+  }, [filterCity, filterCategory, geo.latitude, geo.longitude]);
 
   const loadMarketplaceSettings = async () => {
     try {
