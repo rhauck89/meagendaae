@@ -85,7 +85,7 @@ const FeaturedItemForm = ({ item, onSuccess, onCancel }: FeaturedItemFormProps) 
   };
 
   const handleStateChange = (stateId: string) => {
-    setFormData({ ...formData, state_id: stateId === 'null' ? null : stateId, city_id: null });
+    setFormData((prev: any) => ({ ...prev, state_id: stateId === 'null' ? null : stateId, city_id: null }));
     if (stateId !== 'null') {
       fetchCities(stateId);
     } else {
@@ -93,13 +93,70 @@ const FeaturedItemForm = ({ item, onSuccess, onCancel }: FeaturedItemFormProps) 
     }
   };
 
-  const handleCompanyChange = (companyId: string) => {
+  const handleCompanyChange = async (companyId: string) => {
     const id = companyId === 'null' ? null : companyId;
-    setFormData({ ...formData, company_id: id, professional_id: null });
-    if (id && formData.item_type === 'professional') {
-      fetchProfessionals(id);
-    } else {
+    
+    // Inicia atualização dos dados básicos
+    setFormData((prev: any) => ({ ...prev, company_id: id, professional_id: null }));
+    
+    if (!id) {
       setProfessionals([]);
+      return;
+    }
+
+    // Busca profissionais da empresa
+    if (formData.item_type === 'professional') {
+      fetchProfessionals(id);
+    }
+
+    // Auto-preenchimento de localização da empresa
+    try {
+      const { data: company, error } = await supabase
+        .from('companies')
+        .select('city, state, district, latitude, longitude, google_maps_url')
+        .eq('id', id)
+        .single();
+
+      if (company && !error) {
+        // Tenta encontrar o state_id pelo texto
+        let foundStateId = null;
+        if (company.state) {
+          const { data: stateData } = await supabase
+            .from('states')
+            .select('id')
+            .or(`name.ilike.${company.state},uf.ilike.${company.state}`)
+            .maybeSingle();
+          if (stateData) foundStateId = stateData.id;
+        }
+
+        // Tenta encontrar o city_id pelo texto
+        let foundCityId = null;
+        if (company.city && foundStateId) {
+          const { data: cityData } = await supabase
+            .from('cities')
+            .select('id')
+            .eq('state_id', foundStateId)
+            .ilike('name', company.city)
+            .maybeSingle();
+          if (cityData) foundCityId = cityData.id;
+        }
+
+        if (foundStateId) fetchCities(foundStateId);
+
+        setFormData((prev: any) => ({
+          ...prev,
+          state_id: foundStateId || prev.state_id,
+          city_id: foundCityId || prev.city_id,
+          neighborhood: company.district || prev.neighborhood,
+          latitude: company.latitude || prev.latitude,
+          longitude: company.longitude || prev.longitude,
+          internal_notes: company.google_maps_url ? `${prev.internal_notes}\nGoogle Maps: ${company.google_maps_url}`.trim() : prev.internal_notes
+        }));
+        
+        toast.info('Localização preenchida automaticamente a partir da empresa');
+      }
+    } catch (err) {
+      console.error('Erro ao buscar dados da empresa:', err);
     }
   };
 
