@@ -327,7 +327,7 @@ const FeaturedItemForm = ({ item, onSuccess, onCancel }: FeaturedItemFormProps) 
 
             <div className="col-span-1 md:col-span-2 border-t pt-4 mt-2">
               <h4 className="text-sm font-medium flex items-center gap-2 mb-4">
-                <Navigation className="h-4 w-4" />
+                <NavIcon className="h-4 w-4" />
                 Geolocalização (Opcional - Segmentação por Raio)
               </h4>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
