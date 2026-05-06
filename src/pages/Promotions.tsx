@@ -1933,11 +1933,12 @@ export default function Promotions() {
       </div>
 
       {section === 'campaigns' && (
-        <div className="space-y-6">
+        <>
           <div className="flex items-center justify-between">
             <h3 className="text-lg font-bold flex items-center gap-2">
               <Megaphone className="h-5 w-5 text-primary" /> Promoções & Ofertas
             </h3>
+
 
 
 
@@ -2539,8 +2540,9 @@ export default function Promotions() {
       />
         </TabsContent>
       </Tabs>
-        </div>
+      </>
       )}
+
 
       {section === 'cashback' && (
         <CashbackTab />
