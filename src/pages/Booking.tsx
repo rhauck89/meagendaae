@@ -1417,25 +1417,25 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
 
     if (eligibleServices.length === 0) return 0;
 
+    let points = 0;
     if (loyaltyConfig.scoring_type === 'per_service') {
-      return eligibleServices.length * (loyaltyConfig.points_per_service || 0);
+      points = eligibleServices.length * (loyaltyConfig.points_per_service || 0);
     } else if (loyaltyConfig.scoring_type === 'per_value') {
-      // Calculate based on final price of eligible services
-      // Use the final price after discounts/cashback use
-      
-      const originalSubtotal = selectedServicesData.reduce((sum, s) => sum + Number(s.price), 0);
+      // Calculate based on original price of eligible services (GROSS), matching Dashboard logic
       const eligibleSubtotal = eligibleServices.reduce((sum, s) => sum + Number(s.price), 0);
-      
-      if (originalSubtotal === 0) return 0;
-      
-      // Calculate the proportion of the price that comes from eligible services
-      const proportion = eligibleSubtotal / originalSubtotal;
-      const finalPriceForPoints = finalPrice * proportion;
-      
-      return Math.floor(finalPriceForPoints * (Number(loyaltyConfig.points_per_currency) || 0));
+      points = Math.floor(eligibleSubtotal * (Number(loyaltyConfig.points_per_currency) || 0));
     }
+
+    console.log('[BOOKING_POINTS_PREVIEW_DEBUG]', {
+      company_id: company?.id,
+      client_id: savedClientId || user?.id,
+      selected_services: selectedServices,
+      base_value: eligibleServices.reduce((sum, s) => sum + Number(s.price), 0),
+      rule: loyaltyConfig.scoring_type,
+      points_predicted: points
+    });
     
-    return 0;
+    return points;
   })();
 
   const toggleService = (id: string) => {
