@@ -221,6 +221,7 @@ const FinanceRevenues = () => {
       recurrence_frequency: r.recurrence_frequency || 'monthly',
       recurrence_count: r.recurrence_count ? String(r.recurrence_count) : '',
       recurrence_end_date: r.recurrence_end_date || '',
+      recurrence_due_day: r.recurrence_due_day ? String(r.recurrence_due_day) : '',
     });
     setOpen(true);
   };
