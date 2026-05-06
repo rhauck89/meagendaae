@@ -801,78 +801,22 @@ const Dashboard = () => {
         notes: noteParts.length > 0 ? noteParts.join(' | ') : null,
       });
 
-      // Generate cashback credits — AUTO-DETECT active cashback promotions
+      // Generate cashback credits via transactional RPC
       if (apt.client_id) {
         try {
-          const appointmentDate = format(parseISO(apt.start_time), 'yyyy-MM-dd');
+          const { data, error: cbError } = await supabase.rpc('process_appointment_cashback', {
+            p_appointment_id: apt.id
+          });
           
-          // Find all active cashback promotions for this company where date is in range
-          const { data: cashbackPromos } = await supabase
-            .from('promotions')
-            .select('id, promotion_type, discount_type, discount_value, cashback_validity_days, cashback_cumulative, service_id, service_ids, professional_filter, professional_ids')
-            .eq('company_id', companyId)
-            .eq('promotion_type', 'cashback')
-            .eq('status', 'active')
-            .lte('start_date', appointmentDate)
-            .gte('end_date', appointmentDate);
-
-          if (cashbackPromos && cashbackPromos.length > 0) {
-            const appointmentServiceIds = (apt.appointment_services || []).map((as: any) => as.service_id);
-            
-            for (const promo of cashbackPromos) {
-              // Check professional eligibility
-              if (promo.professional_filter === 'specific' && promo.professional_ids) {
-                if (!promo.professional_ids.includes(apt.professional_id)) continue;
-              }
-              
-              // Check service eligibility
-              const promoServiceIds = promo.service_ids || (promo.service_id ? [promo.service_id] : []);
-              const hasEligibleService = promoServiceIds.length === 0 || appointmentServiceIds.some((sid: string) => promoServiceIds.includes(sid));
-              if (!hasEligibleService) continue;
-
-              // Calculate cashback amount
-              let cashbackAmount = 0;
-              if (promo.discount_type === 'percentage' && promo.discount_value) {
-                cashbackAmount = netPrice * Number(promo.discount_value) / 100;
-              } else if (promo.discount_type === 'fixed_amount' && promo.discount_value) {
-                cashbackAmount = Number(promo.discount_value);
-              }
-
-              if (cashbackAmount <= 0) continue;
-
-              // Check if cumulative is allowed
-              if (!promo.cashback_cumulative) {
-                const { data: existing } = await supabase
-                  .from('client_cashback')
-                  .select('id')
-                  .eq('client_id', apt.client_id)
-                  .eq('promotion_id', promo.id)
-                  .eq('company_id', companyId)
-                  .in('status', ['active'])
-                  .limit(1);
-                if (existing && existing.length > 0) continue;
-              }
-
-              const validityDays = promo.cashback_validity_days || 30;
-              const expiresAt = new Date();
-              expiresAt.setDate(expiresAt.getDate() + validityDays);
-
-              await supabase.from('client_cashback').insert({
-                client_id: apt.client_id,
-                company_id: companyId,
-                promotion_id: promo.id,
-                appointment_id: apt.id,
-                amount: cashbackAmount,
-                status: 'active',
-                expires_at: expiresAt.toISOString(),
-              });
-
-              // Transaction is now handled automatically by database trigger on client_cashback table
-              toast.success(`Cashback de R$ ${cashbackAmount.toFixed(2)} gerado automaticamente!`);
-            }
+          const cbResult = data as { generated: boolean; amount?: number } | null;
+          
+          if (cbError) {
+            console.error('[CASHBACK_COMPLETE_APPOINTMENT_DEBUG] RPC error:', cbError);
+          } else if (cbResult?.generated) {
+            toast.success(`Cashback de R$ ${Number(cbResult.amount).toFixed(2)} gerado automaticamente!`);
           }
         } catch (cashbackErr) {
-          console.error('[Dashboard] Cashback auto-generation error:', cashbackErr);
+          console.error('[CASHBACK_COMPLETE_APPOINTMENT_DEBUG] Unexpected error:', cashbackErr);
         }
       }
 
