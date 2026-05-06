@@ -659,7 +659,6 @@ export default function MarketplaceHome() {
           <div className="flex flex-wrap gap-3">
             {[...featuredMedium, ...tiered.recommended].slice(0, 10).map(c => (
               <Link key={c.id} to={getProfileRoute(c)} className="group w-full sm:w-[calc(50%-6px)] lg:w-[calc(33.333%-8px)] xl:w-[calc(20%-10px)]">
-              <Link key={c.id} to={getProfileRoute(c)} className="group">
                 <Card className="overflow-hidden border-border hover:shadow-md transition-all rounded-xl">
                   <CardContent className="p-3 flex items-start gap-3">
                     <div className="w-16 h-16 rounded-full border border-border bg-white overflow-hidden flex-shrink-0 flex items-center justify-center shadow-sm">
