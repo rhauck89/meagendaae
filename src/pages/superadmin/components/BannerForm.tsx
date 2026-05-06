@@ -6,7 +6,20 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
-import { Loader2, Upload, X, ImageIcon, Calendar as CalendarIcon, Link as LinkIcon, MapPin, Target, Settings, Building2 } from 'lucide-react';
+import { 
+  Loader2, 
+  Upload, 
+  X, 
+  ImageIcon, 
+  Calendar as CalendarIcon, 
+  Link as LinkIcon, 
+  MapPin, 
+  Target, 
+  Settings, 
+  Building2, 
+  ExternalLink,
+  Navigation as NavIcon
+} from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { Card, CardContent } from '@/components/ui/card';
@@ -25,6 +38,8 @@ const BannerForm = ({ banner, onSuccess, onCancel }: BannerFormProps) => {
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState<string | null>(null);
   const [companies, setCompanies] = useState<any[]>([]);
+  const [states, setStates] = useState<any[]>([]);
+  const [cities, setCities] = useState<any[]>([]);
   
   const [formData, setFormData] = useState<any>({
     name: banner?.name || '',
@@ -38,6 +53,8 @@ const BannerForm = ({ banner, onSuccess, onCancel }: BannerFormProps) => {
     country: banner?.country || 'Brasil',
     state: banner?.state || '',
     city: banner?.city || '',
+    state_id: banner?.state_id || null,
+    city_id: banner?.city_id || null,
     neighborhood: banner?.neighborhood || '',
     category: banner?.category || '',
     start_date: banner?.start_date ? new Date(banner.start_date).toISOString().slice(0, 16) : format(new Date(), "yyyy-MM-dd'T'HH:mm"),
@@ -49,6 +66,9 @@ const BannerForm = ({ banner, onSuccess, onCancel }: BannerFormProps) => {
     rotation_weight: banner?.rotation_weight || 1,
     status: banner?.status || 'draft',
     internal_notes: banner?.internal_notes || '',
+    latitude: banner?.latitude || '',
+    longitude: banner?.longitude || '',
+    radius_km: banner?.radius_km || '',
   });
 
   useEffect(() => {
