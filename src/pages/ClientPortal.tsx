@@ -219,11 +219,11 @@ const ClientPortal = () => {
         supabase.from('loyalty_redemptions').select('id, redemption_code, status, created_at, total_points, reward_id, company_id, client_id').eq('user_id', user?.id).order('created_at', { ascending: false }).limit(50)
       ]);
 
-      console.log('[CLIENT_PORTAL_DEBUG] summaryRes:', summaryRes.data);
-      console.log('[CLIENT_PORTAL_DEBUG] apptsRes:', apptsRes.data);
-      console.log('[CLIENT_PORTAL_DEBUG] pointsRes:', pointsRes.data);
-      console.log('[CLIENT_PORTAL_DEBUG] cashbackRes:', cashbackRes.data);
-      console.log('[CLIENT_PORTAL_DEBUG] clientsRes:', clientsRes.data);
+      console.log('[CLIENT_CASHBACK_DEBUG] summaryRes:', summaryRes.data);
+      console.log('[CLIENT_CASHBACK_DEBUG] apptsRes count:', (apptsRes.data || []).length);
+      console.log('[CLIENT_CASHBACK_DEBUG] pointsRes:', pointsRes.data);
+      console.log('[CLIENT_CASHBACK_DEBUG] cashbackRes:', cashbackRes.data);
+      console.log('[CLIENT_CASHBACK_DEBUG] clientsRes:', clientsRes.data);
 
       const summaryData = summaryRes.data as any;
       const appointmentsData = (apptsRes.data || []) as any[];
@@ -653,8 +653,13 @@ const ClientPortal = () => {
                   className="w-56 shrink-0 rounded-2xl bg-card border p-4 text-left shadow-sm active:scale-95 transition-transform"
                 >
                   <Wallet className="h-6 w-6 mb-3 text-green-600" />
-                  <p className="text-3xl font-bold text-green-600">R$ {totalCashback.toFixed(2)}</p>
-                  <p className="text-xs text-muted-foreground">Minha Carteira</p>
+                  <div className="flex flex-col items-center">
+                    <p className="text-3xl font-bold text-green-600">R$ {totalCashback.toFixed(2)}</p>
+                    {pendingCashback > 0 && (
+                      <p className="text-[10px] text-orange-500 font-bold mt-0.5">+ R$ {pendingCashback.toFixed(2)} pendente</p>
+                    )}
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">Minha Carteira</p>
                   <p className="text-[11px] mt-2 flex items-center gap-1 text-muted-foreground">
                     Ver detalhes <ArrowRight className="h-3 w-3" />
                   </p>
@@ -969,11 +974,18 @@ const ClientPortal = () => {
                                   + R$ {cashbackTotals.gained.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                                 </p>
                               </div>
-                              <div>
-                                <p className="text-[9px] text-muted-foreground uppercase font-bold">Pendente</p>
+                              <div className="relative group">
+                                <p className="text-[9px] text-muted-foreground uppercase font-bold flex items-center gap-0.5">
+                                  Pendente <Sparkles className="h-2 w-2 text-orange-500" />
+                                </p>
                                 <p className="text-sm font-bold text-orange-500">
                                   R$ {cashbackTotals.pending.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                                 </p>
+                                {cashbackTotals.pending > 0 && (
+                                  <p className="text-[8px] text-muted-foreground absolute -bottom-3 left-0 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity">
+                                    Libera após o atendimento
+                                  </p>
+                                )}
                               </div>
                               <div>
                                 <p className="text-[9px] text-muted-foreground uppercase font-bold">Usado</p>
