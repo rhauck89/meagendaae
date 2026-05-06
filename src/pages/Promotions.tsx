@@ -549,11 +549,18 @@ export default function Promotions() {
         break;
       case 'idle_day':
         const dayNames = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
-        const dayName = insight.data?.validDays?.[0] !== undefined ? dayNames[insight.data.validDays[0]] : 'Semana';
+        const dayIdx = insight.data?.validDays?.[0];
+        const dayName = dayIdx !== undefined ? dayNames[dayIdx] : 'Semana';
         setTitle(`Especial de ${dayName} ✨`);
         setDiscountType('percentage');
         setDiscountValue('15');
         setUseBusinessHours(false);
+        if (dayIdx !== undefined) {
+          setValidDays([dayIdx]);
+        }
+        if (insight.data?.startTime) setStartTime(insight.data.startTime);
+        if (insight.data?.endTime) setEndTime(insight.data.endTime);
+        
         setDescription(`Promoção exclusiva para impulsionar o movimento na ${dayName}.`);
         setMessageTemplate(`Olá {{cliente_primeiro_nome}}! 👋\n\nPreparamos um desconto especial de 15% para agendamentos realizados em qualquer ${dayName}! 🎉\n\nGaranta sua vaga agora: {{link_promocao}}`);
         break;
