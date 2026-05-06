@@ -345,6 +345,12 @@ const FinanceRevenues = () => {
                         <Input type="date" value={form.recurrence_end_date} onChange={e => setForm(f => ({ ...f, recurrence_end_date: e.target.value }))} />
                       </div>
                     </div>
+                    {['monthly', 'bimonthly', 'trimonthly', 'semiannual', 'annual'].includes(form.recurrence_frequency) && (
+                      <div>
+                        <Label>Dia de vencimento (opcional)</Label>
+                        <Input type="number" min="1" max="31" placeholder="Ex: 10" value={form.recurrence_due_day} onChange={e => setForm(f => ({ ...f, recurrence_due_day: e.target.value }))} />
+                      </div>
+                    )}
                     <p className="text-[10px] text-muted-foreground italic">As receitas futuras serão criadas com status "Pendente".</p>
                   </div>
                 )}
