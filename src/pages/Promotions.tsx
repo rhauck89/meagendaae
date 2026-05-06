@@ -2528,6 +2528,7 @@ export default function Promotions() {
         professionals={professionals}
         availableSlots={availableSlotsForShare}
         primaryColor={companyColor}
+      />
       <FeatureIntroModal
         featureKey="promotions"
         open={showIntro}
@@ -2537,6 +2538,7 @@ export default function Promotions() {
       </Tabs>
       </>
       )}
+
 
 
       {section === 'cashback' && (
