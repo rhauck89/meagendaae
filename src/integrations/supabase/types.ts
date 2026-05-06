@@ -7540,6 +7540,7 @@ export type Database = {
         }
         Returns: string
       }
+      debug_client_portal_data: { Args: { p_user_id: string }; Returns: Json }
       delete_user_completely: {
         Args: { target_user_id: string }
         Returns: undefined
