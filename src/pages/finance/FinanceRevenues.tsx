@@ -37,6 +37,7 @@ const emptyForm = () => ({
   recurrence_frequency: 'monthly',
   recurrence_count: '',
   recurrence_end_date: '',
+  recurrence_due_day: '',
 });
 
 const FinanceRevenues = () => {
