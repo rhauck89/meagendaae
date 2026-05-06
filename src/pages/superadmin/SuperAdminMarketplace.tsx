@@ -33,7 +33,8 @@ import {
   Clock,
   CheckCircle2,
   TrendingUp,
-  AlertCircle
+  AlertCircle,
+  Navigation as NavIcon
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { format, differenceInDays, addDays } from 'date-fns';
