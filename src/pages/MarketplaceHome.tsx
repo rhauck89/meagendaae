@@ -139,9 +139,25 @@ export default function MarketplaceHome() {
       
       if (settingsRes.data) setHomeSettings(settingsRes.data);
       if (bannersRes.data) setBanners(bannersRes.data);
-      if (largeRes.data) setFeaturedLarge(largeRes.data);
-      if (mediumRes.data) setFeaturedMedium(mediumRes.data);
-      if (logosRes.data) setFeaturedLogos(logosRes.data);
+      
+      const fLarge = largeRes.data || [];
+      const fMedium = mediumRes.data || [];
+      const fLogos = logosRes.data || [];
+
+      console.log('[MARKETPLACE_FEATURED_DEBUG] Destaques carregados:', {
+        featured_large: fLarge.length,
+        featured_medium: fMedium.length,
+        featured_logo: fLogos.length,
+        items: {
+          large: fLarge.map((i: any) => i.name),
+          medium: fMedium.map((i: any) => i.name),
+          logos: fLogos.map((i: any) => i.name)
+        }
+      });
+
+      setFeaturedLarge(fLarge);
+      setFeaturedMedium(fMedium);
+      setFeaturedLogos(fLogos);
     } catch (err) {
       console.error('[MARKETPLACE] Error loading settings:', err);
     }
@@ -275,8 +291,8 @@ export default function MarketplaceHome() {
 
   const tiered = useMemo(() => {
     const featuredIds = new Set([
-      ...featuredLarge.map(f => f.company_id || f.professional_id),
-      ...featuredMedium.map(f => f.company_id || f.professional_id)
+      ...featuredLarge.map(f => f.company_id || f.id),
+      ...featuredMedium.map(f => f.company_id || f.id)
     ]);
 
     const featured: MarketCompany[] = [];
