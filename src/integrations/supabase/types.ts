@@ -1046,6 +1046,35 @@ export type Database = {
         }
         Relationships: []
       }
+      cities: {
+        Row: {
+          created_at: string | null
+          id: string
+          name: string
+          state_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          name: string
+          state_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          name?: string
+          state_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cities_state_id_fkey"
+            columns: ["state_id"]
+            isOneToOne: false
+            referencedRelation: "states"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       client_cashback: {
         Row: {
           amount: number
@@ -3629,6 +3658,7 @@ export type Database = {
         Row: {
           category: string | null
           city: string | null
+          city_id: string | null
           company_id: string | null
           country: string | null
           created_at: string | null
@@ -3638,20 +3668,25 @@ export type Database = {
           id: string
           internal_notes: string | null
           item_type: string
+          latitude: number | null
+          longitude: number | null
           neighborhood: string | null
           position: string
           priority: number | null
           professional_id: string | null
+          radius_km: number | null
           rotation_weight: number | null
           start_at: string | null
           start_date: string
           state: string | null
+          state_id: string | null
           status: string
           updated_at: string | null
         }
         Insert: {
           category?: string | null
           city?: string | null
+          city_id?: string | null
           company_id?: string | null
           country?: string | null
           created_at?: string | null
@@ -3661,20 +3696,25 @@ export type Database = {
           id?: string
           internal_notes?: string | null
           item_type: string
+          latitude?: number | null
+          longitude?: number | null
           neighborhood?: string | null
           position: string
           priority?: number | null
           professional_id?: string | null
+          radius_km?: number | null
           rotation_weight?: number | null
           start_at?: string | null
           start_date: string
           state?: string | null
+          state_id?: string | null
           status?: string
           updated_at?: string | null
         }
         Update: {
           category?: string | null
           city?: string | null
+          city_id?: string | null
           company_id?: string | null
           country?: string | null
           created_at?: string | null
@@ -3684,18 +3724,29 @@ export type Database = {
           id?: string
           internal_notes?: string | null
           item_type?: string
+          latitude?: number | null
+          longitude?: number | null
           neighborhood?: string | null
           position?: string
           priority?: number | null
           professional_id?: string | null
+          radius_km?: number | null
           rotation_weight?: number | null
           start_at?: string | null
           start_date?: string
           state?: string | null
+          state_id?: string | null
           status?: string
           updated_at?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "marketplace_featured_items_city_id_fkey"
+            columns: ["city_id"]
+            isOneToOne: false
+            referencedRelation: "cities"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "marketplace_featured_items_company_id_fkey"
             columns: ["company_id"]
@@ -3743,6 +3794,13 @@ export type Database = {
             columns: ["professional_id"]
             isOneToOne: false
             referencedRelation: "public_professionals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "marketplace_featured_items_state_id_fkey"
+            columns: ["state_id"]
+            isOneToOne: false
+            referencedRelation: "states"
             referencedColumns: ["id"]
           },
         ]
@@ -5721,6 +5779,27 @@ export type Database = {
           },
         ]
       }
+      states: {
+        Row: {
+          created_at: string | null
+          id: string
+          name: string
+          uf: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          name: string
+          uf: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          name?: string
+          uf?: string
+        }
+        Relationships: []
+      }
       subcategories: {
         Row: {
           category_id: string
@@ -7597,27 +7676,51 @@ export type Database = {
           r_status: string
         }[]
       }
-      get_marketplace_featured_items: {
-        Args: { p_city?: string; p_highlight_type: string; p_limit?: number }
-        Returns: {
-          average_rating: number
-          business_type: string
-          city: string
-          cover_url: string
-          id: string
-          is_manual: boolean
-          item_id: string
-          item_type: string
-          latitude: number
-          logo_url: string
-          longitude: number
-          name: string
-          priority: number
-          review_count: number
-          slug: string
-          state: string
-        }[]
-      }
+      get_marketplace_featured_items:
+        | {
+            Args: {
+              p_category?: string
+              p_city_id?: string
+              p_highlight_type: string
+              p_state_id?: string
+              p_user_lat?: number
+              p_user_lon?: number
+            }
+            Returns: {
+              company_id: string
+              highlight_type: string
+              id: string
+              item_details: Json
+              item_type: string
+              professional_id: string
+              relevance_score: number
+            }[]
+          }
+        | {
+            Args: {
+              p_city?: string
+              p_highlight_type: string
+              p_limit?: number
+            }
+            Returns: {
+              average_rating: number
+              business_type: string
+              city: string
+              cover_url: string
+              id: string
+              is_manual: boolean
+              item_id: string
+              item_type: string
+              latitude: number
+              logo_url: string
+              longitude: number
+              name: string
+              priority: number
+              review_count: number
+              slug: string
+              state: string
+            }[]
+          }
       get_my_company_id: { Args: never; Returns: string }
       get_my_profile_id: { Args: never; Returns: string }
       get_or_create_revenue_category: {
