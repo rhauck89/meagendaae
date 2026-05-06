@@ -107,6 +107,8 @@ interface PromotionInsight {
   buttonLabel?: string;
   icon: any;
   data?: any;
+  isSlotSpecific?: boolean;
+  selectedSlots?: { date: string; time: string; professionalId: string }[];
 }
 
 const MESSAGE_TAGS_TRADITIONAL = [
