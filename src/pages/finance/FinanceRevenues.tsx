@@ -133,6 +133,7 @@ const FinanceRevenues = () => {
         const occurrences: any[] = [];
         const count = form.recurrence_count ? parseInt(form.recurrence_count) : (form.recurrence_end_date ? 500 : 1); // Safety limit 500
         const endDate = form.recurrence_end_date ? parseISO(form.recurrence_end_date) : null;
+        const dueDay = form.recurrence_due_day ? parseInt(form.recurrence_due_day) : null;
         
         let currentDate = parseISO(form.revenue_date);
         let currentDueDate = form.due_date ? parseISO(form.due_date) : null;
@@ -140,13 +141,28 @@ const FinanceRevenues = () => {
         for (let i = 0; i < count; i++) {
           if (endDate && isAfter(currentDate, endDate)) break;
 
+          let entryDate = currentDate;
+          let entryDueDate = currentDueDate;
+
+          // Adjust to due day if specified and frequency is monthly+
+          if (dueDay && ['monthly', 'bimonthly', 'trimonthly', 'semiannual', 'annual'].includes(form.recurrence_frequency)) {
+            // Only adjust from the second occurrence onwards to respect the first pick? 
+            // Or adjust all? User example: "todo dia 10". 
+            // I'll adjust all occurrences to avoid confusion.
+            entryDate = setDate(entryDate, dueDay);
+            if (entryDueDate) entryDueDate = setDate(entryDueDate, dueDay);
+          }
+
           occurrences.push({
             ...basePayload,
-            revenue_date: format(currentDate, 'yyyy-MM-dd'),
-            due_date: currentDueDate ? format(currentDueDate, 'yyyy-MM-dd') : null,
+            revenue_date: format(entryDate, 'yyyy-MM-dd'),
+            due_date: entryDueDate ? format(entryDueDate, 'yyyy-MM-dd') : null,
             status: i === 0 ? form.status : 'pending',
             is_recurring: true,
             recurring_group_id: groupId,
+            recurrence_frequency: form.recurrence_frequency,
+            recurrence_count: form.recurrence_count ? parseInt(form.recurrence_count) : null,
+            recurrence_end_date: form.recurrence_end_date || null,
           });
 
           // Calculate next dates
