@@ -804,9 +804,11 @@ const Dashboard = () => {
       // Generate cashback credits via transactional RPC
       if (apt.client_id) {
         try {
-          const { data: cbResult, error: cbError } = await supabase.rpc('process_appointment_cashback', {
+          const { data, error: cbError } = await supabase.rpc('process_appointment_cashback', {
             p_appointment_id: apt.id
           });
+          
+          const cbResult = data as { generated: boolean; amount?: number } | null;
           
           if (cbError) {
             console.error('[CASHBACK_COMPLETE_APPOINTMENT_DEBUG] RPC error:', cbError);
