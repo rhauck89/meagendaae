@@ -67,6 +67,8 @@ const RescheduleAppointment = () => {
       const dur = services.reduce((s: number, as_: any) => s + (as_.service?.duration_minutes || as_.duration_minutes || 0), 0);
       setTotalDuration(dur);
 
+      const companyId = apt.company?.id || apt.company_id;
+
       // Fetch business hours, exceptions & WhatsApp numbers
       const [bhRes, exRes, phRes, profWRes, compWRes] = await Promise.all([
         supabase.from('business_hours').select('*').eq('company_id', companyId),
