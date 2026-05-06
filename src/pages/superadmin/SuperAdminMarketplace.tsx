@@ -940,7 +940,7 @@ const SuperAdminMarketplace = () => {
                           )}
                           {f.radius_km && (
                             <span className="text-[10px] text-primary flex items-center gap-1 pl-4">
-                              <Navigation className="h-2 w-2" /> Raio {f.radius_km}km
+                              <NavIcon className="h-2 w-2" /> Raio {f.radius_km}km
                             </span>
                           )}
                         </div>
