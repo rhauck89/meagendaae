@@ -1687,8 +1687,66 @@ export default function Promotions() {
     </div>
   );
 
-  const renderStep2 = () => (
-    <div className="space-y-6">
+   const renderStep2 = () => {
+     if (isSlotSpecific && selectedSlots.length > 0) {
+       return (
+         <div className="space-y-6">
+           <div className="space-y-4 p-5 rounded-xl border bg-primary/5 ring-1 ring-primary/20">
+             <div className="flex items-center gap-3">
+               <div className="bg-primary/10 p-2 rounded-lg">
+                 <CalendarCheck className="h-5 w-5 text-primary" />
+               </div>
+               <div>
+                 <h4 className="font-bold text-sm">Horários Selecionados</h4>
+                 <p className="text-xs text-muted-foreground text-pretty">Esta promoção será válida exclusivamente para os horários selecionados através do assistente.</p>
+               </div>
+             </div>
+
+             <ScrollArea className="h-[200px] border rounded-lg bg-background p-4 shadow-inner">
+               <div className="space-y-4">
+                 {(() => {
+                   const groupedMap = new Map<string, string[]>();
+                   selectedSlots.forEach(s => {
+                     if (!groupedMap.has(s.date)) groupedMap.set(s.date, []);
+                     groupedMap.get(s.date)!.push(s.time);
+                   });
+                   
+                   return Array.from(groupedMap.entries())
+                     .sort((a, b) => a[0].localeCompare(b[0]))
+                     .map(([date, times]) => (
+                       <div key={date} className="space-y-2">
+                         <div className="flex items-center gap-2">
+                           <div className="h-1.5 w-1.5 rounded-full bg-primary" />
+                           <p className="text-[10px] font-black uppercase text-foreground/70 tracking-tight">
+                             {format(parseISO(date), "EEEE, d 'de' MMM", { locale: ptBR })}
+                           </p>
+                         </div>
+                         <div className="flex flex-wrap gap-1.5 pl-3.5">
+                           {times.sort().map((t, idx) => (
+                             <Badge key={`${date}-${t}-${idx}`} variant="secondary" className="text-[10px] font-bold h-6 px-2 bg-muted/50 border-transparent">
+                               {t.substring(0, 5)}
+                             </Badge>
+                           ))}
+                         </div>
+                       </div>
+                     ));
+                 })()}
+               </div>
+             </ScrollArea>
+             
+             <div className="p-3 rounded-lg bg-amber-50 border border-amber-100 flex gap-2">
+               <Zap className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
+               <p className="text-[10px] text-amber-800 leading-normal">
+                 <strong>Agenda Fixa:</strong> Como você escolheu horários específicos, o intervalo de datas e horários foi definido automaticamente e não pode ser editado manualmente nesta tela.
+               </p>
+             </div>
+           </div>
+         </div>
+       );
+     }
+
+     return (
+       <div className="space-y-6">
       <div className="space-y-4 p-4 rounded-lg border bg-muted/30">
         <h4 className="font-bold text-sm flex items-center gap-2">
           <CalendarCheck className="h-4 w-4 text-primary" />
