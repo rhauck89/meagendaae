@@ -1397,11 +1397,35 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
   const finalPrice = Math.max(0, totalPrice - cashbackDiscount);
 
   const predictedLoyaltyPoints = (() => {
-    if (!loyaltyConfig || !loyaltyConfig.enabled || !selectedProfessional || selectedServices.length === 0) return 0;
+    const debug = (msg: string, extra = {}) => {
+      console.log(`[BOOKING_POINTS_PREVIEW_RENDER_DEBUG] ${msg}`, {
+        step,
+        loyaltyConfig: !!loyaltyConfig,
+        loyaltyEnabled: loyaltyConfig?.enabled,
+        selectedProfessional,
+        selectedServices: selectedServices.length,
+        ...extra
+      });
+    };
+
+    if (!loyaltyConfig || !loyaltyConfig.enabled || !selectedProfessional || selectedServices.length === 0) {
+      debug('Early return 0', { 
+        config: !!loyaltyConfig, 
+        enabled: loyaltyConfig?.enabled,
+        prof: !!selectedProfessional,
+        services: selectedServices.length 
+      });
+      return 0;
+    }
     
     // Check professional eligibility
     if (loyaltyConfig.participating_professionals === 'specific' && loyaltyConfig.specific_professional_ids) {
-      if (!loyaltyConfig.specific_professional_ids.includes(selectedProfessional)) return 0;
+      const isEligible = Array.isArray(loyaltyConfig.specific_professional_ids) && 
+                         loyaltyConfig.specific_professional_ids.includes(selectedProfessional);
+      if (!isEligible) {
+        debug('Professional not eligible', { selectedProfessional, allowed: loyaltyConfig.specific_professional_ids });
+        return 0;
+      }
     }
 
     const selectedServicesData = services.filter(s => selectedServices.includes(s.id));
@@ -1409,32 +1433,31 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
     // Check service eligibility
     const eligibleServices = selectedServicesData.filter(s => {
       if (loyaltyConfig.participating_services === 'all') return true;
-      if (loyaltyConfig.participating_services === 'specific' && loyaltyConfig.specific_service_ids) {
-        return (loyaltyConfig.specific_service_ids as string[]).includes(s.id);
+      if (loyaltyConfig.participating_services === 'specific' && Array.isArray(loyaltyConfig.specific_service_ids)) {
+        return loyaltyConfig.specific_service_ids.includes(s.id);
       }
       return false;
     });
 
-    if (eligibleServices.length === 0) return 0;
+    if (eligibleServices.length === 0) {
+      debug('No eligible services found', { 
+        totalSelected: selectedServicesData.length,
+        participating: loyaltyConfig.participating_services
+      });
+      return 0;
+    }
 
     let points = 0;
     if (loyaltyConfig.scoring_type === 'per_service') {
-      points = eligibleServices.length * (loyaltyConfig.points_per_service || 0);
+      points = eligibleServices.length * (Number(loyaltyConfig.points_per_service) || 0);
     } else if (loyaltyConfig.scoring_type === 'per_value') {
-      // Calculate based on original price of eligible services (GROSS), matching Dashboard logic
       const eligibleSubtotal = eligibleServices.reduce((sum, s) => sum + Number(s.price), 0);
-      points = Math.floor(eligibleSubtotal * (Number(loyaltyConfig.points_per_currency) || 0));
+      const pointsPerCurrency = Number(loyaltyConfig.points_per_currency) || 0;
+      points = Math.floor(eligibleSubtotal * pointsPerCurrency);
+      debug('Calculating by value', { eligibleSubtotal, pointsPerCurrency, points });
     }
 
-    console.log('[BOOKING_POINTS_PREVIEW_DEBUG]', {
-      company_id: company?.id,
-      client_id: savedClientId || user?.id,
-      selected_services: selectedServices,
-      base_value: eligibleServices.reduce((sum, s) => sum + Number(s.price), 0),
-      rule: loyaltyConfig.scoring_type,
-      points_predicted: points
-    });
-    
+    debug('Calculation complete', { points_predicted: points });
     return points;
   })();
 
@@ -1547,7 +1570,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
     if (professionals.length === 1 && selectedProfessional !== professionals[0].id) {
       setSelectedProfessional(professionals[0].id);
       fetchProfessionalHours(professionals[0].id);
-      if (step === 'professional') setStep(preselected.isActive() && selectedDate && selectedTime ? 'confirm' : 'datetime');
+      if (step === 'professional') setStep(preselected.isActive() && selectedDate && selectedTime ? (hasBenefitsActive ? 'benefits' : 'confirm') : 'datetime');
     }
   }, [professionals, selectedProfessional, step]);
 
@@ -2564,7 +2587,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                   </div>
                 </div>
                 <Button
-                  onClick={() => setStep('confirm')}
+                  onClick={() => setStep(hasBenefitsActive ? 'benefits' : 'confirm')}
                   className="w-full rounded-full py-8 font-black text-lg shadow-2xl transition-all hover:scale-[1.02] active:scale-[0.98] group"
                   style={{ background: `linear-gradient(135deg, ${T.accent}, #F4C752)`, color: '#000' }}
                 >
@@ -2794,7 +2817,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                             key={slot}
                             onClick={() => { 
                               setSelectedTime(slot); 
-                              setStep('confirm');
+                              setStep(hasBenefitsActive ? 'benefits' : 'confirm');
                             }}
                             className="py-5 rounded-3xl text-sm font-black transition-all duration-300 border-2 relative overflow-hidden"
                             style={{ 
@@ -3031,6 +3054,19 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
               </div>
 
               {/* Benefits Info */}
+              {(() => {
+                if (step === 'confirm') {
+                  console.log('[BOOKING_POINTS_PREVIEW_RENDER_DEBUG]', {
+                    predictedLoyaltyPoints,
+                    cashbackEarnAmount,
+                    useCashback,
+                    hasBenefitsActive,
+                    rendering_benefits_block: (cashbackEarnAmount > 0 || predictedLoyaltyPoints > 0 || useCashback)
+                  });
+                }
+                return null;
+              })()}
+              
               {(cashbackEarnAmount > 0 || predictedLoyaltyPoints > 0 || useCashback) && (
                 <div className="space-y-3">
                   {(cashbackEarnAmount > 0 || predictedLoyaltyPoints > 0) && (
