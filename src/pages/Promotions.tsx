@@ -1881,11 +1881,40 @@ export default function Promotions() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-display font-bold">Promoções</h2>
-          <p className="text-muted-foreground">Crie campanhas e preencha horários vazios</p>
+          <h2 className="text-2xl font-display font-bold">Marketing & Promoções</h2>
+          <p className="text-muted-foreground">Crie campanhas, preencha horários e gerencie cashback</p>
         </div>
+
+        <div className="flex p-1 bg-muted rounded-lg w-fit border">
+          <button 
+            onClick={() => handleSectionChange('campaigns')}
+            className={cn(
+              "px-4 py-2 text-sm font-medium rounded-md transition-all flex items-center gap-2",
+              section === 'campaigns' ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            <Megaphone className="h-4 w-4" /> Campanhas
+          </button>
+          <button 
+            onClick={() => handleSectionChange('cashback')}
+            className={cn(
+              "px-4 py-2 text-sm font-medium rounded-md transition-all flex items-center gap-2",
+              section === 'cashback' ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            <Wallet className="h-4 w-4" /> Cashback
+          </button>
+        </div>
+      </div>
+
+      {section === 'campaigns' ? (
+        <>
+          <div className="flex items-center justify-between">
+            <h3 className="text-lg font-bold flex items-center gap-2">
+              <Sparkles className="h-5 w-5 text-primary" /> Promoções & Ofertas
+            </h3>
         <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) resetForm(); }}>
           <DialogTrigger asChild>
             <Button onClick={() => { resetForm(); setIsEditing(false); setCreationMode('manual'); }}>
