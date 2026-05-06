@@ -231,27 +231,10 @@ export function PromotionInsights({ isAdmin, onAction }: PromotionInsightsProps)
 
       const handleWeekFill = () => {
         if (totalSlotsWeek === 0) return;
-        const sortedGaps = [...gapsWeek].sort((a, b) => a.date.localeCompare(b.date));
-        const firstDate = sortedGaps[0].date;
-        const lastDate = sortedGaps[sortedGaps.length - 1].date;
-        
-        // Identify active days of the week based on gaps
-        const activeDays = Array.from(new Set(sortedGaps.map(d => parseISO(d.date).getDay())));
-
-        onAction('promotion', {
-          insight: 'week_gap',
-          title: 'Agenda Especial da Semana',
-          description: 'Garanta seu horário nesta semana e aproveite benefícios exclusivos.',
-          startDate: firstDate,
-          endDate: lastDate,
-          startTime: '09:00',
-          endTime: '20:00',
-          validDays: activeDays,
-          slots: gapsWeek,
-          professionalId: isAdmin ? null : profile?.id,
-          messageTemplate: `Olá {{cliente_primeiro_nome}}! 👋\n\nAproveite nossa agenda da semana na *{{empresa_nome}}*! 🎉\n\nPreparamos uma condição especial para horários selecionados desta semana. Garanta seu horário pelo link.\n\nReserve agora:\n{{link_promocao}}`
-        });
+        setWeeklyPickerOpen(true);
       };
+
+      setWeekGaps(gapsWeek);
 
       const handleBirthdays = () => {
         onAction('promotion', {
