@@ -401,20 +401,89 @@ const BannerForm = ({ banner, onSuccess, onCancel }: BannerFormProps) => {
         <TabsContent value="segmentation" className="space-y-4 pt-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="state">Estado (UF)</Label>
-              <Input id="state" value={formData.state} onChange={e => setFormData({...formData, state: e.target.value})} placeholder="Ex: SP" />
+              <Label>País</Label>
+              <Input value={formData.country} onChange={e => setFormData({...formData, country: e.target.value})} />
             </div>
+            
             <div className="space-y-2">
-              <Label htmlFor="city">Cidade</Label>
-              <Input id="city" value={formData.city} onChange={e => setFormData({...formData, city: e.target.value})} placeholder="Ex: São Paulo" />
+              <Label>Estado (Brasil)</Label>
+              <Select 
+                value={formData.state_id || 'null'} 
+                onValueChange={handleStateChange}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione o estado" />
+                </SelectTrigger>
+                <SelectContent className="max-h-60">
+                  <SelectItem value="null">Nacional (Todos)</SelectItem>
+                  {states.map(s => <SelectItem key={s.id} value={s.id}>{s.name} ({s.uf})</SelectItem>)}
+                </SelectContent>
+              </Select>
             </div>
+
             <div className="space-y-2">
-              <Label htmlFor="neighborhood">Bairro</Label>
+              <Label>Cidade</Label>
+              <Select 
+                value={formData.city_id || 'null'} 
+                onValueChange={handleCityChange}
+                disabled={!formData.state_id}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder={!formData.state_id ? "Selecione o estado primeiro" : "Selecione a cidade"} />
+                </SelectTrigger>
+                <SelectContent className="max-h-60">
+                  <SelectItem value="null">Todas as cidades</SelectItem>
+                  {cities.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="neighborhood">Bairro (Campo Livre)</Label>
               <Input id="neighborhood" value={formData.neighborhood} onChange={e => setFormData({...formData, neighborhood: e.target.value})} placeholder="Ex: Jardins" />
             </div>
+
             <div className="space-y-2">
-              <Label htmlFor="category">Categoria</Label>
+              <Label htmlFor="category">Categoria (Slug)</Label>
               <Input id="category" value={formData.category} onChange={e => setFormData({...formData, category: e.target.value})} placeholder="Ex: barbearia" />
+            </div>
+
+            <div className="col-span-1 md:col-span-2 border-t pt-4 mt-2">
+              <h4 className="text-sm font-medium flex items-center gap-2 mb-4">
+                <NavIcon className="h-4 w-4" />
+                Geolocalização (Opcional - Segmentação por Raio)
+              </h4>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <Label>Latitude</Label>
+                  <Input 
+                    type="number" 
+                    step="any" 
+                    value={formData.latitude} 
+                    onChange={e => setFormData({...formData, latitude: e.target.value})} 
+                    placeholder="-23.5505"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Longitude</Label>
+                  <Input 
+                    type="number" 
+                    step="any" 
+                    value={formData.longitude} 
+                    onChange={e => setFormData({...formData, longitude: e.target.value})} 
+                    placeholder="-46.6333"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Raio (km)</Label>
+                  <Input 
+                    type="number" 
+                    value={formData.radius_km} 
+                    onChange={e => setFormData({...formData, radius_km: e.target.value})} 
+                    placeholder="50"
+                  />
+                </div>
+              </div>
             </div>
           </div>
         </TabsContent>
