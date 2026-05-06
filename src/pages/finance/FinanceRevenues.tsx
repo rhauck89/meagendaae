@@ -11,8 +11,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Trash2, Pencil, Filter, X, ChevronUp, ChevronDown } from 'lucide-react';
-import { format } from 'date-fns';
+import { Switch } from '@/components/ui/switch';
+import { Plus, Trash2, Pencil, Filter, X, ChevronUp, ChevronDown, RefreshCw } from 'lucide-react';
+import { format, addWeeks, addMonths, addYears, isAfter, parseISO, setDate } from 'date-fns';
 import { toast } from 'sonner';
 import CategoryBadgeEditor from '@/components/finance/CategoryBadgeEditor';
 
