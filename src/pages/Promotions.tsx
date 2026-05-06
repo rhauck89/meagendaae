@@ -2542,12 +2542,12 @@ export default function Promotions() {
         </div>
       )}
 
-
       {section === 'cashback' && (
         <CashbackTab />
       )}
     </div>
   );
 }
+
 
 
