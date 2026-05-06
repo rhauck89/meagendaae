@@ -62,18 +62,20 @@ export function PromotionInsights({ isAdmin, onAction }: PromotionInsightsProps)
   const fetchInsights = async () => {
     setLoading(true);
     try {
+      const now = new Date();
+      const currentProfessionalId = isAdmin ? null : profile?.id;
+      
       console.log('[PROMOTION_INSIGHTS_DEBUG]', {
         mode: isAdmin ? 'admin' : 'professional',
         company_id: companyId,
-        professional_id: isAdmin ? null : profile?.id
+        professional_id: currentProfessionalId
       });
 
       // Fetch data in parallel
       const fortyFiveDaysAgo = subDays(now, 45);
-      const professionalId = isAdmin ? null : profile?.id;
 
-      const workingHoursQuery = professionalId
-        ? supabase.from('professional_working_hours').select('day_of_week, open_time, close_time, is_closed').eq('professional_id', professionalId)
+      const workingHoursQuery = currentProfessionalId
+        ? supabase.from('professional_working_hours').select('day_of_week, open_time, close_time, is_closed').eq('professional_id', currentProfessionalId)
         : supabase.from('business_hours').select('day_of_week, open_time, close_time, is_closed').eq('company_id', companyId);
 
       const [
@@ -97,9 +99,8 @@ export function PromotionInsights({ isAdmin, onAction }: PromotionInsightsProps)
       const workingHours = workingHoursRes.data || [];
 
       // Filter data if professional
-      const professionalId = isAdmin ? null : profile?.id;
-      const filteredAppointments = professionalId 
-        ? appointments.filter(a => a.professional_id === professionalId)
+      const filteredAppointments = currentProfessionalId 
+        ? appointments.filter(a => a.professional_id === currentProfessionalId)
         : appointments;
       
       const filteredClientsIds = professionalId
