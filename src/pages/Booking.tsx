@@ -488,6 +488,22 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
 
       const effectiveUserId = ignoreSession ? null : currentUserId;
       
+      if (company?.id) {
+        // Fetch loyalty configuration regardless of client identification for preview
+        const { data: lc } = await supabase
+          .from('loyalty_config' as any)
+          .select('*')
+          .eq('company_id', company.id)
+          .maybeSingle();
+        
+        if (lc && (lc as any).enabled) {
+          setLoyaltyConfig(lc);
+          setLoyaltyPointValue(Number((lc as any).point_value) || 0);
+        } else {
+          setLoyaltyConfig(null);
+        }
+      }
+
       if (!effectiveUserId && !savedClientId) {
         setCashbackCredits([]);
         setLoyaltyPoints(0);
