@@ -596,20 +596,53 @@ export default function Promotions() {
         break;
       case 'today_gap':
       case 'week_gap':
-        setTitle(insight.data?.title || 'Oportunidade de Agenda');
+        setTitle(insight.data?.title || (insight.type === 'today_gap' ? 'Relâmpago de Hoje' : 'Agenda Especial da Semana'));
         setDescription(insight.data?.description || 'Condição especial para horários selecionados.');
-        setStartDate(insight.data?.startDate || todayStr);
-        setEndDate(insight.data?.endDate || todayStr);
-        setSingleDay(!!insight.data?.singleDay);
-        setStartTime(insight.data?.startTime || '09:00');
-        setEndTime(insight.data?.endTime || '20:00');
-        setUseBusinessHours(false);
-        if (insight.data?.validDays) setValidDays(insight.data.validDays);
-        if (insight.data?.professionalId) {
-          setProfessionalFilter('custom');
-          setSelectedProfessionalIds([insight.data.professionalId]);
+        
+        if (isSlotSpecific && selectedSlots && selectedSlots.length > 0) {
+          const sorted = [...selectedSlots].sort((a, b) => a.date.localeCompare(b.date));
+          setStartDate(sorted[0].date);
+          setEndDate(sorted[sorted.length - 1].date);
+          setSingleDay(sorted[0].date === sorted[sorted.length - 1].date);
+          setUseBusinessHours(false);
+          
+          setDiscountType('percentage');
+          setDiscountValue('15');
+          
+          const days = Array.from(new Set(selectedSlots.map(s => parseISO(s.date).getDay())));
+          setValidDays(days);
+
+          const profIds = Array.from(new Set(selectedSlots.map(s => s.professionalId))).filter(Boolean);
+          if (profIds.length > 0) {
+            setProfessionalFilter('selected');
+            setSelectedProfessionalIds(profIds as string[]);
+          }
+
+          if (insight.data?.promoType === 'cashback') {
+            setPromotionType('cashback');
+            setDiscountValue('15');
+          } else {
+            setPromotionType('traditional');
+          }
+
+          setMessageTemplate(insight.type === 'today_gap' 
+            ? `Olá {{cliente_primeiro_nome}}! 👋\n\nNotamos que temos alguns horários disponíveis para HOJE na *{{empresa_nome}}*! 🎉\n\nPreparamos uma condição especial para horários selecionados de hoje. Garanta seu momento pelo link.\n\nGaranta sua vaga:\n{{link_promocao}}`
+            : `Olá {{cliente_primeiro_nome}}! 👋\n\nAproveite nossa agenda da semana na *{{empresa_nome}}*! 🎉\n\nPreparamos uma condição especial para horários selecionados desta semana. Garanta seu horário pelo link.\n\nReserve agora:\n{{link_promocao}}`
+          );
+        } else {
+          setStartDate(insight.data?.startDate || todayStr);
+          setEndDate(insight.data?.endDate || todayStr);
+          setSingleDay(!!insight.data?.singleDay);
+          setStartTime(insight.data?.startTime || '09:00');
+          setEndTime(insight.data?.endTime || '20:00');
+          setUseBusinessHours(false);
+          if (insight.data?.validDays) setValidDays(insight.data.validDays);
+          if (insight.data?.professionalId) {
+            setProfessionalFilter('selected');
+            setSelectedProfessionalIds([insight.data.professionalId]);
+          }
+          setMessageTemplate(insight.data?.messageTemplate || DEFAULT_TEMPLATE);
         }
-        setMessageTemplate(insight.data?.messageTemplate || DEFAULT_TEMPLATE);
         break;
       default:
         break;
