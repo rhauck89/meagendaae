@@ -101,7 +101,7 @@ interface PromoMetrics {
 }
 
 interface PromotionInsight {
-  type: 'low_occupancy' | 'birthdays' | 'reactivation' | 'lunch_time' | 'afternoon_low' | 'tip' | 'idle_day';
+  type: 'low_occupancy' | 'birthdays' | 'reactivation' | 'lunch_time' | 'afternoon_low' | 'tip' | 'idle_day' | 'today_gap' | 'week_gap';
   title: string;
   description: string;
   buttonLabel?: string;
@@ -587,6 +587,27 @@ export default function Promotions() {
         setDescription(`Uma condição especial para movimentar a agenda com mais previsibilidade.`);
         setMessageTemplate(`Olá {{cliente_primeiro_nome}}! 👋\n\nPreparamos uma condição especial para agendamentos de ${dayName}, dia ${format(nextDate, 'dd/MM')}. 🎉\n\nGaranta seu horário pelo link abaixo:\n{{link_promocao}}`);
         break;
+      case 'today_gap':
+      case 'week_gap':
+        setTitle(insight.data?.title || 'Promoção Relâmpago');
+        setDescription(insight.data?.description || '');
+        setStartDate(insight.data?.startDate || todayStr);
+        setEndDate(insight.data?.endDate || todayStr);
+        setSingleDay(!!insight.data?.singleDay);
+        setStartTime(insight.data?.startTime || '09:00');
+        setEndTime(insight.data?.endTime || '19:00');
+        setUseBusinessHours(false);
+        if (insight.data?.professionalId) {
+          setProfessionalFilter('specific');
+          setSelectedProfessionalIds([insight.data.professionalId]);
+        } else {
+          setProfessionalFilter('all');
+        }
+        if (insight.data?.messageTemplate) {
+          setMessageTemplate(insight.data.messageTemplate);
+        }
+        break;
+
     }
     setDialogOpen(true);
   };
@@ -1116,6 +1137,32 @@ export default function Promotions() {
       }
     }
     return baseUrl;
+  };
+
+  const handleAction = (type: 'promotion' | 'campaign' | 'link', data?: any) => {
+    if (type === 'promotion') {
+      if (data?.insight) {
+        applyInsight({ type: data.insight, data } as any);
+        return;
+      }
+      setCreationMode('manual');
+      setDialogOpen(true);
+    } else if (type === 'campaign') {
+      setSelectedPromotion(data?.promotion || null);
+      setClientsDialogOpen(true);
+      // If we have pre-filtered clients, we would handle them here
+    } else if (type === 'link') {
+      const baseUrl = `${window.location.origin}/${companyBusinessType === 'esthetic' ? 'estetica' : 'barbearia'}/${companySlug}`;
+      let finalUrl = baseUrl;
+      
+      if (data?.professionalId) {
+        const prof = professionals.find((p: any) => p.profile_id === data.professionalId);
+        if (prof?.slug) finalUrl = `${baseUrl}/${prof.slug}`;
+      }
+      
+      navigator.clipboard.writeText(finalUrl);
+      toast({ title: 'Link copiado!', description: 'O link do perfil foi copiado para a área de transferência.' });
+    }
   };
 
   const buildWhatsAppLink = (client: ClientRow, promotion: Promotion) => {
@@ -2114,74 +2161,7 @@ export default function Promotions() {
               </h3>
             </div>
             
-            <PromotionInsights 
-              isAdmin={isAdmin} 
-              onAction={(type, data) => {
-                console.log('[PROMOTION_INSIGHTS_DEBUG] Action triggered:', { type, data });
-                
-                if (type === 'promotion' || type === 'campaign') {
-                  const insightType = data.insight;
-                  const validInsights = ['low_occupancy', 'birthdays', 'reactivation', 'lunch_time', 'afternoon_low', 'idle_day'];
-                  
-                  if (insightType && validInsights.includes(insightType)) {
-                    applyInsight({ type: insightType, data } as any);
-                  } else {
-                    resetForm();
-                    setIsEditing(false);
-                    setCreationMode('manual');
-                    setWizardStep(1);
-                    setDialogOpen(true);
-                  }
-
-                  // Apply overrides from data
-                  if (data.type === 'cashback') setPromotionType('cashback');
-                  
-                  if (data.serviceId) {
-                    handleServiceChange(data.serviceId);
-                  }
-                  
-                  if (data.professionalId) {
-                    setProfessionalFilter('selected');
-                    setSelectedProfessionalIds([data.professionalId]);
-                    if (!data.insight) {
-                      setTitle('Destaque do Profissional');
-                      setSourceInsight('professional_idle');
-                      setDescription('Conheça nossos especialistas com um desconto especial!');
-                      setDiscountType('percentage');
-                      setDiscountValue('10');
-                    }
-                  }
-                  
-                  if (data.validDays) {
-                    setValidDays(data.validDays);
-                    setUseBusinessHours(false);
-                  }
-
-                  if (data.startTime) setStartTime(data.startTime);
-                  if (data.endTime) setEndTime(data.endTime);
-                  
-                  if (data.filter) setClientFilter(data.filter);
-                  if (data.filterValue) setClientFilterValue(data.filterValue.toString());
-                  if (data.insight) setSourceInsight(data.insight);
-
-                  if (type === 'campaign') {
-                    toast({ 
-                      title: "Insight selecionado", 
-                      description: "Defina os detalhes da promoção primeiro. Após criar, você poderá enviar as mensagens para os clientes selecionados." 
-                    });
-                  }
-                } else if (type === 'link') {
-                  const profId = data.professionalId || profile?.id;
-                  if (profId) {
-                    const prof = professionals.find((p: any) => p.profile_id === profId);
-                    const baseUrl = `${window.location.origin}/${companyBusinessType === 'esthetic' ? 'estetica' : 'barbearia'}/${companySlug}`;
-                    const link = prof?.slug ? `${baseUrl}/${prof.slug}` : baseUrl;
-                    navigator.clipboard.writeText(link);
-                    toast({ title: "Link copiado!", description: "O link da agenda foi copiado para sua área de transferência." });
-                  }
-                }
-              }}
-            />
+            <PromotionInsights isAdmin={isAdmin} onAction={handleAction} />
           </div>
         </div>
       )}
