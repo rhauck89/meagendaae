@@ -460,6 +460,8 @@ export default function Promotions() {
 
   const applyInsight = (insight: PromotionInsight) => {
     resetForm();
+    setCreationMode('manual');
+    setWizardStep(1);
     setSmartMode('smart');
     setSourceInsight(insight.type);
     const todayStr = format(new Date(), 'yyyy-MM-dd');
@@ -2075,28 +2077,62 @@ export default function Promotions() {
             <PromotionInsights 
               isAdmin={isAdmin} 
               onAction={(type, data) => {
-                if (type === 'promotion') {
-                  resetForm();
+                console.log('[PROMOTION_INSIGHTS_DEBUG] Action triggered:', { type, data });
+                
+                if (type === 'promotion' || type === 'campaign') {
+                  const insightType = data.insight?.startsWith('reactivation') ? 'reactivation' : data.insight;
+                  const validInsights = ['low_occupancy', 'birthdays', 'reactivation', 'lunch_time', 'afternoon_low'];
+                  
+                  if (insightType && validInsights.includes(insightType)) {
+                    applyInsight({ type: insightType } as any);
+                  } else {
+                    resetForm();
+                    setIsEditing(false);
+                    setCreationMode('manual');
+                    setWizardStep(1);
+                    setDialogOpen(true);
+                  }
+
+                  // Apply overrides from data
                   if (data.type === 'cashback') setPromotionType('cashback');
-                  if (data.serviceId) handleServiceChange(data.serviceId);
+                  
+                  if (data.serviceId) {
+                    handleServiceChange(data.serviceId);
+                  }
+                  
                   if (data.professionalId) {
                     setProfessionalFilter('selected');
                     setSelectedProfessionalIds([data.professionalId]);
+                    if (!data.insight) {
+                      setTitle('Destaque do Profissional');
+                      setSourceInsight('professional_idle');
+                      setDescription('Conheça nossos especialistas com um desconto especial!');
+                      setDiscountType('percentage');
+                      setDiscountValue('10');
+                    }
                   }
-                  if (data.validDays) setValidDays(data.validDays);
+                  
+                  if (data.validDays) {
+                    setValidDays(data.validDays);
+                    setUseBusinessHours(false);
+                    if (!data.insight) {
+                      const dayNames = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
+                      setTitle(`Especial de ${dayNames[data.validDays[0]]}`);
+                    }
+                  }
+                  
                   if (data.filter) setClientFilter(data.filter);
                   if (data.filterValue) setClientFilterValue(data.filterValue.toString());
                   if (data.insight) setSourceInsight(data.insight);
-                  setDialogOpen(true);
-                } else if (type === 'campaign') {
-                  resetForm();
-                  if (data.clients) {
-                    setClientFilter('all');
+
+                  if (type === 'campaign') {
+                    toast({ 
+                      title: "Insight selecionado", 
+                      description: "Defina os detalhes da promoção primeiro. Após criar, você poderá enviar as mensagens para os clientes selecionados." 
+                    });
                   }
-                  setDialogOpen(true);
-                  toast({ title: "Insight selecionado", description: "Crie a promoção para depois enviar a campanha." });
                 } else if (type === 'link') {
-                  const profId = data.professionalId || (profile?.id);
+                  const profId = data.professionalId || profile?.id;
                   if (profId) {
                     const prof = professionals.find((p: any) => p.profile_id === profId);
                     const baseUrl = `${window.location.origin}/${companyBusinessType === 'esthetic' ? 'estetica' : 'barbearia'}/${companySlug}`;
