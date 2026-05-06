@@ -731,8 +731,24 @@ const SuperAdminMarketplace = () => {
                       <TableCell className="capitalize text-sm">{b.position.replace('_', ' ')}</TableCell>
                       <TableCell>
                         <div className="flex flex-col gap-1">
-                          <span className="text-xs flex items-center gap-1"><MapPin className="h-3 w-3" /> {b.city || 'Geral'}, {b.state || 'Brasil'}</span>
-                          <span className="text-xs flex items-center gap-1"><Layers className="h-3 w-3" /> {b.category || 'Todas'}</span>
+                          <span className="text-xs flex items-center gap-1 font-medium">
+                            <MapPin className="h-3 w-3" /> 
+                            {(() => {
+                              if (b.radius_km) return `Raio ${b.radius_km}km`;
+                              if (b.cities?.name) return `${b.cities.name}/${b.states?.uf || ''}`;
+                              if (b.states?.uf) return b.states.uf;
+                              // Fallback para banners antigos (texto livre)
+                              if (b.city) return `${b.city}/${b.state || ''}`;
+                              if (b.state) return b.state;
+                              return 'Brasil (Nacional)';
+                            })()}
+                          </span>
+                          {b.neighborhood && (
+                            <span className="text-[10px] text-muted-foreground ml-4">Bairro: {b.neighborhood}</span>
+                          )}
+                          <span className="text-xs flex items-center gap-1">
+                            <Layers className="h-3 w-3" /> {b.category || 'Todas as categorias'}
+                          </span>
                         </div>
                       </TableCell>
                       <TableCell className="text-xs">
