@@ -3054,6 +3054,19 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
               </div>
 
               {/* Benefits Info */}
+              {(() => {
+                if (step === 'confirm') {
+                  console.log('[BOOKING_POINTS_PREVIEW_RENDER_DEBUG]', {
+                    predictedLoyaltyPoints,
+                    cashbackEarnAmount,
+                    useCashback,
+                    hasBenefitsActive,
+                    rendering_benefits_block: (cashbackEarnAmount > 0 || predictedLoyaltyPoints > 0 || useCashback)
+                  });
+                }
+                return null;
+              })()}
+              
               {(cashbackEarnAmount > 0 || predictedLoyaltyPoints > 0 || useCashback) && (
                 <div className="space-y-3">
                   {(cashbackEarnAmount > 0 || predictedLoyaltyPoints > 0) && (
