@@ -2757,4 +2757,3 @@ export default function Promotions() {
     </div>
   );
 }
-}
