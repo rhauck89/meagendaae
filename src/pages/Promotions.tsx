@@ -101,7 +101,7 @@ interface PromoMetrics {
 }
 
 interface PromotionInsight {
-  type: 'low_occupancy' | 'birthdays' | 'reactivation' | 'lunch_time' | 'afternoon_low' | 'tip';
+  type: 'low_occupancy' | 'birthdays' | 'reactivation' | 'lunch_time' | 'afternoon_low' | 'tip' | 'idle_day';
   title: string;
   description: string;
   buttonLabel?: string;
@@ -546,6 +546,16 @@ export default function Promotions() {
           ? `Garanta seu Happy Hour de amanhã! 🌙✂️\n\nAgende para amanhã entre 17h e 20h e ganhe 15% de desconto!\n\nAgende agora: {{link_promocao}}`
           : `Que tal um trato no visual depois do trabalho? 🌙✂️\n\nNo nosso Happy Hour (17h às 20h) você ganha 15% de desconto!\n\nAgende agora: {{link_promocao}}`
         );
+        break;
+      case 'idle_day':
+        const dayNames = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
+        const dayName = insight.data?.validDays?.[0] !== undefined ? dayNames[insight.data.validDays[0]] : 'Semana';
+        setTitle(`Especial de ${dayName} ✨`);
+        setDiscountType('percentage');
+        setDiscountValue('15');
+        setUseBusinessHours(false);
+        setDescription(`Promoção exclusiva para impulsionar o movimento na ${dayName}.`);
+        setMessageTemplate(`Olá {{cliente_primeiro_nome}}! 👋\n\nPreparamos um desconto especial de 15% para agendamentos realizados em qualquer ${dayName}! 🎉\n\nGaranta sua vaga agora: {{link_promocao}}`);
         break;
     }
     setDialogOpen(true);
@@ -2080,11 +2090,11 @@ export default function Promotions() {
                 console.log('[PROMOTION_INSIGHTS_DEBUG] Action triggered:', { type, data });
                 
                 if (type === 'promotion' || type === 'campaign') {
-                  const insightType = data.insight?.startsWith('reactivation') ? 'reactivation' : data.insight;
-                  const validInsights = ['low_occupancy', 'birthdays', 'reactivation', 'lunch_time', 'afternoon_low'];
+                  const insightType = data.insight;
+                  const validInsights = ['low_occupancy', 'birthdays', 'reactivation', 'lunch_time', 'afternoon_low', 'idle_day'];
                   
                   if (insightType && validInsights.includes(insightType)) {
-                    applyInsight({ type: insightType } as any);
+                    applyInsight({ type: insightType, data } as any);
                   } else {
                     resetForm();
                     setIsEditing(false);
@@ -2115,11 +2125,10 @@ export default function Promotions() {
                   if (data.validDays) {
                     setValidDays(data.validDays);
                     setUseBusinessHours(false);
-                    if (!data.insight) {
-                      const dayNames = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
-                      setTitle(`Especial de ${dayNames[data.validDays[0]]}`);
-                    }
                   }
+
+                  if (data.startTime) setStartTime(data.startTime);
+                  if (data.endTime) setEndTime(data.endTime);
                   
                   if (data.filter) setClientFilter(data.filter);
                   if (data.filterValue) setClientFilterValue(data.filterValue.toString());

@@ -62,37 +62,54 @@ export function PromotionInsights({ isAdmin, onAction }: PromotionInsightsProps)
   const fetchInsights = async () => {
     setLoading(true);
     try {
+      const now = new Date();
+      const currentProfessionalId = isAdmin ? null : profile?.id;
+      
       console.log('[PROMOTION_INSIGHTS_DEBUG]', {
         mode: isAdmin ? 'admin' : 'professional',
         company_id: companyId,
-        professional_id: isAdmin ? null : profile?.id
+        professional_id: currentProfessionalId
       });
 
       // Fetch data in parallel
+      const fortyFiveDaysAgo = subDays(now, 45);
+
+      const workingHoursQuery = currentProfessionalId
+        ? supabase.from('professional_working_hours').select('day_of_week, open_time, close_time, is_closed').eq('professional_id', currentProfessionalId)
+        : supabase.from('business_hours').select('day_of_week, open_time, close_time, is_closed').eq('company_id', companyId);
+
       const [
         clientsRes,
         appointmentsRes,
         servicesRes,
-        professionalsRes
+        professionalsRes,
+        workingHoursRes
       ] = await Promise.all([
         supabase.from('clients').select('id, name, birth_date, whatsapp').eq('company_id', companyId),
-        supabase.from('appointments').select('*').eq('company_id', companyId).neq('status', 'cancelled'),
+        supabase.from('appointments').select('*').eq('company_id', companyId).neq('status', 'cancelled').gte('start_time', fortyFiveDaysAgo.toISOString()),
         supabase.from('services').select('id, name, price').eq('company_id', companyId).eq('active', true),
-        supabase.from('collaborators').select('profile_id, profiles(full_name)').eq('company_id', companyId).eq('active', true)
+        supabase.from('collaborators').select('profile_id, profiles(full_name)').eq('company_id', companyId).eq('active', true),
+        workingHoursQuery
       ]);
 
       const clients = clientsRes.data || [];
       const appointments = appointmentsRes.data || [];
       const services = servicesRes.data || [];
       const professionals = professionalsRes.data || [];
+      let workingHours = workingHoursRes.data || [];
+
+      // Fallback if professional has no specific hours
+      if (currentProfessionalId && workingHours.length === 0) {
+        const { data: bizHours } = await supabase.from('business_hours').select('day_of_week, open_time, close_time, is_closed').eq('company_id', companyId);
+        workingHours = bizHours || [];
+      }
 
       // Filter data if professional
-      const professionalId = isAdmin ? null : profile?.id;
-      const filteredAppointments = professionalId 
-        ? appointments.filter(a => a.professional_id === professionalId)
+      const filteredAppointments = currentProfessionalId 
+        ? appointments.filter(a => a.professional_id === currentProfessionalId)
         : appointments;
       
-      const filteredClientsIds = professionalId
+      const filteredClientsIds = currentProfessionalId
         ? new Set(filteredAppointments.map(a => a.client_id))
         : null;
 
@@ -101,7 +118,6 @@ export function PromotionInsights({ isAdmin, onAction }: PromotionInsightsProps)
         : clients;
 
       // 1. Clientes sem retorno 30-40 dias
-      const now = new Date();
       const thirtyDaysAgo = subDays(now, 30);
       const fortyDaysAgo = subDays(now, 40);
 
@@ -158,15 +174,51 @@ export function PromotionInsights({ isAdmin, onAction }: PromotionInsightsProps)
         dayCounts[day]++;
       });
 
-      // We need to compare with total working days if possible, or just use raw counts for now
       const daysOfWeek = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
+      const openDays = new Set(workingHours.filter((h: any) => !h.is_closed).map((h: any) => h.day_of_week));
+      
       let idleDayIdx = -1;
       let minCount = Infinity;
-      // Skip Sunday/Monday if they are usually closed (simple heuristic: 0 appts)
+      
+      // Only consider days that are open
       for (let i = 0; i < 7; i++) {
-        if (dayCounts[i] > 0 && dayCounts[i] < minCount) {
-          minCount = dayCounts[i];
-          idleDayIdx = i;
+        if (openDays.has(i)) {
+          const count = dayCounts[i];
+          if (count < minCount) {
+            minCount = count;
+            idleDayIdx = i;
+          }
+        }
+      }
+
+      // Calculate occupancy rate for the idle day
+      let occupancyInfo = "Sem dados suficientes";
+      let recommendedPeriod = { start: '09:00', end: '12:00' };
+      
+      if (idleDayIdx !== -1) {
+        const dayAppts = last4WeeksAppts.filter(a => new Date(a.start_time).getDay() === idleDayIdx);
+        const morningAppts = dayAppts.filter(a => new Date(a.start_time).getHours() < 13).length;
+        const afternoonAppts = dayAppts.filter(a => new Date(a.start_time).getHours() >= 13).length;
+        
+        // If morning has more appointments, afternoon is more idle (and vice versa)
+        if (morningAppts > afternoonAppts) {
+          recommendedPeriod = { start: '13:00', end: '18:00' };
+        } else {
+          recommendedPeriod = { start: '09:00', end: '13:00' };
+        }
+
+        const dayHours = workingHours.find((h: any) => h.day_of_week === idleDayIdx);
+        if (dayHours && (dayHours as any).open_time && (dayHours as any).close_time) {
+          const [openH, openM] = (dayHours as any).open_time.split(':').map(Number);
+          const [closeH, closeM] = (dayHours as any).close_time.split(':').map(Number);
+          const totalMin = (closeH * 60 + closeM) - (openH * 60 + openM);
+          const capacity = Math.max(1, Math.floor(totalMin / 45)); 
+          const avgDailyAppts = minCount / 4;
+          const rate = Math.round((avgDailyAppts / capacity) * 100);
+          const vacantSlots = Math.max(0, capacity - Math.round(avgDailyAppts));
+          occupancyInfo = `${rate}% de ocupação (${vacantSlots} vagas livres em média)`;
+        } else {
+          occupancyInfo = `${Math.round(minCount / 4)} agendamentos em média`;
         }
       }
 
@@ -284,16 +336,21 @@ export function PromotionInsights({ isAdmin, onAction }: PromotionInsightsProps)
         {
           id: 'idle_day',
           title: 'Dia com Menos Movimento',
-          description: 'Média das últimas 4 semanas.',
+          description: 'Considerando apenas dias de atendimento.',
           icon: Calendar,
           value: idleDayIdx !== -1 ? daysOfWeek[idleDayIdx] : '---',
-          subValue: idleDayIdx !== -1 ? 'Baixa ocupação' : 'Sem dados',
+          subValue: occupancyInfo,
           empty: idleDayIdx === -1,
           actions: [
             { 
               label: 'Criar Promoção p/ este Dia', 
               icon: Clock, 
-              onClick: () => onAction('promotion', { validDays: [idleDayIdx] }),
+              onClick: () => onAction('promotion', { 
+                insight: 'idle_day',
+                validDays: [idleDayIdx],
+                startTime: recommendedPeriod.start,
+                endTime: recommendedPeriod.end
+              }),
               primary: true 
             }
           ]
