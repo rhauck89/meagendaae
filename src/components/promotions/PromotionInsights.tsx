@@ -168,15 +168,51 @@ export function PromotionInsights({ isAdmin, onAction }: PromotionInsightsProps)
         dayCounts[day]++;
       });
 
-      // We need to compare with total working days if possible, or just use raw counts for now
       const daysOfWeek = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
+      const openDays = new Set(workingHours.filter((h: any) => !h.is_closed).map((h: any) => h.day_of_week));
+      
       let idleDayIdx = -1;
       let minCount = Infinity;
-      // Skip Sunday/Monday if they are usually closed (simple heuristic: 0 appts)
+      
+      // Only consider days that are open
       for (let i = 0; i < 7; i++) {
-        if (dayCounts[i] > 0 && dayCounts[i] < minCount) {
-          minCount = dayCounts[i];
-          idleDayIdx = i;
+        if (openDays.has(i)) {
+          const count = dayCounts[i];
+          if (count < minCount) {
+            minCount = count;
+            idleDayIdx = i;
+          }
+        }
+      }
+
+      // Calculate occupancy rate for the idle day
+      let occupancyInfo = "Sem dados suficientes";
+      let recommendedPeriod = { start: '09:00', end: '12:00' };
+      
+      if (idleDayIdx !== -1) {
+        const dayAppts = last4WeeksAppts.filter(a => new Date(a.start_time).getDay() === idleDayIdx);
+        const morningAppts = dayAppts.filter(a => new Date(a.start_time).getHours() < 13).length;
+        const afternoonAppts = dayAppts.filter(a => new Date(a.start_time).getHours() >= 13).length;
+        
+        // If morning has more appointments, afternoon is more idle (and vice versa)
+        if (morningAppts > afternoonAppts) {
+          recommendedPeriod = { start: '13:00', end: '18:00' };
+        } else {
+          recommendedPeriod = { start: '09:00', end: '13:00' };
+        }
+
+        const dayHours = workingHours.find((h: any) => h.day_of_week === idleDayIdx);
+        if (dayHours && (dayHours as any).open_time && (dayHours as any).close_time) {
+          const [openH, openM] = (dayHours as any).open_time.split(':').map(Number);
+          const [closeH, closeM] = (dayHours as any).close_time.split(':').map(Number);
+          const totalMin = (closeH * 60 + closeM) - (openH * 60 + openM);
+          const capacity = Math.max(1, Math.floor(totalMin / 45)); 
+          const avgDailyAppts = minCount / 4;
+          const rate = Math.round((avgDailyAppts / capacity) * 100);
+          const vacantSlots = Math.max(0, capacity - Math.round(avgDailyAppts));
+          occupancyInfo = `${rate}% de ocupação (${vacantSlots} vagas livres em média)`;
+        } else {
+          occupancyInfo = `${Math.round(minCount / 4)} agendamentos em média`;
         }
       }
 
