@@ -2128,7 +2128,7 @@ export default function Promotions() {
 
 
       {/* Tabs */}
-      {section === 'campaigns' && (
+      {section === 'campaigns' ? (
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="flex flex-wrap h-auto gap-1">
           <TabsTrigger value="active">Ativas ({groupedPromotions.filter(g => isActivePromo(g.promotions[0])).length})</TabsTrigger>
@@ -2136,7 +2136,7 @@ export default function Promotions() {
           <TabsTrigger value="paused">Pausadas ({groupedPromotions.filter(g => g.promotions[0].status === 'paused').length})</TabsTrigger>
           <TabsTrigger value="expired">Encerradas ({groupedPromotions.filter(g => isExpiredPromo(g.promotions[0])).length})</TabsTrigger>
         </TabsList>
-      )}
+
 
 
 
@@ -2531,10 +2531,11 @@ export default function Promotions() {
         onClose={() => { setShowIntro(false); markSeen('promotions'); }}
         onAction={() => setDialogOpen(true)}
       />
-      </>
-      ) : (
+      </Tabs>
+      ) : section === 'cashback' ? (
         <CashbackTab />
-      )}
+      ) : null}
+
     </div>
   );
 }
