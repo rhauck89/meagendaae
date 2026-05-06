@@ -241,6 +241,8 @@ export default function Promotions() {
   const [metricsDialogOpen, setMetricsDialogOpen] = useState(false);
   const [opportunityDialogOpen, setOpportunityDialogOpen] = useState(false);
   const [selectedOpportunity, setSelectedOpportunity] = useState<{ date: string; times: string[]; professionalId: string; serviceIds?: string[] } | null>(null);
+  const [insightSelectionOpen, setInsightSelectionOpen] = useState(false);
+  const [selectedInsightData, setSelectedInsightData] = useState<any>(null);
   const initialActiveTab = searchParams.get('tab') || 'active';
   const [activeTab, setActiveTab] = useState(initialActiveTab);
 
