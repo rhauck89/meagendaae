@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { Loader2, Calendar as CalendarIcon, MapPin, Star, Building2, Users, Save, X } from 'lucide-react';
+import { Loader2, Calendar as CalendarIcon, MapPin, Star, Building2, Users, Save, X, Navigation } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { Card, CardContent } from '@/components/ui/card';
@@ -22,6 +22,8 @@ const FeaturedItemForm = ({ item, onSuccess, onCancel }: FeaturedItemFormProps) 
   const [loading, setLoading] = useState(false);
   const [companies, setCompanies] = useState<any[]>([]);
   const [professionals, setProfessionals] = useState<any[]>([]);
+  const [states, setStates] = useState<any[]>([]);
+  const [cities, setCities] = useState<any[]>([]);
   
   const [formData, setFormData] = useState<any>({
     item_type: item?.item_type || 'company',
@@ -34,30 +36,78 @@ const FeaturedItemForm = ({ item, onSuccess, onCancel }: FeaturedItemFormProps) 
     rotation_weight: item?.rotation_weight || 1,
     status: item?.status || 'draft',
     country: item?.country || 'Brasil',
-    state: item?.state || '',
-    city: item?.city || '',
+    state_id: item?.state_id || null,
+    city_id: item?.city_id || null,
     neighborhood: item?.neighborhood || '',
     internal_notes: item?.internal_notes || '',
+    latitude: item?.latitude || '',
+    longitude: item?.longitude || '',
+    radius_km: item?.radius_km || '',
   });
 
   useEffect(() => {
     const fetchData = async () => {
-      const [companiesRes, profilesRes] = await Promise.all([
-        supabase.from('companies').select('id, name').order('name'),
-        supabase.from('profiles').select('id, full_name').order('full_name')
-      ]);
+      const { data: companiesData } = await supabase.from('companies').select('id, name').order('name');
+      const { data: statesData } = await supabase.from('states').select('id, uf, name').order('name');
       
-      if (companiesRes.data) setCompanies(companiesRes.data);
-      if (profilesRes.data) setProfessionals(profilesRes.data);
+      if (companiesData) setCompanies(companiesData);
+      if (statesData) setStates(statesData);
+
+      if (item?.state_id) {
+        fetchCities(item.state_id);
+      }
+
+      if (item?.item_type === 'professional' && item?.company_id) {
+        fetchProfessionals(item.company_id);
+      }
     };
     fetchData();
-  }, []);
+  }, [item]);
+
+  const fetchCities = async (stateId: string) => {
+    const { data, error } = await supabase
+      .from('cities')
+      .select('id, name')
+      .eq('state_id', stateId)
+      .order('name');
+    
+    if (data) setCities(data);
+  };
+
+  const fetchProfessionals = async (companyId: string) => {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('id, full_name')
+      .eq('company_id', companyId)
+      .order('full_name');
+    
+    if (data) setProfessionals(data);
+  };
+
+  const handleStateChange = (stateId: string) => {
+    setFormData({ ...formData, state_id: stateId === 'null' ? null : stateId, city_id: null });
+    if (stateId !== 'null') {
+      fetchCities(stateId);
+    } else {
+      setCities([]);
+    }
+  };
+
+  const handleCompanyChange = (companyId: string) => {
+    const id = companyId === 'null' ? null : companyId;
+    setFormData({ ...formData, company_id: id, professional_id: null });
+    if (id && formData.item_type === 'professional') {
+      fetchProfessionals(id);
+    } else {
+      setProfessionals([]);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (formData.item_type === 'company' && !formData.company_id) {
-      toast.error('Selecione uma empresa');
+    if (!formData.company_id) {
+      toast.error('Selecione uma empresa vinculada');
       return;
     }
     
@@ -75,13 +125,18 @@ const FeaturedItemForm = ({ item, onSuccess, onCancel }: FeaturedItemFormProps) 
     try {
       const dataToSave = {
         ...formData,
-        company_id: formData.item_type === 'company' ? formData.company_id : null,
+        company_id: formData.company_id,
         professional_id: formData.item_type === 'professional' ? formData.professional_id : null,
         priority: parseInt(formData.priority),
         rotation_weight: parseInt(formData.rotation_weight),
+        latitude: formData.latitude ? parseFloat(formData.latitude) : null,
+        longitude: formData.longitude ? parseFloat(formData.longitude) : null,
+        radius_km: formData.radius_km ? parseFloat(formData.radius_km) : null,
+        state_id: formData.state_id,
+        city_id: formData.city_id,
       };
 
-      // Remove item_type for DB save if it doesn't exist in schema
+      // Remove local helper fields not in schema
       const { item_type, ...cleanData } = dataToSave;
 
       if (isEditing) {
@@ -121,7 +176,7 @@ const FeaturedItemForm = ({ item, onSuccess, onCancel }: FeaturedItemFormProps) 
               <Label>Tipo de Item</Label>
               <Select 
                 value={formData.item_type} 
-                onValueChange={val => setFormData({...formData, item_type: val, company_id: null, professional_id: null})}
+                onValueChange={val => setFormData({...formData, item_type: val, professional_id: null})}
               >
                 <SelectTrigger>
                   <SelectValue />
@@ -134,27 +189,39 @@ const FeaturedItemForm = ({ item, onSuccess, onCancel }: FeaturedItemFormProps) 
             </div>
 
             <div className="space-y-2">
-              <Label>{formData.item_type === 'company' ? 'Selecionar Empresa' : 'Selecionar Profissional'}</Label>
+              <Label>Empresa Vinculada</Label>
               <Select 
-                value={(formData.item_type === 'company' ? formData.company_id : formData.professional_id) || 'null'} 
-                onValueChange={val => setFormData({
-                  ...formData, 
-                  company_id: formData.item_type === 'company' ? val : null,
-                  professional_id: formData.item_type === 'professional' ? val : null
-                })}
+                value={formData.company_id || 'null'} 
+                onValueChange={handleCompanyChange}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder={`Selecione um(a) ${formData.item_type === 'company' ? 'empresa' : 'profissional'}`} />
+                  <SelectValue placeholder="Selecione a empresa" />
                 </SelectTrigger>
                 <SelectContent className="max-h-60">
                   <SelectItem value="null">Selecione...</SelectItem>
-                  {formData.item_type === 'company' 
-                    ? companies.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)
-                    : professionals.map(p => <SelectItem key={p.id} value={p.id}>{p.full_name}</SelectItem>)
-                  }
+                  {companies.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
+
+            {formData.item_type === 'professional' && (
+              <div className="space-y-2">
+                <Label>Selecionar Profissional</Label>
+                <Select 
+                  value={formData.professional_id || 'null'} 
+                  onValueChange={val => setFormData({...formData, professional_id: val === 'null' ? null : val})}
+                  disabled={!formData.company_id}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder={!formData.company_id ? "Selecione a empresa primeiro" : "Selecione o profissional"} />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-60">
+                    <SelectItem value="null">Selecione...</SelectItem>
+                    {professionals.map(p => <SelectItem key={p.id} value={p.id}>{p.full_name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
 
             <div className="space-y-2">
               <Label>Tipo de Destaque</Label>
@@ -219,17 +286,81 @@ const FeaturedItemForm = ({ item, onSuccess, onCancel }: FeaturedItemFormProps) 
               <Label>País</Label>
               <Input value={formData.country} onChange={e => setFormData({...formData, country: e.target.value})} />
             </div>
+            
             <div className="space-y-2">
-              <Label>Estado (UF)</Label>
-              <Input value={formData.state} onChange={e => setFormData({...formData, state: e.target.value})} placeholder="Ex: SP" />
+              <Label>Estado (Brasil)</Label>
+              <Select 
+                value={formData.state_id || 'null'} 
+                onValueChange={handleStateChange}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione o estado" />
+                </SelectTrigger>
+                <SelectContent className="max-h-60">
+                  <SelectItem value="null">Nacional (Todos)</SelectItem>
+                  {states.map(s => <SelectItem key={s.id} value={s.id}>{s.name} ({s.uf})</SelectItem>)}
+                </SelectContent>
+              </Select>
             </div>
+
             <div className="space-y-2">
               <Label>Cidade</Label>
-              <Input value={formData.city} onChange={e => setFormData({...formData, city: e.target.value})} placeholder="Ex: São Paulo" />
+              <Select 
+                value={formData.city_id || 'null'} 
+                onValueChange={val => setFormData({...formData, city_id: val === 'null' ? null : val})}
+                disabled={!formData.state_id}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder={!formData.state_id ? "Selecione o estado primeiro" : "Selecione a cidade"} />
+                </SelectTrigger>
+                <SelectContent className="max-h-60">
+                  <SelectItem value="null">Todas as cidades</SelectItem>
+                  {cities.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
             </div>
+
             <div className="space-y-2">
-              <Label>Bairro</Label>
+              <Label>Bairro (Campo Livre)</Label>
               <Input value={formData.neighborhood} onChange={e => setFormData({...formData, neighborhood: e.target.value})} placeholder="Ex: Jardins" />
+            </div>
+
+            <div className="col-span-1 md:col-span-2 border-t pt-4 mt-2">
+              <h4 className="text-sm font-medium flex items-center gap-2 mb-4">
+                <Navigation className="h-4 w-4" />
+                Geolocalização (Opcional - Segmentação por Raio)
+              </h4>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <Label>Latitude</Label>
+                  <Input 
+                    type="number" 
+                    step="any" 
+                    value={formData.latitude} 
+                    onChange={e => setFormData({...formData, latitude: e.target.value})} 
+                    placeholder="-23.5505"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Longitude</Label>
+                  <Input 
+                    type="number" 
+                    step="any" 
+                    value={formData.longitude} 
+                    onChange={e => setFormData({...formData, longitude: e.target.value})} 
+                    placeholder="-46.6333"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Raio (km)</Label>
+                  <Input 
+                    type="number" 
+                    value={formData.radius_km} 
+                    onChange={e => setFormData({...formData, radius_km: e.target.value})} 
+                    placeholder="50"
+                  />
+                </div>
+              </div>
             </div>
           </div>
         </TabsContent>
