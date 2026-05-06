@@ -330,16 +330,21 @@ export function PromotionInsights({ isAdmin, onAction }: PromotionInsightsProps)
         {
           id: 'idle_day',
           title: 'Dia com Menos Movimento',
-          description: 'Média das últimas 4 semanas.',
+          description: 'Considerando apenas dias de atendimento.',
           icon: Calendar,
           value: idleDayIdx !== -1 ? daysOfWeek[idleDayIdx] : '---',
-          subValue: idleDayIdx !== -1 ? 'Baixa ocupação' : 'Sem dados',
+          subValue: occupancyInfo,
           empty: idleDayIdx === -1,
           actions: [
             { 
               label: 'Criar Promoção p/ este Dia', 
               icon: Clock, 
-              onClick: () => onAction('promotion', { validDays: [idleDayIdx] }),
+              onClick: () => onAction('promotion', { 
+                insight: 'idle_day',
+                validDays: [idleDayIdx],
+                startTime: recommendedPeriod.start,
+                endTime: recommendedPeriod.end
+              }),
               primary: true 
             }
           ]
