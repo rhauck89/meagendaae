@@ -3068,7 +3068,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                       <p className="text-[10px] font-bold opacity-40 uppercase">Aviso</p>
                       <p className="text-[10px] opacity-60">
                         {cashbackEarnAmount > 0 && predictedLoyaltyPoints > 0 
-                          ? "O cashback e os pontos são creditados somente após a conclusão do atendimento e seguem as regras do estabelecimento."
+                          ? "Cashback e pontos são creditados somente após a conclusão do atendimento e seguem as regras do estabelecimento."
                           : cashbackEarnAmount > 0 
                             ? "O cashback é creditado somente após a conclusão do atendimento e segue as regras do estabelecimento."
                             : "Os pontos são creditados somente após a conclusão do atendimento e seguem as regras do estabelecimento."
