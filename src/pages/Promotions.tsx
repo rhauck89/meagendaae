@@ -1971,8 +1971,8 @@ export default function Promotions() {
 
             {creationMode === 'smart' && (
               <DialogFooter className="shrink-0 flex-row items-center justify-start border-t bg-background p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:p-6">
-                <Button variant="outline" onClick={() => setCreationMode('choice')} className="h-10 px-4">
-                  <ChevronLeft className="h-4 w-4 mr-1" /> <span className="hidden sm:inline">Voltar</span>
+                <Button variant="outline" onClick={() => setDialogOpen(false)} className="h-10 px-4">
+                  <ChevronLeft className="h-4 w-4 mr-1" /> <span className="hidden sm:inline">Fechar</span>
                 </Button>
               </DialogFooter>
             )}
