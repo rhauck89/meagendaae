@@ -1570,7 +1570,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
     if (professionals.length === 1 && selectedProfessional !== professionals[0].id) {
       setSelectedProfessional(professionals[0].id);
       fetchProfessionalHours(professionals[0].id);
-      if (step === 'professional') setStep(preselected.isActive() && selectedDate && selectedTime ? 'confirm' : 'datetime');
+      if (step === 'professional') setStep(preselected.isActive() && selectedDate && selectedTime ? (hasBenefitsActive ? 'benefits' : 'confirm') : 'datetime');
     }
   }, [professionals, selectedProfessional, step]);
 
