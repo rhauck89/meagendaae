@@ -587,6 +587,27 @@ export default function Promotions() {
         setDescription(`Uma condição especial para movimentar a agenda com mais previsibilidade.`);
         setMessageTemplate(`Olá {{cliente_primeiro_nome}}! 👋\n\nPreparamos uma condição especial para agendamentos de ${dayName}, dia ${format(nextDate, 'dd/MM')}. 🎉\n\nGaranta seu horário pelo link abaixo:\n{{link_promocao}}`);
         break;
+      case 'today_gap':
+      case 'week_gap':
+        setTitle(insight.data?.title || 'Promoção Relâmpago');
+        setDescription(insight.data?.description || '');
+        setStartDate(insight.data?.startDate || todayStr);
+        setEndDate(insight.data?.endDate || todayStr);
+        setSingleDay(!!insight.data?.singleDay);
+        setStartTime(insight.data?.startTime || '09:00');
+        setEndTime(insight.data?.endTime || '19:00');
+        setUseBusinessHours(false);
+        if (insight.data?.professionalId) {
+          setProfessionalFilter('specific');
+          setSelectedProfessionalIds([insight.data.professionalId]);
+        } else {
+          setProfessionalFilter('all');
+        }
+        if (insight.data?.messageTemplate) {
+          setMessageTemplate(insight.data.messageTemplate);
+        }
+        break;
+
     }
     setDialogOpen(true);
   };
