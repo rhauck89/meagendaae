@@ -19,6 +19,7 @@ import { MoreVertical, Edit2, Trash2, Play, Pause, ExternalLink, RefreshCw, X, W
 import { Checkbox } from '@/components/ui/checkbox';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Progress } from '@/components/ui/progress';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { toast } from '@/hooks/use-toast';
 import { format, parseISO, isToday, isTomorrow, differenceInCalendarDays } from 'date-fns';
 import { fromZonedTime, toZonedTime } from 'date-fns-tz';
@@ -107,6 +108,8 @@ interface PromotionInsight {
   buttonLabel?: string;
   icon: any;
   data?: any;
+  isSlotSpecific?: boolean;
+  selectedSlots?: { date: string; time: string; professionalId: string }[];
 }
 
 const MESSAGE_TAGS_TRADITIONAL = [
@@ -305,6 +308,8 @@ export default function Promotions() {
   const [bookingClosesAtDate, setBookingClosesAtDate] = useState('');
   const [bookingClosesAtTime, setBookingClosesAtTime] = useState('23:59');
   const [hasCustomBookingClosesAt, setHasCustomBookingClosesAt] = useState(false);
+  const [isSlotSpecific, setIsSlotSpecific] = useState(false);
+  const [selectedSlots, setSelectedSlots] = useState<{ date: string; time: string; professionalId: string }[]>([]);
 
   const WIZARD_STEPS = promotionType === 'cashback'
     ? [{ num: 1, label: 'Serviço' }, { num: 2, label: 'Cashback' }, { num: 3, label: 'Agenda' }, { num: 4, label: 'Mensagem' }]
@@ -468,6 +473,8 @@ export default function Promotions() {
       promotionType 
     });
     resetForm();
+    setIsSlotSpecific(insight.isSlotSpecific || false);
+    setSelectedSlots(insight.selectedSlots || []);
     setCreationMode('manual');
     setWizardStep(1);
     setSmartMode('smart');
@@ -590,20 +597,53 @@ export default function Promotions() {
         break;
       case 'today_gap':
       case 'week_gap':
-        setTitle(insight.data?.title || 'Oportunidade de Agenda');
+        setTitle(insight.data?.title || (insight.type === 'today_gap' ? 'Relâmpago de Hoje' : 'Agenda Especial da Semana'));
         setDescription(insight.data?.description || 'Condição especial para horários selecionados.');
-        setStartDate(insight.data?.startDate || todayStr);
-        setEndDate(insight.data?.endDate || todayStr);
-        setSingleDay(!!insight.data?.singleDay);
-        setStartTime(insight.data?.startTime || '09:00');
-        setEndTime(insight.data?.endTime || '20:00');
-        setUseBusinessHours(false);
-        if (insight.data?.validDays) setValidDays(insight.data.validDays);
-        if (insight.data?.professionalId) {
-          setProfessionalFilter('custom');
-          setSelectedProfessionalIds([insight.data.professionalId]);
+        
+        if (isSlotSpecific && selectedSlots && selectedSlots.length > 0) {
+          const sorted = [...selectedSlots].sort((a, b) => a.date.localeCompare(b.date));
+          setStartDate(sorted[0].date);
+          setEndDate(sorted[sorted.length - 1].date);
+          setSingleDay(sorted[0].date === sorted[sorted.length - 1].date);
+          setUseBusinessHours(false);
+          
+          setDiscountType('percentage');
+          setDiscountValue('15');
+          
+          const days = Array.from(new Set(selectedSlots.map(s => parseISO(s.date).getDay())));
+          setValidDays(days);
+
+          const profIds = Array.from(new Set(selectedSlots.map(s => s.professionalId))).filter(Boolean);
+          if (profIds.length > 0) {
+            setProfessionalFilter('selected');
+            setSelectedProfessionalIds(profIds as string[]);
+          }
+
+          if (insight.data?.promoType === 'cashback') {
+            setPromotionType('cashback');
+            setDiscountValue('15');
+          } else {
+            setPromotionType('traditional');
+          }
+
+          setMessageTemplate(insight.type === 'today_gap' 
+            ? `Olá {{cliente_primeiro_nome}}! 👋\n\nNotamos que temos alguns horários disponíveis para HOJE na *{{empresa_nome}}*! 🎉\n\nPreparamos uma condição especial para horários selecionados de hoje. Garanta seu momento pelo link.\n\nGaranta sua vaga:\n{{link_promocao}}`
+            : `Olá {{cliente_primeiro_nome}}! 👋\n\nAproveite nossa agenda da semana na *{{empresa_nome}}*! 🎉\n\nPreparamos uma condição especial para horários selecionados desta semana. Garanta seu horário pelo link.\n\nReserve agora:\n{{link_promocao}}`
+          );
+        } else {
+          setStartDate(insight.data?.startDate || todayStr);
+          setEndDate(insight.data?.endDate || todayStr);
+          setSingleDay(!!insight.data?.singleDay);
+          setStartTime(insight.data?.startTime || '09:00');
+          setEndTime(insight.data?.endTime || '20:00');
+          setUseBusinessHours(false);
+          if (insight.data?.validDays) setValidDays(insight.data.validDays);
+          if (insight.data?.professionalId) {
+            setProfessionalFilter('selected');
+            setSelectedProfessionalIds([insight.data.professionalId]);
+          }
+          setMessageTemplate(insight.data?.messageTemplate || DEFAULT_TEMPLATE);
         }
-        setMessageTemplate(insight.data?.messageTemplate || DEFAULT_TEMPLATE);
         break;
       default:
         break;
@@ -900,6 +940,57 @@ export default function Promotions() {
         return;
       }
       toast({ title: 'Promoção atualizada com sucesso! 🎉' });
+    } else if (isSlotSpecific && selectedSlots.length > 0) {
+      console.log('[PROMOTION_WEEK_GAPS_DEBUG]', {
+        professional_id: profile?.id,
+        service_ids: effectiveIds,
+        slots_selected: selectedSlots,
+        promotion_type: promotionType,
+        payload_base: payload
+      });
+
+      const baseSlug = payload.slug;
+      
+      const creationPromises = selectedSlots.map(async (slot, index) => {
+        const slotSlug = selectedSlots.length > 1 
+          ? `${baseSlug}-${slot.date}-${slot.time.replace(':', '')}-${index}` 
+          : baseSlug;
+        
+        const [h, m] = slot.time.split(':').map(Number);
+        const duration = primarySvc?.duration_minutes || 30;
+        const endTotal = h * 60 + m + duration;
+        const endH = Math.floor(endTotal / 60);
+        const endM = endTotal % 60;
+        const slotEndTime = `${String(endH).padStart(2, '0')}:${String(endM).padStart(2, '0')}`;
+
+        const slotPayload = {
+          ...payload,
+          slug: slotSlug,
+          start_date: slot.date,
+          end_date: slot.date,
+          start_time: slot.time,
+          end_time: slotEndTime,
+          use_business_hours: false,
+          max_slots: 1,
+          professional_filter: 'selected',
+          professional_ids: [slot.professionalId],
+          created_at: new Date(new Date().getTime() + index * 100).toISOString() // Shift slightly to keep grouped order
+        };
+
+        return supabase.from('promotions').insert(slotPayload).select('id').single();
+      });
+
+      const results = await Promise.all(creationPromises);
+      const errors = results.filter(r => r.error);
+      
+      if (errors.length > 0) {
+        console.error('Errors creating some slot promotions:', errors);
+        toast({ title: 'Erro ao criar algumas promoções', description: 'Alguns horários não puderam ser processados.', variant: 'destructive' });
+      } else {
+        toast({ title: 'Agenda preenchida com sucesso! 🎉', description: `${selectedSlots.length} promoções criadas.` });
+        const firstId = results[0].data?.id;
+        if (firstId) setHighlightedPromoId(firstId);
+      }
     } else {
       const { data, error } = await supabase.from('promotions').insert(payload).select('id').single();
       if (error) {
@@ -1648,8 +1739,66 @@ export default function Promotions() {
     </div>
   );
 
-  const renderStep2 = () => (
-    <div className="space-y-6">
+   const renderStep2 = () => {
+     if (isSlotSpecific && selectedSlots.length > 0) {
+       return (
+         <div className="space-y-6">
+           <div className="space-y-4 p-5 rounded-xl border bg-primary/5 ring-1 ring-primary/20">
+             <div className="flex items-center gap-3">
+               <div className="bg-primary/10 p-2 rounded-lg">
+                 <CalendarCheck className="h-5 w-5 text-primary" />
+               </div>
+               <div>
+                 <h4 className="font-bold text-sm">Horários Selecionados</h4>
+                 <p className="text-xs text-muted-foreground text-pretty">Esta promoção será válida exclusivamente para os horários selecionados através do assistente.</p>
+               </div>
+             </div>
+
+             <ScrollArea className="h-[200px] border rounded-lg bg-background p-4 shadow-inner">
+               <div className="space-y-4">
+                 {(() => {
+                   const groupedMap = new Map<string, string[]>();
+                   selectedSlots.forEach(s => {
+                     if (!groupedMap.has(s.date)) groupedMap.set(s.date, []);
+                     groupedMap.get(s.date)!.push(s.time);
+                   });
+                   
+                   return Array.from(groupedMap.entries())
+                     .sort((a, b) => a[0].localeCompare(b[0]))
+                     .map(([date, times]) => (
+                       <div key={date} className="space-y-2">
+                         <div className="flex items-center gap-2">
+                           <div className="h-1.5 w-1.5 rounded-full bg-primary" />
+                           <p className="text-[10px] font-black uppercase text-foreground/70 tracking-tight">
+                             {format(parseISO(date), "EEEE, d 'de' MMM", { locale: ptBR })}
+                           </p>
+                         </div>
+                         <div className="flex flex-wrap gap-1.5 pl-3.5">
+                           {times.sort().map((t, idx) => (
+                             <Badge key={`${date}-${t}-${idx}`} variant="secondary" className="text-[10px] font-bold h-6 px-2 bg-muted/50 border-transparent">
+                               {t.substring(0, 5)}
+                             </Badge>
+                           ))}
+                         </div>
+                       </div>
+                     ));
+                 })()}
+               </div>
+             </ScrollArea>
+             
+             <div className="p-3 rounded-lg bg-amber-50 border border-amber-100 flex gap-2">
+               <Zap className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
+               <p className="text-[10px] text-amber-800 leading-normal">
+                 <strong>Agenda Fixa:</strong> Como você escolheu horários específicos, o intervalo de datas e horários foi definido automaticamente e não pode ser editado manualmente nesta tela.
+               </p>
+             </div>
+           </div>
+         </div>
+       );
+     }
+
+     return (
+       <div className="space-y-6">
       <div className="space-y-4 p-4 rounded-lg border bg-muted/30">
         <h4 className="font-bold text-sm flex items-center gap-2">
           <CalendarCheck className="h-4 w-4 text-primary" />
@@ -1815,6 +1964,7 @@ export default function Promotions() {
       </div>
     </div>
   );
+};
 
   const renderChoiceScreen = () => (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-5 py-4">
