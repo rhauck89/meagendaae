@@ -253,9 +253,16 @@ export default function MarketplaceHome() {
   }, [allCompanies, search, filterCategory, filterCity, filterRating]);
 
   const tiered = useMemo(() => {
+    const featuredIds = new Set([
+      ...featuredLarge.map(f => f.company_id || f.professional_id),
+      ...featuredMedium.map(f => f.company_id || f.professional_id)
+    ]);
+
     const featured: MarketCompany[] = [];
     const recommended: MarketCompany[] = [];
+    
     [...filtered]
+      .filter(c => !featuredIds.has(c.id)) // Deduplication
       .sort((a, b) => (b.average_rating ?? 0) - (a.average_rating ?? 0))
       .forEach(c => {
         const rating = c.average_rating ?? 0;
@@ -264,7 +271,7 @@ export default function MarketplaceHome() {
         else if (recommended.length < 12) recommended.push(c);
       });
     return { featured, recommended };
-  }, [filtered]);
+  }, [filtered, featuredLarge, featuredMedium]);
 
   const scrollToResults = () => {
     document.getElementById('marketplace-results')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
