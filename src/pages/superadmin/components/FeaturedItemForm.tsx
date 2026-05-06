@@ -132,6 +132,7 @@ const FeaturedItemForm = ({ item, onSuccess, onCancel }: FeaturedItemFormProps) 
     try {
       const dataToSave = {
         item_type: formData.item_type,
+        position: formData.highlight_type, // Mapeia para o campo obrigatório position
         company_id: formData.company_id,
         professional_id: formData.item_type === 'professional' ? formData.professional_id : null,
         highlight_type: formData.highlight_type,
