@@ -1939,6 +1939,7 @@ export default function Promotions() {
               <Megaphone className="h-5 w-5 text-primary" /> Promoções & Ofertas
             </h3>
 
+
           <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) resetForm(); }}>
 
           <DialogTrigger asChild>
@@ -2544,6 +2545,7 @@ export default function Promotions() {
         <CashbackTab />
       )}
     </div>
+
   );
 }
 
