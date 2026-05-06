@@ -103,6 +103,13 @@ const FeaturedItemForm = ({ item, onSuccess, onCancel }: FeaturedItemFormProps) 
     }
   };
 
+  const isFormValid = 
+    formData.company_id && 
+    (formData.item_type === 'company' || formData.professional_id) &&
+    formData.start_at && 
+    formData.end_at &&
+    formData.highlight_type;
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -124,32 +131,39 @@ const FeaturedItemForm = ({ item, onSuccess, onCancel }: FeaturedItemFormProps) 
     setLoading(true);
     try {
       const dataToSave = {
-        ...formData,
+        item_type: formData.item_type,
+        position: formData.highlight_type, // Mapeia para o campo obrigatório position
         company_id: formData.company_id,
         professional_id: formData.item_type === 'professional' ? formData.professional_id : null,
-        priority: parseInt(formData.priority),
-        rotation_weight: parseInt(formData.rotation_weight),
+        highlight_type: formData.highlight_type,
+        start_at: formData.start_at,
+        end_at: formData.end_at,
+        start_date: formData.start_at, // Sincroniza com o campo obrigatório legado/DB
+        end_date: formData.end_at,     // Sincroniza com o campo obrigatório legado/DB
+        priority: parseInt(formData.priority) || 0,
+        rotation_weight: parseInt(formData.rotation_weight) || 1,
+        status: formData.status,
+        country: formData.country,
+        state_id: formData.state_id,
+        city_id: formData.city_id,
+        neighborhood: formData.neighborhood,
+        internal_notes: formData.internal_notes,
         latitude: formData.latitude ? parseFloat(formData.latitude) : null,
         longitude: formData.longitude ? parseFloat(formData.longitude) : null,
         radius_km: formData.radius_km ? parseFloat(formData.radius_km) : null,
-        state_id: formData.state_id,
-        city_id: formData.city_id,
       };
-
-      // Remove local helper fields not in schema
-      const { item_type, ...cleanData } = dataToSave;
 
       if (isEditing) {
         const { error } = await supabase
           .from('marketplace_featured_items')
-          .update(cleanData)
+          .update(dataToSave)
           .eq('id', item.id);
         if (error) throw error;
         toast.success('Destaque atualizado com sucesso');
       } else {
         const { error } = await supabase
           .from('marketplace_featured_items')
-          .insert([cleanData]);
+          .insert([dataToSave]);
         if (error) throw error;
         toast.success('Destaque criado com sucesso');
       }
@@ -389,7 +403,7 @@ const FeaturedItemForm = ({ item, onSuccess, onCancel }: FeaturedItemFormProps) 
 
       <div className="flex justify-end gap-3 pt-4 border-t">
         <Button type="button" variant="outline" onClick={onCancel}>Cancelar</Button>
-        <Button type="submit" disabled={loading} className="gap-2">
+        <Button type="submit" disabled={loading || !isFormValid} className="gap-2">
           {loading && <Loader2 className="h-4 w-4 animate-spin" />}
           <Save className="h-4 w-4" />
           {isEditing ? 'Atualizar Destaque' : 'Salvar Destaque'}
