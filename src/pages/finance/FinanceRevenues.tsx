@@ -11,8 +11,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Trash2, Pencil, Filter, X, ChevronUp, ChevronDown } from 'lucide-react';
-import { format } from 'date-fns';
+import { Switch } from '@/components/ui/switch';
+import { Plus, Trash2, Pencil, Filter, X, ChevronUp, ChevronDown, RefreshCw } from 'lucide-react';
+import { format, addWeeks, addMonths, addYears, isAfter, parseISO, setDate } from 'date-fns';
 import { toast } from 'sonner';
 import CategoryBadgeEditor from '@/components/finance/CategoryBadgeEditor';
 
@@ -31,7 +32,12 @@ const paymentMethodLabels: Record<string, string> = {
 const emptyForm = () => ({
   description: '', amount: '', revenue_date: format(new Date(), 'yyyy-MM-dd'),
   due_date: '', category_id: '', notes: '', status: 'received', payment_method: '',
-  client_name: '', professional_name: '', service_name: ''
+  client_name: '', professional_name: '', service_name: '',
+  is_recurring: false,
+  recurrence_frequency: 'monthly',
+  recurrence_count: '',
+  recurrence_end_date: '',
+  recurrence_due_day: '',
 });
 
 const FinanceRevenues = () => {
@@ -101,7 +107,7 @@ const FinanceRevenues = () => {
     if (!form.description || !form.amount) { toast.error('Preencha descrição e valor'); return; }
     setSubmitting(true);
     try {
-      const payload = {
+      const basePayload = {
         description: form.description,
         client_name: form.client_name || (form.description.includes(' — ') ? form.description.split(' — ')[0] : form.description),
         professional_name: form.professional_name || null,
@@ -113,19 +119,91 @@ const FinanceRevenues = () => {
         category_id: form.category_id && form.category_id !== 'none' ? form.category_id : null,
         notes: form.notes || null,
         payment_method: form.payment_method || null,
+        company_id: companyId!,
+        is_automatic: false,
+        created_by: user?.id,
       };
 
       if (editingId) {
-        const { error } = await supabase.from('company_revenues').update(payload).eq('id', editingId);
+        const { error } = await supabase.from('company_revenues').update(basePayload).eq('id', editingId);
         if (error) { toast.error('Erro ao atualizar'); return; }
         toast.success('Receita atualizada');
+      } else if (form.is_recurring) {
+        const groupId = crypto.randomUUID();
+        const occurrences: any[] = [];
+        const count = form.recurrence_count ? parseInt(form.recurrence_count) : (form.recurrence_end_date ? 500 : 1); // Safety limit 500
+        const endDate = form.recurrence_end_date ? parseISO(form.recurrence_end_date) : null;
+        const dueDay = form.recurrence_due_day ? parseInt(form.recurrence_due_day) : null;
+        
+        let currentDate = parseISO(form.revenue_date);
+        let currentDueDate = form.due_date ? parseISO(form.due_date) : null;
+
+        for (let i = 0; i < count; i++) {
+          if (endDate && isAfter(currentDate, endDate)) break;
+
+          let entryDate = currentDate;
+          let entryDueDate = currentDueDate;
+
+          // Adjust to due day if specified and frequency is monthly+
+          if (dueDay && ['monthly', 'bimonthly', 'trimonthly', 'semiannual', 'annual'].includes(form.recurrence_frequency)) {
+            // Only adjust from the second occurrence onwards to respect the first pick? 
+            // Or adjust all? User example: "todo dia 10". 
+            // I'll adjust all occurrences to avoid confusion.
+            entryDate = setDate(entryDate, dueDay);
+            if (entryDueDate) entryDueDate = setDate(entryDueDate, dueDay);
+          }
+
+          occurrences.push({
+            ...basePayload,
+            revenue_date: format(entryDate, 'yyyy-MM-dd'),
+            due_date: entryDueDate ? format(entryDueDate, 'yyyy-MM-dd') : null,
+            status: i === 0 ? form.status : 'pending',
+            is_recurring: true,
+            recurring_group_id: groupId,
+            recurrence_frequency: form.recurrence_frequency,
+            recurrence_count: form.recurrence_count ? parseInt(form.recurrence_count) : null,
+            recurrence_end_date: form.recurrence_end_date || null,
+            recurrence_due_day: dueDay,
+          });
+
+          // Calculate next dates
+          switch (form.recurrence_frequency) {
+            case 'weekly':
+              currentDate = addWeeks(currentDate, 1);
+              if (currentDueDate) currentDueDate = addWeeks(currentDueDate, 1);
+              break;
+            case 'biweekly':
+              currentDate = addWeeks(currentDate, 2);
+              if (currentDueDate) currentDueDate = addWeeks(currentDueDate, 2);
+              break;
+            case 'monthly':
+              currentDate = addMonths(currentDate, 1);
+              if (currentDueDate) currentDueDate = addMonths(currentDueDate, 1);
+              break;
+            case 'bimonthly':
+              currentDate = addMonths(currentDate, 2);
+              if (currentDueDate) currentDueDate = addMonths(currentDueDate, 2);
+              break;
+            case 'trimonthly':
+              currentDate = addMonths(currentDate, 3);
+              if (currentDueDate) currentDueDate = addMonths(currentDueDate, 3);
+              break;
+            case 'semiannual':
+              currentDate = addMonths(currentDate, 6);
+              if (currentDueDate) currentDueDate = addMonths(currentDueDate, 6);
+              break;
+            case 'annual':
+              currentDate = addYears(currentDate, 1);
+              if (currentDueDate) currentDueDate = addYears(currentDueDate, 1);
+              break;
+          }
+        }
+
+        const { error } = await supabase.from('company_revenues').insert(occurrences);
+        if (error) { toast.error('Erro ao gerar recorrências'); return; }
+        toast.success(`${occurrences.length} receitas geradas`);
       } else {
-        const { error } = await supabase.from('company_revenues').insert({
-          ...payload,
-          company_id: companyId!,
-          is_automatic: false,
-          created_by: user?.id,
-        });
+        const { error } = await supabase.from('company_revenues').insert(basePayload);
         if (error) { toast.error('Erro ao salvar'); return; }
         toast.success('Receita registrada');
       }
@@ -156,6 +234,11 @@ const FinanceRevenues = () => {
       notes: r.notes || '',
       status: r.status,
       payment_method: r.payment_method || '',
+      is_recurring: r.is_recurring || false,
+      recurrence_frequency: r.recurrence_frequency || 'monthly',
+      recurrence_count: r.recurrence_count ? String(r.recurrence_count) : '',
+      recurrence_end_date: r.recurrence_end_date || '',
+      recurrence_due_day: r.recurrence_due_day ? String(r.recurrence_due_day) : '',
     });
     setOpen(true);
   };
@@ -242,6 +325,53 @@ const FinanceRevenues = () => {
                   </Select>
                 </div>
                 <div><Label>Observações</Label><Textarea value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} /></div>
+                
+                <div className="flex items-center justify-between space-x-2 border p-3 rounded-lg bg-muted/20">
+                  <div className="space-y-0.5">
+                    <Label className="text-sm font-medium">Receita recorrente</Label>
+                    <p className="text-xs text-muted-foreground">Repetir esta receita automaticamente</p>
+                  </div>
+                  <Switch checked={form.is_recurring} onCheckedChange={v => setForm(f => ({ ...f, is_recurring: v }))} disabled={!!editingId} />
+                </div>
+
+                {form.is_recurring && !editingId && (
+                  <div className="space-y-3 border p-3 rounded-lg bg-muted/10 animate-in fade-in slide-in-from-top-2 duration-300">
+                    <p className="text-sm font-bold border-b pb-1">Configuração de recorrência</p>
+                    <div>
+                      <Label>Frequência</Label>
+                      <Select value={form.recurrence_frequency} onValueChange={v => setForm(f => ({ ...f, recurrence_frequency: v }))}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="weekly">Semanal</SelectItem>
+                          <SelectItem value="biweekly">Quinzenal</SelectItem>
+                          <SelectItem value="monthly">Mensal</SelectItem>
+                          <SelectItem value="bimonthly">Bimestral</SelectItem>
+                          <SelectItem value="trimonthly">Trimestral</SelectItem>
+                          <SelectItem value="semiannual">Semestral</SelectItem>
+                          <SelectItem value="annual">Anual</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <Label>Quantidade de ocorrências</Label>
+                        <Input type="number" placeholder="Ex: 12" value={form.recurrence_count} onChange={e => setForm(f => ({ ...f, recurrence_count: e.target.value }))} />
+                      </div>
+                      <div>
+                        <Label>Data final</Label>
+                        <Input type="date" value={form.recurrence_end_date} onChange={e => setForm(f => ({ ...f, recurrence_end_date: e.target.value }))} />
+                      </div>
+                    </div>
+                    {['monthly', 'bimonthly', 'trimonthly', 'semiannual', 'annual'].includes(form.recurrence_frequency) && (
+                      <div>
+                        <Label>Dia de vencimento (opcional)</Label>
+                        <Input type="number" min="1" max="31" placeholder="Ex: 10" value={form.recurrence_due_day} onChange={e => setForm(f => ({ ...f, recurrence_due_day: e.target.value }))} />
+                      </div>
+                    )}
+                    <p className="text-[10px] text-muted-foreground italic">As receitas futuras serão criadas com status "Pendente".</p>
+                  </div>
+                )}
+
                 <Button onClick={handleSubmit} className="w-full" disabled={submitting}>{submitting ? 'Salvando...' : 'Salvar'}</Button>
               </div>
             </DialogContent>
@@ -424,9 +554,16 @@ const FinanceRevenues = () => {
                       />
                     </TableCell>
                     <TableCell>
-                      <Badge variant={r.is_automatic ? 'default' : 'outline'} className="text-[10px] uppercase font-bold tracking-tight px-1.5 py-0">
-                        {r.is_automatic ? 'Automática' : 'Manual'}
-                      </Badge>
+                      <div className="flex flex-col gap-1">
+                        <Badge variant={r.is_automatic ? 'default' : 'outline'} className="text-[10px] uppercase font-bold tracking-tight px-1.5 py-0 w-fit">
+                          {r.is_automatic ? 'Automática' : 'Manual'}
+                        </Badge>
+                        {r.is_recurring && (
+                          <Badge variant="secondary" className="text-[10px] uppercase font-bold tracking-tight px-1.5 py-0 w-fit bg-blue-100 text-blue-700 hover:bg-blue-100">
+                            <RefreshCw className="h-2 w-2 mr-1" /> Recorrente
+                          </Badge>
+                        )}
+                      </div>
                     </TableCell>
                     <TableCell className="text-xs text-muted-foreground">{paymentMethodLabels[r.payment_method] || '—'}</TableCell>
                     <TableCell className="text-right font-semibold text-success">{maskValue(Number(r.amount))}</TableCell>
@@ -502,9 +639,16 @@ const FinanceRevenues = () => {
                 </div>
                 <div className="text-right shrink-0">
                   <div className="font-bold text-success text-sm">{maskValue(Number(r.amount))}</div>
-                  <Badge variant={r.is_automatic ? 'default' : 'outline'} className="text-[9px] px-1 py-0 h-4 uppercase mt-1">
-                    {r.is_automatic ? 'AUTO' : 'MANUAL'}
-                  </Badge>
+                  <div className="flex flex-col items-end gap-1 mt-1">
+                    <Badge variant={r.is_automatic ? 'default' : 'outline'} className="text-[9px] px-1 py-0 h-4 uppercase">
+                      {r.is_automatic ? 'AUTO' : 'MANUAL'}
+                    </Badge>
+                    {r.is_recurring && (
+                      <Badge variant="secondary" className="text-[9px] px-1 py-0 h-4 uppercase bg-blue-100 text-blue-700">
+                        RECORRENTE
+                      </Badge>
+                    )}
+                  </div>
                 </div>
               </div>
               

@@ -2386,10 +2386,18 @@ export type Database = {
           due_date: string | null
           id: string
           is_automatic: boolean
+          is_recurring: boolean | null
           notes: string | null
           payment_method: string | null
           professional_id: string | null
           professional_name: string | null
+          recurrence_count: number | null
+          recurrence_due_day: number | null
+          recurrence_end_date: string | null
+          recurrence_frequency: string | null
+          recurrence_interval: number | null
+          recurrence_parent_id: string | null
+          recurring_group_id: string | null
           revenue_date: string
           service_id: string | null
           service_name: string | null
@@ -2408,10 +2416,18 @@ export type Database = {
           due_date?: string | null
           id?: string
           is_automatic?: boolean
+          is_recurring?: boolean | null
           notes?: string | null
           payment_method?: string | null
           professional_id?: string | null
           professional_name?: string | null
+          recurrence_count?: number | null
+          recurrence_due_day?: number | null
+          recurrence_end_date?: string | null
+          recurrence_frequency?: string | null
+          recurrence_interval?: number | null
+          recurrence_parent_id?: string | null
+          recurring_group_id?: string | null
           revenue_date?: string
           service_id?: string | null
           service_name?: string | null
@@ -2430,10 +2446,18 @@ export type Database = {
           due_date?: string | null
           id?: string
           is_automatic?: boolean
+          is_recurring?: boolean | null
           notes?: string | null
           payment_method?: string | null
           professional_id?: string | null
           professional_name?: string | null
+          recurrence_count?: number | null
+          recurrence_due_day?: number | null
+          recurrence_end_date?: string | null
+          recurrence_frequency?: string | null
+          recurrence_interval?: number | null
+          recurrence_parent_id?: string | null
+          recurring_group_id?: string | null
           revenue_date?: string
           service_id?: string | null
           service_name?: string | null
