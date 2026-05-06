@@ -597,10 +597,10 @@ export default function MarketplaceHome() {
                           <Scissors className="h-10 w-10 text-slate-400" />
                         </div>
                       )}
-                      {c.average_rating ? (
+                      {(c.average_rating !== undefined && c.average_rating !== null) ? (
                         <div className="absolute top-2 left-2 bg-amber-400 text-slate-900 px-2 py-0.5 rounded-md text-xs font-bold flex items-center gap-1 shadow-md">
                           <Star className="h-3 w-3 fill-slate-900" />
-                          {c.average_rating.toFixed(1)}
+                          {Number(c.average_rating).toFixed(1)}
                         </div>
                       ) : null}
                       {c.logo_url && (
@@ -616,7 +616,7 @@ export default function MarketplaceHome() {
                       </p>
                       <div className="flex items-center gap-1 mt-1.5">
                         <StarRating rating={c.average_rating ?? 0} size={11} />
-                        {c.review_count ? <span className="text-[11px] text-muted-foreground">({c.review_count})</span> : null}
+                        {(c.review_count !== undefined && c.review_count !== null) ? <span className="text-[11px] text-muted-foreground">({c.review_count})</span> : null}
                       </div>
                       {c.distance !== undefined && (
                         <p className="text-[11px] text-accent font-medium mt-1">{formatDistance(c.distance)}</p>
