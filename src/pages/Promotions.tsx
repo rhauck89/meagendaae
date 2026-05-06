@@ -1867,7 +1867,7 @@ export default function Promotions() {
         </div>
         <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) resetForm(); }}>
           <DialogTrigger asChild>
-            <Button onClick={() => { resetForm(); setIsEditing(false); setCreationMode('choice'); }}>
+            <Button onClick={() => { resetForm(); setIsEditing(false); setCreationMode('manual'); }}>
               <Plus className="h-4 w-4 mr-2" />
               Nova Promoção
             </Button>
@@ -1951,8 +1951,8 @@ export default function Promotions() {
                     <ChevronLeft className="h-4 w-4 mr-1" /> <span className="hidden sm:inline">Voltar</span>
                   </Button>
                 ) : (
-                  <Button variant="outline" onClick={() => isEditing ? setDialogOpen(false) : setCreationMode('choice')} className="h-10 px-4">
-                    <ChevronLeft className="h-4 w-4 mr-1" /> <span className="hidden sm:inline">Voltar</span>
+                  <Button variant="outline" onClick={() => setDialogOpen(false)} className="h-10 px-4">
+                    <ChevronLeft className="h-4 w-4 mr-1" /> <span className="hidden sm:inline">Fechar</span>
                   </Button>
                 )}
 
@@ -1971,8 +1971,8 @@ export default function Promotions() {
 
             {creationMode === 'smart' && (
               <DialogFooter className="shrink-0 flex-row items-center justify-start border-t bg-background p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:p-6">
-                <Button variant="outline" onClick={() => setCreationMode('choice')} className="h-10 px-4">
-                  <ChevronLeft className="h-4 w-4 mr-1" /> <span className="hidden sm:inline">Voltar</span>
+                <Button variant="outline" onClick={() => setDialogOpen(false)} className="h-10 px-4">
+                  <ChevronLeft className="h-4 w-4 mr-1" /> <span className="hidden sm:inline">Fechar</span>
                 </Button>
               </DialogFooter>
             )}
