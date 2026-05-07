@@ -320,7 +320,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
       };
     }
 
-    const readable = `${promo.title || ''} ${promo.description || ''}`.toLowerCase();
+    const readable = `${promo.title || ''} ${promo.description || ''} ${promo.message_template || ''} ${promo.source_insight || ''}`.toLowerCase();
     if (readable.includes('cashback em dobro') || readable.includes('double_cashback')) {
       return { type: 'double_cashback', multiplier: 2 };
     }
@@ -333,6 +333,21 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
 
   const [selectedSlotPromo, setSelectedSlotPromo] = useState<PromotionInfo | null>(null);
   const [appliedPromotionId, setAppliedPromotionId] = useState<string | null>(null);
+
+  const isPromotionEligibleForSelection = (promo: any, slotDateTime: Date) => {
+    if (!isPromoActive(promo)) return false;
+    if (!isSlotEligible(promo, slotDateTime)) return false;
+
+    const isProfessionalMatch =
+      promo.professional_filter === 'all' ||
+      (promo.professional_filter === 'specific' && promo.professional_ids?.includes(selectedProfessional || '')) ||
+      ((promo as any).professional_id === selectedProfessional);
+
+    if (!isProfessionalMatch) return false;
+
+    const promoServiceIds = promo.service_ids || (promo.service_id ? [promo.service_id] : []);
+    return selectedServices.some(sid => promoServiceIds.length === 0 || promoServiceIds.includes(sid));
+  };
 
   // New persistence states for double benefits
   const [appliedBenefitDetails, setAppliedBenefitDetails] = useState<{
@@ -364,22 +379,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
       });
 
       // 1. Check if we already have it in publicPromotions
-      const matchingPromo = publicPromotions.find(promo => {
-        if (!isPromoActive(promo)) return false;
-        if (!isSlotEligible(promo, slotDateTime)) return false;
-        
-        // Professional filter logic
-        const isProfessionalMatch = 
-          promo.professional_filter === 'all' || 
-          (promo.professional_filter === 'specific' && promo.professional_ids?.includes(selectedProfessional || '')) ||
-          ((promo as any).professional_id === selectedProfessional); // fallback legacy
-          
-        if (!isProfessionalMatch) return false;
-
-        const promoServiceIds = promo.service_ids || (promo.service_id ? [promo.service_id] : []);
-        const hasEligibleService = selectedServices.some(sid => promoServiceIds.length === 0 || promoServiceIds.includes(sid));
-        return hasEligibleService;
-      });
+      const matchingPromo = publicPromotions.find(promo => isPromotionEligibleForSelection(promo, slotDateTime));
 
       if (matchingPromo) {
         // Ensure metadata is correctly loaded
@@ -399,12 +399,32 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
           setSelectedSlotPromo(matchingPromo);
         }
       } else {
-        setSelectedSlotPromo(null);
+        const { data: directPromos } = company?.id ? await supabase
+          .from('promotions')
+          .select('*')
+          .eq('company_id', company.id)
+          .eq('status', 'active')
+          .lte('start_date', dateStr)
+          .gte('end_date', dateStr)
+        : { data: [] as any[] };
+
+        const directMatch = (directPromos || [])
+          .filter((promo: any) => getPromotionIncentiveConfig(promo).type)
+          .find((promo: any) => isPromotionEligibleForSelection(promo, slotDateTime));
+
+        console.warn('[DOUBLE_BENEFIT_BOOKING_DEBUG_VISIBLE] Direct promotion fallback', {
+          date: dateStr,
+          time: selectedTime,
+          found: directMatch?.id || null,
+          incentive: getPromotionIncentiveConfig(directMatch),
+        });
+
+        setSelectedSlotPromo(directMatch as PromotionInfo || null);
       }
     };
 
     loadFullPromo();
-  }, [selectedTime, selectedDate, publicPromotions, selectedServices, selectedProfessional, bookingTimezone]);
+  }, [selectedTime, selectedDate, publicPromotions, selectedServices, selectedProfessional, bookingTimezone, company?.id]);
 
   // Identify the best applicable promotion for the current selection
   const activePromo = useMemo(() => {
