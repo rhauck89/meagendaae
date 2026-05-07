@@ -7890,6 +7890,16 @@ export type Database = {
             Args: { p_company_id?: string; p_email: string; p_whatsapp: string }
             Returns: Json
           }
+      check_subscription_benefit: {
+        Args: {
+          p_client_id: string
+          p_company_id: string
+          p_date?: string
+          p_professional_id: string
+          p_service_ids: string[]
+        }
+        Returns: Json
+      }
       cleanup_expired_otp: { Args: never; Returns: undefined }
       complete_client_signup: {
         Args: {
@@ -8323,6 +8333,16 @@ export type Database = {
           }
       register_promotional_opt_out: {
         Args: { p_company_id: string; p_whatsapp: string }
+        Returns: undefined
+      }
+      register_subscription_usage_v1: {
+        Args: {
+          p_appointment_id: string
+          p_company_id: string
+          p_service_ids: string[]
+          p_subscription_id: string
+          p_usage_date?: string
+        }
         Returns: undefined
       }
       reject_suggested_request: {
