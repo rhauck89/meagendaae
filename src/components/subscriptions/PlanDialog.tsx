@@ -140,10 +140,16 @@ export function PlanDialog({
     setLoading(true);
     try {
       const payload = {
-        ...values,
-        company_id: companyId,
-        // Ensure usage_limit is null if unlimited
+        name: values.name,
+        description: values.description,
+        price_monthly: values.price_monthly,
+        price_yearly: values.price_yearly,
+        type: values.type,
         usage_limit: values.type === 'unlimited' ? null : values.usage_limit,
+        included_services: values.included_services,
+        observations: values.observations,
+        is_active: values.is_active,
+        company_id: companyId,
       };
 
       if (plan?.id) {
