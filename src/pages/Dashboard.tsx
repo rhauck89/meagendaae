@@ -845,23 +845,77 @@ const Dashboard = () => {
                 const eligibleTotal = eligibleServices.reduce((sum: number, as: any) => sum + Number(as.price || 0), 0);
                 pointsToAward = Math.floor(eligibleTotal * Number(lc.points_per_currency || 1));
               }
-              if (pointsToAward > 0) {
-                const { data: lastTx } = await supabase
+
+              // Apply multiplier from promotion metadata
+              let multiplier = 1;
+              let incentiveType = 'none';
+              if (apt.promotion_id) {
+                const { data: promoData } = await supabase
+                  .from('promotions')
+                  .select('metadata')
+                  .eq('id', apt.promotion_id)
+                  .single();
+                
+                const typedPromo = promoData as any;
+                if (typedPromo?.metadata && typeof typedPromo.metadata === 'object') {
+                  const metadata = typedPromo.metadata;
+                  if (metadata.incentive_config?.type === 'double_points') {
+                    multiplier = Number(metadata.incentive_config.multiplier) || 2;
+                    incentiveType = 'double_points';
+                  }
+                }
+              }
+
+              const finalPoints = pointsToAward * multiplier;
+
+              console.log('[DOUBLE_BENEFIT_PROMO_DEBUG]', {
+                appointment_id: apt.id,
+                promotion_id: apt.promotion_id,
+                incentive_type: incentiveType,
+                multiplier: multiplier,
+                base_points: pointsToAward,
+                final_points: finalPoints
+              });
+
+              if (finalPoints > 0) {
+                // Idempotency check for points
+                const { data: existingPoints } = await supabase
                   .from('loyalty_points_transactions' as any)
-                  .select('balance_after')
-                  .eq('company_id', companyId)
-                  .eq('client_id', apt.client_id)
-                  .order('created_at', { ascending: false })
-                  .limit(1)
+                  .select('id')
+                  .eq('reference_type', 'appointment')
+                  .eq('reference_id', apt.id)
                   .maybeSingle();
-                const currentBalance = (lastTx as any)?.balance_after || 0;
-                await supabase.from('loyalty_points_transactions' as any).insert({
-                  company_id: companyId, client_id: apt.client_id, points: pointsToAward,
-                  transaction_type: 'earn', reference_type: 'appointment', reference_id: apt.id,
-                  description: `Serviço concluído — ${apt.client_name || 'Cliente'}`,
-                  balance_after: currentBalance + pointsToAward,
-                } as any);
-                toast.success(`+${pointsToAward} pontos de fidelidade!`);
+
+                if (existingPoints) {
+                  console.log('[DOUBLE_BENEFIT_PROMO_DEBUG] Points idempotency skipped: already exists');
+                } else {
+                  const { data: lastTx } = await supabase
+                    .from('loyalty_points_transactions' as any)
+                    .select('balance_after')
+                    .eq('company_id', companyId)
+                    .eq('client_id', apt.client_id)
+                    .order('created_at', { ascending: false })
+                    .limit(1)
+                    .maybeSingle();
+                  const currentBalance = (lastTx as any)?.balance_after || 0;
+                  
+                  const description = multiplier > 1 
+                    ? `Pontos em dobro — ${apt.client_name || 'Cliente'}`
+                    : `Serviço concluído — ${apt.client_name || 'Cliente'}`;
+
+                  await supabase.from('loyalty_points_transactions' as any).insert({
+                    company_id: companyId, 
+                    client_id: apt.client_id, 
+                    points: finalPoints,
+                    transaction_type: 'earn', 
+                    reference_type: 'appointment', 
+                    reference_id: apt.id,
+                    description: description,
+                    balance_after: currentBalance + finalPoints,
+                  } as any);
+                  
+                  toast.success(`+${finalPoints} pontos de fidelidade!`);
+                }
               }
             }
           }
