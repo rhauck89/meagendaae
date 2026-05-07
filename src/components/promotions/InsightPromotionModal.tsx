@@ -123,7 +123,9 @@ export function InsightPromotionModal({
         date: selectedSlots[0].date,
         selectedSlots,
         message_template: messageTemplate,
-        promotion_type: promoType === 'discount' ? 'traditional' : 'smart',
+        // Keep insight incentives public-booking compatible. The incentive itself is
+        // identified by metadata.incentive_config, not by a private/smart type.
+        promotion_type: 'traditional',
         service_ids: services.map(s => s.id), 
         professional_ids: Array.from(new Set(selectedSlots.map(s => s.professionalId))),
         promotion_mode: 'manual',
