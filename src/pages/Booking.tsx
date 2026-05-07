@@ -3387,7 +3387,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                                     <span className="text-[10px] font-bold bg-amber-500 text-black px-1.5 rounded-full">2x</span>
                                   </div>
                                   <div className="flex items-center gap-2">
-                                    <span className="text-xs line-through opacity-40 font-bold">{Math.round(predictedLoyaltyPoints / getPromotionIncentiveConfig(doublePointsPromo).multiplier)} pts</span>
+                                    <span className="text-xs line-through opacity-40 font-bold">{Math.round(predictedLoyaltyPoints / (getPromotionIncentiveConfig(doublePointsPromo).multiplier || 2))} pts</span>
                                     <ChevronRight className="h-3 w-3 opacity-40" />
                                     <span className="text-sm font-black text-amber-500 animate-pulse">{predictedLoyaltyPoints} pontos</span>
                                   </div>
