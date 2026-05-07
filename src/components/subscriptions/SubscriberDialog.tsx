@@ -167,7 +167,16 @@ export function SubscriberDialog({
     setLoading(true);
     try {
       const payload = {
-        ...values,
+        client_id: values.client_id,
+        plan_id: values.plan_id,
+        professional_id: values.professional_id,
+        professional_commission: values.professional_commission,
+        billing_cycle: values.billing_cycle,
+        start_date: values.start_date,
+        end_date: values.end_date || null,
+        billing_day: values.billing_day,
+        grace_period_days: values.grace_period_days,
+        status: values.status,
         company_id: companyId,
       };
 
