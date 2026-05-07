@@ -39,7 +39,7 @@ export function InsightPromotionModal({
   const [step, setStep] = useState<'type' | 'config' | 'message'>('type');
   const [loading, setLoading] = useState(false);
   
-  const [promoType, setPromoType] = useState<'traditional' | 'cashback' | 'points'>('traditional');
+  const [promoType, setPromoType] = useState<'traditional' | 'double_cashback' | 'double_points'>('traditional');
   const [title, setTitle] = useState('Agenda Especial da Semana');
   const [description, setDescription] = useState('Aproveite nossos horários disponíveis nesta semana com uma condição especial!');
   const [discountType, setDiscountType] = useState<'fixed_price' | 'percentage' | 'fixed_amount'>('percentage');
@@ -90,10 +90,6 @@ export function InsightPromotionModal({
 
   const handleNext = () => {
     if (step === 'type') {
-      if (promoType !== 'traditional') {
-        toast({ title: "Funcionalidade em breve", description: "O suporte real para este tipo de promoção será lançado em breve." });
-        return;
-      }
       setStep('config');
     } else if (step === 'config') {
       if (!title.trim()) {
@@ -116,17 +112,23 @@ export function InsightPromotionModal({
       const payload = {
         title,
         description,
-        discount_type: discountType,
-        discount_value: discountType !== 'fixed_price' ? parseFloat(discountValue) : null,
-        promotion_price: discountType === 'fixed_price' ? parseFloat(promotionPrice) : null,
+        discount_type: promoType === 'traditional' ? discountType : 'percentage',
+        discount_value: promoType === 'traditional' ? (discountType !== 'fixed_price' ? parseFloat(discountValue) : null) : 0,
+        promotion_price: promoType === 'traditional' ? (discountType === 'fixed_price' ? parseFloat(promotionPrice) : null) : null,
         times: selectedSlots.map(s => s.time),
         date: selectedSlots[0].date,
         selectedSlots,
         message_template: messageTemplate,
-        promotion_type: promoType,
+        promotion_type: promoType === 'traditional' ? 'traditional' : 'smart',
         service_ids: services.map(s => s.id), 
         professional_ids: Array.from(new Set(selectedSlots.map(s => s.professionalId))),
-        promotion_mode: 'manual'
+        promotion_mode: 'manual',
+        metadata: promoType !== 'traditional' ? {
+          incentive_config: {
+            type: promoType,
+            multiplier: 2
+          }
+        } : null
       };
 
       console.log('[PROMOTION_WEEK_GAPS_DEBUG]', {
@@ -191,10 +193,14 @@ export function InsightPromotionModal({
                 </button>
 
                 <button
-                  onClick={() => setPromoType('cashback')}
+                  onClick={() => {
+                    setPromoType('double_cashback');
+                    setTitle('Cashback em Dobro nesta Semana');
+                    setDescription('Agende um horário selecionado e ganhe o dobro de cashback para sua próxima visita!');
+                  }}
                   className={cn(
-                    "flex items-center gap-4 p-4 rounded-xl border text-left transition-all opacity-80 cursor-default",
-                    promoType === 'cashback' ? "border-primary bg-primary/5 ring-1 ring-primary" : "border-border"
+                    "flex items-center gap-4 p-4 rounded-xl border text-left transition-all",
+                    promoType === 'double_cashback' ? "border-primary bg-primary/5 ring-1 ring-primary" : "hover:bg-accent border-border"
                   )}
                 >
                   <div className="h-10 w-10 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600">
@@ -203,15 +209,22 @@ export function InsightPromotionModal({
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
                       <p className="text-sm font-bold">Cashback em Dobro</p>
-                      <Badge variant="secondary" className="text-[9px] uppercase h-4">Em Breve</Badge>
                     </div>
-                    <p className="text-xs text-muted-foreground text-pretty">Gere crédito para a próxima visita do cliente.</p>
+                    <p className="text-xs text-muted-foreground text-pretty">Gere crédito em dobro para a próxima visita do cliente.</p>
                   </div>
+                  {promoType === 'double_cashback' && <Check className="h-5 w-5 text-primary" />}
                 </button>
 
                 <button
-                  disabled
-                  className="flex items-center gap-4 p-4 rounded-xl border text-left opacity-50 cursor-not-allowed bg-muted/30"
+                  onClick={() => {
+                    setPromoType('double_points');
+                    setTitle('Pontos em Dobro nesta Semana');
+                    setDescription('Ganhe o dobro de pontos de fidelidade ao agendar nestes horários exclusivos!');
+                  }}
+                  className={cn(
+                    "flex items-center gap-4 p-4 rounded-xl border text-left transition-all",
+                    promoType === 'double_points' ? "border-primary bg-primary/5 ring-1 ring-primary" : "hover:bg-accent border-border"
+                  )}
                 >
                   <div className="h-10 w-10 rounded-full bg-amber-100 flex items-center justify-center text-amber-600">
                     <Star className="h-5 w-5" />
@@ -219,10 +232,10 @@ export function InsightPromotionModal({
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
                       <p className="text-sm font-bold">Pontos em Dobro</p>
-                      <Badge variant="secondary" className="text-[9px] uppercase h-4">Em Breve</Badge>
                     </div>
                     <p className="text-xs text-muted-foreground text-pretty">Incentive o programa de fidelidade da sua empresa.</p>
                   </div>
+                  {promoType === 'double_points' && <Check className="h-5 w-5 text-primary" />}
                 </button>
               </div>
             </div>
