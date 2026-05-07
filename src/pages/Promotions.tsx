@@ -2570,10 +2570,16 @@ export default function Promotions() {
                             <Edit2 className="h-3 w-3" /> Manual
                           </Badge>
                         )}
-                        {isCashback && (
+                        {isCashback && !incentiveType && (
                           <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400 dark:border-emerald-800">💰 Cashback</Badge>
                         )}
-                        {discountLabel && (
+                        {incentiveType === 'double_cashback' && (
+                          <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400 dark:border-emerald-800">💰 Cashback em dobro</Badge>
+                        )}
+                        {incentiveType === 'double_points' && (
+                          <Badge className="bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-800">⭐ Pontos em dobro</Badge>
+                        )}
+                        {discountLabel && !incentiveType && (
                           <Badge className={isCashback ? 'bg-emerald-50 text-emerald-600 border-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-400' : 'bg-primary/10 text-primary border-primary/20'}>{discountLabel}</Badge>
                         )}
                       </div>
