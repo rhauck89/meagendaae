@@ -15,7 +15,7 @@ import { toast } from 'sonner';
 import { formatWhatsApp, isValidWhatsApp, normalizePhone } from '@/lib/whatsapp';
 import { sendAppointmentCreatedWebhook } from '@/lib/automations';
 import { getAvailableSlots } from '@/lib/availability-service';
-import { Search, CalendarIcon, Clock, User, Scissors } from 'lucide-react';
+import { Search, CalendarIcon, Clock, User, Scissors, Star, CheckCircle2, AlertCircle } from 'lucide-react';
 
 interface ManualAppointmentDialogProps {
   open: boolean;
@@ -75,6 +75,10 @@ export function ManualAppointmentDialog({
   // Step 5: WhatsApp confirmation
   const [sendWhatsApp, setSendWhatsApp] = useState(false);
 
+  // Subscription logic
+  const [subBenefit, setSubBenefit] = useState<any>(null);
+  const [validatingSub, setValidatingSub] = useState(false);
+
   useEffect(() => {
     if (open) {
       resetForm();
@@ -82,6 +86,35 @@ export function ManualAppointmentDialog({
       fetchServices();
     }
   }, [open]);
+
+  useEffect(() => {
+    if (selectedClient && selectedProfessional && selectedServices.length > 0) {
+      validateSubscription();
+    } else {
+      setSubBenefit(null);
+    }
+  }, [selectedClient, selectedProfessional, selectedServices]);
+
+  const validateSubscription = async () => {
+    setValidatingSub(true);
+    try {
+      const { data, error } = await supabase.rpc('check_subscription_benefit', {
+        p_company_id: companyId,
+        p_client_id: selectedClient.id,
+        p_professional_id: selectedProfessional,
+        p_service_ids: selectedServices,
+        p_date: selectedDate ? format(selectedDate, 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd')
+      });
+      if (error) throw error;
+      setSubBenefit(data);
+    } catch (err) {
+      console.error('Error validating sub:', err);
+      setSubBenefit(null);
+    } finally {
+      setValidatingSub(false);
+    }
+  };
+
   useEffect(() => {
     if (open && selectedDate && selectedProfessional && selectedServices.length > 0) {
       fetchSlots(selectedDate);
