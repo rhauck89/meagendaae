@@ -84,11 +84,7 @@ const Subscriptions = () => {
         </TabsContent>
 
         <TabsContent value="plans" className="focus-visible:outline-none">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <p className="col-span-full text-center py-12 text-muted-foreground bg-muted/20 rounded-xl border border-dashed">
-              Nenhum plano cadastrado. Comece criando o seu primeiro plano.
-            </p>
-          </div>
+          {companyId && <PlansTab companyId={companyId} />}
         </TabsContent>
 
         <TabsContent value="subscribers" className="focus-visible:outline-none">
