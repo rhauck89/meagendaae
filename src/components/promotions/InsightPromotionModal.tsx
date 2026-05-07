@@ -176,10 +176,10 @@ export function InsightPromotionModal({
               </p>
               <div className="grid gap-3">
                 <button
-                  onClick={() => setPromoType('traditional')}
+                  onClick={() => setPromoType('discount')}
                   className={cn(
                     "flex items-center gap-4 p-4 rounded-xl border text-left transition-all",
-                    promoType === 'traditional' ? "border-primary bg-primary/5 ring-1 ring-primary" : "hover:bg-accent border-border"
+                    promoType === 'discount' ? "border-primary bg-primary/5 ring-1 ring-primary" : "hover:bg-accent border-border"
                   )}
                 >
                   <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600">
@@ -189,7 +189,7 @@ export function InsightPromotionModal({
                     <p className="text-sm font-bold">Desconto Direto</p>
                     <p className="text-xs text-muted-foreground text-pretty">Reduza o preço original para preencher a vaga rápido.</p>
                   </div>
-                  {promoType === 'traditional' && <Check className="h-5 w-5 text-primary" />}
+                  {promoType === 'discount' && <Check className="h-5 w-5 text-primary" />}
                 </button>
 
                 <button
