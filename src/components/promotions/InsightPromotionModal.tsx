@@ -77,7 +77,11 @@ export function InsightPromotionModal({
       .map(([day, times]) => `- ${day}: ${times.join(', ')}`)
       .join('\n');
 
-    const template = `Olá {{cliente_primeiro_nome}}! 👋\n\nTemos uma condição especial em horários selecionados com ${professionalName} nesta semana na {{empresa_nome}}. 🎉\n\nHorários disponíveis:\n${slotsText}\n\nGaranta seu horário pelo link: {{link_promocao}}`;
+    let benefitText = `com ${discountType === 'percentage' ? `${discountValue}% de desconto` : discountType === 'fixed_amount' ? `R$ ${discountValue} de desconto` : 'um preço especial'}`;
+    if (promoType === 'double_cashback') benefitText = 'com CASHBACK EM DOBRO 💰';
+    if (promoType === 'double_points') benefitText = 'com PONTOS EM DOBRO ⭐';
+
+    const template = `Olá {{cliente_primeiro_nome}}! 👋\n\nTemos uma condição especial ${benefitText} em horários selecionados com ${professionalName} nesta semana na {{empresa_nome}}. 🎉\n\nHorários disponíveis:\n${slotsText}\n\nGaranta seu horário pelo link: {{link_promocao}}`;
     
     console.log('[PROMOTION_WEEK_GAPS_DEBUG]', {
       action: 'generate_whatsapp_message',
@@ -176,7 +180,12 @@ export function InsightPromotionModal({
               </p>
               <div className="grid gap-3">
                 <button
-                  onClick={() => setPromoType('discount')}
+                  type="button"
+                  onClick={() => {
+                    setPromoType('discount');
+                    setTitle('Agenda Especial da Semana');
+                    setDescription('Aproveite nossos horários disponíveis nesta semana com uma condição especial!');
+                  }}
                   className={cn(
                     "flex items-center gap-4 p-4 rounded-xl border text-left transition-all",
                     promoType === 'discount' ? "border-primary bg-primary/5 ring-1 ring-primary" : "hover:bg-accent border-border"
@@ -193,6 +202,7 @@ export function InsightPromotionModal({
                 </button>
 
                 <button
+                  type="button"
                   onClick={() => {
                     setPromoType('double_cashback');
                     setTitle('Cashback em Dobro nesta Semana');
@@ -216,6 +226,7 @@ export function InsightPromotionModal({
                 </button>
 
                 <button
+                  type="button"
                   onClick={() => {
                     setPromoType('double_points');
                     setTitle('Pontos em Dobro nesta Semana');
