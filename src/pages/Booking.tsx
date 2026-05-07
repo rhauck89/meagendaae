@@ -2177,7 +2177,10 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
         throw new Error('Falha ao processar agendamento. O servidor não retornou um ID.');
       }
       
-      console.log('[BOOKING_SUCCESS] Transaction confirmed:', appointmentId);
+      console.warn('[DOUBLE_BENEFIT_BOOKING_DEBUG_VISIBLE] appointment success', {
+        appointmentId,
+        benefitDetails: appliedBenefitDetails
+      });
 
 
       try {
