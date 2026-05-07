@@ -3567,22 +3567,22 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                     {bookingResult.pointsEarned > 0 && (
                       <div className={cn(
                         "flex items-center gap-4 p-5 rounded-3xl border transition-all duration-500",
-                        currentPromo?.metadata?.incentive_config?.type === 'double_points'
+                        doublePointsPromo
                           ? "bg-amber-500/10 border-amber-500/30 ring-2 ring-amber-500/20 scale-[1.05]"
                           : "bg-amber-500/5 border-amber-500/10"
                       )}>
                         <div className={cn(
                           "w-12 h-12 rounded-full flex items-center justify-center shrink-0 shadow-lg",
-                          currentPromo?.metadata?.incentive_config?.type === 'double_points' ? "bg-amber-500 animate-bounce" : "bg-amber-500/10"
+                          doublePointsPromo ? "bg-amber-500 animate-bounce" : "bg-amber-500/10"
                         )}>
-                          <span className={cn("text-2xl", currentPromo?.metadata?.incentive_config?.type === 'double_points' ? "text-black" : "text-amber-500")}>⭐</span>
+                          <span className={cn("text-2xl", doublePointsPromo ? "text-black" : "text-amber-500")}>⭐</span>
                         </div>
                         <div className="flex-1">
                           <div className="flex items-center gap-2 mb-1">
                             <p className="font-black text-amber-500 text-lg">
-                              {currentPromo?.metadata?.incentive_config?.type === 'double_points' ? 'Pontos em Dobro!' : `${bookingResult.pointsEarned} pontos`}
+                              {doublePointsPromo ? 'Pontos em Dobro!' : `${bookingResult.pointsEarned} pontos`}
                             </p>
-                            {currentPromo?.metadata?.incentive_config?.type === 'double_points' && (
+                            {doublePointsPromo && (
                               <Badge className="bg-amber-500 text-black border-none text-[10px] font-black px-2">2x</Badge>
                             )}
                           </div>
@@ -3590,6 +3590,9 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                             {bookingResult.pointsEarned} pontos acumulados
                           </p>
                           <p className="text-[10px] font-bold opacity-60 uppercase tracking-widest" style={{ color: T.textSec }}>Liberados após o atendimento</p>
+                          {doublePointsPromo && (
+                            <p className="text-[10px] text-amber-500 font-black mt-1 uppercase italic">Incentivo aplicado com sucesso!</p>
+                          )}
                         </div>
                       </div>
                     )}
@@ -3597,29 +3600,32 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                     {bookingResult.cashbackEarned > 0 && (
                       <div className={cn(
                         "flex items-center gap-4 p-5 rounded-3xl border transition-all duration-500",
-                        currentPromo?.metadata?.incentive_config?.type === 'double_cashback'
+                        doubleCashbackPromo
                           ? "bg-emerald-500/10 border-emerald-500/30 ring-2 ring-emerald-500/20 scale-[1.05]"
                           : "bg-emerald-500/5 border-emerald-500/10"
                       )}>
                         <div className={cn(
                           "w-12 h-12 rounded-full flex items-center justify-center shrink-0 shadow-lg",
-                          currentPromo?.metadata?.incentive_config?.type === 'double_cashback' ? "bg-emerald-500 animate-bounce" : "bg-emerald-500/10"
+                          doubleCashbackPromo ? "bg-emerald-500 animate-bounce" : "bg-emerald-500/10"
                         )}>
-                          <span className={cn("text-2xl", currentPromo?.metadata?.incentive_config?.type === 'double_cashback' ? "text-black" : "text-emerald-500")}>💵</span>
+                          <span className={cn("text-2xl", doubleCashbackPromo ? "text-black" : "text-emerald-500")}>💵</span>
                         </div>
                         <div className="flex-1">
                           <div className="flex items-center gap-2 mb-1">
                             <p className="font-black text-emerald-500 text-lg">
-                              {currentPromo?.metadata?.incentive_config?.type === 'double_cashback' ? 'Cashback em Dobro!' : `R$ ${bookingResult.cashbackEarned.toFixed(2).replace('.', ',')} de volta`}
+                              {doubleCashbackPromo ? 'Cashback em Dobro!' : `R$ ${bookingResult.cashbackEarned.toFixed(2).replace('.', ',')} de volta`}
                             </p>
-                            {currentPromo?.metadata?.incentive_config?.type === 'double_cashback' && (
+                            {doubleCashbackPromo && (
                               <Badge className="bg-emerald-500 text-black border-none text-[10px] font-black px-2">2x</Badge>
                             )}
                           </div>
                           <p className="text-sm font-bold text-emerald-500/80 mb-1">
                             R$ {bookingResult.cashbackEarned.toFixed(2).replace('.', ',')} creditados em sua conta
                           </p>
-                          <p className="text-[10px] font-bold opacity-60 uppercase tracking-widest" style={{ color: T.textSec }}>Liberados após o atendimento</p>
+                          <p className="text-[10px] font-bold opacity-60 uppercase tracking-widest" style={{ color: T.textSec }}>Liberado após o atendimento</p>
+                          {doubleCashbackPromo && (
+                            <p className="text-[10px] text-emerald-500 font-black mt-1 uppercase italic">Incentivo aplicado com sucesso!</p>
+                          )}
                         </div>
                       </div>
                     )}
