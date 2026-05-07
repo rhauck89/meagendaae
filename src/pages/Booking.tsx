@@ -3221,9 +3221,9 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                     <div className="rounded-2xl p-5 space-y-4 animate-in zoom-in duration-500" style={{ background: 'rgba(255,255,255,0.02)', border: `1px solid ${T.border}` }}>
                       <div className="flex items-center justify-between">
                         <p className="text-[10px] font-black uppercase tracking-[0.2em] opacity-40">Benefícios Previstos</p>
-                        {(currentPromo?.metadata?.incentive_config?.type === 'double_points' || currentPromo?.metadata?.incentive_config?.type === 'double_cashback') && (
+                        {(doublePointsPromo || doubleCashbackPromo) && (
                           <Badge className="bg-primary/20 text-primary border-primary/30 animate-pulse text-[9px] py-0 h-5">
-                            Promoção Ativa
+                            Incentivo Ativo
                           </Badge>
                         )}
                       </div>
@@ -3232,25 +3232,25 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                         {predictedLoyaltyPoints > 0 && (
                           <div className={cn(
                             "flex items-center gap-4 p-4 rounded-xl transition-all duration-500",
-                            currentPromo?.metadata?.incentive_config?.type === 'double_points' 
+                            doublePointsPromo 
                               ? "bg-amber-500/10 border border-amber-500/30 ring-1 ring-amber-500/20 scale-[1.02] shadow-[0_0_20px_rgba(245,158,11,0.1)]" 
                               : "bg-white/5 border border-white/5"
                           )}>
                             <div className={cn(
                               "w-10 h-10 rounded-full flex items-center justify-center shrink-0",
-                              currentPromo?.metadata?.incentive_config?.type === 'double_points' ? "bg-amber-500 animate-bounce" : "bg-amber-500/10"
+                              doublePointsPromo ? "bg-amber-500 animate-bounce" : "bg-amber-500/10"
                             )}>
-                              <span className={cn("text-lg", currentPromo?.metadata?.incentive_config?.type === 'double_points' ? "text-black" : "text-amber-500")}>⭐</span>
+                              <span className={cn("text-lg", doublePointsPromo ? "text-black" : "text-amber-500")}>⭐</span>
                             </div>
                             <div className="flex-1">
-                              {currentPromo?.metadata?.incentive_config?.type === 'double_points' ? (
+                              {doublePointsPromo ? (
                                 <>
                                   <div className="flex items-center gap-2 mb-1">
                                     <p className="text-sm font-black text-amber-500">Pontos em dobro!</p>
                                     <span className="text-[10px] font-bold bg-amber-500 text-black px-1.5 rounded-full">2x</span>
                                   </div>
                                   <div className="flex items-center gap-2">
-                                    <span className="text-xs line-through opacity-40 font-bold">{predictedLoyaltyPoints / 2} pts</span>
+                                    <span className="text-xs line-through opacity-40 font-bold">{Math.round(predictedLoyaltyPoints / getPromotionIncentiveConfig(doublePointsPromo).multiplier)} pts</span>
                                     <ChevronRight className="h-3 w-3 opacity-40" />
                                     <span className="text-sm font-black text-amber-500 animate-pulse">{predictedLoyaltyPoints} pontos</span>
                                   </div>
@@ -3268,25 +3268,25 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                         {cashbackEarnAmount > 0 && (
                           <div className={cn(
                             "flex items-center gap-4 p-4 rounded-xl transition-all duration-500",
-                            currentPromo?.metadata?.incentive_config?.type === 'double_cashback' 
+                            doubleCashbackPromo 
                               ? "bg-emerald-500/10 border border-emerald-500/30 ring-1 ring-emerald-500/20 scale-[1.02] shadow-[0_0_20px_rgba(16,185,129,0.1)]" 
                               : "bg-white/5 border border-white/5"
                           )}>
                             <div className={cn(
                               "w-10 h-10 rounded-full flex items-center justify-center shrink-0",
-                              currentPromo?.metadata?.incentive_config?.type === 'double_cashback' ? "bg-emerald-500 animate-bounce" : "bg-emerald-500/10"
+                              doubleCashbackPromo ? "bg-emerald-500 animate-bounce" : "bg-emerald-500/10"
                             )}>
-                              <span className={cn("text-lg", currentPromo?.metadata?.incentive_config?.type === 'double_cashback' ? "text-black" : "text-emerald-500")}>💵</span>
+                              <span className={cn("text-lg", doubleCashbackPromo ? "text-black" : "text-emerald-500")}>💵</span>
                             </div>
                             <div className="flex-1">
-                              {currentPromo?.metadata?.incentive_config?.type === 'double_cashback' ? (
+                              {doubleCashbackPromo ? (
                                 <>
                                   <div className="flex items-center gap-2 mb-1">
                                     <p className="text-sm font-black text-emerald-500">Cashback em dobro!</p>
                                     <span className="text-[10px] font-bold bg-emerald-500 text-black px-1.5 rounded-full">2x</span>
                                   </div>
                                   <div className="flex items-center gap-2">
-                                    <span className="text-xs line-through opacity-40 font-bold">R$ {(cashbackEarnAmount / 2).toFixed(2).replace('.', ',')}</span>
+                                    <span className="text-xs line-through opacity-40 font-bold">R$ {(cashbackEarnAmount / getPromotionIncentiveConfig(doubleCashbackPromo).multiplier).toFixed(2).replace('.', ',')}</span>
                                     <ChevronRight className="h-3 w-3 opacity-40" />
                                     <span className="text-sm font-black text-emerald-500 animate-pulse">R$ {cashbackEarnAmount.toFixed(2).replace('.', ',')}</span>
                                   </div>
