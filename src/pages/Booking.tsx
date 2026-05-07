@@ -315,6 +315,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
   };
 
   const [selectedSlotPromo, setSelectedSlotPromo] = useState<PromotionInfo | null>(null);
+  const [appliedPromotionId, setAppliedPromotionId] = useState<string | null>(null);
 
   useEffect(() => {
     const loadFullPromo = async () => {
@@ -326,18 +327,35 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
       const dateStr = format(selectedDate, 'yyyy-MM-dd');
       const slotDateTime = fromZonedTime(`${dateStr} ${selectedTime}:00`, bookingTimezone);
 
+      console.warn('[DOUBLE_BENEFIT_BOOKING_DEBUG_VISIBLE] Selecting slot', {
+        date: dateStr,
+        time: selectedTime,
+        professionalId: selectedProfessional,
+        selectedServices
+      });
+
       // 1. Check if we already have it in publicPromotions
       const matchingPromo = publicPromotions.find(promo => {
         if (!isPromoActive(promo)) return false;
         if (!isSlotEligible(promo, slotDateTime)) return false;
         
+        // Professional filter
+        if (promo.professional_filter === 'specific' && promo.professional_ids) {
+          if (!selectedProfessional || !promo.professional_ids.includes(selectedProfessional)) return false;
+        }
+
         const promoServiceIds = promo.service_ids || (promo.service_id ? [promo.service_id] : []);
         const hasEligibleService = selectedServices.some(sid => promoServiceIds.length === 0 || promoServiceIds.includes(sid));
         return hasEligibleService;
       });
 
       if (matchingPromo) {
-        console.log('[DOUBLE_BENEFIT_BOOKING_DEBUG] Found matching promo in state:', matchingPromo.id);
+        console.warn('[DOUBLE_BENEFIT_BOOKING_DEBUG_VISIBLE] Found matching promo for slot', {
+          id: matchingPromo.id,
+          title: matchingPromo.title,
+          type: matchingPromo.promotion_type,
+          metadata: matchingPromo.metadata
+        });
         
         // Ensure metadata is correctly loaded
         if (!matchingPromo.metadata || Object.keys(matchingPromo.metadata).length === 0) {
@@ -349,6 +367,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
             .single();
           
           if (data && !error) {
+            console.warn('[DOUBLE_BENEFIT_BOOKING_DEBUG_VISIBLE] Fetched full metadata', data.metadata);
             setSelectedSlotPromo({ ...matchingPromo, metadata: data.metadata });
           } else {
             setSelectedSlotPromo(matchingPromo);
@@ -357,12 +376,19 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
           setSelectedSlotPromo(matchingPromo);
         }
       } else {
+        console.warn('[DOUBLE_BENEFIT_BOOKING_DEBUG_VISIBLE] Nenhuma promoção encontrada para este slot', {
+          date: dateStr,
+          time: selectedTime,
+          professionalId: selectedProfessional,
+          services: selectedServices,
+          publicPromotionsCount: publicPromotions.length
+        });
         setSelectedSlotPromo(null);
       }
     };
 
     loadFullPromo();
-  }, [selectedTime, selectedDate, publicPromotions, selectedServices, bookingTimezone]);
+  }, [selectedTime, selectedDate, publicPromotions, selectedServices, selectedProfessional, bookingTimezone]);
 
   // Identify the best applicable promotion for the current selection
   const activePromo = useMemo(() => {
