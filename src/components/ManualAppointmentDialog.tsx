@@ -400,11 +400,45 @@ export function ManualAppointmentDialog({
   );
 
   const renderStep3 = () => (
-    <div className="space-y-3">
+    <div className="space-y-4">
+      {subBenefit && (
+        <Card className={`border-none shadow-none bg-muted/20 ${subBenefit.applied ? 'bg-primary/5 border border-primary/20' : ''}`}>
+          <CardContent className="p-3">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <Star className={`h-4 w-4 ${subBenefit.applied ? 'text-primary' : 'text-muted-foreground'}`} />
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Status da Assinatura</p>
+                  {subBenefit.applied ? (
+                    <p className="text-sm font-medium">Plano {subBenefit.plan_name}: <span className="text-primary font-bold">Benefício aplicado</span></p>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">
+                      {subBenefit.reason === 'wrong_professional' ? 'Assinatura vinculada a outro profissional' : 
+                       subBenefit.reason === 'payment_overdue' ? 'Benefício suspenso por atraso no pagamento' :
+                       subBenefit.reason === 'limit_reached' ? 'Limite de uso mensal atingido' :
+                       subBenefit.reason === 'services_not_included' ? 'Nenhum dos serviços está incluso no plano' :
+                       'Sem benefício de assinatura'}
+                    </p>
+                  )}
+                </div>
+              </div>
+              {subBenefit.usage_limit && (
+                <div className="text-right">
+                  <p className="text-[10px] text-muted-foreground uppercase">Uso do Ciclo</p>
+                  <p className="text-sm font-bold">{subBenefit.usage_used}/{subBenefit.usage_limit}</p>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       <Label>Selecione os serviços</Label>
       <div className="space-y-2 max-h-[300px] overflow-y-auto">
         {services.map(svc => {
           const isSelected = selectedServices.includes(svc.id);
+          const isCovered = subBenefit?.applied && subBenefit.covered_service_ids?.includes(svc.id);
+          
           return (
             <div
               key={svc.id}
@@ -419,11 +453,25 @@ export function ManualAppointmentDialog({
               }}
             >
               <div className="flex items-center justify-between">
-                <div>
-                  <p className="font-medium text-sm">{svc.name}</p>
-                  <p className="text-xs text-muted-foreground">{svc.duration_minutes} min</p>
+                <div className="flex items-center gap-2">
+                  <div>
+                    <p className="font-medium text-sm">{svc.name}</p>
+                    <p className="text-xs text-muted-foreground">{svc.duration_minutes} min</p>
+                  </div>
+                  {isCovered && (
+                    <Badge variant="outline" className="bg-primary/10 text-primary border-none text-[10px] px-1 h-5">
+                      <CheckCircle2 className="h-3 w-3 mr-1" /> Incluso
+                    </Badge>
+                  )}
                 </div>
-                <span className="font-semibold text-sm">R$ {Number(svc.price).toFixed(2)}</span>
+                <div className="text-right">
+                  <span className={`text-sm ${isCovered ? 'line-through text-muted-foreground font-normal' : 'font-semibold'}`}>
+                    R$ {Number(svc.price).toFixed(2)}
+                  </span>
+                  {isCovered && (
+                    <p className="text-xs font-bold text-primary">Grátis</p>
+                  )}
+                </div>
               </div>
             </div>
           );
@@ -431,8 +479,13 @@ export function ManualAppointmentDialog({
       </div>
       {selectedServices.length > 0 && (
         <div className="flex items-center justify-between pt-2 border-t">
-          <span className="text-sm text-muted-foreground">Total: {totalDuration} min</span>
-          <span className="font-bold">R$ {totalPrice.toFixed(2)}</span>
+          <div className="flex flex-col">
+             <span className="text-xs text-muted-foreground">Total: {totalDuration} min</span>
+             {totalPrice < originalTotalPrice && (
+               <span className="text-[10px] text-muted-foreground line-through">Subtotal: R$ {originalTotalPrice.toFixed(2)}</span>
+             )}
+          </div>
+          <span className="font-bold text-lg text-primary">R$ {totalPrice.toFixed(2)}</span>
         </div>
       )}
     </div>
