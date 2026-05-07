@@ -317,6 +317,18 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
   const [selectedSlotPromo, setSelectedSlotPromo] = useState<PromotionInfo | null>(null);
   const [appliedPromotionId, setAppliedPromotionId] = useState<string | null>(null);
 
+  // New persistence states for double benefits
+  const [appliedBenefitDetails, setAppliedBenefitDetails] = useState<{
+    cashbackBase: number;
+    cashbackFinal: number;
+    pointsBase: number;
+    pointsFinal: number;
+    promotionTitle: string | null;
+    promotionId: string | null;
+    incentiveType: string | null;
+    multiplier: number;
+  } | null>(null);
+
   useEffect(() => {
     const loadFullPromo = async () => {
       if (!selectedTime || !selectedDate) {
@@ -327,7 +339,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
       const dateStr = format(selectedDate, 'yyyy-MM-dd');
       const slotDateTime = fromZonedTime(`${dateStr} ${selectedTime}:00`, bookingTimezone);
 
-      console.warn('[DOUBLE_BENEFIT_BOOKING_DEBUG_VISIBLE] Selecting slot', {
+      console.warn('[DOUBLE_BENEFIT_BOOKING_DEBUG_VISIBLE] Slot selected', {
         date: dateStr,
         time: selectedTime,
         professionalId: selectedProfessional,
@@ -339,10 +351,13 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
         if (!isPromoActive(promo)) return false;
         if (!isSlotEligible(promo, slotDateTime)) return false;
         
-        // Professional filter
-        if (promo.professional_filter === 'specific' && promo.professional_ids) {
-          if (!selectedProfessional || !promo.professional_ids.includes(selectedProfessional)) return false;
-        }
+        // Professional filter logic
+        const isProfessionalMatch = 
+          promo.professional_filter === 'all' || 
+          (promo.professional_filter === 'specific' && promo.professional_ids?.includes(selectedProfessional || '')) ||
+          ((promo as any).professional_id === selectedProfessional); // fallback legacy
+          
+        if (!isProfessionalMatch) return false;
 
         const promoServiceIds = promo.service_ids || (promo.service_id ? [promo.service_id] : []);
         const hasEligibleService = selectedServices.some(sid => promoServiceIds.length === 0 || promoServiceIds.includes(sid));
@@ -350,16 +365,8 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
       });
 
       if (matchingPromo) {
-        console.warn('[DOUBLE_BENEFIT_BOOKING_DEBUG_VISIBLE] Found matching promo for slot', {
-          id: matchingPromo.id,
-          title: matchingPromo.title,
-          type: matchingPromo.promotion_type,
-          metadata: matchingPromo.metadata
-        });
-        
         // Ensure metadata is correctly loaded
         if (!matchingPromo.metadata || Object.keys(matchingPromo.metadata).length === 0) {
-           console.log('[DOUBLE_BENEFIT_BOOKING_DEBUG] Promo has no metadata, fetching full record...');
            const { data, error } = await supabase
             .from('promotions')
             .select('id, title, metadata, promotion_type, discount_type, discount_value')
@@ -367,7 +374,6 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
             .single();
           
           if (data && !error) {
-            console.warn('[DOUBLE_BENEFIT_BOOKING_DEBUG_VISIBLE] Fetched full metadata', data.metadata);
             setSelectedSlotPromo({ ...matchingPromo, metadata: data.metadata });
           } else {
             setSelectedSlotPromo(matchingPromo);
@@ -376,13 +382,6 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
           setSelectedSlotPromo(matchingPromo);
         }
       } else {
-        console.warn('[DOUBLE_BENEFIT_BOOKING_DEBUG_VISIBLE] Nenhuma promoção encontrada para este slot', {
-          date: dateStr,
-          time: selectedTime,
-          professionalId: selectedProfessional,
-          services: selectedServices,
-          publicPromotionsCount: publicPromotions.length
-        });
         setSelectedSlotPromo(null);
       }
     };
@@ -411,10 +410,11 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
     // 3. Match the selected professional (if professional filter is specific)
     // 4. Match at least one selected service
     const eligiblePromos = publicPromotions.filter(promo => {
-      // Cashback promos are handled separately (they don't apply a discount to the price)
-      // EXCEPT if they have incentive_config (Double Cashback/Points)
       const incentiveConfig = getPromotionIncentiveConfig(promo);
-      if (promo.promotion_type === 'cashback' && !incentiveConfig.type) return false; 
+      
+      // Include manual, smart and cashback-with-incentive
+      const isValidType = promo.promotion_type === 'manual' || promo.promotion_type === 'smart' || (promo.promotion_type === 'cashback' && incentiveConfig.type);
+      if (!isValidType) return false;
       
       // Is it open for booking today?
       const isBookingOpen = isPromoActive(promo);
@@ -424,10 +424,13 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
       const isSlotValid = isSlotEligible(promo, slotDateTime);
       if (!isSlotValid) return false;
 
-      // If professional filter is specific, check if the selected professional is included
-      if (promo.professional_filter === 'specific' && promo.professional_ids) {
-        if (!selectedProfessional || !promo.professional_ids.includes(selectedProfessional)) return false;
-      }
+      // Professional filter logic
+      const isProfessionalMatch = 
+        promo.professional_filter === 'all' || 
+        (promo.professional_filter === 'specific' && promo.professional_ids?.includes(selectedProfessional || '')) ||
+        ((promo as any).professional_id === selectedProfessional); // fallback legacy
+        
+      if (!isProfessionalMatch) return false;
 
       // Check if any selected service is part of this promotion
       const promoServiceIds = promo.service_ids || (promo.service_id ? [promo.service_id] : []);
@@ -436,8 +439,6 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
       return hasEligibleService;
     });
 
-    // If multiple promos apply, we could sort them by "best discount", 
-    // but for now we'll take the first applicable one.
     return eligiblePromos.length > 0 ? eligiblePromos[0] : null;
   }, [selectedSlotPromo, promoData, publicPromotions, selectedDate, selectedTime, selectedServices, selectedProfessional, bookingTimezone]);
 
@@ -456,9 +457,14 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
       if (promo.promotion_type !== 'cashback') return false;
       if (!isPromoActive(promo)) return false;
       if (!isSlotEligible(promo, slotDateTime)) return false;
-      if (promo.professional_filter === 'specific' && promo.professional_ids) {
-        if (!selectedProfessional || !promo.professional_ids.includes(selectedProfessional)) return false;
-      }
+      
+      const isProfessionalMatch = 
+        promo.professional_filter === 'all' || 
+        (promo.professional_filter === 'specific' && promo.professional_ids?.includes(selectedProfessional || '')) ||
+        ((promo as any).professional_id === selectedProfessional); // fallback legacy
+      
+      if (!isProfessionalMatch) return false;
+
       const promoServiceIds = promo.service_ids || (promo.service_id ? [promo.service_id] : []);
       const hasEligibleService = selectedServices.some(sid => promoServiceIds.length === 0 || promoServiceIds.includes(sid));
       return hasEligibleService;
@@ -1923,13 +1929,80 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
       const clientName = clientForm.full_name || localIdentity?.fullName || user?.user_metadata?.full_name || user?.user_metadata?.name || 'Cliente';
       const clientEmail = clientForm.email || localIdentity?.email || user?.email || null;
 
+      const currentIncentive = getPromotionIncentiveConfig(currentPromo || activeCashbackPromo);
+      
       console.warn('[DOUBLE_BENEFIT_BOOKING_DEBUG_VISIBLE] handleBook start', { 
         clientForm,
         selectedSlot: { date: selectedDate, time: selectedTime },
         currentPromo: currentPromo?.id,
         activeCashbackPromo: activeCashbackPromo?.id,
-        incentiveConfig: getPromotionIncentiveConfig(currentPromo || activeCashbackPromo)
+        incentiveConfig: currentIncentive
       });
+
+      // Calculate base values for persistence
+      // We replicate the logic to ensure we have the "base" (multiplier=1) vs "final"
+      let baseCashback = 0;
+      if (isCashbackPromo && promoData) {
+        const promoServiceIds = promoData.service_ids || (promoData.service_id ? [promoData.service_id] : []);
+        const promoServicesTotal = services
+          .filter(s => selectedServices.includes(s.id) && (promoServiceIds.length === 0 || promoServiceIds.includes(s.id)))
+          .reduce((sum, s) => sum + Number(s.price), 0);
+        if (promoData.discount_type === 'percentage' && promoData.discount_value) {
+          baseCashback = promoServicesTotal * Number(promoData.discount_value) / 100;
+        } else if (promoData.discount_type === 'fixed_amount' && promoData.discount_value) {
+          baseCashback = Number(promoData.discount_value);
+        }
+      } else if (!isPromoMode && autoCashbackPromos.length > 0 && selectedProfessional && selectedServices.length > 0) {
+        for (const promo of autoCashbackPromos) {
+          const isProfMatch = promo.professional_filter === 'all' || promo.professional_ids?.includes(selectedProfessional || '') || (promo as any).professional_id === selectedProfessional;
+          if (!isProfMatch) continue;
+          const promoServiceIds = promo.service_ids || (promo.service_id ? [promo.service_id] : []);
+          const eligible = services.filter(s => selectedServices.includes(s.id) && (promoServiceIds.length === 0 || promoServiceIds.includes(s.id)));
+          if (eligible.length === 0) continue;
+          const eligibleTotal = eligible.reduce((sum, s) => sum + Number(s.price), 0);
+          if (promo.discount_type === 'percentage' && promo.discount_value) {
+            baseCashback += eligibleTotal * Number(promo.discount_value) / 100;
+          } else if (promo.discount_type === 'fixed_amount' && promo.discount_value) {
+            baseCashback += Number(promo.discount_value);
+          }
+        }
+      }
+
+      let basePoints = 0;
+      if (loyaltyConfig?.enabled && selectedProfessional && selectedServices.length > 0) {
+        const selectedServicesData = services.filter(s => selectedServices.includes(s.id));
+        const eligibleServices = selectedServicesData.filter(s => {
+          if (loyaltyConfig.participating_services === 'all') return true;
+          if (loyaltyConfig.participating_services === 'specific' && Array.isArray(loyaltyConfig.specific_service_ids)) {
+            return loyaltyConfig.specific_service_ids.includes(s.id);
+          }
+          return false;
+        });
+        if (eligibleServices.length > 0) {
+          if (loyaltyConfig.scoring_type === 'per_service') {
+            basePoints = eligibleServices.length * (Number(loyaltyConfig.points_per_service) || 0);
+          } else if (loyaltyConfig.scoring_type === 'per_value') {
+            const eligibleSubtotal = eligibleServices.reduce((sum, s) => sum + Number(s.price), 0);
+            basePoints = Math.floor(eligibleSubtotal * (Number(loyaltyConfig.points_per_currency) || 0));
+          }
+        }
+      }
+
+      const multiplier = currentIncentive.multiplier || 1;
+      const persistenceData = {
+        cashbackBase: baseCashback,
+        cashbackFinal: baseCashback * (currentIncentive.type === 'double_cashback' ? multiplier : 1),
+        pointsBase: basePoints,
+        pointsFinal: basePoints * (currentIncentive.type === 'double_points' ? multiplier : 1),
+        promotionTitle: currentPromo?.title || activeCashbackPromo?.title || null,
+        promotionId: currentPromo?.id || activeCashbackPromo?.id || null,
+        incentiveType: currentIncentive.type,
+        multiplier: multiplier
+      };
+      
+      setAppliedBenefitDetails(persistenceData);
+
+      console.warn('[DOUBLE_BENEFIT_BOOKING_DEBUG_VISIBLE] Benefits persisted before RPC', persistenceData);
 
       console.log('[BOOKING_FLOW] Starting book process:', { 
         normalizedPhone, 
@@ -2066,7 +2139,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
         p_client_name: clientForm.full_name ?? null,
         p_client_whatsapp: formattedWhatsapp ?? null,
         p_notes: null as string | null,
-        p_promotion_id: currentPromo?.id ?? activeCashbackPromo?.id ?? null,
+        p_promotion_id: persistenceData.promotionId || null,
         p_services: aptServicesPayload,
         p_cashback_ids: useCashback && cashbackCredits.length > 0 ? cashbackCredits.map(c => c.id) : [],
         p_user_id: user?.id ?? null,
@@ -2074,10 +2147,12 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
         p_client_email: clientForm.email || null,
       };
 
-      console.warn('[DOUBLE_BENEFIT_BOOKING_DEBUG_VISIBLE] Final payload for RPC', {
-        appointmentPayloadV2,
-        selectedPromoId: currentPromo?.id || activeCashbackPromo?.id,
-        incentiveConfig: getPromotionIncentiveConfig(currentPromo || activeCashbackPromo)
+      console.warn('[DOUBLE_BENEFIT_BOOKING_DEBUG_VISIBLE] appointment payload', {
+        p_company_id: appointmentPayloadV2.p_company_id,
+        p_professional_id: appointmentPayloadV2.p_professional_id,
+        p_promotion_id: appointmentPayloadV2.p_promotion_id,
+        p_start_time: appointmentPayloadV2.p_start_time,
+        benefitDetails: persistenceData
       });
 
       console.log('[BOOKING_INSERT_ATTEMPT]', { 
@@ -2102,7 +2177,10 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
         throw new Error('Falha ao processar agendamento. O servidor não retornou um ID.');
       }
       
-      console.log('[BOOKING_SUCCESS] Transaction confirmed:', appointmentId);
+      console.warn('[DOUBLE_BENEFIT_BOOKING_DEBUG_VISIBLE] appointment success', {
+        appointmentId,
+        benefitDetails: appliedBenefitDetails
+      });
 
 
       try {
@@ -2170,8 +2248,8 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
         companyCity: (company as any)?.city || null,
         companyState: (company as any)?.state || null,
         companyPostalCode: (company as any)?.postal_code || null,
-        cashbackEarned: Number(cashbackEarnAmount || 0),
-        pointsEarned: Number(predictedLoyaltyPoints || 0),
+        cashbackEarned: Number(persistenceData.cashbackFinal || 0),
+        pointsEarned: Number(persistenceData.pointsFinal || 0),
       });
 
       // Save last booking for smart rebooking
@@ -3263,12 +3341,12 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
               {/* Benefits Info */}
               {(() => {
                 if (step === 'confirm') {
-                  console.log('[BOOKING_POINTS_PREVIEW_RENDER_DEBUG]', {
+                  console.warn('[DOUBLE_BENEFIT_BOOKING_DEBUG_VISIBLE] review render', {
                     predictedLoyaltyPoints,
                     cashbackEarnAmount,
-                    useCashback,
-                    hasBenefitsActive,
-                    rendering_benefits_block: (cashbackEarnAmount > 0 || predictedLoyaltyPoints > 0 || useCashback)
+                    doublePointsPromo: doublePointsPromo?.id,
+                    doubleCashbackPromo: doubleCashbackPromo?.id,
+                    hasBenefitsActive
                   });
                 }
                 return null;
@@ -3309,7 +3387,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                                     <span className="text-[10px] font-bold bg-amber-500 text-black px-1.5 rounded-full">2x</span>
                                   </div>
                                   <div className="flex items-center gap-2">
-                                    <span className="text-xs line-through opacity-40 font-bold">{Math.round(predictedLoyaltyPoints / getPromotionIncentiveConfig(doublePointsPromo).multiplier)} pts</span>
+                                    <span className="text-xs line-through opacity-40 font-bold">{Math.round(predictedLoyaltyPoints / (getPromotionIncentiveConfig(doublePointsPromo).multiplier || 2))} pts</span>
                                     <ChevronRight className="h-3 w-3 opacity-40" />
                                     <span className="text-sm font-black text-amber-500 animate-pulse">{predictedLoyaltyPoints} pontos</span>
                                   </div>
@@ -3345,7 +3423,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                                     <span className="text-[10px] font-bold bg-emerald-500 text-black px-1.5 rounded-full">2x</span>
                                   </div>
                                   <div className="flex items-center gap-2">
-                                    <span className="text-xs line-through opacity-40 font-bold">R$ {(cashbackEarnAmount / getPromotionIncentiveConfig(doubleCashbackPromo).multiplier).toFixed(2).replace('.', ',')}</span>
+                                    <span className="text-xs line-through opacity-40 font-bold">R$ {(cashbackEarnAmount / (getPromotionIncentiveConfig(doubleCashbackPromo).multiplier || 2)).toFixed(2).replace('.', ',')}</span>
                                     <ChevronRight className="h-3 w-3 opacity-40" />
                                     <span className="text-sm font-black text-emerald-500 animate-pulse">R$ {cashbackEarnAmount.toFixed(2).replace('.', ',')}</span>
                                   </div>
@@ -3465,11 +3543,9 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
 
         {/* ═══ SUCCESS ═══ */}
         {step === 'success' && bookingResult && (() => {
-          console.warn('[DOUBLE_BENEFIT_BOOKING_DEBUG_VISIBLE] Success screen render', {
+          console.warn('[DOUBLE_BENEFIT_BOOKING_DEBUG_VISIBLE] success render', {
             bookingResult,
-            doublePointsPromo: doublePointsPromo?.id,
-            doubleCashbackPromo: doubleCashbackPromo?.id,
-            incentiveConfig: getPromotionIncentiveConfig(doublePointsPromo || doubleCashbackPromo)
+            appliedBenefitDetails
           });
           const st = new Date(bookingResult.date);
           const [h, m] = bookingResult.time.split(':').map(Number);
@@ -3632,22 +3708,22 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                     {bookingResult.pointsEarned > 0 && (
                       <div className={cn(
                         "flex items-center gap-4 p-5 rounded-3xl border transition-all duration-500",
-                        doublePointsPromo
+                        appliedBenefitDetails?.incentiveType === 'double_points'
                           ? "bg-amber-500/10 border-amber-500/30 ring-2 ring-amber-500/20 scale-[1.05]"
                           : "bg-amber-500/5 border-amber-500/10"
                       )}>
                         <div className={cn(
                           "w-12 h-12 rounded-full flex items-center justify-center shrink-0 shadow-lg",
-                          doublePointsPromo ? "bg-amber-500 animate-bounce" : "bg-amber-500/10"
+                          appliedBenefitDetails?.incentiveType === 'double_points' ? "bg-amber-500 animate-bounce" : "bg-amber-500/10"
                         )}>
-                          <span className={cn("text-2xl", doublePointsPromo ? "text-black" : "text-amber-500")}>⭐</span>
+                          <span className={cn("text-2xl", appliedBenefitDetails?.incentiveType === 'double_points' ? "text-black" : "text-amber-500")}>⭐</span>
                         </div>
                         <div className="flex-1">
                           <div className="flex items-center gap-2 mb-1">
                             <p className="font-black text-amber-500 text-lg">
-                              {doublePointsPromo ? 'Pontos em Dobro!' : `${bookingResult.pointsEarned} pontos`}
+                              {appliedBenefitDetails?.incentiveType === 'double_points' ? 'Pontos em Dobro!' : `${bookingResult.pointsEarned} pontos`}
                             </p>
-                            {doublePointsPromo && (
+                            {appliedBenefitDetails?.incentiveType === 'double_points' && (
                               <Badge className="bg-amber-500 text-black border-none text-[10px] font-black px-2">2x</Badge>
                             )}
                           </div>
@@ -3655,7 +3731,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                             {bookingResult.pointsEarned} pontos acumulados
                           </p>
                           <p className="text-[10px] font-bold opacity-60 uppercase tracking-widest" style={{ color: T.textSec }}>Liberados após o atendimento</p>
-                          {doublePointsPromo && (
+                          {appliedBenefitDetails?.incentiveType === 'double_points' && (
                             <p className="text-[10px] text-amber-500 font-black mt-1 uppercase italic">Incentivo aplicado com sucesso!</p>
                           )}
                         </div>
@@ -3665,22 +3741,22 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                     {bookingResult.cashbackEarned > 0 && (
                       <div className={cn(
                         "flex items-center gap-4 p-5 rounded-3xl border transition-all duration-500",
-                        doubleCashbackPromo
+                        appliedBenefitDetails?.incentiveType === 'double_cashback'
                           ? "bg-emerald-500/10 border-emerald-500/30 ring-2 ring-emerald-500/20 scale-[1.05]"
                           : "bg-emerald-500/5 border-emerald-500/10"
                       )}>
                         <div className={cn(
                           "w-12 h-12 rounded-full flex items-center justify-center shrink-0 shadow-lg",
-                          doubleCashbackPromo ? "bg-emerald-500 animate-bounce" : "bg-emerald-500/10"
+                          appliedBenefitDetails?.incentiveType === 'double_cashback' ? "bg-emerald-500 animate-bounce" : "bg-emerald-500/10"
                         )}>
-                          <span className={cn("text-2xl", doubleCashbackPromo ? "text-black" : "text-emerald-500")}>💵</span>
+                          <span className={cn("text-2xl", appliedBenefitDetails?.incentiveType === 'double_cashback' ? "text-black" : "text-emerald-500")}>💵</span>
                         </div>
                         <div className="flex-1">
                           <div className="flex items-center gap-2 mb-1">
                             <p className="font-black text-emerald-500 text-lg">
-                              {doubleCashbackPromo ? 'Cashback em Dobro!' : `R$ ${bookingResult.cashbackEarned.toFixed(2).replace('.', ',')} de volta`}
+                              {appliedBenefitDetails?.incentiveType === 'double_cashback' ? 'Cashback em Dobro!' : `R$ ${bookingResult.cashbackEarned.toFixed(2).replace('.', ',')} de volta`}
                             </p>
-                            {doubleCashbackPromo && (
+                            {appliedBenefitDetails?.incentiveType === 'double_cashback' && (
                               <Badge className="bg-emerald-500 text-black border-none text-[10px] font-black px-2">2x</Badge>
                             )}
                           </div>
@@ -3688,7 +3764,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                             R$ {bookingResult.cashbackEarned.toFixed(2).replace('.', ',')} creditados em sua conta
                           </p>
                           <p className="text-[10px] font-bold opacity-60 uppercase tracking-widest" style={{ color: T.textSec }}>Liberado após o atendimento</p>
-                          {doubleCashbackPromo && (
+                          {appliedBenefitDetails?.incentiveType === 'double_cashback' && (
                             <p className="text-[10px] text-emerald-500 font-black mt-1 uppercase italic">Incentivo aplicado com sucesso!</p>
                           )}
                         </div>
