@@ -1552,20 +1552,23 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
       debug('Calculating by value', { eligibleSubtotal, pointsPerCurrency, points });
     }
 
-    const incentiveConfig = currentPromo?.metadata?.incentive_config;
-    const isDoublePoints = incentiveConfig?.type === 'double_points';
-    const multiplier = isDoublePoints ? (Number(incentiveConfig.multiplier) || 2) : 1;
+    // Check for double points incentive in either activePromo or activeCashbackPromo
+    const promoWithIncentive = [currentPromo, activeCashbackPromo].find(p => getPromotionIncentiveConfig(p).type === 'double_points');
+    const incentiveConfig = getPromotionIncentiveConfig(promoWithIncentive);
+    const multiplier = incentiveConfig.type === 'double_points' ? incentiveConfig.multiplier : 1;
     
     const finalPoints = points * multiplier;
 
     if (step === 'confirm' || step === 'success') {
-      console.log('[DOUBLE_BENEFIT_PROMO_DEBUG]', {
-        promotion_id: currentPromo?.id,
+      console.log('[DOUBLE_BENEFIT_BOOKING_DEBUG]', {
+        promotion_id: promoWithIncentive?.id || currentPromo?.id,
         incentive_type: incentiveConfig?.type,
         multiplier,
         base_points: points,
         final_points: finalPoints,
-        tela: step
+        step,
+        selectedTime,
+        selectedDate: selectedDate ? format(selectedDate, 'yyyy-MM-dd') : null
       });
     }
 
