@@ -145,6 +145,26 @@ const Clients = () => {
     );
   }, [isAdmin, appointments]);
 
+  // Fetch subscriber statuses
+  const { data: subscriberStatuses = {} } = useQuery({
+    queryKey: ['client-subscriber-statuses', companyId],
+    queryFn: async () => {
+      if (!companyId) return {};
+      const { data, error } = await supabase
+        .from('client_subscriptions')
+        .select('client_id, status')
+        .eq('company_id', companyId);
+      if (error) throw error;
+      
+      const statusMap: Record<string, string> = {};
+      data?.forEach(sub => {
+        statusMap[sub.client_id] = sub.status;
+      });
+      return statusMap;
+    },
+    enabled: !!companyId,
+  });
+
   // Fetch all clients
   const { data: clients = [], isLoading } = useQuery({
     queryKey: ['clients', companyId],
