@@ -297,21 +297,38 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
   const bookingTimezone = companySettings?.timezone || DEFAULT_BOOKING_TIMEZONE;
 
   const getPromotionIncentiveConfig = (promo: any) => {
-    if (!promo || !promo.metadata) return { type: null, multiplier: 1 };
+    if (!promo) return { type: null, multiplier: 1 };
     let metadata = promo.metadata;
     if (typeof metadata === 'string') {
       try {
         metadata = JSON.parse(metadata);
       } catch (e) {
-        return { type: null, multiplier: 1 };
+        metadata = null;
       }
     }
-    const config = metadata.incentive_config;
-    if (!config) return { type: null, multiplier: 1 };
-    return {
-      type: config.type || null,
-      multiplier: Number(config.multiplier) || 1
-    };
+    const config =
+      metadata?.incentive_config ||
+      metadata?.incentiveConfig ||
+      metadata?.incentive ||
+      promo.incentive_config ||
+      (promo.incentive_type ? { type: promo.incentive_type, multiplier: promo.incentive_multiplier } : null);
+
+    if (config?.type) {
+      return {
+        type: config.type,
+        multiplier: Number(config.multiplier) || 1
+      };
+    }
+
+    const readable = `${promo.title || ''} ${promo.description || ''}`.toLowerCase();
+    if (readable.includes('cashback em dobro') || readable.includes('double_cashback')) {
+      return { type: 'double_cashback', multiplier: 2 };
+    }
+    if (readable.includes('pontos em dobro') || readable.includes('double_points')) {
+      return { type: 'double_points', multiplier: 2 };
+    }
+
+    return { type: null, multiplier: 1 };
   };
 
   const [selectedSlotPromo, setSelectedSlotPromo] = useState<PromotionInfo | null>(null);
@@ -474,15 +491,27 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
   }, [selectedSlotPromo, publicPromotions, selectedDate, selectedTime, selectedServices, selectedProfessional, bookingTimezone]);
 
   const currentPromo = activePromo;
+  const benefitPromoCandidates = useMemo(() => {
+    const promos = [selectedSlotPromo, currentPromo, activeCashbackPromo, promoData].filter(Boolean) as any[];
+    const seen = new Set<string>();
+    return promos.filter((promo) => {
+      if (!promo?.id || seen.has(promo.id)) return false;
+      seen.add(promo.id);
+      return true;
+    });
+  }, [selectedSlotPromo, currentPromo, activeCashbackPromo, promoData]);
+
   const doublePointsPromo = useMemo(() => 
-    [currentPromo, activeCashbackPromo].find(p => getPromotionIncentiveConfig(p).type === 'double_points'),
-    [currentPromo, activeCashbackPromo]
+    benefitPromoCandidates.find(p => getPromotionIncentiveConfig(p).type === 'double_points'),
+    [benefitPromoCandidates]
   );
 
   const doubleCashbackPromo = useMemo(() => 
-    [currentPromo, activeCashbackPromo].find(p => getPromotionIncentiveConfig(p).type === 'double_cashback'),
-    [currentPromo, activeCashbackPromo]
+    benefitPromoCandidates.find(p => getPromotionIncentiveConfig(p).type === 'double_cashback'),
+    [benefitPromoCandidates]
   );
+
+  const activeIncentivePromo = doubleCashbackPromo || doublePointsPromo || null;
 
   useEffect(() => {
     if (step === 'success' && (doublePointsPromo || doubleCashbackPromo)) {
@@ -1139,7 +1168,23 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
         .eq('status', 'active');
       
       if (pubPromos) {
-        setPublicPromotions(pubPromos as unknown as PromotionInfo[]);
+        const publicRows = pubPromos as any[];
+        const promoIds = publicRows.map((promo) => promo.id).filter(Boolean);
+        const { data: promoDetails } = promoIds.length > 0
+          ? await supabase
+              .from('promotions')
+              .select('id, title, metadata, promotion_type, discount_type, discount_value')
+              .in('id', promoIds)
+          : { data: [] as any[] };
+
+        const detailsById = new Map((promoDetails || []).map((promo: any) => [promo.id, promo]));
+        const hydratedPromos = publicRows.map((promo) => ({
+          ...promo,
+          ...(detailsById.get(promo.id) || {}),
+          metadata: detailsById.get(promo.id)?.metadata ?? promo.metadata,
+        }));
+
+        setPublicPromotions(hydratedPromos as unknown as PromotionInfo[]);
       }
     } catch (err) {
       console.error('[Booking] Error fetching promotions:', err);
@@ -1526,8 +1571,8 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
       }
     }
 
-    // Check for double cashback incentive in either activePromo or activeCashbackPromo
-    const promoWithIncentive = [currentPromo, activeCashbackPromo].find(p => getPromotionIncentiveConfig(p).type === 'double_cashback');
+    // Check for double cashback incentive in any promotion attached to this slot.
+    const promoWithIncentive = benefitPromoCandidates.find(p => getPromotionIncentiveConfig(p).type === 'double_cashback');
     const incentiveConfig = getPromotionIncentiveConfig(promoWithIncentive);
     const multiplier = incentiveConfig.type === 'double_cashback' ? incentiveConfig.multiplier : 1;
     
@@ -1613,8 +1658,8 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
       debug('Calculating by value', { eligibleSubtotal, pointsPerCurrency, points });
     }
 
-    // Check for double points incentive in either activePromo or activeCashbackPromo
-    const promoWithIncentive = [currentPromo, activeCashbackPromo].find(p => getPromotionIncentiveConfig(p).type === 'double_points');
+    // Check for double points incentive in any promotion attached to this slot.
+    const promoWithIncentive = benefitPromoCandidates.find(p => getPromotionIncentiveConfig(p).type === 'double_points');
     const incentiveConfig = getPromotionIncentiveConfig(promoWithIncentive);
     const multiplier = incentiveConfig.type === 'double_points' ? incentiveConfig.multiplier : 1;
     
@@ -1929,13 +1974,15 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
       const clientName = clientForm.full_name || localIdentity?.fullName || user?.user_metadata?.full_name || user?.user_metadata?.name || 'Cliente';
       const clientEmail = clientForm.email || localIdentity?.email || user?.email || null;
 
-      const currentIncentive = getPromotionIncentiveConfig(currentPromo || activeCashbackPromo);
+      const incentivePromoForBooking = activeIncentivePromo || currentPromo || activeCashbackPromo || promoData;
+      const currentIncentive = getPromotionIncentiveConfig(incentivePromoForBooking);
       
       console.warn('[DOUBLE_BENEFIT_BOOKING_DEBUG_VISIBLE] handleBook start', { 
         clientForm,
         selectedSlot: { date: selectedDate, time: selectedTime },
         currentPromo: currentPromo?.id,
         activeCashbackPromo: activeCashbackPromo?.id,
+        activeIncentivePromo: activeIncentivePromo?.id,
         incentiveConfig: currentIncentive
       });
 
@@ -1994,8 +2041,8 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
         cashbackFinal: baseCashback * (currentIncentive.type === 'double_cashback' ? multiplier : 1),
         pointsBase: basePoints,
         pointsFinal: basePoints * (currentIncentive.type === 'double_points' ? multiplier : 1),
-        promotionTitle: currentPromo?.title || activeCashbackPromo?.title || null,
-        promotionId: currentPromo?.id || activeCashbackPromo?.id || null,
+        promotionTitle: incentivePromoForBooking?.title || null,
+        promotionId: incentivePromoForBooking?.id || null,
         incentiveType: currentIncentive.type,
         multiplier: multiplier
       };
@@ -2179,7 +2226,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
       
       console.warn('[DOUBLE_BENEFIT_BOOKING_DEBUG_VISIBLE] appointment success', {
         appointmentId,
-        benefitDetails: appliedBenefitDetails
+        benefitDetails: persistenceData
       });
 
 
@@ -3488,7 +3535,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                   <p>R$ {(Number(originalSubtotal) || 0).toFixed(2)}</p>
                 </div>
 
-                {hasPromoApplied && !isCashbackPromo && (
+                {hasPromoApplied && !isCashbackPromo && !activeIncentivePromo && (
                   <div className="flex justify-between items-center text-xs font-bold text-amber-500 uppercase tracking-widest">
                     <span className="flex items-center gap-1">
                       <Tag className="h-3 w-3" /> Desconto ({currentPromo?.title})
@@ -3509,7 +3556,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                 <div className="flex justify-between items-center">
                   <div>
                     <p className="text-[10px] font-black uppercase tracking-widest opacity-60">Total a Pagar no Local</p>
-                    {hasPromoApplied && !isCashbackPromo && (
+                    {hasPromoApplied && !isCashbackPromo && !activeIncentivePromo && (
                       <p className="text-[10px] text-amber-500 font-bold uppercase tracking-tighter">Você economizou R$ {(Number(originalSubtotal) - Number(totalPrice)).toFixed(2)}!</p>
                     )}
                   </div>
@@ -3637,8 +3684,52 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
             setSelectedProfessional(null); setSelectedDate(undefined); setSelectedTime(null);
           };
 
+          const successDoubleBenefit = appliedBenefitDetails?.incentiveType
+            ? {
+                isCashback: appliedBenefitDetails.incentiveType === 'double_cashback',
+                base: appliedBenefitDetails.incentiveType === 'double_cashback'
+                  ? `R$ ${appliedBenefitDetails.cashbackBase.toFixed(2).replace('.', ',')}`
+                  : `${Math.round(appliedBenefitDetails.pointsBase)} pts`,
+                final: appliedBenefitDetails.incentiveType === 'double_cashback'
+                  ? `R$ ${appliedBenefitDetails.cashbackFinal.toFixed(2).replace('.', ',')}`
+                  : `${Math.round(appliedBenefitDetails.pointsFinal)} pts`,
+              }
+            : null;
+
           return (
             <div className="space-y-8 animate-in zoom-in-95 duration-700">
+              {successDoubleBenefit && (
+                <div className="fixed inset-x-4 top-6 z-50 mx-auto max-w-md animate-in zoom-in-95 slide-in-from-top-4 duration-700">
+                  <div className={cn(
+                    "rounded-3xl border-2 p-5 shadow-2xl backdrop-blur-xl",
+                    successDoubleBenefit.isCashback
+                      ? "bg-emerald-500/15 border-emerald-400/50"
+                      : "bg-amber-500/15 border-amber-400/50"
+                  )}>
+                    <div className="flex items-center gap-4">
+                      <div className={cn(
+                        "h-14 w-14 rounded-2xl flex items-center justify-center text-black font-black text-xl animate-bounce",
+                        successDoubleBenefit.isCashback ? "bg-emerald-400" : "bg-amber-400"
+                      )}>
+                        2x
+                      </div>
+                      <div className="min-w-0">
+                        <p className={cn(
+                          "text-sm font-black uppercase tracking-wider",
+                          successDoubleBenefit.isCashback ? "text-emerald-300" : "text-amber-300"
+                        )}>
+                          {successDoubleBenefit.isCashback ? 'Cashback em dobro ativado' : 'Pontos em dobro ativados'}
+                        </p>
+                        <div className="mt-1 flex items-center gap-2 text-white">
+                          <span className="text-sm line-through opacity-50 font-bold">{successDoubleBenefit.base}</span>
+                          <ChevronRight className="h-4 w-4 opacity-60" />
+                          <span className="text-2xl font-black animate-pulse">{successDoubleBenefit.final}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
               <div className="flex flex-col items-center gap-6 pt-10">
                 <div className="relative">
                   <div className="absolute inset-0 bg-green-500 blur-2xl opacity-20 animate-pulse rounded-full" />
@@ -3727,9 +3818,21 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                               <Badge className="bg-amber-500 text-black border-none text-[10px] font-black px-2">2x</Badge>
                             )}
                           </div>
-                          <p className="text-sm font-bold text-amber-500/80 mb-1">
-                            {bookingResult.pointsEarned} pontos acumulados
-                          </p>
+                          {appliedBenefitDetails?.incentiveType === 'double_points' ? (
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className="text-xs line-through opacity-50 font-bold">
+                                {Math.round(appliedBenefitDetails.pointsBase)} pts
+                              </span>
+                              <ChevronRight className="h-3 w-3 opacity-50" />
+                              <span className="text-sm font-black text-amber-500 animate-pulse">
+                                {Math.round(appliedBenefitDetails.pointsFinal)} pontos garantidos
+                              </span>
+                            </div>
+                          ) : (
+                            <p className="text-sm font-bold text-amber-500/80 mb-1">
+                              {bookingResult.pointsEarned} pontos acumulados
+                            </p>
+                          )}
                           <p className="text-[10px] font-bold opacity-60 uppercase tracking-widest" style={{ color: T.textSec }}>Liberados após o atendimento</p>
                           {appliedBenefitDetails?.incentiveType === 'double_points' && (
                             <p className="text-[10px] text-amber-500 font-black mt-1 uppercase italic">Incentivo aplicado com sucesso!</p>
@@ -3760,9 +3863,21 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                               <Badge className="bg-emerald-500 text-black border-none text-[10px] font-black px-2">2x</Badge>
                             )}
                           </div>
-                          <p className="text-sm font-bold text-emerald-500/80 mb-1">
-                            R$ {bookingResult.cashbackEarned.toFixed(2).replace('.', ',')} creditados em sua conta
-                          </p>
+                          {appliedBenefitDetails?.incentiveType === 'double_cashback' ? (
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className="text-xs line-through opacity-50 font-bold">
+                                R$ {appliedBenefitDetails.cashbackBase.toFixed(2).replace('.', ',')}
+                              </span>
+                              <ChevronRight className="h-3 w-3 opacity-50" />
+                              <span className="text-sm font-black text-emerald-500 animate-pulse">
+                                R$ {appliedBenefitDetails.cashbackFinal.toFixed(2).replace('.', ',')} de volta
+                              </span>
+                            </div>
+                          ) : (
+                            <p className="text-sm font-bold text-emerald-500/80 mb-1">
+                              R$ {bookingResult.cashbackEarned.toFixed(2).replace('.', ',')} creditados em sua conta
+                            </p>
+                          )}
                           <p className="text-[10px] font-bold opacity-60 uppercase tracking-widest" style={{ color: T.textSec }}>Liberado após o atendimento</p>
                           {appliedBenefitDetails?.incentiveType === 'double_cashback' && (
                             <p className="text-[10px] text-emerald-500 font-black mt-1 uppercase italic">Incentivo aplicado com sucesso!</p>
