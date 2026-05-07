@@ -410,10 +410,11 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
     // 3. Match the selected professional (if professional filter is specific)
     // 4. Match at least one selected service
     const eligiblePromos = publicPromotions.filter(promo => {
-      // Cashback promos are handled separately (they don't apply a discount to the price)
-      // EXCEPT if they have incentive_config (Double Cashback/Points)
       const incentiveConfig = getPromotionIncentiveConfig(promo);
-      if (promo.promotion_type === 'cashback' && !incentiveConfig.type) return false; 
+      
+      // Include manual, smart and cashback-with-incentive
+      const isValidType = promo.promotion_type === 'manual' || promo.promotion_type === 'smart' || (promo.promotion_type === 'cashback' && incentiveConfig.type);
+      if (!isValidType) return false;
       
       // Is it open for booking today?
       const isBookingOpen = isPromoActive(promo);
@@ -423,10 +424,13 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
       const isSlotValid = isSlotEligible(promo, slotDateTime);
       if (!isSlotValid) return false;
 
-      // If professional filter is specific, check if the selected professional is included
-      if (promo.professional_filter === 'specific' && promo.professional_ids) {
-        if (!selectedProfessional || !promo.professional_ids.includes(selectedProfessional)) return false;
-      }
+      // Professional filter logic
+      const isProfessionalMatch = 
+        promo.professional_filter === 'all' || 
+        (promo.professional_filter === 'specific' && promo.professional_ids?.includes(selectedProfessional || '')) ||
+        ((promo as any).professional_id === selectedProfessional); // fallback legacy
+        
+      if (!isProfessionalMatch) return false;
 
       // Check if any selected service is part of this promotion
       const promoServiceIds = promo.service_ids || (promo.service_id ? [promo.service_id] : []);
@@ -435,8 +439,6 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
       return hasEligibleService;
     });
 
-    // If multiple promos apply, we could sort them by "best discount", 
-    // but for now we'll take the first applicable one.
     return eligiblePromos.length > 0 ? eligiblePromos[0] : null;
   }, [selectedSlotPromo, promoData, publicPromotions, selectedDate, selectedTime, selectedServices, selectedProfessional, bookingTimezone]);
 
