@@ -317,6 +317,18 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
   const [selectedSlotPromo, setSelectedSlotPromo] = useState<PromotionInfo | null>(null);
   const [appliedPromotionId, setAppliedPromotionId] = useState<string | null>(null);
 
+  // New persistence states for double benefits
+  const [appliedBenefitDetails, setAppliedBenefitDetails] = useState<{
+    cashbackBase: number;
+    cashbackFinal: number;
+    pointsBase: number;
+    pointsFinal: number;
+    promotionTitle: string | null;
+    promotionId: string | null;
+    incentiveType: string | null;
+    multiplier: number;
+  } | null>(null);
+
   useEffect(() => {
     const loadFullPromo = async () => {
       if (!selectedTime || !selectedDate) {
