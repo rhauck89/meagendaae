@@ -1474,19 +1474,23 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
     }
 
     const incentiveConfig = currentPromo?.metadata?.incentive_config;
-    const multiplier = incentiveConfig?.type === 'double_points' ? (incentiveConfig.multiplier || 2) : 1;
+    const isDoublePoints = incentiveConfig?.type === 'double_points';
+    const multiplier = isDoublePoints ? (Number(incentiveConfig.multiplier) || 2) : 1;
+    
+    const finalPoints = points * multiplier;
 
     if (step === 'confirm' || step === 'success') {
       console.log('[DOUBLE_BENEFIT_PROMO_DEBUG]', {
         promotion_id: currentPromo?.id,
-        incentive_config: incentiveConfig,
+        incentive_type: incentiveConfig?.type,
+        multiplier,
         base_points: points,
-        final_points: points * multiplier,
+        final_points: finalPoints,
         tela: step
       });
     }
 
-    return points * multiplier;
+    return finalPoints;
   })();
 
   const toggleService = (id: string) => {
