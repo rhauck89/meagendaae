@@ -1117,6 +1117,7 @@ export default function Promotions() {
         status: 'active',
         promotion_type: data.promotion_type || 'traditional',
         promotion_mode: 'manual',
+        source_insight: 'week_gap',
         booking_opens_at: new Date().toISOString(),
         booking_closes_at: null,
         metadata: data.metadata || {}
