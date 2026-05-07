@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUserRole } from '@/hooks/useUserRole';
 import { useRefreshData } from '@/hooks/useRefreshData';
@@ -144,6 +144,26 @@ const Clients = () => {
         .filter(Boolean)
     );
   }, [isAdmin, appointments]);
+
+  // Fetch subscriber statuses
+  const { data: subscriberStatuses = {} } = useQuery({
+    queryKey: ['client-subscriber-statuses', companyId],
+    queryFn: async () => {
+      if (!companyId) return {};
+      const { data, error } = await supabase
+        .from('client_subscriptions')
+        .select('client_id, status')
+        .eq('company_id', companyId);
+      if (error) throw error;
+      
+      const statusMap: Record<string, string> = {};
+      data?.forEach(sub => {
+        statusMap[sub.client_id] = sub.status;
+      });
+      return statusMap;
+    },
+    enabled: !!companyId,
+  });
 
   // Fetch all clients
   const { data: clients = [], isLoading } = useQuery({
@@ -651,13 +671,21 @@ const Clients = () => {
                           onClick={() => setSelectedClientId(client.id)}
                         >
                           <TableCell className="font-medium">
-                            <div className="flex items-center gap-2">
-                              {client.name}
-                              {client.is_blocked && (
-                                <Badge variant="destructive" className="text-[10px] px-1.5 py-0">
-                                  <Ban className="h-3 w-3 mr-0.5" /> Bloqueado
-                                </Badge>
-                              )}
+                            <div className="flex flex-col gap-1">
+                              <div className="flex items-center gap-2">
+                                {client.name}
+                                {client.is_blocked && (
+                                  <Badge variant="destructive" className="text-[10px] px-1.5 py-0">
+                                    <Ban className="h-3 w-3 mr-0.5" /> Bloqueado
+                                  </Badge>
+                                ) || subscriberStatuses[client.id] && (
+                                  <Badge variant="outline" className={`text-[10px] px-1.5 py-0 border-none ${
+                                    subscriberStatuses[client.id] === 'active' ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground'
+                                  }`}>
+                                    <Crown className="h-3 w-3 mr-1" /> {subscriberStatuses[client.id] === 'active' ? 'Assinante' : 'Assinatura Inativa'}
+                                  </Badge>
+                                )}
+                              </div>
                             </div>
                           </TableCell>
                           <TableCell>
