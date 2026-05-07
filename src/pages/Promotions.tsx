@@ -2840,6 +2840,39 @@ export default function Promotions() {
       {section === 'cashback' && (
         <CashbackTab />
       )}
+
+      <WeeklySlotPicker
+        open={isWeeklySlotPickerOpen}
+        onOpenChange={setIsWeeklySlotPickerOpen}
+        slots={insightContext?.gaps || []}
+        onConfirm={(selectedSlots) => {
+          console.log('[PROMOTION_INSIGHT_MODAL_FLOW_DEBUG]', {
+            event: 'weekly picker completed',
+            selectedSlotsCount: selectedSlots.length,
+            openingInsightPromotionModal: true
+          });
+          setInsightSelectedSlots(selectedSlots);
+          setIsWeeklySlotPickerOpen(false);
+          setIsInsightPromotionModalOpen(true);
+        }}
+      />
+
+      <InsightPromotionModal
+        isOpen={isInsightPromotionModalOpen}
+        onClose={() => setIsInsightPromotionModalOpen(false)}
+        selectedSlots={insightSelectedSlots}
+        services={services}
+        professionals={professionals}
+        onSave={async (payload) => {
+          console.log('[PROMOTION_INSIGHT_MODAL_FLOW_DEBUG]', {
+            event: 'insight modal saving',
+            payload
+          });
+          await handleOpportunitySave(payload);
+          setIsInsightPromotionModalOpen(false);
+          fetchPromotions();
+        }}
+      />
     </div>
   );
 }
