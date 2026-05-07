@@ -457,9 +457,14 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
       if (promo.promotion_type !== 'cashback') return false;
       if (!isPromoActive(promo)) return false;
       if (!isSlotEligible(promo, slotDateTime)) return false;
-      if (promo.professional_filter === 'specific' && promo.professional_ids) {
-        if (!selectedProfessional || !promo.professional_ids.includes(selectedProfessional)) return false;
-      }
+      
+      const isProfessionalMatch = 
+        promo.professional_filter === 'all' || 
+        (promo.professional_filter === 'specific' && promo.professional_ids?.includes(selectedProfessional || '')) ||
+        ((promo as any).professional_id === selectedProfessional); // fallback legacy
+      
+      if (!isProfessionalMatch) return false;
+
       const promoServiceIds = promo.service_ids || (promo.service_id ? [promo.service_id] : []);
       const hasEligibleService = selectedServices.some(sid => promoServiceIds.length === 0 || promoServiceIds.includes(sid));
       return hasEligibleService;
