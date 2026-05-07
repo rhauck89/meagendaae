@@ -28,8 +28,6 @@ import { cn } from '@/lib/utils';
 import { WeeklySlotPicker } from './WeeklySlotPicker';
 import { InsightPromotionModal } from './InsightPromotionModal';
 
-import { InsightPromotionModal } from './InsightPromotionModal';
-
 interface InsightData {
   id: string;
   title: string;
