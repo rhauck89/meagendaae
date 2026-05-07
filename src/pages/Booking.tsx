@@ -3708,22 +3708,22 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                     {bookingResult.pointsEarned > 0 && (
                       <div className={cn(
                         "flex items-center gap-4 p-5 rounded-3xl border transition-all duration-500",
-                        doublePointsPromo
+                        appliedBenefitDetails?.incentiveType === 'double_points'
                           ? "bg-amber-500/10 border-amber-500/30 ring-2 ring-amber-500/20 scale-[1.05]"
                           : "bg-amber-500/5 border-amber-500/10"
                       )}>
                         <div className={cn(
                           "w-12 h-12 rounded-full flex items-center justify-center shrink-0 shadow-lg",
-                          doublePointsPromo ? "bg-amber-500 animate-bounce" : "bg-amber-500/10"
+                          appliedBenefitDetails?.incentiveType === 'double_points' ? "bg-amber-500 animate-bounce" : "bg-amber-500/10"
                         )}>
-                          <span className={cn("text-2xl", doublePointsPromo ? "text-black" : "text-amber-500")}>⭐</span>
+                          <span className={cn("text-2xl", appliedBenefitDetails?.incentiveType === 'double_points' ? "text-black" : "text-amber-500")}>⭐</span>
                         </div>
                         <div className="flex-1">
                           <div className="flex items-center gap-2 mb-1">
                             <p className="font-black text-amber-500 text-lg">
-                              {doublePointsPromo ? 'Pontos em Dobro!' : `${bookingResult.pointsEarned} pontos`}
+                              {appliedBenefitDetails?.incentiveType === 'double_points' ? 'Pontos em Dobro!' : `${bookingResult.pointsEarned} pontos`}
                             </p>
-                            {doublePointsPromo && (
+                            {appliedBenefitDetails?.incentiveType === 'double_points' && (
                               <Badge className="bg-amber-500 text-black border-none text-[10px] font-black px-2">2x</Badge>
                             )}
                           </div>
@@ -3731,7 +3731,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                             {bookingResult.pointsEarned} pontos acumulados
                           </p>
                           <p className="text-[10px] font-bold opacity-60 uppercase tracking-widest" style={{ color: T.textSec }}>Liberados após o atendimento</p>
-                          {doublePointsPromo && (
+                          {appliedBenefitDetails?.incentiveType === 'double_points' && (
                             <p className="text-[10px] text-amber-500 font-black mt-1 uppercase italic">Incentivo aplicado com sucesso!</p>
                           )}
                         </div>
@@ -3741,22 +3741,22 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                     {bookingResult.cashbackEarned > 0 && (
                       <div className={cn(
                         "flex items-center gap-4 p-5 rounded-3xl border transition-all duration-500",
-                        doubleCashbackPromo
+                        appliedBenefitDetails?.incentiveType === 'double_cashback'
                           ? "bg-emerald-500/10 border-emerald-500/30 ring-2 ring-emerald-500/20 scale-[1.05]"
                           : "bg-emerald-500/5 border-emerald-500/10"
                       )}>
                         <div className={cn(
                           "w-12 h-12 rounded-full flex items-center justify-center shrink-0 shadow-lg",
-                          doubleCashbackPromo ? "bg-emerald-500 animate-bounce" : "bg-emerald-500/10"
+                          appliedBenefitDetails?.incentiveType === 'double_cashback' ? "bg-emerald-500 animate-bounce" : "bg-emerald-500/10"
                         )}>
-                          <span className={cn("text-2xl", doubleCashbackPromo ? "text-black" : "text-emerald-500")}>💵</span>
+                          <span className={cn("text-2xl", appliedBenefitDetails?.incentiveType === 'double_cashback' ? "text-black" : "text-emerald-500")}>💵</span>
                         </div>
                         <div className="flex-1">
                           <div className="flex items-center gap-2 mb-1">
                             <p className="font-black text-emerald-500 text-lg">
-                              {doubleCashbackPromo ? 'Cashback em Dobro!' : `R$ ${bookingResult.cashbackEarned.toFixed(2).replace('.', ',')} de volta`}
+                              {appliedBenefitDetails?.incentiveType === 'double_cashback' ? 'Cashback em Dobro!' : `R$ ${bookingResult.cashbackEarned.toFixed(2).replace('.', ',')} de volta`}
                             </p>
-                            {doubleCashbackPromo && (
+                            {appliedBenefitDetails?.incentiveType === 'double_cashback' && (
                               <Badge className="bg-emerald-500 text-black border-none text-[10px] font-black px-2">2x</Badge>
                             )}
                           </div>
@@ -3764,7 +3764,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                             R$ {bookingResult.cashbackEarned.toFixed(2).replace('.', ',')} creditados em sua conta
                           </p>
                           <p className="text-[10px] font-bold opacity-60 uppercase tracking-widest" style={{ color: T.textSec }}>Liberado após o atendimento</p>
-                          {doubleCashbackPromo && (
+                          {appliedBenefitDetails?.incentiveType === 'double_cashback' && (
                             <p className="text-[10px] text-emerald-500 font-black mt-1 uppercase italic">Incentivo aplicado com sucesso!</p>
                           )}
                         </div>
