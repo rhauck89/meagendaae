@@ -378,28 +378,28 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
         selectedServices
       });
 
-      // 1. Check if we already have it in publicPromotions
-      const matchingPromo = publicPromotions.find(promo => isPromotionEligibleForSelection(promo, slotDateTime));
+      const publicEligible = publicPromotions.filter(promo => isPromotionEligibleForSelection(promo, slotDateTime));
+      const publicIdsNeedingDetails = publicEligible
+        .filter(promo => !promo.metadata || Object.keys(promo.metadata).length === 0)
+        .map(promo => promo.id);
 
-      if (matchingPromo) {
-        // Ensure metadata is correctly loaded
-        if (!matchingPromo.metadata || Object.keys(matchingPromo.metadata).length === 0) {
-           const { data, error } = await supabase
+      const { data: publicDetails } = publicIdsNeedingDetails.length > 0
+        ? await supabase
             .from('promotions')
-            .select('id, title, metadata, promotion_type, discount_type, discount_value')
-            .eq('id', matchingPromo.id)
-            .single();
-          
-          if (data && !error) {
-            setSelectedSlotPromo({ ...matchingPromo, metadata: data.metadata });
-          } else {
-            setSelectedSlotPromo(matchingPromo);
-          }
-        } else {
-          setSelectedSlotPromo(matchingPromo);
-        }
-      } else {
-        const { data: directPromos } = company?.id ? await supabase
+            .select('*')
+            .in('id', publicIdsNeedingDetails)
+        : { data: [] as any[] };
+
+      const detailsById = new Map((publicDetails || []).map((promo: any) => [promo.id, promo]));
+      const hydratedPublicEligible = publicEligible.map((promo) => ({
+        ...promo,
+        ...(detailsById.get(promo.id) || {}),
+        metadata: detailsById.get(promo.id)?.metadata ?? promo.metadata,
+      }));
+
+      // Always check the source table for incentive promos, even if a normal discount promo
+      // is also valid for this slot. Double cashback/points must win over ordinary discounts.
+      const { data: directPromos } = company?.id ? await supabase
           .from('promotions')
           .select('*')
           .eq('company_id', company.id)
@@ -408,19 +408,28 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
           .gte('end_date', dateStr)
         : { data: [] as any[] };
 
-        const directMatch = (directPromos || [])
+      const directIncentiveMatch = (directPromos || [])
           .filter((promo: any) => getPromotionIncentiveConfig(promo).type)
           .find((promo: any) => isPromotionEligibleForSelection(promo, slotDateTime));
 
-        console.warn('[DOUBLE_BENEFIT_BOOKING_DEBUG_VISIBLE] Direct promotion fallback', {
-          date: dateStr,
-          time: selectedTime,
-          found: directMatch?.id || null,
-          incentive: getPromotionIncentiveConfig(directMatch),
-        });
+      const publicIncentiveMatch = hydratedPublicEligible.find((promo) => getPromotionIncentiveConfig(promo).type);
+      const normalPublicMatch = hydratedPublicEligible[0] || null;
+      const finalPromo = directIncentiveMatch || publicIncentiveMatch || normalPublicMatch;
 
-        setSelectedSlotPromo(directMatch as PromotionInfo || null);
-      }
+      console.warn('[DOUBLE_BENEFIT_BOOKING_DEBUG_VISIBLE] Slot promotion resolved', {
+        date: dateStr,
+        time: selectedTime,
+        publicEligible: hydratedPublicEligible.map((promo) => ({
+          id: promo.id,
+          title: promo.title,
+          incentive: getPromotionIncentiveConfig(promo),
+        })),
+        directIncentive: directIncentiveMatch?.id || null,
+        finalPromo: finalPromo?.id || null,
+        finalIncentive: getPromotionIncentiveConfig(finalPromo),
+      });
+
+      setSelectedSlotPromo((finalPromo as PromotionInfo) || null);
     };
 
     loadFullPromo();
@@ -476,7 +485,13 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
       return hasEligibleService;
     });
 
-    return eligiblePromos.length > 0 ? eligiblePromos[0] : null;
+    const sortedPromos = [...eligiblePromos].sort((a, b) => {
+      const aHasIncentive = getPromotionIncentiveConfig(a).type ? 1 : 0;
+      const bHasIncentive = getPromotionIncentiveConfig(b).type ? 1 : 0;
+      return bHasIncentive - aHasIncentive;
+    });
+
+    return sortedPromos.length > 0 ? sortedPromos[0] : null;
   }, [selectedSlotPromo, promoData, publicPromotions, selectedDate, selectedTime, selectedServices, selectedProfessional, bookingTimezone]);
 
 
@@ -1193,7 +1208,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
         const { data: promoDetails } = promoIds.length > 0
           ? await supabase
               .from('promotions')
-              .select('id, title, metadata, promotion_type, discount_type, discount_value')
+              .select('*')
               .in('id', promoIds)
           : { data: [] as any[] };
 
