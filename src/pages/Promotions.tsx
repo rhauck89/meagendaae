@@ -32,6 +32,8 @@ import { PromotionOpportunities } from '@/components/Promotions/PromotionOpportu
 import { OpportunityPromotionModal } from '@/components/Promotions/OpportunityPromotionModal';
 import { PromotionShareModal } from '@/components/Promotions/PromotionShareModal';
 import { PromotionInsights } from '@/components/promotions/PromotionInsights';
+import { WeeklySlotPicker } from '@/components/promotions/WeeklySlotPicker';
+import { InsightPromotionModal } from '@/components/promotions/InsightPromotionModal';
 import CashbackTab from '@/components/loyalty/CashbackTab';
 import { useSearchParams } from 'react-router-dom';
 
@@ -248,6 +250,12 @@ export default function Promotions() {
   const [selectedInsightData, setSelectedInsightData] = useState<any>(null);
   const initialActiveTab = searchParams.get('tab') || 'active';
   const [activeTab, setActiveTab] = useState(initialActiveTab);
+
+  // Insight specific states
+  const [isWeeklySlotPickerOpen, setIsWeeklySlotPickerOpen] = useState(false);
+  const [isInsightPromotionModalOpen, setIsInsightPromotionModalOpen] = useState(false);
+  const [insightSelectedSlots, setInsightSelectedSlots] = useState<{ date: string; time: string; professionalId: string }[]>([]);
+  const [insightContext, setInsightContext] = useState<any>(null);
 
   useEffect(() => {
     const currentSection = searchParams.get('section') || 'campaigns';
@@ -1019,8 +1027,14 @@ export default function Promotions() {
     const baseSlug = generateSlug(data.title);
     
     // We'll map through each time slot and create a promotion
-    const creationPromises = data.times.map(async (time: string, index: number) => {
-      const slug = data.times.length > 1 ? `${baseSlug}-${time.replace(':', '')}` : baseSlug;
+    const slotsToProcess = data.selectedSlots || data.times.map((t: string) => ({ date: data.date, time: t, professionalId: data.professional_ids?.[0] }));
+    
+    const creationPromises = slotsToProcess.map(async (slot: any, index: number) => {
+      const time = typeof slot === 'string' ? slot : slot.time;
+      const date = typeof slot === 'object' ? slot.date : data.date;
+      const profId = typeof slot === 'object' ? slot.professionalId : (data.professional_ids?.[0] || null);
+
+      const slug = slotsToProcess.length > 1 ? `${baseSlug}-${date}-${time.replace(':', '')}` : baseSlug;
       
       // Calculate prices for the primary service
       let payloadOrigPrice: number | null = null;
@@ -1059,8 +1073,8 @@ export default function Promotions() {
         discount_value: data.discount_value,
         promotion_price: payloadPromoPrice,
         original_price: payloadOrigPrice,
-        start_date: data.date,
-        end_date: data.date,
+        start_date: date,
+        end_date: date,
         start_time: time,
         end_time: endTime,
         use_business_hours: false,
@@ -1069,7 +1083,7 @@ export default function Promotions() {
         max_slots: 1,
         client_filter: 'all',
         professional_filter: 'selected',
-        professional_ids: data.professional_ids,
+        professional_ids: profId ? [profId] : data.professional_ids,
         message_template: DEFAULT_TEMPLATE,
         created_by: profile?.id || null,
         status: 'active',
@@ -1228,8 +1242,28 @@ export default function Promotions() {
     return baseUrl;
   };
 
-  const handleAction = (type: 'promotion' | 'campaign' | 'link', data?: any) => {
+  const handleAction = (type: 'promotion' | 'campaign' | 'link' | 'weekly_gaps', data?: any) => {
+    if (type === 'weekly_gaps') {
+      console.log('[PROMOTION_INSIGHT_MODAL_FLOW_DEBUG]', {
+        event: 'weekly_gaps_triggered',
+        data
+      });
+      setInsightContext(data);
+      setIsWeeklySlotPickerOpen(true);
+      return;
+    }
+
     if (type === 'promotion') {
+      if (data?.insight === 'week_gap') {
+        console.log('[PROMOTION_INSIGHT_MODAL_FLOW_DEBUG]', {
+          event: 'week_gap_insight_triggered',
+          data
+        });
+        setInsightSelectedSlots(data.selectedSlots || []);
+        setIsInsightPromotionModalOpen(true);
+        return;
+      }
+
       if (data?.insight) {
         console.log('[PROMOTION_INSIGHT_ACTION_DEBUG]', {
           action: 'open_selection',
@@ -2806,6 +2840,39 @@ export default function Promotions() {
       {section === 'cashback' && (
         <CashbackTab />
       )}
+
+      <WeeklySlotPicker
+        open={isWeeklySlotPickerOpen}
+        onOpenChange={setIsWeeklySlotPickerOpen}
+        slots={insightContext?.gaps || []}
+        onConfirm={(selectedSlots) => {
+          console.log('[PROMOTION_INSIGHT_MODAL_FLOW_DEBUG]', {
+            event: 'weekly picker completed',
+            selectedSlotsCount: selectedSlots.length,
+            openingInsightPromotionModal: true
+          });
+          setInsightSelectedSlots(selectedSlots);
+          setIsWeeklySlotPickerOpen(false);
+          setIsInsightPromotionModalOpen(true);
+        }}
+      />
+
+      <InsightPromotionModal
+        isOpen={isInsightPromotionModalOpen}
+        onClose={() => setIsInsightPromotionModalOpen(false)}
+        selectedSlots={insightSelectedSlots}
+        services={services}
+        professionals={professionals}
+        onSave={async (payload) => {
+          console.log('[PROMOTION_INSIGHT_MODAL_FLOW_DEBUG]', {
+            event: 'insight modal saving',
+            payload
+          });
+          await handleOpportunitySave(payload);
+          setIsInsightPromotionModalOpen(false);
+          fetchPromotions();
+        }}
+      />
     </div>
   );
 }

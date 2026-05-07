@@ -133,10 +133,10 @@ export function WeeklySlotPicker({ open, onOpenChange, slots, onConfirm }: Weekl
         <DialogBody className="flex-1 overflow-hidden p-0 flex flex-col">
           <div className="px-6 py-2 flex items-center justify-between border-b bg-muted/30">
             <div className="flex gap-2">
-              <Button variant="outline" size="xs" onClick={selectAllSlots} className="text-[10px] h-7">
+              <Button variant="outline" size="sm" onClick={selectAllSlots} className="text-[10px] h-7">
                 Selecionar Todos
               </Button>
-              <Button variant="ghost" size="xs" onClick={clearSelection} className="text-[10px] h-7 text-destructive hover:text-destructive hover:bg-destructive/5">
+              <Button variant="ghost" size="sm" onClick={clearSelection} className="text-[10px] h-7 text-destructive hover:text-destructive hover:bg-destructive/5">
                 <Trash2 className="h-3 w-3 mr-1" /> Limpar
               </Button>
             </div>
