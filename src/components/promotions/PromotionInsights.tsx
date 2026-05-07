@@ -26,6 +26,7 @@ import { toast } from '@/hooks/use-toast';
 import { getAvailableSlots } from '@/lib/availability-service';
 import { cn } from '@/lib/utils';
 import { WeeklySlotPicker } from './WeeklySlotPicker';
+import { InsightPromotionModal } from './InsightPromotionModal';
 
 interface InsightData {
   id: string;
@@ -58,6 +59,8 @@ export function PromotionInsights({ isAdmin, onAction }: PromotionInsightsProps)
   const [loading, setLoading] = useState(true);
   const [insights, setInsights] = useState<InsightData[]>([]);
   const [weeklyPickerOpen, setWeeklyPickerOpen] = useState(false);
+  const [insightModalOpen, setInsightModalOpen] = useState(false);
+  const [selectedSlots, setSelectedSlots] = useState<{ date: string; time: string; professionalId: string }[]>([]);
   const [weekGaps, setWeekGaps] = useState<{ date: string; slots: string[]; professionalId: string }[]>([]);
 
   useEffect(() => {
