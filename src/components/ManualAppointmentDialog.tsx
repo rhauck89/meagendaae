@@ -275,13 +275,28 @@ export function ManualAppointmentDialog({
         p_client_name: selectedClient.name,
         p_client_whatsapp: selectedClient.whatsapp || '',
         p_client_email: selectedClient.email || null,
-        p_notes: 'Agendamento manual',
+        p_notes: subBenefit?.applied ? `Agendamento com benefício de assinatura: ${subBenefit.plan_name}` : 'Agendamento manual',
         p_services: servicesJson,
         p_booking_origin: 'manual',
         p_user_id: selectedClient.user_id || null
       } as any);
 
       if (rpcError) throw rpcError;
+
+      // Register usage if applicable
+      if (subBenefit?.applied && subBenefit.covered_service_ids?.length > 0) {
+        await supabase.rpc('register_subscription_usage_v1', {
+          p_company_id: companyId,
+          p_subscription_id: subBenefit.subscription_id,
+          p_appointment_id: appointmentId,
+          p_service_ids: subBenefit.covered_service_ids,
+          p_usage_date: format(selectedDate, 'yyyy-MM-dd')
+        });
+        
+        // Refresh everything related to sub
+        window.dispatchEvent(new CustomEvent('refresh-subscribers'));
+        window.dispatchEvent(new CustomEvent('refresh-subscription-dashboard'));
+      }
 
       // Send WhatsApp if requested
       const profName = professionals.find(p => p.profile_id === selectedProfessional)?.profile?.full_name || 'Profissional';
