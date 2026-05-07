@@ -77,6 +77,7 @@ export interface Promotion {
   source_insight?: string;
   booking_opens_at: string | null;
   booking_closes_at: string | null;
+  metadata?: any;
 }
 
 interface GroupedPromotion extends Omit<Promotion, 'id' | 'start_time' | 'end_time' | 'slug'> {
@@ -2470,6 +2471,7 @@ export default function Promotions() {
                 const promoSvcs = services.filter(s => promoServiceIds.includes(s.id));
                 const isHighlighted = promo.id === highlightedPromoId;
                 const incentiveType = (promo.metadata as any)?.incentive_config?.type;
+                const isCashback = promo.promotion_type === 'cashback';
                 const discountLabel = incentiveType === 'double_cashback'
                   ? 'CASHBACK EM DOBRO'
                   : incentiveType === 'double_points'
