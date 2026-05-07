@@ -5117,6 +5117,7 @@ export type Database = {
           id: string
           max_slots: number
           message_template: string | null
+          metadata: Json | null
           min_interval_minutes: number | null
           original_price: number | null
           professional_filter: string
@@ -5156,6 +5157,7 @@ export type Database = {
           id?: string
           max_slots?: number
           message_template?: string | null
+          metadata?: Json | null
           min_interval_minutes?: number | null
           original_price?: number | null
           professional_filter?: string
@@ -5195,6 +5197,7 @@ export type Database = {
           id?: string
           max_slots?: number
           message_template?: string | null
+          metadata?: Json | null
           min_interval_minutes?: number | null
           original_price?: number | null
           professional_filter?: string
