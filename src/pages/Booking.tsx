@@ -439,6 +439,17 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
     return cbPromos.length > 0 ? cbPromos[0] : null;
   }, [selectedSlotPromo, publicPromotions, selectedDate, selectedTime, selectedServices, selectedProfessional, bookingTimezone]);
 
+  const doublePointsPromo = useMemo(() => 
+    [currentPromo, activeCashbackPromo].find(p => getPromotionIncentiveConfig(p).type === 'double_points'),
+    [currentPromo, activeCashbackPromo]
+  );
+
+  const doubleCashbackPromo = useMemo(() => 
+    [currentPromo, activeCashbackPromo].find(p => getPromotionIncentiveConfig(p).type === 'double_cashback'),
+    [currentPromo, activeCashbackPromo]
+  );
+
+
   const currentPromo = activePromo;
   const hasPromoApplied = !!currentPromo;
   const incentiveConfig = (currentPromo?.metadata as any)?.incentive_config || (promoData?.metadata as any)?.incentive_config || null;
