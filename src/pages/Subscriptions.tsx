@@ -10,7 +10,18 @@ import { PlanDialog } from '@/components/subscriptions/PlanDialog';
 const Subscriptions = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [isPlanDialogOpen, setIsPlanDialogOpen] = useState(false);
+  const [selectedPlan, setSelectedPlan] = useState<any>(null);
   const { companyId } = useAuth();
+
+  const handleEditPlan = (plan: any) => {
+    setSelectedPlan(plan);
+    setIsPlanDialogOpen(true);
+  };
+
+  const handleNewPlan = () => {
+    setSelectedPlan(null);
+    setIsPlanDialogOpen(true);
+  };
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto p-6">
@@ -20,7 +31,7 @@ const Subscriptions = () => {
           <p className="text-muted-foreground">Gerencie seus planos e clientes recorrentes.</p>
         </div>
         <div className="flex items-center gap-2">
-          <Button className="gap-2" onClick={() => setIsPlanDialogOpen(true)}>
+          <Button className="gap-2" onClick={handleNewPlan}>
             <Plus className="h-4 w-4" /> Novo Plano
           </Button>
         </div>
@@ -85,7 +96,7 @@ const Subscriptions = () => {
         </TabsContent>
 
         <TabsContent value="plans" className="focus-visible:outline-none">
-          {companyId && <PlansTab companyId={companyId} />}
+          {companyId && <PlansTab companyId={companyId} onEditPlan={handleEditPlan} onNewPlan={handleNewPlan} />}
         </TabsContent>
 
         <TabsContent value="subscribers" className="focus-visible:outline-none">
@@ -118,6 +129,7 @@ const Subscriptions = () => {
           open={isPlanDialogOpen}
           onOpenChange={setIsPlanDialogOpen}
           companyId={companyId}
+          plan={selectedPlan}
           onSuccess={() => {
             window.dispatchEvent(new CustomEvent('refresh-subscription-plans'));
           }}
