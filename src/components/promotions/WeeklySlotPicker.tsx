@@ -228,8 +228,7 @@ export function WeeklySlotPicker({
           {/* Horizontal Tabs */}
           {selectedProfId && groupedSlots.length > 0 && (
             <div className="border-b bg-background">
-              <ScrollArea className="w-full" orientation="horizontal">
-                <div className="flex p-2 gap-2 min-w-max px-6">
+              <div className="w-full overflow-x-auto flex p-2 gap-2 px-6 no-scrollbar">
                   {groupedSlots.map((day) => {
                     const isActive = activeTab === day.date;
                     const count = selectedCountByDay[day.date] || 0;
