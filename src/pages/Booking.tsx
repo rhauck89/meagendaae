@@ -2074,6 +2074,12 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
         p_client_email: clientForm.email || null,
       };
 
+      console.warn('[DOUBLE_BENEFIT_BOOKING_DEBUG_VISIBLE] Final payload for RPC', {
+        appointmentPayloadV2,
+        selectedPromoId: currentPromo?.id || activeCashbackPromo?.id,
+        incentiveConfig: getPromotionIncentiveConfig(currentPromo || activeCashbackPromo)
+      });
+
       console.log('[BOOKING_INSERT_ATTEMPT]', { 
         professionalId: selectedProfessional,
         clientId,
