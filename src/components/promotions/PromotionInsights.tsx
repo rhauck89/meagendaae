@@ -25,8 +25,6 @@ import { ptBR } from 'date-fns/locale';
 import { toast } from '@/hooks/use-toast';
 import { getAvailableSlots } from '@/lib/availability-service';
 import { cn } from '@/lib/utils';
-import { WeeklySlotPicker } from './WeeklySlotPicker';
-import { InsightPromotionModal } from './InsightPromotionModal';
 
 interface InsightData {
   id: string;
@@ -51,16 +49,13 @@ interface InsightData {
 
 interface PromotionInsightsProps {
   isAdmin: boolean;
-  onAction: (type: 'promotion' | 'campaign' | 'link', data?: any) => void;
+  onAction: (type: 'promotion' | 'campaign' | 'link' | 'weekly_gaps', data?: any) => void;
 }
 
 export function PromotionInsights({ isAdmin, onAction }: PromotionInsightsProps) {
   const { companyId, profile } = useAuth();
   const [loading, setLoading] = useState(true);
   const [insights, setInsights] = useState<InsightData[]>([]);
-  const [weeklyPickerOpen, setWeeklyPickerOpen] = useState(false);
-  const [insightModalOpen, setInsightModalOpen] = useState(false);
-  const [selectedSlots, setSelectedSlots] = useState<{ date: string; time: string; professionalId: string }[]>([]);
   const [weekGaps, setWeekGaps] = useState<{ date: string; slots: string[]; professionalId: string }[]>([]);
 
   useEffect(() => {
@@ -234,7 +229,7 @@ export function PromotionInsights({ isAdmin, onAction }: PromotionInsightsProps)
 
       const handleWeekFill = () => {
         if (totalSlotsWeek === 0) return;
-        setWeeklyPickerOpen(true);
+        onAction('weekly_gaps', { gaps: gapsWeek });
       };
 
       setWeekGaps(gapsWeek);
@@ -452,21 +447,6 @@ export function PromotionInsights({ isAdmin, onAction }: PromotionInsightsProps)
         </Card>
       ))}
 
-      <WeeklySlotPicker 
-        open={weeklyPickerOpen}
-        onOpenChange={setWeeklyPickerOpen}
-        slots={weekGaps}
-        onConfirm={(selectedSlots, promoType) => {
-          onAction('promotion', {
-            insight: 'week_gap',
-            isSlotSpecific: true,
-            selectedSlots,
-            promoType,
-            title: 'Agenda Especial da Semana',
-            description: 'Garanta seu horário nesta semana e aproveite benefícios exclusivos.'
-          });
-        }}
-      />
     </div>
   );
 }
