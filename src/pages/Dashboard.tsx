@@ -856,8 +856,9 @@ const Dashboard = () => {
                   .eq('id', apt.promotion_id)
                   .single();
                 
-                if (promoData?.metadata && typeof promoData.metadata === 'object') {
-                  const metadata = promoData.metadata as any;
+                const typedPromo = promoData as any;
+                if (typedPromo?.metadata && typeof typedPromo.metadata === 'object') {
+                  const metadata = typedPromo.metadata;
                   if (metadata.incentive_config?.type === 'double_points') {
                     multiplier = Number(metadata.incentive_config.multiplier) || 2;
                     incentiveType = 'double_points';
