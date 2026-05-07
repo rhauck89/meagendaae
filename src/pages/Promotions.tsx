@@ -1047,7 +1047,21 @@ export default function Promotions() {
       const date = typeof slot === 'object' ? slot.date : data.date;
       const profId = typeof slot === 'object' ? slot.professionalId : (data.professional_ids?.[0] || null);
 
-      const slug = slotsToProcess.length > 1 ? `${baseSlug}-${date}-${time.replace(':', '')}` : baseSlug;
+      // Generate a unique slug for each slot to avoid unique constraint violations
+      const cleanTime = time.replace(/[^0-9]/g, '');
+      const cleanDate = date.replace(/[^0-9]/g, '');
+      const shortProfId = profId ? profId.substring(0, 4) : 'any';
+      const randomSuffix = Math.random().toString(36).substring(2, 6);
+      
+      const slug = `${baseSlug}-${cleanDate}-${cleanTime}-${shortProfId}-${String(index).padStart(2, '0')}-${randomSuffix}`;
+      
+      console.log('[PROMOTION_INSIGHT_SAVE_DEBUG] Generated slug', {
+        baseSlug,
+        finalSlug: slug,
+        date,
+        time,
+        index
+      });
       
       // Calculate prices for the primary service
       let payloadOrigPrice: number | null = null;
