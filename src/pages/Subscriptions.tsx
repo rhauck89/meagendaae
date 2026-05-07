@@ -6,13 +6,28 @@ import { Plus, Users, CreditCard, LayoutDashboard, Settings } from 'lucide-react
 import { useAuth } from '@/contexts/AuthContext';
 import { PlansTab } from '@/components/subscriptions/PlansTab';
 import { PlanDialog } from '@/components/subscriptions/PlanDialog';
+import { SubscribersTab } from '@/components/subscriptions/SubscribersTab';
+import { SubscriberDialog } from '@/components/subscriptions/SubscriberDialog';
+import { SubscriberDetailsDrawer } from '@/components/subscriptions/SubscriberDetailsDrawer';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 const Subscriptions = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
+  
+  // Plan State
   const [isPlanDialogOpen, setIsPlanDialogOpen] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<any>(null);
+  
+  // Subscriber State
+  const [isSubscriberDialogOpen, setIsSubscriberDialogOpen] = useState(false);
+  const [selectedSubscription, setSelectedSubscription] = useState<any>(null);
+  const [isDetailsOpen, setIsDetailsOpen] = useState(false);
+  const [detailSubscriber, setDetailSubscriber] = useState<any>(null);
+
   const { companyId } = useAuth();
 
+  // Plan Handlers
   const handleEditPlan = (plan: any) => {
     setSelectedPlan(plan);
     setIsPlanDialogOpen(true);
@@ -23,6 +38,42 @@ const Subscriptions = () => {
     setIsPlanDialogOpen(true);
   };
 
+  // Subscriber Handlers
+  const handleEditSubscription = (sub: any) => {
+    setSelectedSubscription(sub);
+    setIsSubscriberDialogOpen(true);
+  };
+
+  const handleNewSubscription = () => {
+    setSelectedSubscription(null);
+    setIsSubscriberDialogOpen(true);
+  };
+
+  const handleViewDetails = (sub: any) => {
+    setDetailSubscriber(sub);
+    setIsDetailsOpen(true);
+  };
+
+  const handleStatusUpdate = async (status: string) => {
+    if (!detailSubscriber) return;
+    try {
+      const { error } = await supabase
+        .from('client_subscriptions')
+        .update({ status })
+        .eq('id', detailSubscriber.id);
+
+      if (error) throw error;
+      toast.success(`Status atualizado para ${status}`);
+      
+      // Refresh details
+      setDetailSubscriber({ ...detailSubscriber, status });
+      // Refresh list
+      window.dispatchEvent(new CustomEvent('refresh-subscribers'));
+    } catch (error: any) {
+      toast.error('Erro ao atualizar status');
+    }
+  };
+
   return (
     <div className="space-y-6 max-w-7xl mx-auto p-6">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -31,9 +82,15 @@ const Subscriptions = () => {
           <p className="text-muted-foreground">Gerencie seus planos e clientes recorrentes.</p>
         </div>
         <div className="flex items-center gap-2">
-          <Button className="gap-2" onClick={handleNewPlan}>
-            <Plus className="h-4 w-4" /> Novo Plano
-          </Button>
+          {activeTab === 'plans' ? (
+            <Button className="gap-2" onClick={handleNewPlan}>
+              <Plus className="h-4 w-4" /> Novo Plano
+            </Button>
+          ) : (
+            <Button className="gap-2" onClick={handleNewSubscription}>
+              <Plus className="h-4 w-4" /> Novo Assinante
+            </Button>
+          )}
         </div>
       </div>
 
@@ -100,15 +157,13 @@ const Subscriptions = () => {
         </TabsContent>
 
         <TabsContent value="subscribers" className="focus-visible:outline-none">
-          <Card className="border-none shadow-sm overflow-hidden">
-            <CardContent className="p-0">
-              <div className="p-6 border-b bg-muted/10">
-                <h3 className="font-semibold">Lista de Assinantes</h3>
-                <p className="text-sm text-muted-foreground">Visualize e gerencie as assinaturas dos seus clientes.</p>
-              </div>
-              <p className="text-sm text-muted-foreground py-20 text-center">Nenhum assinante cadastrado.</p>
-            </CardContent>
-          </Card>
+          {companyId && (
+            <SubscribersTab 
+              companyId={companyId} 
+              onEditSubscriber={handleEditSubscription}
+              onViewDetails={handleViewDetails}
+            />
+          )}
         </TabsContent>
 
         <TabsContent value="charges" className="focus-visible:outline-none">
@@ -125,15 +180,36 @@ const Subscriptions = () => {
       </Tabs>
 
       {companyId && (
-        <PlanDialog
-          open={isPlanDialogOpen}
-          onOpenChange={setIsPlanDialogOpen}
-          companyId={companyId}
-          plan={selectedPlan}
-          onSuccess={() => {
-            window.dispatchEvent(new CustomEvent('refresh-subscription-plans'));
-          }}
-        />
+        <>
+          <PlanDialog
+            open={isPlanDialogOpen}
+            onOpenChange={setIsPlanDialogOpen}
+            companyId={companyId}
+            plan={selectedPlan}
+            onSuccess={() => {
+              window.dispatchEvent(new CustomEvent('refresh-subscription-plans'));
+            }}
+          />
+          <SubscriberDialog
+            open={isSubscriberDialogOpen}
+            onOpenChange={setIsSubscriberDialogOpen}
+            companyId={companyId}
+            subscription={selectedSubscription}
+            onSuccess={() => {
+              window.dispatchEvent(new CustomEvent('refresh-subscribers'));
+            }}
+          />
+          <SubscriberDetailsDrawer
+            open={isDetailsOpen}
+            onOpenChange={setIsDetailsOpen}
+            subscriber={detailSubscriber}
+            onStatusUpdate={handleStatusUpdate}
+            onEdit={() => {
+              setIsDetailsOpen(false);
+              handleEditSubscription(detailSubscriber);
+            }}
+          />
+        </>
       )}
     </div>
   );
