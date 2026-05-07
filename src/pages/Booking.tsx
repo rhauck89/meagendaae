@@ -1954,7 +1954,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
         }
       } else if (!isPromoMode && autoCashbackPromos.length > 0 && selectedProfessional && selectedServices.length > 0) {
         for (const promo of autoCashbackPromos) {
-          const isProfMatch = promo.professional_filter === 'all' || promo.professional_ids?.includes(selectedProfessional);
+          const isProfMatch = promo.professional_filter === 'all' || promo.professional_ids?.includes(selectedProfessional || '') || (promo as any).professional_id === selectedProfessional;
           if (!isProfMatch) continue;
           const promoServiceIds = promo.service_ids || (promo.service_id ? [promo.service_id] : []);
           const eligible = services.filter(s => selectedServices.includes(s.id) && (promoServiceIds.length === 0 || promoServiceIds.includes(s.id)));
