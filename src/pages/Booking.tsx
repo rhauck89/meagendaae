@@ -3039,22 +3039,46 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
             </div>
 
             <div className="grid grid-cols-1 gap-4">
-              <div className="p-6 rounded-[2rem] bg-white/5 border-2 border-dashed border-white/10 flex items-start gap-4">
-                <div className="w-10 h-10 rounded-xl bg-green-500/20 flex items-center justify-center shrink-0">
-                  <span className="text-xl">💰</span>
+              <div className={cn(
+                "p-6 rounded-[2rem] border-2 transition-all duration-500 flex items-start gap-4",
+                doubleCashbackPromo 
+                  ? "bg-emerald-500/10 border-emerald-500/30 ring-2 ring-emerald-500/20 scale-[1.02]" 
+                  : "bg-white/5 border-dashed border-white/10"
+              )}>
+                <div className={cn(
+                  "w-10 h-10 rounded-xl flex items-center justify-center shrink-0",
+                  doubleCashbackPromo ? "bg-emerald-500 text-black" : "bg-green-500/20"
+                )}>
+                  {doubleCashbackPromo ? <span className="text-xl font-black">2x</span> : <span className="text-xl">💰</span>}
                 </div>
                 <div>
-                  <p className="font-black text-base">Cashback Instantâneo</p>
+                  <div className="flex items-center gap-2">
+                    <p className="font-black text-base">Cashback Instantâneo</p>
+                    {doubleCashbackPromo && <Badge className="bg-emerald-500 text-black border-none text-[8px] h-4">DOBRADO</Badge>}
+                  </div>
                   <p className="text-xs opacity-60 mt-1">Receba parte do valor pago de volta para usar no seu próximo agendamento.</p>
+                  {doubleCashbackPromo && <p className="text-[10px] text-emerald-500 font-black uppercase mt-1">Ativo: Ganhe 2x mais cashback!</p>}
                 </div>
               </div>
-              <div className="p-6 rounded-[2rem] bg-white/5 border-2 border-dashed border-white/10 flex items-start gap-4">
-                <div className="w-10 h-10 rounded-xl bg-amber-500/20 flex items-center justify-center shrink-0">
-                  <span className="text-xl">⭐</span>
+              <div className={cn(
+                "p-6 rounded-[2rem] border-2 transition-all duration-500 flex items-start gap-4",
+                doublePointsPromo 
+                  ? "bg-amber-500/10 border-amber-500/30 ring-2 ring-amber-500/20 scale-[1.02]" 
+                  : "bg-white/5 border-dashed border-white/10"
+              )}>
+                <div className={cn(
+                  "w-10 h-10 rounded-xl flex items-center justify-center shrink-0",
+                  doublePointsPromo ? "bg-amber-500 text-black" : "bg-amber-500/20"
+                )}>
+                  {doublePointsPromo ? <span className="text-xl font-black">2x</span> : <span className="text-xl">⭐</span>}
                 </div>
                 <div>
-                  <p className="font-black text-base">Clube de Fidelidade</p>
+                  <div className="flex items-center gap-2">
+                    <p className="font-black text-base">Clube de Fidelidade</p>
+                    {doublePointsPromo && <Badge className="bg-amber-500 text-black border-none text-[8px] h-4">DOBRADO</Badge>}
+                  </div>
                   <p className="text-xs opacity-60 mt-1">Acumule pontos e troque por serviços gratuitos ou descontos exclusivos.</p>
+                  {doublePointsPromo && <p className="text-[10px] text-amber-500 font-black uppercase mt-1">Ativo: Ganhe 2x mais pontos!</p>}
                 </div>
               </div>
             </div>
