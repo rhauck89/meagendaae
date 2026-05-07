@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogBody, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -15,7 +16,7 @@ import { toast } from 'sonner';
 import { formatWhatsApp, isValidWhatsApp, normalizePhone } from '@/lib/whatsapp';
 import { sendAppointmentCreatedWebhook } from '@/lib/automations';
 import { getAvailableSlots } from '@/lib/availability-service';
-import { Search, CalendarIcon, Clock, User, Scissors } from 'lucide-react';
+import { Search, CalendarIcon, Clock, User, Scissors, Star, CheckCircle2, AlertCircle } from 'lucide-react';
 
 interface ManualAppointmentDialogProps {
   open: boolean;
@@ -75,6 +76,10 @@ export function ManualAppointmentDialog({
   // Step 5: WhatsApp confirmation
   const [sendWhatsApp, setSendWhatsApp] = useState(false);
 
+  // Subscription logic
+  const [subBenefit, setSubBenefit] = useState<any>(null);
+  const [validatingSub, setValidatingSub] = useState(false);
+
   useEffect(() => {
     if (open) {
       resetForm();
@@ -82,6 +87,35 @@ export function ManualAppointmentDialog({
       fetchServices();
     }
   }, [open]);
+
+  useEffect(() => {
+    if (selectedClient && selectedProfessional && selectedServices.length > 0) {
+      validateSubscription();
+    } else {
+      setSubBenefit(null);
+    }
+  }, [selectedClient, selectedProfessional, selectedServices]);
+
+  const validateSubscription = async () => {
+    setValidatingSub(true);
+    try {
+      const { data, error } = await supabase.rpc('check_subscription_benefit', {
+        p_company_id: companyId,
+        p_client_id: selectedClient.id,
+        p_professional_id: selectedProfessional,
+        p_service_ids: selectedServices,
+        p_date: selectedDate ? format(selectedDate, 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd')
+      });
+      if (error) throw error;
+      setSubBenefit(data);
+    } catch (err) {
+      console.error('Error validating sub:', err);
+      setSubBenefit(null);
+    } finally {
+      setValidatingSub(false);
+    }
+  };
+
   useEffect(() => {
     if (open && selectedDate && selectedProfessional && selectedServices.length > 0) {
       fetchSlots(selectedDate);
@@ -180,6 +214,14 @@ export function ManualAppointmentDialog({
   }, 0);
 
   const totalPrice = selectedServices.reduce((sum, sId) => {
+    if (subBenefit?.applied && subBenefit.covered_service_ids?.includes(sId)) {
+      return sum;
+    }
+    const svc = services.find(s => s.id === sId);
+    return sum + (svc?.price || 0);
+  }, 0);
+
+  const originalTotalPrice = selectedServices.reduce((sum, sId) => {
     const svc = services.find(s => s.id === sId);
     return sum + (svc?.price || 0);
   }, 0);
@@ -234,13 +276,28 @@ export function ManualAppointmentDialog({
         p_client_name: selectedClient.name,
         p_client_whatsapp: selectedClient.whatsapp || '',
         p_client_email: selectedClient.email || null,
-        p_notes: 'Agendamento manual',
+        p_notes: subBenefit?.applied ? `Agendamento com benefício de assinatura: ${subBenefit.plan_name}` : 'Agendamento manual',
         p_services: servicesJson,
         p_booking_origin: 'manual',
         p_user_id: selectedClient.user_id || null
       } as any);
 
       if (rpcError) throw rpcError;
+
+      // Register usage if applicable
+      if (subBenefit?.applied && subBenefit.covered_service_ids?.length > 0) {
+        await supabase.rpc('register_subscription_usage_v1', {
+          p_company_id: companyId,
+          p_subscription_id: subBenefit.subscription_id,
+          p_appointment_id: appointmentId,
+          p_service_ids: subBenefit.covered_service_ids,
+          p_usage_date: format(selectedDate, 'yyyy-MM-dd')
+        });
+        
+        // Refresh everything related to sub
+        window.dispatchEvent(new CustomEvent('refresh-subscribers'));
+        window.dispatchEvent(new CustomEvent('refresh-subscription-dashboard'));
+      }
 
       // Send WhatsApp if requested
       const profName = professionals.find(p => p.profile_id === selectedProfessional)?.profile?.full_name || 'Profissional';
@@ -344,11 +401,45 @@ export function ManualAppointmentDialog({
   );
 
   const renderStep3 = () => (
-    <div className="space-y-3">
+    <div className="space-y-4">
+      {subBenefit && (
+        <Card className={`border-none shadow-none bg-muted/20 ${subBenefit.applied ? 'bg-primary/5 border border-primary/20' : ''}`}>
+          <CardContent className="p-3">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <Star className={`h-4 w-4 ${subBenefit.applied ? 'text-primary' : 'text-muted-foreground'}`} />
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Status da Assinatura</p>
+                  {subBenefit.applied ? (
+                    <p className="text-sm font-medium">Plano {subBenefit.plan_name}: <span className="text-primary font-bold">Benefício aplicado</span></p>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">
+                      {subBenefit.reason === 'wrong_professional' ? 'Assinatura vinculada a outro profissional' : 
+                       subBenefit.reason === 'payment_overdue' ? 'Benefício suspenso por atraso no pagamento' :
+                       subBenefit.reason === 'limit_reached' ? 'Limite de uso mensal atingido' :
+                       subBenefit.reason === 'services_not_included' ? 'Nenhum dos serviços está incluso no plano' :
+                       'Sem benefício de assinatura'}
+                    </p>
+                  )}
+                </div>
+              </div>
+              {subBenefit.usage_limit && (
+                <div className="text-right">
+                  <p className="text-[10px] text-muted-foreground uppercase">Uso do Ciclo</p>
+                  <p className="text-sm font-bold">{subBenefit.usage_used}/{subBenefit.usage_limit}</p>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       <Label>Selecione os serviços</Label>
       <div className="space-y-2 max-h-[300px] overflow-y-auto">
         {services.map(svc => {
           const isSelected = selectedServices.includes(svc.id);
+          const isCovered = subBenefit?.applied && subBenefit.covered_service_ids?.includes(svc.id);
+          
           return (
             <div
               key={svc.id}
@@ -363,11 +454,25 @@ export function ManualAppointmentDialog({
               }}
             >
               <div className="flex items-center justify-between">
-                <div>
-                  <p className="font-medium text-sm">{svc.name}</p>
-                  <p className="text-xs text-muted-foreground">{svc.duration_minutes} min</p>
+                <div className="flex items-center gap-2">
+                  <div>
+                    <p className="font-medium text-sm">{svc.name}</p>
+                    <p className="text-xs text-muted-foreground">{svc.duration_minutes} min</p>
+                  </div>
+                  {isCovered && (
+                    <Badge variant="outline" className="bg-primary/10 text-primary border-none text-[10px] px-1 h-5">
+                      <CheckCircle2 className="h-3 w-3 mr-1" /> Incluso
+                    </Badge>
+                  )}
                 </div>
-                <span className="font-semibold text-sm">R$ {Number(svc.price).toFixed(2)}</span>
+                <div className="text-right">
+                  <span className={`text-sm ${isCovered ? 'line-through text-muted-foreground font-normal' : 'font-semibold'}`}>
+                    R$ {Number(svc.price).toFixed(2)}
+                  </span>
+                  {isCovered && (
+                    <p className="text-xs font-bold text-primary">Grátis</p>
+                  )}
+                </div>
               </div>
             </div>
           );
@@ -375,8 +480,13 @@ export function ManualAppointmentDialog({
       </div>
       {selectedServices.length > 0 && (
         <div className="flex items-center justify-between pt-2 border-t">
-          <span className="text-sm text-muted-foreground">Total: {totalDuration} min</span>
-          <span className="font-bold">R$ {totalPrice.toFixed(2)}</span>
+          <div className="flex flex-col">
+             <span className="text-xs text-muted-foreground">Total: {totalDuration} min</span>
+             {totalPrice < originalTotalPrice && (
+               <span className="text-[10px] text-muted-foreground line-through">Subtotal: R$ {originalTotalPrice.toFixed(2)}</span>
+             )}
+          </div>
+          <span className="font-bold text-lg text-primary">R$ {totalPrice.toFixed(2)}</span>
         </div>
       )}
     </div>
