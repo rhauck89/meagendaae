@@ -3341,12 +3341,12 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
               {/* Benefits Info */}
               {(() => {
                 if (step === 'confirm') {
-                  console.log('[BOOKING_POINTS_PREVIEW_RENDER_DEBUG]', {
+                  console.warn('[DOUBLE_BENEFIT_BOOKING_DEBUG_VISIBLE] review render', {
                     predictedLoyaltyPoints,
                     cashbackEarnAmount,
-                    useCashback,
-                    hasBenefitsActive,
-                    rendering_benefits_block: (cashbackEarnAmount > 0 || predictedLoyaltyPoints > 0 || useCashback)
+                    doublePointsPromo: doublePointsPromo?.id,
+                    doubleCashbackPromo: doubleCashbackPromo?.id,
+                    hasBenefitsActive
                   });
                 }
                 return null;
