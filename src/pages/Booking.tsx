@@ -3423,7 +3423,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                                     <span className="text-[10px] font-bold bg-emerald-500 text-black px-1.5 rounded-full">2x</span>
                                   </div>
                                   <div className="flex items-center gap-2">
-                                    <span className="text-xs line-through opacity-40 font-bold">R$ {(cashbackEarnAmount / getPromotionIncentiveConfig(doubleCashbackPromo).multiplier).toFixed(2).replace('.', ',')}</span>
+                                    <span className="text-xs line-through opacity-40 font-bold">R$ {(cashbackEarnAmount / (getPromotionIncentiveConfig(doubleCashbackPromo).multiplier || 2)).toFixed(2).replace('.', ',')}</span>
                                     <ChevronRight className="h-3 w-3 opacity-40" />
                                     <span className="text-sm font-black text-emerald-500 animate-pulse">R$ {cashbackEarnAmount.toFixed(2).replace('.', ',')}</span>
                                   </div>
