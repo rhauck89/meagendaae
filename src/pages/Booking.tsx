@@ -2147,10 +2147,12 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
         p_client_email: clientForm.email || null,
       };
 
-      console.warn('[DOUBLE_BENEFIT_BOOKING_DEBUG_VISIBLE] Final payload for RPC', {
-        appointmentPayloadV2,
-        selectedPromoId: currentPromo?.id || activeCashbackPromo?.id,
-        incentiveConfig: getPromotionIncentiveConfig(currentPromo || activeCashbackPromo)
+      console.warn('[DOUBLE_BENEFIT_BOOKING_DEBUG_VISIBLE] appointment payload', {
+        p_company_id: appointmentPayloadV2.p_company_id,
+        p_professional_id: appointmentPayloadV2.p_professional_id,
+        p_promotion_id: appointmentPayloadV2.p_promotion_id,
+        p_start_time: appointmentPayloadV2.p_start_time,
+        benefitDetails: persistenceData
       });
 
       console.log('[BOOKING_INSERT_ATTEMPT]', { 
