@@ -451,6 +451,23 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
     [currentPromo, activeCashbackPromo].find(p => getPromotionIncentiveConfig(p).type === 'double_cashback'),
     [currentPromo, activeCashbackPromo]
   );
+
+  useEffect(() => {
+    if (step === 'success' && (doublePointsPromo || doubleCashbackPromo)) {
+      const incentiveName = doublePointsPromo ? 'Pontos em Dobro' : 'Cashback em Dobro';
+      const benefitText = doublePointsPromo 
+        ? `${Math.round(bookingResult?.pointsEarned || 0) / (getPromotionIncentiveConfig(doublePointsPromo).multiplier || 2)} ➔ ${bookingResult?.pointsEarned} pontos`
+        : `R$ ${((bookingResult?.cashbackEarned || 0) / (getPromotionIncentiveConfig(doubleCashbackPromo).multiplier || 2)).toFixed(2).replace('.', ',')} ➔ R$ ${bookingResult?.cashbackEarned?.toFixed(2).replace('.', ',')} de cashback`;
+
+      toast.success(`${incentiveName} Ativado! 🎉`, {
+        description: benefitText,
+        duration: 5000,
+      });
+      
+      console.log('[DOUBLE_BENEFIT_BOOKING_DEBUG] Animation triggered for:', incentiveName);
+    }
+  }, [step, doublePointsPromo, doubleCashbackPromo, bookingResult]);
+
   const hasPromoApplied = !!currentPromo;
   const incentiveConfig = getPromotionIncentiveConfig(currentPromo || promoData);
 
