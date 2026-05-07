@@ -450,6 +450,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
   );
 
 
+
   const currentPromo = activePromo;
   const hasPromoApplied = !!currentPromo;
   const incentiveConfig = (currentPromo?.metadata as any)?.incentive_config || (promoData?.metadata as any)?.incentive_config || null;
