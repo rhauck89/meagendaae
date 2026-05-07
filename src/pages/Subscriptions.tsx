@@ -5,11 +5,12 @@ import { Button } from '@/components/ui/button';
 import { Plus, Users, CreditCard, LayoutDashboard, Settings } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { PlansTab } from '@/components/subscriptions/PlansTab';
+import { PlanDialog } from '@/components/subscriptions/PlanDialog';
 
 const Subscriptions = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
+  const [isPlanDialogOpen, setIsPlanDialogOpen] = useState(false);
   const { companyId } = useAuth();
-
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto p-6">
@@ -19,7 +20,7 @@ const Subscriptions = () => {
           <p className="text-muted-foreground">Gerencie seus planos e clientes recorrentes.</p>
         </div>
         <div className="flex items-center gap-2">
-          <Button className="gap-2">
+          <Button className="gap-2" onClick={() => setIsPlanDialogOpen(true)}>
             <Plus className="h-4 w-4" /> Novo Plano
           </Button>
         </div>
@@ -111,6 +112,17 @@ const Subscriptions = () => {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {companyId && (
+        <PlanDialog
+          open={isPlanDialogOpen}
+          onOpenChange={setIsPlanDialogOpen}
+          companyId={companyId}
+          onSuccess={() => {
+            window.dispatchEvent(new CustomEvent('refresh-subscription-plans'));
+          }}
+        />
+      )}
     </div>
   );
 };
