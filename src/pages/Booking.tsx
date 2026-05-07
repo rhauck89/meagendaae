@@ -339,7 +339,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
       const dateStr = format(selectedDate, 'yyyy-MM-dd');
       const slotDateTime = fromZonedTime(`${dateStr} ${selectedTime}:00`, bookingTimezone);
 
-      console.warn('[DOUBLE_BENEFIT_BOOKING_DEBUG_VISIBLE] Selecting slot', {
+      console.warn('[DOUBLE_BENEFIT_BOOKING_DEBUG_VISIBLE] Slot selected', {
         date: dateStr,
         time: selectedTime,
         professionalId: selectedProfessional,
@@ -351,10 +351,13 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
         if (!isPromoActive(promo)) return false;
         if (!isSlotEligible(promo, slotDateTime)) return false;
         
-        // Professional filter
-        if (promo.professional_filter === 'specific' && promo.professional_ids) {
-          if (!selectedProfessional || !promo.professional_ids.includes(selectedProfessional)) return false;
-        }
+        // Professional filter logic
+        const isProfessionalMatch = 
+          promo.professional_filter === 'all' || 
+          (promo.professional_filter === 'specific' && promo.professional_ids?.includes(selectedProfessional || '')) ||
+          ((promo as any).professional_id === selectedProfessional); // fallback legacy
+          
+        if (!isProfessionalMatch) return false;
 
         const promoServiceIds = promo.service_ids || (promo.service_id ? [promo.service_id] : []);
         const hasEligibleService = selectedServices.some(sid => promoServiceIds.length === 0 || promoServiceIds.includes(sid));
@@ -362,16 +365,8 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
       });
 
       if (matchingPromo) {
-        console.warn('[DOUBLE_BENEFIT_BOOKING_DEBUG_VISIBLE] Found matching promo for slot', {
-          id: matchingPromo.id,
-          title: matchingPromo.title,
-          type: matchingPromo.promotion_type,
-          metadata: matchingPromo.metadata
-        });
-        
         // Ensure metadata is correctly loaded
         if (!matchingPromo.metadata || Object.keys(matchingPromo.metadata).length === 0) {
-           console.log('[DOUBLE_BENEFIT_BOOKING_DEBUG] Promo has no metadata, fetching full record...');
            const { data, error } = await supabase
             .from('promotions')
             .select('id, title, metadata, promotion_type, discount_type, discount_value')
@@ -379,7 +374,6 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
             .single();
           
           if (data && !error) {
-            console.warn('[DOUBLE_BENEFIT_BOOKING_DEBUG_VISIBLE] Fetched full metadata', data.metadata);
             setSelectedSlotPromo({ ...matchingPromo, metadata: data.metadata });
           } else {
             setSelectedSlotPromo(matchingPromo);
@@ -388,13 +382,6 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
           setSelectedSlotPromo(matchingPromo);
         }
       } else {
-        console.warn('[DOUBLE_BENEFIT_BOOKING_DEBUG_VISIBLE] Nenhuma promoção encontrada para este slot', {
-          date: dateStr,
-          time: selectedTime,
-          professionalId: selectedProfessional,
-          services: selectedServices,
-          publicPromotionsCount: publicPromotions.length
-        });
         setSelectedSlotPromo(null);
       }
     };
