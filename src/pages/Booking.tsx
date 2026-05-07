@@ -3465,6 +3465,12 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
 
         {/* ═══ SUCCESS ═══ */}
         {step === 'success' && bookingResult && (() => {
+          console.warn('[DOUBLE_BENEFIT_BOOKING_DEBUG_VISIBLE] Success screen render', {
+            bookingResult,
+            doublePointsPromo: doublePointsPromo?.id,
+            doubleCashbackPromo: doubleCashbackPromo?.id,
+            incentiveConfig: getPromotionIncentiveConfig(doublePointsPromo || doubleCashbackPromo)
+          });
           const st = new Date(bookingResult.date);
           const [h, m] = bookingResult.time.split(':').map(Number);
           st.setHours(h, m, 0, 0);
