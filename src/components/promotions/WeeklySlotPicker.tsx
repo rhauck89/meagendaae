@@ -264,8 +264,7 @@ export function WeeklySlotPicker({
                   })}
                 </div>
               </div>
-            </div>
-          )}
+            )}
 
           {/* Tab Content */}
           <ScrollArea className="flex-1">
