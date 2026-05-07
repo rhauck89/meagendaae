@@ -1389,7 +1389,19 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
       }
     }
 
+    const incentiveConfig = currentPromo?.metadata?.incentive_config;
     const multiplier = incentiveConfig?.type === 'double_cashback' ? (incentiveConfig.multiplier || 2) : 1;
+    
+    if (step === 'confirm' || step === 'success') {
+      console.log('[DOUBLE_BENEFIT_PROMO_DEBUG]', {
+        promotion_id: currentPromo?.id,
+        incentive_config: incentiveConfig,
+        base_cashback: amount,
+        final_cashback: amount * multiplier,
+        tela: step
+      });
+    }
+
     return amount * multiplier;
   })();
 
@@ -1457,8 +1469,20 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
       debug('Calculating by value', { eligibleSubtotal, pointsPerCurrency, points });
     }
 
-    debug('Calculation complete', { points_predicted: points });
-    return points;
+    const incentiveConfig = currentPromo?.metadata?.incentive_config;
+    const multiplier = incentiveConfig?.type === 'double_points' ? (incentiveConfig.multiplier || 2) : 1;
+
+    if (step === 'confirm' || step === 'success') {
+      console.log('[DOUBLE_BENEFIT_PROMO_DEBUG]', {
+        promotion_id: currentPromo?.id,
+        incentive_config: incentiveConfig,
+        base_points: points,
+        final_points: points * multiplier,
+        tela: step
+      });
+    }
+
+    return points * multiplier;
   })();
 
   const toggleService = (id: string) => {
@@ -3073,26 +3097,64 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                     <div className="rounded-2xl p-5 space-y-3 animate-in zoom-in duration-500" style={{ background: 'rgba(255,255,255,0.02)', border: `1px solid ${T.border}` }}>
                       <p className="text-[10px] font-black uppercase tracking-[0.2em] opacity-40">Você vai ganhar neste agendamento</p>
                       
-                      <div className="space-y-2">
+                      <div className="space-y-3">
                         {predictedLoyaltyPoints > 0 && (
-                          <div className="flex items-center gap-3">
+                          <div className={cn(
+                            "flex items-center gap-3 p-3 rounded-xl transition-all",
+                            currentPromo?.metadata?.incentive_config?.type === 'double_points' 
+                              ? "bg-amber-500/10 border border-amber-500/20 ring-1 ring-amber-500/20 animate-pulse" 
+                              : "bg-white/5"
+                          )}>
                             <div className="w-8 h-8 rounded-full bg-amber-500/10 flex items-center justify-center shrink-0">
                               <span className="text-sm">⭐</span>
                             </div>
-                            <p className="text-sm font-black text-amber-500">
-                              {predictedLoyaltyPoints} pontos de fidelidade
-                            </p>
+                            <div className="flex-1">
+                              {currentPromo?.metadata?.incentive_config?.type === 'double_points' ? (
+                                <>
+                                  <div className="flex items-center gap-2">
+                                    <p className="text-sm font-black text-amber-500">Pontos em dobro</p>
+                                    <Badge className="h-4 text-[8px] bg-amber-500 text-black border-none">2x</Badge>
+                                  </div>
+                                  <p className="text-[11px] font-bold text-amber-500/80">
+                                    {predictedLoyaltyPoints / 2} pts → {predictedLoyaltyPoints} pts
+                                  </p>
+                                </>
+                              ) : (
+                                <p className="text-sm font-black text-amber-500">
+                                  {predictedLoyaltyPoints} pontos de fidelidade
+                                </p>
+                              )}
+                            </div>
                           </div>
                         )}
                         
                         {cashbackEarnAmount > 0 && (
-                          <div className="flex items-center gap-3">
+                          <div className={cn(
+                            "flex items-center gap-3 p-3 rounded-xl transition-all",
+                            currentPromo?.metadata?.incentive_config?.type === 'double_cashback' 
+                              ? "bg-green-500/10 border border-green-500/20 ring-1 ring-green-500/20 animate-pulse" 
+                              : "bg-white/5"
+                          )}>
                             <div className="w-8 h-8 rounded-full bg-green-500/10 flex items-center justify-center shrink-0">
                               <span className="text-sm">💵</span>
                             </div>
-                            <p className="text-sm font-black text-green-500">
-                              R$ {cashbackEarnAmount.toFixed(2).replace('.', ',')} de cashback
-                            </p>
+                            <div className="flex-1">
+                              {currentPromo?.metadata?.incentive_config?.type === 'double_cashback' ? (
+                                <>
+                                  <div className="flex items-center gap-2">
+                                    <p className="text-sm font-black text-green-500">Cashback em dobro</p>
+                                    <Badge className="h-4 text-[8px] bg-green-500 text-black border-none">2x</Badge>
+                                  </div>
+                                  <p className="text-[11px] font-bold text-green-500/80">
+                                    R$ {(cashbackEarnAmount / 2).toFixed(2).replace('.', ',')} → R$ {cashbackEarnAmount.toFixed(2).replace('.', ',')}
+                                  </p>
+                                </>
+                              ) : (
+                                <p className="text-sm font-black text-green-500">
+                                  R$ {cashbackEarnAmount.toFixed(2).replace('.', ',')} de cashback
+                                </p>
+                              )}
+                            </div>
                           </div>
                         )}
                       </div>
@@ -3360,24 +3422,54 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                   
                   <div className="space-y-3">
                     {bookingResult.pointsEarned > 0 && (
-                      <div className="flex items-center gap-4 bg-amber-500/5 p-4 rounded-3xl border border-amber-500/10">
+                      <div className={cn(
+                        "flex items-center gap-4 p-4 rounded-3xl border transition-all",
+                        currentPromo?.metadata?.incentive_config?.type === 'double_points'
+                          ? "bg-amber-500/10 border-amber-500/20 animate-pulse"
+                          : "bg-amber-500/5 border-amber-500/10"
+                      )}>
                         <div className="w-10 h-10 rounded-full bg-amber-500/10 flex items-center justify-center shrink-0">
                           <span className="text-xl">⭐</span>
                         </div>
                         <div>
-                          <p className="font-black text-amber-500">{bookingResult.pointsEarned} pontos de fidelidade</p>
+                          <div className="flex items-center gap-2">
+                            <p className="font-black text-amber-500">
+                              {currentPromo?.metadata?.incentive_config?.type === 'double_points' ? 'Pontos em dobro' : `${bookingResult.pointsEarned} pontos de fidelidade`}
+                            </p>
+                            {currentPromo?.metadata?.incentive_config?.type === 'double_points' && (
+                              <Badge className="bg-amber-500 text-black border-none text-[8px] h-4">2x</Badge>
+                            )}
+                          </div>
+                          <p className="font-black text-amber-500/80 text-sm">
+                            {bookingResult.pointsEarned} pontos
+                          </p>
                           <p className="text-[10px] font-bold opacity-60 uppercase tracking-tight" style={{ color: T.textSec }}>Serão liberados após o atendimento</p>
                         </div>
                       </div>
                     )}
                     
                     {bookingResult.cashbackEarned > 0 && (
-                      <div className="flex items-center gap-4 bg-green-500/5 p-4 rounded-3xl border border-green-500/10">
+                      <div className={cn(
+                        "flex items-center gap-4 p-4 rounded-3xl border transition-all",
+                        currentPromo?.metadata?.incentive_config?.type === 'double_cashback'
+                          ? "bg-green-500/10 border-green-500/20 animate-pulse"
+                          : "bg-green-500/5 border-green-500/10"
+                      )}>
                         <div className="w-10 h-10 rounded-full bg-green-500/10 flex items-center justify-center shrink-0">
                           <span className="text-xl">💵</span>
                         </div>
                         <div>
-                          <p className="font-black text-green-500">R$ {bookingResult.cashbackEarned.toFixed(2).replace('.', ',')} de cashback</p>
+                          <div className="flex items-center gap-2">
+                            <p className="font-black text-green-500">
+                              {currentPromo?.metadata?.incentive_config?.type === 'double_cashback' ? 'Cashback em dobro' : `R$ ${bookingResult.cashbackEarned.toFixed(2).replace('.', ',')} de cashback`}
+                            </p>
+                            {currentPromo?.metadata?.incentive_config?.type === 'double_cashback' && (
+                              <Badge className="bg-green-500 text-black border-none text-[8px] h-4">2x</Badge>
+                            )}
+                          </div>
+                          <p className="font-black text-green-500/80 text-sm">
+                            R$ {bookingResult.cashbackEarned.toFixed(2).replace('.', ',')}
+                          </p>
                           <p className="text-[10px] font-bold opacity-60 uppercase tracking-tight" style={{ color: T.textSec }}>Serão liberados após o atendimento</p>
                         </div>
                       </div>
