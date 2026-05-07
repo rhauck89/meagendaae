@@ -296,8 +296,79 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
   const isDark = businessType === 'barbershop';
   const bookingTimezone = companySettings?.timezone || DEFAULT_BOOKING_TIMEZONE;
 
+  const getPromotionIncentiveConfig = (promo: any) => {
+    if (!promo || !promo.metadata) return { type: null, multiplier: 1 };
+    let metadata = promo.metadata;
+    if (typeof metadata === 'string') {
+      try {
+        metadata = JSON.parse(metadata);
+      } catch (e) {
+        return { type: null, multiplier: 1 };
+      }
+    }
+    const config = metadata.incentive_config;
+    if (!config) return { type: null, multiplier: 1 };
+    return {
+      type: config.type || null,
+      multiplier: Number(config.multiplier) || 1
+    };
+  };
+
+  const [selectedSlotPromo, setSelectedSlotPromo] = useState<PromotionInfo | null>(null);
+
+  useEffect(() => {
+    const loadFullPromo = async () => {
+      if (!selectedTime || !selectedDate) {
+        setSelectedSlotPromo(null);
+        return;
+      }
+
+      const dateStr = format(selectedDate, 'yyyy-MM-dd');
+      const slotDateTime = fromZonedTime(`${dateStr} ${selectedTime}:00`, bookingTimezone);
+
+      // 1. Check if we already have it in publicPromotions
+      const matchingPromo = publicPromotions.find(promo => {
+        if (!isPromoActive(promo)) return false;
+        if (!isSlotEligible(promo, slotDateTime)) return false;
+        
+        const promoServiceIds = promo.service_ids || (promo.service_id ? [promo.service_id] : []);
+        const hasEligibleService = selectedServices.some(sid => promoServiceIds.length === 0 || promoServiceIds.includes(sid));
+        return hasEligibleService;
+      });
+
+      if (matchingPromo) {
+        console.log('[DOUBLE_BENEFIT_BOOKING_DEBUG] Found matching promo in state:', matchingPromo.id);
+        
+        // Ensure metadata is correctly loaded
+        if (!matchingPromo.metadata || Object.keys(matchingPromo.metadata).length === 0) {
+           console.log('[DOUBLE_BENEFIT_BOOKING_DEBUG] Promo has no metadata, fetching full record...');
+           const { data, error } = await supabase
+            .from('promotions')
+            .select('id, title, metadata, promotion_type, discount_type, discount_value')
+            .eq('id', matchingPromo.id)
+            .single();
+          
+          if (data && !error) {
+            setSelectedSlotPromo({ ...matchingPromo, metadata: data.metadata });
+          } else {
+            setSelectedSlotPromo(matchingPromo);
+          }
+        } else {
+          setSelectedSlotPromo(matchingPromo);
+        }
+      } else {
+        setSelectedSlotPromo(null);
+      }
+    };
+
+    loadFullPromo();
+  }, [selectedTime, selectedDate, publicPromotions, selectedServices, bookingTimezone]);
+
   // Identify the best applicable promotion for the current selection
   const activePromo = useMemo(() => {
+    // If we have a manually selected slot promotion, use it
+    if (selectedSlotPromo) return selectedSlotPromo;
+
     // If the user arrived via a specific promo link, we prioritize that one.
     if (promoData) return promoData;
     
@@ -315,7 +386,9 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
     // 4. Match at least one selected service
     const eligiblePromos = publicPromotions.filter(promo => {
       // Cashback promos are handled separately (they don't apply a discount to the price)
-      if (promo.promotion_type === 'cashback') return false; 
+      // EXCEPT if they have incentive_config (Double Cashback/Points)
+      const incentiveConfig = getPromotionIncentiveConfig(promo);
+      if (promo.promotion_type === 'cashback' && !incentiveConfig.type) return false; 
       
       // Is it open for booking today?
       const isBookingOpen = isPromoActive(promo);
@@ -340,7 +413,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
     // If multiple promos apply, we could sort them by "best discount", 
     // but for now we'll take the first applicable one.
     return eligiblePromos.length > 0 ? eligiblePromos[0] : null;
-  }, [promoData, publicPromotions, selectedDate, selectedTime, selectedServices, selectedProfessional, bookingTimezone]);
+  }, [selectedSlotPromo, promoData, publicPromotions, selectedDate, selectedTime, selectedServices, selectedProfessional, bookingTimezone]);
 
   // Identify any applicable cashback promotion (separate from currentPromo which is for discounts)
   const activeCashbackPromo = useMemo(() => {
