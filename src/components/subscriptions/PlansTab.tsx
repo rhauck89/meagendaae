@@ -22,7 +22,6 @@ import {
   Trash2,
   Power,
 } from 'lucide-react';
-import { PlanDialog } from './PlanDialog';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -36,13 +35,13 @@ import {
 
 interface PlansTabProps {
   companyId: string;
+  onEditPlan: (plan: any) => void;
+  onNewPlan: () => void;
 }
 
-export function PlansTab({ companyId }: PlansTabProps) {
+export function PlansTab({ companyId, onEditPlan, onNewPlan }: PlansTabProps) {
   const [plans, setPlans] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [selectedPlan, setSelectedPlan] = useState<any>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [planToDelete, setPlanToDelete] = useState<any>(null);
 
@@ -50,6 +49,10 @@ export function PlansTab({ companyId }: PlansTabProps) {
     if (companyId) {
       fetchPlans();
     }
+
+    const handleRefresh = () => fetchPlans();
+    window.addEventListener('refresh-subscription-plans', handleRefresh);
+    return () => window.removeEventListener('refresh-subscription-plans', handleRefresh);
   }, [companyId]);
 
   const fetchPlans = async () => {
@@ -132,7 +135,7 @@ export function PlansTab({ companyId }: PlansTabProps) {
   return (
     <div className="space-y-6">
       <div className="flex justify-end">
-        <Button onClick={() => { setSelectedPlan(null); setIsDialogOpen(true); }} className="gap-2">
+        <Button onClick={onNewPlan} className="gap-2">
           <Plus className="h-4 w-4" /> Novo Plano
         </Button>
       </div>
@@ -145,7 +148,7 @@ export function PlansTab({ companyId }: PlansTabProps) {
             <p className="text-sm text-muted-foreground max-w-sm mx-auto">
               Crie planos de assinatura para fidelizar seus clientes e garantir uma receita recorrente.
             </p>
-            <Button variant="outline" onClick={() => setIsDialogOpen(true)} className="mt-4">
+            <Button variant="outline" onClick={onNewPlan} className="mt-4">
               Criar meu primeiro plano
             </Button>
           </div>
@@ -173,7 +176,7 @@ export function PlansTab({ companyId }: PlansTabProps) {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => { setSelectedPlan(plan); setIsDialogOpen(true); }} className="gap-2">
+                        <DropdownMenuItem onClick={() => onEditPlan(plan)} className="gap-2">
                           <Edit className="h-4 w-4" /> Editar
                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => togglePlanStatus(plan)} className="gap-2">
@@ -230,14 +233,6 @@ export function PlansTab({ companyId }: PlansTabProps) {
           })}
         </div>
       )}
-
-      <PlanDialog
-        open={isDialogOpen}
-        onOpenChange={setIsDialogOpen}
-        companyId={companyId}
-        plan={selectedPlan}
-        onSuccess={fetchPlans}
-      />
 
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <AlertDialogContent>
