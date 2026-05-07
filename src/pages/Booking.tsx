@@ -1923,6 +1923,14 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
       const clientName = clientForm.full_name || localIdentity?.fullName || user?.user_metadata?.full_name || user?.user_metadata?.name || 'Cliente';
       const clientEmail = clientForm.email || localIdentity?.email || user?.email || null;
 
+      console.warn('[DOUBLE_BENEFIT_BOOKING_DEBUG_VISIBLE] handleBook start', { 
+        clientForm,
+        selectedSlot: { date: selectedDate, time: selectedTime },
+        currentPromo: currentPromo?.id,
+        activeCashbackPromo: activeCashbackPromo?.id,
+        incentiveConfig: getPromotionIncentiveConfig(currentPromo || activeCashbackPromo)
+      });
+
       console.log('[BOOKING_FLOW] Starting book process:', { 
         normalizedPhone, 
         isAdmin, 
