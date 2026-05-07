@@ -1528,7 +1528,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
     const finalAmount = amount * multiplier;
 
     if (step === 'confirm' || step === 'success') {
-      console.log('[DOUBLE_BENEFIT_BOOKING_DEBUG]', {
+      console.warn('[DOUBLE_BENEFIT_BOOKING_DEBUG_VISIBLE] Cashback calculation', {
         promotion_id: promoWithIncentive?.id || currentPromo?.id,
         incentive_type: incentiveConfig?.type,
         multiplier,
