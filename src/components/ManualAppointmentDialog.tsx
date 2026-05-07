@@ -213,6 +213,14 @@ export function ManualAppointmentDialog({
   }, 0);
 
   const totalPrice = selectedServices.reduce((sum, sId) => {
+    if (subBenefit?.applied && subBenefit.covered_service_ids?.includes(sId)) {
+      return sum;
+    }
+    const svc = services.find(s => s.id === sId);
+    return sum + (svc?.price || 0);
+  }, 0);
+
+  const originalTotalPrice = selectedServices.reduce((sum, sId) => {
     const svc = services.find(s => s.id === sId);
     return sum + (svc?.price || 0);
   }, 0);
