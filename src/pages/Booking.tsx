@@ -458,8 +458,13 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
     const eligiblePromos = publicPromotions.filter(promo => {
       const incentiveConfig = getPromotionIncentiveConfig(promo);
       
-      // Include manual, smart and cashback-with-incentive
-      const isValidType = promo.promotion_type === 'manual' || promo.promotion_type === 'smart' || (promo.promotion_type === 'cashback' && incentiveConfig.type);
+      // Include all public campaign styles. Incentives are detected by metadata,
+      // while older/manual promos may still use traditional/manual/smart.
+      const isValidType =
+        promo.promotion_type === 'traditional' ||
+        promo.promotion_type === 'manual' ||
+        promo.promotion_type === 'smart' ||
+        (promo.promotion_type === 'cashback' && incentiveConfig.type);
       if (!isValidType) return false;
       
       // Is it open for booking today?
