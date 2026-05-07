@@ -364,6 +364,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
 
   const currentPromo = activePromo;
   const hasPromoApplied = !!currentPromo;
+  const incentiveConfig = (currentPromo?.metadata as any)?.incentive_config || (promoData?.metadata as any)?.incentive_config || null;
 
   // Dynamic theme based on company branding
   const T = useMemo(() => {
@@ -1356,24 +1357,21 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
 
   // Calculate cashback the client will EARN (not a discount)
   const cashbackEarnAmount = (() => {
+    let amount = 0;
     // From promo-mode cashback
     if (isCashbackPromo && promoData) {
       const promoServiceIds = promoData.service_ids || (promoData.service_id ? [promoData.service_id] : []);
       const promoServicesTotal = services
-        .filter(s => selectedServices.includes(s.id) && promoServiceIds.includes(s.id))
+        .filter(s => selectedServices.includes(s.id) && (promoServiceIds.length === 0 || promoServiceIds.includes(s.id)))
         .reduce((sum, s) => sum + Number(s.price), 0);
       if (promoData.discount_type === 'percentage' && promoData.discount_value) {
-        return promoServicesTotal * Number(promoData.discount_value) / 100;
+        amount = promoServicesTotal * Number(promoData.discount_value) / 100;
       } else if (promoData.discount_type === 'fixed_amount' && promoData.discount_value) {
-        return Number(promoData.discount_value);
+        amount = Number(promoData.discount_value);
       }
-      return 0;
-    }
-    // Auto-detect from active cashback promotions
-    if (!isPromoMode && autoCashbackPromos.length > 0 && selectedProfessional && selectedServices.length > 0) {
-      let total = 0;
+    } else if (!isPromoMode && autoCashbackPromos.length > 0 && selectedProfessional && selectedServices.length > 0) {
+      // Auto-detect from active cashback promotions
       for (const promo of autoCashbackPromos) {
-        // Check professional eligibility
         if (promo.professional_filter === 'specific' && promo.professional_ids) {
           if (!promo.professional_ids.includes(selectedProfessional)) continue;
         }
@@ -1383,14 +1381,15 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
         if (eligible.length === 0) continue;
         const eligibleTotal = eligible.reduce((sum, s) => sum + Number(s.price), 0);
         if (promo.discount_type === 'percentage' && promo.discount_value) {
-          total += eligibleTotal * Number(promo.discount_value) / 100;
+          amount += eligibleTotal * Number(promo.discount_value) / 100;
         } else if (promo.discount_type === 'fixed_amount' && promo.discount_value) {
-          total += Number(promo.discount_value);
+          amount += Number(promo.discount_value);
         }
       }
-      return total;
     }
-    return 0;
+
+    const multiplier = incentiveConfig?.type === 'double_cashback' ? (incentiveConfig.multiplier || 2) : 1;
+    return amount * multiplier;
   })();
 
   const cashbackDiscount = useCashback ? Math.min(cashbackTotal, totalPrice) : 0;
