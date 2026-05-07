@@ -32,6 +32,7 @@ import DebugAgenda from "./pages/DebugAgenda";
 import Waitlist from "./pages/Waitlist";
 import ProfilePage from "./pages/ProfilePage";
 import Clients from "./pages/Clients";
+import Subscriptions from "./pages/Subscriptions";
 import Events from "./pages/Events";
 import EventPublic from "./pages/EventPublic";
 import Promotions from "./pages/Promotions";
@@ -264,6 +265,7 @@ const PlatformRoutes = () => (
     
     <Route path="/dashboard/waitlist" element={<DashboardRoute><Waitlist /></DashboardRoute>} />
     <Route path="/dashboard/clients" element={<DashboardRoute><Clients /></DashboardRoute>} />
+    <Route path="/dashboard/subscriptions" element={<DashboardRoute><Subscriptions /></DashboardRoute>} />
     <Route path="/dashboard/profile" element={<DashboardRoute><ProfilePage /></DashboardRoute>} />
     <Route path="/dashboard/my-finance" element={<DashboardRoute><ProfessionalFinance /></DashboardRoute>} />
     <Route path="/dashboard/my-finance/commissions" element={<DashboardRoute><FinanceCommissions /></DashboardRoute>} />

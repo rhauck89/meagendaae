@@ -11,6 +11,7 @@ import {
   PartyPopper, Megaphone, MessageSquare, ChevronDown, Building2, Clock, Zap, Palette, Globe, CreditCard, Bell, HelpCircle, Info, AlertTriangle, Lock,
   DollarSign, ArrowUpDown, TrendingUp, TrendingDown, FolderOpen, Percent, FileBarChart, Receipt, HandCoins,
   ChevronsLeft, ChevronsRight, Inbox, Crown, Scissors as ScissorsIcon, ArrowLeftRight, Star,
+  ClipboardList
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useState, useEffect, useCallback } from 'react';
@@ -38,6 +39,7 @@ const adminNavItems = [
   { href: '/dashboard/team', icon: Users, label: 'Equipe' },
   { href: '/dashboard/clients', icon: UserCheck, label: 'Clientes' },
   { href: '/dashboard/whatsapp', icon: MessageSquare, label: 'WhatsApp Center' },
+  { href: '/dashboard/subscriptions', icon: ClipboardList, label: 'Assinaturas' },
   { href: '/dashboard/events', icon: PartyPopper, label: 'Agenda Aberta' },
   { href: '/dashboard/promotions', icon: Megaphone, label: 'Promoções' },
   { href: '/dashboard/loyalty', icon: Star, label: 'Fidelidade' },
