@@ -3,9 +3,13 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Plus, Users, CreditCard, LayoutDashboard, Settings } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
+import { PlansTab } from '@/components/subscriptions/PlansTab';
 
 const Subscriptions = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
+  const { companyId } = useAuth();
+
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto p-6">
