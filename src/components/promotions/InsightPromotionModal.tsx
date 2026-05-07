@@ -176,7 +176,12 @@ export function InsightPromotionModal({
               </p>
               <div className="grid gap-3">
                 <button
-                  onClick={() => setPromoType('discount')}
+                  type="button"
+                  onClick={() => {
+                    setPromoType('discount');
+                    setTitle('Agenda Especial da Semana');
+                    setDescription('Aproveite nossos horários disponíveis nesta semana com uma condição especial!');
+                  }}
                   className={cn(
                     "flex items-center gap-4 p-4 rounded-xl border text-left transition-all",
                     promoType === 'discount' ? "border-primary bg-primary/5 ring-1 ring-primary" : "hover:bg-accent border-border"
@@ -193,6 +198,7 @@ export function InsightPromotionModal({
                 </button>
 
                 <button
+                  type="button"
                   onClick={() => {
                     setPromoType('double_cashback');
                     setTitle('Cashback em Dobro nesta Semana');
@@ -216,6 +222,7 @@ export function InsightPromotionModal({
                 </button>
 
                 <button
+                  type="button"
                   onClick={() => {
                     setPromoType('double_points');
                     setTitle('Pontos em Dobro nesta Semana');
