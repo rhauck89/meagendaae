@@ -2469,8 +2469,12 @@ export default function Promotions() {
                 const promoServiceIds = promo.service_ids || (promo.service_id ? [promo.service_id] : []);
                 const promoSvcs = services.filter(s => promoServiceIds.includes(s.id));
                 const isHighlighted = promo.id === highlightedPromoId;
-                const isCashback = promo.promotion_type === 'cashback';
-                const discountLabel = isCashback
+                const incentiveType = (promo.metadata as any)?.incentive_config?.type;
+                const discountLabel = incentiveType === 'double_cashback'
+                  ? 'CASHBACK EM DOBRO'
+                  : incentiveType === 'double_points'
+                  ? 'PONTOS EM DOBRO'
+                  : isCashback
                   ? (promo.discount_type === 'percentage' && promo.discount_value
                     ? `${promo.discount_value}% Cashback`
                     : promo.discount_type === 'fixed_amount' && promo.discount_value
