@@ -415,6 +415,23 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
     return eligiblePromos.length > 0 ? eligiblePromos[0] : null;
   }, [selectedSlotPromo, promoData, publicPromotions, selectedDate, selectedTime, selectedServices, selectedProfessional, bookingTimezone]);
 
+  useEffect(() => {
+    if (step === 'success' && (doublePointsPromo || doubleCashbackPromo)) {
+      const incentiveName = doublePointsPromo ? 'Pontos em Dobro' : 'Cashback em Dobro';
+      const benefitText = doublePointsPromo 
+        ? `${Math.round(bookingResult?.pointsEarned || 0) / 2} ➔ ${bookingResult?.pointsEarned} pontos`
+        : `R$ ${(bookingResult?.cashbackEarned || 0) / 2} ➔ R$ ${bookingResult?.cashbackEarned} de cashback`;
+
+      toast.success(`${incentiveName} Ativado! 🎉`, {
+        description: benefitText,
+        duration: 5000,
+      });
+      
+      console.log('[DOUBLE_BENEFIT_BOOKING_DEBUG] Animation triggered for:', incentiveName);
+    }
+  }, [step, doublePointsPromo, doubleCashbackPromo, bookingResult]);
+
+
   // Identify any applicable cashback promotion (separate from currentPromo which is for discounts)
   const activeCashbackPromo = useMemo(() => {
     // If selectedSlotPromo is a cashback promo, use it
