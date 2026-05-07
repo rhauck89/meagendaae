@@ -39,7 +39,7 @@ export function InsightPromotionModal({
   const [step, setStep] = useState<'type' | 'config' | 'message'>('type');
   const [loading, setLoading] = useState(false);
   
-  const [promoType, setPromoType] = useState<'traditional' | 'double_cashback' | 'double_points'>('traditional');
+  const [promoType, setPromoType] = useState<'discount' | 'double_cashback' | 'double_points'>('discount');
   const [title, setTitle] = useState('Agenda Especial da Semana');
   const [description, setDescription] = useState('Aproveite nossos horários disponíveis nesta semana com uma condição especial!');
   const [discountType, setDiscountType] = useState<'fixed_price' | 'percentage' | 'fixed_amount'>('percentage');
@@ -112,18 +112,18 @@ export function InsightPromotionModal({
       const payload = {
         title,
         description,
-        discount_type: promoType === 'traditional' ? discountType : 'percentage',
-        discount_value: promoType === 'traditional' ? (discountType !== 'fixed_price' ? parseFloat(discountValue) : null) : 0,
-        promotion_price: promoType === 'traditional' ? (discountType === 'fixed_price' ? parseFloat(promotionPrice) : null) : null,
+        discount_type: promoType === 'discount' ? discountType : 'percentage',
+        discount_value: promoType === 'discount' ? (discountType !== 'fixed_price' ? parseFloat(discountValue) : null) : 0,
+        promotion_price: promoType === 'discount' ? (discountType === 'fixed_price' ? parseFloat(promotionPrice) : null) : null,
         times: selectedSlots.map(s => s.time),
         date: selectedSlots[0].date,
         selectedSlots,
         message_template: messageTemplate,
-        promotion_type: promoType === 'traditional' ? 'traditional' : 'smart',
+        promotion_type: promoType === 'discount' ? 'traditional' : 'smart',
         service_ids: services.map(s => s.id), 
         professional_ids: Array.from(new Set(selectedSlots.map(s => s.professionalId))),
         promotion_mode: 'manual',
-        metadata: promoType !== 'traditional' ? {
+        metadata: promoType !== 'discount' ? {
           incentive_config: {
             type: promoType,
             multiplier: 2
@@ -279,31 +279,55 @@ export function InsightPromotionModal({
                   <Textarea value={description} onChange={e => setDescription(e.target.value)} rows={2} />
                 </div>
 
-                <div className="grid grid-cols-2 gap-4 pt-2">
-                  <div className="space-y-2">
-                    <Label>Tipo de Desconto</Label>
-                    <Select value={discountType} onValueChange={(v: any) => setDiscountType(v)}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="percentage">Porcentagem (%)</SelectItem>
-                        <SelectItem value="fixed_amount">Valor fixo (R$)</SelectItem>
-                        <SelectItem value="fixed_price">Preço final (R$)</SelectItem>
-                      </SelectContent>
-                    </Select>
+                {promoType === 'discount' ? (
+                  <div className="grid grid-cols-2 gap-4 pt-2">
+                    <div className="space-y-2">
+                      <Label>Tipo de Desconto</Label>
+                      <Select value={discountType} onValueChange={(v: any) => setDiscountType(v)}>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="percentage">Porcentagem (%)</SelectItem>
+                          <SelectItem value="fixed_amount">Valor fixo (R$)</SelectItem>
+                          <SelectItem value="fixed_price">Preço final (R$)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>
+                        {discountType === 'percentage' ? 'Valor (%)' : 'Valor (R$)'}
+                      </Label>
+                      {discountType === 'fixed_price' ? (
+                        <Input type="number" value={promotionPrice} onChange={e => setPromotionPrice(e.target.value)} placeholder="0.00" />
+                      ) : (
+                        <Input type="number" value={discountValue} onChange={e => setDiscountValue(e.target.value)} />
+                      )}
+                    </div>
                   </div>
-                  <div className="space-y-2">
-                    <Label>
-                      {discountType === 'percentage' ? 'Valor (%)' : 'Valor (R$)'}
-                    </Label>
-                    {discountType === 'fixed_price' ? (
-                      <Input type="number" value={promotionPrice} onChange={e => setPromotionPrice(e.target.value)} placeholder="0.00" />
-                    ) : (
-                      <Input type="number" value={discountValue} onChange={e => setDiscountValue(e.target.value)} />
-                    )}
+                ) : (
+                  <div className="bg-primary/5 border border-primary/20 rounded-xl p-4 mt-2">
+                    <div className="flex items-center gap-3 mb-2">
+                      <div className={cn(
+                        "p-2 rounded-lg",
+                        promoType === 'double_cashback' ? "bg-emerald-100 text-emerald-600" : "bg-amber-100 text-amber-600"
+                      )}>
+                        {promoType === 'double_cashback' ? <Wallet className="h-4 w-4" /> : <Star className="h-4 w-4" />}
+                      </div>
+                      <p className="font-bold text-sm">
+                        {promoType === 'double_cashback' ? 'Cashback em dobro' : 'Pontos em dobro'}
+                      </p>
+                      <Badge className="ml-auto bg-primary text-primary-foreground animate-pulse">
+                        2x {promoType === 'double_cashback' ? 'Cashback' : 'Pontos'}
+                      </Badge>
+                    </div>
+                    <p className="text-xs text-muted-foreground leading-relaxed">
+                      {promoType === 'double_cashback' 
+                        ? 'O cliente receberá 2x o cashback padrão configurado para este serviço após a conclusão do atendimento.'
+                        : 'O cliente receberá 2x os pontos de fidelidade configurados para este serviço após a conclusão do atendimento.'}
+                    </p>
                   </div>
-                </div>
+                )}
               </div>
             </div>
           )}
