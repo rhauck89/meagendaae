@@ -263,7 +263,7 @@ export function WeeklySlotPicker({
                     );
                   })}
                 </div>
-              </ScrollArea>
+              </div>
             </div>
           )}
 
