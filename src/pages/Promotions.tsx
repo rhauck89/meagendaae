@@ -958,12 +958,23 @@ export default function Promotions() {
         payload_base: payload
       });
 
-      const baseSlug = payload.slug;
+      const baseSlug = payload.slug || generateSlug(payload.title);
       
       const creationPromises = selectedSlots.map(async (slot, index) => {
-        const slotSlug = selectedSlots.length > 1 
-          ? `${baseSlug}-${slot.date}-${slot.time.replace(':', '')}-${index}` 
-          : baseSlug;
+        const cleanTime = slot.time.replace(/[^0-9]/g, '');
+        const cleanDate = slot.date.replace(/[^0-9]/g, '');
+        const shortProfId = slot.professionalId ? slot.professionalId.substring(0, 4) : 'any';
+        const randomSuffix = Math.random().toString(36).substring(2, 6);
+
+        const slotSlug = `${baseSlug}-${cleanDate}-${cleanTime}-${shortProfId}-${String(index).padStart(2, '0')}-${randomSuffix}`;
+        
+        console.log('[PROMOTION_INSIGHT_SAVE_DEBUG] Generated slot-specific slug', {
+          baseSlug,
+          finalSlug: slotSlug,
+          date: slot.date,
+          time: slot.time,
+          index
+        });
         
         const [h, m] = slot.time.split(':').map(Number);
         const duration = primarySvc?.duration_minutes || 30;
