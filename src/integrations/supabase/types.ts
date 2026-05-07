@@ -7314,9 +7314,12 @@ export type Database = {
           end_time: string | null
           id: string | null
           max_slots: number | null
+          message_template: string | null
+          metadata: Json | null
           original_price: number | null
           professional_filter: string | null
           professional_ids: string[] | null
+          promotion_mode: string | null
           promotion_price: number | null
           promotion_type: string | null
           service_duration: number | null
@@ -7324,6 +7327,7 @@ export type Database = {
           service_ids: string[] | null
           service_name: string | null
           slug: string | null
+          source_insight: string | null
           start_date: string | null
           start_time: string | null
           status: string | null
