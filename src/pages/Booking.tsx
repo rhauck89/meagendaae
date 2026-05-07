@@ -1465,20 +1465,23 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
       }
     }
 
-    const incentiveConfig = currentPromo?.metadata?.incentive_config;
-    const isDoubleCashback = incentiveConfig?.type === 'double_cashback';
-    const multiplier = isDoubleCashback ? (Number(incentiveConfig.multiplier) || 2) : 1;
+    // Check for double cashback incentive in either activePromo or activeCashbackPromo
+    const promoWithIncentive = [currentPromo, activeCashbackPromo].find(p => getPromotionIncentiveConfig(p).type === 'double_cashback');
+    const incentiveConfig = getPromotionIncentiveConfig(promoWithIncentive);
+    const multiplier = incentiveConfig.type === 'double_cashback' ? incentiveConfig.multiplier : 1;
     
     const finalAmount = amount * multiplier;
 
     if (step === 'confirm' || step === 'success') {
-      console.log('[DOUBLE_BENEFIT_PROMO_DEBUG]', {
-        promotion_id: currentPromo?.id,
+      console.log('[DOUBLE_BENEFIT_BOOKING_DEBUG]', {
+        promotion_id: promoWithIncentive?.id || currentPromo?.id,
         incentive_type: incentiveConfig?.type,
         multiplier,
         base_cashback: amount,
         final_cashback: finalAmount,
-        tela: step
+        step,
+        selectedTime,
+        selectedDate: selectedDate ? format(selectedDate, 'yyyy-MM-dd') : null
       });
     }
 
