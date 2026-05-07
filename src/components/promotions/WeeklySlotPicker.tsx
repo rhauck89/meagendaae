@@ -62,8 +62,16 @@ export function WeeklySlotPicker({
     if (!selectedProfId) return [];
     
     const filtered = slots.filter(s => s.professionalId === selectedProfId);
-    const map = new Map<string, { date: string; items: { time: string; professionalId: string }[] }>();
     
+    console.log('[PROMOTION_WEEK_GAPS_DEBUG]', {
+      action: 'group_slots',
+      professionalId: selectedProfId,
+      totalSlotsFound: filtered.reduce((acc, curr) => acc + curr.slots.length, 0),
+      daysWithSlots: filtered.length
+    });
+
+    const map = new Map<string, { date: string; items: { time: string; professionalId: string }[] }>();
+
     filtered.forEach(group => {
       if (!map.has(group.date)) {
         map.set(group.date, { date: group.date, items: [] });
