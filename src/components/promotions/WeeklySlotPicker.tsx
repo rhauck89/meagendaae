@@ -233,6 +233,15 @@ export function WeeklySlotPicker({
                 const visibleItems = isExpanded ? day.items : day.items.slice(0, 8);
                 const hasMore = day.items.length > 8;
 
+                if (open) {
+                  console.log('[PROMOTION_WEEK_GAPS_DEBUG]', {
+                    day: day.date,
+                    totalSlots: day.items.length,
+                    visibleSlots: visibleItems.length,
+                    isExpanded
+                  });
+                }
+
                 return (
                   <div key={day.date} className="space-y-4">
                     <div className="flex items-center justify-between sticky top-0 bg-background/95 backdrop-blur-sm py-2 z-10 border-b border-dashed">
