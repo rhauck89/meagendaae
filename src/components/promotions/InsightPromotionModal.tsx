@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { 
   Dialog, 
   DialogContent, 
@@ -13,7 +13,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Tag, Wallet, Star, Check, ChevronRight, ChevronLeft, Loader2, Scissors, Calendar, Clock, MessageCircle } from 'lucide-react';
+import { Tag, Wallet, Star, Check, ChevronRight, ChevronLeft, Loader2, Scissors, Calendar, Clock, MessageCircle, User } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
@@ -47,6 +47,13 @@ export function InsightPromotionModal({
   const [promotionPrice, setPromotionPrice] = useState('');
   const [messageTemplate, setMessageTemplate] = useState('');
 
+  // Get selected professional info
+  const selectedProfId = selectedSlots[0]?.professionalId;
+  const professionalName = useMemo(() => {
+    const prof = professionals.find(p => p.profile_id === selectedProfId);
+    return prof?.profiles?.full_name || prof?.name || 'nossa equipe';
+  }, [selectedProfId, professionals]);
+
   // Auto-generate message template when switching to message step
   const generateMessage = () => {
     const sortedSlots = [...selectedSlots].sort((a, b) => {
@@ -55,8 +62,8 @@ export function InsightPromotionModal({
     });
 
     const dayNames: Record<string, string> = {
-      'Monday': 'segunda', 'Tuesday': 'terça', 'Wednesday': 'quarta', 
-      'Thursday': 'quinta', 'Friday': 'sexta', 'Saturday': 'sábado', 'Sunday': 'domingo'
+      'Monday': 'Segunda', 'Tuesday': 'Terça', 'Wednesday': 'Quarta', 
+      'Thursday': 'Quinta', 'Friday': 'Sexta', 'Saturday': 'Sábado', 'Sunday': 'Domingo'
     };
 
     const slotsByDay = new Map<string, string[]>();
@@ -67,10 +74,17 @@ export function InsightPromotionModal({
     });
 
     const slotsText = Array.from(slotsByDay.entries())
-      .map(([day, times]) => `${day} ${times.join(', ')}`)
-      .join('; ');
+      .map(([day, times]) => `- ${day}: ${times.join(', ')}`)
+      .join('\n');
 
-    const template = `Olá {{cliente_primeiro_nome}}! 👋\n\nTemos uma condição especial em horários selecionados desta semana na {{empresa_nome}}. 🎉\n\nHorários disponíveis: ${slotsText}.\n\nGaranta seu horário pelo link: {{link_promocao}}`;
+    const template = `Olá {{cliente_primeiro_nome}}! 👋\n\nTemos uma condição especial em horários selecionados com ${professionalName} nesta semana na {{empresa_nome}}. 🎉\n\nHorários disponíveis:\n${slotsText}\n\nGaranta seu horário pelo link: {{link_promocao}}`;
+    
+    console.log('[PROMOTION_WEEK_GAPS_DEBUG]', {
+      action: 'generate_whatsapp_message',
+      professionalName,
+      message: template
+    });
+    
     setMessageTemplate(template);
   };
 
@@ -106,18 +120,18 @@ export function InsightPromotionModal({
         discount_value: discountType !== 'fixed_price' ? parseFloat(discountValue) : null,
         promotion_price: discountType === 'fixed_price' ? parseFloat(promotionPrice) : null,
         times: selectedSlots.map(s => s.time),
-        // We use the first slot date as a reference, but handleOpportunitySave will handle individual creations
         date: selectedSlots[0].date,
         selectedSlots,
         message_template: messageTemplate,
         promotion_type: promoType,
-        service_ids: services.map(s => s.id), // Default to all services for this assistant
+        service_ids: services.map(s => s.id), 
         professional_ids: Array.from(new Set(selectedSlots.map(s => s.professionalId))),
         promotion_mode: 'manual'
       };
 
       console.log('[PROMOTION_WEEK_GAPS_DEBUG]', {
         action: 'insight_modal_save',
+        professionalName,
         payload
       });
 
@@ -145,9 +159,11 @@ export function InsightPromotionModal({
             {step === 'type' ? 'Como deseja incentivar?' : 
              step === 'config' ? 'Configurar Condição' : 'Divulgação'}
           </DialogTitle>
-          <p className="text-xs text-muted-foreground">
-            {selectedSlots.length} horários selecionados em {Object.keys(groupedSlots).length} dias.
-          </p>
+          <div className="flex flex-col gap-1 mt-1">
+            <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-tight">
+              {selectedSlots.length} horários selecionados • Agenda de {professionalName}
+            </p>
+          </div>
         </DialogHeader>
 
         <DialogBody className="flex-1 overflow-y-auto p-6 pt-2">
@@ -219,8 +235,13 @@ export function InsightPromotionModal({
                   <div className="bg-primary/10 p-2 rounded-lg mt-0.5">
                     <Clock className="h-4 w-4 text-primary" />
                   </div>
-                  <div className="space-y-2">
-                    <p className="text-xs font-bold text-primary uppercase tracking-wider">Resumo da Agenda</p>
+                  <div className="space-y-2 flex-1">
+                    <div className="flex items-center justify-between">
+                      <p className="text-xs font-bold text-primary uppercase tracking-wider">Resumo da Agenda</p>
+                      <Badge variant="outline" className="h-5 text-[9px] border-primary/20 text-primary bg-primary/5">
+                        {professionalName}
+                      </Badge>
+                    </div>
                     <div className="space-y-1">
                       {Object.entries(groupedSlots).map(([date, times]) => (
                         <p key={date} className="text-[11px] text-muted-foreground">
@@ -279,7 +300,7 @@ export function InsightPromotionModal({
               <div className="p-3 bg-emerald-50 border border-emerald-100 rounded-lg flex gap-3">
                 <MessageCircle className="h-5 w-5 text-emerald-600 shrink-0" />
                 <p className="text-xs text-emerald-800 leading-relaxed">
-                  Geramos uma mensagem personalizada incluindo os horários reais que você selecionou. Você poderá editá-la antes de enviar individualmente aos clientes.
+                  Geramos uma mensagem personalizada para {professionalName} incluindo os horários selecionados.
                 </p>
               </div>
 
