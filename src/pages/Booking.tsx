@@ -1929,13 +1929,80 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
       const clientName = clientForm.full_name || localIdentity?.fullName || user?.user_metadata?.full_name || user?.user_metadata?.name || 'Cliente';
       const clientEmail = clientForm.email || localIdentity?.email || user?.email || null;
 
+      const currentIncentive = getPromotionIncentiveConfig(currentPromo || activeCashbackPromo);
+      
       console.warn('[DOUBLE_BENEFIT_BOOKING_DEBUG_VISIBLE] handleBook start', { 
         clientForm,
         selectedSlot: { date: selectedDate, time: selectedTime },
         currentPromo: currentPromo?.id,
         activeCashbackPromo: activeCashbackPromo?.id,
-        incentiveConfig: getPromotionIncentiveConfig(currentPromo || activeCashbackPromo)
+        incentiveConfig: currentIncentive
       });
+
+      // Calculate base values for persistence
+      // We replicate the logic to ensure we have the "base" (multiplier=1) vs "final"
+      let baseCashback = 0;
+      if (isCashbackPromo && promoData) {
+        const promoServiceIds = promoData.service_ids || (promoData.service_id ? [promoData.service_id] : []);
+        const promoServicesTotal = services
+          .filter(s => selectedServices.includes(s.id) && (promoServiceIds.length === 0 || promoServiceIds.includes(s.id)))
+          .reduce((sum, s) => sum + Number(s.price), 0);
+        if (promoData.discount_type === 'percentage' && promoData.discount_value) {
+          baseCashback = promoServicesTotal * Number(promoData.discount_value) / 100;
+        } else if (promoData.discount_type === 'fixed_amount' && promoData.discount_value) {
+          baseCashback = Number(promoData.discount_value);
+        }
+      } else if (!isPromoMode && autoCashbackPromos.length > 0 && selectedProfessional && selectedServices.length > 0) {
+        for (const promo of autoCashbackPromos) {
+          const isProfMatch = promo.professional_filter === 'all' || promo.professional_ids?.includes(selectedProfessional);
+          if (!isProfMatch) continue;
+          const promoServiceIds = promo.service_ids || (promo.service_id ? [promo.service_id] : []);
+          const eligible = services.filter(s => selectedServices.includes(s.id) && (promoServiceIds.length === 0 || promoServiceIds.includes(s.id)));
+          if (eligible.length === 0) continue;
+          const eligibleTotal = eligible.reduce((sum, s) => sum + Number(s.price), 0);
+          if (promo.discount_type === 'percentage' && promo.discount_value) {
+            baseCashback += eligibleTotal * Number(promo.discount_value) / 100;
+          } else if (promo.discount_type === 'fixed_amount' && promo.discount_value) {
+            baseCashback += Number(promo.discount_value);
+          }
+        }
+      }
+
+      let basePoints = 0;
+      if (loyaltyConfig?.enabled && selectedProfessional && selectedServices.length > 0) {
+        const selectedServicesData = services.filter(s => selectedServices.includes(s.id));
+        const eligibleServices = selectedServicesData.filter(s => {
+          if (loyaltyConfig.participating_services === 'all') return true;
+          if (loyaltyConfig.participating_services === 'specific' && Array.isArray(loyaltyConfig.specific_service_ids)) {
+            return loyaltyConfig.specific_service_ids.includes(s.id);
+          }
+          return false;
+        });
+        if (eligibleServices.length > 0) {
+          if (loyaltyConfig.scoring_type === 'per_service') {
+            basePoints = eligibleServices.length * (Number(loyaltyConfig.points_per_service) || 0);
+          } else if (loyaltyConfig.scoring_type === 'per_value') {
+            const eligibleSubtotal = eligibleServices.reduce((sum, s) => sum + Number(s.price), 0);
+            basePoints = Math.floor(eligibleSubtotal * (Number(loyaltyConfig.points_per_currency) || 0));
+          }
+        }
+      }
+
+      const multiplier = currentIncentive.multiplier || 1;
+      const persistenceData = {
+        cashbackBase: baseCashback,
+        cashbackFinal: baseCashback * (currentIncentive.type === 'double_cashback' ? multiplier : 1),
+        pointsBase: basePoints,
+        pointsFinal: basePoints * (currentIncentive.type === 'double_points' ? multiplier : 1),
+        promotionTitle: currentPromo?.title || activeCashbackPromo?.title || null,
+        promotionId: currentPromo?.id || activeCashbackPromo?.id || null,
+        incentiveType: currentIncentive.type,
+        multiplier: multiplier
+      };
+      
+      setAppliedBenefitDetails(persistenceData);
+
+      console.warn('[DOUBLE_BENEFIT_BOOKING_DEBUG_VISIBLE] Benefits persisted before RPC', persistenceData);
 
       console.log('[BOOKING_FLOW] Starting book process:', { 
         normalizedPhone, 
