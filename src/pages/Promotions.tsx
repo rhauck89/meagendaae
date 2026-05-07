@@ -958,12 +958,23 @@ export default function Promotions() {
         payload_base: payload
       });
 
-      const baseSlug = payload.slug;
+      const baseSlug = payload.slug || generateSlug(payload.title);
       
       const creationPromises = selectedSlots.map(async (slot, index) => {
-        const slotSlug = selectedSlots.length > 1 
-          ? `${baseSlug}-${slot.date}-${slot.time.replace(':', '')}-${index}` 
-          : baseSlug;
+        const cleanTime = slot.time.replace(/[^0-9]/g, '');
+        const cleanDate = slot.date.replace(/[^0-9]/g, '');
+        const shortProfId = slot.professionalId ? slot.professionalId.substring(0, 4) : 'any';
+        const randomSuffix = Math.random().toString(36).substring(2, 6);
+
+        const slotSlug = `${baseSlug}-${cleanDate}-${cleanTime}-${shortProfId}-${String(index).padStart(2, '0')}-${randomSuffix}`;
+        
+        console.log('[PROMOTION_INSIGHT_SAVE_DEBUG] Generated slot-specific slug', {
+          baseSlug,
+          finalSlug: slotSlug,
+          date: slot.date,
+          time: slot.time,
+          index
+        });
         
         const [h, m] = slot.time.split(':').map(Number);
         const duration = primarySvc?.duration_minutes || 30;
@@ -1047,7 +1058,21 @@ export default function Promotions() {
       const date = typeof slot === 'object' ? slot.date : data.date;
       const profId = typeof slot === 'object' ? slot.professionalId : (data.professional_ids?.[0] || null);
 
-      const slug = slotsToProcess.length > 1 ? `${baseSlug}-${date}-${time.replace(':', '')}` : baseSlug;
+      // Generate a unique slug for each slot to avoid unique constraint violations
+      const cleanTime = time.replace(/[^0-9]/g, '');
+      const cleanDate = date.replace(/[^0-9]/g, '');
+      const shortProfId = profId ? profId.substring(0, 4) : 'any';
+      const randomSuffix = Math.random().toString(36).substring(2, 6);
+      
+      const slug = `${baseSlug}-${cleanDate}-${cleanTime}-${shortProfId}-${String(index).padStart(2, '0')}-${randomSuffix}`;
+      
+      console.log('[PROMOTION_INSIGHT_SAVE_DEBUG] Generated slug', {
+        baseSlug,
+        finalSlug: slug,
+        date,
+        time,
+        index
+      });
       
       // Calculate prices for the primary service
       let payloadOrigPrice: number | null = null;
@@ -1103,6 +1128,7 @@ export default function Promotions() {
         status: 'active',
         promotion_type: data.promotion_type || 'traditional',
         promotion_mode: 'manual',
+        source_insight: 'week_gap',
         booking_opens_at: new Date().toISOString(),
         booking_closes_at: null,
         metadata: data.metadata || {}
