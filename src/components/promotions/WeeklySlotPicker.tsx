@@ -10,9 +10,9 @@ import {
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { format, parseISO, isToday, isTomorrow } from 'date-fns';
+import { format, parseISO, isToday, isTomorrow, startOfDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Calendar, Clock, ChevronRight, Check, Trash2, CalendarRange, User, ChevronDown, ChevronUp } from 'lucide-react';
+import { CalendarRange, User, Trash2, Check, ChevronDown, ChevronUp, ChevronRight, Clock } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 
@@ -43,19 +43,8 @@ export function WeeklySlotPicker({
 }: WeeklySlotPickerProps) {
   const [selectedItems, setSelectedItems] = useState<string[]>([]);
   const [selectedProfId, setSelectedProfId] = useState<string>(currentProfessionalId || '');
+  const [activeTab, setActiveTab] = useState<string>('');
   const [expandedDays, setExpandedDays] = useState<string[]>([]);
-
-  // Automatically set professional if not admin
-  useEffect(() => {
-    if (!isAdmin && currentProfessionalId) {
-      setSelectedProfId(currentProfessionalId);
-    }
-  }, [isAdmin, currentProfessionalId, open]);
-
-  const selectedProfName = useMemo(() => {
-    const prof = professionals.find(p => p.profile_id === selectedProfId);
-    return prof?.profiles?.full_name || prof?.name || 'Profissional';
-  }, [selectedProfId, professionals]);
 
   // Group slots by date for the selected professional
   const groupedSlots = useMemo(() => {
@@ -63,13 +52,6 @@ export function WeeklySlotPicker({
     
     const filtered = slots.filter(s => s.professionalId === selectedProfId);
     
-    console.log('[PROMOTION_WEEK_GAPS_DEBUG]', {
-      action: 'group_slots',
-      professionalId: selectedProfId,
-      totalSlotsFound: filtered.reduce((acc, curr) => acc + curr.slots.length, 0),
-      daysWithSlots: filtered.length
-    });
-
     const map = new Map<string, { date: string; items: { time: string; professionalId: string }[] }>();
 
     filtered.forEach(group => {
@@ -83,6 +65,27 @@ export function WeeklySlotPicker({
 
     return Array.from(map.values()).sort((a, b) => a.date.localeCompare(b.date));
   }, [slots, selectedProfId]);
+
+  // Set default active tab when opening or changing professional
+  useEffect(() => {
+    if (open && groupedSlots.length > 0) {
+      if (!activeTab || !groupedSlots.find(s => s.date === activeTab)) {
+        setActiveTab(groupedSlots[0].date);
+      }
+    }
+  }, [open, groupedSlots, activeTab]);
+
+  // Automatically set professional if not admin
+  useEffect(() => {
+    if (!isAdmin && currentProfessionalId) {
+      setSelectedProfId(currentProfessionalId);
+    }
+  }, [isAdmin, currentProfessionalId, open]);
+
+  const selectedProfName = useMemo(() => {
+    const prof = professionals.find(p => p.profile_id === selectedProfId);
+    return prof?.profiles?.full_name || prof?.name || 'Profissional';
+  }, [selectedProfId, professionals]);
 
   const toggleSlot = (date: string, time: string, profId: string) => {
     const id = `${date}T${time}_${profId}`;
@@ -122,14 +125,6 @@ export function WeeklySlotPicker({
       return { date, time, professionalId: profId };
     });
     
-    console.log('[PROMOTION_WEEK_GAPS_DEBUG]', {
-      action: 'confirm_slots',
-      professionalId: selectedProfId,
-      professionalName: selectedProfName,
-      selectedCount: finalSlots.length,
-      slots: finalSlots
-    });
-    
     onConfirm(finalSlots);
     onOpenChange(false);
     setTimeout(() => {
@@ -144,11 +139,22 @@ export function WeeklySlotPicker({
     );
   };
 
-  const formatDateLabel = (dateStr: string) => {
+  const getDayAbbreviation = (dateStr: string) => {
     const d = parseISO(dateStr);
     if (isToday(d)) return 'Hoje';
     if (isTomorrow(d)) return 'Amanhã';
-    return format(d, "EEEE, d 'de' MMMM", { locale: ptBR });
+    return format(d, 'EEE', { locale: ptBR }).replace('.', '');
+  };
+
+  const getDayNumber = (dateStr: string) => {
+    return format(parseISO(dateStr), 'dd');
+  };
+
+  const formatDateFull = (dateStr: string) => {
+    const d = parseISO(dateStr);
+    if (isToday(d)) return 'Hoje';
+    if (isTomorrow(d)) return 'Amanhã';
+    return format(d, "eeee, dd 'de' MMMM", { locale: ptBR });
   };
 
   const selectedCountByDay = useMemo(() => {
@@ -162,10 +168,14 @@ export function WeeklySlotPicker({
 
   const uniqueDaysSelected = Object.keys(selectedCountByDay).length;
 
+  const currentDayData = useMemo(() => {
+    return groupedSlots.find(s => s.date === activeTab);
+  }, [groupedSlots, activeTab]);
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px] p-0 overflow-hidden flex flex-col max-h-[90vh]">
-        <DialogHeader className="p-6 pb-2">
+      <DialogContent className="sm:max-w-[550px] p-0 overflow-hidden flex flex-col max-h-[95vh] h-[90vh]">
+        <DialogHeader className="p-6 pb-2 border-b">
           <DialogTitle className="flex items-center gap-2">
             <CalendarRange className="h-5 w-5 text-primary" />
             Selecionar Horários Ociosos
@@ -177,7 +187,8 @@ export function WeeklySlotPicker({
         </DialogHeader>
 
         <DialogBody className="flex-1 overflow-hidden p-0 flex flex-col">
-          <div className="px-6 py-4 space-y-4 border-b bg-muted/20">
+          {/* Controls & Professional Selection */}
+          <div className="px-6 py-4 space-y-4 bg-muted/20">
             {isAdmin && (
               <div className="space-y-1.5">
                 <label className="text-[10px] uppercase font-bold text-muted-foreground ml-1">
@@ -186,6 +197,7 @@ export function WeeklySlotPicker({
                 <Select value={selectedProfId} onValueChange={(val) => {
                   setSelectedProfId(val);
                   setSelectedItems([]);
+                  setActiveTab('');
                 }}>
                   <SelectTrigger className="h-10">
                     <SelectValue placeholder="Escolha um profissional" />
@@ -201,139 +213,168 @@ export function WeeklySlotPicker({
               </div>
             )}
 
-            {!selectedProfId ? (
-              <div className="py-4 text-center">
-                <p className="text-sm text-muted-foreground">
-                  Selecione um profissional para ver as lacunas da semana.
-                </p>
+            <div className="flex items-center justify-between">
+              <div className="flex gap-2">
+                <Button variant="outline" size="sm" onClick={selectAllSlots} className="text-[10px] h-7 px-3">
+                  Selecionar Todos
+                </Button>
+                <Button variant="ghost" size="sm" onClick={clearSelection} className="text-[10px] h-7 text-destructive hover:text-destructive hover:bg-destructive/5">
+                  <Trash2 className="h-3 w-3 mr-1" /> Limpar
+                </Button>
               </div>
-            ) : (
-              <div className="flex items-center justify-between">
-                <div className="flex gap-2">
-                  <Button variant="outline" size="sm" onClick={selectAllSlots} className="text-[10px] h-7">
-                    Selecionar Todos
-                  </Button>
-                  <Button variant="ghost" size="sm" onClick={clearSelection} className="text-[10px] h-7 text-destructive hover:text-destructive hover:bg-destructive/5">
-                    <Trash2 className="h-3 w-3 mr-1" /> Limpar
-                  </Button>
-                </div>
-                {selectedItems.length > 0 && (
-                  <Badge variant="secondary" className="text-[10px] bg-primary/10 text-primary border-primary/20">
-                    {selectedItems.length} horários selecionados
-                  </Badge>
-                )}
-              </div>
-            )}
+            </div>
           </div>
 
-          <ScrollArea className="flex-1">
-            <div className="px-6 pb-6 pt-2 space-y-8">
-              {selectedProfId && groupedSlots.map((day) => {
-                const isExpanded = expandedDays.includes(day.date);
-                const visibleItems = isExpanded ? day.items : day.items.slice(0, 8);
-                const hasMore = day.items.length > 8;
-
-                if (open) {
-                  console.log('[PROMOTION_WEEK_GAPS_DEBUG]', {
-                    day: day.date,
-                    totalSlots: day.items.length,
-                    visibleSlots: visibleItems.length,
-                    isExpanded
-                  });
-                }
-
-                return (
-                  <div key={day.date} className="space-y-4">
-                    <div className="flex items-center justify-between sticky top-0 bg-background/95 backdrop-blur-sm py-2 z-10 border-b border-dashed">
-                      <div className="flex flex-col">
-                        <h3 className="text-sm font-black capitalize flex items-center gap-2">
-                          {formatDateLabel(day.date)}
-                          {selectedCountByDay[day.date] > 0 && (
-                            <Badge className="h-4 px-1.5 text-[9px] bg-primary text-primary-foreground">
-                              {selectedCountByDay[day.date]}
-                            </Badge>
-                          )}
-                        </h3>
-                        <span className="text-[10px] text-muted-foreground font-medium">
-                          {day.items.length} horários livres
-                        </span>
-                      </div>
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        className="h-8 text-[10px] uppercase font-black text-primary hover:bg-primary/5"
-                        onClick={() => selectAllDay(day.date, day.items)}
+          {/* Horizontal Tabs */}
+          {selectedProfId && groupedSlots.length > 0 && (
+            <div className="border-b bg-background">
+              <div className="w-full overflow-x-auto flex p-2 gap-2 px-6 no-scrollbar">
+                  {groupedSlots.map((day) => {
+                    const isActive = activeTab === day.date;
+                    const count = selectedCountByDay[day.date] || 0;
+                    return (
+                      <button
+                        key={day.date}
+                        onClick={() => setActiveTab(day.date)}
+                        className={cn(
+                          "flex flex-col items-center justify-center min-w-[64px] py-2 px-3 rounded-xl border transition-all relative",
+                          isActive 
+                            ? "bg-primary text-primary-foreground border-primary shadow-md" 
+                            : "bg-muted/50 border-transparent hover:bg-muted text-muted-foreground"
+                        )}
                       >
-                        {day.items.every(item => selectedItems.includes(`${day.date}T${item.time}_${item.professionalId}`)) 
-                          ? 'Desmarcar Dia' 
-                          : 'Selecionar Dia'}
-                      </Button>
-                    </div>
-                    
-                    <div className="grid grid-cols-4 gap-2">
-                      {visibleItems.map((item, idx) => {
-                        const id = `${day.date}T${item.time}_${item.professionalId}`;
-                        const isSelected = selectedItems.includes(id);
-                        return (
-                          <button
-                            key={`${id}-${idx}`}
-                            onClick={() => toggleSlot(day.date, item.time, item.professionalId)}
+                        <span className="text-[10px] font-bold uppercase leading-none mb-1">
+                          {getDayAbbreviation(day.date)}
+                        </span>
+                        <span className="text-lg font-black leading-none">
+                          {getDayNumber(day.date)}
+                        </span>
+                        {count > 0 && (
+                          <Badge 
                             className={cn(
-                              "flex flex-col items-center justify-center p-2 rounded-xl border transition-all h-14 relative group",
-                              isSelected 
-                                ? "bg-primary/10 border-primary ring-1 ring-primary shadow-sm" 
-                                : "bg-card hover:bg-accent border-border hover:border-primary/50"
+                              "absolute -top-1 -right-1 h-5 min-w-[20px] px-1 flex items-center justify-center text-[10px] border-2",
+                              isActive ? "bg-white text-primary border-primary" : "bg-primary text-white border-white"
                             )}
                           >
-                            <span className={cn(
-                              "text-xs font-black tracking-tight",
-                              isSelected ? "text-primary" : "text-foreground"
-                            )}>
-                              {item.time.substring(0, 5)}
-                            </span>
-                            {isSelected && (
-                              <div className="absolute -top-1.5 -right-1.5 bg-primary text-primary-foreground rounded-full p-0.5 shadow-sm">
-                                <Check className="h-2.5 w-2.5 stroke-[4]" />
-                              </div>
-                            )}
-                          </button>
-                        );
-                      })}
-                    </div>
-
-                    {hasMore && (
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        className="w-full h-8 text-[10px] font-bold text-muted-foreground hover:text-primary mt-2"
-                        onClick={() => toggleExpandDay(day.date)}
-                      >
-                        {isExpanded ? (
-                          <><ChevronUp className="h-3 w-3 mr-1" /> Ver menos</>
-                        ) : (
-                          <><ChevronDown className="h-3 w-3 mr-1" /> Ver mais ({day.items.length - 8} horários)</>
+                            {count}
+                          </Badge>
                         )}
-                      </Button>
-                    )}
-                  </div>
-                );
-              })}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
 
-              {selectedProfId && groupedSlots.length === 0 && (
-                <div className="flex flex-col items-center justify-center py-16 text-center">
+          {/* Tab Content */}
+          <ScrollArea className="flex-1">
+            <div className="px-6 py-6">
+              {!selectedProfId ? (
+                <div className="flex flex-col items-center justify-center py-20 text-center">
+                  <User className="h-12 w-12 text-muted-foreground/20 mb-4" />
+                  <p className="text-sm text-muted-foreground">
+                    Selecione um profissional para ver as lacunas da semana.
+                  </p>
+                </div>
+              ) : !currentDayData ? (
+                <div className="flex flex-col items-center justify-center py-20 text-center">
                   <Clock className="h-12 w-12 text-muted-foreground/20 mb-4" />
-                  <p className="text-sm font-medium text-muted-foreground">Nenhum horário livre encontrado para este profissional.</p>
+                  <p className="text-sm font-medium text-muted-foreground">Nenhum horário livre encontrado.</p>
+                </div>
+              ) : (
+                <div className="space-y-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="text-base font-black capitalize text-foreground leading-none">
+                        {formatDateFull(currentDayData.date)}
+                      </h3>
+                      <p className="text-xs text-muted-foreground font-medium mt-1">
+                        {currentDayData.items.length} horários livres disponíveis
+                      </p>
+                    </div>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className={cn(
+                        "h-8 text-[10px] uppercase font-black transition-all",
+                        currentDayData.items.every(item => selectedItems.includes(`${currentDayData.date}T${item.time}_${item.professionalId}`))
+                          ? "bg-primary/10 text-primary border-primary/50"
+                          : "text-primary border-primary/20 hover:bg-primary/5"
+                      )}
+                      onClick={() => selectAllDay(currentDayData.date, currentDayData.items)}
+                    >
+                      {currentDayData.items.every(item => selectedItems.includes(`${currentDayData.date}T${item.time}_${item.professionalId}`)) 
+                        ? 'Desmarcar Dia' 
+                        : 'Selecionar Dia'}
+                    </Button>
+                  </div>
+
+                  <div className="grid grid-cols-4 gap-2">
+                    {(expandedDays.includes(currentDayData.date) ? currentDayData.items : currentDayData.items.slice(0, 8)).map((item, idx) => {
+                      const id = `${currentDayData.date}T${item.time}_${item.professionalId}`;
+                      const isSelected = selectedItems.includes(id);
+                      return (
+                        <button
+                          key={`${id}-${idx}`}
+                          onClick={() => toggleSlot(currentDayData.date, item.time, item.professionalId)}
+                          className={cn(
+                            "flex flex-col items-center justify-center p-2 rounded-xl border transition-all h-14 relative group",
+                            isSelected 
+                              ? "bg-primary/10 border-primary ring-1 ring-primary shadow-sm" 
+                              : "bg-card hover:bg-accent border-border hover:border-primary/50"
+                          )}
+                        >
+                          <span className={cn(
+                            "text-xs font-black tracking-tight",
+                            isSelected ? "text-primary" : "text-foreground"
+                          )}>
+                            {item.time.substring(0, 5)}
+                          </span>
+                          {isSelected && (
+                            <div className="absolute -top-1.5 -right-1.5 bg-primary text-primary-foreground rounded-full p-0.5 shadow-sm">
+                              <Check className="h-2.5 w-2.5 stroke-[4]" />
+                            </div>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {currentDayData.items.length > 8 && (
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="w-full h-9 text-[11px] font-bold text-muted-foreground hover:text-primary mt-2 border border-dashed hover:border-primary/50 rounded-xl"
+                      onClick={() => toggleExpandDay(currentDayData.date)}
+                    >
+                      {expandedDays.includes(currentDayData.date) ? (
+                        <><ChevronUp className="h-4 w-4 mr-1" /> Ver menos</>
+                      ) : (
+                        <><ChevronDown className="h-4 w-4 mr-1" /> Ver mais ({currentDayData.items.length - 8} horários)</>
+                      )}
+                    </Button>
+                  )}
                 </div>
               )}
             </div>
           </ScrollArea>
         </DialogBody>
 
-        <DialogFooter className="p-6 pt-3 border-t bg-muted/5">
+        <DialogFooter className="p-6 border-t bg-muted/5 flex flex-col gap-3">
+          <div className="flex items-center justify-between px-1">
+            <div className="flex flex-col">
+              <span className="text-sm font-black text-foreground">
+                {selectedItems.length} horários selecionados
+              </span>
+              <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">
+                em {uniqueDaysSelected} {uniqueDaysSelected === 1 ? 'dia' : 'dias'} diferentes
+              </span>
+            </div>
+          </div>
           <Button 
             onClick={handleNext} 
             disabled={selectedItems.length === 0}
-            className="w-full gap-2 font-bold h-11 shadow-lg"
+            className="w-full gap-2 font-black h-12 shadow-lg text-sm uppercase tracking-tight"
           >
             Preencher Horários Selecionados
             <ChevronRight className="h-4 w-4" />
