@@ -417,6 +417,9 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
 
   // Identify any applicable cashback promotion (separate from currentPromo which is for discounts)
   const activeCashbackPromo = useMemo(() => {
+    // If selectedSlotPromo is a cashback promo, use it
+    if (selectedSlotPromo && selectedSlotPromo.promotion_type === 'cashback') return selectedSlotPromo;
+
     if (publicPromotions.length === 0 || !selectedDate || !selectedTime || selectedServices.length === 0) return null;
     const dateStr = format(selectedDate, 'yyyy-MM-dd');
     const slotDateTime = fromZonedTime(`${dateStr} ${selectedTime}:00`, bookingTimezone);
@@ -434,7 +437,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
     });
 
     return cbPromos.length > 0 ? cbPromos[0] : null;
-  }, [publicPromotions, selectedDate, selectedTime, selectedServices, selectedProfessional, bookingTimezone]);
+  }, [selectedSlotPromo, publicPromotions, selectedDate, selectedTime, selectedServices, selectedProfessional, bookingTimezone]);
 
   const currentPromo = activePromo;
   const hasPromoApplied = !!currentPromo;
