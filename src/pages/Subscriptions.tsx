@@ -9,6 +9,8 @@ import { PlanDialog } from '@/components/subscriptions/PlanDialog';
 import { SubscribersTab } from '@/components/subscriptions/SubscribersTab';
 import { SubscriberDialog } from '@/components/subscriptions/SubscriberDialog';
 import { SubscriberDetailsDrawer } from '@/components/subscriptions/SubscriberDetailsDrawer';
+import { ChargesTab } from '@/components/subscriptions/ChargesTab';
+import { SubscriptionsDashboard } from '@/components/subscriptions/SubscriptionsDashboard';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -69,6 +71,7 @@ const Subscriptions = () => {
       setDetailSubscriber({ ...detailSubscriber, status });
       // Refresh list
       window.dispatchEvent(new CustomEvent('refresh-subscribers'));
+      window.dispatchEvent(new CustomEvent('refresh-subscription-dashboard'));
     } catch (error: any) {
       toast.error('Erro ao atualizar status');
     }
@@ -111,45 +114,7 @@ const Subscriptions = () => {
         </TabsList>
 
         <TabsContent value="dashboard" className="space-y-6 focus-visible:outline-none">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <Card className="border-none shadow-sm bg-primary/5">
-              <CardContent className="p-6">
-                <p className="text-sm font-medium text-muted-foreground uppercase tracking-wider mb-2">Assinantes Ativos</p>
-                <h3 className="text-3xl font-bold">0</h3>
-                <p className="text-xs text-muted-foreground mt-2">+0 este mês</p>
-              </CardContent>
-            </Card>
-            <Card className="border-none shadow-sm">
-              <CardContent className="p-6">
-                <p className="text-sm font-medium text-muted-foreground uppercase tracking-wider mb-2">Faturamento Mensal (MRR)</p>
-                <h3 className="text-3xl font-bold text-primary">R$ 0,00</h3>
-                <p className="text-xs text-muted-foreground mt-2">Receita recorrente estimada</p>
-              </CardContent>
-            </Card>
-            <Card className="border-none shadow-sm">
-              <CardContent className="p-6">
-                <p className="text-sm font-medium text-muted-foreground uppercase tracking-wider mb-2">Cobranças Pendentes</p>
-                <h3 className="text-3xl font-bold text-destructive">0</h3>
-                <p className="text-xs text-muted-foreground mt-2">Aguardando pagamento</p>
-              </CardContent>
-            </Card>
-            <Card className="border-none shadow-sm">
-              <CardContent className="p-6">
-                <p className="text-sm font-medium text-muted-foreground uppercase tracking-wider mb-2">Churn Rate</p>
-                <h3 className="text-3xl font-bold">0%</h3>
-                <p className="text-xs text-muted-foreground mt-2">Cancelamentos nos últimos 30 dias</p>
-              </CardContent>
-            </Card>
-          </div>
-          
-          <Card className="border-none shadow-sm bg-muted/10">
-            <CardHeader>
-              <CardTitle className="text-lg">Próximos Vencimentos</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground py-8 text-center">Nenhuma cobrança próxima do vencimento.</p>
-            </CardContent>
-          </Card>
+          {companyId && <SubscriptionsDashboard companyId={companyId} />}
         </TabsContent>
 
         <TabsContent value="plans" className="focus-visible:outline-none">
@@ -167,15 +132,7 @@ const Subscriptions = () => {
         </TabsContent>
 
         <TabsContent value="charges" className="focus-visible:outline-none">
-          <Card className="border-none shadow-sm overflow-hidden">
-            <CardContent className="p-0">
-              <div className="p-6 border-b bg-muted/10">
-                <h3 className="font-semibold">Histórico de Cobranças</h3>
-                <p className="text-sm text-muted-foreground">Acompanhe todos os pagamentos recorrentes.</p>
-              </div>
-              <p className="text-sm text-muted-foreground py-20 text-center">Nenhuma cobrança gerada.</p>
-            </CardContent>
-          </Card>
+          {companyId && <ChargesTab companyId={companyId} />}
         </TabsContent>
       </Tabs>
 
@@ -188,6 +145,7 @@ const Subscriptions = () => {
             plan={selectedPlan}
             onSuccess={() => {
               window.dispatchEvent(new CustomEvent('refresh-subscription-plans'));
+              window.dispatchEvent(new CustomEvent('refresh-subscription-dashboard'));
             }}
           />
           <SubscriberDialog
@@ -197,6 +155,7 @@ const Subscriptions = () => {
             subscription={selectedSubscription}
             onSuccess={() => {
               window.dispatchEvent(new CustomEvent('refresh-subscribers'));
+              window.dispatchEvent(new CustomEvent('refresh-subscription-dashboard'));
             }}
           />
           <SubscriberDetailsDrawer
