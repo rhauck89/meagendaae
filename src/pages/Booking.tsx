@@ -464,15 +464,15 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
       companyId: company?.id
     });
 
-    if (!selectedProfessional || selectedServices.length === 0 || !company?.id) {
-      console.log('[PUBLIC_SUBSCRIPTION_BOOKING_DEBUG] Missing context for subscription check', {
-        prof: !!selectedProfessional,
-        svcs: selectedServices.length,
-        company: !!company?.id
-      });
+    if (!company?.id) {
+      console.log('[PUBLIC_SUBSCRIPTION_BOOKING_DEBUG] Missing companyId for subscription check');
       setSubBenefit(null);
       return;
     }
+
+    // Permite validar mesmo sem serviços ou profissional para identificar se o cliente É assinante
+    // No entanto, para o benefício ser aplicado a serviços específicos, eles precisam estar selecionados.
+    const hasSelection = selectedServices.length > 0;
 
     if (!savedClientId && !targetWhatsapp) {
       console.log('[PUBLIC_SUBSCRIPTION_BOOKING_DEBUG] No client identifier available (id or whatsapp)');
