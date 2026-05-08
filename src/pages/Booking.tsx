@@ -376,6 +376,21 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
     return promotionMatchesServices(promo);
   };
 
+  const normalizePromoTime = (time?: string | null, fallback: 'start' | 'end' = 'start') => {
+    const value = time || (fallback === 'start' ? '00:00:00' : '23:59:59');
+    return value.length === 5 ? `${value}:00` : value.slice(0, 8);
+  };
+
+  const isPromotionSlotEligibleByValue = (promo: any, dateStr: string, timeStr: string) => {
+    const slotTime = normalizePromoTime(timeStr, 'start');
+    const startsOn = promo?.start_date || dateStr;
+    const endsOn = promo?.end_date || dateStr;
+    const startsAt = normalizePromoTime(promo?.start_time, 'start');
+    const endsAt = normalizePromoTime(promo?.end_time, 'end');
+
+    return dateStr >= startsOn && dateStr <= endsOn && slotTime >= startsAt && slotTime <= endsAt;
+  };
+
   // New persistence states for double benefits
   const [appliedBenefitDetails, setAppliedBenefitDetails] = useState<{
     cashbackBase: number;
