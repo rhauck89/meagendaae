@@ -3693,7 +3693,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                     </div>
                   )}
 
-                  {cashbackTotal > 0 && (
+                  {cashbackTotal > 0 && totalPrice > 0 && !isFullyCoveredBySubscription && (
                     <div 
                       className="rounded-2xl p-4 flex items-center justify-between gap-3 cursor-pointer select-none border-2 transition-all" 
                       onClick={() => setUseCashback(!useCashback)}
