@@ -2708,7 +2708,54 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
               </div>
             </div>
 
-            {/* Loyalty & Cashback Cards */}
+            {/* Subscription & Loyalty & Cashback Cards */}
+            <div className="grid grid-cols-1 gap-3 mb-4">
+              {subBenefit && (
+                <div 
+                  className={cn(
+                    "rounded-[2rem] p-5 flex flex-col sm:flex-row items-center justify-between gap-4 animate-in slide-in-from-top duration-700 relative overflow-hidden",
+                    subBenefit.applied ? "bg-amber-500/10 border-2 border-amber-500/40" : "bg-white/5 border border-white/10"
+                  )}
+                >
+                  {subBenefit.applied && <div className="absolute top-0 right-0 p-8 blur-3xl rounded-full -mr-10 -mt-10 opacity-20 pointer-events-none bg-amber-500" />}
+                  <div className="flex items-center gap-4 relative z-10 w-full sm:w-auto">
+                    <div className={cn(
+                      "w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 shadow-lg",
+                      subBenefit.applied ? "bg-amber-500 text-black" : "bg-white/10 text-white/40"
+                    )}>
+                      <ShieldCheck className="h-6 w-6" />
+                    </div>
+                    <div className="text-left">
+                      <p className="text-[10px] uppercase font-black tracking-widest opacity-60">Status da Assinatura</p>
+                      {subBenefit.applied ? (
+                        <p className="font-black text-base sm:text-lg">Assinante <span className="text-amber-500">• {subBenefit.plan_name}</span></p>
+                      ) : (
+                        <p className="text-sm font-bold opacity-70">
+                          {subBenefit.reason === 'wrong_professional' ? 'Plano vinculado a outro profissional' : 
+                           subBenefit.reason === 'payment_overdue' ? 'Benefício suspenso (Atraso)' :
+                           subBenefit.reason === 'limit_reached' ? 'Limite mensal atingido' :
+                           subBenefit.reason === 'services_not_included' ? 'Serviço não incluso no plano' :
+                           'Nenhum benefício aplicado'}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                  
+                  {subBenefit.usage_limit && (
+                    <div className="flex flex-col items-center sm:items-end relative z-10 w-full sm:w-auto border-t sm:border-t-0 sm:border-l border-white/10 pt-4 sm:pt-0 sm:pl-6">
+                      <p className="text-[10px] uppercase font-black tracking-widest opacity-60">Uso do Ciclo</p>
+                      <p className="font-black text-xl text-amber-500">{subBenefit.usage_used}/{subBenefit.usage_limit}</p>
+                      {subBenefit.applied && (
+                        <p className="text-[8px] font-black uppercase tracking-widest opacity-40 mt-1">
+                          {subBenefit.type === 'unlimited' ? 'Ilimitado' : `Saldo: ${subBenefit.usage_limit - subBenefit.usage_used}`}
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {cashbackCredits.length > 0 && cashbackTotal > 0 && (
                 <div className="rounded-2xl p-4 flex items-center gap-3 animate-in slide-in-from-left duration-500" style={{ background: 'linear-gradient(135deg, #10b98110, #10b98120)', border: '1px solid #10b98130' }}>
