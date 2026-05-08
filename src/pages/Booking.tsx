@@ -439,26 +439,84 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
   }, [selectedTime, selectedDate, publicPromotions, selectedServices, selectedProfessional, bookingTimezone, company?.id]);
 
   const validateSubscription = async () => {
-    if (!savedClientId || !selectedProfessional || selectedServices.length === 0 || !company?.id) {
+    // PUBLIC_SUBSCRIPTION_BOOKING_DEBUG: Identification values
+    const whatsappInput = clientForm.whatsapp || "";
+    const normalizedWhatsapp = normalizePhone(whatsappInput);
+    const localIdentityStr = localStorage.getItem(`whatsapp_session_${company?.id}`);
+    let localWhatsapp = "";
+    if (localIdentityStr) {
+      try {
+        const parsed = JSON.parse(localIdentityStr);
+        localWhatsapp = normalizePhone(parsed.whatsapp || "");
+      } catch (e) { /* ignore */ }
+    }
+    
+    const targetWhatsapp = normalizedWhatsapp || localWhatsapp;
+    
+    console.log('[PUBLIC_SUBSCRIPTION_BOOKING_DEBUG] validateSubscription triggered', {
+      savedClientId,
+      whatsappInput,
+      normalizedWhatsapp,
+      localWhatsapp,
+      targetWhatsapp,
+      selectedProfessional,
+      selectedServices,
+      companyId: company?.id
+    });
+
+    if (!selectedProfessional || selectedServices.length === 0 || !company?.id) {
+      console.log('[PUBLIC_SUBSCRIPTION_BOOKING_DEBUG] Missing context for subscription check', {
+        prof: !!selectedProfessional,
+        svcs: selectedServices.length,
+        company: !!company?.id
+      });
+      setSubBenefit(null);
+      return;
+    }
+
+    if (!savedClientId && !targetWhatsapp) {
+      console.log('[PUBLIC_SUBSCRIPTION_BOOKING_DEBUG] No client identifier available (id or whatsapp)');
       setSubBenefit(null);
       return;
     }
 
     setValidatingSub(true);
     try {
-      console.log('[BOOKING_SUB_VALIDATION] Validating subscription benefit for client:', savedClientId);
-      const { data, error } = await supabase.rpc('check_subscription_benefit', {
+      console.log('[PUBLIC_SUBSCRIPTION_BOOKING_DEBUG] Calling check_subscription_benefit', {
         p_company_id: company.id,
         p_client_id: savedClientId,
+        p_whatsapp: targetWhatsapp,
+        p_professional_id: selectedProfessional,
+        p_service_ids: selectedServices
+      });
+
+      const { data, error } = await supabase.rpc('check_subscription_benefit', {
+        p_company_id: company.id,
+        p_client_id: savedClientId || null,
+        p_whatsapp: targetWhatsapp || null,
         p_professional_id: selectedProfessional,
         p_service_ids: selectedServices,
         p_date: selectedDate ? format(selectedDate, 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd')
-      });
+      } as any);
+
       if (error) throw error;
-      console.log('[BOOKING_SUB_VALIDATION] Benefit data:', data);
+      
+      console.log('[PUBLIC_SUBSCRIPTION_BOOKING_DEBUG] RPC Return:', data);
+      
+      if (data) {
+        const result = data as any;
+        console.log('[PUBLIC_SUBSCRIPTION_BOOKING_DEBUG] Benefit result:', {
+          applied: result.applied,
+          plan: result.plan_name,
+          reason: result.reason,
+          discount: result.total_discount,
+          usage: `${result.usage_used}/${result.usage_limit}`
+        });
+      }
+
       setSubBenefit(data);
     } catch (err) {
-      console.error('[BOOKING_SUB_VALIDATION] Error validating sub:', err);
+      console.error('[PUBLIC_SUBSCRIPTION_BOOKING_DEBUG] Error validating sub:', err);
       setSubBenefit(null);
     } finally {
       setValidatingSub(false);
@@ -467,7 +525,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
 
   useEffect(() => {
     validateSubscription();
-  }, [savedClientId, selectedProfessional, selectedServices, selectedDate, company?.id]);
+  }, [savedClientId, selectedProfessional, selectedServices, selectedDate, company?.id, clientForm.whatsapp]);
 
   // Identify the best applicable promotion for the current selection
   const activePromo = useMemo(() => {
@@ -3467,7 +3525,17 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
               <ChevronLeft className="h-4 w-4" /> Voltar
             </button>
             <div className="space-y-2">
-              <h2 className="text-4xl font-black tracking-tighter leading-none">{clientForm.full_name ? clientForm.full_name.split(' ')[0] : 'Cliente'}, revise seu Ticket Premium 👇</h2>
+            <div className="flex flex-wrap items-center gap-3">
+              <h2 className="text-4xl font-black tracking-tighter leading-none">
+                {clientForm.full_name ? clientForm.full_name.split(' ')[0] : 'Cliente'}, revise seu Ticket Premium 👇
+              </h2>
+              {subBenefit?.applied && (
+                <Badge className="bg-amber-500 text-black border-none font-black px-3 py-1 rounded-full uppercase text-[10px] animate-in zoom-in duration-500 shadow-lg shadow-amber-500/20">
+                  <ShieldCheck className="w-3 h-3 mr-1" />
+                  Assinante • {subBenefit.plan_name}
+                </Badge>
+              )}
+            </div>
               <div className="flex items-center gap-2">
                 <p className="text-[10px] font-black opacity-60 uppercase tracking-[0.2em]" style={{ color: T.textSec }}>Confirme os detalhes da sua reserva</p>
                 <div className="h-px flex-1 bg-white/5" />
@@ -3546,8 +3614,8 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                       <div className="text-right">
                         {subBenefit?.applied && subBenefit.covered_service_ids?.includes(s.id) ? (
                           <>
-                            <p className="text-xs line-through opacity-40 font-bold">R$ {Number(s.price).toFixed(2)}</p>
-                            <p className="text-sm font-black text-amber-500">R$ 0,00</p>
+                            <p className="text-xs line-through opacity-40 font-bold">R$ {Number(s.price).toFixed(2).replace('.', ',')}</p>
+                            <p className="text-sm font-black text-amber-500">Valor Assinante: R$ 0,00</p>
                           </>
                         ) : (
                           <p className="text-sm font-black" style={{ color: T.accent }}>R$ {Number(s.price).toFixed(2)}</p>
@@ -3723,11 +3791,18 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                 </div>
 
                 {subscriptionDiscount > 0 && (
-                  <div className="flex justify-between items-center text-xs font-bold text-amber-500 uppercase tracking-widest">
-                    <span className="flex items-center gap-1">
-                      <ShieldCheck className="h-3 w-3" /> Benefício Assinatura ({subBenefit?.plan_name})
-                    </span>
-                    <p>- R$ {subscriptionDiscount.toFixed(2)}</p>
+                  <div className="flex flex-col gap-1 py-1">
+                    <div className="flex justify-between items-center text-xs font-bold text-amber-500 uppercase tracking-widest">
+                      <span className="flex items-center gap-1">
+                        <ShieldCheck className="h-3 w-3" /> Benefício Assinatura ({subBenefit?.plan_name})
+                      </span>
+                      <p>- R$ {subscriptionDiscount.toFixed(2).replace('.', ',')}</p>
+                    </div>
+                    {subBenefit?.usage_limit && (
+                      <p className="text-[9px] text-amber-500/60 font-black uppercase text-right tracking-widest">
+                        Uso: {subBenefit.usage_used + 1}/{subBenefit.usage_limit}
+                      </p>
+                    )}
                   </div>
                 )}
 
@@ -3994,9 +4069,10 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                     <div className="w-14 h-14 rounded-2xl bg-amber-500 flex items-center justify-center shadow-lg shadow-amber-500/20">
                       <ShieldCheck className="h-8 w-8 text-black" />
                     </div>
-                    <div className="flex-1">
+                    <div className="flex-1 text-left">
                       <p className="text-[10px] font-black uppercase tracking-widest opacity-60">Benefício da Assinatura</p>
-                      <p className="text-xl font-black">Serviço coberto pelo plano <span style={{ color: T.accent }}>{subBenefit.plan_name}</span></p>
+                      <p className="text-xl font-black">Serviço coberto pela assinatura</p>
+                      <p className="text-sm font-bold opacity-70">Plano: {subBenefit.plan_name}</p>
                       <div className="flex items-center gap-4 mt-2">
                         <div>
                           <p className="text-[10px] font-bold opacity-40 uppercase">Uso registrado</p>
@@ -4005,7 +4081,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                         <div className="h-8 w-px bg-white/10" />
                         <div>
                           <p className="text-[10px] font-bold opacity-40 uppercase">Valor economizado</p>
-                          <p className="font-black text-sm text-green-500">R$ {subscriptionDiscount.toFixed(2)}</p>
+                          <p className="font-black text-sm text-green-500">R$ {subscriptionDiscount.toFixed(2).replace('.', ',')}</p>
                         </div>
                       </div>
                     </div>
