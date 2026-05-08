@@ -30,6 +30,7 @@ interface WeeklySlotPickerProps {
   isAdmin: boolean;
   professionals: any[];
   currentProfessionalId?: string;
+  scope?: 'today' | 'week';
 }
 
 export function WeeklySlotPicker({ 
@@ -39,10 +40,11 @@ export function WeeklySlotPicker({
   onConfirm,
   isAdmin,
   professionals,
-  currentProfessionalId
+  currentProfessionalId,
+  scope = 'week'
 }: WeeklySlotPickerProps) {
   const [selectedItems, setSelectedItems] = useState<string[]>([]);
-  const [selectedProfId, setSelectedProfId] = useState<string>(currentProfessionalId || '');
+  const [selectedProfId, setSelectedProfId] = useState<string>(isAdmin ? '' : (currentProfessionalId || ''));
   const [activeTab, setActiveTab] = useState<string>('');
   const [expandedDays, setExpandedDays] = useState<string[]>([]);
 
@@ -81,6 +83,15 @@ export function WeeklySlotPicker({
       setSelectedProfId(currentProfessionalId);
     }
   }, [isAdmin, currentProfessionalId, open]);
+
+  useEffect(() => {
+    if (open && isAdmin && !currentProfessionalId) {
+      setSelectedProfId('');
+      setSelectedItems([]);
+      setActiveTab('');
+      setExpandedDays([]);
+    }
+  }, [open, isAdmin, currentProfessionalId]);
 
   const selectedProfName = useMemo(() => {
     const prof = professionals.find(p => p.profile_id === selectedProfId);
@@ -273,7 +284,7 @@ export function WeeklySlotPicker({
                 <div className="flex flex-col items-center justify-center py-20 text-center">
                   <User className="h-12 w-12 text-muted-foreground/20 mb-4" />
                   <p className="text-sm text-muted-foreground">
-                    Selecione um profissional para ver as lacunas da semana.
+                    Selecione um profissional para ver as lacunas {scope === 'today' ? 'de hoje' : 'da semana'}.
                   </p>
                 </div>
               ) : !currentDayData ? (
