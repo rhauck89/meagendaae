@@ -4089,7 +4089,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                 </div>
               </div>
 
-              {subBenefit?.benefit_applied && (
+              {bookingResult.subscriptionInfo?.benefit_applied && (
                 <div 
                   className="rounded-[2.5rem] p-8 space-y-4 animate-in slide-in-from-bottom-4 duration-700 relative overflow-hidden"
                   style={{ background: 'linear-gradient(135deg, rgba(245,158,11,0.1), rgba(0,0,0,0.2))', border: `2px solid ${T.accent}30` }}
@@ -4102,16 +4102,16 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                     <div className="flex-1 text-left">
                       <p className="text-[10px] font-black uppercase tracking-widest opacity-60">Benefício da Assinatura</p>
                       <p className="text-xl font-black">Serviço coberto pela assinatura</p>
-                      <p className="text-sm font-bold opacity-70">Plano: {subBenefit.plan_name}</p>
+                      <p className="text-sm font-bold opacity-70">Plano: {bookingResult.subscriptionInfo.plan_name}</p>
                       <div className="flex items-center gap-4 mt-2">
                         <div>
                           <p className="text-[10px] font-bold opacity-40 uppercase">Uso registrado</p>
-                          <p className="font-black text-sm">{subBenefit.usage_limit ? `${subBenefit.usage_used + 1}/${subBenefit.usage_limit}` : 'Ilimitado'}</p>
+                          <p className="font-black text-sm">{bookingResult.subscriptionInfo.usage_limit ? `${bookingResult.subscriptionInfo.usage_used + 1}/${bookingResult.subscriptionInfo.usage_limit}` : 'Ilimitado'}</p>
                         </div>
                         <div className="h-8 w-px bg-white/10" />
                         <div>
                           <p className="text-[10px] font-bold opacity-40 uppercase">Valor economizado</p>
-                          <p className="font-black text-sm text-green-500">R$ {subscriptionDiscount.toFixed(2).replace('.', ',')}</p>
+                          <p className="font-black text-sm text-green-500">R$ {(bookingResult.subscriptionInfo.discount || 0).toFixed(2).replace('.', ',')}</p>
                         </div>
                       </div>
                     </div>
