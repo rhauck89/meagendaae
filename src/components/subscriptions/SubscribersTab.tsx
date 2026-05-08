@@ -117,11 +117,53 @@ export function SubscribersTab({ companyId, onEditSubscriber, onViewDetails }: S
     }
   };
 
-  const getLatestCharge = (sub: any) => {
-    const charges = [...(sub.charges || [])].sort(
+  const getOpenCharge = (sub: any) => {
+    const charges = [...(sub.charges || [])]
+      .filter((charge: any) => charge.status !== 'paid')
+      .sort(
       (a: any, b: any) => new Date(a.due_date).getTime() - new Date(b.due_date).getTime()
     );
-    return charges.find((charge: any) => charge.status !== 'paid') || charges[0];
+    return charges[0];
+  };
+
+  const getLastPaidCharge = (sub: any) => {
+    const charges = [...(sub.charges || [])]
+      .filter((charge: any) => charge.status === 'paid')
+      .sort((a: any, b: any) => new Date(b.due_date).getTime() - new Date(a.due_date).getTime());
+    return charges[0];
+  };
+
+  const buildDateFromBillingDay = (baseDate: Date, billingDay: number) => {
+    const year = baseDate.getFullYear();
+    const month = baseDate.getMonth();
+    const lastDay = new Date(year, month + 1, 0).getDate();
+    return new Date(year, month, Math.min(Math.max(1, billingDay || 1), lastDay));
+  };
+
+  const addBillingCycle = (date: Date, cycle: string, billingDay: number) => {
+    const next = new Date(date);
+    if (cycle === 'yearly') {
+      next.setFullYear(next.getFullYear() + 1);
+    } else {
+      next.setMonth(next.getMonth() + 1);
+    }
+    return buildDateFromBillingDay(next, billingDay);
+  };
+
+  const getNextBillingDate = (sub: any) => {
+    const today = new Date();
+    const billingDay = Number(sub.billing_day || new Date(sub.start_date || today).getDate());
+    const lastPaid = getLastPaidCharge(sub);
+
+    let candidate = lastPaid?.due_date
+      ? addBillingCycle(new Date(lastPaid.due_date), sub.billing_cycle, billingDay)
+      : buildDateFromBillingDay(today, billingDay);
+
+    while (differenceInCalendarDays(candidate, today) < 0) {
+      candidate = addBillingCycle(candidate, sub.billing_cycle, billingDay);
+    }
+
+    return candidate;
   };
 
   const getPaymentState = (charge: any) => {
@@ -148,9 +190,14 @@ export function SubscribersTab({ companyId, onEditSubscriber, onViewDetails }: S
     );
   };
 
-  const getDueLabel = (charge: any) => {
-    if (!charge?.due_date) return '-';
-    const diff = differenceInCalendarDays(new Date(charge.due_date), new Date());
+  const getDueLabel = (sub: any, charge: any) => {
+    const dueDate = charge?.due_date ? new Date(charge.due_date) : getNextBillingDate(sub);
+    const state = getPaymentState(charge);
+    const diff = differenceInCalendarDays(dueDate, new Date());
+    if (state === 'current' && !charge) {
+      if (diff === 0) return 'Vence hoje';
+      return `Vence em ${diff} dias`;
+    }
     if (diff === 0) return 'Hoje';
     if (diff < 0) return `Atrasado ${Math.abs(diff)} dias`;
     return `${diff} dias`;
@@ -158,8 +205,8 @@ export function SubscribersTab({ companyId, onEditSubscriber, onViewDetails }: S
 
   const filteredSubscribers = subscribers.filter((sub) => {
     const query = search.trim().toLowerCase();
-    const latestCharge = getLatestCharge(sub);
-    const paymentState = getPaymentState(latestCharge);
+    const openCharge = getOpenCharge(sub);
+    const paymentState = getPaymentState(openCharge);
 
     const matchesSearch = !query ||
       sub.clients?.name?.toLowerCase().includes(query) ||
@@ -242,9 +289,11 @@ export function SubscribersTab({ companyId, onEditSubscriber, onViewDetails }: S
               </TableRow>
             ) : (
               filteredSubscribers.map((sub) => {
-                const latestCharge = getLatestCharge(sub);
+                const openCharge = getOpenCharge(sub);
                 const plan = sub.subscription_plans;
                 const planValue = Number(sub.billing_cycle === 'monthly' ? plan?.price_monthly : plan?.price_yearly || plan?.price_monthly || 0);
+                const dueDate = openCharge?.due_date ? new Date(openCharge.due_date) : getNextBillingDate(sub);
+                const paymentState = getPaymentState(openCharge);
 
                 return (
                   <TableRow key={sub.id} className="hover:bg-slate-50/80 transition-colors">
@@ -279,15 +328,15 @@ export function SubscribersTab({ companyId, onEditSubscriber, onViewDetails }: S
                     </TableCell>
                     <TableCell>
                       <div className="flex flex-col text-xs">
-                        <span>{latestCharge?.due_date ? format(new Date(latestCharge.due_date), 'dd/MM/yyyy') : '-'}</span>
-                        <span className={getPaymentState(latestCharge) === 'overdue' ? 'font-semibold text-red-600' : 'font-semibold text-green-600'}>
-                          {getDueLabel(latestCharge)}
+                        <span>{format(dueDate, 'dd/MM/yyyy')}</span>
+                        <span className={paymentState === 'overdue' ? 'font-semibold text-red-600' : 'font-semibold text-green-600'}>
+                          {getDueLabel(sub, openCharge)}
                         </span>
                       </div>
                     </TableCell>
                     <TableCell className="text-xs">R$ {planValue.toFixed(2)}</TableCell>
                     <TableCell>{getStatusBadge(sub.status)}</TableCell>
-                    <TableCell>{getPaymentBadge(latestCharge)}</TableCell>
+                    <TableCell>{getPaymentBadge(openCharge)}</TableCell>
                     <TableCell>
                       <div className="text-xs">
                         {plan?.type === 'unlimited' ? (
