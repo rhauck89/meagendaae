@@ -440,6 +440,12 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
         metadata: detailsById.get(promo.id)?.metadata ?? promo.metadata,
       }));
 
+      const hydratedPublicPromotions = publicPromotions.map((promo) => ({
+        ...promo,
+        ...(detailsById.get(promo.id) || {}),
+        metadata: detailsById.get(promo.id)?.metadata ?? promo.metadata,
+      }));
+
       // Always check the source table for incentive promos, even if a normal discount promo
       // is also valid for this slot. Double cashback/points must win over ordinary discounts.
       const { data: directPromos } = company?.id ? await supabase
@@ -451,12 +457,26 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
           .gte('end_date', dateStr)
         : { data: [] as any[] };
 
+      const incentiveCandidates = new Map<string, any>();
+      [...(directPromos || []), ...hydratedPublicPromotions].forEach((promo: any) => {
+        if (promo?.id && getPromotionIncentiveConfig(promo).type) {
+          incentiveCandidates.set(promo.id, promo);
+        }
+      });
+
+      const valueMatchedIncentive = Array.from(incentiveCandidates.values()).find((promo: any) =>
+        isPromotionOpenForBooking(promo) &&
+        isPromotionSlotEligibleByValue(promo, dateStr, selectedTime) &&
+        promotionMatchesProfessional(promo) &&
+        promotionMatchesServices(promo)
+      );
+
       const directIncentiveMatch = (directPromos || [])
           .filter((promo: any) => getPromotionIncentiveConfig(promo).type)
           .find((promo: any) => isPromotionEligibleForSelection(promo, slotDateTime));
 
       const publicIncentiveMatch = hydratedPublicEligible.find((promo) => getPromotionIncentiveConfig(promo).type);
-      const incentivePromo = directIncentiveMatch || publicIncentiveMatch || null;
+      const incentivePromo = valueMatchedIncentive || directIncentiveMatch || publicIncentiveMatch || null;
       const discountPromo = hydratedPublicEligible.find((promo) => !isIncentivePromotion(promo)) || null;
 
       console.warn('[DOUBLE_BENEFIT_BOOKING_DEBUG_VISIBLE] Slot promotion resolved', {
