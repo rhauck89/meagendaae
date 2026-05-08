@@ -3693,12 +3693,21 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                   <p>R$ {(Number(originalSubtotal) || 0).toFixed(2)}</p>
                 </div>
 
+                {subscriptionDiscount > 0 && (
+                  <div className="flex justify-between items-center text-xs font-bold text-amber-500 uppercase tracking-widest">
+                    <span className="flex items-center gap-1">
+                      <ShieldCheck className="h-3 w-3" /> Benefício Assinatura ({subBenefit?.plan_name})
+                    </span>
+                    <p>- R$ {subscriptionDiscount.toFixed(2)}</p>
+                  </div>
+                )}
+
                 {hasPromoApplied && !isCashbackPromo && !activeIncentivePromo && (
                   <div className="flex justify-between items-center text-xs font-bold text-amber-500 uppercase tracking-widest">
                     <span className="flex items-center gap-1">
                       <Tag className="h-3 w-3" /> Desconto ({currentPromo?.title})
                     </span>
-                    <p>- R$ {(Number(originalSubtotal) - Number(totalPrice)).toFixed(2)}</p>
+                    <p>- R$ {(Number(originalSubtotal) - Number(totalPrice) - subscriptionDiscount).toFixed(2)}</p>
                   </div>
                 )}
 
