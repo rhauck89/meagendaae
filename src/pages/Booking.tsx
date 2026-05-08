@@ -4062,9 +4062,10 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                     <div className="w-14 h-14 rounded-2xl bg-amber-500 flex items-center justify-center shadow-lg shadow-amber-500/20">
                       <ShieldCheck className="h-8 w-8 text-black" />
                     </div>
-                    <div className="flex-1">
+                    <div className="flex-1 text-left">
                       <p className="text-[10px] font-black uppercase tracking-widest opacity-60">Benefício da Assinatura</p>
-                      <p className="text-xl font-black">Serviço coberto pelo plano <span style={{ color: T.accent }}>{subBenefit.plan_name}</span></p>
+                      <p className="text-xl font-black">Serviço coberto pela assinatura</p>
+                      <p className="text-sm font-bold opacity-70">Plano: {subBenefit.plan_name}</p>
                       <div className="flex items-center gap-4 mt-2">
                         <div>
                           <p className="text-[10px] font-bold opacity-40 uppercase">Uso registrado</p>
@@ -4073,7 +4074,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                         <div className="h-8 w-px bg-white/10" />
                         <div>
                           <p className="text-[10px] font-bold opacity-40 uppercase">Valor economizado</p>
-                          <p className="font-black text-sm text-green-500">R$ {subscriptionDiscount.toFixed(2)}</p>
+                          <p className="font-black text-sm text-green-500">R$ {subscriptionDiscount.toFixed(2).replace('.', ',')}</p>
                         </div>
                       </div>
                     </div>
