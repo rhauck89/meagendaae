@@ -155,10 +155,13 @@ export function SubscribersTab({ companyId, onEditSubscriber, onViewDetails }: S
     const billingDay = Number(sub.billing_day || new Date(sub.start_date || today).getDate());
     const lastPaid = getLastPaidCharge(sub);
 
+    // If we have a last paid charge, the next one is 1 cycle after that due_date
     let candidate = lastPaid?.due_date
       ? addBillingCycle(new Date(lastPaid.due_date), sub.billing_cycle, billingDay)
-      : buildDateFromBillingDay(today, billingDay);
+      : buildDateFromBillingDay(new Date(sub.start_date || today), billingDay);
 
+    // If the candidate is in the past, it means we are already in a new cycle but no charge was created yet
+    // or we are just starting. We move forward until we find a date >= today.
     while (differenceInCalendarDays(candidate, today) < 0) {
       candidate = addBillingCycle(candidate, sub.billing_cycle, billingDay);
     }
@@ -167,8 +170,14 @@ export function SubscribersTab({ companyId, onEditSubscriber, onViewDetails }: S
   };
 
   const getPaymentState = (charge: any) => {
-    if (!charge || charge.status === 'paid') return 'current';
-    const diff = differenceInCalendarDays(new Date(charge.due_date), new Date());
+    if (!charge) return 'current'; // If no open charge, it's current
+    if (charge.status === 'paid') return 'current';
+    
+    const today = new Date();
+    const dueDate = new Date(charge.due_date);
+    const diff = differenceInCalendarDays(dueDate, today);
+    
+    // If it's explicitly overdue in DB or the date is in the past
     if (charge.status === 'overdue' || diff < 0) return 'overdue';
     return 'pending';
   };
@@ -194,10 +203,13 @@ export function SubscribersTab({ companyId, onEditSubscriber, onViewDetails }: S
     const dueDate = charge?.due_date ? new Date(charge.due_date) : getNextBillingDate(sub);
     const state = getPaymentState(charge);
     const diff = differenceInCalendarDays(dueDate, new Date());
-    if (state === 'current' && !charge) {
+    
+    if (state === 'current') {
       if (diff === 0) return 'Vence hoje';
-      return `Vence em ${diff} dias`;
+      if (diff < 0) return 'Aguardando próxima'; // Should not happen with getNextBillingDate logic
+      return `Em ${diff} dias`;
     }
+    
     if (diff === 0) return 'Hoje';
     if (diff < 0) return `Atrasado ${Math.abs(diff)} dias`;
     return `${diff} dias`;
