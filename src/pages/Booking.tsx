@@ -376,6 +376,21 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
     return promotionMatchesServices(promo);
   };
 
+  const normalizePromoTime = (time?: string | null, fallback: 'start' | 'end' = 'start') => {
+    const value = time || (fallback === 'start' ? '00:00:00' : '23:59:59');
+    return value.length === 5 ? `${value}:00` : value.slice(0, 8);
+  };
+
+  const isPromotionSlotEligibleByValue = (promo: any, dateStr: string, timeStr: string) => {
+    const slotTime = normalizePromoTime(timeStr, 'start');
+    const startsOn = promo?.start_date || dateStr;
+    const endsOn = promo?.end_date || dateStr;
+    const startsAt = normalizePromoTime(promo?.start_time, 'start');
+    const endsAt = normalizePromoTime(promo?.end_time, 'end');
+
+    return dateStr >= startsOn && dateStr <= endsOn && slotTime >= startsAt && slotTime <= endsAt;
+  };
+
   // New persistence states for double benefits
   const [appliedBenefitDetails, setAppliedBenefitDetails] = useState<{
     cashbackBase: number;
@@ -425,6 +440,12 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
         metadata: detailsById.get(promo.id)?.metadata ?? promo.metadata,
       }));
 
+      const hydratedPublicPromotions = publicPromotions.map((promo) => ({
+        ...promo,
+        ...(detailsById.get(promo.id) || {}),
+        metadata: detailsById.get(promo.id)?.metadata ?? promo.metadata,
+      }));
+
       // Always check the source table for incentive promos, even if a normal discount promo
       // is also valid for this slot. Double cashback/points must win over ordinary discounts.
       const { data: directPromos } = company?.id ? await supabase
@@ -436,12 +457,26 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
           .gte('end_date', dateStr)
         : { data: [] as any[] };
 
+      const incentiveCandidates = new Map<string, any>();
+      [...(directPromos || []), ...hydratedPublicPromotions].forEach((promo: any) => {
+        if (promo?.id && getPromotionIncentiveConfig(promo).type) {
+          incentiveCandidates.set(promo.id, promo);
+        }
+      });
+
+      const valueMatchedIncentive = Array.from(incentiveCandidates.values()).find((promo: any) =>
+        isPromotionOpenForBooking(promo) &&
+        isPromotionSlotEligibleByValue(promo, dateStr, selectedTime) &&
+        promotionMatchesProfessional(promo) &&
+        promotionMatchesServices(promo)
+      );
+
       const directIncentiveMatch = (directPromos || [])
           .filter((promo: any) => getPromotionIncentiveConfig(promo).type)
           .find((promo: any) => isPromotionEligibleForSelection(promo, slotDateTime));
 
       const publicIncentiveMatch = hydratedPublicEligible.find((promo) => getPromotionIncentiveConfig(promo).type);
-      const incentivePromo = directIncentiveMatch || publicIncentiveMatch || null;
+      const incentivePromo = valueMatchedIncentive || directIncentiveMatch || publicIncentiveMatch || null;
       const discountPromo = hydratedPublicEligible.find((promo) => !isIncentivePromotion(promo)) || null;
 
       console.warn('[DOUBLE_BENEFIT_BOOKING_DEBUG_VISIBLE] Slot promotion resolved', {
@@ -452,6 +487,13 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
           title: promo.title,
           incentive: getPromotionIncentiveConfig(promo),
         })),
+        valueMatchedIncentive: valueMatchedIncentive ? {
+          id: valueMatchedIncentive.id,
+          title: valueMatchedIncentive.title,
+          start_time: valueMatchedIncentive.start_time,
+          end_time: valueMatchedIncentive.end_time,
+          incentive: getPromotionIncentiveConfig(valueMatchedIncentive),
+        } : null,
         directIncentive: directIncentiveMatch?.id || null,
         incentivePromo: incentivePromo?.id || null,
         discountPromo: discountPromo?.id || null,
