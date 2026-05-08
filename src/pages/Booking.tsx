@@ -3453,7 +3453,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
               <h2 className="text-4xl font-black tracking-tighter leading-none">
                 {clientForm.full_name ? clientForm.full_name.split(' ')[0] : 'Cliente'}, revise seu Ticket Premium 👇
               </h2>
-              {subBenefit?.benefit_applied && (
+              {subBenefit?.plan_name && (
                 <Badge className="bg-amber-500 text-black border-none font-black px-3 py-1 rounded-full uppercase text-[10px] animate-in zoom-in duration-500 shadow-lg shadow-amber-500/20">
                   <ShieldCheck className="w-3 h-3 mr-1" />
                   Assinante • {subBenefit.plan_name}
