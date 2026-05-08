@@ -10,7 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Calendar as CalendarPicker } from '@/components/ui/calendar';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Scissors, Sparkles, Clock, DollarSign, ChevronRight, ChevronLeft, CheckCircle2, Bell, Zap, CalendarPlus, MessageCircle, RotateCcw, Home, User, Phone, Mail, Cake, MapPin, Star, X, AlertTriangle, Calendar, ChevronDown, Tag } from 'lucide-react';
+import { Scissors, Sparkles, Clock, DollarSign, ChevronRight, ChevronLeft, CheckCircle2, Bell, Zap, CalendarPlus, MessageCircle, RotateCcw, Home, User, Phone, Mail, Cake, MapPin, Star, X, AlertTriangle, Calendar, ChevronDown, Tag, ShieldCheck, AlertCircle } from 'lucide-react';
 import { format, addMinutes, addDays, startOfDay, isSameDay, parseISO, startOfWeek, endOfWeek, eachDayOfInterval, addWeeks, subWeeks, isToday, startOfMonth, endOfMonth, eachMonthOfInterval, setMonth, getYear } from 'date-fns';
 import { fromZonedTime, toZonedTime } from 'date-fns-tz';
 import { sendAppointmentCreatedWebhook } from '@/lib/automations';
@@ -293,6 +293,9 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
     pointsEarned?: number;
   } | null>(null);
 
+  const [subBenefit, setSubBenefit] = useState<any>(null);
+  const [validatingSub, setValidatingSub] = useState(false);
+
   const isDark = businessType === 'barbershop';
   const bookingTimezone = companySettings?.timezone || DEFAULT_BOOKING_TIMEZONE;
 
@@ -434,6 +437,37 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
 
     loadFullPromo();
   }, [selectedTime, selectedDate, publicPromotions, selectedServices, selectedProfessional, bookingTimezone, company?.id]);
+
+  const validateSubscription = async () => {
+    if (!savedClientId || !selectedProfessional || selectedServices.length === 0 || !company?.id) {
+      setSubBenefit(null);
+      return;
+    }
+
+    setValidatingSub(true);
+    try {
+      console.log('[BOOKING_SUB_VALIDATION] Validating subscription benefit for client:', savedClientId);
+      const { data, error } = await supabase.rpc('check_subscription_benefit', {
+        p_company_id: company.id,
+        p_client_id: savedClientId,
+        p_professional_id: selectedProfessional,
+        p_service_ids: selectedServices,
+        p_date: selectedDate ? format(selectedDate, 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd')
+      });
+      if (error) throw error;
+      console.log('[BOOKING_SUB_VALIDATION] Benefit data:', data);
+      setSubBenefit(data);
+    } catch (err) {
+      console.error('[BOOKING_SUB_VALIDATION] Error validating sub:', err);
+      setSubBenefit(null);
+    } finally {
+      setValidatingSub(false);
+    }
+  };
+
+  useEffect(() => {
+    validateSubscription();
+  }, [savedClientId, selectedProfessional, selectedServices, selectedDate, company?.id]);
 
   // Identify the best applicable promotion for the current selection
   const activePromo = useMemo(() => {
@@ -1549,21 +1583,43 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
     .filter((s) => selectedServices.includes(s.id))
     .reduce((sum, s) => sum + Number(s.price), 0);
 
+  const subscriptionDiscount = (() => {
+    if (!subBenefit?.applied || !subBenefit.covered_service_ids?.length) return 0;
+    
+    return services
+      .filter(s => selectedServices.includes(s.id) && subBenefit.covered_service_ids.includes(s.id))
+      .reduce((sum, s) => sum + Number(s.price), 0);
+  })();
+
   const totalPrice = (() => {
     // Cashback promos: client pays full price — no discount applied
     if (isCashbackPromo) {
       return services.filter((s) => selectedServices.includes(s.id)).reduce((sum, s) => sum + Number(s.price), 0);
     }
+    
+    // Services covered by subscription are 0.00
+    const servicesToCalculate = services.filter(s => {
+      const isSelected = selectedServices.includes(s.id);
+      const isCoveredBySub = subBenefit?.applied && subBenefit.covered_service_ids?.includes(s.id);
+      return isSelected && !isCoveredBySub;
+    });
+
     if (!currentPromo) {
-      return services.filter((s) => selectedServices.includes(s.id)).reduce((sum, s) => sum + Number(s.price), 0);
+      return servicesToCalculate.reduce((sum, s) => sum + Number(s.price), 0);
     }
+
     const promoServiceIds = currentPromo.service_ids || (currentPromo.service_id ? [currentPromo.service_id] : []);
+    
     // For single-service fixed_price promos, use promotion_price directly
     if (currentPromo.discount_type === 'fixed_price' && currentPromo.promotion_price != null && promoServiceIds.length <= 1) {
+      // Note: If the only service is covered by subscription, we don't reach here 
+      // because servicesToCalculate would be empty. But just in case:
+      if (servicesToCalculate.length === 0) return 0;
       return Number(currentPromo.promotion_price);
     }
-    // For percentage/fixed_amount, calculate per service
-    return services.filter(s => selectedServices.includes(s.id)).reduce((sum, s) => {
+
+    // For percentage/fixed_amount, calculate per service only for those NOT covered by sub
+    return servicesToCalculate.reduce((sum, s) => {
       if (promoServiceIds.length === 0 || promoServiceIds.includes(s.id)) {
         const orig = Number(s.price);
         if (currentPromo.discount_type === 'percentage' && currentPromo.discount_value) {
@@ -2219,13 +2275,13 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
       const appointmentPayloadV2 = {
         p_company_id: company.id,
         p_professional_id: selectedProfessional,
-        p_client_id: clientId,
+        p_client_id: savedClientId || clientId,
         p_start_time: startTime.toISOString(),
         p_end_time: endTime.toISOString(),
         p_total_price: finalPrice,
         p_client_name: clientForm.full_name ?? null,
         p_client_whatsapp: formattedWhatsapp ?? null,
-        p_notes: null as string | null,
+        p_notes: subBenefit?.applied ? `Agendamento com benefício de assinatura: ${subBenefit.plan_name}` : null,
         p_promotion_id: persistenceData.promotionId || null,
         p_services: aptServicesPayload,
         p_cashback_ids: useCashback && cashbackCredits.length > 0 ? cashbackCredits.map(c => c.id) : [],
@@ -2262,6 +2318,27 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
       if (!appointmentId) {
         console.error('[BOOKING_ERROR] No appointment ID returned from RPC');
         throw new Error('Falha ao processar agendamento. O servidor não retornou um ID.');
+      }
+      
+      // Register subscription usage if applicable
+      if (subBenefit?.applied && subBenefit.covered_service_ids?.length > 0) {
+        console.log('[BOOKING_SUB_USAGE] Registering usage for appointment:', appointmentId);
+        try {
+          const { error: usageError } = await supabase.rpc('register_subscription_usage_v1', {
+            p_company_id: company.id,
+            p_subscription_id: subBenefit.subscription_id,
+            p_appointment_id: appointmentId,
+            p_service_ids: subBenefit.covered_service_ids,
+            p_usage_date: format(selectedDate, 'yyyy-MM-dd')
+          });
+          if (usageError) {
+            console.error('[BOOKING_SUB_USAGE] Error registering usage:', usageError);
+          } else {
+            console.log('[BOOKING_SUB_USAGE] Usage registered successfully');
+          }
+        } catch (err) {
+          console.error('[BOOKING_SUB_USAGE] Fatal error registering usage:', err);
+        }
       }
       
       console.warn('[DOUBLE_BENEFIT_BOOKING_DEBUG_VISIBLE] appointment success', {
@@ -2641,9 +2718,17 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
               <ChevronLeft className="h-4 w-4" /> Voltar
             </button>
             <div className="space-y-2">
-              <h2 className="text-4xl font-black tracking-tighter leading-none" style={{ color: T.text }}>
-                {clientForm.full_name ? `${clientForm.full_name.split(' ')[0]}, o que faremos hoje?` : (isPromoMode ? 'Sua Oferta Premium' : 'Escolha seus Serviços')}
-              </h2>
+              <div className="flex flex-wrap items-center gap-3">
+                <h2 className="text-4xl font-black tracking-tighter leading-none" style={{ color: T.text }}>
+                  {clientForm.full_name ? `${clientForm.full_name.split(' ')[0]}, o que faremos hoje?` : (isPromoMode ? 'Sua Oferta Premium' : 'Escolha seus Serviços')}
+                </h2>
+                {subBenefit?.applied && (
+                  <Badge className="bg-amber-500 text-black border-none font-black px-3 py-1 rounded-full uppercase text-[10px] animate-in zoom-in duration-500 shadow-lg shadow-amber-500/20">
+                    <ShieldCheck className="w-3 h-3 mr-1" />
+                    Assinante
+                  </Badge>
+                )}
+              </div>
               <div className="flex items-center gap-2">
                 <p className="text-[10px] font-black opacity-60 uppercase tracking-[0.2em]" style={{ color: T.textSec }}>
                   {isCashbackPromo ? 'Ganhe cashback instantâneo' : 'Tratamentos exclusivos para você'}
@@ -2652,7 +2737,54 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
               </div>
             </div>
 
-            {/* Loyalty & Cashback Cards */}
+            {/* Subscription & Loyalty & Cashback Cards */}
+            <div className="grid grid-cols-1 gap-3 mb-4">
+              {subBenefit && (
+                <div 
+                  className={cn(
+                    "rounded-[2rem] p-5 flex flex-col sm:flex-row items-center justify-between gap-4 animate-in slide-in-from-top duration-700 relative overflow-hidden",
+                    subBenefit.applied ? "bg-amber-500/10 border-2 border-amber-500/40" : "bg-white/5 border border-white/10"
+                  )}
+                >
+                  {subBenefit.applied && <div className="absolute top-0 right-0 p-8 blur-3xl rounded-full -mr-10 -mt-10 opacity-20 pointer-events-none bg-amber-500" />}
+                  <div className="flex items-center gap-4 relative z-10 w-full sm:w-auto">
+                    <div className={cn(
+                      "w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 shadow-lg",
+                      subBenefit.applied ? "bg-amber-500 text-black" : "bg-white/10 text-white/40"
+                    )}>
+                      <ShieldCheck className="h-6 w-6" />
+                    </div>
+                    <div className="text-left">
+                      <p className="text-[10px] uppercase font-black tracking-widest opacity-60">Status da Assinatura</p>
+                      {subBenefit.applied ? (
+                        <p className="font-black text-base sm:text-lg">Assinante <span className="text-amber-500">• {subBenefit.plan_name}</span></p>
+                      ) : (
+                        <p className="text-sm font-bold opacity-70">
+                          {subBenefit.reason === 'wrong_professional' ? 'Plano vinculado a outro profissional' : 
+                           subBenefit.reason === 'payment_overdue' ? 'Benefício suspenso (Atraso)' :
+                           subBenefit.reason === 'limit_reached' ? 'Limite mensal atingido' :
+                           subBenefit.reason === 'services_not_included' ? 'Serviço não incluso no plano' :
+                           'Nenhum benefício aplicado'}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                  
+                  {subBenefit.usage_limit && (
+                    <div className="flex flex-col items-center sm:items-end relative z-10 w-full sm:w-auto border-t sm:border-t-0 sm:border-l border-white/10 pt-4 sm:pt-0 sm:pl-6">
+                      <p className="text-[10px] uppercase font-black tracking-widest opacity-60">Uso do Ciclo</p>
+                      <p className="font-black text-xl text-amber-500">{subBenefit.usage_used}/{subBenefit.usage_limit}</p>
+                      {subBenefit.applied && (
+                        <p className="text-[8px] font-black uppercase tracking-widest opacity-40 mt-1">
+                          {subBenefit.type === 'unlimited' ? 'Ilimitado' : `Saldo: ${subBenefit.usage_limit - subBenefit.usage_used}`}
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {cashbackCredits.length > 0 && cashbackTotal > 0 && (
                 <div className="rounded-2xl p-4 flex items-center gap-3 animate-in slide-in-from-left duration-500" style={{ background: 'linear-gradient(135deg, #10b98110, #10b98120)', border: '1px solid #10b98130' }}>
@@ -2730,7 +2862,13 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                         </div>
                       </div>
                       <div className="text-right shrink-0">
-                        {isPromoMode && promoData && !isCashbackPromo && promoServiceIds.includes(svc.id) ? (() => {
+                        {subBenefit?.applied && subBenefit.covered_service_ids?.includes(svc.id) ? (
+                          <div className="flex flex-col items-end">
+                            <p className="text-xs line-through opacity-40 font-bold">R$ {Number(svc.price).toFixed(2)}</p>
+                            <p className="font-black text-xl text-amber-500">R$ 0,00</p>
+                            <Badge className="bg-amber-500/20 text-amber-500 border-none text-[8px] h-3 px-1 font-black mt-1 uppercase tracking-tighter">Assinatura</Badge>
+                          </div>
+                        ) : isPromoMode && promoData && !isCashbackPromo && promoServiceIds.includes(svc.id) ? (() => {
                           const orig = Number(svc.price);
                           let promo = orig;
                           if (promoData.discount_type === 'percentage' && promoData.discount_value) {
@@ -3405,7 +3543,16 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                           <p className="text-[10px] font-bold opacity-40 uppercase tracking-tighter">{s.duration_minutes} min • Tratamento VIP</p>
                         </div>
                       </div>
-                      <p className="text-sm font-black" style={{ color: T.accent }}>R$ {Number(s.price).toFixed(2)}</p>
+                      <div className="text-right">
+                        {subBenefit?.applied && subBenefit.covered_service_ids?.includes(s.id) ? (
+                          <>
+                            <p className="text-xs line-through opacity-40 font-bold">R$ {Number(s.price).toFixed(2)}</p>
+                            <p className="text-sm font-black text-amber-500">R$ 0,00</p>
+                          </>
+                        ) : (
+                          <p className="text-sm font-black" style={{ color: T.accent }}>R$ {Number(s.price).toFixed(2)}</p>
+                        )}
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -3575,12 +3722,21 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                   <p>R$ {(Number(originalSubtotal) || 0).toFixed(2)}</p>
                 </div>
 
+                {subscriptionDiscount > 0 && (
+                  <div className="flex justify-between items-center text-xs font-bold text-amber-500 uppercase tracking-widest">
+                    <span className="flex items-center gap-1">
+                      <ShieldCheck className="h-3 w-3" /> Benefício Assinatura ({subBenefit?.plan_name})
+                    </span>
+                    <p>- R$ {subscriptionDiscount.toFixed(2)}</p>
+                  </div>
+                )}
+
                 {hasPromoApplied && !isCashbackPromo && !activeIncentivePromo && (
                   <div className="flex justify-between items-center text-xs font-bold text-amber-500 uppercase tracking-widest">
                     <span className="flex items-center gap-1">
                       <Tag className="h-3 w-3" /> Desconto ({currentPromo?.title})
                     </span>
-                    <p>- R$ {(Number(originalSubtotal) - Number(totalPrice)).toFixed(2)}</p>
+                    <p>- R$ {(Number(originalSubtotal) - Number(totalPrice) - subscriptionDiscount).toFixed(2)}</p>
                   </div>
                 )}
 
@@ -3827,6 +3983,35 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                   </div>
                 </div>
               </div>
+
+              {subBenefit?.applied && (
+                <div 
+                  className="rounded-[2.5rem] p-8 space-y-4 animate-in slide-in-from-bottom-4 duration-700 relative overflow-hidden"
+                  style={{ background: 'linear-gradient(135deg, rgba(245,158,11,0.1), rgba(0,0,0,0.2))', border: `2px solid ${T.accent}30` }}
+                >
+                  <div className="absolute top-0 right-0 p-12 blur-3xl rounded-full -mr-10 -mt-10 opacity-20 pointer-events-none bg-amber-500" />
+                  <div className="flex items-center gap-5 relative z-10">
+                    <div className="w-14 h-14 rounded-2xl bg-amber-500 flex items-center justify-center shadow-lg shadow-amber-500/20">
+                      <ShieldCheck className="h-8 w-8 text-black" />
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-[10px] font-black uppercase tracking-widest opacity-60">Benefício da Assinatura</p>
+                      <p className="text-xl font-black">Serviço coberto pelo plano <span style={{ color: T.accent }}>{subBenefit.plan_name}</span></p>
+                      <div className="flex items-center gap-4 mt-2">
+                        <div>
+                          <p className="text-[10px] font-bold opacity-40 uppercase">Uso registrado</p>
+                          <p className="font-black text-sm">{subBenefit.usage_limit ? `${subBenefit.usage_used + 1}/${subBenefit.usage_limit}` : 'Ilimitado'}</p>
+                        </div>
+                        <div className="h-8 w-px bg-white/10" />
+                        <div>
+                          <p className="text-[10px] font-bold opacity-40 uppercase">Valor economizado</p>
+                          <p className="font-black text-sm text-green-500">R$ {subscriptionDiscount.toFixed(2)}</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {(bookingResult.cashbackEarned > 0 || bookingResult.pointsEarned > 0) && (
                 <div 
