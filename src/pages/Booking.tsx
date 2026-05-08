@@ -3727,14 +3727,14 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                 </div>
 
                 {subscriptionDiscount > 0 && (
-                  <div className="flex flex-col gap-1 py-1">
+                  <div className="flex flex-col gap-1 py-1 animate-in slide-in-from-left duration-300">
                     <div className="flex justify-between items-center text-xs font-bold text-amber-500 uppercase tracking-widest">
                       <span className="flex items-center gap-1">
                         <ShieldCheck className="h-3 w-3" /> Benefício Assinatura ({subBenefit?.plan_name})
                       </span>
                       <p>- R$ {subscriptionDiscount.toFixed(2).replace('.', ',')}</p>
                     </div>
-                    {subBenefit?.usage_limit && (
+                    {subBenefit?.usage_limit > 0 && (
                       <p className="text-[9px] text-amber-500/60 font-black uppercase text-right tracking-widest">
                         Uso: {subBenefit.usage_used + 1}/{subBenefit.usage_limit}
                       </p>
@@ -3742,12 +3742,12 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                   </div>
                 )}
 
-                {hasPromoApplied && !isCashbackPromo && !activeIncentivePromo && (
-                  <div className="flex justify-between items-center text-xs font-bold text-amber-500 uppercase tracking-widest">
+                {promoDiscountAmount > 0 && (
+                  <div className="flex justify-between items-center text-xs font-bold text-primary uppercase tracking-widest animate-in slide-in-from-left duration-300">
                     <span className="flex items-center gap-1">
-                      <Tag className="h-3 w-3" /> Desconto ({currentPromo?.title})
+                      <Tag className="h-3 w-3" /> Desconto Promocional
                     </span>
-                    <p>- R$ {(Number(originalSubtotal) - Number(totalPrice) - subscriptionDiscount).toFixed(2)}</p>
+                    <p>- R$ {promoDiscountAmount.toFixed(2).replace('.', ',')}</p>
                   </div>
                 )}
 
