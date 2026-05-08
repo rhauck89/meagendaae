@@ -291,6 +291,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
     companyPostalCode?: string | null;
     cashbackEarned?: number;
     pointsEarned?: number;
+    subscriptionInfo?: any;
   } | null>(null);
 
   const [subBenefit, setSubBenefit] = useState<any>(null);
@@ -439,7 +440,6 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
   }, [selectedTime, selectedDate, publicPromotions, selectedServices, selectedProfessional, bookingTimezone, company?.id]);
 
   const validateSubscription = async () => {
-    // PUBLIC_SUBSCRIPTION_BOOKING_DEBUG: Identification values
     const whatsappInput = clientForm.whatsapp || "";
     const normalizedWhatsapp = normalizePhone(whatsappInput);
     const localIdentityStr = localStorage.getItem(`whatsapp_session_${company?.id}`);
@@ -453,49 +453,34 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
     
     const targetWhatsapp = normalizedWhatsapp || localWhatsapp;
     
-    console.log('[PUBLIC_SUBSCRIPTION_BOOKING_DEBUG] validateSubscription triggered', {
-      savedClientId,
-      whatsappInput,
-      normalizedWhatsapp,
-      localWhatsapp,
-      targetWhatsapp,
-      selectedProfessional,
-      selectedServices,
-      companyId: company?.id
-    });
-
-    if (!selectedProfessional || selectedServices.length === 0 || !company?.id) {
-      console.log('[PUBLIC_SUBSCRIPTION_BOOKING_DEBUG] Missing context for subscription check', {
-        prof: !!selectedProfessional,
-        svcs: selectedServices.length,
-        company: !!company?.id
-      });
+    if (!company?.id) {
+      console.log('[PUBLIC_SUBSCRIPTION_BOOKING_DEBUG] Missing companyId');
       setSubBenefit(null);
       return;
     }
 
     if (!savedClientId && !targetWhatsapp) {
-      console.log('[PUBLIC_SUBSCRIPTION_BOOKING_DEBUG] No client identifier available (id or whatsapp)');
+      console.log('[PUBLIC_SUBSCRIPTION_BOOKING_DEBUG] No client identifier (id/whatsapp)');
       setSubBenefit(null);
       return;
     }
 
     setValidatingSub(true);
     try {
-      console.log('[PUBLIC_SUBSCRIPTION_BOOKING_DEBUG] Calling check_subscription_benefit', {
-        p_company_id: company.id,
-        p_client_id: savedClientId,
-        p_whatsapp: targetWhatsapp,
-        p_professional_id: selectedProfessional,
-        p_service_ids: selectedServices
+      console.log('[PUBLIC_SUBSCRIPTION_BOOKING_DEBUG] Data:', {
+        whatsapp: targetWhatsapp,
+        savedClientId,
+        professional_id: selectedProfessional,
+        service_ids: selectedServices,
+        company_id: company.id
       });
 
       const { data, error } = await supabase.rpc('check_subscription_benefit', {
         p_company_id: company.id,
         p_client_id: savedClientId || null,
         p_whatsapp: targetWhatsapp || null,
-        p_professional_id: selectedProfessional,
-        p_service_ids: selectedServices,
+        p_professional_id: selectedProfessional || null,
+        p_service_ids: selectedServices || [],
         p_date: selectedDate ? format(selectedDate, 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd')
       } as any);
 
@@ -505,18 +490,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
         return;
       }
       
-      console.log('[PUBLIC_SUBSCRIPTION_BOOKING_DEBUG] RPC Return:', data);
-      
-      if (data) {
-        const result = data as any;
-        console.log('[PUBLIC_SUBSCRIPTION_BOOKING_DEBUG] Benefit result:', {
-          applied: result.benefit_applied,
-          plan: result.plan_name,
-          reason: result.reason,
-          usage: `${result.usage_used}/${result.usage_limit}`
-        });
-      }
-
+      console.log('[PUBLIC_SUBSCRIPTION_BOOKING_DEBUG] RPC result:', data);
       setSubBenefit(data);
     } catch (err) {
       console.error('[PUBLIC_SUBSCRIPTION_BOOKING_DEBUG] RPC error', err);
@@ -1719,7 +1693,15 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
         const eligible = services
           .filter(s => selectedServices.includes(s.id) && (promoServiceIds.length === 0 || promoServiceIds.includes(s.id)));
         if (eligible.length === 0) continue;
-        const eligibleTotal = eligible.reduce((sum, s) => sum + Number(s.price), 0);
+        
+        // SERVICES COVERED BY SUBSCRIPTION DO NOT EARN CASHBACK/POINTS
+        const nonCoveredEligible = eligible.filter(s => 
+          !subBenefit?.benefit_applied || !subBenefit.covered_service_ids?.includes(s.id)
+        );
+        
+        if (nonCoveredEligible.length === 0) continue;
+
+        const eligibleTotal = nonCoveredEligible.reduce((sum, s) => sum + Number(s.price), 0);
         if (promo.discount_type === 'percentage' && promo.discount_value) {
           amount += eligibleTotal * Number(promo.discount_value) / 100;
         } else if (promo.discount_type === 'fixed_amount' && promo.discount_value) {
@@ -1788,8 +1770,13 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
 
     const selectedServicesData = services.filter(s => selectedServices.includes(s.id));
     
+    // SERVICES COVERED BY SUBSCRIPTION DO NOT EARN CASHBACK/POINTS
+    const nonCoveredServices = selectedServicesData.filter(s => 
+      !subBenefit?.benefit_applied || !subBenefit.covered_service_ids?.includes(s.id)
+    );
+
     // Check service eligibility
-    const eligibleServices = selectedServicesData.filter(s => {
+    const eligibleServices = nonCoveredServices.filter(s => {
       if (loyaltyConfig.participating_services === 'all') return true;
       if (loyaltyConfig.participating_services === 'specific' && Array.isArray(loyaltyConfig.specific_service_ids)) {
         return loyaltyConfig.specific_service_ids.includes(s.id);
@@ -2475,6 +2462,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
         companyPostalCode: (company as any)?.postal_code || null,
         cashbackEarned: Number(persistenceData.cashbackFinal || 0),
         pointsEarned: Number(persistenceData.pointsFinal || 0),
+        subscriptionInfo: subBenefit ? { ...subBenefit, discount: subscriptionDiscount } : null
       });
 
       // Save last booking for smart rebooking
@@ -3760,6 +3748,18 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                     </div>
                   )}
 
+                  {subBenefit?.benefit_applied && (cashbackEarnAmount === 0 && predictedLoyaltyPoints === 0) && (
+                    <div className="px-4 py-3 rounded-2xl bg-amber-500/5 border border-amber-500/10 flex items-start gap-3">
+                      <AlertCircle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
+                      <div>
+                        <p className="text-[10px] font-black uppercase tracking-widest text-amber-500">Benefícios de Fidelidade</p>
+                        <p className="text-[10px] opacity-70 leading-relaxed">
+                          Benefícios de fidelidade são gerados no pagamento da sua assinatura. Este agendamento é coberto pelo seu plano.
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
                   {cashbackTotal > 0 && (
                     <div 
                       className="rounded-2xl p-4 flex items-center justify-between gap-3 cursor-pointer select-none border-2 transition-all" 
@@ -4062,7 +4062,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                 </div>
               </div>
 
-              {subBenefit?.benefit_applied && (
+              {bookingResult.subscriptionInfo?.benefit_applied && (
                 <div 
                   className="rounded-[2.5rem] p-8 space-y-4 animate-in slide-in-from-bottom-4 duration-700 relative overflow-hidden"
                   style={{ background: 'linear-gradient(135deg, rgba(245,158,11,0.1), rgba(0,0,0,0.2))', border: `2px solid ${T.accent}30` }}
@@ -4075,16 +4075,16 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                     <div className="flex-1 text-left">
                       <p className="text-[10px] font-black uppercase tracking-widest opacity-60">Benefício da Assinatura</p>
                       <p className="text-xl font-black">Serviço coberto pela assinatura</p>
-                      <p className="text-sm font-bold opacity-70">Plano: {subBenefit.plan_name}</p>
+                      <p className="text-sm font-bold opacity-70">Plano: {bookingResult.subscriptionInfo.plan_name}</p>
                       <div className="flex items-center gap-4 mt-2">
                         <div>
                           <p className="text-[10px] font-bold opacity-40 uppercase">Uso registrado</p>
-                          <p className="font-black text-sm">{subBenefit.usage_limit ? `${subBenefit.usage_used + 1}/${subBenefit.usage_limit}` : 'Ilimitado'}</p>
+                          <p className="font-black text-sm">{bookingResult.subscriptionInfo.usage_limit ? `${bookingResult.subscriptionInfo.usage_used + 1}/${bookingResult.subscriptionInfo.usage_limit}` : 'Ilimitado'}</p>
                         </div>
                         <div className="h-8 w-px bg-white/10" />
                         <div>
                           <p className="text-[10px] font-bold opacity-40 uppercase">Valor economizado</p>
-                          <p className="font-black text-sm text-green-500">R$ {subscriptionDiscount.toFixed(2).replace('.', ',')}</p>
+                          <p className="font-black text-sm text-green-500">R$ {(bookingResult.subscriptionInfo.discount || 0).toFixed(2).replace('.', ',')}</p>
                         </div>
                       </div>
                     </div>
