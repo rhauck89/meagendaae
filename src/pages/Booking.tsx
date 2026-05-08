@@ -3773,6 +3773,18 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                     </div>
                   )}
 
+                  {subBenefit?.benefit_applied && (cashbackEarnAmount === 0 && predictedLoyaltyPoints === 0) && (
+                    <div className="px-4 py-3 rounded-2xl bg-amber-500/5 border border-amber-500/10 flex items-start gap-3">
+                      <AlertCircle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
+                      <div>
+                        <p className="text-[10px] font-black uppercase tracking-widest text-amber-500">Benefícios de Fidelidade</p>
+                        <p className="text-[10px] opacity-70 leading-relaxed">
+                          Benefícios de fidelidade são gerados no pagamento da sua assinatura. Este agendamento é coberto pelo seu plano.
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
                   {cashbackTotal > 0 && (
                     <div 
                       className="rounded-2xl p-4 flex items-center justify-between gap-3 cursor-pointer select-none border-2 transition-all" 
