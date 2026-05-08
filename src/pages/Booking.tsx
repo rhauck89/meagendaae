@@ -438,6 +438,37 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
     loadFullPromo();
   }, [selectedTime, selectedDate, publicPromotions, selectedServices, selectedProfessional, bookingTimezone, company?.id]);
 
+  const validateSubscription = async () => {
+    if (!savedClientId || !selectedProfessional || selectedServices.length === 0 || !company?.id) {
+      setSubBenefit(null);
+      return;
+    }
+
+    setValidatingSub(true);
+    try {
+      console.log('[BOOKING_SUB_VALIDATION] Validating subscription benefit for client:', savedClientId);
+      const { data, error } = await supabase.rpc('check_subscription_benefit', {
+        p_company_id: company.id,
+        p_client_id: savedClientId,
+        p_professional_id: selectedProfessional,
+        p_service_ids: selectedServices,
+        p_date: selectedDate ? format(selectedDate, 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd')
+      });
+      if (error) throw error;
+      console.log('[BOOKING_SUB_VALIDATION] Benefit data:', data);
+      setSubBenefit(data);
+    } catch (err) {
+      console.error('[BOOKING_SUB_VALIDATION] Error validating sub:', err);
+      setSubBenefit(null);
+    } finally {
+      setValidatingSub(false);
+    }
+  };
+
+  useEffect(() => {
+    validateSubscription();
+  }, [savedClientId, selectedProfessional, selectedServices, selectedDate, company?.id]);
+
   // Identify the best applicable promotion for the current selection
   const activePromo = useMemo(() => {
     // If we have a manually selected slot promotion, use it
