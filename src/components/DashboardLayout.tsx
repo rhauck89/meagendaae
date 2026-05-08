@@ -72,7 +72,6 @@ const financeSubItems = [
 ];
 
 const subscriptionSubItems = [
-  { href: '/dashboard/subscriptions', icon: LayoutDashboard, label: 'Dashboard' },
   { href: '/dashboard/subscriptions/subscribers', icon: Users, label: 'Assinantes' },
   { href: '/dashboard/subscriptions/plans', icon: ClipboardList, label: 'Planos' },
   { href: '/dashboard/subscriptions/charges', icon: CreditCard, label: 'Cobranças' },

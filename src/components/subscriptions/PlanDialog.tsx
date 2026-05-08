@@ -237,13 +237,13 @@ export function PlanDialog({
               />
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-start">
               <FormField
                 control={form.control}
                 name="price_monthly"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Valor Mensal (R$)</FormLabel>
+                    <FormLabel className="h-5 flex items-center">Valor Mensal (R$)</FormLabel>
                     <FormControl>
                       <Input type="number" step="0.01" {...field} />
                     </FormControl>
@@ -257,7 +257,7 @@ export function PlanDialog({
                 name="price_yearly"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Valor Anual (R$ - opcional)</FormLabel>
+                    <FormLabel className="h-5 flex items-center">Valor Anual (R$)</FormLabel>
                     <FormControl>
                       <Input
                         type="number"
@@ -274,13 +274,13 @@ export function PlanDialog({
                 )}
               />
 
-              {planType === 'limited' && (
+              {planType === 'limited' ? (
                 <FormField
                   control={form.control}
                   name="usage_limit"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Usos por Mês</FormLabel>
+                      <FormLabel className="h-5 flex items-center">Usos por Mês</FormLabel>
                       <FormControl>
                         <Input type="number" {...field} value={field.value || ''} />
                       </FormControl>
@@ -288,6 +288,8 @@ export function PlanDialog({
                     </FormItem>
                   )}
                 />
+              ) : (
+                <div className="hidden md:block" />
               )}
             </div>
 
@@ -296,7 +298,34 @@ export function PlanDialog({
               name="included_services"
               render={() => (
                 <FormItem>
-                  <FormLabel>Serviços Incluídos</FormLabel>
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    <FormLabel>Serviços Incluídos</FormLabel>
+                    <div className="flex items-center gap-2">
+                      <Button 
+                        type="button" 
+                        variant="ghost" 
+                        size="sm" 
+                        className="h-7 text-xs text-primary hover:text-primary hover:bg-primary/10"
+                        onClick={() => {
+                          const allIds = services.map(s => s.id);
+                          form.setValue('included_services', allIds, { shouldValidate: true });
+                        }}
+                      >
+                        Selecionar todos
+                      </Button>
+                      <Button 
+                        type="button" 
+                        variant="ghost" 
+                        size="sm" 
+                        className="h-7 text-xs text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                        onClick={() => {
+                          form.setValue('included_services', [], { shouldValidate: true });
+                        }}
+                      >
+                        Limpar seleção
+                      </Button>
+                    </div>
+                  </div>
                   <div className="space-y-2">
                     <div className="relative">
                       <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -304,7 +333,7 @@ export function PlanDialog({
                         placeholder="Buscar serviços..."
                         value={serviceSearch}
                         onChange={(e) => setServiceSearch(e.target.value)}
-                        className="pl-10"
+                        className="pl-10 h-9"
                       />
                     </div>
                     <ScrollArea className="h-[200px] border rounded-md p-2">
