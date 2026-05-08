@@ -494,8 +494,8 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
         p_company_id: company.id,
         p_client_id: savedClientId || null,
         p_whatsapp: targetWhatsapp || null,
-        p_professional_id: selectedProfessional,
-        p_service_ids: selectedServices,
+        p_professional_id: selectedProfessional || null, // Allow null
+        p_service_ids: selectedServices || [],
         p_date: selectedDate ? format(selectedDate, 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd')
       } as any);
 
