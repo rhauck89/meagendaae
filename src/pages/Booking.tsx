@@ -3955,6 +3955,35 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                 </div>
               </div>
 
+              {subBenefit?.applied && (
+                <div 
+                  className="rounded-[2.5rem] p-8 space-y-4 animate-in slide-in-from-bottom-4 duration-700 relative overflow-hidden"
+                  style={{ background: 'linear-gradient(135deg, rgba(245,158,11,0.1), rgba(0,0,0,0.2))', border: `2px solid ${T.accent}30` }}
+                >
+                  <div className="absolute top-0 right-0 p-12 blur-3xl rounded-full -mr-10 -mt-10 opacity-20 pointer-events-none bg-amber-500" />
+                  <div className="flex items-center gap-5 relative z-10">
+                    <div className="w-14 h-14 rounded-2xl bg-amber-500 flex items-center justify-center shadow-lg shadow-amber-500/20">
+                      <ShieldCheck className="h-8 w-8 text-black" />
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-[10px] font-black uppercase tracking-widest opacity-60">Benefício da Assinatura</p>
+                      <p className="text-xl font-black">Serviço coberto pelo plano <span style={{ color: T.accent }}>{subBenefit.plan_name}</span></p>
+                      <div className="flex items-center gap-4 mt-2">
+                        <div>
+                          <p className="text-[10px] font-bold opacity-40 uppercase">Uso registrado</p>
+                          <p className="font-black text-sm">{subBenefit.usage_limit ? `${subBenefit.usage_used + 1}/${subBenefit.usage_limit}` : 'Ilimitado'}</p>
+                        </div>
+                        <div className="h-8 w-px bg-white/10" />
+                        <div>
+                          <p className="text-[10px] font-bold opacity-40 uppercase">Valor economizado</p>
+                          <p className="font-black text-sm text-green-500">R$ {subscriptionDiscount.toFixed(2)}</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {(bookingResult.cashbackEarned > 0 || bookingResult.pointsEarned > 0) && (
                 <div 
                   className="rounded-[2.5rem] p-8 space-y-4 animate-in slide-in-from-bottom-4 duration-700 bg-white/5 shadow-2xl"
