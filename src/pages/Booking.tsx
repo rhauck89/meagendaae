@@ -297,6 +297,18 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
   const [subBenefit, setSubBenefit] = useState<any>(null);
   const [validatingSub, setValidatingSub] = useState(false);
 
+  // New states for persistent double benefits
+  const [appliedBenefitDetails, setAppliedBenefitDetails] = useState<{
+    cashbackBase: number;
+    cashbackFinal: number;
+    pointsBase: number;
+    pointsFinal: number;
+    promotionTitle: string | null;
+    promotionId: string | null;
+    incentiveType: string | null;
+    multiplier: number;
+  } | null>(null);
+
   const isDark = businessType === 'barbershop';
   const bookingTimezone = companySettings?.timezone || DEFAULT_BOOKING_TIMEZONE;
 
