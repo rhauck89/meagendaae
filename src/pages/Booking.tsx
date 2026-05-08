@@ -476,7 +476,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
         promotionMatchesServices(promo)
       );
       const incentivePromo = valueMatchedIncentive || directIncentiveMatch || publicIncentiveMatch || null;
-      const discountPromo = hydratedPublicEligible.find((promo) => !isIncentivePromotion(promo)) || null;
+      const discountPromo = hydratedPublicEligible.find((promo) => !isIncentivePromotion(promo) && promo.promotion_type !== 'cashback') || null;
 
       console.warn('[DOUBLE_BENEFIT_BOOKING_DEBUG_VISIBLE] Slot promotion resolved', {
         date: dateStr,
@@ -579,10 +579,10 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
 
     // Discount promotions change price. Incentive promotions only multiply
     // cashback/points and are handled separately.
-    if (selectedSlotPromo && !isIncentivePromotion(selectedSlotPromo)) return selectedSlotPromo;
+    if (selectedSlotPromo && !isIncentivePromotion(selectedSlotPromo) && selectedSlotPromo.promotion_type !== 'cashback') return selectedSlotPromo;
 
     // If the user arrived via a specific promo link, we prioritize that one.
-    if (promoData && !isIncentivePromotion(promoData)) return promoData;
+    if (promoData && !isIncentivePromotion(promoData) && promoData.promotion_type !== 'cashback') return promoData;
     
     // Otherwise, we search through all active public promotions
     if (publicPromotions.length === 0 || !selectedDate || !selectedTime || selectedServices.length === 0) return null;
@@ -1662,6 +1662,32 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
     .reduce((sum, s) => sum + (Number(s.duration_minutes) || 0), 0);
 
   const isCashbackPromo = isPromoMode && promoData?.promotion_type === 'cashback';
+  const getEligibleCashbackPromos = () => {
+    const byId = new Map<string, any>();
+    const addPromo = (promo: any) => {
+      if (promo?.id && promo.promotion_type === 'cashback') byId.set(promo.id, promo);
+    };
+
+    if (promoData?.promotion_type === 'cashback') addPromo(promoData);
+    addPromo(activeCashbackPromo);
+
+    if (selectedDate && selectedTime) {
+      const dateStr = format(selectedDate, 'yyyy-MM-dd');
+      const slotDateTime = fromZonedTime(`${dateStr} ${selectedTime}:00`, bookingTimezone);
+      autoCashbackPromos.forEach((promo: any) => {
+        if (
+          isPromotionOpenForBooking(promo) &&
+          isSlotEligible(promo, slotDateTime) &&
+          promotionMatchesProfessional(promo) &&
+          promotionMatchesServices(promo)
+        ) {
+          addPromo(promo);
+        }
+      });
+    }
+
+    return Array.from(byId.values());
+  };
 
   const originalSubtotal = services
     .filter((s) => selectedServices.includes(s.id))
@@ -1727,39 +1753,17 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
   // Calculate cashback the client will EARN (not a discount)
   const cashbackEarnAmount = (() => {
     let amount = 0;
-    // From promo-mode cashback
-    if (isCashbackPromo && promoData) {
-      const promoServiceIds = promoData.service_ids || (promoData.service_id ? [promoData.service_id] : []);
+
+    for (const promo of getEligibleCashbackPromos()) {
+      const promoServiceIds = promo.service_ids || (promo.service_id ? [promo.service_id] : []);
       const promoServicesTotal = paidServicesData
         .filter(s => promoServiceIds.length === 0 || promoServiceIds.includes(s.id))
         .reduce((sum, s) => sum + Number(s.price), 0);
-      if (promoData.discount_type === 'percentage' && promoData.discount_value) {
-        amount = promoServicesTotal * Number(promoData.discount_value) / 100;
-      } else if (promoData.discount_type === 'fixed_amount' && promoData.discount_value) {
-        amount = Number(promoData.discount_value);
-      }
-    } else if (!isPromoMode && autoCashbackPromos.length > 0 && selectedProfessional && selectedServices.length > 0) {
-      // Auto-detect from active cashback promotions
-      for (const promo of autoCashbackPromos) {
-        const professionalIds = Array.isArray(promo.professional_ids) ? promo.professional_ids : [];
-        const professionalFilter = promo.professional_filter || (professionalIds.length > 0 ? 'specific' : 'all');
-        const legacyProfessionalId = (promo as any).professional_id;
-        const matchesProfessional =
-          professionalFilter === 'all' ||
-          professionalIds.includes(selectedProfessional) ||
-          legacyProfessionalId === selectedProfessional;
-        if (!matchesProfessional) continue;
-        const promoServiceIds = promo.service_ids || (promo.service_id ? [promo.service_id] : []);
-        const eligible = paidServicesData
-          .filter(s => promoServiceIds.length === 0 || promoServiceIds.includes(s.id));
-        if (eligible.length === 0) continue;
-
-        const eligibleTotal = eligible.reduce((sum, s) => sum + Number(s.price), 0);
-        if (promo.discount_type === 'percentage' && promo.discount_value) {
-          amount += eligibleTotal * Number(promo.discount_value) / 100;
-        } else if (promo.discount_type === 'fixed_amount' && promo.discount_value) {
-          amount += Number(promo.discount_value);
-        }
+      if (promoServicesTotal <= 0) continue;
+      if (promo.discount_type === 'percentage' && promo.discount_value) {
+        amount += promoServicesTotal * Number(promo.discount_value) / 100;
+      } else if (promo.discount_type === 'fixed_amount' && promo.discount_value) {
+        amount += Number(promo.discount_value);
       }
     }
 
@@ -2190,34 +2194,16 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
       // Calculate base values for persistence
       // We replicate the logic to ensure we have the "base" (multiplier=1) vs "final"
       let baseCashback = 0;
-      if (isCashbackPromo && promoData) {
-        const promoServiceIds = promoData.service_ids || (promoData.service_id ? [promoData.service_id] : []);
+      for (const promo of getEligibleCashbackPromos()) {
+        const promoServiceIds = promo.service_ids || (promo.service_id ? [promo.service_id] : []);
         const promoServicesTotal = paidServicesData
           .filter(s => promoServiceIds.length === 0 || promoServiceIds.includes(s.id))
           .reduce((sum, s) => sum + Number(s.price), 0);
-        if (promoData.discount_type === 'percentage' && promoData.discount_value) {
-          baseCashback = promoServicesTotal * Number(promoData.discount_value) / 100;
-        } else if (promoData.discount_type === 'fixed_amount' && promoData.discount_value) {
-          baseCashback = Number(promoData.discount_value);
-        }
-      } else if (!isPromoMode && autoCashbackPromos.length > 0 && selectedProfessional && selectedServices.length > 0) {
-        for (const promo of autoCashbackPromos) {
-          const professionalIds = Array.isArray(promo.professional_ids) ? promo.professional_ids : [];
-          const professionalFilter = promo.professional_filter || (professionalIds.length > 0 ? 'specific' : 'all');
-          const isProfMatch =
-            professionalFilter === 'all' ||
-            professionalIds.includes(selectedProfessional || '') ||
-            (promo as any).professional_id === selectedProfessional;
-          if (!isProfMatch) continue;
-          const promoServiceIds = promo.service_ids || (promo.service_id ? [promo.service_id] : []);
-          const eligible = paidServicesData.filter(s => promoServiceIds.length === 0 || promoServiceIds.includes(s.id));
-          if (eligible.length === 0) continue;
-          const eligibleTotal = eligible.reduce((sum, s) => sum + Number(s.price), 0);
-          if (promo.discount_type === 'percentage' && promo.discount_value) {
-            baseCashback += eligibleTotal * Number(promo.discount_value) / 100;
-          } else if (promo.discount_type === 'fixed_amount' && promo.discount_value) {
-            baseCashback += Number(promo.discount_value);
-          }
+        if (promoServicesTotal <= 0) continue;
+        if (promo.discount_type === 'percentage' && promo.discount_value) {
+          baseCashback += promoServicesTotal * Number(promo.discount_value) / 100;
+        } else if (promo.discount_type === 'fixed_amount' && promo.discount_value) {
+          baseCashback += Number(promo.discount_value);
         }
       }
 
