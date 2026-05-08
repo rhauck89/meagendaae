@@ -3614,8 +3614,8 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                       <div className="text-right">
                         {subBenefit?.applied && subBenefit.covered_service_ids?.includes(s.id) ? (
                           <>
-                            <p className="text-xs line-through opacity-40 font-bold">R$ {Number(s.price).toFixed(2)}</p>
-                            <p className="text-sm font-black text-amber-500">R$ 0,00</p>
+                            <p className="text-xs line-through opacity-40 font-bold">R$ {Number(s.price).toFixed(2).replace('.', ',')}</p>
+                            <p className="text-sm font-black text-amber-500">Valor Assinante: R$ 0,00</p>
                           </>
                         ) : (
                           <p className="text-sm font-black" style={{ color: T.accent }}>R$ {Number(s.price).toFixed(2)}</p>
