@@ -61,11 +61,21 @@ export function PromotionInsights({ isAdmin, onAction }: PromotionInsightsProps)
   useEffect(() => {
     if (companyId) {
       fetchInsights();
+      const refreshInterval = window.setInterval(() => fetchInsights(true), 60000);
+      const handleVisibility = () => {
+        if (!document.hidden) fetchInsights(true);
+      };
+      document.addEventListener('visibilitychange', handleVisibility);
+
+      return () => {
+        window.clearInterval(refreshInterval);
+        document.removeEventListener('visibilitychange', handleVisibility);
+      };
     }
   }, [companyId, isAdmin, profile?.id]);
 
-  const fetchInsights = async () => {
-    setLoading(true);
+  const fetchInsights = async (silent = false) => {
+    if (!silent) setLoading(true);
     try {
       const now = new Date();
       const currentProfessionalId = isAdmin ? null : profile?.id;
@@ -211,25 +221,12 @@ export function PromotionInsights({ isAdmin, onAction }: PromotionInsightsProps)
       // Action Handlers
       const handleRelampago = () => {
         if (totalSlotsToday === 0) return;
-        const firstGap = gapsToday[0];
-        onAction('promotion', {
-          insight: 'today_gap',
-          title: 'Relâmpago de Hoje',
-          description: 'Aproveite nossos horários disponíveis para hoje com uma condição especial.',
-          startDate: firstGap.date,
-          endDate: firstGap.date,
-          startTime: firstGap.slots[0],
-          endTime: firstGap.slots[firstGap.slots.length - 1],
-          slots: gapsToday,
-          professionalId: isAdmin ? (gapsToday.length === 1 ? firstGap.professionalId : null) : profile?.id,
-          messageTemplate: `Olá {{cliente_primeiro_nome}}! 👋\n\nNotamos que temos alguns horários disponíveis para HOJE na *{{empresa_nome}}*! 🎉\n\nPreparamos uma condição especial para horários selecionados de hoje. Garanta seu momento pelo link.\n\nDisponível hoje: ${todayExamples.join(', ')}\n\nGaranta sua vaga:\n{{link_promocao}}`,
-          singleDay: true
-        });
+        onAction('weekly_gaps', { gaps: gapsToday, scope: 'today' });
       };
 
       const handleWeekFill = () => {
         if (totalSlotsWeek === 0) return;
-        onAction('weekly_gaps', { gaps: gapsWeek });
+        onAction('weekly_gaps', { gaps: gapsWeek, scope: 'week' });
       };
 
       setWeekGaps(gapsWeek);
@@ -470,3 +467,4 @@ const Wallet = ({ className }: { className?: string }) => (
     <path d="M18 12a2 2 0 0 0 0 4h4v-4Z" />
   </svg>
 );
+
