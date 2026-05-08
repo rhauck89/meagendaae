@@ -668,108 +668,146 @@ const Services = () => {
         </div>
       </div>
 
-      <div className="space-y-12">
-        {groupedServices.map((cat) => (
-          <div key={cat.id} className="space-y-4">
-            <div className="flex items-center justify-between border-b pb-2">
-              <div className="flex items-center gap-2">
-                <Tag className="h-5 w-5 text-primary" />
-                <h3 className="text-xl font-semibold">{cat.name}</h3>
-                {cat.global?.name && (
-                  <Badge variant="outline" className="text-[10px] font-normal py-0">
-                    {cat.global.name}
-                  </Badge>
+      <div className="space-y-6">
+        {groupedServices.map((cat) => {
+          const isExpanded = expandedCategories[cat.id] !== false; // Default to expanded
+          return (
+            <Card key={cat.id} className="overflow-hidden border-border/60 shadow-sm">
+              <div 
+                className={cn(
+                  "flex items-center justify-between p-4 bg-muted/20 cursor-pointer hover:bg-muted/30 transition-colors",
+                  !isExpanded && "border-b-0"
                 )}
-                <span className="text-sm text-muted-foreground">({cat.services.length})</span>
+                onClick={() => toggleCategory(cat.id)}
+              >
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+                    <Tag className="h-5 w-5 text-primary" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-bold flex items-center gap-2">
+                      {cat.name}
+                      <Badge variant="secondary" className="h-5 px-1.5 text-[10px] font-bold">
+                        {cat.services.length}
+                      </Badge>
+                    </h3>
+                    {cat.global?.name && (
+                      <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-tight">
+                        {cat.global.name}
+                      </p>
+                    )}
+                  </div>
+                </div>
+                
+                <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                  <div className={canManageServices ? "flex gap-1" : "hidden"}>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-8 w-8">
+                          <MoreVertical className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => { setEditingCat(cat); setCatForm({ name: cat.name, global_category_id: cat.global_category_id || '' }); setCatDialogOpen(true); }}>
+                          <Pencil className="mr-2 h-4 w-4" /> Editar Categoria
+                        </DropdownMenuItem>
+                        <DropdownMenuItem className="text-destructive" onClick={() => deleteCategory(cat.id)}>
+                          <Trash2 className="mr-2 h-4 w-4" /> Excluir Categoria
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => toggleCategory(cat.id)}>
+                    {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                  </Button>
+                </div>
               </div>
-              <div className={canManageServices ? "flex gap-2" : "hidden"}>
-                <Button variant="ghost" size="sm" onClick={() => { setEditingCat(cat); setCatForm({ name: cat.name, global_category_id: cat.global_category_id || '' }); setCatDialogOpen(true); }}>
-                  <Pencil className="h-4 w-4" />
-                </Button>
-                <Button variant="ghost" size="sm" className="text-destructive" onClick={() => deleteCategory(cat.id)}>
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-            
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {cat.services.map((service: any) => {
-                if (isProfessionalMode) {
-                  const profSetting = profServices.find((ps: any) => ps.service_id === service.id);
-                  return (
-                    <ProfessionalServiceCard
-                      key={service.id}
-                      service={service}
-                      profSetting={profSetting}
-                      onSave={handleSaveProfService}
-                    />
-                  );
-                }
-                return (
-                  <ServiceCard 
-                    key={service.id} 
-                    service={service} 
-                    onEdit={openEdit} 
-                    onToggle={toggleActive} 
-                    onDelete={deleteService} 
-                    canManage={canManageServices}
-                  />
-                );
-              })}
-              {cat.services.length === 0 && (
-                <div className="col-span-full py-6 text-center text-muted-foreground border-2 border-dashed rounded-lg">
-                  <p>Nenhum serviço nesta categoria</p>
+              
+              {isExpanded && (
+                <div className="divide-y divide-border/40">
+                  {cat.services.map((service: any) => {
+                    const profSetting = isProfessionalMode ? profServices.find((ps: any) => ps.service_id === service.id) : null;
+                    return (
+                      <ServiceRow 
+                        key={service.id} 
+                        service={service} 
+                        onEdit={openEdit} 
+                        onToggle={toggleActive} 
+                        onDelete={deleteService} 
+                        canManage={canManageServices}
+                        isProfessional={isProfessionalMode}
+                        profSetting={profSetting}
+                        onProfSave={handleSaveProfService}
+                      />
+                    );
+                  })}
+                  {cat.services.length === 0 && (
+                    <div className="p-8 text-center text-muted-foreground">
+                      <p className="text-sm italic">Nenhum serviço nesta categoria</p>
+                    </div>
+                  )}
                 </div>
               )}
-            </div>
-          </div>
-        ))}
+            </Card>
+          );
+        })}
 
         {uncategorizedServices.length > 0 && (
-          <div className="space-y-4">
-            <div className="flex items-center gap-2 border-b pb-2">
-              <Tag className="h-5 w-5 text-muted-foreground" />
-              <h3 className="text-xl font-semibold">Sem Categoria</h3>
-              <span className="text-sm text-muted-foreground">({uncategorizedServices.length})</span>
+          <Card className="overflow-hidden border-border/60 shadow-sm">
+            <div 
+              className="flex items-center justify-between p-4 bg-muted/20 cursor-pointer"
+              onClick={() => toggleCategory('uncategorized')}
+            >
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-full bg-slate-100 flex items-center justify-center">
+                  <Grid3X3 className="h-5 w-5 text-slate-500" />
+                </div>
+                <h3 className="text-lg font-bold flex items-center gap-2">
+                  Sem Categoria
+                  <Badge variant="secondary" className="h-5 px-1.5 text-[10px] font-bold">
+                    {uncategorizedServices.length}
+                  </Badge>
+                </h3>
+              </div>
+              <Button variant="ghost" size="icon" className="h-8 w-8">
+                {expandedCategories['uncategorized'] !== false ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+              </Button>
             </div>
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {uncategorizedServices.map((service: any) => {
-                if (isProfessionalMode) {
-                  const profSetting = profServices.find((ps: any) => ps.service_id === service.id);
+            
+            {expandedCategories['uncategorized'] !== false && (
+              <div className="divide-y divide-border/40">
+                {uncategorizedServices.map((service: any) => {
+                  const profSetting = isProfessionalMode ? profServices.find((ps: any) => ps.service_id === service.id) : null;
                   return (
-                    <ProfessionalServiceCard
-                      key={service.id}
-                      service={service}
+                    <ServiceRow 
+                      key={service.id} 
+                      service={service} 
+                      onEdit={openEdit} 
+                      onToggle={toggleActive} 
+                      onDelete={deleteService} 
+                      canManage={canManageServices}
+                      isProfessional={isProfessionalMode}
                       profSetting={profSetting}
-                      onSave={handleSaveProfService}
+                      onProfSave={handleSaveProfService}
                     />
                   );
-                }
-                return (
-                  <ServiceCard 
-                    key={service.id} 
-                    service={service} 
-                    onEdit={openEdit} 
-                    onToggle={toggleActive} 
-                    onDelete={deleteService} 
-                    canManage={canManageServices}
-                  />
-                );
-              })}
-            </div>
-          </div>
+                })}
+              </div>
+            )}
+          </Card>
         )}
 
         {categories.length === 0 && services.length === 0 && (
-          <div className="py-20 text-center text-muted-foreground">
+          <div className="py-20 text-center text-muted-foreground border-2 border-dashed rounded-xl bg-muted/10">
             <div className="mx-auto w-16 h-16 bg-muted rounded-full flex items-center justify-center mb-4">
               <Grid3X3 className="h-8 w-8" />
             </div>
-            <p className="text-lg font-medium">Nenhum serviço ou categoria cadastrada</p>
-            <p>Comece criando uma categoria ou seu primeiro serviço.</p>
+            <p className="text-lg font-bold text-foreground">Sua lista está vazia</p>
+            <p className="text-sm">Comece criando uma categoria ou seu primeiro serviço.</p>
           </div>
         )}
       </div>
+
     </div>
   );
 };
