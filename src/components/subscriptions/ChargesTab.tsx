@@ -154,85 +154,80 @@ export function ChargesTab({ companyId }: ChargesTabProps) {
         const client_id = charge.subscription?.client_id;
         const sub_amount = Number(charge.amount);
         
-        // A. Points
-        const { data: loyaltyConfig } = await supabase
-          .from('loyalty_config')
-          .select('*')
-          .eq('company_id', companyId)
-          .eq('enabled', true)
-          .maybeSingle();
+        if (client_id) {
+          // A. Points
+          const { data: loyaltyConfig } = await supabase
+            .from('loyalty_config')
+            .select('*')
+            .eq('company_id', companyId)
+            .eq('enabled', true)
+            .maybeSingle();
 
-        if (loyaltyConfig && client_id) {
-          let pointsToAdd = 0;
-          if (loyaltyConfig.scoring_type === 'per_value') {
-            pointsToAdd = Math.floor(sub_amount * (loyaltyConfig.points_per_currency || 0));
-          } else {
-            pointsToAdd = loyaltyConfig.points_per_service || 0;
-          }
-
-          if (pointsToAdd > 0) {
-            await supabase.from('loyalty_points_transactions').insert({
-              company_id: companyId,
-              client_id: client_id,
-              points: pointsToAdd,
-              transaction_type: 'earn',
-              description: `Pagamento de assinatura - ${charge.subscription?.subscription_plans?.name}`,
-              metadata: { subscription_charge_id: charge.id }
-            });
-            console.log('[SUBSCRIPTION_PAYMENT] Loyalty points added:', pointsToAdd);
-          }
-        }
-
-        // B. Cashback
-        const today = format(new Date(), 'yyyy-MM-dd');
-        const { data: cashbackPromos } = await supabase
-          .from('promotions')
-          .select('*')
-          .eq('company_id', companyId)
-          .eq('promotion_type', 'cashback')
-          .eq('status', 'active')
-          .lte('start_date', today)
-          .gte('end_date', today);
-
-        if (cashbackPromos && cashbackPromos.length > 0 && client_id) {
-          // Use the best cashback promo (highest percentage or fixed)
-          let bestCashbackAmount = 0;
-          let selectedPromo = null;
-
-          for (const promo of cashbackPromos) {
-            let currentAmount = 0;
-            if (promo.discount_type === 'percentage') {
-              currentAmount = (sub_amount * Number(promo.discount_value)) / 100;
-            } else if (promo.discount_type === 'fixed_amount') {
-              currentAmount = Number(promo.discount_value);
+          if (loyaltyConfig) {
+            let pointsToAdd = 0;
+            if (loyaltyConfig.scoring_type === 'per_value') {
+              pointsToAdd = Math.floor(sub_amount * (loyaltyConfig.points_per_currency || 0));
+            } else {
+              pointsToAdd = loyaltyConfig.points_per_service || 0;
             }
-            if (currentAmount > bestCashbackAmount) {
-              bestCashbackAmount = currentAmount;
-              selectedPromo = promo;
+
+            if (pointsToAdd > 0) {
+              await supabase.from('loyalty_points_transactions').insert({
+                company_id: companyId,
+                client_id: client_id,
+                points: pointsToAdd,
+                transaction_type: 'earn',
+                description: `Pagamento de assinatura - ${charge.subscription?.subscription_plans?.name}`,
+                reference_id: charge.id,
+                reference_type: 'subscription_charge'
+              });
+              console.log('[SUBSCRIPTION_PAYMENT] Loyalty points added:', pointsToAdd);
             }
           }
 
-          if (bestCashbackAmount > 0) {
-            await supabase.from('cashback_transactions').insert({
-              company_id: companyId,
-              client_id: client_id,
-              amount: bestCashbackAmount,
-              transaction_type: 'earn',
-              description: `Pagamento de assinatura - ${charge.subscription?.subscription_plans?.name}`,
-              expires_at: selectedPromo?.cashback_validity_days 
-                ? format(new Date(Date.now() + selectedPromo.cashback_validity_days * 24 * 60 * 60 * 1000), 'yyyy-MM-dd')
-                : null,
-              metadata: { 
-                subscription_charge_id: charge.id,
-                promotion_id: selectedPromo?.id 
+          // B. Cashback
+          const today = format(new Date(), 'yyyy-MM-dd');
+          const { data: cashbackPromos } = await supabase
+            .from('promotions')
+            .select('*')
+            .eq('company_id', companyId)
+            .eq('promotion_type', 'cashback')
+            .eq('status', 'active')
+            .lte('start_date', today)
+            .gte('end_date', today);
+
+          if (cashbackPromos && cashbackPromos.length > 0) {
+            let bestCashbackAmount = 0;
+            let selectedPromo = null;
+
+            for (const promo of cashbackPromos) {
+              let currentAmount = 0;
+              if (promo.discount_type === 'percentage') {
+                currentAmount = (sub_amount * Number(promo.discount_value)) / 100;
+              } else if (promo.discount_type === 'fixed_amount') {
+                currentAmount = Number(promo.discount_value);
               }
-            });
-            console.log('[SUBSCRIPTION_PAYMENT] Cashback added:', bestCashbackAmount);
+              if (currentAmount > bestCashbackAmount) {
+                bestCashbackAmount = currentAmount;
+                selectedPromo = promo;
+              }
+            }
+
+            if (bestCashbackAmount > 0) {
+              await supabase.from('cashback_transactions').insert({
+                company_id: companyId,
+                client_id: client_id,
+                amount: bestCashbackAmount,
+                type: 'earn',
+                description: `Pagamento de assinatura - ${charge.subscription?.subscription_plans?.name}`,
+                reference_id: charge.id
+              });
+              console.log('[SUBSCRIPTION_PAYMENT] Cashback added:', bestCashbackAmount);
+            }
           }
         }
       } catch (benefitError) {
         console.error('[SUBSCRIPTION_PAYMENT] Error generating benefits:', benefitError);
-        // Non-blocking: continue even if loyalty fails
       }
 
       // 4. Register commission if applicable (Phase 1 simplicity: using the finance display logic)
