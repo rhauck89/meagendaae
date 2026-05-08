@@ -293,6 +293,9 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
     pointsEarned?: number;
   } | null>(null);
 
+  const [subBenefit, setSubBenefit] = useState<any>(null);
+  const [validatingSub, setValidatingSub] = useState(false);
+
   const isDark = businessType === 'barbershop';
   const bookingTimezone = companySettings?.timezone || DEFAULT_BOOKING_TIMEZONE;
 
