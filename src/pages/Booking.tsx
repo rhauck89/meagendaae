@@ -499,24 +499,27 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
         p_date: selectedDate ? format(selectedDate, 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd')
       } as any);
 
-      if (error) throw error;
+      if (error) {
+        console.error('[PUBLIC_SUBSCRIPTION_BOOKING_DEBUG] RPC error', error);
+        setSubBenefit(null);
+        return;
+      }
       
       console.log('[PUBLIC_SUBSCRIPTION_BOOKING_DEBUG] RPC Return:', data);
       
       if (data) {
         const result = data as any;
         console.log('[PUBLIC_SUBSCRIPTION_BOOKING_DEBUG] Benefit result:', {
-          applied: result.applied,
+          applied: result.benefit_applied,
           plan: result.plan_name,
           reason: result.reason,
-          discount: result.total_discount,
           usage: `${result.usage_used}/${result.usage_limit}`
         });
       }
 
       setSubBenefit(data);
     } catch (err) {
-      console.error('[PUBLIC_SUBSCRIPTION_BOOKING_DEBUG] Error validating sub:', err);
+      console.error('[PUBLIC_SUBSCRIPTION_BOOKING_DEBUG] RPC error', err);
       setSubBenefit(null);
     } finally {
       setValidatingSub(false);
@@ -1642,7 +1645,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
     .reduce((sum, s) => sum + Number(s.price), 0);
 
   const subscriptionDiscount = (() => {
-    if (!subBenefit?.applied || !subBenefit.covered_service_ids?.length) return 0;
+    if (!subBenefit?.benefit_applied || !subBenefit.covered_service_ids?.length) return 0;
     
     return services
       .filter(s => selectedServices.includes(s.id) && subBenefit.covered_service_ids.includes(s.id))
@@ -1658,7 +1661,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
     // Services covered by subscription are 0.00
     const servicesToCalculate = services.filter(s => {
       const isSelected = selectedServices.includes(s.id);
-      const isCoveredBySub = subBenefit?.applied && subBenefit.covered_service_ids?.includes(s.id);
+      const isCoveredBySub = subBenefit?.benefit_applied && subBenefit.covered_service_ids?.includes(s.id);
       return isSelected && !isCoveredBySub;
     });
 
@@ -2339,7 +2342,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
         p_total_price: finalPrice,
         p_client_name: clientForm.full_name ?? null,
         p_client_whatsapp: formattedWhatsapp ?? null,
-        p_notes: subBenefit?.applied ? `Agendamento com benefício de assinatura: ${subBenefit.plan_name}` : null,
+        p_notes: subBenefit?.benefit_applied ? `Agendamento com benefício de assinatura: ${subBenefit.plan_name}` : null,
         p_promotion_id: persistenceData.promotionId || null,
         p_services: aptServicesPayload,
         p_cashback_ids: useCashback && cashbackCredits.length > 0 ? cashbackCredits.map(c => c.id) : [],
@@ -2379,7 +2382,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
       }
       
       // Register subscription usage if applicable
-      if (subBenefit?.applied && subBenefit.covered_service_ids?.length > 0) {
+      if (subBenefit?.benefit_applied && subBenefit.covered_service_ids?.length > 0) {
         console.log('[BOOKING_SUB_USAGE] Registering usage for appointment:', appointmentId);
         try {
           const { error: usageError } = await supabase.rpc('register_subscription_usage_v1', {
@@ -2780,7 +2783,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                 <h2 className="text-4xl font-black tracking-tighter leading-none" style={{ color: T.text }}>
                   {clientForm.full_name ? `${clientForm.full_name.split(' ')[0]}, o que faremos hoje?` : (isPromoMode ? 'Sua Oferta Premium' : 'Escolha seus Serviços')}
                 </h2>
-                {subBenefit?.applied && (
+                {subBenefit?.benefit_applied && (
                   <Badge className="bg-amber-500 text-black border-none font-black px-3 py-1 rounded-full uppercase text-[10px] animate-in zoom-in duration-500 shadow-lg shadow-amber-500/20">
                     <ShieldCheck className="w-3 h-3 mr-1" />
                     Assinante
@@ -2801,20 +2804,20 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                 <div 
                   className={cn(
                     "rounded-[2rem] p-5 flex flex-col sm:flex-row items-center justify-between gap-4 animate-in slide-in-from-top duration-700 relative overflow-hidden",
-                    subBenefit.applied ? "bg-amber-500/10 border-2 border-amber-500/40" : "bg-white/5 border border-white/10"
+                    subBenefit.benefit_applied ? "bg-amber-500/10 border-2 border-amber-500/40" : "bg-white/5 border border-white/10"
                   )}
                 >
-                  {subBenefit.applied && <div className="absolute top-0 right-0 p-8 blur-3xl rounded-full -mr-10 -mt-10 opacity-20 pointer-events-none bg-amber-500" />}
+                  {subBenefit.benefit_applied && <div className="absolute top-0 right-0 p-8 blur-3xl rounded-full -mr-10 -mt-10 opacity-20 pointer-events-none bg-amber-500" />}
                   <div className="flex items-center gap-4 relative z-10 w-full sm:w-auto">
                     <div className={cn(
                       "w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 shadow-lg",
-                      subBenefit.applied ? "bg-amber-500 text-black" : "bg-white/10 text-white/40"
+                      subBenefit.benefit_applied ? "bg-amber-500 text-black" : "bg-white/10 text-white/40"
                     )}>
                       <ShieldCheck className="h-6 w-6" />
                     </div>
                     <div className="text-left">
                       <p className="text-[10px] uppercase font-black tracking-widest opacity-60">Status da Assinatura</p>
-                      {subBenefit.applied ? (
+                      {subBenefit.benefit_applied ? (
                         <p className="font-black text-base sm:text-lg">Assinante <span className="text-amber-500">• {subBenefit.plan_name}</span></p>
                       ) : (
                         <p className="text-sm font-bold opacity-70">
@@ -2832,7 +2835,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                     <div className="flex flex-col items-center sm:items-end relative z-10 w-full sm:w-auto border-t sm:border-t-0 sm:border-l border-white/10 pt-4 sm:pt-0 sm:pl-6">
                       <p className="text-[10px] uppercase font-black tracking-widest opacity-60">Uso do Ciclo</p>
                       <p className="font-black text-xl text-amber-500">{subBenefit.usage_used}/{subBenefit.usage_limit}</p>
-                      {subBenefit.applied && (
+                      {subBenefit.benefit_applied && (
                         <p className="text-[8px] font-black uppercase tracking-widest opacity-40 mt-1">
                           {subBenefit.type === 'unlimited' ? 'Ilimitado' : `Saldo: ${subBenefit.usage_limit - subBenefit.usage_used}`}
                         </p>
@@ -2920,7 +2923,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                         </div>
                       </div>
                       <div className="text-right shrink-0">
-                        {subBenefit?.applied && subBenefit.covered_service_ids?.includes(svc.id) ? (
+                        {subBenefit?.benefit_applied && subBenefit.covered_service_ids?.includes(svc.id) ? (
                           <div className="flex flex-col items-end">
                             <p className="text-xs line-through opacity-40 font-bold">R$ {Number(svc.price).toFixed(2)}</p>
                             <p className="font-black text-xl text-amber-500">R$ 0,00</p>
@@ -3529,7 +3532,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
               <h2 className="text-4xl font-black tracking-tighter leading-none">
                 {clientForm.full_name ? clientForm.full_name.split(' ')[0] : 'Cliente'}, revise seu Ticket Premium 👇
               </h2>
-              {subBenefit?.applied && (
+              {subBenefit?.benefit_applied && (
                 <Badge className="bg-amber-500 text-black border-none font-black px-3 py-1 rounded-full uppercase text-[10px] animate-in zoom-in duration-500 shadow-lg shadow-amber-500/20">
                   <ShieldCheck className="w-3 h-3 mr-1" />
                   Assinante • {subBenefit.plan_name}
@@ -3612,7 +3615,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                         </div>
                       </div>
                       <div className="text-right">
-                        {subBenefit?.applied && subBenefit.covered_service_ids?.includes(s.id) ? (
+                        {subBenefit?.benefit_applied && subBenefit.covered_service_ids?.includes(s.id) ? (
                           <>
                             <p className="text-xs line-through opacity-40 font-bold">R$ {Number(s.price).toFixed(2).replace('.', ',')}</p>
                             <p className="text-sm font-black text-amber-500">Valor Assinante: R$ 0,00</p>
@@ -4059,7 +4062,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                 </div>
               </div>
 
-              {subBenefit?.applied && (
+              {subBenefit?.benefit_applied && (
                 <div 
                   className="rounded-[2.5rem] p-8 space-y-4 animate-in slide-in-from-bottom-4 duration-700 relative overflow-hidden"
                   style={{ background: 'linear-gradient(135deg, rgba(245,158,11,0.1), rgba(0,0,0,0.2))', border: `2px solid ${T.accent}30` }}

@@ -7890,28 +7890,17 @@ export type Database = {
             Args: { p_company_id?: string; p_email: string; p_whatsapp: string }
             Returns: Json
           }
-      check_subscription_benefit:
-        | {
-            Args: {
-              p_client_id?: string
-              p_company_id: string
-              p_date?: string
-              p_professional_id?: string
-              p_service_ids?: string[]
-              p_whatsapp?: string
-            }
-            Returns: Json
-          }
-        | {
-            Args: {
-              p_client_id: string
-              p_company_id: string
-              p_date?: string
-              p_professional_id: string
-              p_service_ids: string[]
-            }
-            Returns: Json
-          }
+      check_subscription_benefit: {
+        Args: {
+          p_client_id?: string
+          p_company_id: string
+          p_date?: string
+          p_professional_id?: string
+          p_service_ids?: string[]
+          p_whatsapp?: string
+        }
+        Returns: Json
+      }
       cleanup_expired_otp: { Args: never; Returns: undefined }
       complete_client_signup: {
         Args: {
