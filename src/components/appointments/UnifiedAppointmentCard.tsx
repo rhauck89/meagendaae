@@ -89,6 +89,19 @@ export function UnifiedAppointmentCard({
   const now = toZonedTime(new Date(), timezone);
   const isToday = isSameDay(startTime, now);
 
+  const isSubscription = 
+    apt.subscription_id || 
+    apt.subscriptionInfo?.benefit_applied || 
+    apt.subscription_info?.benefit_applied || 
+    (apt.subscription_usage && Array.isArray(apt.subscription_usage) && apt.subscription_usage.length > 0) ||
+    (typeof apt.notes === 'string' && (
+      apt.notes.toLowerCase().includes('benefício de assinatura') ||
+      apt.notes.toLowerCase().includes('coberto por assinatura') ||
+      apt.notes.toLowerCase().includes('coberto pela assinatura')
+    ));
+
+  const subscriptionPlanName = apt.subscription_info?.plan_name || apt.subscriptionInfo?.plan_name || '';
+
   const displayDateShort = isToday 
     ? 'HOJE' 
     : format(startTime, "d 'DE' MMM", { locale: ptBR }).toUpperCase();
@@ -141,7 +154,9 @@ export function UnifiedAppointmentCard({
         whileTap={{ scale: 0.99 }}
         className={cn(
           "relative flex flex-col gap-2 p-3 rounded-xl border transition-all cursor-pointer shadow-sm",
-          statusCardStyles[displayStatus] || 'bg-card',
+          isSubscription 
+            ? "bg-gradient-to-r from-amber-50 via-white to-amber-50/70 border-l-amber-500 ring-1 ring-amber-200 shadow-[0_4px_12px_-3px_rgba(251,191,36,0.15)]"
+            : (statusCardStyles[displayStatus] || 'bg-card'),
           isHighlighted && 'ring-2 ring-primary shadow-lg',
           "group overflow-hidden",
           className
@@ -151,7 +166,7 @@ export function UnifiedAppointmentCard({
         {/* Left Indicator Stripe */}
         <div className={cn(
           "absolute left-0 top-0 bottom-0 w-1",
-          statusColors[displayStatus] || 'bg-muted'
+          isSubscription ? "bg-amber-500" : (statusColors[displayStatus] || 'bg-muted')
         )} />
 
         <div className="flex items-center justify-between gap-2">
@@ -167,7 +182,9 @@ export function UnifiedAppointmentCard({
                   {clientName}
                 </p>
                 <div className="flex gap-0.5 ml-1">
-                  {apt.promotion_id && (
+                  {isSubscription ? (
+                    <span className="text-[10px]" title={`Assinante: ${subscriptionPlanName}`}>👑</span>
+                  ) : apt.promotion_id && (
                     <span className="text-[10px]" title="Promoção">🏷️</span>
                   )}
                   {cashbackUsed > 0 && apt.status !== 'cancelled' && apt.status !== 'no_show' && (
@@ -258,7 +275,7 @@ export function UnifiedAppointmentCard({
         <div className="pt-1 flex flex-col gap-0.5" onClick={(e) => e.stopPropagation()}>
           <div className="flex items-center justify-between gap-2">
             <div className="flex flex-col">
-              {totalDiscounts > 0 && (
+              {(totalDiscounts > 0 || isSubscription) && (
                 <span className="text-[9px] text-muted-foreground line-through decoration-muted-foreground/50">
                   {formatBRL(originalPrice)}
                 </span>
@@ -325,7 +342,9 @@ export function UnifiedAppointmentCard({
       id={`agenda-apt-${apt.id}`}
       className={cn(
         "relative flex flex-col gap-4 p-4 rounded-2xl border transition-all",
-        statusCardStyles[displayStatus] || 'bg-card',
+        isSubscription 
+          ? "bg-gradient-to-r from-amber-50 via-white to-amber-50/70 border-l-amber-500 ring-1 ring-amber-200 shadow-[0_4px_15px_-3px_rgba(251,191,36,0.2)]"
+          : (statusCardStyles[displayStatus] || 'bg-card'),
         isHighlighted && 'ring-2 ring-primary shadow-xl',
         "group overflow-hidden",
         className
@@ -335,7 +354,7 @@ export function UnifiedAppointmentCard({
       {/* Left Indicator Stripe */}
       <div className={cn(
         "absolute left-0 top-0 bottom-0 w-1.5",
-        statusColors[displayStatus] || 'bg-muted'
+        isSubscription ? "bg-amber-500" : (statusColors[displayStatus] || 'bg-muted')
       )} />
 
       <div className="flex justify-between items-start gap-1 sm:gap-3">
@@ -363,7 +382,11 @@ export function UnifiedAppointmentCard({
                   : clientName
                 }
               </h3>
-              {apt.promotion_id && (
+              {isSubscription ? (
+                <Badge variant="secondary" className="bg-amber-500/10 text-amber-600 border-none h-4 px-1.5 text-[9px] font-bold uppercase tracking-tighter">
+                  👑 ASSINANTE
+                </Badge>
+              ) : apt.promotion_id && (
                 <Badge variant="secondary" className="bg-orange-500/10 text-orange-600 border-none h-4 px-1 text-[9px] font-bold uppercase tracking-tighter">
                   🏷️ PROMO
                 </Badge>
@@ -422,12 +445,16 @@ export function UnifiedAppointmentCard({
                 </p>
               )}
               <div className="flex flex-col items-end gap-0.5">
-                {totalDiscounts > 0 && (
+                {(totalDiscounts > 0 || isSubscription) && (
                   <div className="flex flex-col items-end text-[10px] space-y-0.5">
                     <span className="text-muted-foreground line-through">
                       {formatBRL(originalPrice)}
                     </span>
-                    {promoDiscount > 0 && (
+                    {isSubscription ? (
+                      <span className="text-amber-600 font-medium">
+                        👑 Assinatura {subscriptionPlanName ? `- ${subscriptionPlanName}` : ''}
+                      </span>
+                    ) : promoDiscount > 0 && (
                       <span className="text-orange-600 font-medium">🏷️ Promoção -{formatBRL(promoDiscount)}</span>
                     )}
                     {cashbackUsed > 0 && (
