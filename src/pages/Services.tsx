@@ -184,6 +184,15 @@ const Services = () => {
   const [companyBookingMode, setCompanyBookingMode] = useState<string>('fixed_grid');
   const [saving, setSaving] = useState(false);
   const [catSaving, setCatSaving] = useState(false);
+  const [expandedCategories, setExpandedCategories] = useState<Record<string, boolean>>({});
+
+  const toggleCategory = (id: string) => {
+    setExpandedCategories(prev => ({
+      ...prev,
+      [id]: !prev[id]
+    }));
+  };
+
 
   useEffect(() => {
     if (companyId) {
