@@ -2064,14 +2064,15 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
 
       // Calculate base values for persistence
       // We replicate the logic to ensure we have the "base" (multiplier=1) vs "final"
+      // SUBSCRIPTION RULE: persistent rewards must only be calculated for PAID services.
       let baseCashback = 0;
       if (isCashbackPromo && promoData) {
         const promoServiceIds = promoData.service_ids || (promoData.service_id ? [promoData.service_id] : []);
-        const promoServicesTotal = services
-          .filter(s => selectedServices.includes(s.id) && (promoServiceIds.length === 0 || promoServiceIds.includes(s.id)))
-          .reduce((sum, s) => sum + Number(s.price), 0);
+        const eligiblePaidServices = paidServicesData.filter(s => promoServiceIds.length === 0 || promoServiceIds.includes(s.id));
+        const eligibleTotal = eligiblePaidServices.reduce((sum, s) => sum + Number(s.price), 0);
+        
         if (promoData.discount_type === 'percentage' && promoData.discount_value) {
-          baseCashback = promoServicesTotal * Number(promoData.discount_value) / 100;
+          baseCashback = eligibleTotal * Number(promoData.discount_value) / 100;
         } else if (promoData.discount_type === 'fixed_amount' && promoData.discount_value) {
           baseCashback = Number(promoData.discount_value);
         }
@@ -2080,9 +2081,10 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
           const isProfMatch = promo.professional_filter === 'all' || promo.professional_ids?.includes(selectedProfessional || '') || (promo as any).professional_id === selectedProfessional;
           if (!isProfMatch) continue;
           const promoServiceIds = promo.service_ids || (promo.service_id ? [promo.service_id] : []);
-          const eligible = services.filter(s => selectedServices.includes(s.id) && (promoServiceIds.length === 0 || promoServiceIds.includes(s.id)));
-          if (eligible.length === 0) continue;
-          const eligibleTotal = eligible.reduce((sum, s) => sum + Number(s.price), 0);
+          const eligiblePaidServices = paidServicesData.filter(s => promoServiceIds.length === 0 || promoServiceIds.includes(s.id));
+          if (eligiblePaidServices.length === 0) continue;
+          
+          const eligibleTotal = eligiblePaidServices.reduce((sum, s) => sum + Number(s.price), 0);
           if (promo.discount_type === 'percentage' && promo.discount_value) {
             baseCashback += eligibleTotal * Number(promo.discount_value) / 100;
           } else if (promo.discount_type === 'fixed_amount' && promo.discount_value) {
@@ -2093,19 +2095,18 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
 
       let basePoints = 0;
       if (loyaltyConfig?.enabled && selectedProfessional && selectedServices.length > 0) {
-        const selectedServicesData = services.filter(s => selectedServices.includes(s.id));
-        const eligibleServices = selectedServicesData.filter(s => {
+        const eligiblePaidServices = paidServicesData.filter(s => {
           if (loyaltyConfig.participating_services === 'all') return true;
           if (loyaltyConfig.participating_services === 'specific' && Array.isArray(loyaltyConfig.specific_service_ids)) {
             return loyaltyConfig.specific_service_ids.includes(s.id);
           }
           return false;
         });
-        if (eligibleServices.length > 0) {
+        if (eligiblePaidServices.length > 0) {
           if (loyaltyConfig.scoring_type === 'per_service') {
-            basePoints = eligibleServices.length * (Number(loyaltyConfig.points_per_service) || 0);
+            basePoints = eligiblePaidServices.length * (Number(loyaltyConfig.points_per_service) || 0);
           } else if (loyaltyConfig.scoring_type === 'per_value') {
-            const eligibleSubtotal = eligibleServices.reduce((sum, s) => sum + Number(s.price), 0);
+            const eligibleSubtotal = eligiblePaidServices.reduce((sum, s) => sum + Number(s.price), 0);
             basePoints = Math.floor(eligibleSubtotal * (Number(loyaltyConfig.points_per_currency) || 0));
           }
         }
