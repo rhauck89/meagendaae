@@ -275,7 +275,7 @@ export function UnifiedAppointmentCard({
         <div className="pt-1 flex flex-col gap-0.5" onClick={(e) => e.stopPropagation()}>
           <div className="flex items-center justify-between gap-2">
             <div className="flex flex-col">
-              {totalDiscounts > 0 && (
+              {(totalDiscounts > 0 || isSubscription) && (
                 <span className="text-[9px] text-muted-foreground line-through decoration-muted-foreground/50">
                   {formatBRL(originalPrice)}
                 </span>
