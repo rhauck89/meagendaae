@@ -3525,7 +3525,17 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
               <ChevronLeft className="h-4 w-4" /> Voltar
             </button>
             <div className="space-y-2">
-              <h2 className="text-4xl font-black tracking-tighter leading-none">{clientForm.full_name ? clientForm.full_name.split(' ')[0] : 'Cliente'}, revise seu Ticket Premium 👇</h2>
+            <div className="flex flex-wrap items-center gap-3">
+              <h2 className="text-4xl font-black tracking-tighter leading-none">
+                {clientForm.full_name ? clientForm.full_name.split(' ')[0] : 'Cliente'}, revise seu Ticket Premium 👇
+              </h2>
+              {subBenefit?.applied && (
+                <Badge className="bg-amber-500 text-black border-none font-black px-3 py-1 rounded-full uppercase text-[10px] animate-in zoom-in duration-500 shadow-lg shadow-amber-500/20">
+                  <ShieldCheck className="w-3 h-3 mr-1" />
+                  Assinante • {subBenefit.plan_name}
+                </Badge>
+              )}
+            </div>
               <div className="flex items-center gap-2">
                 <p className="text-[10px] font-black opacity-60 uppercase tracking-[0.2em]" style={{ color: T.textSec }}>Confirme os detalhes da sua reserva</p>
                 <div className="h-px flex-1 bg-white/5" />
