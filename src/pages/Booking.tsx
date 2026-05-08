@@ -291,6 +291,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
     companyPostalCode?: string | null;
     cashbackEarned?: number;
     pointsEarned?: number;
+    subscriptionInfo?: any;
   } | null>(null);
 
   const [subBenefit, setSubBenefit] = useState<any>(null);
@@ -2488,6 +2489,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
         companyPostalCode: (company as any)?.postal_code || null,
         cashbackEarned: Number(persistenceData.cashbackFinal || 0),
         pointsEarned: Number(persistenceData.pointsFinal || 0),
+        subscriptionInfo: subBenefit ? { ...subBenefit, discount: subscriptionDiscount } : null
       });
 
       // Save last booking for smart rebooking
