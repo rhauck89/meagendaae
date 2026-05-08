@@ -2918,9 +2918,10 @@ export default function Promotions() {
         open={isWeeklySlotPickerOpen}
         onOpenChange={setIsWeeklySlotPickerOpen}
         slots={insightContext?.gaps || []}
+        scope={insightContext?.scope === 'today' ? 'today' : 'week'}
         isAdmin={isAdmin}
         professionals={professionals}
-        currentProfessionalId={profile?.id}
+        currentProfessionalId={isAdmin ? undefined : profile?.id}
         onConfirm={(selectedSlots) => {
           console.log('[PROMOTION_INSIGHT_MODAL_FLOW_DEBUG]', {
             event: 'weekly picker completed',
