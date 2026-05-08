@@ -214,7 +214,7 @@ export function ManualAppointmentDialog({
   }, 0);
 
   const totalPrice = selectedServices.reduce((sum, sId) => {
-    if (subBenefit?.applied && subBenefit.covered_service_ids?.includes(sId)) {
+    if (subBenefit?.benefit_applied && subBenefit.covered_service_ids?.includes(sId)) {
       return sum;
     }
     const svc = services.find(s => s.id === sId);
@@ -276,7 +276,7 @@ export function ManualAppointmentDialog({
         p_client_name: selectedClient.name,
         p_client_whatsapp: selectedClient.whatsapp || '',
         p_client_email: selectedClient.email || null,
-        p_notes: subBenefit?.applied ? `Agendamento com benefício de assinatura: ${subBenefit.plan_name}` : 'Agendamento manual',
+        p_notes: subBenefit?.benefit_applied ? `Agendamento com benefício de assinatura: ${subBenefit.plan_name}` : 'Agendamento manual',
         p_services: servicesJson,
         p_booking_origin: 'manual',
         p_user_id: selectedClient.user_id || null
@@ -285,7 +285,7 @@ export function ManualAppointmentDialog({
       if (rpcError) throw rpcError;
 
       // Register usage if applicable
-      if (subBenefit?.applied && subBenefit.covered_service_ids?.length > 0) {
+      if (subBenefit?.benefit_applied && subBenefit.covered_service_ids?.length > 0) {
         await supabase.rpc('register_subscription_usage_v1', {
           p_company_id: companyId,
           p_subscription_id: subBenefit.subscription_id,
@@ -403,14 +403,14 @@ export function ManualAppointmentDialog({
   const renderStep3 = () => (
     <div className="space-y-4">
       {subBenefit && (
-        <Card className={`border-none shadow-none bg-muted/20 ${subBenefit.applied ? 'bg-primary/5 border border-primary/20' : ''}`}>
+        <Card className={`border-none shadow-none bg-muted/20 ${subBenefit.benefit_applied ? 'bg-primary/5 border border-primary/20' : ''}`}>
           <CardContent className="p-3">
             <div className="flex items-center justify-between gap-3">
               <div className="flex items-center gap-2">
-                <Star className={`h-4 w-4 ${subBenefit.applied ? 'text-primary' : 'text-muted-foreground'}`} />
+                <Star className={`h-4 w-4 ${subBenefit.benefit_applied ? 'text-primary' : 'text-muted-foreground'}`} />
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Status da Assinatura</p>
-                  {subBenefit.applied ? (
+                  {subBenefit.benefit_applied ? (
                     <p className="text-sm font-medium">Plano {subBenefit.plan_name}: <span className="text-primary font-bold">Benefício aplicado</span></p>
                   ) : (
                     <p className="text-sm text-muted-foreground">
@@ -438,7 +438,7 @@ export function ManualAppointmentDialog({
       <div className="space-y-2 max-h-[300px] overflow-y-auto">
         {services.map(svc => {
           const isSelected = selectedServices.includes(svc.id);
-          const isCovered = subBenefit?.applied && subBenefit.covered_service_ids?.includes(svc.id);
+          const isCovered = subBenefit?.benefit_applied && subBenefit.covered_service_ids?.includes(svc.id);
           
           return (
             <div
