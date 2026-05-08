@@ -267,8 +267,7 @@ export function PromotionInsights({ isAdmin, onAction }: PromotionInsightsProps)
           highlight: totalSlotsToday > 0,
           empty: totalSlotsToday === 0,
           actions: [
-            { label: 'Preencher Hoje', icon: Zap, onClick: handleRelampago, primary: true, disabled: totalSlotsToday === 0 },
-            { label: 'Notificar no WhatsApp', icon: MessageCircle, onClick: () => onAction('campaign', { insight: 'today_gap', type: 'whatsapp' }), disabled: totalSlotsToday === 0 }
+            { label: 'Preencher Hoje', icon: Zap, onClick: handleRelampago, primary: true, disabled: totalSlotsToday === 0 }
           ]
         },
         {
@@ -295,15 +294,11 @@ export function PromotionInsights({ isAdmin, onAction }: PromotionInsightsProps)
           empty: reactivation3040.length === 0,
           actions: [
             { 
-              label: 'Enviar Campanha', 
-              icon: MessageCircle, 
-              onClick: () => onAction('campaign', { insight: 'reactivation_30', clients: reactivation3040 }),
-              primary: true 
-            },
-            { 
-              label: 'Criar Oferta Especial', 
+              label: 'Criar Ação Inteligente', 
               icon: Tag, 
-              onClick: handleReactivation
+              onClick: handleReactivation,
+              primary: true,
+              disabled: reactivation3040.length === 0
             }
           ]
         },
@@ -316,16 +311,12 @@ export function PromotionInsights({ isAdmin, onAction }: PromotionInsightsProps)
           subValue: 'aniversariantes',
           empty: birthdayClients.length === 0,
           actions: [
-            { 
-              label: 'Enviar Parabéns', 
-              icon: MessageCircle, 
-              onClick: () => onAction('campaign', { insight: 'birthdays', clients: birthdayClients }),
-              primary: true 
-            },
             {
-              label: 'Criar Presente (Promo)',
+              label: 'Criar Ação Inteligente',
               icon: Gift,
-              onClick: handleBirthdays
+              onClick: handleBirthdays,
+              primary: true,
+              disabled: birthdayClients.length === 0
             }
           ]
         },

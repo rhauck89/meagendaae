@@ -1049,6 +1049,85 @@ export default function Promotions() {
     });
     
     const baseSlug = generateSlug(data.title);
+    const hasSlotSelection = (data.selectedSlots?.length || 0) > 0 || (data.times?.length || 0) > 0;
+
+    if (!hasSlotSelection) {
+      const primaryServiceId = data.service_id || (data.service_ids?.length === 1 ? data.service_ids[0] : null);
+      const primarySvc = primaryServiceId ? services.find(s => s.id === primaryServiceId) : null;
+      let payloadOrigPrice: number | null = primarySvc ? Number(primarySvc.price) : null;
+      let payloadPromoPrice: number | null = null;
+
+      if (primarySvc && data.discount_type === 'fixed_price') {
+        payloadPromoPrice = data.promotion_price;
+      } else if (primarySvc && data.discount_type === 'percentage') {
+        payloadPromoPrice = payloadOrigPrice! * (1 - (data.discount_value || 0) / 100);
+      } else if (primarySvc) {
+        payloadPromoPrice = Math.max(0, payloadOrigPrice! - (data.discount_value || 0));
+      }
+
+      const normalizeTime = (value: string | null | undefined, fallback: string) => {
+        const raw = value || fallback;
+        return raw.split(':').length === 2 ? `${raw}:00` : raw;
+      };
+
+      const slug = `${baseSlug}-${Date.now().toString(36)}-${Math.random().toString(36).substring(2, 6)}`;
+      const payload: any = {
+        company_id: companyId!,
+        title: data.title,
+        slug,
+        description: data.description || null,
+        service_id: primaryServiceId,
+        service_ids: data.service_ids,
+        discount_type: data.discount_type || 'percentage',
+        discount_value: data.discount_value !== undefined ? data.discount_value : (data.metadata?.incentive_config ? 0 : null),
+        promotion_price: payloadPromoPrice,
+        original_price: payloadOrigPrice,
+        start_date: data.start_date || data.date || format(new Date(), 'yyyy-MM-dd'),
+        end_date: data.end_date || data.start_date || data.date || format(new Date(), 'yyyy-MM-dd'),
+        start_time: normalizeTime(data.start_time, '09:00'),
+        end_time: normalizeTime(data.end_time, '20:00'),
+        use_business_hours: false,
+        valid_days: data.valid_days || [0, 1, 2, 3, 4, 5, 6],
+        min_interval_minutes: 0,
+        max_slots: data.max_slots || 999,
+        client_filter: data.client_filter || 'all',
+        client_filter_value: data.client_filter_value ?? null,
+        professional_filter: data.professional_filter || (data.professional_ids?.length ? 'selected' : 'all'),
+        professional_ids: data.professional_ids || [],
+        message_template: data.message_template || DEFAULT_TEMPLATE,
+        created_by: profile?.id || null,
+        status: 'active',
+        promotion_type: data.promotion_type || 'traditional',
+        promotion_mode: data.promotion_mode || 'manual',
+        source_insight: data.source_insight || 'insight',
+        booking_opens_at: new Date().toISOString(),
+        booking_closes_at: null,
+        metadata: data.metadata || {}
+      };
+
+      console.log('[PROMOTION_INSIGHT_SAVE_DEBUG] Inserting non-slot insight promotion', {
+        insight: data.source_insight,
+        payload
+      });
+
+      const { data: insertedData, error } = await supabase.from('promotions').insert(payload).select('id').single();
+      if (error) {
+        toast({
+          title: 'Erro ao criar promocao',
+          description: error.message,
+          variant: 'destructive'
+        });
+        return;
+      }
+
+      toast({ title: 'Promocao criada com sucesso!' });
+      if (insertedData?.id) setHighlightedPromoId(insertedData.id);
+      setOpportunityDialogOpen(false);
+      setSelectedOpportunity(null);
+      setActiveTab('active');
+      await fetchPromotions();
+      return;
+    }
     
     // We'll map through each time slot and create a promotion
     const slotsToProcess = data.selectedSlots || data.times.map((t: string) => ({ date: data.date, time: t, professionalId: data.professional_ids?.[0] }));
@@ -1328,12 +1407,13 @@ export default function Promotions() {
 
       if (data?.insight) {
         console.log('[PROMOTION_INSIGHT_ACTION_DEBUG]', {
-          action: 'open_selection',
+          action: 'open_insight_promotion_modal',
           insight: data.insight,
           data
         });
-        setSelectedInsightData(data);
-        setInsightSelectionOpen(true);
+        setInsightContext(data);
+        setInsightSelectedSlots(data.selectedSlots || []);
+        setIsInsightPromotionModalOpen(true);
         return;
       }
       setCreationMode('manual');
@@ -2940,6 +3020,7 @@ export default function Promotions() {
         selectedSlots={insightSelectedSlots}
         services={services}
         professionals={professionals}
+        insightContext={insightContext}
         onSave={async (payload) => {
           console.log('[PROMOTION_INSIGHT_MODAL_FLOW_DEBUG]', {
             event: 'insight modal saving',
