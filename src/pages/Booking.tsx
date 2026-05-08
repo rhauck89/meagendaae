@@ -504,12 +504,13 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
       console.log('[PUBLIC_SUBSCRIPTION_BOOKING_DEBUG] RPC Return:', data);
       
       if (data) {
+        const result = data as any;
         console.log('[PUBLIC_SUBSCRIPTION_BOOKING_DEBUG] Benefit result:', {
-          applied: data.applied,
-          plan: data.plan_name,
-          reason: data.reason,
-          discount: data.total_discount,
-          usage: `${data.usage_used}/${data.usage_limit}`
+          applied: result.applied,
+          plan: result.plan_name,
+          reason: result.reason,
+          discount: result.total_discount,
+          usage: `${result.usage_used}/${result.usage_limit}`
         });
       }
 
