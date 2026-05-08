@@ -2833,7 +2833,13 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                         </div>
                       </div>
                       <div className="text-right shrink-0">
-                        {isPromoMode && promoData && !isCashbackPromo && promoServiceIds.includes(svc.id) ? (() => {
+                        {subBenefit?.applied && subBenefit.covered_service_ids?.includes(svc.id) ? (
+                          <div className="flex flex-col items-end">
+                            <p className="text-xs line-through opacity-40 font-bold">R$ {Number(svc.price).toFixed(2)}</p>
+                            <p className="font-black text-xl text-amber-500">R$ 0,00</p>
+                            <Badge className="bg-amber-500/20 text-amber-500 border-none text-[8px] h-3 px-1 font-black mt-1 uppercase tracking-tighter">Assinatura</Badge>
+                          </div>
+                        ) : isPromoMode && promoData && !isCashbackPromo && promoServiceIds.includes(svc.id) ? (() => {
                           const orig = Number(svc.price);
                           let promo = orig;
                           if (promoData.discount_type === 'percentage' && promoData.discount_value) {
