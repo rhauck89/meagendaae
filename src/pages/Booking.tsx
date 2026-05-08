@@ -2787,13 +2787,17 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                       {subBenefit.benefit_applied ? (
                         <p className="font-black text-base sm:text-lg">Assinante <span className="text-amber-500">• {subBenefit.plan_name}</span></p>
                       ) : (
-                        <p className="text-sm font-bold opacity-70">
-                          {subBenefit.reason === 'wrong_professional' ? 'Plano vinculado a outro profissional' : 
-                           subBenefit.reason === 'payment_overdue' ? 'Benefício suspenso (Atraso)' :
-                           subBenefit.reason === 'limit_reached' ? 'Limite mensal atingido' :
-                           subBenefit.reason === 'services_not_included' ? 'Serviço não incluso no plano' :
-                           'Nenhum benefício aplicado'}
-                        </p>
+                        <div className="flex flex-col">
+                          <p className="font-black text-sm text-amber-500/80">Assinante • {subBenefit.plan_name}</p>
+                          <p className="text-[10px] font-bold opacity-70">
+                            {subBenefit.reason === 'choose_service' ? 'Selecione um serviço incluso' :
+                             subBenefit.reason === 'wrong_professional' ? 'Plano vinculado a outro profissional' : 
+                             subBenefit.reason === 'payment_overdue' ? 'Benefício suspenso (Atraso)' :
+                             subBenefit.reason === 'limit_reached' ? 'Limite mensal atingido' :
+                             subBenefit.reason === 'services_not_included' ? 'Serviço não incluso no plano' :
+                             'Nenhum benefício aplicado'}
+                          </p>
+                        </div>
                       )}
                     </div>
                   </div>
