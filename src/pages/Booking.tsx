@@ -3586,7 +3586,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                         </div>
                       </div>
                       <div className="text-right">
-                        {subBenefit?.benefit_applied && subBenefit.covered_service_ids?.includes(s.id) ? (
+                        {subscriptionCoveredServiceIds.has(s.id) ? (
                           <>
                             <p className="text-xs line-through opacity-40 font-bold">R$ {Number(s.price).toFixed(2).replace('.', ',')}</p>
                             <p className="text-sm font-black text-amber-500">Valor Assinante: R$ 0,00</p>
