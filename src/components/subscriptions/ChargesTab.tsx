@@ -234,8 +234,9 @@ export function ChargesTab({ companyId }: ChargesTabProps) {
 
       toast.success('Cobrança marcada como paga e integrada ao financeiro!');
       fetchCharges();
-      // Refresh dashboard
+      // Keep every subscription financial view reading the updated charge state.
       window.dispatchEvent(new CustomEvent('refresh-subscription-dashboard'));
+      window.dispatchEvent(new CustomEvent('refresh-subscribers'));
     } catch (error: any) {
       console.error('Error paying charge:', error);
       toast.error('Erro ao processar pagamento');
