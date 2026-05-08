@@ -1165,15 +1165,59 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
 
   useEffect(() => {
     if (!company?.id) return;
-    const checkBenefits = async () => {
+    const checkBenefitsStatus = async () => {
       const [cashbackRes, loyaltyRes] = await Promise.all([
         supabase.from('promotions' as any).select('id').eq('company_id', company.id).eq('promotion_type', 'cashback').eq('active', true).limit(1),
         supabase.from('loyalty_config' as any).select('enabled').eq('company_id', company.id).eq('enabled', true).limit(1),
       ]);
       setHasBenefitsActive(!!((cashbackRes.data as any[])?.length || (loyaltyRes.data as any[])?.length));
     };
-    checkBenefits();
+    checkBenefitsStatus();
   }, [company?.id]);
+
+  useEffect(() => {
+    const checkUserSubscriptionBenefit = async () => {
+      if (!company?.id) return;
+
+      const normalizedPhone = clientForm.whatsapp ? normalizePhone(clientForm.whatsapp) : null;
+      
+      console.log('[PUBLIC_SUBSCRIPTION_BOOKING_DEBUG] Checking benefit:', {
+        company_id: company.id,
+        professional_id: selectedProfessional,
+        service_ids: selectedServices,
+        whatsapp: normalizedPhone
+      });
+
+      setValidatingSub(true);
+      try {
+        const { data, error } = await supabase.rpc('check_subscription_benefit', {
+          p_company_id: company.id,
+          p_professional_id: selectedProfessional,
+          p_service_ids: selectedServices,
+          p_whatsapp: normalizedPhone
+        });
+
+        if (error) {
+          console.error('[PUBLIC_SUBSCRIPTION_BOOKING_DEBUG] RPC error:', error);
+          setSubBenefit(null);
+        } else {
+          console.log('[PUBLIC_SUBSCRIPTION_BOOKING_DEBUG] Benefit result:', data);
+          setSubBenefit(data);
+        }
+      } catch (err) {
+        console.error('[PUBLIC_SUBSCRIPTION_BOOKING_DEBUG] Catch error:', err);
+        setSubBenefit(null);
+      } finally {
+        setValidatingSub(false);
+      }
+    };
+
+    const timer = setTimeout(() => {
+      checkUserSubscriptionBenefit();
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [company?.id, selectedProfessional, selectedServices, clientForm.whatsapp]);
 
   useEffect(() => {
     if (slug) {
