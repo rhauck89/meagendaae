@@ -37,9 +37,10 @@ interface PlansTabProps {
   companyId: string;
   onEditPlan: (plan: any) => void;
   onNewPlan: () => void;
+  canManage?: boolean;
 }
 
-export function PlansTab({ companyId, onEditPlan, onNewPlan }: PlansTabProps) {
+export function PlansTab({ companyId, onEditPlan, onNewPlan, canManage = false }: PlansTabProps) {
   const [plans, setPlans] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
@@ -134,11 +135,13 @@ export function PlansTab({ companyId, onEditPlan, onNewPlan }: PlansTabProps) {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-end">
-        <Button onClick={onNewPlan} className="gap-2">
-          <Plus className="h-4 w-4" /> Novo Plano
-        </Button>
-      </div>
+      {canManage && (
+        <div className="flex justify-end">
+          <Button onClick={onNewPlan} className="gap-2">
+            <Plus className="h-4 w-4" /> Novo Plano
+          </Button>
+        </div>
+      )}
 
       {plans.length === 0 ? (
         <div className="text-center py-20 bg-muted/20 rounded-xl border border-dashed border-muted-foreground/20">
@@ -169,27 +172,29 @@ export function PlansTab({ companyId, onEditPlan, onNewPlan }: PlansTabProps) {
                       )}
                       {plan.is_active ? 'Ativo' : 'Inativo'}
                     </Badge>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                          <MoreVertical className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => onEditPlan(plan)} className="gap-2">
-                          <Edit className="h-4 w-4" /> Editar
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => togglePlanStatus(plan)} className="gap-2">
-                          <Power className="h-4 w-4" /> {plan.is_active ? 'Desativar' : 'Ativar'}
-                        </DropdownMenuItem>
-                        <DropdownMenuItem 
-                          onClick={() => { setPlanToDelete(plan); setIsDeleteDialogOpen(true); }} 
-                          className="gap-2 text-destructive focus:text-destructive"
-                        >
-                          <Trash2 className="h-4 w-4" /> Excluir
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+                    {canManage && (
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                            <MoreVertical className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => onEditPlan(plan)} className="gap-2">
+                            <Edit className="h-4 w-4" /> Editar
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => togglePlanStatus(plan)} className="gap-2">
+                            <Power className="h-4 w-4" /> {plan.is_active ? 'Desativar' : 'Ativar'}
+                          </DropdownMenuItem>
+                          <DropdownMenuItem 
+                            onClick={() => { setPlanToDelete(plan); setIsDeleteDialogOpen(true); }} 
+                            className="gap-2 text-destructive focus:text-destructive"
+                          >
+                            <Trash2 className="h-4 w-4" /> Excluir
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    )}
                   </div>
                   <CardTitle className="text-xl font-bold">{plan.name}</CardTitle>
                 </CardHeader>

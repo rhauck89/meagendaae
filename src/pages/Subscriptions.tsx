@@ -27,7 +27,8 @@ const Subscriptions = () => {
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const [detailSubscriber, setDetailSubscriber] = useState<any>(null);
 
-  const { companyId } = useAuth();
+  const { companyId, isOwner, roles } = useAuth();
+  const canManagePlans = isOwner || roles.includes('super_admin');
 
   // Plan Handlers
   const handleEditPlan = (plan: any) => {
@@ -86,9 +87,11 @@ const Subscriptions = () => {
         </div>
         <div className="flex items-center gap-2">
           {activeTab === 'plans' ? (
-            <Button className="gap-2" onClick={handleNewPlan}>
-              <Plus className="h-4 w-4" /> Novo Plano
-            </Button>
+            canManagePlans && (
+              <Button className="gap-2" onClick={handleNewPlan}>
+                <Plus className="h-4 w-4" /> Novo Plano
+              </Button>
+            )
           ) : (
             <Button className="gap-2" onClick={handleNewSubscription}>
               <Plus className="h-4 w-4" /> Novo Assinante
@@ -118,7 +121,14 @@ const Subscriptions = () => {
         </TabsContent>
 
         <TabsContent value="plans" className="focus-visible:outline-none">
-          {companyId && <PlansTab companyId={companyId} onEditPlan={handleEditPlan} onNewPlan={handleNewPlan} />}
+          {companyId && (
+            <PlansTab 
+              companyId={companyId} 
+              onEditPlan={handleEditPlan} 
+              onNewPlan={handleNewPlan}
+              canManage={canManagePlans}
+            />
+          )}
         </TabsContent>
 
         <TabsContent value="subscribers" className="focus-visible:outline-none">

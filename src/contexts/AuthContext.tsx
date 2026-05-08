@@ -16,6 +16,7 @@ interface AuthContextType {
   setLoginMode: (mode: LoginMode) => void;
   isAlsoCollaborator: boolean;
   isAdmin: boolean;
+  isOwner: boolean;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
   updateAuthState: (session: Session | null) => Promise<void>;
@@ -33,6 +34,7 @@ const AuthContext = createContext<AuthContextType>({
   setLoginMode: () => {},
   isAlsoCollaborator: false,
   isAdmin: false,
+  isOwner: false,
   signOut: async () => {},
   refreshProfile: async () => {},
   updateAuthState: async () => {},
@@ -49,6 +51,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [roles, setRoles] = useState<string[]>([]);
   const [loginMode, setLoginModeState] = useState<LoginMode>(null);
   const [isAlsoCollaborator, setIsAlsoCollaborator] = useState(false);
+  const [isOwner, setIsOwner] = useState(false);
   const authLockRef = useRef<Promise<void>>(Promise.resolve());
   const stateRef = useRef({
     userId: null as string | null,
@@ -186,6 +189,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
       
       setIsAlsoCollaborator(ctx.is_collaborator || false);
+      setIsOwner(ctx.is_owner || false);
       stateRef.current.hasContext = true;
 
       console.log("[AUTH_CONTEXT_DIAG] State updated successfully. Changed:", { profileChanged, companyChanged, rolesChanged });
@@ -243,6 +247,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setRoles([]);
         setLoginModeState(null);
         setIsAlsoCollaborator(false);
+        setIsOwner(false);
       }
     } catch (error) {
       console.error('[AUTH_CONTEXT] Error in updateAuthState:', error);
@@ -326,6 +331,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setProfile(null);
     setCompanyId(null);
     setRoles([]);
+    setIsOwner(false);
     
     window.location.replace('/');
   };
@@ -350,6 +356,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       companyId, 
       roles, 
       isAdmin,
+      isOwner,
       loginMode, 
       setLoginMode, 
       isAlsoCollaborator, 
