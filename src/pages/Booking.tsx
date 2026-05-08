@@ -3791,11 +3791,18 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                 </div>
 
                 {subscriptionDiscount > 0 && (
-                  <div className="flex justify-between items-center text-xs font-bold text-amber-500 uppercase tracking-widest">
-                    <span className="flex items-center gap-1">
-                      <ShieldCheck className="h-3 w-3" /> Benefício Assinatura ({subBenefit?.plan_name})
-                    </span>
-                    <p>- R$ {subscriptionDiscount.toFixed(2)}</p>
+                  <div className="flex flex-col gap-1 py-1">
+                    <div className="flex justify-between items-center text-xs font-bold text-amber-500 uppercase tracking-widest">
+                      <span className="flex items-center gap-1">
+                        <ShieldCheck className="h-3 w-3" /> Benefício Assinatura ({subBenefit?.plan_name})
+                      </span>
+                      <p>- R$ {subscriptionDiscount.toFixed(2).replace('.', ',')}</p>
+                    </div>
+                    {subBenefit?.usage_limit && (
+                      <p className="text-[9px] text-amber-500/60 font-black uppercase text-right tracking-widest">
+                        Uso: {subBenefit.usage_used + 1}/{subBenefit.usage_limit}
+                      </p>
+                    )}
                   </div>
                 )}
 
