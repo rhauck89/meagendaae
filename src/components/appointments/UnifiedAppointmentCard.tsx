@@ -182,7 +182,9 @@ export function UnifiedAppointmentCard({
                   {clientName}
                 </p>
                 <div className="flex gap-0.5 ml-1">
-                  {apt.promotion_id && (
+                  {isSubscription ? (
+                    <span className="text-[10px]" title={`Assinante: ${subscriptionPlanName}`}>👑</span>
+                  ) : apt.promotion_id && (
                     <span className="text-[10px]" title="Promoção">🏷️</span>
                   )}
                   {cashbackUsed > 0 && apt.status !== 'cancelled' && apt.status !== 'no_show' && (
