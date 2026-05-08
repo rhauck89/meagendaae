@@ -439,26 +439,83 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
   }, [selectedTime, selectedDate, publicPromotions, selectedServices, selectedProfessional, bookingTimezone, company?.id]);
 
   const validateSubscription = async () => {
-    if (!savedClientId || !selectedProfessional || selectedServices.length === 0 || !company?.id) {
+    // PUBLIC_SUBSCRIPTION_BOOKING_DEBUG: Identification values
+    const whatsappInput = clientForm.whatsapp || "";
+    const normalizedWhatsapp = normalizePhone(whatsappInput);
+    const localIdentityStr = localStorage.getItem(`whatsapp_session_${company?.id}`);
+    let localWhatsapp = "";
+    if (localIdentityStr) {
+      try {
+        const parsed = JSON.parse(localIdentityStr);
+        localWhatsapp = normalizePhone(parsed.whatsapp || "");
+      } catch (e) { /* ignore */ }
+    }
+    
+    const targetWhatsapp = normalizedWhatsapp || localWhatsapp;
+    
+    console.log('[PUBLIC_SUBSCRIPTION_BOOKING_DEBUG] validateSubscription triggered', {
+      savedClientId,
+      whatsappInput,
+      normalizedWhatsapp,
+      localWhatsapp,
+      targetWhatsapp,
+      selectedProfessional,
+      selectedServices,
+      companyId: company?.id
+    });
+
+    if (!selectedProfessional || selectedServices.length === 0 || !company?.id) {
+      console.log('[PUBLIC_SUBSCRIPTION_BOOKING_DEBUG] Missing context for subscription check', {
+        prof: !!selectedProfessional,
+        svcs: selectedServices.length,
+        company: !!company?.id
+      });
+      setSubBenefit(null);
+      return;
+    }
+
+    if (!savedClientId && !targetWhatsapp) {
+      console.log('[PUBLIC_SUBSCRIPTION_BOOKING_DEBUG] No client identifier available (id or whatsapp)');
       setSubBenefit(null);
       return;
     }
 
     setValidatingSub(true);
     try {
-      console.log('[BOOKING_SUB_VALIDATION] Validating subscription benefit for client:', savedClientId);
-      const { data, error } = await supabase.rpc('check_subscription_benefit', {
+      console.log('[PUBLIC_SUBSCRIPTION_BOOKING_DEBUG] Calling check_subscription_benefit', {
         p_company_id: company.id,
         p_client_id: savedClientId,
+        p_whatsapp: targetWhatsapp,
+        p_professional_id: selectedProfessional,
+        p_service_ids: selectedServices
+      });
+
+      const { data, error } = await supabase.rpc('check_subscription_benefit', {
+        p_company_id: company.id,
+        p_client_id: savedClientId || null,
+        p_whatsapp: targetWhatsapp || null,
         p_professional_id: selectedProfessional,
         p_service_ids: selectedServices,
         p_date: selectedDate ? format(selectedDate, 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd')
-      });
+      } as any);
+
       if (error) throw error;
-      console.log('[BOOKING_SUB_VALIDATION] Benefit data:', data);
+      
+      console.log('[PUBLIC_SUBSCRIPTION_BOOKING_DEBUG] RPC Return:', data);
+      
+      if (data) {
+        console.log('[PUBLIC_SUBSCRIPTION_BOOKING_DEBUG] Benefit result:', {
+          applied: data.applied,
+          plan: data.plan_name,
+          reason: data.reason,
+          discount: data.total_discount,
+          usage: `${data.usage_used}/${data.usage_limit}`
+        });
+      }
+
       setSubBenefit(data);
     } catch (err) {
-      console.error('[BOOKING_SUB_VALIDATION] Error validating sub:', err);
+      console.error('[PUBLIC_SUBSCRIPTION_BOOKING_DEBUG] Error validating sub:', err);
       setSubBenefit(null);
     } finally {
       setValidatingSub(false);
@@ -467,7 +524,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
 
   useEffect(() => {
     validateSubscription();
-  }, [savedClientId, selectedProfessional, selectedServices, selectedDate, company?.id]);
+  }, [savedClientId, selectedProfessional, selectedServices, selectedDate, company?.id, clientForm.whatsapp]);
 
   // Identify the best applicable promotion for the current selection
   const activePromo = useMemo(() => {
