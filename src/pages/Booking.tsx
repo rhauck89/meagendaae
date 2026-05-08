@@ -1583,21 +1583,43 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
     .filter((s) => selectedServices.includes(s.id))
     .reduce((sum, s) => sum + Number(s.price), 0);
 
+  const subscriptionDiscount = (() => {
+    if (!subBenefit?.applied || !subBenefit.covered_service_ids?.length) return 0;
+    
+    return services
+      .filter(s => selectedServices.includes(s.id) && subBenefit.covered_service_ids.includes(s.id))
+      .reduce((sum, s) => sum + Number(s.price), 0);
+  })();
+
   const totalPrice = (() => {
     // Cashback promos: client pays full price — no discount applied
     if (isCashbackPromo) {
       return services.filter((s) => selectedServices.includes(s.id)).reduce((sum, s) => sum + Number(s.price), 0);
     }
+    
+    // Services covered by subscription are 0.00
+    const servicesToCalculate = services.filter(s => {
+      const isSelected = selectedServices.includes(s.id);
+      const isCoveredBySub = subBenefit?.applied && subBenefit.covered_service_ids?.includes(s.id);
+      return isSelected && !isCoveredBySub;
+    });
+
     if (!currentPromo) {
-      return services.filter((s) => selectedServices.includes(s.id)).reduce((sum, s) => sum + Number(s.price), 0);
+      return servicesToCalculate.reduce((sum, s) => sum + Number(s.price), 0);
     }
+
     const promoServiceIds = currentPromo.service_ids || (currentPromo.service_id ? [currentPromo.service_id] : []);
+    
     // For single-service fixed_price promos, use promotion_price directly
     if (currentPromo.discount_type === 'fixed_price' && currentPromo.promotion_price != null && promoServiceIds.length <= 1) {
+      // Note: If the only service is covered by subscription, we don't reach here 
+      // because servicesToCalculate would be empty. But just in case:
+      if (servicesToCalculate.length === 0) return 0;
       return Number(currentPromo.promotion_price);
     }
-    // For percentage/fixed_amount, calculate per service
-    return services.filter(s => selectedServices.includes(s.id)).reduce((sum, s) => {
+
+    // For percentage/fixed_amount, calculate per service only for those NOT covered by sub
+    return servicesToCalculate.reduce((sum, s) => {
       if (promoServiceIds.length === 0 || promoServiceIds.includes(s.id)) {
         const orig = Number(s.price);
         if (currentPromo.discount_type === 'percentage' && currentPromo.discount_value) {
