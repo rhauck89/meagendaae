@@ -78,6 +78,83 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     };
 
+    const recoverCompanyId = async (profileId?: string | null) => {
+      const { data: companiesData } = await withTimeout(
+        supabase.rpc('get_user_companies' as any) as any,
+        { data: [], error: null } as any,
+        4500
+      );
+
+      const companyFromMembership = Array.isArray(companiesData) && companiesData.length > 0
+        ? companiesData[0]?.company_id
+        : null;
+
+      if (companyFromMembership) {
+        await withTimeout(
+          supabase.rpc('switch_active_company' as any, { _company_id: companyFromMembership }) as any,
+          { data: null, error: null } as any,
+          4500
+        );
+        return companyFromMembership as string;
+      }
+
+      const [ownedRes, roleRes, collaboratorRes] = await Promise.all([
+        withTimeout(
+          supabase
+            .from('companies')
+            .select('id')
+            .eq('user_id', userId)
+            .limit(1)
+            .maybeSingle() as any,
+          { data: null, error: null } as any,
+          4500
+        ),
+        withTimeout(
+          supabase
+            .from('user_roles' as any)
+            .select('company_id')
+            .eq('user_id', userId)
+            .not('company_id', 'is', null)
+            .limit(1)
+            .maybeSingle() as any,
+          { data: null, error: null } as any,
+          4500
+        ),
+        profileId
+          ? withTimeout(
+              supabase
+                .from('collaborators')
+                .select('company_id')
+                .eq('profile_id', profileId)
+                .eq('active', true)
+                .limit(1)
+                .maybeSingle() as any,
+              { data: null, error: null } as any,
+              4500
+            )
+          : Promise.resolve({ data: null, error: null } as any),
+      ]);
+
+      const recoveredCompanyId =
+        ownedRes.data?.id ||
+        roleRes.data?.company_id ||
+        collaboratorRes.data?.company_id ||
+        null;
+
+      if (recoveredCompanyId) {
+        await withTimeout(
+          supabase
+            .from('profiles')
+            .update({ company_id: recoveredCompanyId })
+            .eq('user_id', userId) as any,
+          { data: null, error: null } as any,
+          4500
+        );
+      }
+
+      return recoveredCompanyId as string | null;
+    };
+
     try {
       console.log("[AUTH_DEBUG] Fetching context for user:", userId);
 
@@ -104,9 +181,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           { data: null, error: { message: 'profile fallback timeout' } } as any
         );
         if (profileData) {
+          const recoveredCompanyId = profileData.company_id || await recoverCompanyId(profileData.id);
           setProfile(profileData);
-          setCompanyId(profileData.company_id);
-          console.log("[AUTH_CONTEXT_DIAG] setCompanyId (fallback):", profileData.company_id);
+          setCompanyId(recoveredCompanyId);
+          console.log("[AUTH_CONTEXT_DIAG] setCompanyId (fallback):", recoveredCompanyId);
         }
         setLoading(false);
         return;
@@ -148,6 +226,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         } else {
           setLoading(false);
           return;
+        }
+      }
+
+      if (!ctx.company_id) {
+        const recoveredCompanyId = await recoverCompanyId(ctx.profile_id);
+        if (recoveredCompanyId) {
+          console.log("[AUTH_CONTEXT_DIAG] company_id recovered from membership:", recoveredCompanyId);
+          ctx = { ...ctx, company_id: recoveredCompanyId };
         }
       }
 
