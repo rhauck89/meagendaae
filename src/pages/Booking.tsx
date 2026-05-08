@@ -2320,6 +2320,27 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
         throw new Error('Falha ao processar agendamento. O servidor não retornou um ID.');
       }
       
+      // Register subscription usage if applicable
+      if (subBenefit?.applied && subBenefit.covered_service_ids?.length > 0) {
+        console.log('[BOOKING_SUB_USAGE] Registering usage for appointment:', appointmentId);
+        try {
+          const { error: usageError } = await supabase.rpc('register_subscription_usage_v1', {
+            p_company_id: company.id,
+            p_subscription_id: subBenefit.subscription_id,
+            p_appointment_id: appointmentId,
+            p_service_ids: subBenefit.covered_service_ids,
+            p_usage_date: format(selectedDate, 'yyyy-MM-dd')
+          });
+          if (usageError) {
+            console.error('[BOOKING_SUB_USAGE] Error registering usage:', usageError);
+          } else {
+            console.log('[BOOKING_SUB_USAGE] Usage registered successfully');
+          }
+        } catch (err) {
+          console.error('[BOOKING_SUB_USAGE] Fatal error registering usage:', err);
+        }
+      }
+      
       console.warn('[DOUBLE_BENEFIT_BOOKING_DEBUG_VISIBLE] appointment success', {
         appointmentId,
         benefitDetails: persistenceData
