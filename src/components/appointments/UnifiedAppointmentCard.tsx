@@ -450,7 +450,11 @@ export function UnifiedAppointmentCard({
                     <span className="text-muted-foreground line-through">
                       {formatBRL(originalPrice)}
                     </span>
-                    {promoDiscount > 0 && (
+                    {isSubscription ? (
+                      <span className="text-amber-600 font-medium">
+                        👑 Assinatura {subscriptionPlanName ? `- ${subscriptionPlanName}` : ''}
+                      </span>
+                    ) : promoDiscount > 0 && (
                       <span className="text-orange-600 font-medium">🏷️ Promoção -{formatBRL(promoDiscount)}</span>
                     )}
                     {cashbackUsed > 0 && (
