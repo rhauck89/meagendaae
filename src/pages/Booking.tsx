@@ -14,7 +14,7 @@ import { Scissors, Sparkles, Clock, DollarSign, ChevronRight, ChevronLeft, Check
 import { format, addMinutes, addDays, startOfDay, isSameDay, parseISO, startOfWeek, endOfWeek, eachDayOfInterval, addWeeks, subWeeks, isToday, startOfMonth, endOfMonth, eachMonthOfInterval, setMonth, getYear } from 'date-fns';
 import { fromZonedTime, toZonedTime } from 'date-fns-tz';
 import { sendAppointmentCreatedWebhook } from '@/lib/automations';
-import { isPromoActive, getBookingStatus, getPromoValidityStatus, isSlotEligible } from '@/lib/promotion-period';
+import { getBookingStatus, getPromoValidityStatus, isSlotEligible } from '@/lib/promotion-period';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -359,8 +359,18 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
     return selectedServices.some(sid => promoServiceIds.length === 0 || promoServiceIds.includes(sid));
   };
 
+  const isPromotionOpenForBooking = (promo: any) => {
+    const now = new Date();
+    const opensAt = promo?.booking_opens_at ? new Date(promo.booking_opens_at) : null;
+    const closesAt = promo?.booking_closes_at ? new Date(promo.booking_closes_at) : null;
+
+    if (opensAt && now < opensAt) return false;
+    if (closesAt && now > closesAt) return false;
+    return true;
+  };
+
   const isPromotionEligibleForSelection = (promo: any, slotDateTime: Date) => {
-    if (!isPromoActive(promo)) return false;
+    if (!isPromotionOpenForBooking(promo)) return false;
     if (!isSlotEligible(promo, slotDateTime)) return false;
     if (!promotionMatchesProfessional(promo)) return false;
     return promotionMatchesServices(promo);
@@ -557,7 +567,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
       if (!isValidType) return false;
       
       // Is it open for booking today?
-      const isBookingOpen = isPromoActive(promo);
+      const isBookingOpen = isPromotionOpenForBooking(promo);
       if (!isBookingOpen) return false;
 
       // Is the selected slot time within the promo's valid hours?
@@ -585,7 +595,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
     
     const cbPromos = publicPromotions.filter(promo => {
       if (promo.promotion_type !== 'cashback') return false;
-      if (!isPromoActive(promo)) return false;
+      if (!isPromotionOpenForBooking(promo)) return false;
       if (!isSlotEligible(promo, slotDateTime)) return false;
       
       if (!promotionMatchesProfessional(promo)) return false;
@@ -3336,7 +3346,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                           if (publicPromotions.length > 0 && selectedServices.length > 0) {
                             return publicPromotions.some(promo => {
                               if (promo.promotion_type === 'cashback') return false;
-                              if (!isPromoActive(promo)) return false;
+                              if (!isPromotionOpenForBooking(promo)) return false;
                               if (!isSlotEligible(promo, slotDateTime)) return false;
                               
                               const pServiceIds = promo.service_ids || (promo.service_id ? [promo.service_id] : []);
