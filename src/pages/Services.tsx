@@ -12,9 +12,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Pencil, Trash2, Clock, DollarSign, RefreshCw, Zap, Grid3X3, FolderPlus, Tag, CheckCircle2 } from 'lucide-react';
+import { Plus, Pencil, Trash2, Clock, DollarSign, RefreshCw, Zap, Grid3X3, FolderPlus, Tag, CheckCircle2, ChevronDown, ChevronUp, MoreVertical, Scissors, Briefcase } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+
 
 const NO_CATEGORY_VALUE = '__no_category__';
 const NO_GLOBAL_CATEGORY_VALUE = '__no_global_category__';
