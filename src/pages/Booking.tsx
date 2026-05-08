@@ -1618,43 +1618,43 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
     .filter((s) => selectedServices.includes(s.id))
     .reduce((sum, s) => sum + Number(s.price), 0);
 
-  const subscriptionDiscount = (() => {
-    if (!subBenefit?.benefit_applied || !subBenefit.covered_service_ids?.length) return 0;
-    
-    return services
-      .filter(s => selectedServices.includes(s.id) && subBenefit.covered_service_ids.includes(s.id))
-      .reduce((sum, s) => sum + Number(s.price), 0);
-  })();
+  const subscriptionCoveredServiceIds = useMemo(() => {
+    return new Set(subBenefit?.benefit_applied ? (subBenefit.covered_service_ids || []) : []);
+  }, [subBenefit]);
 
-  const totalPrice = (() => {
-    // Cashback promos: client pays full price — no discount applied
+  const hasSubscriptionCoverage = subscriptionCoveredServiceIds.size > 0;
+  const isFullyCoveredBySubscription = selectedServices.length > 0 && 
+    selectedServices.every(id => subscriptionCoveredServiceIds.has(id));
+
+  const subscriptionDiscount = useMemo(() => {
+    if (!hasSubscriptionCoverage) return 0;
+    return services
+      .filter(s => selectedServices.includes(s.id) && subscriptionCoveredServiceIds.has(s.id))
+      .reduce((sum, s) => sum + Number(s.price), 0);
+  }, [services, selectedServices, subscriptionCoveredServiceIds, hasSubscriptionCoverage]);
+
+  const paidServicesData = useMemo(() => {
+    return services.filter(s => selectedServices.includes(s.id) && !subscriptionCoveredServiceIds.has(s.id));
+  }, [services, selectedServices, subscriptionCoveredServiceIds]);
+
+  const totalPrice = useMemo(() => {
     if (isCashbackPromo) {
-      return services.filter((s) => selectedServices.includes(s.id)).reduce((sum, s) => sum + Number(s.price), 0);
+      return originalSubtotal;
     }
     
-    // Services covered by subscription are 0.00
-    const servicesToCalculate = services.filter(s => {
-      const isSelected = selectedServices.includes(s.id);
-      const isCoveredBySub = subBenefit?.benefit_applied && subBenefit.covered_service_ids?.includes(s.id);
-      return isSelected && !isCoveredBySub;
-    });
+    if (paidServicesData.length === 0) return 0;
 
     if (!currentPromo) {
-      return servicesToCalculate.reduce((sum, s) => sum + Number(s.price), 0);
+      return paidServicesData.reduce((sum, s) => sum + Number(s.price), 0);
     }
 
     const promoServiceIds = currentPromo.service_ids || (currentPromo.service_id ? [currentPromo.service_id] : []);
     
-    // For single-service fixed_price promos, use promotion_price directly
     if (currentPromo.discount_type === 'fixed_price' && currentPromo.promotion_price != null && promoServiceIds.length <= 1) {
-      // Note: If the only service is covered by subscription, we don't reach here 
-      // because servicesToCalculate would be empty. But just in case:
-      if (servicesToCalculate.length === 0) return 0;
       return Number(currentPromo.promotion_price);
     }
 
-    // For percentage/fixed_amount, calculate per service only for those NOT covered by sub
-    return servicesToCalculate.reduce((sum, s) => {
+    return paidServicesData.reduce((sum, s) => {
       if (promoServiceIds.length === 0 || promoServiceIds.includes(s.id)) {
         const orig = Number(s.price);
         if (currentPromo.discount_type === 'percentage' && currentPromo.discount_value) {
@@ -1667,41 +1667,33 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
       }
       return sum + Number(s.price);
     }, 0);
-  })();
+  }, [isCashbackPromo, originalSubtotal, paidServicesData, currentPromo]);
 
-  // Calculate cashback the client will EARN (not a discount)
-  const cashbackEarnAmount = (() => {
+  const promoDiscountAmount = Math.max(0, originalSubtotal - subscriptionDiscount - totalPrice);
+
+  const cashbackEarnAmount = useMemo(() => {
     let amount = 0;
-    // From promo-mode cashback
     if (isCashbackPromo && promoData) {
       const promoServiceIds = promoData.service_ids || (promoData.service_id ? [promoData.service_id] : []);
-      const promoServicesTotal = services
-        .filter(s => selectedServices.includes(s.id) && (promoServiceIds.length === 0 || promoServiceIds.includes(s.id)))
-        .reduce((sum, s) => sum + Number(s.price), 0);
+      // Apply ONLY to paid services (subscription services don't earn rewards)
+      const eligiblePaidServices = paidServicesData.filter(s => promoServiceIds.length === 0 || promoServiceIds.includes(s.id));
+      const eligibleTotal = eligiblePaidServices.reduce((sum, s) => sum + Number(s.price), 0);
+      
       if (promoData.discount_type === 'percentage' && promoData.discount_value) {
-        amount = promoServicesTotal * Number(promoData.discount_value) / 100;
+        amount = eligibleTotal * Number(promoData.discount_value) / 100;
       } else if (promoData.discount_type === 'fixed_amount' && promoData.discount_value) {
         amount = Number(promoData.discount_value);
       }
     } else if (!isPromoMode && autoCashbackPromos.length > 0 && selectedProfessional && selectedServices.length > 0) {
-      // Auto-detect from active cashback promotions
       for (const promo of autoCashbackPromos) {
-        if (promo.professional_filter === 'specific' && promo.professional_ids) {
-          if (!promo.professional_ids.includes(selectedProfessional)) continue;
-        }
+        const isProfMatch = promo.professional_filter === 'all' || promo.professional_ids?.includes(selectedProfessional || '') || (promo as any).professional_id === selectedProfessional;
+        if (!isProfMatch) continue;
+        
         const promoServiceIds = promo.service_ids || (promo.service_id ? [promo.service_id] : []);
-        const eligible = services
-          .filter(s => selectedServices.includes(s.id) && (promoServiceIds.length === 0 || promoServiceIds.includes(s.id)));
-        if (eligible.length === 0) continue;
-        
-        // SERVICES COVERED BY SUBSCRIPTION DO NOT EARN CASHBACK/POINTS
-        const nonCoveredEligible = eligible.filter(s => 
-          !subBenefit?.benefit_applied || !subBenefit.covered_service_ids?.includes(s.id)
-        );
-        
-        if (nonCoveredEligible.length === 0) continue;
+        const eligiblePaidServices = paidServicesData.filter(s => promoServiceIds.length === 0 || promoServiceIds.includes(s.id));
+        if (eligiblePaidServices.length === 0) continue;
 
-        const eligibleTotal = nonCoveredEligible.reduce((sum, s) => sum + Number(s.price), 0);
+        const eligibleTotal = eligiblePaidServices.reduce((sum, s) => sum + Number(s.price), 0);
         if (promo.discount_type === 'percentage' && promo.discount_value) {
           amount += eligibleTotal * Number(promo.discount_value) / 100;
         } else if (promo.discount_type === 'fixed_amount' && promo.discount_value) {
@@ -1710,73 +1702,37 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
       }
     }
 
-    // Check for double cashback incentive in any promotion attached to this slot.
     const promoWithIncentive = benefitPromoCandidates.find(p => getPromotionIncentiveConfig(p).type === 'double_cashback');
     const incentiveConfig = getPromotionIncentiveConfig(promoWithIncentive);
-    const multiplier = incentiveConfig.type === 'double_cashback' ? incentiveConfig.multiplier : 1;
+    const multiplier = incentiveConfig.type === 'double_cashback' ? (Number(incentiveConfig.multiplier) || 2) : 1;
     
-    const finalAmount = amount * multiplier;
+    return amount * multiplier;
+  }, [isCashbackPromo, promoData, paidServicesData, isPromoMode, autoCashbackPromos, selectedProfessional, selectedServices, benefitPromoCandidates]);
 
-    if (step === 'confirm' || step === 'success') {
-      console.warn('[DOUBLE_BENEFIT_BOOKING_DEBUG_VISIBLE] Cashback calculation', {
-        promotion_id: promoWithIncentive?.id || currentPromo?.id,
-        incentive_type: incentiveConfig?.type,
-        multiplier,
-        base_cashback: amount,
-        final_cashback: finalAmount,
-        step,
-        selectedTime,
-        selectedDate: selectedDate ? format(selectedDate, 'yyyy-MM-dd') : null
-      });
-    }
+  const cashbackDiscount = useMemo(() => {
+    return useCashback && totalPrice > 0 ? Math.min(cashbackTotal, totalPrice) : 0;
+  }, [useCashback, cashbackTotal, totalPrice]);
 
-    return finalAmount;
-  })();
-
-  const cashbackDiscount = useCashback ? Math.min(cashbackTotal, totalPrice) : 0;
   const finalPrice = Math.max(0, totalPrice - cashbackDiscount);
 
-  const predictedLoyaltyPoints = (() => {
-    const debug = (msg: string, extra = {}) => {
-      console.log(`[BOOKING_POINTS_PREVIEW_RENDER_DEBUG] ${msg}`, {
-        step,
-        loyaltyConfig: !!loyaltyConfig,
-        loyaltyEnabled: loyaltyConfig?.enabled,
-        selectedProfessional,
-        selectedServices: selectedServices.length,
-        ...extra
-      });
-    };
+  useEffect(() => {
+    if (totalPrice <= 0 && useCashback) {
+      setUseCashback(false);
+    }
+  }, [totalPrice, useCashback]);
 
-    if (!loyaltyConfig || !loyaltyConfig.enabled || !selectedProfessional || selectedServices.length === 0) {
-      debug('Early return 0', { 
-        config: !!loyaltyConfig, 
-        enabled: loyaltyConfig?.enabled,
-        prof: !!selectedProfessional,
-        services: selectedServices.length 
-      });
+  const predictedLoyaltyPoints = useMemo(() => {
+    if (!loyaltyConfig?.enabled || !selectedProfessional || selectedServices.length === 0) {
       return 0;
     }
     
-    // Check professional eligibility
     if (loyaltyConfig.participating_professionals === 'specific' && loyaltyConfig.specific_professional_ids) {
-      const isEligible = Array.isArray(loyaltyConfig.specific_professional_ids) && 
-                         loyaltyConfig.specific_professional_ids.includes(selectedProfessional);
-      if (!isEligible) {
-        debug('Professional not eligible', { selectedProfessional, allowed: loyaltyConfig.specific_professional_ids });
+      if (!Array.isArray(loyaltyConfig.specific_professional_ids) || !loyaltyConfig.specific_professional_ids.includes(selectedProfessional)) {
         return 0;
       }
     }
 
-    const selectedServicesData = services.filter(s => selectedServices.includes(s.id));
-    
-    // SERVICES COVERED BY SUBSCRIPTION DO NOT EARN CASHBACK/POINTS
-    const nonCoveredServices = selectedServicesData.filter(s => 
-      !subBenefit?.benefit_applied || !subBenefit.covered_service_ids?.includes(s.id)
-    );
-
-    // Check service eligibility
-    const eligibleServices = nonCoveredServices.filter(s => {
+    const eligiblePaidServices = paidServicesData.filter(s => {
       if (loyaltyConfig.participating_services === 'all') return true;
       if (loyaltyConfig.participating_services === 'specific' && Array.isArray(loyaltyConfig.specific_service_ids)) {
         return loyaltyConfig.specific_service_ids.includes(s.id);
@@ -1784,46 +1740,22 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
       return false;
     });
 
-    if (eligibleServices.length === 0) {
-      debug('No eligible services found', { 
-        totalSelected: selectedServicesData.length,
-        participating: loyaltyConfig.participating_services
-      });
-      return 0;
-    }
+    if (eligiblePaidServices.length === 0) return 0;
 
     let points = 0;
     if (loyaltyConfig.scoring_type === 'per_service') {
-      points = eligibleServices.length * (Number(loyaltyConfig.points_per_service) || 0);
+      points = eligiblePaidServices.length * (Number(loyaltyConfig.points_per_service) || 0);
     } else if (loyaltyConfig.scoring_type === 'per_value') {
-      const eligibleSubtotal = eligibleServices.reduce((sum, s) => sum + Number(s.price), 0);
-      const pointsPerCurrency = Number(loyaltyConfig.points_per_currency) || 0;
-      points = Math.floor(eligibleSubtotal * pointsPerCurrency);
-      debug('Calculating by value', { eligibleSubtotal, pointsPerCurrency, points });
+      const eligibleSubtotal = eligiblePaidServices.reduce((sum, s) => sum + Number(s.price), 0);
+      points = Math.floor(eligibleSubtotal * (Number(loyaltyConfig.points_per_currency) || 0));
     }
 
-    // Check for double points incentive in any promotion attached to this slot.
     const promoWithIncentive = benefitPromoCandidates.find(p => getPromotionIncentiveConfig(p).type === 'double_points');
     const incentiveConfig = getPromotionIncentiveConfig(promoWithIncentive);
-    const multiplier = incentiveConfig.type === 'double_points' ? incentiveConfig.multiplier : 1;
+    const multiplier = incentiveConfig.type === 'double_points' ? (Number(incentiveConfig.multiplier) || 2) : 1;
     
-    const finalPoints = points * multiplier;
-
-    if (step === 'confirm' || step === 'success') {
-      console.warn('[DOUBLE_BENEFIT_BOOKING_DEBUG_VISIBLE] Points calculation', {
-        promotion_id: promoWithIncentive?.id || currentPromo?.id,
-        incentive_type: incentiveConfig?.type,
-        multiplier,
-        base_points: points,
-        final_points: finalPoints,
-        step,
-        selectedTime,
-        selectedDate: selectedDate ? format(selectedDate, 'yyyy-MM-dd') : null
-      });
-    }
-
-    return finalPoints;
-  })();
+    return points * multiplier;
+  }, [loyaltyConfig, selectedProfessional, selectedServices, paidServicesData, benefitPromoCandidates]);
 
   const toggleService = (id: string) => {
     setSelectedServices((prev) =>
