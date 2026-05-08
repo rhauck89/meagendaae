@@ -365,17 +365,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
     return selectedServices.some(sid => promoServiceIds.length === 0 || promoServiceIds.includes(sid));
   };
 
-  // New persistence states for double benefits
-  const [appliedBenefitDetails, setAppliedBenefitDetails] = useState<{
-    cashbackBase: number;
-    cashbackFinal: number;
-    pointsBase: number;
-    pointsFinal: number;
-    promotionTitle: string | null;
-    promotionId: string | null;
-    incentiveType: string | null;
-    multiplier: number;
-  } | null>(null);
+  // ... removed duplicate state declaration
 
   useEffect(() => {
     const loadFullPromo = async () => {
