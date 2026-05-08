@@ -445,7 +445,7 @@ export function UnifiedAppointmentCard({
                 </p>
               )}
               <div className="flex flex-col items-end gap-0.5">
-                {totalDiscounts > 0 && (
+                {(totalDiscounts > 0 || isSubscription) && (
                   <div className="flex flex-col items-end text-[10px] space-y-0.5">
                     <span className="text-muted-foreground line-through">
                       {formatBRL(originalPrice)}
