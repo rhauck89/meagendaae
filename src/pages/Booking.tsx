@@ -1719,7 +1719,15 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
         const eligible = services
           .filter(s => selectedServices.includes(s.id) && (promoServiceIds.length === 0 || promoServiceIds.includes(s.id)));
         if (eligible.length === 0) continue;
-        const eligibleTotal = eligible.reduce((sum, s) => sum + Number(s.price), 0);
+        
+        // SERVICES COVERED BY SUBSCRIPTION DO NOT EARN CASHBACK/POINTS
+        const nonCoveredEligible = eligible.filter(s => 
+          !subBenefit?.benefit_applied || !subBenefit.covered_service_ids?.includes(s.id)
+        );
+        
+        if (nonCoveredEligible.length === 0) continue;
+
+        const eligibleTotal = nonCoveredEligible.reduce((sum, s) => sum + Number(s.price), 0);
         if (promo.discount_type === 'percentage' && promo.discount_value) {
           amount += eligibleTotal * Number(promo.discount_value) / 100;
         } else if (promo.discount_type === 'fixed_amount' && promo.discount_value) {
@@ -1788,8 +1796,13 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
 
     const selectedServicesData = services.filter(s => selectedServices.includes(s.id));
     
+    // SERVICES COVERED BY SUBSCRIPTION DO NOT EARN CASHBACK/POINTS
+    const nonCoveredServices = selectedServicesData.filter(s => 
+      !subBenefit?.benefit_applied || !subBenefit.covered_service_ids?.includes(s.id)
+    );
+
     // Check service eligibility
-    const eligibleServices = selectedServicesData.filter(s => {
+    const eligibleServices = nonCoveredServices.filter(s => {
       if (loyaltyConfig.participating_services === 'all') return true;
       if (loyaltyConfig.participating_services === 'specific' && Array.isArray(loyaltyConfig.specific_service_ids)) {
         return loyaltyConfig.specific_service_ids.includes(s.id);
