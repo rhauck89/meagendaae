@@ -1,17 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
-import {
-  Users,
-  DollarSign,
-  AlertCircle,
-  Calendar,
-  TrendingUp,
-  Clock,
-} from 'lucide-react';
-import { format, isToday, isThisWeek, parseISO, startOfMonth, endOfMonth, subMonths } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
+import { AlertCircle, Calendar, Clock, DollarSign, TrendingUp, Users } from 'lucide-react';
+import { endOfMonth, isThisWeek, isToday, parseISO, startOfMonth } from 'date-fns';
 
 interface SubscriptionsDashboardProps {
   companyId: string;
@@ -41,7 +32,6 @@ export function SubscriptionsDashboard({ companyId }: SubscriptionsDashboardProp
   const fetchStats = async () => {
     setLoading(true);
     try {
-      // 1. Get active subscribers and MRR
       const { data: subscribers } = await supabase
         .from('client_subscriptions')
         .select(`
@@ -59,15 +49,10 @@ export function SubscriptionsDashboard({ companyId }: SubscriptionsDashboardProp
         activeCount++;
         const monthlyPrice = Number(sub.subscription_plans?.price_monthly || 0);
         const yearlyPrice = Number(sub.subscription_plans?.price_yearly || 0);
-        
-        if (sub.billing_cycle === 'monthly') {
-          calculatedMrr += monthlyPrice;
-        } else {
-          calculatedMrr += (yearlyPrice / 12);
-        }
+
+        calculatedMrr += sub.billing_cycle === 'monthly' ? monthlyPrice : yearlyPrice / 12;
       });
 
-      // 2. Get charges stats
       const { data: charges } = await supabase
         .from('subscription_charges')
         .select('status, due_date, amount')
@@ -120,117 +105,90 @@ export function SubscriptionsDashboard({ companyId }: SubscriptionsDashboardProp
 
   const dashboardCards = [
     {
-      title: 'Assinantes Ativos',
+      title: 'Receita recorrente (MRR)',
+      value: `R$ ${stats.mrr.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`,
+      icon: DollarSign,
+      color: 'bg-violet-600',
+      description: 'Base mensal estimada',
+    },
+    {
+      title: 'Assinantes ativos',
       value: stats.activeSubscribers,
       icon: Users,
       color: 'bg-blue-500',
-      description: 'Total de assinaturas ativas',
+      description: 'Clientes recorrentes',
     },
     {
-      title: 'Receita Recorrente (MRR)',
-      value: `R$ ${stats.mrr.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`,
-      icon: TrendingUp,
-      color: 'bg-green-500',
-      description: 'Faturamento mensal estimado',
-    },
-    {
-      title: 'Previsto este Mês',
-      value: `R$ ${stats.previstoMes.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`,
-      icon: DollarSign,
-      color: 'bg-primary',
-      description: 'Total em cobranças este mês',
-    },
-    {
-      title: 'Em Atraso',
+      title: 'Em atraso',
       value: stats.overdueCount,
       icon: AlertCircle,
-      color: 'bg-destructive',
-      description: 'Cobranças vencidas pendentes',
+      color: 'bg-amber-500',
+      description: 'Cobranças pendentes',
+    },
+    {
+      title: 'Vencem esta semana',
+      value: stats.vencemSemana,
+      icon: Calendar,
+      color: 'bg-green-600',
+      description: `${stats.vencemHoje} vencem hoje`,
+    },
+    {
+      title: 'Crescimento',
+      value: '+0%',
+      icon: TrendingUp,
+      color: 'bg-teal-500',
+      description: 'vs mês anterior',
     },
   ];
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-5">
         {dashboardCards.map((card, i) => (
-          <Card key={i} className="border-none shadow-sm overflow-hidden">
-            <CardContent className="p-0">
-              <div className="p-6">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">{card.title}</p>
-                    <h3 className="text-2xl font-bold">{loading ? '...' : card.value}</h3>
-                  </div>
-                  <div className={`p-2 rounded-lg ${card.color} bg-opacity-10`}>
-                    <card.icon className={`h-5 w-5 ${card.color.replace('bg-', 'text-')}`} />
-                  </div>
+          <Card key={i} className="overflow-hidden rounded-2xl border-slate-200 bg-white shadow-sm">
+            <CardContent className="p-5">
+              <div className="flex items-start gap-4">
+                <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full ${card.color} text-white shadow-sm`}>
+                  <card.icon className="h-5 w-5" />
                 </div>
-                <p className="text-[10px] text-muted-foreground mt-2">{card.description}</p>
+                <div className="min-w-0">
+                  <p className="text-xs font-medium text-muted-foreground">{card.title}</p>
+                  <h3 className="mt-1 text-2xl font-bold tracking-tight">{loading ? '...' : card.value}</h3>
+                  <p className="mt-2 text-[11px] text-muted-foreground">{card.description}</p>
+                </div>
               </div>
-              <div className={`h-1 w-full ${card.color}`}></div>
             </CardContent>
           </Card>
         ))}
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <Card className="border-none shadow-sm bg-muted/10">
-          <CardContent className="p-6">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="p-2 rounded-full bg-amber-100">
-                <Clock className="h-5 w-5 text-amber-600" />
-              </div>
-              <h3 className="font-semibold text-lg">Alertas de Vencimento</h3>
+      <Card className="rounded-2xl border-slate-200 bg-white shadow-sm">
+        <CardContent className="p-5">
+          <div className="mb-4 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Clock className="h-5 w-5 text-amber-500" />
+              <h3 className="font-semibold">Alertas importantes</h3>
             </div>
-            <div className="space-y-4">
-              <div className="flex justify-between items-center p-3 bg-background rounded-lg border border-muted">
-                <div className="flex flex-col">
-                  <span className="text-sm font-medium">Vencem Hoje</span>
-                  <span className="text-xs text-muted-foreground">Cobranças pendentes</span>
-                </div>
-                <Badge variant={stats.vencemHoje > 0 ? "destructive" : "secondary"} className="text-sm px-3">
-                  {stats.vencemHoje}
-                </Badge>
-              </div>
-              <div className="flex justify-between items-center p-3 bg-background rounded-lg border border-muted">
-                <div className="flex flex-col">
-                  <span className="text-sm font-medium">Vencem esta Semana</span>
-                  <span className="text-xs text-muted-foreground">Próximos 7 dias</span>
-                </div>
-                <Badge variant="secondary" className="text-sm px-3">
-                  {stats.vencemSemana}
-                </Badge>
-              </div>
+            <button className="text-xs font-semibold text-violet-600">Ver todos alertas</button>
+          </div>
+          <div className="grid gap-4 md:grid-cols-3">
+            <div className="rounded-xl bg-slate-50 p-4">
+              <p className="text-sm font-semibold">{stats.vencemHoje} assinaturas vencem hoje</p>
+              <p className="mt-1 text-xs text-muted-foreground">Acesse para ver quais são</p>
             </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-none shadow-sm bg-muted/10">
-          <CardContent className="p-6">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="p-2 rounded-full bg-primary/10">
-                <Calendar className="h-5 w-5 text-primary" />
-              </div>
-              <h3 className="font-semibold text-lg">Resumo Mensal</h3>
+            <div className="rounded-xl bg-slate-50 p-4">
+              <p className="text-sm font-semibold">{stats.overdueCount} clientes com atraso</p>
+              <p className="mt-1 text-xs text-muted-foreground">Acompanhe tolerância e suspensão</p>
             </div>
-            <div className="space-y-4">
-              <p className="text-sm text-muted-foreground">
-                O faturamento de assinaturas representa uma base sólida para o seu negócio. 
-                Mantenha as cobranças em dia para garantir o fluxo de caixa.
+            <div className="rounded-xl bg-slate-50 p-4">
+              <p className="text-sm font-semibold">
+                R$ {stats.previstoMes.toLocaleString('pt-BR', { minimumFractionDigits: 2 })} previstos este mês
               </p>
-              <div className="pt-2">
-                <div className="flex justify-between text-xs mb-1">
-                  <span>Meta de Conversão</span>
-                  <span>75%</span>
-                </div>
-                <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
-                  <div className="bg-primary h-full w-[75%]"></div>
-                </div>
-              </div>
+              <p className="mt-1 text-xs text-muted-foreground">Receita recorrente prevista</p>
             </div>
-          </CardContent>
-        </Card>
-      </div>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }

@@ -16,7 +16,8 @@ import {
   User, 
   CalendarCheck,
   Building2,
-  Clock
+  Clock,
+  Crown
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -89,19 +90,6 @@ export function UnifiedAppointmentCard({
   const now = toZonedTime(new Date(), timezone);
   const isToday = isSameDay(startTime, now);
 
-  const isSubscription = 
-    apt.subscription_id || 
-    apt.subscriptionInfo?.benefit_applied || 
-    apt.subscription_info?.benefit_applied || 
-    (apt.subscription_usage && Array.isArray(apt.subscription_usage) && apt.subscription_usage.length > 0) ||
-    (typeof apt.notes === 'string' && (
-      apt.notes.toLowerCase().includes('benefício de assinatura') ||
-      apt.notes.toLowerCase().includes('coberto por assinatura') ||
-      apt.notes.toLowerCase().includes('coberto pela assinatura')
-    ));
-
-  const subscriptionPlanName = apt.subscription_info?.plan_name || apt.subscriptionInfo?.plan_name || '';
-
   const displayDateShort = isToday 
     ? 'HOJE' 
     : format(startTime, "d 'DE' MMM", { locale: ptBR }).toUpperCase();
@@ -139,6 +127,31 @@ export function UnifiedAppointmentCard({
   const manualDiscount = Number(apt.manual_discount || 0);
   const totalDiscounts = promoDiscount + cashbackUsed + manualDiscount;
 
+  const appointmentNotes = String(apt.notes || '');
+  const normalizedAppointmentNotes = appointmentNotes
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase();
+  const subscriptionMatch = appointmentNotes.match(/benef[ií]cio de assinatura:\s*([^|\n]+)/i);
+  const subscriptionPlanName =
+    apt.subscriptionInfo?.plan_name ||
+    apt.subscription_info?.plan_name ||
+    apt.subscription_usage?.[0]?.subscription?.plan?.name ||
+    subscriptionMatch?.[1]?.trim();
+  const isSubscriptionAppointment = Boolean(
+    apt.subscription_id ||
+    apt.subscriptionInfo?.benefit_applied ||
+    apt.subscription_info?.benefit_applied ||
+    (Array.isArray(apt.subscription_usage) && apt.subscription_usage.length > 0) ||
+    normalizedAppointmentNotes.includes('beneficio de assinatura') ||
+    normalizedAppointmentNotes.includes('coberto pela assinatura') ||
+    normalizedAppointmentNotes.includes('coberto por assinatura') ||
+    subscriptionMatch
+  );
+  const subscriptionCardStyle =
+    'bg-gradient-to-r from-amber-50 via-white to-amber-50/70 border-l-amber-500 ring-1 ring-amber-200 shadow-[0_12px_32px_rgba(245,158,11,0.18)]';
+  const subscriptionStripeStyle = 'bg-amber-500';
+
   const formatBRL = (val: number) => new Intl.NumberFormat('pt-BR', {
     style: 'currency',
     currency: 'BRL'
@@ -154,9 +167,7 @@ export function UnifiedAppointmentCard({
         whileTap={{ scale: 0.99 }}
         className={cn(
           "relative flex flex-col gap-2 p-3 rounded-xl border transition-all cursor-pointer shadow-sm",
-          isSubscription 
-            ? "bg-gradient-to-r from-amber-50 via-white to-amber-50/70 border-l-amber-500 ring-1 ring-amber-200 shadow-[0_4px_12px_-3px_rgba(251,191,36,0.15)]"
-            : (statusCardStyles[displayStatus] || 'bg-card'),
+          isSubscriptionAppointment ? subscriptionCardStyle : (statusCardStyles[displayStatus] || 'bg-card'),
           isHighlighted && 'ring-2 ring-primary shadow-lg',
           "group overflow-hidden",
           className
@@ -166,7 +177,7 @@ export function UnifiedAppointmentCard({
         {/* Left Indicator Stripe */}
         <div className={cn(
           "absolute left-0 top-0 bottom-0 w-1",
-          isSubscription ? "bg-amber-500" : (statusColors[displayStatus] || 'bg-muted')
+          isSubscriptionAppointment ? subscriptionStripeStyle : (statusColors[displayStatus] || 'bg-muted')
         )} />
 
         <div className="flex items-center justify-between gap-2">
@@ -182,8 +193,8 @@ export function UnifiedAppointmentCard({
                   {clientName}
                 </p>
                 <div className="flex gap-0.5 ml-1">
-                  {isSubscription ? (
-                    <span className="text-[10px]" title={`Assinante: ${subscriptionPlanName}`}>👑</span>
+                  {isSubscriptionAppointment ? (
+                    <span className="text-[10px]" title={subscriptionPlanName ? `Assinante: ${subscriptionPlanName}` : 'Assinante'}>👑</span>
                   ) : apt.promotion_id && (
                     <span className="text-[10px]" title="Promoção">🏷️</span>
                   )}
@@ -275,7 +286,7 @@ export function UnifiedAppointmentCard({
         <div className="pt-1 flex flex-col gap-0.5" onClick={(e) => e.stopPropagation()}>
           <div className="flex items-center justify-between gap-2">
             <div className="flex flex-col">
-              {(totalDiscounts > 0 || isSubscription) && (
+              {totalDiscounts > 0 && (
                 <span className="text-[9px] text-muted-foreground line-through decoration-muted-foreground/50">
                   {formatBRL(originalPrice)}
                 </span>
@@ -308,7 +319,12 @@ export function UnifiedAppointmentCard({
                     Confirmar
                   </Button>
                 ) : (
-                  <div className="h-8 flex items-center gap-1.5 rounded-lg bg-primary/10 text-primary border border-primary/20 font-bold uppercase tracking-wider text-[8px] px-2.5">
+                  <div className={cn(
+                    "h-8 flex items-center gap-1.5 rounded-lg border font-bold uppercase tracking-wider text-[8px] px-2.5",
+                    isSubscriptionAppointment
+                      ? "bg-amber-500/10 text-amber-800 border-amber-500/30"
+                      : "bg-primary/10 text-primary border-primary/20"
+                  )}>
                     <CalendarCheck className="h-3 w-3" />
                     {isPast ? 'Passado' : 'Confirmado'}
                   </div>
@@ -342,9 +358,7 @@ export function UnifiedAppointmentCard({
       id={`agenda-apt-${apt.id}`}
       className={cn(
         "relative flex flex-col gap-4 p-4 rounded-2xl border transition-all",
-        isSubscription 
-          ? "bg-gradient-to-r from-amber-50 via-white to-amber-50/70 border-l-amber-500 ring-1 ring-amber-200 shadow-[0_4px_15px_-3px_rgba(251,191,36,0.2)]"
-          : (statusCardStyles[displayStatus] || 'bg-card'),
+        isSubscriptionAppointment ? subscriptionCardStyle : (statusCardStyles[displayStatus] || 'bg-card'),
         isHighlighted && 'ring-2 ring-primary shadow-xl',
         "group overflow-hidden",
         className
@@ -354,7 +368,7 @@ export function UnifiedAppointmentCard({
       {/* Left Indicator Stripe */}
       <div className={cn(
         "absolute left-0 top-0 bottom-0 w-1.5",
-        isSubscription ? "bg-amber-500" : (statusColors[displayStatus] || 'bg-muted')
+        isSubscriptionAppointment ? subscriptionStripeStyle : (statusColors[displayStatus] || 'bg-muted')
       )} />
 
       <div className="flex justify-between items-start gap-1 sm:gap-3">
@@ -382,9 +396,14 @@ export function UnifiedAppointmentCard({
                   : clientName
                 }
               </h3>
-              {isSubscription ? (
-                <Badge variant="secondary" className="bg-amber-500/10 text-amber-600 border-none h-4 px-1.5 text-[9px] font-bold uppercase tracking-tighter">
-                  👑 ASSINANTE
+              {isSubscriptionAppointment ? (
+                <Badge
+                  variant="secondary"
+                  className="bg-amber-500/15 text-amber-700 border border-amber-500/25 h-5 px-1.5 text-[9px] font-black uppercase tracking-tighter shadow-sm"
+                  title={subscriptionPlanName ? `Plano: ${subscriptionPlanName}` : 'Agendamento coberto por assinatura'}
+                >
+                  <Crown className="mr-1 h-3 w-3 fill-amber-500 text-amber-600" />
+                  ASSINANTE
                 </Badge>
               ) : apt.promotion_id && (
                 <Badge variant="secondary" className="bg-orange-500/10 text-orange-600 border-none h-4 px-1 text-[9px] font-bold uppercase tracking-tighter">
@@ -445,17 +464,16 @@ export function UnifiedAppointmentCard({
                 </p>
               )}
               <div className="flex flex-col items-end gap-0.5">
-                {(totalDiscounts > 0 || isSubscription) && (
+                {totalDiscounts > 0 && (
                   <div className="flex flex-col items-end text-[10px] space-y-0.5">
                     <span className="text-muted-foreground line-through">
                       {formatBRL(originalPrice)}
                     </span>
-                    {isSubscription ? (
-                      <span className="text-amber-600 font-medium">
-                        👑 Assinatura {subscriptionPlanName ? `- ${subscriptionPlanName}` : ''}
-                      </span>
-                    ) : promoDiscount > 0 && (
+                    {promoDiscount > 0 && !isSubscriptionAppointment && (
                       <span className="text-orange-600 font-medium">🏷️ Promoção -{formatBRL(promoDiscount)}</span>
+                    )}
+                    {isSubscriptionAppointment && (
+                      <span className="text-amber-700 font-bold">👑 Assinatura{subscriptionPlanName ? ` - ${subscriptionPlanName}` : ''}</span>
                     )}
                     {cashbackUsed > 0 && (
                       <span className="text-blue-600 font-medium">💸 Cashback -{formatBRL(cashbackUsed)}</span>
@@ -590,7 +608,12 @@ export function UnifiedAppointmentCard({
                 Confirmar Agora
               </Button>
             ) : (
-              <div className="flex-1 h-10 sm:h-11 flex items-center justify-center gap-2 rounded-xl bg-primary/10 text-primary border border-primary/20 font-bold uppercase tracking-wider text-[10px] sm:text-xs">
+              <div className={cn(
+                "flex-1 h-10 sm:h-11 flex items-center justify-center gap-2 rounded-xl border font-bold uppercase tracking-wider text-[10px] sm:text-xs",
+                isSubscriptionAppointment
+                  ? "bg-amber-500/10 text-amber-800 border-amber-500/30"
+                  : "bg-primary/10 text-primary border-primary/20"
+              )}>
                 <CalendarCheck className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                 {isPast ? 'Agendamento Passado' : 'Confirmado'}
               </div>

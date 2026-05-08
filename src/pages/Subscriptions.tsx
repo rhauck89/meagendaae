@@ -1,8 +1,7 @@
 import { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Plus, Users, CreditCard, LayoutDashboard, Settings } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { PlansTab } from '@/components/subscriptions/PlansTab';
 import { PlanDialog } from '@/components/subscriptions/PlanDialog';
@@ -15,13 +14,16 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
 const Subscriptions = () => {
-  const [activeTab, setActiveTab] = useState('dashboard');
-  
-  // Plan State
+  const location = useLocation();
+  const activeSection =
+    location.pathname.endsWith('/plans') ? 'plans' :
+    location.pathname.endsWith('/charges') ? 'charges' :
+    location.pathname.endsWith('/subscribers') ? 'subscribers' :
+    'dashboard';
+
   const [isPlanDialogOpen, setIsPlanDialogOpen] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<any>(null);
-  
-  // Subscriber State
+
   const [isSubscriberDialogOpen, setIsSubscriberDialogOpen] = useState(false);
   const [selectedSubscription, setSelectedSubscription] = useState<any>(null);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
@@ -30,7 +32,12 @@ const Subscriptions = () => {
   const { companyId, isOwner, roles } = useAuth();
   const canManagePlans = isOwner || roles.includes('super_admin');
 
-  // Plan Handlers
+  const sectionLabel =
+    activeSection === 'plans' ? 'Planos' :
+    activeSection === 'charges' ? 'Cobranças' :
+    activeSection === 'subscribers' ? 'Assinantes' :
+    'Dashboard';
+
   const handleEditPlan = (plan: any) => {
     setSelectedPlan(plan);
     setIsPlanDialogOpen(true);
@@ -41,7 +48,6 @@ const Subscriptions = () => {
     setIsPlanDialogOpen(true);
   };
 
-  // Subscriber Handlers
   const handleEditSubscription = (sub: any) => {
     setSelectedSubscription(sub);
     setIsSubscriberDialogOpen(true);
@@ -67,10 +73,8 @@ const Subscriptions = () => {
 
       if (error) throw error;
       toast.success(`Status atualizado para ${status}`);
-      
-      // Refresh details
+
       setDetailSubscriber({ ...detailSubscriber, status });
-      // Refresh list
       window.dispatchEvent(new CustomEvent('refresh-subscribers'));
       window.dispatchEvent(new CustomEvent('refresh-subscription-dashboard'));
     } catch (error: any) {
@@ -79,107 +83,92 @@ const Subscriptions = () => {
   };
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto p-6">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h2 className="text-3xl font-display font-bold tracking-tight">Assinaturas</h2>
-          <p className="text-muted-foreground">Gerencie seus planos e clientes recorrentes.</p>
-        </div>
-        <div className="flex items-center gap-2">
-          {activeTab === 'plans' ? (
-            canManagePlans && (
-              <Button className="gap-2" onClick={handleNewPlan}>
+    <div className="min-h-full bg-slate-50/70">
+      <div className="mx-auto max-w-[1440px] space-y-6 p-4 sm:p-6">
+        <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
+          <div>
+            <h2 className="text-2xl sm:text-3xl font-display font-bold tracking-tight">Assinaturas</h2>
+            <div className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
+              <span>Início</span>
+              <span>›</span>
+              <span>Assinaturas</span>
+              <span>›</span>
+              <span className="font-medium text-foreground">{sectionLabel}</span>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            {(activeSection === 'plans' || activeSection === 'dashboard') && canManagePlans && (
+              <Button className="gap-2 bg-violet-600 hover:bg-violet-700 shadow-lg shadow-violet-600/20" onClick={handleNewPlan}>
                 <Plus className="h-4 w-4" /> Novo Plano
               </Button>
-            )
-          ) : (
-            <Button className="gap-2" onClick={handleNewSubscription}>
-              <Plus className="h-4 w-4" /> Novo Assinante
-            </Button>
-          )}
+            )}
+            {activeSection === 'subscribers' && (
+              <Button className="gap-2 bg-violet-600 hover:bg-violet-700 shadow-lg shadow-violet-600/20" onClick={handleNewSubscription}>
+                <Plus className="h-4 w-4" /> Novo Assinante
+              </Button>
+            )}
+          </div>
         </div>
+
+        {companyId && (activeSection === 'dashboard' || activeSection === 'subscribers') && (
+          <SubscriptionsDashboard companyId={companyId} />
+        )}
+
+        {companyId && (activeSection === 'dashboard' || activeSection === 'subscribers') && (
+          <SubscribersTab
+            companyId={companyId}
+            onEditSubscriber={handleEditSubscription}
+            onViewDetails={handleViewDetails}
+          />
+        )}
+
+        {companyId && activeSection === 'plans' && (
+          <PlansTab
+            companyId={companyId}
+            onEditPlan={handleEditPlan}
+            onNewPlan={handleNewPlan}
+            canManage={canManagePlans}
+          />
+        )}
+
+        {companyId && activeSection === 'charges' && <ChargesTab companyId={companyId} />}
+
+        {companyId && (
+          <>
+            <PlanDialog
+              open={isPlanDialogOpen}
+              onOpenChange={setIsPlanDialogOpen}
+              companyId={companyId}
+              plan={selectedPlan}
+              onSuccess={() => {
+                window.dispatchEvent(new CustomEvent('refresh-subscription-plans'));
+                window.dispatchEvent(new CustomEvent('refresh-subscription-dashboard'));
+              }}
+            />
+            <SubscriberDialog
+              open={isSubscriberDialogOpen}
+              onOpenChange={setIsSubscriberDialogOpen}
+              companyId={companyId}
+              subscription={selectedSubscription}
+              onSuccess={() => {
+                window.dispatchEvent(new CustomEvent('refresh-subscribers'));
+                window.dispatchEvent(new CustomEvent('refresh-subscription-dashboard'));
+              }}
+            />
+            <SubscriberDetailsDrawer
+              open={isDetailsOpen}
+              onOpenChange={setIsDetailsOpen}
+              subscriber={detailSubscriber}
+              onStatusUpdate={handleStatusUpdate}
+              onEdit={() => {
+                setIsDetailsOpen(false);
+                handleEditSubscription(detailSubscriber);
+              }}
+            />
+          </>
+        )}
       </div>
-
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full space-y-6">
-        <TabsList className="grid grid-cols-4 w-full md:w-[600px] h-12 p-1 bg-muted/50">
-          <TabsTrigger value="dashboard" className="gap-2 h-10 data-[state=active]:bg-background data-[state=active]:shadow-sm">
-            <LayoutDashboard className="h-4 w-4" /> Dashboard
-          </TabsTrigger>
-          <TabsTrigger value="plans" className="gap-2 h-10 data-[state=active]:bg-background data-[state=active]:shadow-sm">
-            <Settings className="h-4 w-4" /> Planos
-          </TabsTrigger>
-          <TabsTrigger value="subscribers" className="gap-2 h-10 data-[state=active]:bg-background data-[state=active]:shadow-sm">
-            <Users className="h-4 w-4" /> Assinantes
-          </TabsTrigger>
-          <TabsTrigger value="charges" className="gap-2 h-10 data-[state=active]:bg-background data-[state=active]:shadow-sm">
-            <CreditCard className="h-4 w-4" /> Cobranças
-          </TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="dashboard" className="space-y-6 focus-visible:outline-none">
-          {companyId && <SubscriptionsDashboard companyId={companyId} />}
-        </TabsContent>
-
-        <TabsContent value="plans" className="focus-visible:outline-none">
-          {companyId && (
-            <PlansTab 
-              companyId={companyId} 
-              onEditPlan={handleEditPlan} 
-              onNewPlan={handleNewPlan}
-              canManage={canManagePlans}
-            />
-          )}
-        </TabsContent>
-
-        <TabsContent value="subscribers" className="focus-visible:outline-none">
-          {companyId && (
-            <SubscribersTab 
-              companyId={companyId} 
-              onEditSubscriber={handleEditSubscription}
-              onViewDetails={handleViewDetails}
-            />
-          )}
-        </TabsContent>
-
-        <TabsContent value="charges" className="focus-visible:outline-none">
-          {companyId && <ChargesTab companyId={companyId} />}
-        </TabsContent>
-      </Tabs>
-
-      {companyId && (
-        <>
-          <PlanDialog
-            open={isPlanDialogOpen}
-            onOpenChange={setIsPlanDialogOpen}
-            companyId={companyId}
-            plan={selectedPlan}
-            onSuccess={() => {
-              window.dispatchEvent(new CustomEvent('refresh-subscription-plans'));
-              window.dispatchEvent(new CustomEvent('refresh-subscription-dashboard'));
-            }}
-          />
-          <SubscriberDialog
-            open={isSubscriberDialogOpen}
-            onOpenChange={setIsSubscriberDialogOpen}
-            companyId={companyId}
-            subscription={selectedSubscription}
-            onSuccess={() => {
-              window.dispatchEvent(new CustomEvent('refresh-subscribers'));
-              window.dispatchEvent(new CustomEvent('refresh-subscription-dashboard'));
-            }}
-          />
-          <SubscriberDetailsDrawer
-            open={isDetailsOpen}
-            onOpenChange={setIsDetailsOpen}
-            subscriber={detailSubscriber}
-            onStatusUpdate={handleStatusUpdate}
-            onEdit={() => {
-              setIsDetailsOpen(false);
-              handleEditSubscription(detailSubscriber);
-            }}
-          />
-        </>
-      )}
     </div>
   );
 };

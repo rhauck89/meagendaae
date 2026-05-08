@@ -11,7 +11,7 @@ import {
   PartyPopper, Megaphone, MessageSquare, ChevronDown, Building2, Clock, Zap, Palette, Globe, CreditCard, Bell, HelpCircle, Info, AlertTriangle, Lock,
   DollarSign, ArrowUpDown, TrendingUp, TrendingDown, FolderOpen, Percent, FileBarChart, Receipt, HandCoins,
   ChevronsLeft, ChevronsRight, Inbox, Crown, Scissors as ScissorsIcon, ArrowLeftRight, Star,
-  ClipboardList
+  ClipboardList, LayoutDashboard
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useState, useEffect, useCallback } from 'react';
@@ -39,7 +39,6 @@ const adminNavItems = [
   { href: '/dashboard/team', icon: Users, label: 'Equipe' },
   { href: '/dashboard/clients', icon: UserCheck, label: 'Clientes' },
   { href: '/dashboard/whatsapp', icon: MessageSquare, label: 'WhatsApp Center' },
-  { href: '/dashboard/subscriptions', icon: ClipboardList, label: 'Assinaturas' },
   { href: '/dashboard/events', icon: PartyPopper, label: 'Agenda Aberta' },
   { href: '/dashboard/promotions', icon: Megaphone, label: 'Promoções' },
   { href: '/dashboard/loyalty', icon: Star, label: 'Fidelidade' },
@@ -70,6 +69,13 @@ const financeSubItems = [
   { href: '/dashboard/finance/payables', icon: Receipt, label: 'Contas a Pagar' },
   { href: '/dashboard/finance/receivables', icon: HandCoins, label: 'Contas a Receber' },
   { href: '/dashboard/finance/reports', icon: FileBarChart, label: 'Relatórios' },
+];
+
+const subscriptionSubItems = [
+  { href: '/dashboard/subscriptions', icon: LayoutDashboard, label: 'Dashboard' },
+  { href: '/dashboard/subscriptions/subscribers', icon: Users, label: 'Assinantes' },
+  { href: '/dashboard/subscriptions/plans', icon: ClipboardList, label: 'Planos' },
+  { href: '/dashboard/subscriptions/charges', icon: CreditCard, label: 'Cobranças' },
 ];
 
 const professionalFinanceSubItems = [
@@ -109,9 +115,11 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
 
   const isSettingsActive = location.pathname.startsWith('/dashboard/settings');
   const isFinanceActive = location.pathname.startsWith('/dashboard/finance');
+  const isSubscriptionsActive = location.pathname.startsWith('/dashboard/subscriptions');
   const isProfessionalFinanceActive = location.pathname.startsWith('/dashboard/my-finance');
   const [settingsOpen, setSettingsOpen] = useState(isSettingsActive);
   const [financeOpen, setFinanceOpen] = useState(isFinanceActive);
+  const [subscriptionsOpen, setSubscriptionsOpen] = useState(isSubscriptionsActive);
   const [professionalFinanceOpen, setProfessionalFinanceOpen] = useState(isProfessionalFinanceActive);
   const [companyRecoveryLoading, setCompanyRecoveryLoading] = useState(false);
   const [companyRecoveryChecked, setCompanyRecoveryChecked] = useState(false);
@@ -443,6 +451,10 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
       const sub = financeSubItems.find(i => location.pathname === i.href);
       return sub ? `Financeiro / ${sub.label}` : 'Financeiro';
     }
+    if (isSubscriptionsActive) {
+      const sub = subscriptionSubItems.find(i => location.pathname === i.href);
+      return sub ? `Assinaturas / ${sub.label}` : 'Assinaturas';
+    }
     if (isProfessionalFinanceActive) {
       const sub = professionalFinanceSubItems.find(i => location.pathname === i.href);
       return sub ? `Financeiro / ${sub.label}` : 'Financeiro';
@@ -557,9 +569,12 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
 
             {/* Navigation */}
             <nav className="flex-1 px-3 space-y-1 overflow-y-auto sidebar-nav">
-              {navItems.map(item => renderNavLink(item, item.href === '/dashboard/solicitacoes' ? pendingRequests : undefined))}
-
-
+              {navItems.map(item => (
+                <div key={item.href}>
+                  {isAdmin && item.href === '/dashboard/events' && renderCollapsibleGroup('Assinaturas', ClipboardList, isSubscriptionsActive, subscriptionsOpen, setSubscriptionsOpen, subscriptionSubItems)}
+                  {renderNavLink(item, item.href === '/dashboard/solicitacoes' ? pendingRequests : undefined)}
+                </div>
+              ))}
               {isAdmin && renderCollapsibleGroup('Financeiro', DollarSign, isFinanceActive, financeOpen, setFinanceOpen, financeSubItems)}
               {isAdmin && renderCollapsibleGroup('ConfiguraÃ§Ãµes', Settings, isSettingsActive, settingsOpen, setSettingsOpen, settingsSubItems)}
 
