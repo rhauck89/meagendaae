@@ -340,7 +340,9 @@ export function UnifiedAppointmentCard({
       id={`agenda-apt-${apt.id}`}
       className={cn(
         "relative flex flex-col gap-4 p-4 rounded-2xl border transition-all",
-        statusCardStyles[displayStatus] || 'bg-card',
+        isSubscription 
+          ? "bg-gradient-to-r from-amber-50 via-white to-amber-50/70 border-l-amber-500 ring-1 ring-amber-200 shadow-[0_4px_15px_-3px_rgba(251,191,36,0.2)]"
+          : (statusCardStyles[displayStatus] || 'bg-card'),
         isHighlighted && 'ring-2 ring-primary shadow-xl',
         "group overflow-hidden",
         className
@@ -350,7 +352,7 @@ export function UnifiedAppointmentCard({
       {/* Left Indicator Stripe */}
       <div className={cn(
         "absolute left-0 top-0 bottom-0 w-1.5",
-        statusColors[displayStatus] || 'bg-muted'
+        isSubscription ? "bg-amber-500" : (statusColors[displayStatus] || 'bg-muted')
       )} />
 
       <div className="flex justify-between items-start gap-1 sm:gap-3">
