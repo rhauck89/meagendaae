@@ -3514,7 +3514,16 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                           <p className="text-[10px] font-bold opacity-40 uppercase tracking-tighter">{s.duration_minutes} min • Tratamento VIP</p>
                         </div>
                       </div>
-                      <p className="text-sm font-black" style={{ color: T.accent }}>R$ {Number(s.price).toFixed(2)}</p>
+                      <div className="text-right">
+                        {subBenefit?.applied && subBenefit.covered_service_ids?.includes(s.id) ? (
+                          <>
+                            <p className="text-xs line-through opacity-40 font-bold">R$ {Number(s.price).toFixed(2)}</p>
+                            <p className="text-sm font-black text-amber-500">R$ 0,00</p>
+                          </>
+                        ) : (
+                          <p className="text-sm font-black" style={{ color: T.accent }}>R$ {Number(s.price).toFixed(2)}</p>
+                        )}
+                      </div>
                     </div>
                   ))}
                 </div>
