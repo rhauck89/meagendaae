@@ -499,24 +499,27 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
         p_date: selectedDate ? format(selectedDate, 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd')
       } as any);
 
-      if (error) throw error;
+      if (error) {
+        console.error('[PUBLIC_SUBSCRIPTION_BOOKING_DEBUG] RPC error', error);
+        setSubBenefit(null);
+        return;
+      }
       
       console.log('[PUBLIC_SUBSCRIPTION_BOOKING_DEBUG] RPC Return:', data);
       
       if (data) {
         const result = data as any;
         console.log('[PUBLIC_SUBSCRIPTION_BOOKING_DEBUG] Benefit result:', {
-          applied: result.applied,
+          applied: result.benefit_applied,
           plan: result.plan_name,
           reason: result.reason,
-          discount: result.total_discount,
           usage: `${result.usage_used}/${result.usage_limit}`
         });
       }
 
       setSubBenefit(data);
     } catch (err) {
-      console.error('[PUBLIC_SUBSCRIPTION_BOOKING_DEBUG] Error validating sub:', err);
+      console.error('[PUBLIC_SUBSCRIPTION_BOOKING_DEBUG] RPC error', err);
       setSubBenefit(null);
     } finally {
       setValidatingSub(false);
