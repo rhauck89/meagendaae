@@ -2892,7 +2892,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                         </div>
                       </div>
                       <div className="text-right shrink-0">
-                        {subBenefit?.benefit_applied && subBenefit.covered_service_ids?.includes(svc.id) ? (
+                        {subscriptionCoveredServiceIds.has(svc.id) ? (
                           <div className="flex flex-col items-end">
                             <p className="text-xs line-through opacity-40 font-bold">R$ {Number(svc.price).toFixed(2)}</p>
                             <p className="font-black text-xl text-amber-500">R$ 0,00</p>
