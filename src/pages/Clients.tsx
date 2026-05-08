@@ -13,8 +13,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Search, MessageCircle, Users, ArrowLeft, Calendar, DollarSign, Star, Scissors, Cake, Pencil, UserPlus, Ban, ShieldCheck, ArrowUpDown, ArrowUp, ArrowDown, CalendarCheck, Crown, Info } from 'lucide-react';
-import { format, parseISO, startOfMonth, isSameMonth } from 'date-fns';
+import { Calendar as DateCalendar } from '@/components/ui/calendar';
+import { Search, MessageCircle, Users, ArrowLeft, Calendar, DollarSign, Star, Scissors, Cake, Pencil, UserPlus, Ban, ShieldCheck, ArrowUpDown, ArrowUp, ArrowDown, CalendarCheck, Crown, Info, CreditCard, Activity, CheckCircle2, AlertCircle, Clock } from 'lucide-react';
+import { format, parseISO, isSameMonth, isSameDay, differenceInCalendarDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { displayWhatsApp, formatWhatsApp, openWhatsApp, normalizePhone } from '@/lib/whatsapp';
 import { toast } from 'sonner';
@@ -795,6 +796,7 @@ const ClientProfile = ({ client, companyId, profileMap, onBack }: ClientProfileP
   const { refresh } = useRefreshData();
   const [editOpen, setEditOpen] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [selectedHistoryDate, setSelectedHistoryDate] = useState<Date | undefined>(undefined);
   const [editForm, setEditForm] = useState({
     name: client.name,
     whatsapp: client.whatsapp || '',
@@ -852,6 +854,43 @@ const ClientProfile = ({ client, companyId, profileMap, onBack }: ClientProfileP
     },
   });
 
+  // Fetch subscription details for this client using the same source as Assinaturas > Assinantes.
+  const { data: clientSubscription } = useQuery({
+    queryKey: ['client-detail-subscription', client.id, companyId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('client_subscriptions')
+        .select(`
+          *,
+          subscription_plans(id, name, price_monthly, price_yearly, type, usage_limit, included_services),
+          professional:profiles(full_name),
+          charges:subscription_charges(id, status, due_date, amount, paid_at, charge_number),
+          usage:subscription_usage(id, usage_date, appointment_id, service_id)
+        `)
+        .eq('company_id', companyId)
+        .eq('client_id', client.id)
+        .in('status', ['active', 'past_due', 'suspended', 'cancelled'])
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      return (data || []).find((sub: any) => ['active', 'past_due', 'suspended'].includes(sub.status)) || data?.[0] || null;
+    },
+  });
+
+  // Fetch loyalty points so the client detail mirrors the client portal/admin fidelity data.
+  const { data: loyaltyTransactions = [] } = useQuery({
+    queryKey: ['client-detail-loyalty-points', client.id, companyId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('loyalty_points_transactions')
+        .select('id, points, transaction_type, description, balance_after, created_at')
+        .eq('client_id', client.id)
+        .eq('company_id', companyId)
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
   // Fetch cashback credits
   const { data: cashbackCredits = [] } = useQuery({
     queryKey: ['client-cashback', client.id, companyId],
@@ -871,6 +910,12 @@ const ClientProfile = ({ client, companyId, profileMap, onBack }: ClientProfileP
   const cashbackTotal = activeCashback.reduce((sum: number, c: any) => sum + Number(c.amount), 0);
 
   const serviceMap = Object.fromEntries(services.map(s => [s.id, s.name]));
+
+  useEffect(() => {
+    if (!selectedHistoryDate && appointments.length > 0) {
+      setSelectedHistoryDate(parseISO(appointments[0].start_time));
+    }
+  }, [appointments, selectedHistoryDate]);
 
   const completedAppts = appointments.filter(a => a.status === 'completed');
   const totalVisits = completedAppts.length;
@@ -893,6 +938,63 @@ const ClientProfile = ({ client, companyId, profileMap, onBack }: ClientProfileP
     const name = serviceMap[as.service_id] || 'Desconhecido';
     serviceCount[name] = (serviceCount[name] || 0) + 1;
   });
+
+  const latestPointsBalance = loyaltyTransactions.length > 0
+    ? Number((loyaltyTransactions[0] as any).balance_after ?? loyaltyTransactions.reduce((sum: number, tx: any) => sum + Number(tx.points || 0), 0))
+    : 0;
+
+  const subscriptionPlan = (clientSubscription as any)?.subscription_plans;
+  const subscriptionCharges = ((clientSubscription as any)?.charges || [])
+    .slice()
+    .sort((a: any, b: any) => new Date(a.due_date).getTime() - new Date(b.due_date).getTime());
+  const subscriptionUsage = ((clientSubscription as any)?.usage || [])
+    .slice()
+    .sort((a: any, b: any) => new Date(b.usage_date).getTime() - new Date(a.usage_date).getTime());
+  const nextOpenCharge = subscriptionCharges.find((charge: any) => charge.status !== 'paid');
+  const currentMonthUsage = subscriptionUsage.filter((usage: any) => isSameMonth(parseISO(usage.usage_date), new Date()));
+  const getSubscriptionStatusBadge = (status?: string) => {
+    switch (status) {
+      case 'active':
+        return <Badge className="bg-green-100 text-green-700 border-none">Ativo</Badge>;
+      case 'past_due':
+        return <Badge className="bg-amber-100 text-amber-700 border-none">Em risco</Badge>;
+      case 'suspended':
+        return <Badge className="bg-orange-100 text-orange-700 border-none">Suspenso</Badge>;
+      case 'cancelled':
+        return <Badge variant="destructive">Cancelado</Badge>;
+      default:
+        return <Badge variant="secondary">{status || 'Sem status'}</Badge>;
+    }
+  };
+
+  const getSubscriptionPaymentInfo = () => {
+    if (!clientSubscription) return { label: 'Sem assinatura', badge: <Badge variant="secondary">Sem assinatura</Badge>, detail: '-' };
+    if (!nextOpenCharge) {
+      return { label: 'Em dia', badge: <Badge className="bg-green-100 text-green-700 border-none">Em dia</Badge>, detail: 'Nenhuma cobrança pendente' };
+    }
+    const diff = differenceInCalendarDays(parseISO(nextOpenCharge.due_date), new Date());
+    if (nextOpenCharge.status === 'overdue' || diff < 0) {
+      return {
+        label: 'Atrasado',
+        badge: <Badge className="bg-red-100 text-red-700 border-none">Atrasado</Badge>,
+        detail: `Atrasado há ${Math.abs(diff)} ${Math.abs(diff) === 1 ? 'dia' : 'dias'}`,
+      };
+    }
+    if (diff === 0) {
+      return { label: 'Vence hoje', badge: <Badge className="bg-amber-100 text-amber-700 border-none">Vence hoje</Badge>, detail: 'Vencimento hoje' };
+    }
+    return {
+      label: `Vence em ${diff} dias`,
+      badge: <Badge className="bg-blue-100 text-blue-700 border-none">Vence em {diff} dias</Badge>,
+      detail: `Próximo vencimento em ${format(parseISO(nextOpenCharge.due_date), 'dd/MM/yyyy')}`,
+    };
+  };
+
+  const paymentInfo = getSubscriptionPaymentInfo();
+  const appointmentDates = appointments.map(a => parseISO(a.start_time));
+  const selectedDayAppointments = selectedHistoryDate
+    ? appointments.filter(a => isSameDay(parseISO(a.start_time), selectedHistoryDate))
+    : [];
 
   const statusLabel: Record<string, string> = {
     completed: 'Concluído',
@@ -983,6 +1085,11 @@ const ClientProfile = ({ client, companyId, profileMap, onBack }: ClientProfileP
         <div className="min-w-0">
           <div className="flex items-center gap-2">
             <h2 className="text-xl sm:text-2xl font-display font-bold truncate">{client.name}</h2>
+            {clientSubscription && (
+              <Badge className="text-xs gap-1 bg-amber-100 text-amber-800 border-none">
+                <Crown className="h-3 w-3" /> Assinante
+              </Badge>
+            )}
             {client.is_blocked && (
               <Badge variant="destructive" className="text-xs gap-1">
                 <Ban className="h-3 w-3" /> Bloqueado
@@ -1130,6 +1237,148 @@ const ClientProfile = ({ client, companyId, profileMap, onBack }: ClientProfileP
         </Card>
       </div>
 
+      {/* Subscription overview */}
+      {clientSubscription && (
+        <Card className="border-amber-200 bg-gradient-to-br from-amber-50 via-white to-white">
+          <CardHeader>
+            <CardTitle className="text-base flex flex-wrap items-center gap-2">
+              <Crown className="h-4 w-4 text-amber-600" />
+              Assinatura
+              {getSubscriptionStatusBadge((clientSubscription as any).status)}
+              {paymentInfo.badge}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+              <div className="p-3 rounded-lg border bg-white">
+                <p className="text-xs text-muted-foreground uppercase font-semibold">Plano atual</p>
+                <p className="font-bold">{subscriptionPlan?.name || '-'}</p>
+                <p className="text-xs text-muted-foreground">
+                  {subscriptionPlan?.type === 'unlimited' ? 'Ilimitado' : `${subscriptionPlan?.usage_limit || 0} usos/mês`}
+                </p>
+              </div>
+              <div className="p-3 rounded-lg border bg-white">
+                <p className="text-xs text-muted-foreground uppercase font-semibold">Pagamento</p>
+                <p className="font-bold">{paymentInfo.label}</p>
+                <p className="text-xs text-muted-foreground">{paymentInfo.detail}</p>
+              </div>
+              <div className="p-3 rounded-lg border bg-white">
+                <p className="text-xs text-muted-foreground uppercase font-semibold">Profissional</p>
+                <p className="font-bold">{(clientSubscription as any).professional?.full_name || '-'}</p>
+                <p className="text-xs text-muted-foreground">Comissão {(clientSubscription as any).professional_commission || 0}%</p>
+              </div>
+              <div className="p-3 rounded-lg border bg-white">
+                <p className="text-xs text-muted-foreground uppercase font-semibold">Uso no ciclo</p>
+                <p className="font-bold">
+                  {subscriptionPlan?.type === 'unlimited'
+                    ? `${currentMonthUsage.length} usos`
+                    : `${currentMonthUsage.length}/${subscriptionPlan?.usage_limit || 0}`}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Cobrança todo dia {(clientSubscription as any).billing_day}
+                </p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <h4 className="text-sm font-semibold flex items-center gap-2">
+                  <CreditCard className="h-4 w-4" /> Histórico financeiro
+                </h4>
+                <div className="space-y-2 max-h-44 overflow-y-auto pr-1">
+                  {subscriptionCharges.length === 0 ? (
+                    <p className="text-sm text-muted-foreground border rounded-lg border-dashed p-3 text-center">Nenhuma cobrança registrada.</p>
+                  ) : (
+                    subscriptionCharges.slice(0, 6).map((charge: any, idx: number) => (
+                      <div key={charge.id || idx} className="flex items-center justify-between rounded-lg border bg-white p-3">
+                        <div className="flex items-center gap-2">
+                          {charge.status === 'paid' ? <CheckCircle2 className="h-4 w-4 text-green-600" /> : charge.status === 'overdue' ? <AlertCircle className="h-4 w-4 text-red-600" /> : <Clock className="h-4 w-4 text-amber-600" />}
+                          <div>
+                            <p className="text-sm font-medium">{charge.charge_number || `Parcela ${idx + 1}`}</p>
+                            <p className="text-xs text-muted-foreground">Venc. {format(parseISO(charge.due_date), 'dd/MM/yyyy')}</p>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-sm font-bold">R$ {Number(charge.amount).toFixed(2)}</p>
+                          <Badge variant="outline" className="text-[10px]">
+                            {charge.status === 'paid' ? 'Pago' : charge.status === 'overdue' ? 'Atrasado' : 'Pendente'}
+                          </Badge>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <h4 className="text-sm font-semibold flex items-center gap-2">
+                  <Activity className="h-4 w-4" /> Utilização recente
+                </h4>
+                <div className="space-y-2 max-h-44 overflow-y-auto pr-1">
+                  {subscriptionUsage.length === 0 ? (
+                    <p className="text-sm text-muted-foreground border rounded-lg border-dashed p-3 text-center">Nenhum uso registrado.</p>
+                  ) : (
+                    subscriptionUsage.slice(0, 6).map((usage: any) => (
+                      <div key={usage.id} className="flex items-center justify-between rounded-lg border bg-white p-3">
+                        <div>
+                          <p className="text-sm font-medium">{serviceMap[usage.service_id] || 'Serviço incluso'}</p>
+                          <p className="text-xs text-muted-foreground">{format(parseISO(usage.usage_date), 'dd/MM/yyyy')}</p>
+                        </div>
+                        <Badge variant="secondary">Uso do plano</Badge>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {subscriptionPlan?.included_services?.length > 0 && (
+              <div className="flex flex-wrap gap-2 pt-1">
+                {subscriptionPlan.included_services.map((serviceId: string) => (
+                  <Badge key={serviceId} variant="outline" className="bg-white">
+                    <Scissors className="h-3 w-3 mr-1" /> {serviceMap[serviceId] || 'Serviço'}
+                  </Badge>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Loyalty points */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            <Star className="h-4 w-4 text-amber-500" /> Pontos de fidelidade
+            <Badge className="bg-amber-100 text-amber-800 ml-2">
+              Saldo: {latestPointsBalance} pts
+            </Badge>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {loyaltyTransactions.length === 0 ? (
+            <p className="text-sm text-muted-foreground border rounded-lg border-dashed p-3 text-center">Nenhuma movimentação de pontos registrada.</p>
+          ) : (
+            <div className="space-y-2 max-h-44 overflow-y-auto pr-1">
+              {loyaltyTransactions.slice(0, 6).map((tx: any) => (
+                <div key={tx.id} className="flex items-center justify-between rounded-lg border p-3">
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium truncate">{tx.description || (tx.transaction_type === 'earn' ? 'Ganho de pontos' : 'Movimentação de pontos')}</p>
+                    <p className="text-xs text-muted-foreground">{format(parseISO(tx.created_at), 'dd/MM/yyyy HH:mm')}</p>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <p className={`font-bold ${Number(tx.points) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                      {Number(tx.points) >= 0 ? '+' : ''}{Number(tx.points)} pts
+                    </p>
+                    <p className="text-xs text-muted-foreground">Saldo {Number(tx.balance_after ?? 0)} pts</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
       {/* Cashback credits */}
       {cashbackCredits.length > 0 && (
         <Card>
@@ -1201,52 +1450,81 @@ const ClientProfile = ({ client, companyId, profileMap, onBack }: ClientProfileP
       {/* Appointment history */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Histórico de agendamentos</CardTitle>
+          <CardTitle className="text-base flex items-center gap-2">
+            <CalendarCheck className="h-4 w-4" /> Histórico de agendamentos
+          </CardTitle>
         </CardHeader>
-        <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Data</TableHead>
-                <TableHead>Serviço</TableHead>
-                <TableHead>Profissional</TableHead>
-                <TableHead className="text-right">Preço</TableHead>
-                <TableHead>Status</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {appointments.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={5} className="text-center text-muted-foreground py-6">
-                    Nenhum agendamento encontrado
-                  </TableCell>
-                </TableRow>
-              ) : (
-                appointments.map(appt => {
-                  const apptSvcs = apptServices
-                    .filter(s => s.appointment_id === appt.id)
-                    .map(s => serviceMap[s.service_id] || 'Serviço');
-                  return (
-                    <TableRow key={appt.id}>
-                      <TableCell>
-                        {format(parseISO(appt.start_time), "dd/MM/yyyy HH:mm", { locale: ptBR })}
-                      </TableCell>
-                      <TableCell>{apptSvcs.join(', ') || '-'}</TableCell>
-                      <TableCell>{profileMap[appt.professional_id] || '-'}</TableCell>
-                      <TableCell className="text-right">
-                        R$ {Number(appt.total_price).toFixed(2)}
-                      </TableCell>
-                      <TableCell>
-                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${statusColor[appt.status] || ''}`}>
-                          {statusLabel[appt.status] || appt.status}
-                        </span>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })
-              )}
-            </TableBody>
-          </Table>
+        <CardContent>
+          {appointments.length === 0 ? (
+            <p className="text-center text-muted-foreground py-6">Nenhum agendamento encontrado</p>
+          ) : (
+            <div className="grid grid-cols-1 lg:grid-cols-[340px_1fr] gap-6">
+              <div className="rounded-xl border bg-muted/20 p-3">
+                <DateCalendar
+                  mode="single"
+                  selected={selectedHistoryDate}
+                  onSelect={setSelectedHistoryDate}
+                  locale={ptBR}
+                  modifiers={{ hasAppointment: appointmentDates }}
+                  modifiersClassNames={{
+                    hasAppointment: 'relative after:absolute after:bottom-1 after:left-1/2 after:h-1 after:w-1 after:-translate-x-1/2 after:rounded-full after:bg-primary font-semibold ring-1 ring-primary/30',
+                  }}
+                  className="mx-auto"
+                />
+                <p className="text-xs text-muted-foreground px-3 pb-2">
+                  Os dias marcados possuem agendamentos. Clique em um dia para ver os detalhes.
+                </p>
+              </div>
+
+              <div className="space-y-3">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-semibold">
+                      {selectedHistoryDate
+                        ? format(selectedHistoryDate, "dd 'de' MMMM, yyyy", { locale: ptBR })
+                        : 'Selecione um dia'}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {selectedDayAppointments.length} {selectedDayAppointments.length === 1 ? 'agendamento' : 'agendamentos'}
+                    </p>
+                  </div>
+                </div>
+
+                {selectedDayAppointments.length === 0 ? (
+                  <p className="text-sm text-muted-foreground border rounded-lg border-dashed p-4 text-center">
+                    Nenhum agendamento neste dia.
+                  </p>
+                ) : (
+                  <div className="space-y-2 max-h-[360px] overflow-y-auto pr-1">
+                    {selectedDayAppointments.map(appt => {
+                      const apptSvcs = apptServices
+                        .filter(s => s.appointment_id === appt.id)
+                        .map(s => serviceMap[s.service_id] || 'Serviço');
+                      return (
+                        <div key={appt.id} className="rounded-lg border p-3 bg-background">
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0">
+                              <p className="font-semibold">
+                                {format(parseISO(appt.start_time), 'HH:mm', { locale: ptBR })}
+                              </p>
+                              <p className="text-sm truncate">{apptSvcs.join(', ') || '-'}</p>
+                              <p className="text-xs text-muted-foreground">{profileMap[appt.professional_id] || '-'}</p>
+                            </div>
+                            <div className="text-right shrink-0">
+                              <p className="font-bold">R$ {Number(appt.total_price).toFixed(2)}</p>
+                              <span className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${statusColor[appt.status] || ''}`}>
+                                {statusLabel[appt.status] || appt.status}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>
