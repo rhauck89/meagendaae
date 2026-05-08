@@ -89,6 +89,19 @@ export function UnifiedAppointmentCard({
   const now = toZonedTime(new Date(), timezone);
   const isToday = isSameDay(startTime, now);
 
+  const isSubscription = 
+    apt.subscription_id || 
+    apt.subscriptionInfo?.benefit_applied || 
+    apt.subscription_info?.benefit_applied || 
+    (apt.subscription_usage && Array.isArray(apt.subscription_usage) && apt.subscription_usage.length > 0) ||
+    (typeof apt.notes === 'string' && (
+      apt.notes.toLowerCase().includes('benefício de assinatura') ||
+      apt.notes.toLowerCase().includes('coberto por assinatura') ||
+      apt.notes.toLowerCase().includes('coberto pela assinatura')
+    ));
+
+  const subscriptionPlanName = apt.subscription_info?.plan_name || apt.subscriptionInfo?.plan_name || '';
+
   const displayDateShort = isToday 
     ? 'HOJE' 
     : format(startTime, "d 'DE' MMM", { locale: ptBR }).toUpperCase();
