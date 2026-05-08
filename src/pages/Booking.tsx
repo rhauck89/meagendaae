@@ -3763,8 +3763,8 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                 <div className="flex justify-between items-center">
                   <div>
                     <p className="text-[10px] font-black uppercase tracking-widest opacity-60">Total a Pagar no Local</p>
-                    {hasPromoApplied && !isCashbackPromo && !activeIncentivePromo && (
-                      <p className="text-[10px] text-amber-500 font-bold uppercase tracking-tighter">Você economizou R$ {(Number(originalSubtotal) - Number(totalPrice)).toFixed(2)}!</p>
+                    {promoDiscountAmount > 0 && (
+                      <p className="text-[10px] text-amber-500 font-bold uppercase tracking-tighter">Você economizou R$ {promoDiscountAmount.toFixed(2)}!</p>
                     )}
                   </div>
                   <p className="text-4xl font-black tracking-tighter" style={{ color: T.accent }}>R$ {(Number(finalPrice) || 0).toFixed(2)}</p>
