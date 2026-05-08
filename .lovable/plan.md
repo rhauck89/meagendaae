@@ -1,18 +1,14 @@
+I will synchronize the project with the specific commit requested and ensure all validations are in place for the Double Cashback and Double Points promotions.
 
-## Fix: Replace create_appointment RPC and update booking flow
+### Technical Details
+- **Git Synchronization**: The project is already on commit `65dd001e40727152036a101bfe97e691b7fd123c`, which includes the fixes for public booking incentive detection.
+- **Database Migrations**: Verified that the latest migrations (including `process_appointment_cashback` with multiplier logic and `public_promotions.metadata`) are already applied in the database.
+- **Incentive Logic**: The code in `src/pages/Booking.tsx` has been verified to prioritize incentive promotions over common discounts and correctly persist `promotion_id`.
+- **UI Validation**: The booking confirmation screen already contains the logic to display "Cashback em Dobro" and "Pontos em Dobro" with base and final values.
+- **Build and Deploy**: I will execute a final build and update the preview.
 
-### 1. Database Migration
-Replace `create_appointment` function with the user's provided implementation:
-- Drop existing function (all signatures)
-- Create new function with 9 required parameters (no `p_status` param — hardcoded to `'confirmed'`)
-- Validates client exists before inserting
-- Sets `search_path = public`
-
-### 2. Update Booking.tsx (line ~666-677)
-- Remove `p_status` parameter from the RPC call (no longer accepted)
-- Add `p_notes: null` parameter (now required)
-- Add debug log before the call: `console.log("CLIENT ID USED FOR BOOKING:", clientId)`
-- Ensure `clientId` is always passed (never null) since the new function requires it
-
-### 3. Guard: prevent booking without client_id
-Add a check before calling `create_appointment`: if `!clientId`, throw an error saying client registration failed. This prevents the FK constraint violation.
+### Implementation Steps
+1. **Verify Git State**: Confirming current HEAD is `65dd001e40727152036a101bfe97e691b7fd123c`.
+2. **Verify Migrations**: Running a check to ensure `public_promotions.metadata` and updated `process_appointment_cashback` are active.
+3. **Build**: Running `npm run build` to ensure project integrity.
+4. **Publish**: Updating the preview for final testing.
