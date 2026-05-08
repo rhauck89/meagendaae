@@ -154,7 +154,9 @@ export function UnifiedAppointmentCard({
         whileTap={{ scale: 0.99 }}
         className={cn(
           "relative flex flex-col gap-2 p-3 rounded-xl border transition-all cursor-pointer shadow-sm",
-          statusCardStyles[displayStatus] || 'bg-card',
+          isSubscription 
+            ? "bg-gradient-to-r from-amber-50 via-white to-amber-50/70 border-l-amber-500 ring-1 ring-amber-200 shadow-[0_4px_12px_-3px_rgba(251,191,36,0.15)]"
+            : (statusCardStyles[displayStatus] || 'bg-card'),
           isHighlighted && 'ring-2 ring-primary shadow-lg',
           "group overflow-hidden",
           className
@@ -164,7 +166,7 @@ export function UnifiedAppointmentCard({
         {/* Left Indicator Stripe */}
         <div className={cn(
           "absolute left-0 top-0 bottom-0 w-1",
-          statusColors[displayStatus] || 'bg-muted'
+          isSubscription ? "bg-amber-500" : (statusColors[displayStatus] || 'bg-muted')
         )} />
 
         <div className="flex items-center justify-between gap-2">
