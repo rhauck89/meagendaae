@@ -487,6 +487,13 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
           title: promo.title,
           incentive: getPromotionIncentiveConfig(promo),
         })),
+        valueMatchedIncentive: valueMatchedIncentive ? {
+          id: valueMatchedIncentive.id,
+          title: valueMatchedIncentive.title,
+          start_time: valueMatchedIncentive.start_time,
+          end_time: valueMatchedIncentive.end_time,
+          incentive: getPromotionIncentiveConfig(valueMatchedIncentive),
+        } : null,
         directIncentive: directIncentiveMatch?.id || null,
         incentivePromo: incentivePromo?.id || null,
         discountPromo: discountPromo?.id || null,
