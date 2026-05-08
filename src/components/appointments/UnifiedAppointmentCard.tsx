@@ -382,7 +382,11 @@ export function UnifiedAppointmentCard({
                   : clientName
                 }
               </h3>
-              {apt.promotion_id && (
+              {isSubscription ? (
+                <Badge variant="secondary" className="bg-amber-500/10 text-amber-600 border-none h-4 px-1.5 text-[9px] font-bold uppercase tracking-tighter">
+                  👑 ASSINANTE
+                </Badge>
+              ) : apt.promotion_id && (
                 <Badge variant="secondary" className="bg-orange-500/10 text-orange-600 border-none h-4 px-1 text-[9px] font-bold uppercase tracking-tighter">
                   🏷️ PROMO
                 </Badge>
