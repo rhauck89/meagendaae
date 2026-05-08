@@ -18,8 +18,7 @@ const Subscriptions = () => {
   const activeSection =
     location.pathname.endsWith('/plans') ? 'plans' :
     location.pathname.endsWith('/charges') ? 'charges' :
-    location.pathname.endsWith('/subscribers') ? 'subscribers' :
-    'dashboard';
+    'subscribers';
 
   const [isPlanDialogOpen, setIsPlanDialogOpen] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<any>(null);
@@ -35,8 +34,7 @@ const Subscriptions = () => {
   const sectionLabel =
     activeSection === 'plans' ? 'Planos' :
     activeSection === 'charges' ? 'Cobranças' :
-    activeSection === 'subscribers' ? 'Assinantes' :
-    'Dashboard';
+    'Assinantes';
 
   const handleEditPlan = (plan: any) => {
     setSelectedPlan(plan);
@@ -98,7 +96,7 @@ const Subscriptions = () => {
           </div>
 
           <div className="flex items-center gap-2">
-            {(activeSection === 'plans' || activeSection === 'dashboard') && canManagePlans && (
+            {activeSection === 'plans' && canManagePlans && (
               <Button className="gap-2 bg-violet-600 hover:bg-violet-700 shadow-lg shadow-violet-600/20" onClick={handleNewPlan}>
                 <Plus className="h-4 w-4" /> Novo Plano
               </Button>
@@ -111,11 +109,11 @@ const Subscriptions = () => {
           </div>
         </div>
 
-        {companyId && (activeSection === 'dashboard' || activeSection === 'subscribers') && (
+        {companyId && activeSection === 'subscribers' && (
           <SubscriptionsDashboard companyId={companyId} />
         )}
 
-        {companyId && (activeSection === 'dashboard' || activeSection === 'subscribers') && (
+        {companyId && activeSection === 'subscribers' && (
           <SubscribersTab
             companyId={companyId}
             onEditSubscriber={handleEditSubscription}

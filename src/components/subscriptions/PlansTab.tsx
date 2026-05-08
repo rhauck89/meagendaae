@@ -135,13 +135,7 @@ export function PlansTab({ companyId, onEditPlan, onNewPlan, canManage = false }
 
   return (
     <div className="space-y-6">
-      {canManage && (
-        <div className="flex justify-end">
-          <Button onClick={onNewPlan} className="gap-2">
-            <Plus className="h-4 w-4" /> Novo Plano
-          </Button>
-        </div>
-      )}
+      {/* Botão removido para evitar duplicidade com o cabeçalho */}
 
       {plans.length === 0 ? (
         <div className="text-center py-20 bg-muted/20 rounded-xl border border-dashed border-muted-foreground/20">
