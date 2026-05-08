@@ -2802,15 +2802,13 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                     </div>
                   </div>
                   
-                  {subBenefit.usage_limit && (
+                  {subBenefit.usage_limit > 0 && (
                     <div className="flex flex-col items-center sm:items-end relative z-10 w-full sm:w-auto border-t sm:border-t-0 sm:border-l border-white/10 pt-4 sm:pt-0 sm:pl-6">
                       <p className="text-[10px] uppercase font-black tracking-widest opacity-60">Uso do Ciclo</p>
                       <p className="font-black text-xl text-amber-500">{subBenefit.usage_used}/{subBenefit.usage_limit}</p>
-                      {subBenefit.benefit_applied && (
-                        <p className="text-[8px] font-black uppercase tracking-widest opacity-40 mt-1">
-                          {subBenefit.type === 'unlimited' ? 'Ilimitado' : `Saldo: ${subBenefit.usage_limit - subBenefit.usage_used}`}
-                        </p>
-                      )}
+                      <p className="text-[8px] font-black uppercase tracking-widest opacity-40 mt-1">
+                        Saldo: {subBenefit.usage_limit - subBenefit.usage_used}
+                      </p>
                     </div>
                   )}
                 </div>
