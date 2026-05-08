@@ -12,142 +12,151 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Pencil, Trash2, Clock, DollarSign, RefreshCw, Zap, Grid3X3, FolderPlus, Tag, CheckCircle2 } from 'lucide-react';
+import { Plus, Pencil, Trash2, Clock, DollarSign, RefreshCw, Zap, Grid3X3, FolderPlus, Tag, CheckCircle2, ChevronDown, ChevronUp, MoreVertical, Scissors, Briefcase } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+
 
 const NO_CATEGORY_VALUE = '__no_category__';
 const NO_GLOBAL_CATEGORY_VALUE = '__no_global_category__';
 
 
-const ProfessionalServiceCard = ({ service, profSetting, onSave }: any) => {
-  const [isActive, setIsActive] = useState(profSetting?.is_active ?? false);
+const ServiceRow = ({ service, onEdit, onToggle, onDelete, canManage, isProfessional, profSetting, onProfSave }: any) => {
+  const [isActive, setIsActive] = useState(isProfessional ? (profSetting?.is_active ?? false) : service.active);
   const [customPrice, setCustomPrice] = useState(profSetting?.price_override ?? '');
   const [customDuration, setCustomDuration] = useState(profSetting?.duration_override ?? '');
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
-    setIsActive(profSetting?.is_active ?? false);
-    setCustomPrice(profSetting?.price_override ?? '');
-    setCustomDuration(profSetting?.duration_override ?? '');
-  }, [profSetting]);
+    if (isProfessional) {
+      setIsActive(profSetting?.is_active ?? false);
+      setCustomPrice(profSetting?.price_override ?? '');
+      setCustomDuration(profSetting?.duration_override ?? '');
+    } else {
+      setIsActive(service.active);
+    }
+  }, [profSetting, service.active, isProfessional]);
 
-  const handleSave = async () => {
+  const handleProfSave = async () => {
     setIsSaving(true);
-    await onSave(
-      service.id, 
-      isActive, 
-      customPrice === '' ? undefined : Number(customPrice), 
+    await onProfSave(
+      service.id,
+      isActive,
+      customPrice === '' ? undefined : Number(customPrice),
       customDuration === '' ? undefined : Number(customDuration)
     );
     setIsSaving(false);
   };
 
   return (
-    <Card className={!isActive ? 'opacity-70 bg-muted/30 transition-all' : 'hover:shadow-md transition-all'}>
-      <CardContent className="p-5 space-y-4">
-        <div className="flex items-start justify-between">
-          <div className="space-y-1">
-            <h3 className={cn("text-lg font-semibold line-clamp-1", !isActive && "text-muted-foreground line-through decoration-1")}>
-              {service.name}
-            </h3>
-            <div className="flex flex-wrap gap-2">
-              <Badge variant="outline" className="text-[10px] font-normal">
-                Padrão: R$ {Number(service.price).toFixed(2)} | {service.duration_minutes}min
-              </Badge>
-            </div>
+    <div className={cn(
+      "group flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 gap-4 transition-all border-b last:border-0 hover:bg-muted/30",
+      !isActive && "opacity-70 bg-muted/10"
+    )}>
+      <div className="flex items-center gap-4 flex-1 min-w-0">
+        <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+          <Briefcase className="h-6 w-6 text-primary" />
+        </div>
+        <div className="min-w-0">
+          <h4 className={cn("font-bold text-base truncate", !isActive && "text-muted-foreground")}>
+            {service.name}
+          </h4>
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-1">
+            <span className="flex items-center gap-1.5 text-sm text-muted-foreground font-medium">
+              <Clock className="h-3.5 w-3.5" /> {isProfessional && customDuration ? customDuration : service.duration_minutes} min
+            </span>
+            <span className="flex items-center gap-1.5 text-sm text-primary font-bold">
+              <DollarSign className="h-3.5 w-3.5" /> R$ {Number(isProfessional && customPrice ? customPrice : service.price).toFixed(2)}
+            </span>
+            {isProfessional && (profSetting?.price_override || profSetting?.duration_override) && (
+              <Badge variant="secondary" className="text-[10px] h-4">Customizado</Badge>
+            )}
           </div>
-          <Switch 
-            checked={isActive} 
-            onCheckedChange={(checked) => {
-              setIsActive(checked);
-              onSave(service.id, checked, customPrice === '' ? undefined : Number(customPrice), customDuration === '' ? undefined : Number(customDuration));
-            }} 
-          />
+        </div>
+      </div>
+
+      <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-end">
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
+            <Switch
+              checked={isActive}
+              onCheckedChange={(checked) => {
+                if (isProfessional) {
+                  setIsActive(checked);
+                  onProfSave(service.id, checked, customPrice === '' ? undefined : Number(customPrice), customDuration === '' ? undefined : Number(customDuration));
+                } else {
+                  onToggle(service.id, service.active);
+                }
+              }}
+            />
+            <Badge variant={isActive ? "default" : "secondary"} className={cn(
+              "text-[10px] font-bold uppercase tracking-wider h-5",
+              isActive ? "bg-emerald-500 hover:bg-emerald-600" : "bg-slate-200 text-slate-500"
+            )}>
+              {isActive ? 'Ativo' : 'Inativo'}
+            </Badge>
+          </div>
         </div>
 
-        {isActive && (
-          <div className="space-y-3 pt-2 border-t border-dashed">
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <Label className="text-xs">Meu Preço (R$)</Label>
-                <Input 
-                  type="number" 
-                  step="0.01"
-                  value={customPrice} 
-                  onChange={(e) => setCustomPrice(e.target.value)}
-                  placeholder={Number(service.price).toFixed(2)}
-                  className="h-8 text-sm"
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs">Minha Duração (min)</Label>
-                <Input 
-                  type="number" 
-                  value={customDuration} 
-                  onChange={(e) => setCustomDuration(e.target.value)}
-                  placeholder={service.duration_minutes.toString()}
-                  className="h-8 text-sm"
-                />
-              </div>
-            </div>
-            <Button 
-              size="sm" 
-              className="w-full h-8" 
-              onClick={handleSave}
-              disabled={isSaving}
-            >
-              <CheckCircle2 className="mr-2 h-3 w-3" />
-              {isSaving ? 'Salvando...' : 'Salvar Alterações'}
-            </Button>
-          </div>
-        )}
-        
-        {!isActive && (
-          <p className="text-[10px] text-muted-foreground italic">
-            Ative para oferecer este serviço em sua agenda.
-          </p>
-        )}
-      </CardContent>
-    </Card>
+        <div className="flex items-center gap-1">
+          {isProfessional && isActive && (
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-8 w-8">
+                  <Pencil className="h-4 w-4" />
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-[425px]">
+                <DialogHeader>
+                  <DialogTitle>Personalizar {service.name}</DialogTitle>
+                </DialogHeader>
+                <div className="grid gap-4 py-4">
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label className="text-right">Preço (R$)</Label>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      className="col-span-3"
+                      value={customPrice}
+                      onChange={(e) => setCustomPrice(e.target.value)}
+                      placeholder={Number(service.price).toFixed(2)}
+                    />
+                  </div>
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label className="text-right">Duração (min)</Label>
+                    <Input
+                      type="number"
+                      className="col-span-3"
+                      value={customDuration}
+                      onChange={(e) => setCustomDuration(e.target.value)}
+                      placeholder={service.duration_minutes.toString()}
+                    />
+                  </div>
+                </div>
+                <Button onClick={handleProfSave} disabled={isSaving}>
+                  {isSaving ? 'Salvando...' : 'Salvar Alterações'}
+                </Button>
+              </DialogContent>
+            </Dialog>
+          )}
+
+          {!isProfessional && canManage && (
+            <>
+              <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-primary" onClick={() => onEdit(service)}>
+                <Pencil className="h-4 w-4" />
+              </Button>
+              <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={() => onDelete(service.id)}>
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </>
+          )}
+        </div>
+      </div>
+    </div>
   );
 };
 
-const ServiceCard = ({ service, onEdit, onToggle, onDelete, canManage }: any) => (
-  <Card className={!service.active ? 'opacity-50' : 'hover:shadow-md transition-shadow'}>
-    <CardContent className="p-5">
-      <div className="mb-3 flex items-start justify-between">
-        <h3 className="text-lg font-semibold line-clamp-1">{service.name}</h3>
-        {canManage ? (
-          <Switch checked={service.active} onCheckedChange={() => onToggle(service.id, service.active)} />
-        ) : (
-          <Badge variant={service.active ? 'default' : 'secondary'}>{service.active ? 'Ativo' : 'Inativo'}</Badge>
-        )}
-      </div>
-      <div className="mb-4 flex flex-wrap gap-4 text-sm text-muted-foreground">
-        <span className="flex items-center gap-1">
-          <Clock className="h-4 w-4" /> {service.duration_minutes} min
-        </span>
-        <span className="flex items-center gap-1">
-          <DollarSign className="h-4 w-4" /> R$ {Number(service.price).toFixed(2)}
-        </span>
-      </div>
-      <div className={canManage ? "flex gap-2" : "hidden"}>
-        <Button variant="outline" size="sm" className="flex-1" onClick={() => onEdit(service)}>
-          <Pencil className="mr-1 h-3 w-3" /> Editar
-        </Button>
-        <Button variant="ghost" size="sm" className="text-destructive" onClick={() => onDelete(service.id)}>
-          <Trash2 className="h-3 w-3" />
-        </Button>
-      </div>
-      {service.global_category_id && (
-        <div className="mt-3 text-[10px] text-muted-foreground flex items-center gap-1 opacity-70">
-          <Zap className="h-2 w-2" /> Marketplace pronto
-        </div>
-      )}
-    </CardContent>
-  </Card>
-);
 
 const Services = () => {
   const { companyId, loginMode, roles } = useAuth();
@@ -175,6 +184,15 @@ const Services = () => {
   const [companyBookingMode, setCompanyBookingMode] = useState<string>('fixed_grid');
   const [saving, setSaving] = useState(false);
   const [catSaving, setCatSaving] = useState(false);
+  const [expandedCategories, setExpandedCategories] = useState<Record<string, boolean>>({});
+
+  const toggleCategory = (id: string) => {
+    setExpandedCategories(prev => ({
+      ...prev,
+      [id]: !prev[id]
+    }));
+  };
+
 
   useEffect(() => {
     if (companyId) {
@@ -650,108 +668,146 @@ const Services = () => {
         </div>
       </div>
 
-      <div className="space-y-12">
-        {groupedServices.map((cat) => (
-          <div key={cat.id} className="space-y-4">
-            <div className="flex items-center justify-between border-b pb-2">
-              <div className="flex items-center gap-2">
-                <Tag className="h-5 w-5 text-primary" />
-                <h3 className="text-xl font-semibold">{cat.name}</h3>
-                {cat.global?.name && (
-                  <Badge variant="outline" className="text-[10px] font-normal py-0">
-                    {cat.global.name}
-                  </Badge>
+      <div className="space-y-6">
+        {groupedServices.map((cat) => {
+          const isExpanded = expandedCategories[cat.id] !== false; // Default to expanded
+          return (
+            <Card key={cat.id} className="overflow-hidden border-border/60 shadow-sm">
+              <div 
+                className={cn(
+                  "flex items-center justify-between p-4 bg-muted/20 cursor-pointer hover:bg-muted/30 transition-colors",
+                  !isExpanded && "border-b-0"
                 )}
-                <span className="text-sm text-muted-foreground">({cat.services.length})</span>
+                onClick={() => toggleCategory(cat.id)}
+              >
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+                    <Tag className="h-5 w-5 text-primary" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-bold flex items-center gap-2">
+                      {cat.name}
+                      <Badge variant="secondary" className="h-5 px-1.5 text-[10px] font-bold">
+                        {cat.services.length}
+                      </Badge>
+                    </h3>
+                    {cat.global?.name && (
+                      <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-tight">
+                        {cat.global.name}
+                      </p>
+                    )}
+                  </div>
+                </div>
+                
+                <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                  <div className={canManageServices ? "flex gap-1" : "hidden"}>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-8 w-8">
+                          <MoreVertical className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => { setEditingCat(cat); setCatForm({ name: cat.name, global_category_id: cat.global_category_id || '' }); setCatDialogOpen(true); }}>
+                          <Pencil className="mr-2 h-4 w-4" /> Editar Categoria
+                        </DropdownMenuItem>
+                        <DropdownMenuItem className="text-destructive" onClick={() => deleteCategory(cat.id)}>
+                          <Trash2 className="mr-2 h-4 w-4" /> Excluir Categoria
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => toggleCategory(cat.id)}>
+                    {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                  </Button>
+                </div>
               </div>
-              <div className={canManageServices ? "flex gap-2" : "hidden"}>
-                <Button variant="ghost" size="sm" onClick={() => { setEditingCat(cat); setCatForm({ name: cat.name, global_category_id: cat.global_category_id || '' }); setCatDialogOpen(true); }}>
-                  <Pencil className="h-4 w-4" />
-                </Button>
-                <Button variant="ghost" size="sm" className="text-destructive" onClick={() => deleteCategory(cat.id)}>
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-            
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {cat.services.map((service: any) => {
-                if (isProfessionalMode) {
-                  const profSetting = profServices.find((ps: any) => ps.service_id === service.id);
-                  return (
-                    <ProfessionalServiceCard
-                      key={service.id}
-                      service={service}
-                      profSetting={profSetting}
-                      onSave={handleSaveProfService}
-                    />
-                  );
-                }
-                return (
-                  <ServiceCard 
-                    key={service.id} 
-                    service={service} 
-                    onEdit={openEdit} 
-                    onToggle={toggleActive} 
-                    onDelete={deleteService} 
-                    canManage={canManageServices}
-                  />
-                );
-              })}
-              {cat.services.length === 0 && (
-                <div className="col-span-full py-6 text-center text-muted-foreground border-2 border-dashed rounded-lg">
-                  <p>Nenhum serviço nesta categoria</p>
+              
+              {isExpanded && (
+                <div className="divide-y divide-border/40">
+                  {cat.services.map((service: any) => {
+                    const profSetting = isProfessionalMode ? profServices.find((ps: any) => ps.service_id === service.id) : null;
+                    return (
+                      <ServiceRow 
+                        key={service.id} 
+                        service={service} 
+                        onEdit={openEdit} 
+                        onToggle={toggleActive} 
+                        onDelete={deleteService} 
+                        canManage={canManageServices}
+                        isProfessional={isProfessionalMode}
+                        profSetting={profSetting}
+                        onProfSave={handleSaveProfService}
+                      />
+                    );
+                  })}
+                  {cat.services.length === 0 && (
+                    <div className="p-8 text-center text-muted-foreground">
+                      <p className="text-sm italic">Nenhum serviço nesta categoria</p>
+                    </div>
+                  )}
                 </div>
               )}
-            </div>
-          </div>
-        ))}
+            </Card>
+          );
+        })}
 
         {uncategorizedServices.length > 0 && (
-          <div className="space-y-4">
-            <div className="flex items-center gap-2 border-b pb-2">
-              <Tag className="h-5 w-5 text-muted-foreground" />
-              <h3 className="text-xl font-semibold">Sem Categoria</h3>
-              <span className="text-sm text-muted-foreground">({uncategorizedServices.length})</span>
+          <Card className="overflow-hidden border-border/60 shadow-sm">
+            <div 
+              className="flex items-center justify-between p-4 bg-muted/20 cursor-pointer"
+              onClick={() => toggleCategory('uncategorized')}
+            >
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-full bg-slate-100 flex items-center justify-center">
+                  <Grid3X3 className="h-5 w-5 text-slate-500" />
+                </div>
+                <h3 className="text-lg font-bold flex items-center gap-2">
+                  Sem Categoria
+                  <Badge variant="secondary" className="h-5 px-1.5 text-[10px] font-bold">
+                    {uncategorizedServices.length}
+                  </Badge>
+                </h3>
+              </div>
+              <Button variant="ghost" size="icon" className="h-8 w-8">
+                {expandedCategories['uncategorized'] !== false ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+              </Button>
             </div>
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {uncategorizedServices.map((service: any) => {
-                if (isProfessionalMode) {
-                  const profSetting = profServices.find((ps: any) => ps.service_id === service.id);
+            
+            {expandedCategories['uncategorized'] !== false && (
+              <div className="divide-y divide-border/40">
+                {uncategorizedServices.map((service: any) => {
+                  const profSetting = isProfessionalMode ? profServices.find((ps: any) => ps.service_id === service.id) : null;
                   return (
-                    <ProfessionalServiceCard
-                      key={service.id}
-                      service={service}
+                    <ServiceRow 
+                      key={service.id} 
+                      service={service} 
+                      onEdit={openEdit} 
+                      onToggle={toggleActive} 
+                      onDelete={deleteService} 
+                      canManage={canManageServices}
+                      isProfessional={isProfessionalMode}
                       profSetting={profSetting}
-                      onSave={handleSaveProfService}
+                      onProfSave={handleSaveProfService}
                     />
                   );
-                }
-                return (
-                  <ServiceCard 
-                    key={service.id} 
-                    service={service} 
-                    onEdit={openEdit} 
-                    onToggle={toggleActive} 
-                    onDelete={deleteService} 
-                    canManage={canManageServices}
-                  />
-                );
-              })}
-            </div>
-          </div>
+                })}
+              </div>
+            )}
+          </Card>
         )}
 
         {categories.length === 0 && services.length === 0 && (
-          <div className="py-20 text-center text-muted-foreground">
+          <div className="py-20 text-center text-muted-foreground border-2 border-dashed rounded-xl bg-muted/10">
             <div className="mx-auto w-16 h-16 bg-muted rounded-full flex items-center justify-center mb-4">
               <Grid3X3 className="h-8 w-8" />
             </div>
-            <p className="text-lg font-medium">Nenhum serviço ou categoria cadastrada</p>
-            <p>Comece criando uma categoria ou seu primeiro serviço.</p>
+            <p className="text-lg font-bold text-foreground">Sua lista está vazia</p>
+            <p className="text-sm">Comece criando uma categoria ou seu primeiro serviço.</p>
           </div>
         )}
       </div>
+
     </div>
   );
 };
