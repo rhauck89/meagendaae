@@ -349,6 +349,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
 
     return (
       filter === 'all' ||
+      (filter === 'selected' && professionalIds.includes(selectedProfessional)) ||
       (filter === 'specific' && professionalIds.includes(selectedProfessional)) ||
       legacyProfessionalId === selectedProfessional
     );
@@ -369,13 +370,6 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
     return true;
   };
 
-  const isPromotionEligibleForSelection = (promo: any, slotDateTime: Date) => {
-    if (!isPromotionOpenForBooking(promo)) return false;
-    if (!isSlotEligible(promo, slotDateTime)) return false;
-    if (!promotionMatchesProfessional(promo)) return false;
-    return promotionMatchesServices(promo);
-  };
-
   const normalizePromoTime = (time?: string | null, fallback: 'start' | 'end' = 'start') => {
     const value = time || (fallback === 'start' ? '00:00:00' : '23:59:59');
     return value.length === 5 ? `${value}:00` : value.slice(0, 8);
@@ -389,6 +383,13 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
     const endsAt = normalizePromoTime(promo?.end_time, 'end');
 
     return dateStr >= startsOn && dateStr <= endsOn && slotTime >= startsAt && slotTime <= endsAt;
+  };
+
+  const isPromotionEligibleForSelection = (promo: any, slotDateTime: Date) => {
+    if (!isPromotionOpenForBooking(promo)) return false;
+    if (!isSlotEligible(promo, slotDateTime)) return false;
+    if (!promotionMatchesProfessional(promo)) return false;
+    return promotionMatchesServices(promo);
   };
 
   // New persistence states for double benefits
@@ -457,25 +458,23 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
           .gte('end_date', dateStr)
         : { data: [] as any[] };
 
+      const directIncentiveMatch = (directPromos || [])
+          .filter((promo: any) => getPromotionIncentiveConfig(promo).type)
+          .find((promo: any) => isPromotionEligibleForSelection(promo, slotDateTime));
+
+      const publicIncentiveMatch = hydratedPublicEligible.find((promo) => getPromotionIncentiveConfig(promo).type);
       const incentiveCandidates = new Map<string, any>();
       [...(directPromos || []), ...hydratedPublicPromotions].forEach((promo: any) => {
         if (promo?.id && getPromotionIncentiveConfig(promo).type) {
           incentiveCandidates.set(promo.id, promo);
         }
       });
-
       const valueMatchedIncentive = Array.from(incentiveCandidates.values()).find((promo: any) =>
         isPromotionOpenForBooking(promo) &&
         isPromotionSlotEligibleByValue(promo, dateStr, selectedTime) &&
         promotionMatchesProfessional(promo) &&
         promotionMatchesServices(promo)
       );
-
-      const directIncentiveMatch = (directPromos || [])
-          .filter((promo: any) => getPromotionIncentiveConfig(promo).type)
-          .find((promo: any) => isPromotionEligibleForSelection(promo, slotDateTime));
-
-      const publicIncentiveMatch = hydratedPublicEligible.find((promo) => getPromotionIncentiveConfig(promo).type);
       const incentivePromo = valueMatchedIncentive || directIncentiveMatch || publicIncentiveMatch || null;
       const discountPromo = hydratedPublicEligible.find((promo) => !isIncentivePromotion(promo)) || null;
 
@@ -608,7 +607,9 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
         promo.promotion_type === 'smart';
       if (!isValidType) return false;
       
-      // Is it open for booking today?
+      // Is it open for booking today? This must only respect the booking
+      // window. The promo start/end time is validated against the selected
+      // slot below, otherwise a 15:00 promo would be invisible before 15:00.
       const isBookingOpen = isPromotionOpenForBooking(promo);
       if (!isBookingOpen) return false;
 
@@ -1740,9 +1741,14 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
     } else if (!isPromoMode && autoCashbackPromos.length > 0 && selectedProfessional && selectedServices.length > 0) {
       // Auto-detect from active cashback promotions
       for (const promo of autoCashbackPromos) {
-        if (promo.professional_filter === 'specific' && promo.professional_ids) {
-          if (!promo.professional_ids.includes(selectedProfessional)) continue;
-        }
+        const professionalIds = Array.isArray(promo.professional_ids) ? promo.professional_ids : [];
+        const professionalFilter = promo.professional_filter || (professionalIds.length > 0 ? 'specific' : 'all');
+        const legacyProfessionalId = (promo as any).professional_id;
+        const matchesProfessional =
+          professionalFilter === 'all' ||
+          professionalIds.includes(selectedProfessional) ||
+          legacyProfessionalId === selectedProfessional;
+        if (!matchesProfessional) continue;
         const promoServiceIds = promo.service_ids || (promo.service_id ? [promo.service_id] : []);
         const eligible = paidServicesData
           .filter(s => promoServiceIds.length === 0 || promoServiceIds.includes(s.id));
@@ -2196,7 +2202,12 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
         }
       } else if (!isPromoMode && autoCashbackPromos.length > 0 && selectedProfessional && selectedServices.length > 0) {
         for (const promo of autoCashbackPromos) {
-          const isProfMatch = promo.professional_filter === 'all' || promo.professional_ids?.includes(selectedProfessional || '') || (promo as any).professional_id === selectedProfessional;
+          const professionalIds = Array.isArray(promo.professional_ids) ? promo.professional_ids : [];
+          const professionalFilter = promo.professional_filter || (professionalIds.length > 0 ? 'specific' : 'all');
+          const isProfMatch =
+            professionalFilter === 'all' ||
+            professionalIds.includes(selectedProfessional || '') ||
+            (promo as any).professional_id === selectedProfessional;
           if (!isProfMatch) continue;
           const promoServiceIds = promo.service_ids || (promo.service_id ? [promo.service_id] : []);
           const eligible = paidServicesData.filter(s => promoServiceIds.length === 0 || promoServiceIds.includes(s.id));
