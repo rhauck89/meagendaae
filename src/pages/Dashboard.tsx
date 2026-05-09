@@ -152,10 +152,28 @@ const Dashboard = () => {
   const openCompleteModal = (apt: any) => {
     setCompleteTarget(apt);
     setCompletePaymentMethod('pix');
-    setCompleteCustomAmount(apt.original_price || apt.total_price || '');
-    setCompletePromoDiscount(apt.promotion_discount || '');
-    setCompleteCashbackUsed(apt.cashback_used || '');
-    setCompleteManualDiscount(apt.manual_discount || '');
+    
+    // Calculate the true gross value from linked services
+    const calculatedGross = apt.appointment_services?.reduce(
+      (acc: number, s: any) => acc + (Number(s.service?.price) || 0), 0
+    ) || Number(apt.original_price || apt.total_price || 0);
+    
+    const finalPrice = Number(apt.final_price || apt.total_price || 0);
+    const cashbackUsed = Number(apt.cashback_used || 0);
+    const manualDiscount = Number(apt.manual_discount || 0);
+    
+    // Determine the promotion discount automatically
+    let promoDiscount = Number(apt.promotion_discount || 0);
+    if (apt.promotion_id && promoDiscount === 0) {
+      // If we have a promotion but discount is not recorded, calculate it
+      // promotion_discount = gross - final - cashback - manual
+      promoDiscount = Math.max(0, calculatedGross - finalPrice - cashbackUsed - manualDiscount);
+    }
+
+    setCompleteCustomAmount(calculatedGross.toString());
+    setCompletePromoDiscount(promoDiscount > 0 ? promoDiscount.toString() : '');
+    setCompleteCashbackUsed(cashbackUsed > 0 ? cashbackUsed.toString() : '');
+    setCompleteManualDiscount(manualDiscount > 0 ? manualDiscount.toString() : '');
     setCompleteObservation('');
     setCompleteDialogOpen(true);
   };
@@ -738,8 +756,8 @@ const Dashboard = () => {
         status: status as any
       }).eq('id', id);
     } else {
-      const grossPrice = customAmount ?? Number(apt?.total_price || 0);
-      const originalPrice = customAmount ?? Number(apt?.original_price || apt?.total_price || 0);
+      const grossPrice = customAmount ?? Number(apt?.original_price || apt?.total_price || 0);
+      const originalPrice = grossPrice;
       
       await supabase.from('appointments').update({ 
         status: status as any,
@@ -755,7 +773,7 @@ const Dashboard = () => {
     if (status === 'completed' && apt && companyId) {
       const serviceNames = apt.appointment_services?.map((s: any) => s.service?.name).filter(Boolean).join(', ') || 'Serviço';
       const grossPrice = customAmount ?? Number(apt.original_price || apt.total_price);
-      const netPrice = Math.max(0, (customAmount ?? Number(apt.total_price)) - totalDiscount);
+      const netPrice = Math.max(0, grossPrice - totalDiscount);
 
       // Fetch collaborator commission settings
       let commissionAmount = 0;
@@ -2339,7 +2357,7 @@ const Dashboard = () => {
                 <span className="block mt-1">
                   <strong>{completeTarget.client_name || 'Cliente'}</strong> — {format(parseISO(completeTarget.start_time), 'HH:mm')}
                   <br />
-                  <span className="text-xs font-bold text-primary">Valor Original: {formatCurrency(Number(completeTarget.original_price || completeTarget.total_price))}</span>
+                  <span className="text-xs font-bold text-primary">Valor Bruto: {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(parseFloat(completeCustomAmount) || 0)}</span>
                 </span>
               )}
             </DialogDescription>
@@ -2437,7 +2455,12 @@ const Dashboard = () => {
                   {discP > 0 && <div className="flex justify-between text-orange-600 font-medium"><span>🏷️ Promoção</span><span>- R$ {discP.toFixed(2)}</span></div>}
                   {discC > 0 && <div className="flex justify-between text-blue-600 font-medium"><span>💸 Cashback</span><span>- R$ {discC.toFixed(2)}</span></div>}
                   {discM > 0 && <div className="flex justify-between text-purple-600 font-medium"><span>✍️ Desc. Manual</span><span>- R$ {discM.toFixed(2)}</span></div>}
-                  {isSubscription && <div className="flex justify-between text-amber-600 font-bold italic"><span>👑 Coberto por Assinatura</span><span>Abatido</span></div>}
+                  {isSubscription && (
+                    <div className="flex justify-between text-amber-600 font-bold italic">
+                      <span>👑 Coberto por Assinatura</span>
+                      <span>Abatido</span>
+                    </div>
+                  )}
                   <div className="flex justify-between font-black border-t pt-1 text-base"><span>Valor Líquido / A Pagar</span><span>R$ {net.toFixed(2)}</span></div>
                   {net === 0 && (
                     <p className="text-[10px] text-muted-foreground mt-1 text-center italic">
@@ -2469,15 +2492,24 @@ const Dashboard = () => {
                     const dManual = parseFloat(completeManualDiscount) || 0;
                     const dPromo = parseFloat(completePromoDiscount) || 0;
                     const dCashback = parseFloat(completeCashbackUsed) || 0;
-                    const customAmount = parseFloat(completeCustomAmount) || Number(completeTarget.total_price);
+                    const grossAmount = parseFloat(completeCustomAmount) || Number(completeTarget.total_price);
                     
-                    updateStatus(completeTarget.id, 'completed', completePaymentMethod, dManual, customAmount, dPromo, dCashback);
+                    updateStatus(completeTarget.id, 'completed', completePaymentMethod, dManual, grossAmount, dPromo, dCashback);
                     
-                    if (completeObservation) {
+                    // Construct automatic observation if benefits were applied
+                    const autoNotes = [];
+                    if (dPromo > 0) autoNotes.push("Promoção aplicada");
+                    if (dCashback > 0) autoNotes.push(`Cashback utilizado: R$ ${dCashback.toFixed(2)}`);
+                    const finalObs = [
+                      completeObservation,
+                      autoNotes.length > 0 ? autoNotes.join(" | ") : null
+                    ].filter(Boolean).join(" | ");
+
+                    if (finalObs) {
                       supabase.from('appointments').update({ 
                         notes: [
                           completeTarget.notes,
-                          completeObservation ? `Obs: ${completeObservation}` : null,
+                          finalObs
                         ].filter(Boolean).join(' | ')
                       }).eq('id', completeTarget.id).then(() => {});
                     }

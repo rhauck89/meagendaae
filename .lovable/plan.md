@@ -1,40 +1,37 @@
-## Status Overview
-The current system displays a generic \"PROMO\" badge for all types of promotions. The payment modal for completing an appointment doesn't always pre-fill existing discounts (promotion, cashback, manual) correctly, and the financial logic needs to ensure commissions are calculated based on the original gross price, not the net price after discounts.
+The current implementation of the appointment completion modal uses the `total_price` or `original_price` stored in the `appointments` table as the "Original Value". However, `total_price` often already includes discounts (e.g., from promotions), and `original_price` is not always updated correctly. The correct approach is to sum the base prices of all linked services from the `services` table to determine the true gross value.
 
-## Proposed Changes
+### User Review Required
 
-### 1. Administrative Agenda UI (Ajuste 1)
-- Modify `UnifiedAppointmentCard.tsx` to distinguish between promotion types when `isAdmin` is true.
-- Display specific badges: \"Cashback\", \"Pontuação\", \"Desconto\" based on `promotion_type` or metadata.
-- Ensure the public view remains unchanged (showing \"PROMO\").
+> [!IMPORTANT]
+> This change will ensure that professional commissions are calculated based on the full service price, even when customers use discounts or promotions.
 
-### 2. Appointment Completion Modal (Ajuste 2)
-- Update `Dashboard.tsx` to ensure `completeTarget` data is fully utilized when opening the `completeDialogOpen` modal.
-- Pre-fill `completeCustomAmount`, `completePromoDiscount`, `completeCashbackUsed`, and `completeManualDiscount` with values already stored in the appointment record.
-- Update the modal UI to display the original gross value clearly below the client name and in the breakdown.
+### Proposed Changes
 
-### 3. Financial Logic & Database (Ajuste 2)
-- Update the `updateStatus` function in `Dashboard.tsx`:
-  - Recalculate commission based on `original_price` (gross) instead of `netPrice`.
-  - Ensure `company_revenues` records the reason for R$ 0.00 payments in the notes.
-  - Fix any potential `NaN` or 0-value issues when multiple discounts are applied.
-- Add a database migration to:
-  - Add `discount_reason` or similar tracking if needed, although current `notes` field might suffice (will refine if needed).
-  - Ensure existing appointments have consistent `original_price` and `final_price` values.
+#### 1. Data Fetching Update
+- Modify the Supabase queries in `src/pages/Dashboard.tsx` to include the `price` field from the `services` table within `appointment_services`.
 
-### 4. Technical Details
-- **Files to modify**:
-  - `src/components/appointments/UnifiedAppointmentCard.tsx` (UI Badges)
-  - `src/pages/Dashboard.tsx` (Modal pre-fill and `updateStatus` logic)
-  - `src/lib/financial-engine.ts` (Ensure it supports gross vs net distinction if used elsewhere)
-- **Database**:
-  - Migration to ensure data consistency for reporting.
+#### 2. Calculation Logic
+- In `openCompleteModal`, calculate the true `grossAmount` by summing up `service.price` for all items in `appointment_services`.
+- If no services are linked, fallback to the current stored price.
 
-## Validation Plan
-1. Create appointment (R$ 35) with R$ 35 cashback.
-2. Verify modal shows: Original R$ 35, Cashback R$ 35, To Pay R$ 0.
-3. Confirm payment and check `company_revenues`:
-   - Amount: 0
-   - Notes: \"Abatido por cashback\"
-   - (Verification of professional commission calculation)
-4. Repeat for other discount types (Manual, Promotion, Subscription).
+#### 3. Modal UI & State
+- Update `completeCustomAmount` (which represents the original/gross value in the modal) to use this calculated gross amount.
+- Automatically calculate `completePromoDiscount` as the difference between the calculated gross amount and the `final_price` of the appointment, if a promotion is linked.
+- Improve the observation field to automatically include details about applied benefits (Cashback, Promotion name, etc.).
+
+#### 4. Financial Consistency
+- Ensure `updateStatus` and the subsequent revenue creation use these corrected gross and net values.
+- Maintain professional commission calculation on the corrected gross amount.
+
+### Technical Details
+- Updated files: `src/pages/Dashboard.tsx`
+- Database: No schema changes, just fetching existing fields (`services.price`).
+- Logic:
+  ```typescript
+  const calculatedGross = apt.appointment_services?.reduce(
+    (acc, s) => acc + (Number(s.service?.price) || 0), 0
+  ) || Number(apt.original_price || apt.total_price);
+  ```
+- Abatements calculation:
+  - If `promotion_id` exists: `promoDiscount = calculatedGross - final_price`.
+  - Handle cashback and manual discounts similarly based on existing fields.
