@@ -2492,15 +2492,24 @@ const Dashboard = () => {
                     const dManual = parseFloat(completeManualDiscount) || 0;
                     const dPromo = parseFloat(completePromoDiscount) || 0;
                     const dCashback = parseFloat(completeCashbackUsed) || 0;
-                    const customAmount = parseFloat(completeCustomAmount) || Number(completeTarget.total_price);
+                    const grossAmount = parseFloat(completeCustomAmount) || Number(completeTarget.total_price);
                     
-                    updateStatus(completeTarget.id, 'completed', completePaymentMethod, dManual, customAmount, dPromo, dCashback);
+                    updateStatus(completeTarget.id, 'completed', completePaymentMethod, dManual, grossAmount, dPromo, dCashback);
                     
-                    if (completeObservation) {
+                    // Construct automatic observation if benefits were applied
+                    const autoNotes = [];
+                    if (dPromo > 0) autoNotes.push("Promoção aplicada");
+                    if (dCashback > 0) autoNotes.push(`Cashback utilizado: R$ ${dCashback.toFixed(2)}`);
+                    const finalObs = [
+                      completeObservation,
+                      autoNotes.length > 0 ? autoNotes.join(" | ") : null
+                    ].filter(Boolean).join(" | ");
+
+                    if (finalObs) {
                       supabase.from('appointments').update({ 
                         notes: [
                           completeTarget.notes,
-                          completeObservation ? `Obs: ${completeObservation}` : null,
+                          finalObs
                         ].filter(Boolean).join(' | ')
                       }).eq('id', completeTarget.id).then(() => {});
                     }
