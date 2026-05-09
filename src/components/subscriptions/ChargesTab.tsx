@@ -258,6 +258,8 @@ export function ChargesTab({ companyId }: ChargesTabProps) {
     return matchesStatus && matchesSearch && matchesVencimento;
   });
 
+  const hasActions = filteredCharges.some(charge => charge.status !== 'paid');
+
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'paid':
