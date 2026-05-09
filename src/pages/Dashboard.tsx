@@ -727,13 +727,16 @@ const Dashboard = () => {
         status: status as any
       }).eq('id', id);
     } else {
+      const grossPrice = customAmount ?? Number(apt?.total_price || 0);
+      const originalPrice = customAmount ?? Number(apt?.original_price || apt?.total_price || 0);
+      
       await supabase.from('appointments').update({ 
         status: status as any,
         manual_discount: manualDiscount,
         promotion_discount: promoDiscount,
         cashback_used: cashbackUsed,
-        final_price: (customAmount ?? Number(apt?.total_price || 0)) - totalDiscount,
-        original_price: customAmount ?? Number(apt?.total_price || 0)
+        final_price: grossPrice - totalDiscount,
+        original_price: originalPrice
       }).eq('id', id);
     }
 
