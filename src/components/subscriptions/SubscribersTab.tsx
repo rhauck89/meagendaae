@@ -71,7 +71,8 @@ export function SubscribersTab({ companyId, onEditSubscriber, onViewDetails }: S
           clients(id, name, whatsapp, email),
           subscription_plans(id, name, price_monthly, price_yearly, type, usage_limit, included_services),
           professional:profiles(full_name),
-          charges:subscription_charges(status, due_date, amount)
+          charges:subscription_charges(status, due_date, amount),
+          usage:subscription_usage(id, usage_date, appointment_id, service_id, appointments!subscription_usage_appointment_id_fkey(status, start_time), services!subscription_usage_service_id_fkey(name))
         `)
         .eq('company_id', companyId)
         .order('created_at', { ascending: false });
@@ -155,13 +156,10 @@ export function SubscribersTab({ companyId, onEditSubscriber, onViewDetails }: S
     const billingDay = Number(sub.billing_day || new Date(sub.start_date || today).getDate());
     const lastPaid = getLastPaidCharge(sub);
 
-    // If we have a last paid charge, the next one is 1 cycle after that due_date
     let candidate = lastPaid?.due_date
       ? addBillingCycle(new Date(lastPaid.due_date), sub.billing_cycle, billingDay)
-      : buildDateFromBillingDay(new Date(sub.start_date || today), billingDay);
+      : buildDateFromBillingDay(today, billingDay);
 
-    // If the candidate is in the past, it means we are already in a new cycle but no charge was created yet
-    // or we are just starting. We move forward until we find a date >= today.
     while (differenceInCalendarDays(candidate, today) < 0) {
       candidate = addBillingCycle(candidate, sub.billing_cycle, billingDay);
     }
@@ -169,15 +167,43 @@ export function SubscribersTab({ companyId, onEditSubscriber, onViewDetails }: S
     return candidate;
   };
 
-  const getPaymentState = (charge: any) => {
-    if (!charge) return 'current'; // If no open charge, it's current
-    if (charge.status === 'paid') return 'current';
-    
+  const getCurrentCycleStart = (sub: any) => {
     const today = new Date();
-    const dueDate = new Date(charge.due_date);
-    const diff = differenceInCalendarDays(dueDate, today);
-    
-    // If it's explicitly overdue in DB or the date is in the past
+    const billingDay = Number(sub.billing_day || new Date(sub.start_date || today).getDate());
+    let cycleStart = buildDateFromBillingDay(today, billingDay);
+
+    if (differenceInCalendarDays(cycleStart, today) > 0) {
+      const previous = new Date(cycleStart);
+      if (sub.billing_cycle === 'yearly') {
+        previous.setFullYear(previous.getFullYear() - 1);
+      } else {
+        previous.setMonth(previous.getMonth() - 1);
+      }
+      cycleStart = buildDateFromBillingDay(previous, billingDay);
+    }
+
+    const subscriptionStart = sub.start_date ? new Date(sub.start_date) : null;
+    if (subscriptionStart && differenceInCalendarDays(subscriptionStart, cycleStart) > 0) {
+      return subscriptionStart;
+    }
+
+    return cycleStart;
+  };
+
+  const getCurrentCycleUsage = (sub: any) => {
+    const cycleStart = getCurrentCycleStart(sub);
+    const nextBillingDate = getNextBillingDate(sub);
+
+    return (sub.usage || []).filter((usage: any) => {
+      const usageDate = new Date(usage.usage_date);
+      return differenceInCalendarDays(usageDate, cycleStart) >= 0 &&
+        differenceInCalendarDays(usageDate, nextBillingDate) < 0;
+    });
+  };
+
+  const getPaymentState = (charge: any) => {
+    if (!charge || charge.status === 'paid') return 'current';
+    const diff = differenceInCalendarDays(new Date(charge.due_date), new Date());
     if (charge.status === 'overdue' || diff < 0) return 'overdue';
     return 'pending';
   };
@@ -203,13 +229,10 @@ export function SubscribersTab({ companyId, onEditSubscriber, onViewDetails }: S
     const dueDate = charge?.due_date ? new Date(charge.due_date) : getNextBillingDate(sub);
     const state = getPaymentState(charge);
     const diff = differenceInCalendarDays(dueDate, new Date());
-    
-    if (state === 'current') {
+    if (state === 'current' && !charge) {
       if (diff === 0) return 'Vence hoje';
-      if (diff < 0) return 'Aguardando próxima'; // Should not happen with getNextBillingDate logic
-      return `Em ${diff} dias`;
+      return `Vence em ${diff} dias`;
     }
-    
     if (diff === 0) return 'Hoje';
     if (diff < 0) return `Atrasado ${Math.abs(diff)} dias`;
     return `${diff} dias`;
@@ -306,6 +329,7 @@ export function SubscribersTab({ companyId, onEditSubscriber, onViewDetails }: S
                 const planValue = Number(sub.billing_cycle === 'monthly' ? plan?.price_monthly : plan?.price_yearly || plan?.price_monthly || 0);
                 const dueDate = openCharge?.due_date ? new Date(openCharge.due_date) : getNextBillingDate(sub);
                 const paymentState = getPaymentState(openCharge);
+                const cycleUsage = getCurrentCycleUsage(sub);
 
                 return (
                   <TableRow key={sub.id} className="hover:bg-slate-50/80 transition-colors">
@@ -358,7 +382,7 @@ export function SubscribersTab({ companyId, onEditSubscriber, onViewDetails }: S
                           </>
                         ) : (
                           <>
-                            <span className="font-medium">0 / {plan?.usage_limit || 0}</span>
+                            <span className="font-medium">{cycleUsage.length} / {plan?.usage_limit || 0}</span>
                             <p className="text-muted-foreground">usos</p>
                           </>
                         )}
