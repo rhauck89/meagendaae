@@ -289,7 +289,7 @@ const Dashboard = () => {
         *,
         client:clients!appointments_client_id_fkey(name, whatsapp),
         professional:profiles!appointments_professional_id_fkey(full_name),
-        appointment_services(*, service:services(name))
+        appointment_services(*, service:services(name, price))
       `)
       .eq('company_id', companyId!)
       .in('status', ['confirmed', 'pending'])
@@ -382,7 +382,7 @@ const Dashboard = () => {
         *,
         client:clients!appointments_client_id_fkey(name, whatsapp),
         professional:profiles!appointments_professional_id_fkey(full_name),
-        appointment_services(*, service:services(name)),
+        appointment_services(*, service:services(name, price)),
         rescheduled_from:appointments!rescheduled_from_id(start_time)
       `)
       .eq('company_id', companyId!)
