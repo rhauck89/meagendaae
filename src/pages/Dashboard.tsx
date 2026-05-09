@@ -2455,7 +2455,12 @@ const Dashboard = () => {
                   {discP > 0 && <div className="flex justify-between text-orange-600 font-medium"><span>🏷️ Promoção</span><span>- R$ {discP.toFixed(2)}</span></div>}
                   {discC > 0 && <div className="flex justify-between text-blue-600 font-medium"><span>💸 Cashback</span><span>- R$ {discC.toFixed(2)}</span></div>}
                   {discM > 0 && <div className="flex justify-between text-purple-600 font-medium"><span>✍️ Desc. Manual</span><span>- R$ {discM.toFixed(2)}</span></div>}
-                  {isSubscription && <div className="flex justify-between text-amber-600 font-bold italic"><span>👑 Coberto por Assinatura</span><span>Abatido</span></div>}
+                  {isSubscription && (
+                    <div className="flex justify-between text-amber-600 font-bold italic">
+                      <span>👑 Coberto por Assinatura</span>
+                      <span>Abatido</span>
+                    </div>
+                  )}
                   <div className="flex justify-between font-black border-t pt-1 text-base"><span>Valor Líquido / A Pagar</span><span>R$ {net.toFixed(2)}</span></div>
                   {net === 0 && (
                     <p className="text-[10px] text-muted-foreground mt-1 text-center italic">
