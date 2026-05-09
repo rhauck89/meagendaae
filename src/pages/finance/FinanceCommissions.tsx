@@ -669,6 +669,8 @@ const FinanceCommissions = () => {
         professional={activeProfessional}
         startDate={startDate}
         endDate={endDate}
+        companyId={companyId || ''}
+        status={filterStatus}
       />
       
       <style>{`

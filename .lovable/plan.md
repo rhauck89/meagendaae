@@ -1,27 +1,61 @@
-Implementar as correções e sincronizações solicitadas, focando na integridade financeira, correção de bugs de autenticação e limpeza de dados.
+The goal is to fix the `ProfessionalDrawer` component used in the Admin Finance Commissions screen to ensure it correctly displays "Ranking de Serviços", "Top Clientes", and "Histórico do Período". Currently, it seems to be missing `companyId` filtering and uses a simplified query that doesn't account for multiple services per appointment or different status filters.
 
-### 1. Limpeza de Dados
-- Excluir o usuário `Igorjardel26@gmail.com` da tabela `auth.users` via RPC ou script administrativo para permitir um novo cadastro limpo.
+### Proposed Changes
 
-### 2. Sincronização e Banco de Dados (Supabase)
-- Aplicar a migration `supabase/migrations/20260509170000_fix_cashback_rpc_return_amount_alias.sql` para garantir que a função `process_appointment_cashback` retorne os campos `amount` e `total_amount` corretamente.
-- Deploy da Edge Function `auth-handler` para atualizar a lógica de tratamento de erros e envio de e-mails.
+#### 1. Update `ProfessionalDrawer` Props
+- Add `companyId` and `status` to `ProfessionalDrawerProps` to allow more precise filtering.
+- Update `ProfessionalDrawer` usage in `FinanceCommissions.tsx` to pass these new props.
 
-### 3. Ajustes no Frontend e Lógica de Negócio
-- **Financeiro**:
-    - Atualizar `src/lib/financial-engine.ts` para garantir que `final_price` tenha prioridade sobre `total_price`.
-    - Revisar a lógica de deduplicação em `src/pages/Dashboard.tsx` para evitar entradas duplicadas em `company_revenues` ao concluir agendamentos.
-- **Comissões e Visões**:
-    - Ajustar `src/pages/dashboard/my-finance/commissions.tsx` (ou arquivo equivalente encontrado) para filtrar apenas dados do `professional_id` do usuário logado, mesmo se for admin.
-    - Garantir que `src/pages/dashboard/finance/commissions.tsx` mantenha a visão administrativa consolidada.
-- **Regras de Comissão**:
-    - Ajustar o motor financeiro para tratar "Receita própria" (100% profissional) de forma distinta de comissões, evitando textos confusos na UI como "Sem comissão" em valores integrais.
+#### 2. Enhance Data Fetching in `ProfessionalDrawer.tsx`
+- **Query Improvements**:
+    - Filter by `company_id`.
+    - Use the `status` prop (defaulting to 'completed' if not provided) instead of hardcoding it.
+    - Fetch related `appointment_services` with their `services` names to support appointments with multiple services.
+    - Fetch client name through the `clients` table relationship.
+- **Data Processing**:
+    - Correctly handle multiple services per appointment in the "Ranking de Serviços" and "Histórico do Período".
+    - If multiple services exist, join their names with commas for the history view.
+    - Use `final_price` with a fallback to `total_price` for revenue calculations.
+    - Group by service name for the "Ranking de Serviços".
+    - Group by client name for the "Top Clientes".
 
-### 4. Validação e Publicação
-- Executar build de produção para garantir que não existam erros de TypeScript.
-- Publicar a aplicação.
+#### 3. Component UI Updates
+- Ensure the "Histórico do Período" displays the joined service names.
+- Verify that the groupings for ranking and top clients use the enhanced data processing logic.
 
-### Detalhes Técnicos
-- **Deduplicação**: Uso de `ON CONFLICT (appointment_id) DO UPDATE` ou verificação prévia de existência de registro para `company_revenues`.
-- **UI**: Uso de condicionais para exibir "Receita Própria" em vez de "Sem comissão" quando a taxa de comissão não estiver definida para profissionais independentes.
-- **Auth**: Melhoria na captura de erros da Edge Function para exibir mensagens amigáveis em vez de "non-2xx status code".
+### Technical Details
+- **File**: `src/components/admin/financial/ProfessionalDrawer.tsx`
+- **File**: `src/pages/finance/FinanceCommissions.tsx`
+- **Query**:
+  ```typescript
+  const { data: appointments, error } = await supabase
+    .from('appointments')
+    .select(`
+      id,
+      total_price,
+      final_price,
+      start_time,
+      status,
+      client_name,
+      client:clients!appointments_client_id_fkey(name),
+      appointment_services(
+        service:services(name)
+      )
+    `)
+    .eq('professional_id', professional.id)
+    .eq('company_id', companyId)
+    .eq('status', status)
+    .gte('start_time', startDate.toISOString())
+    .lte('start_time', endDate.toISOString())
+    .order('start_time', { ascending: false });
+  ```
+- **Revenue Calculation**: Continue using `getAppointmentRevenue(a)` which handles the `final_price` vs `total_price` logic correctly.
+
+### Validation Plan
+- Open Dashboard Admin > Financeiro > Comissões.
+- Select a professional (e.g., Cristiano Campos).
+- Verify that the drawer opens and displays:
+    - Service ranking matching the professional's total services.
+    - Top clients with correct counts and values.
+    - Appointment history showing all services performed in the period.
+- Ensure values match the main table summary.
