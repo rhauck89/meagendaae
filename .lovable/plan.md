@@ -1,28 +1,32 @@
-The user wants to refine the logic for displaying payment and next due date status in the **Subscriptions > Subscribers** screen.
+The user wants to remove non-functional UI elements from the Subscriptions area to improve visual clarity.
 
-### Analysis of requirements:
-1.  **Payment Status: "Em dia"** - When all charges are paid, the subscriber should appear as "Em dia" (Current). Currently, if there is no open charge, it falls back to a calculation that might be showing "Atrasado" if not careful.
-2.  **Next Due Date Calculation** - If there is no open charge, calculate the next due date based on the billing cycle and billing day.
-3.  **Immediate Refresh** - Ensure that marking a charge as paid in **Subscriptions > Charges** immediately updates the **Subscribers** tab and the **Dashboard**.
+### Visual Cleanup Tasks
 
-### Proposed changes:
+1.  **Subscriptions Dashboard**
+    *   File: `src/components/subscriptions/SubscriptionsDashboard.tsx`
+    *   Action: Remove the "Ver todos alertas" (See all alerts) button inside the "Alertas importantes" (Important alerts) card.
 
-**1. `src/components/subscriptions/SubscribersTab.tsx`**
-*   Refine `getPaymentState` to explicitly return 'current' if no open charge exists.
-*   Update `getDueLabel` to handle the case where all charges are paid more gracefully, calculating the next period's due date and showing it as a future event.
-*   Ensure `getNextBillingDate` logic is robust for different billing cycles (monthly/yearly).
-*   Add a listener for `refresh-charges` (or similar) to trigger a refresh when a charge is paid in the other tab, if not already present. Actually, `ChargesTab.tsx` already dispatches `refresh-subscribers`, so the event name is correct.
+2.  **Subscriptions Charges**
+    *   File: `src/components/subscriptions/ChargesTab.tsx`
+    *   Action: 
+        *   Remove the three-dot actions menu for charges with status "paid" (`pago`), as it only contains a non-functional "Ver Comprovante" option.
+        *   Conditionally render the "Ações" (Actions) column header and cells: only show them if there is at least one charge in the current list that is NOT paid (since only unpaid charges have a functional "Pago" button).
 
-**2. `src/components/subscriptions/ChargesTab.tsx`**
-*   Verify that `handleMarkAsPaid` dispatches the correct events. (Current code shows it dispatches `refresh-subscription-dashboard` and `refresh-subscribers`).
+3.  **Subscriptions Plans**
+    *   File: `src/components/subscriptions/PlansTab.tsx`
+    *   Action: Audit the component for any non-functional buttons. Based on the current code, the "Editar", "Ativar/Desativar", and "Excluir" actions are functional. I will ensure no other placeholders exist.
 
-**3. `src/components/subscriptions/SubscriptionsDashboard.tsx`**
-*   Ensure stats calculation for "overdue" correctly ignores paid charges and focuses on the current state.
+### Technical Details
 
-### Technical details:
-*   In `SubscribersTab.tsx`, the `getOpenCharge` function finds the first non-paid charge. If it returns `null`, the UI should reflect that the user is "Em dia".
-*   The `getNextBillingDate` function will be used to show when the next charge *will* be generated if none exists yet.
+*   **Dashboard**: Locate line 172 in `SubscriptionsDashboard.tsx` and delete the button element.
+*   **Charges**: 
+    *   Calculate `const hasActions = filteredCharges.some(charge => charge.status !== 'paid')`.
+    *   Use `hasActions` to conditionally render the `<TableHead className="text-right">Ações</TableHead>` and the corresponding `<TableCell>` for each row.
+*   **Plans**: No immediate non-functional buttons found, but will double-check for any `DropdownMenuItem` without an `onClick` or with a placeholder handler.
 
-### Validation:
-*   Run `npm run build` to ensure no syntax errors.
-*   The user will manually test the flow as described.
+### Validation
+*   Run `npm run build` to ensure no regressions.
+*   Verify the UI changes in the preview.
+
+---
+**Note**: No database or logic changes will be made as per instructions.

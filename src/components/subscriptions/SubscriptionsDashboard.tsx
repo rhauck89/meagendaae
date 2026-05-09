@@ -169,7 +169,6 @@ export function SubscriptionsDashboard({ companyId }: SubscriptionsDashboardProp
               <Clock className="h-5 w-5 text-amber-500" />
               <h3 className="font-semibold">Alertas importantes</h3>
             </div>
-            <button className="text-xs font-semibold text-violet-600">Ver todos alertas</button>
           </div>
           <div className="grid gap-4 md:grid-cols-3">
             <div className="rounded-xl bg-slate-50 p-4">

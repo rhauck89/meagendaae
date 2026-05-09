@@ -258,6 +258,8 @@ export function ChargesTab({ companyId }: ChargesTabProps) {
     return matchesStatus && matchesSearch && matchesVencimento;
   });
 
+  const hasActions = filteredCharges.some(charge => charge.status !== 'paid');
+
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'paid':
@@ -336,13 +338,13 @@ export function ChargesTab({ companyId }: ChargesTabProps) {
               <TableHead>Valor</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Financeiro (Líquido)</TableHead>
-              <TableHead className="text-right">Ações</TableHead>
+              {hasActions && <TableHead className="text-right">Ações</TableHead>}
             </TableRow>
           </TableHeader>
           <TableBody>
             {filteredCharges.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} className="text-center py-20 text-muted-foreground">
+                <TableCell colSpan={hasActions ? 7 : 6} className="text-center py-20 text-muted-foreground">
                   Nenhuma cobrança encontrada com os filtros selecionados.
                 </TableCell>
               </TableRow>
@@ -385,31 +387,20 @@ export function ChargesTab({ companyId }: ChargesTabProps) {
                         </div>
                       </div>
                     </TableCell>
-                    <TableCell className="text-right">
-                      {charge.status !== 'paid' ? (
-                        <Button 
-                          size="sm" 
-                          variant="default" 
-                          className="h-8 gap-2 bg-green-600 hover:bg-green-700"
-                          onClick={() => handleMarkAsPaid(charge)}
-                        >
-                          <CheckCircle className="h-4 w-4" /> Pago
-                        </Button>
-                      ) : (
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                              <MoreVertical className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem className="gap-2">
-                              <CreditCard className="h-4 w-4" /> Ver Comprovante
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      )}
-                    </TableCell>
+                    {hasActions && (
+                      <TableCell className="text-right">
+                        {charge.status !== 'paid' ? (
+                          <Button 
+                            size="sm" 
+                            variant="default" 
+                            className="h-8 gap-2 bg-green-600 hover:bg-green-700"
+                            onClick={() => handleMarkAsPaid(charge)}
+                          >
+                            <CheckCircle className="h-4 w-4" /> Pago
+                          </Button>
+                        ) : null}
+                      </TableCell>
+                    )}
                   </TableRow>
                 );
               })
