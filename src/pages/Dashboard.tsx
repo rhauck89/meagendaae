@@ -826,12 +826,15 @@ const Dashboard = () => {
             p_appointment_id: apt.id
           });
           
-          const cbResult = data as { generated: boolean; amount?: number } | null;
+          const cbResult = data as { generated: boolean; amount?: number; total_amount?: number; cashback_amount?: number } | null;
+          const generatedCashbackAmount = Number(
+            cbResult?.amount ?? cbResult?.total_amount ?? cbResult?.cashback_amount ?? 0
+          );
           
           if (cbError) {
             console.error('[CASHBACK_COMPLETE_APPOINTMENT_DEBUG] RPC error:', cbError);
-          } else if (cbResult?.generated) {
-            toast.success(`Cashback de R$ ${Number(cbResult.amount).toFixed(2)} gerado automaticamente!`);
+          } else if (cbResult?.generated && generatedCashbackAmount > 0) {
+            toast.success(`Cashback de R$ ${generatedCashbackAmount.toFixed(2)} gerado automaticamente!`);
           }
         } catch (cashbackErr) {
           console.error('[CASHBACK_COMPLETE_APPOINTMENT_DEBUG] Unexpected error:', cashbackErr);
