@@ -444,7 +444,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
   const currentLabel = (() => {
     if (isSettingsActive) {
       const sub = settingsSubItems.find(i => location.pathname === i.href);
-      return sub ? `ConfiguraÃ§Ãµes / ${sub.label}` : 'ConfiguraÃ§Ãµes';
+      return sub ? `Configurações / ${sub.label}` : 'Configurações';
     }
     if (isFinanceActive) {
       const sub = financeSubItems.find(i => location.pathname === i.href);
@@ -575,7 +575,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
                 </div>
               ))}
               {isAdmin && renderCollapsibleGroup('Financeiro', DollarSign, isFinanceActive, financeOpen, setFinanceOpen, financeSubItems)}
-              {isAdmin && renderCollapsibleGroup('ConfiguraÃ§Ãµes', Settings, isSettingsActive, settingsOpen, setSettingsOpen, settingsSubItems)}
+              {isAdmin && renderCollapsibleGroup('Configurações', Settings, isSettingsActive, settingsOpen, setSettingsOpen, settingsSubItems)}
 
               {!isAdmin && profPerms.finance && renderCollapsibleGroup('Financeiro', DollarSign, isProfessionalFinanceActive, professionalFinanceOpen, setProfessionalFinanceOpen, professionalFinanceSubItems)}
 
