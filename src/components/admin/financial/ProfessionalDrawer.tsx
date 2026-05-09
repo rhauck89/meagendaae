@@ -23,6 +23,8 @@ interface ProfessionalDrawerProps {
   onClose: () => void;
   startDate: Date;
   endDate: Date;
+  companyId: string;
+  status?: string;
 }
 
 export const ProfessionalDrawer = ({
@@ -31,6 +33,8 @@ export const ProfessionalDrawer = ({
   onClose,
   startDate,
   endDate,
+  companyId,
+  status = 'completed',
 }: ProfessionalDrawerProps) => {
   const { maskValue } = useFinancialPrivacy();
   const [loading, setLoading] = useState(true);
@@ -60,11 +64,16 @@ export const ProfessionalDrawer = ({
           manual_discount,
           final_price,
           start_time,
-          client:profiles!appointments_client_id_fkey(full_name),
-          service:services(name)
+          status,
+          client_name,
+          client:clients!appointments_client_id_fkey(name),
+          appointment_services(
+            service:services(name)
+          )
         `)
         .eq('professional_id', professional.id)
-        .eq('status', 'completed')
+        .eq('company_id', companyId)
+        .eq('status', (status === 'all' ? 'completed' : status) as any)
         .gte('start_time', startDate.toISOString())
         .lte('start_time', endDate.toISOString())
         .order('start_time', { ascending: false });
@@ -76,17 +85,29 @@ export const ProfessionalDrawer = ({
       const clientsMap: Record<string, { count: number; revenue: number }> = {};
 
       appointments?.forEach((a: any) => {
-        const serviceName = a.service?.name || 'Serviço s/ nome';
-        const clientName = a.client?.full_name || 'Cliente s/ nome';
+        const serviceNames = a.appointment_services?.map((as: any) => as.service?.name).filter(Boolean) || [];
+        const displayServiceName = serviceNames.join(', ') || 'Serviço s/ nome';
+        const clientName = (Array.isArray(a.client) ? a.client[0]?.name : a.client?.name) || a.client_name || 'Cliente s/ nome';
         const price = getAppointmentRevenue(a);
 
-        if (!servicesMap[serviceName]) servicesMap[serviceName] = { count: 0, revenue: 0 };
-        servicesMap[serviceName].count += 1;
-        servicesMap[serviceName].revenue += price;
+        // Contabilizar cada serviço individualmente no ranking se houver múltiplos
+        serviceNames.forEach((sName: string) => {
+          if (!servicesMap[sName]) servicesMap[sName] = { count: 0, revenue: 0 };
+          servicesMap[sName].count += 1;
+          // Dividimos o faturamento proporcionalmente se houver múltiplos serviços? 
+          // Geralmente para ranking de faturamento por serviço, se o preço é do agendamento total,
+          // atribuímos o total ou dividimos. Aqui vamos atribuir o total para o "serviço principal" 
+          // ou dividir por igual para simplificar se não houver preço por item.
+          servicesMap[sName].revenue += price / (serviceNames.length || 1);
+        });
 
         if (!clientsMap[clientName]) clientsMap[clientName] = { count: 0, revenue: 0 };
         clientsMap[clientName].count += 1;
         clientsMap[clientName].revenue += price;
+        
+        // Adicionamos o nome formatado para o histórico
+        a.displayServiceName = displayServiceName;
+        a.displayClientName = clientName;
       });
 
       setDetails({
@@ -229,7 +250,7 @@ export const ProfessionalDrawer = ({
                               </TableCell>
                               <TableCell className="text-xs font-medium">
                                 <div className="flex flex-col">
-                                  <span className="truncate max-w-[120px]">{h.service?.name}</span>
+                                  <span className="truncate max-w-[120px]" title={h.displayServiceName}>{h.displayServiceName}</span>
                                   {discount > 0 && (
                                     <span className="text-[10px] text-muted-foreground line-through">
                                       {maskValue(original)}
