@@ -11,7 +11,7 @@ import { CalendarIcon, RotateCcw, BarChart3 } from 'lucide-react';
 import { startOfMonth, subMonths, startOfDay, endOfDay, startOfMonth as som, endOfMonth, format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend, LineChart, Line } from 'recharts';
-import { calculateFinancials } from '@/lib/financial-engine';
+import { calculateFinancials, getAppointmentRevenue } from '@/lib/financial-engine';
 import { truncateName, groupOthers, piePercentLabel, tooltipCurrencyFormatter, adaptiveBarHeight } from '@/lib/chart-utils';
 
 const COLORS = ['hsl(var(--primary))', 'hsl(var(--success))', 'hsl(var(--warning))', 'hsl(var(--destructive))', 'hsl(var(--accent))', '#8884d8', '#82ca9d', '#ffc658'];
@@ -50,7 +50,7 @@ const FinanceReports = () => {
     const [aptsRes, collabRes, aptSvcRes, expsRes] = await Promise.all([
       supabase
         .from('appointments')
-        .select('id, total_price, professional_id, client_id, client_name, professional:profiles!appointments_professional_id_fkey(full_name)')
+        .select('id, total_price, final_price, professional_id, client_id, client_name, professional:profiles!appointments_professional_id_fkey(full_name)')
         .eq('company_id', companyId!)
         .eq('status', 'completed')
         .gte('start_time', start.toISOString())
@@ -86,7 +86,7 @@ const FinanceReports = () => {
       const pid = a.professional_id;
       const name = a.professional?.full_name || 'Sem nome';
       if (!proGroup[pid]) proGroup[pid] = { name, revenue: 0, count: 0, pid };
-      proGroup[pid].revenue += Number(a.total_price);
+      proGroup[pid].revenue += getAppointmentRevenue(a);
       proGroup[pid].count += 1;
     });
 
@@ -116,7 +116,7 @@ const FinanceReports = () => {
       const key = a.client_id || a.client_name || 'Anônimo';
       const name = a.client_name || 'Anônimo';
       if (!clientMap[key]) clientMap[key] = { name, spent: 0, visits: 0 };
-      clientMap[key].spent += Number(a.total_price);
+      clientMap[key].spent += getAppointmentRevenue(a);
       clientMap[key].visits += 1;
     });
     setTopClients(Object.values(clientMap).sort((a, b) => b.spent - a.spent).slice(0, 15));
@@ -141,12 +141,12 @@ const FinanceReports = () => {
       const label = format(m, 'MMM/yy', { locale: ptBR });
       const { data: apts } = await supabase
         .from('appointments')
-        .select('total_price')
+        .select('total_price, final_price')
         .eq('company_id', companyId!)
         .eq('status', 'completed')
         .gte('start_time', `${s}T00:00:00`)
         .lte('start_time', `${e}T23:59:59`);
-      data.push({ name: label, revenue: apts?.reduce((sum, a) => sum + Number(a.total_price), 0) || 0 });
+      data.push({ name: label, revenue: apts?.reduce((sum, a) => sum + getAppointmentRevenue(a), 0) || 0 });
     }
     setMonthlyTrend(data);
   };
