@@ -1,10 +1,10 @@
 /**
  * Financial calculation engine for different professional types.
  *
- * Partner:       professional gets 100%, company gets 0%
- * Independent:   professional gets 100%, company gets 0%
- * Own Revenue:   professional gets 100%, company gets 0% (not counted as company income)
- * Commissioned:  professional gets commission (% or fixed), company gets remainder
+ * Independent:  professional gets 100%, company gets 0%
+ * Own Revenue:  professional gets 100%, company gets 0% (not counted as company income)
+ * Partner:      follows commission type; without a split, professional gets 100%
+ * Commissioned: professional gets commission (% or fixed), company gets remainder
  */
 
 export interface FinancialBreakdown {
@@ -26,17 +26,18 @@ export const calculateFinancials = (
   commissionType: string,
   commissionValue: number
 ): FinancialBreakdown => {
-  // Own revenue: professional keeps everything, company gets nothing
   if (commissionType === 'own_revenue') {
     return { professionalValue: revenue, companyValue: 0 };
   }
 
-  // Partner & Independent: professional keeps everything
-  if (collaboratorType === 'partner' || collaboratorType === 'independent') {
+  if (collaboratorType === 'independent') {
     return { professionalValue: revenue, companyValue: 0 };
   }
 
-  // Commissioned
+  if (collaboratorType === 'partner' && commissionType === 'none') {
+    return { professionalValue: revenue, companyValue: 0 };
+  }
+
   let professionalValue = 0;
   if (commissionType === 'percentage') {
     professionalValue = (revenue * commissionValue) / 100;
@@ -64,4 +65,15 @@ export const commissionLabel = (type: string, value: number): string => {
   if (type === 'percentage') return `${value}%`;
   if (type === 'fixed') return `R$ ${value.toFixed(2)}/serviço`;
   return 'Sem comissão';
+};
+
+export const remunerationLabel = (
+  collaboratorType: string,
+  commissionType: string,
+  commissionValue: number
+): string => {
+  if (commissionType === 'own_revenue') return 'Receita própria';
+  if (collaboratorType === 'independent') return 'Receita própria';
+  if (collaboratorType === 'partner' && commissionType === 'none') return 'Receita própria';
+  return commissionLabel(commissionType, commissionValue);
 };
