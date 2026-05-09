@@ -40,7 +40,7 @@ const SYSTEM_ROLES = {
   admin: { label: 'Admin', icon: Shield, color: 'bg-blue-100 text-blue-800 border-blue-300' },
   admin_financeiro: { label: 'Admin Financeiro', icon: DollarSign, color: 'bg-green-100 text-green-800 border-green-300' },
   manager: { label: 'Gerente', icon: Briefcase, color: 'bg-purple-100 text-purple-800 border-purple-300' },
-  collaborator: { label: 'FuncionÃ¡rio', icon: Users, color: 'bg-slate-100 text-slate-800 border-slate-300' },
+  collaborator: { label: 'Funcionário', icon: Users, color: 'bg-slate-100 text-slate-800 border-slate-300' },
 };
 const WIZARD_STEPS = 5;
 
@@ -318,7 +318,7 @@ const Team = () => {
     }
 
     if (!companyId) {
-      return toast.error('Empresa nÃ£o encontrada');
+      return toast.error('Empresa não encontrada');
     }
 
     setLoadingAction('creating');
@@ -397,7 +397,7 @@ const Team = () => {
   const handleSendInvite = async (collaborator: any) => {
     const email = collaborator.profile?.email;
     const userId = collaborator.profile?.user_id;
-    if (!email) return toast.error('Email nÃ£o encontrado');
+    if (!email) return toast.error('Email não encontrado');
 
     setLoadingAction(`invite-${collaborator.id}`);
     try {
@@ -410,7 +410,7 @@ const Team = () => {
 
       setInviteCredentials({ email, password: response.data.temp_password });
       setInviteDialogOpen(true);
-      toast.success('Credenciais temporÃ¡rias geradas!');
+      toast.success('Credenciais temporárias geradas!');
     } catch (err: any) {
       toast.error(err.message || 'Erro ao enviar convite');
     } finally {
@@ -421,7 +421,7 @@ const Team = () => {
   const handleResetPassword = async (collaborator: any) => {
     const email = collaborator.profile?.email;
     const userId = collaborator.profile?.user_id;
-    if (!email) return toast.error('Email nÃ£o encontrado');
+    if (!email) return toast.error('Email não encontrado');
 
     setLoadingAction(`reset-${collaborator.id}`);
     try {
@@ -433,7 +433,7 @@ const Team = () => {
       if (response.error) throw new Error(response.error.message);
       if (!response.data?.success) throw new Error(response.data?.error || 'Erro ao resetar senha');
 
-      toast.success('Email de redefiniÃ§Ã£o de senha enviado!');
+      toast.success('Email de redefinição de senha enviado!');
     } catch (err: any) {
       toast.error(err.message || 'Erro ao resetar senha');
     } finally {
@@ -467,7 +467,7 @@ const Team = () => {
         .eq('professional_id', collaborator.profile_id);
       setEditAssignedServiceIds((data || []).map((r: any) => r.service_id));
     } catch {
-      // silent â€” fallback to empty
+      // silent — fallback to empty
     }
   };
 
@@ -491,14 +491,14 @@ const Team = () => {
         setEditAssignedServiceIds((prev) => prev.filter((id) => id !== serviceId));
       }
     } catch (e: any) {
-      toast.error('Erro ao atualizar serviÃ§o');
+      toast.error('Erro ao atualizar serviço');
     }
   };
 
   const saveEditSlug = async () => {
     if (!editTarget) return;
     const cleanSlug = editSlug.trim().toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').replace(/(^-|-$)/g, '');
-    if (!cleanSlug) return toast.error('Identificador invÃ¡lido');
+    if (!cleanSlug) return toast.error('Identificador inválido');
     try {
       await supabase.from('collaborators').update({ slug: cleanSlug } as any).eq('id', editTarget.id);
       setEditSlug(cleanSlug);
@@ -518,7 +518,7 @@ const Team = () => {
 
   const handleSaveEdit = async () => {
     if (!editTarget) return;
-    if (!editForm.name.trim()) return toast.error('Nome Ã© obrigatÃ³rio');
+    if (!editForm.name.trim()) return toast.error('Nome é obrigatório');
 
     try {
       await supabase
@@ -608,7 +608,7 @@ const Team = () => {
     if (!deleteTarget) return;
     try {
       await supabase.from('collaborators').delete().eq('id', deleteTarget.id);
-      toast.success('Profissional excluÃ­do');
+      toast.success('Profissional excluído');
       setDeleteConfirmOpen(false);
       setDeleteTarget(null);
       await refreshTeam();
@@ -629,8 +629,8 @@ const Team = () => {
 
   const handleSaveAbsence = async () => {
     if (!absenceTarget) return;
-    if (!absenceForm.absence_start || !absenceForm.absence_end) return toast.error('Defina as datas de inÃ­cio e fim');
-    if (absenceForm.absence_start > absenceForm.absence_end) return toast.error('Data de inÃ­cio deve ser antes da data de fim');
+    if (!absenceForm.absence_start || !absenceForm.absence_end) return toast.error('Defina as datas de início e fim');
+    if (absenceForm.absence_start > absenceForm.absence_end) return toast.error('Data de início deve ser antes da data de fim');
 
     try {
       await supabase
@@ -641,7 +641,7 @@ const Team = () => {
           absence_type: absenceForm.absence_type,
         } as any)
         .eq('id', absenceTarget.id);
-      toast.success('AusÃªncia configurada!');
+      toast.success('Ausência configurada!');
       setAbsenceDialogOpen(false);
       await refreshTeam();
     } catch (err: any) {
@@ -659,10 +659,10 @@ const Team = () => {
           absence_type: null,
         } as any)
         .eq('id', collaborator.id);
-      toast.success('AusÃªncia removida!');
+      toast.success('Ausência removida!');
       await refreshTeam();
     } catch (err: any) {
-      toast.error(err.message || 'Erro ao remover ausÃªncia');
+      toast.error(err.message || 'Erro ao remover ausência');
     }
   };
 
@@ -675,7 +675,7 @@ const Team = () => {
   };
 
   const absenceTypeLabel = (type: string) => {
-    const labels: Record<string, string> = { ferias: 'FÃ©rias', folga: 'Folga', recesso: 'Recesso', ausente: 'Ausente' };
+    const labels: Record<string, string> = { ferias: 'Férias', folga: 'Folga', recesso: 'Recesso', ausente: 'Ausente' };
     return labels[type] || type;
   };
 
@@ -685,9 +685,9 @@ const Team = () => {
   };
 
   const paymentLabel = (type: string, value: number) => {
-    if (type === 'own_revenue') return 'Receita prÃ³pria';
+    if (type === 'own_revenue') return 'Receita própria';
     if (type === 'percentage') return `${value}%`;
-    if (type === 'fixed') return `R$ ${Number(value).toFixed(2)}/serviÃ§o`;
+    if (type === 'fixed') return `R$ ${Number(value).toFixed(2)}/serviço`;
     return 'Sem comissÃ£o';
   };
 
@@ -712,7 +712,7 @@ const Team = () => {
     const actionsMenu = (
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="ghost" size="icon" className="h-9 w-9" aria-label="Mais opÃ§Ãµes">
+          <Button variant="ghost" size="icon" className="h-9 w-9" aria-label="Mais opções">
             <MoreVertical className="h-4 w-4" />
           </Button>
         </DropdownMenuTrigger>
@@ -753,9 +753,9 @@ const Team = () => {
               )}
               {profileLink && (
                 <>
-                  <DropdownMenuLabel>PÃ¡gina pÃºblica</DropdownMenuLabel>
+                  <DropdownMenuLabel>Página pública</DropdownMenuLabel>
                   <DropdownMenuItem onClick={() => window.open(profileLink, '_blank')}>
-                    <ExternalLink className="mr-2 h-4 w-4" /> Abrir pÃ¡gina
+                    <ExternalLink className="mr-2 h-4 w-4" /> Abrir página
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => { navigator.clipboard.writeText(profileLink); toast.success('Link copiado!'); }}>
                     <Copy className="mr-2 h-4 w-4" /> Copiar link
@@ -763,14 +763,14 @@ const Team = () => {
                   <DropdownMenuSeparator />
                 </>
               )}
-              <DropdownMenuLabel>AusÃªncia</DropdownMenuLabel>
+              <DropdownMenuLabel>Ausência</DropdownMenuLabel>
               {isAbsent ? (
                 <DropdownMenuItem onClick={() => handleRemoveAbsence(collaborator)}>
-                  <CalendarOff className="mr-2 h-4 w-4" /> Remover ausÃªncia
+                  <CalendarOff className="mr-2 h-4 w-4" /> Remover ausência
                 </DropdownMenuItem>
               ) : (
                 <DropdownMenuItem onClick={() => openAbsenceDialog(collaborator)}>
-                  <CalendarOff className="mr-2 h-4 w-4" /> Definir ausÃªncia
+                  <CalendarOff className="mr-2 h-4 w-4" /> Definir ausência
                 </DropdownMenuItem>
               )}
               <DropdownMenuSeparator />
@@ -819,8 +819,8 @@ const Team = () => {
             <div className="flex items-center gap-3 border-t px-4 py-3 sm:px-5 lg:border-l lg:border-t-0">
               <Clock className="h-4 w-4 text-muted-foreground" />
               <div>
-                <p className="text-xs text-muted-foreground">PrÃ³ximo</p>
-                <p className="text-lg font-semibold leading-tight">{!isDisabled && !isAbsent ? (nextTime || 'â€”') : 'â€”'}</p>
+                <p className="text-xs text-muted-foreground">Próximo</p>
+                <p className="text-lg font-semibold leading-tight">{!isDisabled && !isAbsent ? (nextTime || 'Sem horário') : 'Sem horário'}</p>
               </div>
             </div>
 
@@ -1400,7 +1400,7 @@ const Team = () => {
                 {/* Step 4: Visual Config + Services */}
                 {wizardStep === 4 && (
                   <div className="space-y-4">
-                    <p className="text-sm font-medium">ConfiguraÃ§Ã£o visual</p>
+                    <p className="text-sm font-medium">Configuração visual</p>
                     <div className="flex items-center justify-between p-3 rounded-lg border">
                       <div>
                         <p className="text-sm font-medium">Capa do perfil</p>
@@ -1414,22 +1414,22 @@ const Team = () => {
                       />
                     </div>
                     {form.use_company_banner && (
-                      <p className="text-xs text-muted-foreground rounded-lg bg-muted/50 p-3">O profissional usarÃ¡ o banner da empresa no seu perfil pÃºblico.</p>
+                      <p className="text-xs text-muted-foreground rounded-lg bg-muted/50 p-3">O profissional usará o banner da empresa no seu perfil público.</p>
                     )}
                     {!form.use_company_banner && (
-                      <p className="text-xs text-muted-foreground rounded-lg bg-muted/50 p-3">O profissional poderÃ¡ definir uma capa personalizada no seu perfil.</p>
+                      <p className="text-xs text-muted-foreground rounded-lg bg-muted/50 p-3">O profissional poderá definir uma capa personalizada no seu perfil.</p>
                     )}
 
                     <div className="border-t pt-4">
                       <div className="flex items-center justify-between mb-2">
                         <div>
-                          <p className="text-sm font-medium">ServiÃ§os ({companyServices.length} disponÃ­veis)</p>
+                          <p className="text-sm font-medium">Serviços ({companyServices.length} disponíveis)</p>
                           <p className="text-xs text-muted-foreground">{form.selectedServiceIds.length} de {companyServices.length} selecionados</p>
                         </div>
                       </div>
 
                       {companyServices.length === 0 ? (
-                        <p className="text-sm text-muted-foreground text-center py-4">Nenhum serviÃ§o cadastrado. VocÃª pode vincular depois.</p>
+                        <p className="text-sm text-muted-foreground text-center py-4">Nenhum serviço cadastrado. Você pode vincular depois.</p>
                       ) : (
                         <div className="space-y-2">
                           <div className="flex items-center gap-3 p-3 rounded-md border bg-muted/30 sticky top-0 z-10">
@@ -1467,7 +1467,7 @@ const Team = () => {
                                 />
                                 <div className="flex-1">
                                   <p className="text-sm font-medium">{svc.name}</p>
-                                  <p className="text-xs text-muted-foreground">R$ {Number(svc.price).toFixed(2)} â€¢ {svc.duration_minutes} min</p>
+                                  <p className="text-xs text-muted-foreground">R$ {Number(svc.price).toFixed(2)} — {svc.duration_minutes} min</p>
                                 </div>
                               </label>
                             ))}
@@ -1481,7 +1481,7 @@ const Team = () => {
                         <ChevronLeft className="mr-2 h-4 w-4" /> Voltar
                       </Button>
                       <Button className="flex-1" onClick={() => setWizardStep(5)}>
-                        PrÃ³ximo <ChevronRight className="ml-2 h-4 w-4" />
+                        Próximo <ChevronRight className="ml-2 h-4 w-4" />
                       </Button>
                     </div>
                   </div>
@@ -1497,7 +1497,7 @@ const Team = () => {
                         <div className="flex justify-between"><span className="text-muted-foreground">Email</span><span className="font-medium">{form.email}</span></div>
                       )}
                       {form.is_admin_self && (
-                        <div className="flex justify-between"><span className="text-muted-foreground">VÃ­nculo</span><span className="font-medium text-primary">Administrador</span></div>
+                        <div className="flex justify-between"><span className="text-muted-foreground">Vínculo</span><span className="font-medium text-primary">Administrador</span></div>
                       )}
                       {form.whatsapp && <div className="flex justify-between"><span className="text-muted-foreground">WhatsApp</span><span className="font-medium">{form.whatsapp}</span></div>}
                       <div className="flex justify-between"><span className="text-muted-foreground">Modelo Comercial</span><span className="font-medium">{BUSINESS_MODEL_LABELS[wizardBM.business_model]}</span></div>
@@ -1505,7 +1505,7 @@ const Team = () => {
                         <div className="flex justify-between"><span className="text-muted-foreground">% profissional</span><span className="font-medium">{wizardBM.commission_value}%</span></div>
                       )}
                       {wizardBM.business_model === 'employee' && wizardBM.commission_type !== 'none' && (
-                        <div className="flex justify-between"><span className="text-muted-foreground">RemuneraÃ§Ã£o</span><span className="font-medium">{wizardBM.commission_type === 'percentage' ? `${wizardBM.commission_value}%` : `R$ ${Number(wizardBM.commission_value).toFixed(2)}/serviÃ§o`}</span></div>
+                        <div className="flex justify-between"><span className="text-muted-foreground">Remuneração</span><span className="font-medium">{wizardBM.commission_type === 'percentage' ? `${wizardBM.commission_value}%` : `R$ ${Number(wizardBM.commission_value).toFixed(2)}/serviço`}</span></div>
                       )}
                       {wizardBM.business_model === 'chair_rental' && (
                         <div className="flex justify-between"><span className="text-muted-foreground">Aluguel</span><span className="font-medium">R$ {Number(wizardBM.rent_amount).toFixed(2)} ({RENT_CYCLE_LABELS[wizardBM.rent_cycle || 'monthly']})</span></div>
@@ -1514,12 +1514,12 @@ const Team = () => {
                         <div className="flex justify-between"><span className="text-muted-foreground">Receita</span><span className="font-medium">{PARTNER_REVENUE_MODE_LABELS[wizardBM.partner_revenue_mode]}</span></div>
                       )}
                       {wizardBM.business_model === 'investor_partner' && Number(wizardBM.partner_equity_percent) > 0 && (
-                        <div className="flex justify-between"><span className="text-muted-foreground">ParticipaÃ§Ã£o</span><span className="font-medium">{wizardBM.partner_equity_percent}%</span></div>
+                        <div className="flex justify-between"><span className="text-muted-foreground">Participação</span><span className="font-medium">{wizardBM.partner_equity_percent}%</span></div>
                       )}
                       <div className="flex justify-between"><span className="text-muted-foreground">Acesso</span><span className="font-medium">{form.has_system_access ? (form.is_admin_self ? 'Admin vinculado' : 'Com login') : 'Sem acesso'}</span></div>
-                      <div className="flex justify-between"><span className="text-muted-foreground">Agenda</span><span className="font-medium">{form.schedule_from_company ? 'PadrÃ£o da empresa' : bookingModeLabel(form.booking_mode)}</span></div>
+                      <div className="flex justify-between"><span className="text-muted-foreground">Agenda</span><span className="font-medium">{form.schedule_from_company ? 'Padrão da empresa' : bookingModeLabel(form.booking_mode)}</span></div>
                       <div className="flex justify-between"><span className="text-muted-foreground">Capa</span><span className="font-medium">{form.use_company_banner ? 'Da empresa' : 'Personalizada'}</span></div>
-                      <div className="flex justify-between"><span className="text-muted-foreground">ServiÃ§os</span><span className="font-medium">{form.selectedServiceIds.length > 0 ? `${form.selectedServiceIds.length} selecionado(s)` : 'Nenhum'}</span></div>
+                      <div className="flex justify-between"><span className="text-muted-foreground">Serviços</span><span className="font-medium">{form.selectedServiceIds.length > 0 ? `${form.selectedServiceIds.length} selecionado(s)` : 'Nenhum'}</span></div>
                     </div>
                     <div className="flex gap-2">
                       <Button variant="outline" className="flex-1" onClick={() => setWizardStep(4)}>
@@ -1589,7 +1589,7 @@ const Team = () => {
               </div>
               <h3 className="text-lg font-semibold mb-1">Nenhum profissional cadastrado</h3>
               <p className="text-sm text-muted-foreground mb-4 max-w-sm mx-auto">
-                Adicione um profissional para comeÃ§ar a agendar clientes
+                Adicione um profissional para começar a agendar clientes
               </p>
               <Button onClick={() => setDialogOpen(true)}>
                 <Plus className="mr-2 h-4 w-4" /> Adicionar profissional
@@ -2099,7 +2099,7 @@ const Team = () => {
                           <div className="flex-1 min-w-0">
                             <p className="font-medium text-sm truncate">{svc.name}</p>
                             <p className="text-xs text-muted-foreground">
-                              R$ {Number(svc.price).toFixed(2)} â€¢ {svc.duration_minutes} min
+                              R$ {Number(svc.price).toFixed(2)} — {svc.duration_minutes} min
                             </p>
                           </div>
                         </label>
@@ -2108,7 +2108,7 @@ const Team = () => {
                   })()}
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  Apenas serviÃ§os marcados aparecem na agenda e na pÃ¡gina pÃºblica deste profissional.
+                  Apenas serviços marcados aparecem na agenda e na página pública deste profissional.
                 </p>
               </TabsContent>
 
@@ -2119,7 +2119,7 @@ const Team = () => {
                     <Globe className="h-4 w-4 text-primary" />
                   </div>
                   <div className="min-w-0">
-                    <Label className="text-sm font-semibold">PÃ¡gina pÃºblica</Label>
+                    <Label className="text-sm font-semibold">Página pública</Label>
                     <p className="text-xs text-muted-foreground mt-0.5">
                       Link exclusivo para agendamentos deste profissional.
                     </p>
@@ -2140,16 +2140,16 @@ const Team = () => {
                     </Button>
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    Use apenas letras minÃºsculas, nÃºmeros e hifens.
+                    Use apenas letras minúsculas, números e hifens.
                   </p>
                 </div>
 
                 <div className="space-y-4 pt-2 border-t mt-4">
                   <div className="flex items-center justify-between p-3 rounded-lg border bg-muted/20">
                     <div className="space-y-0.5">
-                      <Label className="text-sm font-medium">Banner da pÃ¡gina</Label>
+                      <Label className="text-sm font-medium">Banner da página</Label>
                       <p className="text-[10px] text-muted-foreground">
-                        {editForm.use_company_banner ? 'Usando capa padrÃ£o da empresa' : 'Usando capa personalizada do profissional'}
+                        {editForm.use_company_banner ? 'Usando capa padrão da empresa' : 'Usando capa personalizada do profissional'}
                       </p>
                     </div>
                     <Switch
@@ -2197,7 +2197,7 @@ const Team = () => {
               Cancelar
             </Button>
             <Button className="flex-1" onClick={handleSaveEdit}>
-              Salvar alteraÃ§Ãµes
+              Salvar alterações
             </Button>
           </div>
         </DialogContent>
@@ -2209,7 +2209,7 @@ const Team = () => {
           <AlertDialogHeader>
             <AlertDialogTitle>Desabilitar profissional?</AlertDialogTitle>
             <AlertDialogDescription>
-              O profissional nÃ£o aparecerÃ¡ na agenda, nÃ£o poderÃ¡ receber novos agendamentos e ficarÃ¡ oculto na pÃ¡gina pÃºblica. O histÃ³rico serÃ¡ mantido.
+              O profissional não aparecerá na agenda, não poderá receber novos agendamentos e ficará oculto na página pública. O histórico será mantido.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -2225,9 +2225,9 @@ const Team = () => {
       <AlertDialog open={cannotDeleteDialogOpen} onOpenChange={setCannotDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>NÃ£o Ã© possÃ­vel excluir</AlertDialogTitle>
+            <AlertDialogTitle>Não é possível excluir</AlertDialogTitle>
             <AlertDialogDescription>
-              Este profissional nÃ£o pode ser excluÃ­do porque jÃ¡ possui registros no sistema. Para manter a integridade dos relatÃ³rios e histÃ³rico financeiro, utilize a opÃ§Ã£o "Desabilitar profissional".
+              Este profissional não pode ser excluído porque já possui registros no sistema. Para manter a integridade dos relatórios e histórico financeiro, utilize a opção "Desabilitar profissional".
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -2245,7 +2245,7 @@ const Team = () => {
           <AlertDialogHeader>
             <AlertDialogTitle>Excluir profissional?</AlertDialogTitle>
             <AlertDialogDescription>
-              Esta aÃ§Ã£o nÃ£o pode ser desfeita. O profissional serÃ¡ removido permanentemente do sistema.
+              Esta ação não pode ser desfeita. O profissional será removido permanentemente do sistema.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -2265,7 +2265,7 @@ const Team = () => {
           </DialogHeader>
           {inviteCredentials && (() => {
             const loginUrl = `${window.location.origin}/auth`;
-            const fullMessage = `ðŸ” *Acesso ao sistema*\n\nðŸ“Ž Link de login: ${loginUrl}\nðŸ“§ Email: ${inviteCredentials.email}\nðŸ”‘ Senha temporÃ¡ria: ${inviteCredentials.password}\n\nâš ï¸ Troque sua senha apÃ³s o primeiro login.`;
+            const fullMessage = `🔐 *Acesso ao sistema*\n\n📌 Link de login: ${loginUrl}\n📧 Email: ${inviteCredentials.email}\n🔑 Senha temporária: ${inviteCredentials.password}\n\n⚠️ Troque sua senha após o primeiro login.`;
             const whatsAppUrl = buildWhatsAppUrl('', fullMessage);
             return (
             <div className="space-y-4">
@@ -2282,12 +2282,12 @@ const Team = () => {
                   <p className="font-mono text-sm">{inviteCredentials.email}</p>
                 </div>
                 <div>
-                  <p className="text-xs text-muted-foreground">Senha temporÃ¡ria</p>
+                  <p className="text-xs text-muted-foreground">Senha temporária</p>
                   <p className="font-mono text-sm">{inviteCredentials.password}</p>
                 </div>
               </div>
               <p className="text-xs text-muted-foreground">
-                O profissional pode alterar a senha apÃ³s o primeiro login.
+                O profissional pode alterar a senha após o primeiro login.
               </p>
               <div className="flex gap-2">
                 <Button
@@ -2316,15 +2316,15 @@ const Team = () => {
       <Dialog open={absenceDialogOpen} onOpenChange={setAbsenceDialogOpen}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
-            <DialogTitle>Definir AusÃªncia</DialogTitle>
+            <DialogTitle>Definir Ausência</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label>Tipo de ausÃªncia</Label>
+              <Label>Tipo de ausência</Label>
               <Select value={absenceForm.absence_type} onValueChange={(v) => setAbsenceForm({ ...absenceForm, absence_type: v })}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="ferias">FÃ©rias</SelectItem>
+                  <SelectItem value="ferias">Férias</SelectItem>
                   <SelectItem value="folga">Folga</SelectItem>
                   <SelectItem value="recesso">Recesso</SelectItem>
                   <SelectItem value="ausente">Ausente</SelectItem>
@@ -2332,11 +2332,11 @@ const Team = () => {
               </Select>
             </div>
             <div className="space-y-2">
-              <Label>Data de inÃ­cio</Label>
+              <Label>Data de início</Label>
               <Input type="date" value={absenceForm.absence_start} onChange={(e) => setAbsenceForm({ ...absenceForm, absence_start: e.target.value })} />
             </div>
             <div className="space-y-2">
-              <Label>Data de tÃ©rmino</Label>
+              <Label>Data de término</Label>
               <Input type="date" value={absenceForm.absence_end} onChange={(e) => setAbsenceForm({ ...absenceForm, absence_end: e.target.value })} />
             </div>
             <div className="flex gap-2">
