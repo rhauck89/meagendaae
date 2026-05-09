@@ -23,6 +23,31 @@ const benefits = [
   { icon: Tag, text: 'Promoções para horários vazios' },
 ];
 
+const invokeAuthHandler = async (body: Record<string, unknown>) => {
+  const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/auth-handler`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+      Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+    },
+    body: JSON.stringify(body),
+  });
+
+  const payload = await response.json().catch(() => null);
+
+  if (!response.ok) {
+    throw {
+      message: payload?.error || 'Nao foi possivel processar a solicitacao.',
+      status: response.status,
+      code: payload?.code,
+      name: 'AuthHandlerError',
+    };
+  }
+
+  return payload;
+};
+
 const Auth = () => {
   const navigate = useNavigate();
   const platform = usePlatformSettings();
@@ -136,19 +161,12 @@ const Auth = () => {
           }
         }
       } else {
-        const { data: signUpData, error: authError } = await supabase.functions.invoke('auth-handler', {
-          body: {
-            email: email.trim(),
-            password: password,
-            fullName: fullName.trim(),
-            type: 'signup'
-          }
+        await invokeAuthHandler({
+          email: email.trim(),
+          password: password,
+          fullName: fullName.trim(),
+          type: 'signup'
         });
-
-        if (authError) {
-          console.error('SIGNUP ERROR:', authError);
-          throw authError;
-        }
 
         toast.success('Conta criada! Verifique seu email para confirmar antes de entrar.');
         setIsLogin(true);
