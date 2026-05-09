@@ -15,6 +15,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { TrendingUp, Users, Scissors, History, DollarSign } from 'lucide-react';
+import { getAppointmentRevenue } from '@/lib/financial-engine';
 
 interface ProfessionalDrawerProps {
   professional: any;
@@ -77,7 +78,7 @@ export const ProfessionalDrawer = ({
       appointments?.forEach((a: any) => {
         const serviceName = a.service?.name || 'Serviço s/ nome';
         const clientName = a.client?.full_name || 'Cliente s/ nome';
-        const price = Number(a.total_price);
+        const price = getAppointmentRevenue(a);
 
         if (!servicesMap[serviceName]) servicesMap[serviceName] = { count: 0, revenue: 0 };
         servicesMap[serviceName].count += 1;
@@ -217,8 +218,8 @@ export const ProfessionalDrawer = ({
                         </TableRow>
                       ) : (
                         details.history.map((h: any) => {
-                          const original = Number(h.original_price || h.total_price || 0);
-                          const final = Number(h.final_price || h.total_price || 0);
+                          const original = Number(h.original_price ?? h.total_price ?? 0);
+                          const final = getAppointmentRevenue(h);
                           const discount = Number(h.promotion_discount || 0) + Number(h.cashback_used || 0) + Number(h.manual_discount || 0);
                           
                           return (
