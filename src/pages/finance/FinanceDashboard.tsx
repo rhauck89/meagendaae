@@ -14,7 +14,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { startOfMonth, endOfMonth, subMonths, subDays, format, isPast, isToday, endOfWeek, startOfWeek, startOfDay, endOfDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, Line, Area, AreaChart } from 'recharts';
-import { calculateFinancials } from '@/lib/financial-engine';
+import { calculateFinancials, getAppointmentRevenue } from '@/lib/financial-engine';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 
@@ -108,14 +108,14 @@ const FinanceDashboard = () => {
     const { start, end } = dateRange;
 
     const [aptsRes, manualRes, expsRes, collabRes] = await Promise.all([
-      supabase.from('appointments').select('total_price, professional_id').eq('company_id', companyId!).eq('status', 'completed').gte('start_time', `${start}T00:00:00`).lte('start_time', `${end}T23:59:59`),
+      supabase.from('appointments').select('total_price, final_price, professional_id').eq('company_id', companyId!).eq('status', 'completed').gte('start_time', `${start}T00:00:00`).lte('start_time', `${end}T23:59:59`),
       supabase.from('company_revenues').select('amount').eq('company_id', companyId!).eq('is_automatic', false).gte('revenue_date', start).lte('revenue_date', end),
       supabase.from('company_expenses').select('amount').eq('company_id', companyId!).gte('expense_date', start).lte('expense_date', end),
       supabase.from('collaborators').select('profile_id, collaborator_type, commission_type, commission_value, commission_percent').eq('company_id', companyId!),
     ]);
 
     const apts = aptsRes.data || [];
-    const aptRevenue = apts.reduce((s, a) => s + Number(a.total_price), 0);
+    const aptRevenue = apts.reduce((s, a) => s + getAppointmentRevenue(a), 0);
     const manualRevenue = (manualRes.data || []).reduce((s, r) => s + Number(r.amount), 0);
     const totalExpenses = (expsRes.data || []).reduce((s, e) => s + Number(e.amount), 0);
 
@@ -127,7 +127,7 @@ const FinanceDashboard = () => {
     const proRevMap: Record<string, number> = {};
     const proCountMap: Record<string, number> = {};
     apts.forEach(a => {
-      proRevMap[a.professional_id] = (proRevMap[a.professional_id] || 0) + Number(a.total_price);
+      proRevMap[a.professional_id] = (proRevMap[a.professional_id] || 0) + getAppointmentRevenue(a);
       proCountMap[a.professional_id] = (proCountMap[a.professional_id] || 0) + 1;
     });
     Object.entries(proRevMap).forEach(([pid, rev]) => {
@@ -217,12 +217,12 @@ const FinanceDashboard = () => {
       const label = format(month, 'MMM/yy', { locale: ptBR });
 
       const [aptsRes, manualRes, expsRes] = await Promise.all([
-        supabase.from('appointments').select('total_price').eq('company_id', companyId!).eq('status', 'completed').gte('start_time', `${start}T00:00:00`).lte('start_time', `${end}T23:59:59`),
+        supabase.from('appointments').select('total_price, final_price').eq('company_id', companyId!).eq('status', 'completed').gte('start_time', `${start}T00:00:00`).lte('start_time', `${end}T23:59:59`),
         supabase.from('company_revenues').select('amount').eq('company_id', companyId!).eq('is_automatic', false).gte('revenue_date', start).lte('revenue_date', end),
         supabase.from('company_expenses').select('amount').eq('company_id', companyId!).gte('expense_date', start).lte('expense_date', end),
       ]);
 
-      const rev = (aptsRes.data?.reduce((s, a) => s + Number(a.total_price), 0) || 0) + (manualRes.data?.reduce((s, r) => s + Number(r.amount), 0) || 0);
+      const rev = (aptsRes.data?.reduce((s, a) => s + getAppointmentRevenue(a), 0) || 0) + (manualRes.data?.reduce((s, r) => s + Number(r.amount), 0) || 0);
       const exp = expsRes.data?.reduce((s, e) => s + Number(e.amount), 0) || 0;
       data.push({ name: label, receitas: rev, despesas: exp });
     }
