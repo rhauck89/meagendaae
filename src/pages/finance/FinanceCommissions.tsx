@@ -13,7 +13,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { CalendarIcon, RotateCcw, Search, Download, FileText, ArrowUpDown, Filter, DollarSign, Users, Scissors, TrendingUp } from 'lucide-react';
 import { startOfMonth, startOfDay, endOfDay, format } from 'date-fns';
-import { calculateFinancials, collaboratorTypeLabel, commissionLabel } from '@/lib/financial-engine';
+import { calculateFinancials, collaboratorTypeLabel, commissionLabel, getAppointmentRevenue } from '@/lib/financial-engine';
 import { ProfessionalDrawer } from '@/components/admin/financial/ProfessionalDrawer';
 import { toast } from 'sonner';
 
@@ -134,7 +134,7 @@ const FinanceCommissions = () => {
           const pid = a.professional_id;
           if (!pid) return;
           if (!grouped[pid]) grouped[pid] = { name: profileMap[pid] || 'Sem nome', revenue: 0, count: 0 };
-          grouped[pid].revenue += Number(a.final_price || a.total_price || 0);
+          grouped[pid].revenue += getAppointmentRevenue(a);
           grouped[pid].count += 1;
         });
 
@@ -149,7 +149,7 @@ const FinanceCommissions = () => {
         // Se for Profissional, cria a lista detalhada
         const collab = collaboratorInfo || { collaborator_type: 'commissioned', commission_type: 'none', commission_value: 0 };
         const detailed = (appointments || []).map(a => {
-          const revenue = Number(a.final_price || a.total_price || 0);
+          const revenue = getAppointmentRevenue(a);
           const fin = calculateFinancials(
             revenue, 
             1, 
