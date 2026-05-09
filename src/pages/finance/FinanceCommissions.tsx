@@ -1,4 +1,5 @@
 import { useEffect, useState, useMemo } from 'react';
+import { useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useFinancialPrivacy } from '@/contexts/FinancialPrivacyContext';
 import { useUserRole } from '@/hooks/useUserRole';
@@ -13,7 +14,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { CalendarIcon, RotateCcw, Search, Download, FileText, ArrowUpDown, Filter, DollarSign, Users, Scissors, TrendingUp } from 'lucide-react';
 import { startOfMonth, startOfDay, endOfDay, format } from 'date-fns';
-import { calculateFinancials, collaboratorTypeLabel, commissionLabel, getAppointmentRevenue } from '@/lib/financial-engine';
+import { calculateFinancials, collaboratorTypeLabel, commissionLabel, getAppointmentRevenue, remunerationLabel } from '@/lib/financial-engine';
 import { ProfessionalDrawer } from '@/components/admin/financial/ProfessionalDrawer';
 import { toast } from 'sonner';
 
@@ -21,6 +22,8 @@ const FinanceCommissions = () => {
   const { companyId } = useAuth();
   const { maskValue } = useFinancialPrivacy();
   const { isAdmin, profileId } = useUserRole();
+  const location = useLocation();
+  const showAdminView = isAdmin && !location.pathname.startsWith('/dashboard/my-finance');
   const [startDate, setStartDate] = useState<Date>(startOfMonth(new Date()));
   const [endDate, setEndDate] = useState<Date>(new Date());
   const [rows, setRows] = useState<any[]>([]);
@@ -49,7 +52,7 @@ const FinanceCommissions = () => {
 
   useEffect(() => {
     if (companyId) fetchData();
-  }, [companyId, startDate, endDate, filterStatus]);
+  }, [companyId, profileId, showAdminView, startDate, endDate, filterStatus]);
 
   const fetchData = async () => {
     setLoading(true);
@@ -59,7 +62,7 @@ const FinanceCommissions = () => {
     try {
       // Fetch Collaborator info for the professional if in professional mode
       let collaboratorInfo: any = null;
-      if (!isAdmin && profileId) {
+      if (!showAdminView && profileId) {
         const { data: coll } = await supabase
           .from('collaborators')
           .select('collaborator_type, commission_type, commission_value, commission_percent, profile:profiles(full_name)')
@@ -92,7 +95,7 @@ const FinanceCommissions = () => {
         query = query.eq('status', filterStatus as any);
       }
 
-      if (!isAdmin && profileId) {
+      if (!showAdminView && profileId) {
         query = query.eq('professional_id', profileId);
       }
 
@@ -100,7 +103,7 @@ const FinanceCommissions = () => {
       if (appError) throw appError;
 
       // Se for Admin, mantém a lógica de agrupamento por profissional
-      if (isAdmin) {
+      if (showAdminView) {
         const professionalIds = Array.from(new Set((appointments || []).map((a: any) => a.professional_id).filter(Boolean)));
         const profileMap: Record<string, string> = {};
         if (professionalIds.length > 0) {
@@ -169,6 +172,7 @@ const FinanceCommissions = () => {
             revenue,
             commType: collab.commission_type,
             commValue: collab.commission_value ?? collab.commission_percent ?? 0,
+            collaboratorType: collab.collaborator_type,
             professionalValue: fin.professionalValue,
             companyValue: fin.companyValue,
             status: a.status
@@ -199,7 +203,7 @@ const FinanceCommissions = () => {
   };
 
   const filteredAndSortedRows = useMemo(() => {
-    if (isAdmin) {
+    if (showAdminView) {
       let result = [...rows];
 
       // Busca por nome
@@ -262,7 +266,7 @@ const FinanceCommissions = () => {
 
       return result;
     }
-  }, [rows, detailedRows, searchTerm, filterType, selectedProfessional, filterStatus, sortConfig, isAdmin]);
+  }, [rows, detailedRows, searchTerm, filterType, selectedProfessional, filterStatus, sortConfig, showAdminView]);
 
   const requestSort = (key: string) => {
     let direction = 'desc';
@@ -276,7 +280,7 @@ const FinanceCommissions = () => {
     let headers = [];
     let data = [];
 
-    if (isAdmin) {
+    if (showAdminView) {
       headers = ['Profissional', 'Tipo', 'Serviços', 'Faturado', 'Comissão', 'Valor Prof.', 'Valor Empresa'];
       data = filteredAndSortedRows.map(r => [
         r.name,
@@ -335,7 +339,7 @@ const FinanceCommissions = () => {
         </div>
       </div>
 
-      {!isAdmin && (
+      {!showAdminView && (
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
           <Card className="bg-primary/5">
             <CardContent className="p-4">
@@ -377,7 +381,7 @@ const FinanceCommissions = () => {
             <div className="relative">
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder={isAdmin ? "Buscar profissional..." : "Buscar cliente/serviço..."}
+                placeholder={showAdminView ? "Buscar profissional..." : "Buscar cliente/serviço..."}
                 className="pl-9 h-9"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
@@ -385,7 +389,7 @@ const FinanceCommissions = () => {
             </div>
 
             {/* Profissional */}
-            {isAdmin && (
+            {showAdminView && (
               <Select value={selectedProfessional} onValueChange={setSelectedProfessional}>
                 <SelectTrigger className="h-9">
                   <SelectValue placeholder="Profissional" />
@@ -413,7 +417,7 @@ const FinanceCommissions = () => {
             </Select>
 
             {/* Tipo (Só admin ou profissional) */}
-            {isAdmin && (
+            {showAdminView && (
               <Select value={filterType} onValueChange={setFilterType}>
                 <SelectTrigger className="h-9">
                   <SelectValue placeholder="Tipo" />
@@ -478,7 +482,7 @@ const FinanceCommissions = () => {
         <CardContent className="p-0">
           <Table>
             <TableHeader className="bg-muted/50">
-              {isAdmin ? (
+              {showAdminView ? (
                 <TableRow>
                   <TableHead className="w-[200px] cursor-pointer" onClick={() => requestSort('name')}>
                     <div className="flex items-center gap-1">Profissional <ArrowUpDown className="h-3 w-3" /></div>
@@ -520,20 +524,20 @@ const FinanceCommissions = () => {
             <TableBody>
               {loading ? (
                 <TableRow>
-                  <TableCell colSpan={isAdmin ? 7 : 8} className="text-center py-20 text-muted-foreground">
+                  <TableCell colSpan={showAdminView ? 7 : 8} className="text-center py-20 text-muted-foreground">
                     Carregando dados...
                   </TableCell>
                 </TableRow>
               ) : filteredAndSortedRows.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={isAdmin ? 7 : 8} className="text-center py-20 text-muted-foreground">
+                  <TableCell colSpan={showAdminView ? 7 : 8} className="text-center py-20 text-muted-foreground">
                     Nenhum atendimento encontrado para este período.
                   </TableCell>
                 </TableRow>
               ) : (
                 filteredAndSortedRows.map(r => (
                   <TableRow key={r.id} className="hover:bg-muted/20 transition-colors">
-                    {isAdmin ? (
+                    {showAdminView ? (
                       <>
                         <TableCell>
                           <button 
@@ -552,7 +556,7 @@ const FinanceCommissions = () => {
                         <TableCell className="text-right font-bold">{maskValue(r.revenue)}</TableCell>
                         <TableCell className="text-center">
                           <Badge variant="outline" className="text-[10px] font-medium border-primary/20 text-primary">
-                            {commissionLabel(r.commType, r.value)}
+                            {remunerationLabel(r.type, r.commType, r.value)}
                           </Badge>
                         </TableCell>
                         <TableCell className="text-right font-bold text-warning">{maskValue(r.professionalValue)}</TableCell>
@@ -572,7 +576,7 @@ const FinanceCommissions = () => {
                         <TableCell className="text-right font-bold">{maskValue(r.revenue)}</TableCell>
                         <TableCell className="text-center">
                           <Badge variant="outline" className="text-[10px] font-medium border-primary/20 text-primary">
-                            {commissionLabel(r.commType, r.commValue)}
+                            {remunerationLabel(r.collaboratorType, r.commType, r.commValue)}
                           </Badge>
                         </TableCell>
                         <TableCell className="text-right font-bold text-warning">{maskValue(r.professionalValue)}</TableCell>
@@ -604,18 +608,18 @@ const FinanceCommissions = () => {
         ) : filteredAndSortedRows.length === 0 ? (
           <div className="text-center py-10 text-muted-foreground border rounded-lg">Nenhum dado encontrado</div>
         ) : filteredAndSortedRows.map(r => (
-          <Card key={r.id} className="border-none shadow-sm overflow-hidden" onClick={isAdmin ? () => openProfessionalDetail(r) : undefined}>
+          <Card key={r.id} className="border-none shadow-sm overflow-hidden" onClick={showAdminView ? () => openProfessionalDetail(r) : undefined}>
             <CardContent className="p-4 bg-card hover:bg-muted/10 transition-colors">
               <div className="flex items-center justify-between mb-4">
                 <div>
-                  <h3 className="font-bold text-lg text-primary">{isAdmin ? r.name : r.clientName}</h3>
+                  <h3 className="font-bold text-lg text-primary">{showAdminView ? r.name : r.clientName}</h3>
                   <div className="flex items-center gap-2">
-                    {isAdmin ? (
+                    {showAdminView ? (
                       <Badge variant="secondary" className="text-[10px] uppercase">{collaboratorTypeLabel(r.type)}</Badge>
                     ) : (
                       <span className="text-xs text-muted-foreground">{format(new Date(r.date), 'dd/MM/yy HH:mm')}</span>
                     )}
-                    {!isAdmin && (
+                    {!showAdminView && (
                       <Badge variant="outline" className="text-[9px] uppercase">{r.status}</Badge>
                     )}
                   </div>
@@ -626,7 +630,7 @@ const FinanceCommissions = () => {
                 </div>
               </div>
               
-              {!isAdmin && (
+              {!showAdminView && (
                 <p className="text-sm font-medium mb-3 text-muted-foreground">{r.serviceName}</p>
               )}
 
@@ -636,23 +640,23 @@ const FinanceCommissions = () => {
                   <p className="font-bold">{maskValue(r.revenue)}</p>
                 </div>
                 <div className="bg-warning/5 p-2 rounded">
-                  <span className="text-[10px] text-warning uppercase block">{isAdmin ? "Comissão" : "Sua Comissão"}</span>
+                  <span className="text-[10px] text-warning uppercase block">{showAdminView ? "Comissão" : "Sua Comissão"}</span>
                   <p className="font-bold text-warning">{maskValue(r.professionalValue)}</p>
                 </div>
               </div>
               
               <div className="mt-3 flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  {isAdmin ? (
+                  {showAdminView ? (
                     <span className="text-xs text-muted-foreground">{r.count} Serviços</span>
                   ) : (
                     <Badge variant="outline" className="text-[10px] border-primary/20 text-primary">
-                      {commissionLabel(isAdmin ? r.commType : r.commType, isAdmin ? r.value : r.commValue)}
+                      {remunerationLabel(r.collaboratorType, r.commType, r.commValue)}
                     </Badge>
                   )}
-                  {isAdmin && <Badge variant="outline" className="text-[10px]">{commissionLabel(r.commType, r.value)}</Badge>}
+                  {showAdminView && <Badge variant="outline" className="text-[10px]">{remunerationLabel(r.type, r.commType, r.value)}</Badge>}
                 </div>
-                {isAdmin && <span className="text-[10px] text-primary font-bold">VER DETALHES →</span>}
+                {showAdminView && <span className="text-[10px] text-primary font-bold">VER DETALHES →</span>}
               </div>
             </CardContent>
           </Card>
