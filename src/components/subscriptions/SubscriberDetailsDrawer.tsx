@@ -41,6 +41,39 @@ export function SubscriberDetailsDrawer({
   onEdit,
 }: SubscriberDetailsDrawerProps) {
   if (!subscriber) return null;
+  const usageRecords = [...(subscriber.usage || [])].sort(
+    (a: any, b: any) => new Date(b.usage_date).getTime() - new Date(a.usage_date).getTime()
+  );
+
+  const getAppointmentStatusLabel = (status?: string) => {
+    switch (status) {
+      case 'completed':
+        return 'Concluído';
+      case 'confirmed':
+        return 'Agendado';
+      case 'pending':
+        return 'Pendente';
+      case 'cancelled':
+        return 'Cancelado';
+      default:
+        return status || 'Registrado';
+    }
+  };
+
+  const getAppointmentStatusClass = (status?: string) => {
+    switch (status) {
+      case 'completed':
+        return 'bg-green-50 text-green-700 border-green-100';
+      case 'confirmed':
+        return 'bg-blue-50 text-blue-700 border-blue-100';
+      case 'pending':
+        return 'bg-amber-50 text-amber-700 border-amber-100';
+      case 'cancelled':
+        return 'bg-red-50 text-red-700 border-red-100';
+      default:
+        return 'bg-muted text-muted-foreground';
+    }
+  };
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -189,9 +222,33 @@ export function SubscriberDetailsDrawer({
             <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
               <Activity className="h-4 w-4" /> Utilização Recente
             </h3>
-            <p className="text-sm text-muted-foreground py-4 text-center border rounded-lg border-dashed">
-              Nenhum uso registrado este mês.
-            </p>
+            <div className="space-y-2">
+              {usageRecords.length === 0 ? (
+                <p className="text-sm text-muted-foreground py-4 text-center border rounded-lg border-dashed">
+                  Nenhum uso registrado neste ciclo.
+                </p>
+              ) : (
+                usageRecords.slice(0, 8).map((usage: any) => {
+                  const appointmentStatus = usage.appointments?.status;
+                  return (
+                    <div key={usage.id} className="flex items-center justify-between p-3 bg-muted/20 rounded-lg border border-transparent hover:border-muted-foreground/10 transition-colors">
+                      <div className="flex items-center gap-3">
+                        <Scissors className="h-4 w-4 text-primary" />
+                        <div className="flex flex-col">
+                          <span className="text-sm font-medium">{usage.services?.name || 'Serviço incluso'}</span>
+                          <span className="text-[10px] text-muted-foreground">
+                            {format(new Date(usage.usage_date), 'dd/MM/yyyy')}
+                          </span>
+                        </div>
+                      </div>
+                      <Badge variant="outline" className={`text-[10px] ${getAppointmentStatusClass(appointmentStatus)}`}>
+                        {getAppointmentStatusLabel(appointmentStatus)}
+                      </Badge>
+                    </div>
+                  );
+                })
+              )}
+            </div>
           </section>
         </div>
       </SheetContent>
