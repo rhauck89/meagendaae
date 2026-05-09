@@ -1,61 +1,40 @@
-The goal is to fix the `ProfessionalDrawer` component used in the Admin Finance Commissions screen to ensure it correctly displays "Ranking de Serviços", "Top Clientes", and "Histórico do Período". Currently, it seems to be missing `companyId` filtering and uses a simplified query that doesn't account for multiple services per appointment or different status filters.
+## Status Overview
+The current system displays a generic \"PROMO\" badge for all types of promotions. The payment modal for completing an appointment doesn't always pre-fill existing discounts (promotion, cashback, manual) correctly, and the financial logic needs to ensure commissions are calculated based on the original gross price, not the net price after discounts.
 
-### Proposed Changes
+## Proposed Changes
 
-#### 1. Update `ProfessionalDrawer` Props
-- Add `companyId` and `status` to `ProfessionalDrawerProps` to allow more precise filtering.
-- Update `ProfessionalDrawer` usage in `FinanceCommissions.tsx` to pass these new props.
+### 1. Administrative Agenda UI (Ajuste 1)
+- Modify `UnifiedAppointmentCard.tsx` to distinguish between promotion types when `isAdmin` is true.
+- Display specific badges: \"Cashback\", \"Pontuação\", \"Desconto\" based on `promotion_type` or metadata.
+- Ensure the public view remains unchanged (showing \"PROMO\").
 
-#### 2. Enhance Data Fetching in `ProfessionalDrawer.tsx`
-- **Query Improvements**:
-    - Filter by `company_id`.
-    - Use the `status` prop (defaulting to 'completed' if not provided) instead of hardcoding it.
-    - Fetch related `appointment_services` with their `services` names to support appointments with multiple services.
-    - Fetch client name through the `clients` table relationship.
-- **Data Processing**:
-    - Correctly handle multiple services per appointment in the "Ranking de Serviços" and "Histórico do Período".
-    - If multiple services exist, join their names with commas for the history view.
-    - Use `final_price` with a fallback to `total_price` for revenue calculations.
-    - Group by service name for the "Ranking de Serviços".
-    - Group by client name for the "Top Clientes".
+### 2. Appointment Completion Modal (Ajuste 2)
+- Update `Dashboard.tsx` to ensure `completeTarget` data is fully utilized when opening the `completeDialogOpen` modal.
+- Pre-fill `completeCustomAmount`, `completePromoDiscount`, `completeCashbackUsed`, and `completeManualDiscount` with values already stored in the appointment record.
+- Update the modal UI to display the original gross value clearly below the client name and in the breakdown.
 
-#### 3. Component UI Updates
-- Ensure the "Histórico do Período" displays the joined service names.
-- Verify that the groupings for ranking and top clients use the enhanced data processing logic.
+### 3. Financial Logic & Database (Ajuste 2)
+- Update the `updateStatus` function in `Dashboard.tsx`:
+  - Recalculate commission based on `original_price` (gross) instead of `netPrice`.
+  - Ensure `company_revenues` records the reason for R$ 0.00 payments in the notes.
+  - Fix any potential `NaN` or 0-value issues when multiple discounts are applied.
+- Add a database migration to:
+  - Add `discount_reason` or similar tracking if needed, although current `notes` field might suffice (will refine if needed).
+  - Ensure existing appointments have consistent `original_price` and `final_price` values.
 
-### Technical Details
-- **File**: `src/components/admin/financial/ProfessionalDrawer.tsx`
-- **File**: `src/pages/finance/FinanceCommissions.tsx`
-- **Query**:
-  ```typescript
-  const { data: appointments, error } = await supabase
-    .from('appointments')
-    .select(`
-      id,
-      total_price,
-      final_price,
-      start_time,
-      status,
-      client_name,
-      client:clients!appointments_client_id_fkey(name),
-      appointment_services(
-        service:services(name)
-      )
-    `)
-    .eq('professional_id', professional.id)
-    .eq('company_id', companyId)
-    .eq('status', status)
-    .gte('start_time', startDate.toISOString())
-    .lte('start_time', endDate.toISOString())
-    .order('start_time', { ascending: false });
-  ```
-- **Revenue Calculation**: Continue using `getAppointmentRevenue(a)` which handles the `final_price` vs `total_price` logic correctly.
+### 4. Technical Details
+- **Files to modify**:
+  - `src/components/appointments/UnifiedAppointmentCard.tsx` (UI Badges)
+  - `src/pages/Dashboard.tsx` (Modal pre-fill and `updateStatus` logic)
+  - `src/lib/financial-engine.ts` (Ensure it supports gross vs net distinction if used elsewhere)
+- **Database**:
+  - Migration to ensure data consistency for reporting.
 
-### Validation Plan
-- Open Dashboard Admin > Financeiro > Comissões.
-- Select a professional (e.g., Cristiano Campos).
-- Verify that the drawer opens and displays:
-    - Service ranking matching the professional's total services.
-    - Top clients with correct counts and values.
-    - Appointment history showing all services performed in the period.
-- Ensure values match the main table summary.
+## Validation Plan
+1. Create appointment (R$ 35) with R$ 35 cashback.
+2. Verify modal shows: Original R$ 35, Cashback R$ 35, To Pay R$ 0.
+3. Confirm payment and check `company_revenues`:
+   - Amount: 0
+   - Notes: \"Abatido por cashback\"
+   - (Verification of professional commission calculation)
+4. Repeat for other discount types (Manual, Promotion, Subscription).

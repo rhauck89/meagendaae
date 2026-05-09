@@ -196,7 +196,9 @@ export function UnifiedAppointmentCard({
                   {isSubscriptionAppointment ? (
                     <span className="text-[10px]" title={subscriptionPlanName ? `Assinante: ${subscriptionPlanName}` : 'Assinante'}>👑</span>
                   ) : apt.promotion_id && (
-                    <span className="text-[10px]" title="Promoção">🏷️</span>
+                    <span className="text-[10px]" title={isAdmin ? (apt.promotion_type === 'cashback' ? 'Promoção com Cashback' : apt.promotion_type === 'loyalty' ? 'Promoção com Pontuação' : 'Promoção com Desconto') : 'Promoção'}>
+                      {isAdmin ? (apt.promotion_type === 'cashback' ? '💰' : apt.promotion_type === 'loyalty' ? '⭐' : '🏷️') : '🏷️'}
+                    </span>
                   )}
                   {cashbackUsed > 0 && apt.status !== 'cancelled' && apt.status !== 'no_show' && (
                     <span className="text-[10px]" title="Cashback">💸</span>
@@ -407,7 +409,11 @@ export function UnifiedAppointmentCard({
                 </Badge>
               ) : apt.promotion_id && (
                 <Badge variant="secondary" className="bg-orange-500/10 text-orange-600 border-none h-4 px-1 text-[9px] font-bold uppercase tracking-tighter">
-                  🏷️ PROMO
+                  {isAdmin ? (
+                    apt.promotion_type === 'cashback' ? '💰 CASHBACK' : 
+                    apt.promotion_type === 'loyalty' ? '⭐ PONTUAÇÃO' : 
+                    '🏷️ DESCONTO'
+                  ) : '🏷️ PROMO'}
                 </Badge>
               )}
               {cashbackUsed > 0 && apt.status !== 'cancelled' && apt.status !== 'no_show' && (

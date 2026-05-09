@@ -148,6 +148,17 @@ const Dashboard = () => {
   const [cancelTarget, setCancelTarget] = useState<any>(null);
   const [completeDialogOpen, setCompleteDialogOpen] = useState(false);
   const [completeTarget, setCompleteTarget] = useState<any>(null);
+
+  const openCompleteModal = (apt: any) => {
+    setCompleteTarget(apt);
+    setCompletePaymentMethod('pix');
+    setCompleteCustomAmount(apt.original_price || apt.total_price || '');
+    setCompletePromoDiscount(apt.promotion_discount || '');
+    setCompleteCashbackUsed(apt.cashback_used || '');
+    setCompleteManualDiscount(apt.manual_discount || '');
+    setCompleteObservation('');
+    setCompleteDialogOpen(true);
+  };
   const [completePaymentMethod, setCompletePaymentMethod] = useState('pix');
   const [completeCustomAmount, setCompleteCustomAmount] = useState('');
   const [completePromoDiscount, setCompletePromoDiscount] = useState('');
@@ -743,8 +754,8 @@ const Dashboard = () => {
     // If completing, create automatic revenue with commission calculation
     if (status === 'completed' && apt && companyId) {
       const serviceNames = apt.appointment_services?.map((s: any) => s.service?.name).filter(Boolean).join(', ') || 'Serviço';
-      const grossPrice = customAmount ?? Number(apt.total_price);
-      const netPrice = Math.max(0, grossPrice - totalDiscount);
+      const grossPrice = customAmount ?? Number(apt.original_price || apt.total_price);
+      const netPrice = Math.max(0, (customAmount ?? Number(apt.total_price)) - totalDiscount);
 
       // Fetch collaborator commission settings
       let commissionAmount = 0;
@@ -761,8 +772,9 @@ const Dashboard = () => {
       if (collab) {
         const serviceCount = apt.appointment_services?.length || 1;
         const { calculateFinancials } = await import('@/lib/financial-engine');
+        // Commission calculated on GROSS price (before discounts/cashback/subscription)
         const breakdown = calculateFinancials(
-          netPrice,
+          grossPrice,
           serviceCount,
           collab.collaborator_type,
           collab.commission_type,
@@ -770,12 +782,23 @@ const Dashboard = () => {
         );
         professionalEarning = breakdown.professionalValue;
         commissionAmount = breakdown.professionalValue;
-        companyProfit = breakdown.companyValue;
+        // Company profit is based on net cash received minus professional payout
+        companyProfit = netPrice - professionalEarning;
       }
 
       const noteParts = [];
-      if (totalDiscount > 0) noteParts.push(`Descontos: R$ ${totalDiscount.toFixed(2)}`);
-      if (commissionAmount > 0) noteParts.push(`Comissão: R$ ${commissionAmount.toFixed(2)} | Lucro: R$ ${companyProfit.toFixed(2)}`);
+      if (totalDiscount > 0) {
+        if (promoDiscount > 0) noteParts.push(`Abatido por promoção: R$ ${promoDiscount.toFixed(2)}`);
+        if (cashbackUsed > 0) noteParts.push(`Abatido por cashback: R$ ${cashbackUsed.toFixed(2)}`);
+        if (manualDiscount > 0) noteParts.push(`Abatido por desconto manual: R$ ${manualDiscount.toFixed(2)}`);
+        
+        // Subscription check based on notes/appointment data
+        const appointmentNotes = String(apt.notes || '').toLowerCase();
+        if (appointmentNotes.includes('assinatura') || appointmentNotes.includes('plano')) {
+          noteParts.push('Coberto por assinatura');
+        }
+      }
+      if (commissionAmount > 0) noteParts.push(`Comissão: R$ ${commissionAmount.toFixed(2)} (Base: R$ ${grossPrice.toFixed(2)}) | Lucro Líquido: R$ ${companyProfit.toFixed(2)}`);
       
       // Get category ID for "Serviços"
       const { data: catData } = await supabase
@@ -1289,7 +1312,7 @@ const Dashboard = () => {
     return (
       <div className="flex gap-1 flex-wrap mt-2">
         {(displayStatus === 'in_progress' || displayStatus === 'late') && (
-          <Button size="sm" className="bg-success hover:bg-success/90 text-white text-xs" onClick={() => { setCompleteTarget(apt); setCompleteDialogOpen(true); }}>
+          <Button size="sm" className="bg-success hover:bg-success/90 text-white text-xs" onClick={() => openCompleteModal(apt)}>
             ✓ Concluir
           </Button>
         )}
@@ -1297,7 +1320,7 @@ const Dashboard = () => {
           <Button size="sm" className="text-xs" onClick={() => updateStatus(apt.id, 'confirmed')}>Confirmar</Button>
         )}
         {(apt.status === 'pending' || apt.status === 'confirmed') && displayStatus !== 'in_progress' && displayStatus !== 'late' && (
-          <Button size="sm" variant="outline" className="text-xs" onClick={() => { setCompleteTarget(apt); setCompleteDialogOpen(true); }}>Concluir</Button>
+          <Button size="sm" variant="outline" className="text-xs" onClick={() => openCompleteModal(apt)}>Concluir</Button>
         )}
         {(apt.status === 'pending' || apt.status === 'confirmed') && (
           <>
@@ -1368,8 +1391,7 @@ const Dashboard = () => {
                   variant="compact"
                   isAdmin={isAdmin}
                   onComplete={(apt) => {
-                    setCompleteTarget(apt);
-                    setCompleteDialogOpen(true);
+                    openCompleteModal(apt);
                   }}
                   onReschedule={openRescheduleDialog}
                   onAdjust={(apt) => {
@@ -1427,8 +1449,7 @@ const Dashboard = () => {
                 variant="compact"
                 isAdmin={isAdmin}
                 onComplete={(apt) => {
-                  setCompleteTarget(apt);
-                  setCompleteDialogOpen(true);
+                  openCompleteModal(apt);
                 }}
                 onReschedule={openRescheduleDialog}
                 onAdjust={(apt) => {
@@ -2161,8 +2182,7 @@ const Dashboard = () => {
                             appointment={apt}
                             isAdmin={isAdmin}
                             onComplete={(apt) => {
-                              setCompleteTarget(apt);
-                              setCompleteDialogOpen(true);
+                              openCompleteModal(apt);
                             }}
                             onReschedule={openRescheduleDialog}
                             onAdjust={(apt) => {
@@ -2309,12 +2329,6 @@ const Dashboard = () => {
         setCompleteDialogOpen(open); 
         if (!open) { 
           setCompleteTarget(null); 
-          setCompletePaymentMethod('pix'); 
-          setCompleteCustomAmount(''); 
-          setCompletePromoDiscount(''); 
-          setCompleteCashbackUsed(''); 
-          setCompleteManualDiscount(''); 
-          setCompleteObservation(''); 
         } 
       }}>
         <DialogContent className="w-[92vw] max-w-md">
@@ -2325,7 +2339,7 @@ const Dashboard = () => {
                 <span className="block mt-1">
                   <strong>{completeTarget.client_name || 'Cliente'}</strong> — {format(parseISO(completeTarget.start_time), 'HH:mm')}
                   <br />
-                  <span className="text-xs">{formatCurrency(Number(completeTarget.total_price))}</span>
+                  <span className="text-xs font-bold text-primary">Valor Original: {formatCurrency(Number(completeTarget.original_price || completeTarget.total_price))}</span>
                 </span>
               )}
             </DialogDescription>
@@ -2361,7 +2375,7 @@ const Dashboard = () => {
                 <input
                   type="number"
                   step="0.01"
-                  placeholder={completeTarget ? Number(completeTarget.total_price).toFixed(2) : '0.00'}
+                  placeholder={completeTarget ? Number(completeTarget.original_price || completeTarget.total_price).toFixed(2) : '0.00'}
                   value={completeCustomAmount}
                   onChange={(e) => setCompleteCustomAmount(e.target.value)}
                   className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring mt-1"
@@ -2407,18 +2421,29 @@ const Dashboard = () => {
 
             {/* Net amount preview */}
             {completeTarget && (() => {
-              const gross = parseFloat(completeCustomAmount) || Number(completeTarget.total_price);
+              const gross = parseFloat(completeCustomAmount) || Number(completeTarget.original_price || completeTarget.total_price);
               const discM = parseFloat(completeManualDiscount) || 0;
               const discP = parseFloat(completePromoDiscount) || 0;
               const discC = parseFloat(completeCashbackUsed) || 0;
+              
+              // Subscription Logic for UI
+              const appointmentNotes = String(completeTarget.notes || '').toLowerCase();
+              const isSubscription = appointmentNotes.includes('assinatura') || appointmentNotes.includes('plano');
+              
               const net = Math.max(0, gross - discM - discP - discC);
               return (
                 <div className="bg-muted/50 rounded-md p-3 text-sm space-y-1">
-                  <div className="flex justify-between"><span className="text-muted-foreground">Valor bruto</span><span>R$ {gross.toFixed(2)}</span></div>
-                  {discP > 0 && <div className="flex justify-between text-orange-600"><span>- Promoção</span><span>R$ {discP.toFixed(2)}</span></div>}
-                  {discC > 0 && <div className="flex justify-between text-blue-600"><span>- Cashback</span><span>R$ {discC.toFixed(2)}</span></div>}
-                  {discM > 0 && <div className="flex justify-between text-purple-600"><span>- Desc. Manual</span><span>R$ {discM.toFixed(2)}</span></div>}
-                  <div className="flex justify-between font-bold border-t pt-1"><span>Valor líquido (A pagar)</span><span>R$ {net.toFixed(2)}</span></div>
+                  <div className="flex justify-between font-medium"><span className="text-muted-foreground">Valor Bruto (Original)</span><span>R$ {gross.toFixed(2)}</span></div>
+                  {discP > 0 && <div className="flex justify-between text-orange-600 font-medium"><span>🏷️ Promoção</span><span>- R$ {discP.toFixed(2)}</span></div>}
+                  {discC > 0 && <div className="flex justify-between text-blue-600 font-medium"><span>💸 Cashback</span><span>- R$ {discC.toFixed(2)}</span></div>}
+                  {discM > 0 && <div className="flex justify-between text-purple-600 font-medium"><span>✍️ Desc. Manual</span><span>- R$ {discM.toFixed(2)}</span></div>}
+                  {isSubscription && <div className="flex justify-between text-amber-600 font-bold italic"><span>👑 Coberto por Assinatura</span><span>Abatido</span></div>}
+                  <div className="flex justify-between font-black border-t pt-1 text-base"><span>Valor Líquido / A Pagar</span><span>R$ {net.toFixed(2)}</span></div>
+                  {net === 0 && (
+                    <p className="text-[10px] text-muted-foreground mt-1 text-center italic">
+                      Pagamento integral por benefícios/descontos.
+                    </p>
+                  )}
                 </div>
               );
             })()}
