@@ -2357,7 +2357,7 @@ const Dashboard = () => {
                 <span className="block mt-1">
                   <strong>{completeTarget.client_name || 'Cliente'}</strong> — {format(parseISO(completeTarget.start_time), 'HH:mm')}
                   <br />
-                  <span className="text-xs font-bold text-primary">Valor Bruto: {formatBRL(parseFloat(completeCustomAmount) || 0)}</span>
+                  <span className="text-xs font-bold text-primary">Valor Bruto: {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(parseFloat(completeCustomAmount) || 0)}</span>
                 </span>
               )}
             </DialogDescription>
