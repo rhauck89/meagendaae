@@ -756,8 +756,8 @@ const Dashboard = () => {
         status: status as any
       }).eq('id', id);
     } else {
-      const grossPrice = customAmount ?? Number(apt?.total_price || 0);
-      const originalPrice = customAmount ?? Number(apt?.original_price || apt?.total_price || 0);
+      const grossPrice = customAmount ?? Number(apt?.original_price || apt?.total_price || 0);
+      const originalPrice = grossPrice;
       
       await supabase.from('appointments').update({ 
         status: status as any,
@@ -773,7 +773,7 @@ const Dashboard = () => {
     if (status === 'completed' && apt && companyId) {
       const serviceNames = apt.appointment_services?.map((s: any) => s.service?.name).filter(Boolean).join(', ') || 'Serviço';
       const grossPrice = customAmount ?? Number(apt.original_price || apt.total_price);
-      const netPrice = Math.max(0, (customAmount ?? Number(apt.total_price)) - totalDiscount);
+      const netPrice = Math.max(0, grossPrice - totalDiscount);
 
       // Fetch collaborator commission settings
       let commissionAmount = 0;
