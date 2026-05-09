@@ -12,6 +12,13 @@ export interface FinancialBreakdown {
   companyValue: number;
 }
 
+export const getAppointmentRevenue = (appointment: {
+  final_price?: number | string | null;
+  total_price?: number | string | null;
+}): number => {
+  return Number(appointment.final_price ?? appointment.total_price ?? 0);
+};
+
 export const calculateFinancials = (
   revenue: number,
   serviceCount: number,
