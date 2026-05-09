@@ -152,10 +152,28 @@ const Dashboard = () => {
   const openCompleteModal = (apt: any) => {
     setCompleteTarget(apt);
     setCompletePaymentMethod('pix');
-    setCompleteCustomAmount(apt.original_price || apt.total_price || '');
-    setCompletePromoDiscount(apt.promotion_discount || '');
-    setCompleteCashbackUsed(apt.cashback_used || '');
-    setCompleteManualDiscount(apt.manual_discount || '');
+    
+    // Calculate the true gross value from linked services
+    const calculatedGross = apt.appointment_services?.reduce(
+      (acc: number, s: any) => acc + (Number(s.service?.price) || 0), 0
+    ) || Number(apt.original_price || apt.total_price || 0);
+    
+    const finalPrice = Number(apt.final_price || apt.total_price || 0);
+    const cashbackUsed = Number(apt.cashback_used || 0);
+    const manualDiscount = Number(apt.manual_discount || 0);
+    
+    // Determine the promotion discount automatically
+    let promoDiscount = Number(apt.promotion_discount || 0);
+    if (apt.promotion_id && promoDiscount === 0) {
+      // If we have a promotion but discount is not recorded, calculate it
+      // promotion_discount = gross - final - cashback - manual
+      promoDiscount = Math.max(0, calculatedGross - finalPrice - cashbackUsed - manualDiscount);
+    }
+
+    setCompleteCustomAmount(calculatedGross.toString());
+    setCompletePromoDiscount(promoDiscount > 0 ? promoDiscount.toString() : '');
+    setCompleteCashbackUsed(cashbackUsed > 0 ? cashbackUsed.toString() : '');
+    setCompleteManualDiscount(manualDiscount > 0 ? manualDiscount.toString() : '');
     setCompleteObservation('');
     setCompleteDialogOpen(true);
   };
