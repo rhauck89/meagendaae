@@ -782,7 +782,7 @@ const Dashboard = () => {
         .eq('name', 'Serviços')
         .maybeSingle();
 
-      await supabase.from('company_revenues').insert({
+      const revenuePayload = {
         company_id: companyId,
         appointment_id: apt.id,
         professional_id: apt.professional_id,
@@ -799,7 +799,25 @@ const Dashboard = () => {
         payment_method: paymentMethod || null,
         created_by: user?.id,
         notes: noteParts.length > 0 ? noteParts.join(' | ') : null,
-      });
+      };
+
+      const { data: existingRevenue } = await supabase
+        .from('company_revenues')
+        .select('id')
+        .eq('appointment_id', apt.id)
+        .eq('is_automatic', true)
+        .order('created_at', { ascending: true })
+        .limit(1)
+        .maybeSingle();
+
+      if (existingRevenue?.id) {
+        await supabase
+          .from('company_revenues')
+          .update(revenuePayload)
+          .eq('id', existingRevenue.id);
+      } else {
+        await supabase.from('company_revenues').insert(revenuePayload);
+      }
 
       // Generate cashback credits via transactional RPC
       if (apt.client_id) {
