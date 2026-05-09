@@ -62,9 +62,10 @@ export const collaboratorTypeLabel = (type: string): string => {
 
 export const commissionLabel = (type: string, value: number): string => {
   if (type === 'own_revenue') return 'Receita própria';
+  if (type === 'none') return 'Receita própria';
   if (type === 'percentage') return `${value}%`;
   if (type === 'fixed') return `R$ ${value.toFixed(2)}/serviço`;
-  return 'Sem comissão';
+  return 'Receita própria';
 };
 
 export const remunerationLabel = (
