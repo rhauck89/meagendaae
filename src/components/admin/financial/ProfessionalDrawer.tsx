@@ -73,7 +73,7 @@ export const ProfessionalDrawer = ({
         `)
         .eq('professional_id', professional.id)
         .eq('company_id', companyId)
-        .eq('status', status === 'all' ? 'completed' : status)
+        .eq('status', (status === 'all' ? 'completed' : status) as any)
         .gte('start_time', startDate.toISOString())
         .lte('start_time', endDate.toISOString())
         .order('start_time', { ascending: false });
