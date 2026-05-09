@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 
@@ -6,6 +5,22 @@ const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+};
+
+const jsonResponse = (body: Record<string, unknown>, status = 200) =>
+  new Response(JSON.stringify(body), {
+    status,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+
+const isAlreadyRegisteredError = (message = "") => {
+  const normalized = message.toLowerCase();
+  return (
+    normalized.includes("already registered") ||
+    normalized.includes("already exists") ||
+    normalized.includes("user exists") ||
+    normalized.includes("user already")
+  );
 };
 
 serve(async (req) => {
@@ -22,55 +37,62 @@ serve(async (req) => {
     const { email, password, fullName, type, redirectTo } = await req.json();
 
     if (!email || !type) {
-      throw new Error("Email and type are required");
+      return jsonResponse({ error: "Email and type are required", code: "missing_fields" }, 400);
     }
 
     let link = "";
-    let userName = fullName || email.split('@')[0];
+    const userName = fullName || email.split("@")[0];
 
-    if (type === 'signup') {
-      // 1. Criar o usuário via Admin API para ter controle total
-      const { data: userData, error: createError } = await supabaseAdmin.auth.admin.createUser({
-        email: email,
-        password: password,
-        email_confirm: false,
-        user_metadata: { full_name: fullName }
-      });
-
-      if (createError) {
-        // Se o usuário já existe, podemos apenas reenviar o link
-        if (createError.message.includes('already registered')) {
-          const { data: existingLink, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
-            type: 'signup',
-            email: email,
-          });
-          if (linkError) throw linkError;
-          link = existingLink.properties.action_link;
-        } else {
-          throw createError;
-        }
-      } else {
-        // 2. Gerar o link de confirmação
-        const { data: signupLink, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
-          type: 'signup',
-          email: email,
-        });
-        if (linkError) throw linkError;
-        link = signupLink.properties.action_link;
+    if (type === "signup") {
+      if (!password) {
+        return jsonResponse({ error: "Password is required", code: "password_required" }, 400);
       }
-    } else if (type === 'reset') {
+
+      const { data: signupLink, error: linkError } =
+        await supabaseAdmin.auth.admin.generateLink({
+          type: "signup",
+          email,
+          password,
+          options: {
+            data: { full_name: fullName },
+            redirectTo:
+              redirectTo ||
+              `${Deno.env.get("SITE_URL") || "https://meagendae.com.br"}/auth`,
+          },
+        });
+
+      if (linkError) {
+        if (isAlreadyRegisteredError(linkError.message)) {
+          return jsonResponse(
+            {
+              error:
+                "Ja existe uma conta com este email. Tente fazer login ou recupere sua senha.",
+              code: "user_already_exists",
+            },
+            409
+          );
+        }
+        throw linkError;
+      }
+
+      link = signupLink?.properties?.action_link || "";
+      if (!link) throw new Error("Could not generate signup confirmation link");
+    } else if (type === "reset") {
       const { data, error } = await supabaseAdmin.auth.admin.generateLink({
-        type: 'recovery',
-        email: email,
+        type: "recovery",
+        email,
         options: {
-          redirectTo: redirectTo || `${Deno.env.get("SITE_URL") || "https://meagendae.com.br"}/reset-password`,
+          redirectTo:
+            redirectTo ||
+            `${Deno.env.get("SITE_URL") || "https://meagendae.com.br"}/reset-password`,
         },
       });
       if (error) throw error;
       link = data.properties.action_link;
+    } else {
+      return jsonResponse({ error: "Invalid auth request type", code: "invalid_type" }, 400);
     }
 
-    // Disparar o e-mail via nossa função send-email centralizada
     const emailResp = await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/send-email`, {
       method: "POST",
       headers: {
@@ -79,27 +101,28 @@ serve(async (req) => {
       },
       body: JSON.stringify({
         to: email,
-        type: type === 'reset' ? 'password_reset' : 'email_confirmation',
-        data: { 
-          link: link,
-          name: userName
-        }
+        type: type === "reset" ? "password_reset" : "email_confirmation",
+        data: {
+          link,
+          name: userName,
+        },
       }),
     });
 
     if (!emailResp.ok) {
-      const errorData = await emailResp.json();
+      const errorData = await emailResp.json().catch(() => null);
       throw new Error(`Failed to send email: ${JSON.stringify(errorData)}`);
     }
 
-    return new Response(JSON.stringify({ success: true }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
-
-  } catch (error) {
-    return new Response(JSON.stringify({ error: error.message }), {
-      status: 400,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return jsonResponse({ success: true });
+  } catch (error: any) {
+    console.error("Auth handler error:", error);
+    return jsonResponse(
+      {
+        error: error?.message || "Auth request failed",
+        code: error?.code || "auth_handler_error",
+      },
+      400
+    );
   }
 });
