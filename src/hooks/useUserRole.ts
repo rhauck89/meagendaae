@@ -2,7 +2,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useMemo, useCallback } from 'react';
 
 export const useUserRole = () => {
-  const { roles, profile, loginMode, isAlsoCollaborator } = useAuth();
+  const { roles, profile, loginMode, isAlsoCollaborator, isOwner } = useAuth();
 
   const isProfessional = useMemo(() => roles.includes('professional'), [roles]);
   const isCollaborator = useMemo(() => roles.includes('collaborator'), [roles]);
@@ -12,13 +12,13 @@ export const useUserRole = () => {
 
   // When an admin+collaborator switches to professional mode, treat as non-admin
   const isProfessionalMode = useMemo(
-    () => isProfessional && isAlsoCollaborator && loginMode === 'professional',
-    [isProfessional, isAlsoCollaborator, loginMode]
+    () => !isOwner && isProfessional && isAlsoCollaborator && loginMode === 'professional',
+    [isOwner, isProfessional, isAlsoCollaborator, loginMode]
   );
 
   const isAdmin = useMemo(
-    () => (isProfessional || isSuperAdmin) && !isProfessionalMode,
-    [isProfessional, isSuperAdmin, isProfessionalMode]
+    () => (isOwner || isProfessional || isSuperAdmin) && !isProfessionalMode,
+    [isOwner, isProfessional, isSuperAdmin, isProfessionalMode]
   );
 
   const hasRole = useCallback((role: string) => roles.includes(role), [roles]);
