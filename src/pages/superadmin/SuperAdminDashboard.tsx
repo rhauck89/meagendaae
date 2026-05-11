@@ -163,6 +163,34 @@ const SuperAdminDashboard = () => {
           </Card>
         ))}
       </div>
+
+      {/* Migration Section */}
+      <div className="mt-8">
+        <h2 className="text-xl font-display font-semibold mb-4">⚙️ Migração e Backup</h2>
+        <Card className="border-primary/20 bg-primary/5">
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2">
+              <Database className="h-5 w-5 text-primary" /> Exportar Dados para Supabase Externo
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Gere e baixe o script SQL completo com os dados atuais (empresas, perfis, agendamentos, etc.) para facilitar a migração para seu próprio projeto Supabase.
+            </p>
+            <div className="flex flex-wrap gap-3">
+              <Button 
+                onClick={() => window.open('/migration_backup/data_export.sql', '_blank')}
+                className="flex items-center gap-2"
+              >
+                <Download className="h-4 w-4" /> Baixar SQL de Dados (INSERTs)
+              </Button>
+            </div>
+            <p className="text-xs text-muted-foreground italic">
+              * O arquivo inclui comandos INSERT com "ON CONFLICT DO NOTHING" para segurança.
+            </p>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 };
