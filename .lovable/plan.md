@@ -1,37 +1,23 @@
-The current implementation of the appointment completion modal uses the `total_price` or `original_price` stored in the `appointments` table as the "Original Value". However, `total_price` often already includes discounts (e.g., from promotions), and `original_price` is not always updated correctly. The correct approach is to sum the base prices of all linked services from the `services` table to determine the true gross value.
+A migração do Lovable Cloud para o seu próprio Supabase é um processo que altera de onde o Lovable lê e grava os dados, mas não realiza uma migração automática de dados entre as infraestruturas.
 
-### User Review Required
+Aqui estão as respostas detalhadas para suas dúvidas:
 
-> [!IMPORTANT]
-> This change will ensure that professional commissions are calculated based on the full service price, even when customers use discounts or promotions.
+1.  **Cópia de dados existentes**: Não. Ao trocar o projeto Supabase no Lovable, o frontend passará a se conectar ao novo banco. Os dados que estão hoje no Lovable Cloud (tabelas preenchidas) não são movidos automaticamente para o seu Supabase.
+2.  **Cópia de Auth, Storage, Edge Functions, etc.**: Não de forma automática. 
+    - **Políticas e Triggers**: Se você tiver migrações SQL no histórico do Lovable, eu posso tentar aplicá-las no novo projeto, mas a estrutura de usuários (Auth), arquivos (Storage) e instâncias de Edge Functions não são clonadas entre projetos Supabase por padrão.
+3.  **Projeto de destino**: Você deverá escolher. Eu posso listar os projetos da sua organização e você seleciona se quer usar o `uazgnfepsghqyvwpbutr` ou criar um novo. Se você já tiver tabelas lá, o Lovable tentará se adaptar a elas ou sugerir ajustes.
+4.  **Risco de sobrescrever**: Sim. Se o projeto de destino já tiver tabelas com os mesmos nomes, a aplicação de novas migrações pode causar conflitos ou perda de dados existentes se não for feita com cautela.
+5.  **Backup/Export SQL**: Sim, eu consigo gerar um script SQL completo da estrutura (tabelas, RLS, triggers) e posso extrair os dados das tabelas via CSV ou comandos INSERT para você importar manualmente no seu novo Supabase.
+6.  **Passo recomendado para migração**:
+    - **Passo 1**: Gerar o dump SQL da estrutura e dos dados do Lovable Cloud.
+    - **Passo 2**: Conectar o novo projeto Supabase ao Lovable.
+    - **Passo 3**: Aplicar o script de estrutura no novo projeto.
+    - **Passo 4**: Importar os dados (INSERTs/CSVs).
+    - **Passo 5**: Reconfigurar manualmente segredos (Edge Functions) e buckets de Storage.
 
-### Proposed Changes
+### Plano Técnico de Apoio
+1.  **Extração**: Vou gerar um arquivo `.sql` na raiz do projeto contendo o comando de criação de todas as tabelas e políticas atuais.
+2.  **Dados**: Posso gerar scripts de INSERT para as tabelas principais (serviços, profissionais, agendamentos) para facilitar sua migração manual via Dashboard do Supabase.
+3.  **Conexão**: Após você validar os backups, procederei com a interface de conexão ao seu Supabase.
 
-#### 1. Data Fetching Update
-- Modify the Supabase queries in `src/pages/Dashboard.tsx` to include the `price` field from the `services` table within `appointment_services`.
-
-#### 2. Calculation Logic
-- In `openCompleteModal`, calculate the true `grossAmount` by summing up `service.price` for all items in `appointment_services`.
-- If no services are linked, fallback to the current stored price.
-
-#### 3. Modal UI & State
-- Update `completeCustomAmount` (which represents the original/gross value in the modal) to use this calculated gross amount.
-- Automatically calculate `completePromoDiscount` as the difference between the calculated gross amount and the `final_price` of the appointment, if a promotion is linked.
-- Improve the observation field to automatically include details about applied benefits (Cashback, Promotion name, etc.).
-
-#### 4. Financial Consistency
-- Ensure `updateStatus` and the subsequent revenue creation use these corrected gross and net values.
-- Maintain professional commission calculation on the corrected gross amount.
-
-### Technical Details
-- Updated files: `src/pages/Dashboard.tsx`
-- Database: No schema changes, just fetching existing fields (`services.price`).
-- Logic:
-  ```typescript
-  const calculatedGross = apt.appointment_services?.reduce(
-    (acc, s) => acc + (Number(s.service?.price) || 0), 0
-  ) || Number(apt.original_price || apt.total_price);
-  ```
-- Abatements calculation:
-  - If `promotion_id` exists: `promoDiscount = calculatedGross - final_price`.
-  - Handle cashback and manual discounts similarly based on existing fields.
+**Deseja que eu comece gerando o backup SQL completo da estrutura e dos dados atuais?**
