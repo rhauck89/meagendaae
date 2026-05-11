@@ -62,16 +62,16 @@ export function ReadOnlyBanner() {
   const msg = messages[reason] ?? messages.trial_expired;
 
   return (
-    <div className="w-full bg-destructive/10 border-b border-destructive/30 px-4 py-3">
-      <div className="max-w-6xl mx-auto flex items-start gap-3 flex-wrap">
-        <AlertTriangle className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
-        <div className="flex-1 min-w-[200px]">
-          <p className="font-medium text-destructive text-sm">{msg.title}</p>
-          <p className="text-xs text-muted-foreground">{msg.body}</p>
+    <div className=\"w-full bg-destructive/10 border-b border-destructive/30 px-4 py-3\">
+      <div className=\"max-w-7xl mx-auto flex flex-col sm:flex-row items-center sm:items-start gap-3\">
+        <AlertTriangle className=\"h-5 w-5 text-destructive shrink-0 mt-0.5\" />
+        <div className=\"flex-1 min-w-0 text-center sm:text-left\">
+          <p className=\"font-medium text-destructive text-sm\">{msg.title}</p>
+          <p className=\"text-xs text-muted-foreground break-words\">{msg.body}</p>
         </div>
-        <Button size="sm" onClick={() => navigate("/settings/plans")}>
+        <Button size=\"sm\" onClick={() => navigate(\"/dashboard/settings/plan\")} className=\"shrink-0\">
           Reativar plano
-          <ArrowRight className="h-3.5 w-3.5 ml-1" />
+          <ArrowRight className=\"h-3.5 w-3.5 ml-1\" />
         </Button>
       </div>
     </div>
