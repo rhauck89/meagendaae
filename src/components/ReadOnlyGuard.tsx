@@ -63,13 +63,13 @@ export function ReadOnlyBanner() {
 
   return (
     <div className="w-full bg-destructive/10 border-b border-destructive/30 px-4 py-3">
-      <div className="max-w-6xl mx-auto flex items-start gap-3 flex-wrap">
+      <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center sm:items-start gap-3">
         <AlertTriangle className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
-        <div className="flex-1 min-w-[200px]">
+        <div className="flex-1 min-w-0 text-center sm:text-left">
           <p className="font-medium text-destructive text-sm">{msg.title}</p>
-          <p className="text-xs text-muted-foreground">{msg.body}</p>
+          <p className="text-xs text-muted-foreground break-words">{msg.body}</p>
         </div>
-        <Button size="sm" onClick={() => navigate("/settings/plans")}>
+        <Button size="sm" onClick={() => navigate("/dashboard/settings/plan")} className="shrink-0">
           Reativar plano
           <ArrowRight className="h-3.5 w-3.5 ml-1" />
         </Button>
@@ -99,7 +99,7 @@ export function ReadOnlyGuard({ children, allowRead = true }: ReadOnlyGuardProps
       </div>
       <h2 className="text-xl font-display font-bold">{msg.title}</h2>
       <p className="text-muted-foreground text-sm">{msg.body}</p>
-      <Button onClick={() => navigate("/settings/plans")}>
+      <Button onClick={() => navigate("/dashboard/settings/plan")}>
         Reativar plano
         <ArrowRight className="h-4 w-4 ml-1" />
       </Button>

@@ -1,4 +1,6 @@
-﻿import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { PaymentTestModeBanner } from './PaymentTestModeBanner';
+import { ReadOnlyBanner } from './ReadOnlyGuard';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUserRole } from '@/hooks/useUserRole';
 import { useUserTicketCounts } from '@/hooks/useSupportTicketCounts';
@@ -628,6 +630,8 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
 
         {/* Main content */}
         <main className={cn('flex-1 flex flex-col min-h-screen min-w-0 w-full transition-[margin] duration-250 ease-in-out', collapsed ? 'lg:ml-[72px]' : 'lg:ml-64')}>
+           <PaymentTestModeBanner />
+           <ReadOnlyBanner />
            <header className={cn(
               "h-16 border-b flex items-center px-4 lg:px-8 bg-card sticky top-0 z-50 shadow-[0_2px_8px_rgba(0,0,0,0.08)] transition-opacity duration-250",
               isProfessionalMode && "border-b-2 border-b-teal-500/40",

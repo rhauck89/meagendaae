@@ -345,8 +345,7 @@ const App = () => {
             <Sonner />
             <BrowserRouter>
               <AuthProvider>
-                <PaymentTestModeBanner />
-                <ReadOnlyBanner />
+                {/* Banners moved inside protected layouts to avoid appearing on public pages */}
                 <AppRoutes />
               </AuthProvider>
             </BrowserRouter>
