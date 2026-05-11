@@ -16,6 +16,7 @@ const ResetPassword = () => {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isRecovery, setIsRecovery] = useState(false);
   const [done, setDone] = useState(false);
+  const [sessionError, setSessionError] = useState('');
 
   useEffect(() => {
     let fallbackTimer: number | undefined;
@@ -27,13 +28,27 @@ const ResetPassword = () => {
       }
     });
 
-    // Check if we already have a session (user clicked the link)
     const checkRecoveryParams = async () => {
       const params = `${window.location.search}${window.location.hash}`;
       const queryParams = new URLSearchParams(window.location.search);
       const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+      const code = queryParams.get('code');
       const accessToken = queryParams.get('access_token') || hashParams.get('access_token');
       const refreshToken = queryParams.get('refresh_token') || hashParams.get('refresh_token');
+
+      if (code) {
+        const { error } = await supabase.auth.exchangeCodeForSession(code);
+
+        if (!error) {
+          setIsRecovery(true);
+          window.history.replaceState({}, document.title, window.location.pathname);
+          return;
+        }
+
+        console.error('[RESET_PASSWORD] Failed to exchange recovery code:', error);
+        setSessionError('Link de recuperacao invalido ou expirado. Solicite um novo link.');
+        return;
+      }
 
       if (accessToken && refreshToken) {
         const { error } = await supabase.auth.setSession({
@@ -48,8 +63,13 @@ const ResetPassword = () => {
         }
       }
 
-      if (params.includes('type=recovery') || params.includes('code=')) {
-        setIsRecovery(true);
+      if (params.includes('type=recovery')) {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session) {
+          setIsRecovery(true);
+        } else {
+          setSessionError('Link de recuperacao invalido ou expirado. Solicite um novo link.');
+        }
       }
     };
     checkRecoveryParams();
@@ -81,17 +101,46 @@ const ResetPassword = () => {
     if (!validate()) return;
     setLoading(true);
     try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        throw new Error('missing_recovery_session');
+      }
+
       const { error } = await supabase.auth.updateUser({ password });
       if (error) throw error;
       setDone(true);
       toast.success('Senha atualizada com sucesso!');
       setTimeout(() => navigate('/dashboard'), 2000);
-    } catch {
-      toast.error('Erro ao atualizar senha. Tente novamente.');
+    } catch (error) {
+      console.error('[RESET_PASSWORD] Failed to update password:', error);
+      toast.error('Erro ao atualizar senha. Solicite um novo link e tente novamente.');
     } finally {
       setLoading(false);
     }
   };
+
+  if (sessionError && !done) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background p-4">
+        <Card className="w-full max-w-md shadow-xl border-0">
+          <CardHeader className="text-center space-y-4">
+            <div className="mx-auto w-14 h-14 bg-primary rounded-2xl flex items-center justify-center">
+              <Scissors className="h-7 w-7 text-primary-foreground" />
+            </div>
+            <div>
+              <CardTitle className="text-2xl font-display">Recuperar Senha</CardTitle>
+              <CardDescription>{sessionError}</CardDescription>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <Button type="button" className="w-full" onClick={() => navigate('/forgot-password')}>
+              Solicitar novo link
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   if (!isRecovery && !done) {
     return (
