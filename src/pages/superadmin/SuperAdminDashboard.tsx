@@ -3,7 +3,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Building2, Users, Clock, DollarSign, TrendingUp, MessageSquare, AlertCircle, CheckCircle } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Building2, Users, Clock, DollarSign, TrendingUp, MessageSquare, AlertCircle, CheckCircle, Download, Database } from 'lucide-react';
 import { format, startOfMonth } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
 
