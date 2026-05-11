@@ -28,13 +28,31 @@ const ResetPassword = () => {
     });
 
     // Check if we already have a session (user clicked the link)
-    const checkHash = () => {
+    const checkRecoveryParams = async () => {
       const params = `${window.location.search}${window.location.hash}`;
+      const queryParams = new URLSearchParams(window.location.search);
+      const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+      const accessToken = queryParams.get('access_token') || hashParams.get('access_token');
+      const refreshToken = queryParams.get('refresh_token') || hashParams.get('refresh_token');
+
+      if (accessToken && refreshToken) {
+        const { error } = await supabase.auth.setSession({
+          access_token: accessToken,
+          refresh_token: refreshToken,
+        });
+
+        if (!error) {
+          setIsRecovery(true);
+          window.history.replaceState({}, document.title, window.location.pathname);
+          return;
+        }
+      }
+
       if (params.includes('type=recovery') || params.includes('code=')) {
         setIsRecovery(true);
       }
     };
-    checkHash();
+    checkRecoveryParams();
 
     // Some email providers/Supabase flows establish the recovery session before
     // this component subscribes to PASSWORD_RECOVERY. In that case, keep the
@@ -52,8 +70,8 @@ const ResetPassword = () => {
 
   const validate = () => {
     const newErrors: Record<string, string> = {};
-    if (password.length < 6) newErrors.password = 'A senha deve ter no mínimo 6 caracteres.';
-    if (password !== confirmPassword) newErrors.confirm = 'As senhas não coincidem.';
+    if (password.length < 6) newErrors.password = 'A senha deve ter no mÃ­nimo 6 caracteres.';
+    if (password !== confirmPassword) newErrors.confirm = 'As senhas nÃ£o coincidem.';
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -119,7 +137,7 @@ const ResetPassword = () => {
                   type="password"
                   value={password}
                   onChange={(e) => { setPassword(e.target.value); setErrors(p => ({ ...p, password: '' })); }}
-                  placeholder="Mínimo 6 caracteres"
+                  placeholder="MÃ­nimo 6 caracteres"
                   autoComplete="new-password"
                 />
                 {errors.password && <p className="text-sm text-destructive">{errors.password}</p>}
