@@ -901,7 +901,7 @@ export default function ProfessionalPublicProfile() {
               <div className="mb-4 text-center">
                 <h3 className="font-bold" style={{ color: T.text }}>Selecionar Data</h3>
               </div>
-              <CalendarPicker
+              <CalendarUI
                 mode="single"
                 selected={selectedDate}
                 onSelect={(date) => {
