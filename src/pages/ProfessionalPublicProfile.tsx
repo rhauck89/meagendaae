@@ -1072,26 +1072,68 @@ export default function ProfessionalPublicProfile() {
           </DialogContent>
         </Dialog>
 
-        {/* FAIXA VERDE — CTA secundário */}
-        <section
-          className="rounded-2xl p-5 flex items-center gap-4 justify-between"
-          style={{ background: 'rgba(16, 185, 129, 0.12)', border: '1px solid rgba(16, 185, 129, 0.3)' }}
-        >
-          <div className="flex items-center gap-3 min-w-0">
-            <div className="w-11 h-11 rounded-xl flex items-center justify-center bg-emerald-500/20 flex-shrink-0">
-              <Calendar className="w-5 h-5 text-emerald-500" />
+        {/* Localização */}
+        <section className="space-y-4">
+          <h2 className="text-lg font-bold flex items-center gap-2" style={{ color: T.text }}>
+            <MapPin className="w-5 h-5" style={{ color: T.accent }} />
+            Localização
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div className="p-5 rounded-2xl border" style={{ background: T.card, borderColor: T.border }}>
+              <div className="flex items-start gap-2 mb-3">
+                <MapPin className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: T.accent }} />
+                <div>
+                  <p className="font-bold text-base" style={{ color: T.text }}>{company.name}</p>
+                  <p className="text-sm opacity-70 leading-relaxed mt-1" style={{ color: T.textSec }}>
+                    {[company.address, company.address_number].filter(Boolean).join(', ')}
+                    {company.district && <><br />{company.district}</>}
+                    {(company.city || company.state) && <><br />{[company.city, company.state].filter(Boolean).join(', ')}</>}
+                    {company.postal_code && <><br />CEP {company.postal_code}</>}
+                  </p>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-2 mt-4">
+                <Button
+                  variant="outline"
+                  asChild
+                  className="rounded-xl h-10 font-semibold border-2 text-xs"
+                  style={{ borderColor: T.accent, color: T.accent, background: 'transparent' }}
+                >
+                  <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(fullAddress)}`} target="_blank" rel="noopener noreferrer">
+                    <Navigation className="w-3.5 h-3.5 mr-1" />
+                    Como chegar
+                  </a>
+                </Button>
+                {companyWhatsapp && (
+                  <Button
+                    variant="outline"
+                    asChild
+                    className="rounded-xl h-10 font-semibold border-2 text-xs"
+                    style={{ borderColor: '#25D366', color: '#25D366', background: 'transparent' }}
+                  >
+                    <a href={buildWhatsAppUrl(companyWhatsapp)} target="_blank" rel="noopener noreferrer">
+                      <MessageCircle className="w-3.5 h-3.5 mr-1" />
+                      WhatsApp
+                    </a>
+                  </Button>
+                )}
+              </div>
             </div>
-            <div className="min-w-0">
-              <p className="text-sm font-bold" style={{ color: T.text }}>Agende seu horário com {firstName}</p>
-              <p className="text-xs opacity-70 truncate" style={{ color: T.textSec }}>Escolha o melhor horário e garanta seu atendimento!</p>
-            </div>
+            <a
+              href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(fullAddress)}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="rounded-2xl border overflow-hidden block relative min-h-[200px]"
+              style={{ background: T.card, borderColor: T.border }}
+            >
+              <iframe
+                title="Mapa"
+                src={`https://www.google.com/maps?q=${encodeURIComponent(fullAddress)}&output=embed`}
+                className="w-full h-full absolute inset-0 border-0"
+                loading="lazy"
+              />
+            </a>
           </div>
-          <Button
-            onClick={() => navigate(`${bookingUrl}?jumpTo=datetime`)}
-            className="h-11 px-4 rounded-xl font-bold whitespace-nowrap bg-emerald-500 hover:bg-emerald-600 text-white flex-shrink-0"
-          >
-            Ver horários ›
-          </Button>
         </section>
 
         <div className="pt-6 pb-4 opacity-40 text-center">
