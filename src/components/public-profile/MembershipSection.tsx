@@ -16,10 +16,15 @@ export const MembershipSection = ({ companyId, professionalId }: MembershipSecti
   const [contacts, setContacts] = useState<{ company?: string; professional?: string }>({});
 
   useEffect(() => {
-    if (!companyId) return;
+    if (!companyId) {
+      console.log('[MembershipSection] No companyId provided');
+      return;
+    }
 
     const fetchData = async () => {
       setLoading(true);
+      console.log('[MembershipSection] companyId:', companyId);
+      
       try {
         const [plansRes, companyRes, professionalRes] = await Promise.all([
           supabase
@@ -39,16 +44,22 @@ export const MembershipSection = ({ companyId, professionalId }: MembershipSecti
                 .select('whatsapp')
                 .eq('id', professionalId)
                 .maybeSingle()
-            : Promise.resolve({ data: null }),
+            : Promise.resolve({ data: null, error: null }),
         ]);
 
-        if (plansRes.data) setPlans(plansRes.data);
+        if (plansRes.error) {
+          console.error('[MembershipSection] query error:', plansRes.error);
+        } else {
+          console.log('[MembershipSection] plans found:', plansRes.data?.length || 0, plansRes.data);
+          setPlans(plansRes.data || []);
+        }
+
         setContacts({
           company: (companyRes.data as any)?.whatsapp,
           professional: (professionalRes.data as any)?.whatsapp,
         });
       } catch (error) {
-        console.error('Error fetching membership data:', error);
+        console.error('[MembershipSection] unexpected error:', error);
       } finally {
         setLoading(false);
       }
