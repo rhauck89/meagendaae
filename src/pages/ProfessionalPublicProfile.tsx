@@ -86,6 +86,7 @@ export default function ProfessionalPublicProfile() {
   const isAuthenticated = isAuthAuthenticated && !isAdmin;
 
   const [isReviewsDrawerOpen, setIsReviewsDrawerOpen] = useState(false);
+  const [currentClient, setCurrentClient] = useState<any>(null);
   const [isAddReviewModalOpen, setIsAddReviewModalOpen] = useState(false);
   const [isSubmittingReview, setIsSubmittingReview] = useState(false);
   const [allReviewsList, setAllReviewsList] = useState<any[]>([]);
