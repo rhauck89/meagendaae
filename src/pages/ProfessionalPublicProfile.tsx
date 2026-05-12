@@ -18,7 +18,7 @@ import { getCompanyBranding, buildThemeFromBranding, useApplyBranding } from '@/
 import { useCompanyAmenities } from '@/hooks/useCompanyAmenities';
 import { motion, AnimatePresence, useScroll, useTransform } from 'framer-motion';
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerDescription } from "@/components/ui/drawer";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogBody } from "@/components/ui/dialog";
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { ReviewForm } from '@/components/public-profile/ReviewForm';
