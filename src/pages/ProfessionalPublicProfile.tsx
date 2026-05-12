@@ -413,7 +413,8 @@ export default function ProfessionalPublicProfile() {
     } else if (isTomorrow(selectedDate)) {
       label = `Amanhã • ${format(selectedDate, 'dd/MM')}`;
     } else {
-      label = format(selectedDate, "EEEE • dd/MM", { locale: ptBR });
+      const formattedDate = format(selectedDate, "EEEE • dd/MM", { locale: ptBR });
+      label = formattedDate.charAt(0).toUpperCase() + formattedDate.slice(1);
     }
     setNextAvailable({ date: selectedDate, slots, label });
     setSlotsLoading(false);
