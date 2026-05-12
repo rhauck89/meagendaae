@@ -124,9 +124,15 @@ export function ReviewForm({ onCancel, onSubmit, theme: T, title, subtitle, imag
           
           <div className="space-y-1">
             <h3 className="text-2xl font-bold tracking-tight" style={{ color: T.text }}>{title}</h3>
-            <p className="text-sm font-medium opacity-70" style={{ color: T.textSec }}>
-              {subtitle || "Sua opinião ajuda outros clientes a escolherem o melhor!"}
-            </p>
+            {isIdentified ? (
+              <p className="text-sm font-bold opacity-80" style={{ color: T.accent }}>
+                Avaliando como {initialName}
+              </p>
+            ) : (
+              <p className="text-sm font-medium opacity-70" style={{ color: T.textSec }}>
+                {subtitle || "Sua opinião ajuda outros clientes a escolherem o melhor!"}
+              </p>
+            )}
           </div>
         </div>
 
