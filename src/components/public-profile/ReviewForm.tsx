@@ -83,9 +83,9 @@ export function ReviewForm({ onCancel, onSubmit, theme: T, title, subtitle, imag
               <img 
                 src={image} 
                 alt={title} 
-                className="w-20 h-20 rounded-2xl object-cover shadow-2xl ring-4"
-                style={{ ringColor: `${T.accent}33` }}
-              />
+              className="w-20 h-20 rounded-2xl object-cover shadow-2xl ring-4"
+              style={{ outline: `4px solid ${T.accent}33`, outlineOffset: '-4px' }}
+            />
               <div 
                 className="absolute -bottom-2 -right-2 w-8 h-8 rounded-full flex items-center justify-center shadow-lg"
                 style={{ background: T.accent }}
@@ -96,7 +96,7 @@ export function ReviewForm({ onCancel, onSubmit, theme: T, title, subtitle, imag
           ) : (
             <div 
               className="w-20 h-20 rounded-2xl flex items-center justify-center shadow-xl ring-4"
-              style={{ background: `${T.accent}15`, ringColor: `${T.accent}33`, color: T.accent }}
+              style={{ background: `${T.accent}15`, outline: `4px solid ${T.accent}33`, outlineOffset: '-4px', color: T.accent }}
             >
               <Star className="w-10 h-10 fill-current" />
             </div>
