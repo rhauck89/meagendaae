@@ -935,7 +935,7 @@ export default function ProfessionalPublicProfile() {
       {/* Reviews Modal */}
       <Dialog open={isReviewsDrawerOpen} onOpenChange={setIsReviewsDrawerOpen}>
         <DialogContent 
-          className="max-h-[85vh] sm:max-h-[90vh] w-[92%] sm:w-full sm:max-w-[720px] border-none p-0 overflow-hidden flex flex-col" 
+          className="fixed inset-auto left-[50%] top-[50%] -translate-x-1/2 -translate-y-1/2 w-[92%] sm:w-full sm:max-w-[720px] h-auto max-h-[85vh] sm:max-h-[90vh] border-none p-0 overflow-hidden flex flex-col rounded-[2rem] shadow-2xl" 
           style={{ backgroundColor: T.card }}
         >
           <DialogHeader 
