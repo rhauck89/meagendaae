@@ -62,6 +62,27 @@ const getAppointmentMinutesInTimezone = (v: string, tz: string) => {
 const filterOverlapping = (slots: string[], apts: ExistingAppointment[], dur: number, buf: number, tz: string) =>
   slots.filter(s => { const ss = timeStringToMinutes(s), se = ss + dur; return !apts.some(a => { const as2 = getAppointmentMinutesInTimezone(a.start_time, tz), ae = getAppointmentMinutesInTimezone(a.end_time, tz) + buf; return as2 < se && ae > ss; }); });
 
+const StarRating = ({ rating, size = 14 }: { rating: number; size?: number }) => (
+  <div className="flex items-center gap-0.5">
+    {[1, 2, 3, 4, 5].map((s) => {
+      const fill = rating >= s ? 1 : rating >= s - 0.5 ? 0.5 : 0;
+      return (
+        <svg key={s} width={size} height={size} viewBox="0 0 24 24" fill="none">
+          <defs>
+            <linearGradient id={`prof-star-${s}-${size}`}>
+              <stop offset={`${fill * 100}%`} stopColor="#FDBA2D" />
+              <stop offset={`${fill * 100}%`} stopColor="#374151" />
+            </linearGradient>
+          </defs>
+          <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" fill={`url(#prof-star-${s}-${size})`} />
+        </svg>
+      );
+    })}
+  </div>
+);
+
+
+
 export default function ProfessionalPublicProfile() {
   const { slug, professionalSlug } = useParams<{ slug: string; professionalSlug: string }>();
   const navigate = useNavigate();
@@ -634,20 +655,6 @@ export default function ProfessionalPublicProfile() {
       </section>
 
       <main className="max-w-3xl mx-auto px-4 mt-8 space-y-6">
-        {/* BADGES — 4 colunas horizontais */}
-        <section className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          {[
-            { icon: Scissors, label: `${profile?.experience_years} anos de experiência` },
-            { icon: Trophy, label: 'Especialista' },
-            { icon: MessageCircle, label: 'Atendimento personalizado' },
-            { icon: Crown, label: 'Top Profissional' },
-          ].map((b, i) => (
-            <div key={i} className="px-3 py-3 rounded-2xl border flex items-center gap-2 justify-center" style={{ background: T.card, borderColor: T.border }}>
-              <b.icon className="w-4 h-4 flex-shrink-0" style={{ color: T.accent }} />
-              <span className="text-xs font-semibold leading-tight" style={{ color: T.text }}>{b.label}</span>
-            </div>
-          ))}
-        </section>
 
         {/* CTA PRINCIPAL DOURADO */}
         <button
@@ -1007,22 +1014,98 @@ export default function ProfessionalPublicProfile() {
           </Button>
         </section>
 
-        {/* RODAPÉ — 4 ícones de confiança */}
-        <section className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2">
-          {[
-            { icon: Users, title: 'Atendimento', sub: 'Personalizado' },
-            { icon: Crown, title: 'Ambiente', sub: 'Premium' },
-            { icon: ShieldCheck, title: 'Profissional', sub: 'Certificado' },
-            { icon: Heart, title: 'Satisfação', sub: 'Garantida' },
-          ].map((item, i) => (
-            <div key={i} className="rounded-2xl border px-4 py-3 flex items-center gap-3" style={{ background: T.card, borderColor: T.border }}>
-              <item.icon className="w-5 h-5 flex-shrink-0" style={{ color: T.accent }} />
-              <div className="min-w-0">
-                <p className="text-xs font-bold" style={{ color: T.text }}>{item.title}</p>
-                <p className="text-[10px] opacity-60" style={{ color: T.textSec }}>{item.sub}</p>
-              </div>
+        {/* Reviews Section */}
+        <section id="avaliacoes" className="space-y-4 pt-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-bold flex items-center gap-2" style={{ color: T.text }}>
+              <Star className="w-5 h-5" style={{ color: T.accent }} />
+              Avaliações
+            </h2>
+            <div className="flex items-center gap-3">
+              <Button 
+                size="sm" 
+                variant="outline"
+                className="rounded-xl font-bold h-9 px-4 border-2" 
+                style={{ borderColor: T.accent, color: T.accent, background: 'transparent' }}
+                onClick={() => setIsAddReviewModalOpen(true)}
+              >
+                Avaliar
+              </Button>
+              {allReviewsList.length > 3 && (
+                <button
+                  onClick={() => setIsReviewsDrawerOpen(true)}
+                  className="text-sm font-medium hover:underline"
+                  style={{ color: T.accent }}
+                >
+                  Ver todas
+                </button>
+              )}
             </div>
-          ))}
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            {/* Average card */}
+            {rating && rating.count > 0 && (
+              <div className="p-5 rounded-2xl border flex flex-col items-center justify-center text-center" style={{ background: T.card, borderColor: T.border }}>
+                <p className="text-4xl font-black" style={{ color: T.text }}>{rating.avg.toFixed(1).replace('.', ',')}</p>
+                <div className="my-2"><StarRating rating={rating.avg} size={16} /></div>
+                <p className="text-xs opacity-60" style={{ color: T.textSec }}>{rating.count} avaliações</p>
+              </div>
+            )}
+            
+            {reviews.length > 0 ? (
+              reviews.slice(0, 2).map((rev: any, i: number) => {
+                const initial = (rev.client_display_name || 'C').charAt(0).toUpperCase();
+                const colors = ['#A855F7', '#3B82F6', '#10B981', '#F59E0B'];
+                const color = colors[i % colors.length];
+                return (
+                  <div key={i} className="p-4 rounded-2xl border flex flex-col gap-3" style={{ background: T.card, borderColor: T.border }}>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        {rev.client_avatar_url ? (
+                          <img 
+                            src={rev.client_avatar_url} 
+                            alt={rev.client_display_name} 
+                            className="w-8 h-8 rounded-full object-cover" 
+                          />
+                        ) : (
+                          <div className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold text-white" style={{ background: color }}>
+                            {initial}
+                          </div>
+                        )}
+                        <div>
+                          <p className="text-sm font-bold" style={{ color: T.text }}>{rev.client_display_name || 'Cliente'}</p>
+                          <div className="flex items-center gap-0.5">
+                            {[1, 2, 3, 4, 5].map(s => (
+                              <Star key={s} className={cn("w-3 h-3", s <= rev.rating ? "fill-yellow-400 text-yellow-400" : "text-white/10")} />
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                      <span className="text-xs opacity-50" style={{ color: T.textSec }}>
+                        {format(new Date(rev.created_at), 'dd/MM/yyyy')}
+                      </span>
+                    </div>
+                    <p className="text-sm italic opacity-80 leading-relaxed" style={{ color: T.text }}>
+                      "{rev.comment || 'Experiência excelente!'}"
+                    </p>
+                    {rev.tags && rev.tags.length > 0 && (
+                      <div className="flex flex-wrap gap-1">
+                        {rev.tags.map((tag: string) => (
+                          <span key={tag} className="text-[9px] px-1.5 py-0.5 rounded-full font-bold uppercase tracking-tighter" style={{ background: `${T.accent}15`, color: T.accent }}>{tag}</span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })
+            ) : (
+              <div className="sm:col-span-2 p-8 rounded-2xl border flex flex-col items-center justify-center text-center opacity-40 border-dashed" style={{ background: T.card, borderColor: T.border }}>
+                <Star className="w-8 h-8 mb-2" style={{ color: T.textSec }} />
+                <p className="text-sm" style={{ color: T.textSec }}>Nenhuma avaliação ainda.</p>
+              </div>
+            )}
+          </div>
         </section>
 
         <div className="pt-6 pb-4 opacity-40 text-center">
