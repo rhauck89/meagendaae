@@ -1015,7 +1015,8 @@ export default function ProfessionalPublicProfile() {
             title={professional?.name || "Profissional"}
             image={avatarUrl}
             theme={T}
-            initialName={isAuthAuthenticated && !isAdmin ? user?.user_metadata?.full_name : ''}
+            initialName={currentClient?.name || ''}
+            initialPhone={currentClient?.whatsapp || ''}
             onCancel={() => setIsAddReviewModalOpen(false)}
             onSubmit={handleSubmitReview}
           />
