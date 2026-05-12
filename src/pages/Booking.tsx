@@ -1999,6 +1999,16 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
     }
   }, [professionals, selectedProfessional, step]);
 
+  // Ensure current date is selected by default when entering the datetime step
+  useEffect(() => {
+    if (step === 'datetime' && !selectedDate && !quickSlotSelected) {
+      const today = startOfDay(new Date());
+      setSelectedDate(today);
+      // Ensure the horizontal calendar view includes today
+      setCurrentWeekStart(startOfWeek(today, { locale: ptBR }));
+    }
+  }, [step, selectedDate, quickSlotSelected]);
+
   const fetchNextAvailableSlots = async () => {
     if (!company || !selectedProfessional || businessHours.length === 0 || totalDuration <= 0) {
       setNextSlots([]);
