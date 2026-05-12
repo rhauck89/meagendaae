@@ -3106,7 +3106,14 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                       fetchProfessionalHours(p.id); 
                       fetchRecentBookings(p.id); 
                       updateServicesForProfessional(p.id);
-                      setStep(selectedServices.length > 0 ? 'datetime' : 'services'); 
+                      
+                      if (selectedServices.length === 0) {
+                        setStep('services');
+                      } else if (selectedDate && selectedTime) {
+                        setStep(hasBenefitsActive ? 'benefits' : 'confirm');
+                      } else {
+                        setStep('datetime'); 
+                      }
                     }}
                     className="p-6 rounded-[2.5rem] cursor-pointer transition-all duration-300 relative group overflow-hidden"
                     style={{
