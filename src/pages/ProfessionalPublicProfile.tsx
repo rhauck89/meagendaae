@@ -738,7 +738,37 @@ export default function ProfessionalPublicProfile() {
               <p className="text-sm font-bold" style={{ color: T.text }}>Agende seu horário com {firstName}</p>
               <p className="text-xs opacity-70 truncate" style={{ color: T.textSec }}>Escolha o melhor horário e garanta seu atendimento!</p>
             </div>
-      </div>
+          </div>
+          <Button
+            onClick={() => navigate(bookingUrl)}
+            className="h-11 px-4 rounded-xl font-bold whitespace-nowrap bg-emerald-500 hover:bg-emerald-600 text-white flex-shrink-0"
+          >
+            Ver horários ›
+          </Button>
+        </section>
+
+        {/* RODAPÉ — 4 ícones de confiança */}
+        <section className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2">
+          {[
+            { icon: Users, title: 'Atendimento', sub: 'Personalizado' },
+            { icon: Crown, title: 'Ambiente', sub: 'Premium' },
+            { icon: ShieldCheck, title: 'Profissional', sub: 'Certificado' },
+            { icon: Heart, title: 'Satisfação', sub: 'Garantida' },
+          ].map((item, i) => (
+            <div key={i} className="rounded-2xl border px-4 py-3 flex items-center gap-3" style={{ background: T.card, borderColor: T.border }}>
+              <item.icon className="w-5 h-5 flex-shrink-0" style={{ color: T.accent }} />
+              <div className="min-w-0">
+                <p className="text-xs font-bold" style={{ color: T.text }}>{item.title}</p>
+                <p className="text-[10px] opacity-60" style={{ color: T.textSec }}>{item.sub}</p>
+              </div>
+            </div>
+          ))}
+        </section>
+
+        <div className="pt-6 pb-4 opacity-40 text-center">
+          <PlatformBranding isDark={isDark} />
+        </div>
+      </main>
 
       {/* Bottom Navigation Mobile */}
       <nav className="fixed bottom-0 left-0 right-0 z-50 md:hidden pb-safe" style={{ background: T.bg, borderTop: `1px solid ${T.border}` }}>
@@ -831,38 +861,6 @@ export default function ProfessionalPublicProfile() {
           </div>
         </DrawerContent>
       </Drawer>
-          <Button
-            onClick={() => navigate(bookingUrl)}
-            className="h-11 px-4 rounded-xl font-bold whitespace-nowrap bg-emerald-500 hover:bg-emerald-600 text-white flex-shrink-0"
-          >
-            Ver horários ›
-          </Button>
-        </section>
-
-        {/* RODAPÉ — 4 ícones de confiança */}
-        <section className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2">
-          {[
-            { icon: Users, title: 'Atendimento', sub: 'Personalizado' },
-            { icon: Crown, title: 'Ambiente', sub: 'Premium' },
-            { icon: ShieldCheck, title: 'Profissional', sub: 'Certificado' },
-            { icon: Heart, title: 'Satisfação', sub: 'Garantida' },
-          ].map((item, i) => (
-            <div key={i} className="rounded-2xl border px-4 py-3 flex items-center gap-3" style={{ background: T.card, borderColor: T.border }}>
-              <item.icon className="w-5 h-5 flex-shrink-0" style={{ color: T.accent }} />
-              <div className="min-w-0">
-                <p className="text-xs font-bold" style={{ color: T.text }}>{item.title}</p>
-                <p className="text-[10px] opacity-60" style={{ color: T.textSec }}>{item.sub}</p>
-              </div>
-            </div>
-          ))}
-        </section>
-
-        <div className="pt-6 pb-4 opacity-40 text-center">
-          <PlatformBranding isDark={isDark} />
-        </div>
-      </main>
-
-      {/* O antigo Floating CTA mobile foi removido para usar o novo Bottom Navigation abaixo */}
     </div>
   );
 }
