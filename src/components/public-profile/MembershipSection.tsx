@@ -156,13 +156,13 @@ export const MembershipSection = ({ companyId, professionalId }: MembershipSecti
                   <div className="flex flex-col md:items-end">
                     <div className="flex items-baseline gap-1">
                       <span className="text-lg md:text-2xl font-bold text-white tracking-tight">
-                        R$ {plan.price_monthly.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                        R$ {Number(plan.price_monthly || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                       </span>
                       <span className="text-[10px] font-semibold text-white/30 uppercase">/mês</span>
                     </div>
-                    {plan.price_yearly && (
+                    {plan.price_yearly && Number(plan.price_yearly) > 0 && (
                       <span className="text-[10px] font-bold text-amber-500/70 uppercase tracking-wider">
-                        Anual: R$ {plan.price_yearly.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                        Anual: R$ {Number(plan.price_yearly).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                       </span>
                     )}
                   </div>
