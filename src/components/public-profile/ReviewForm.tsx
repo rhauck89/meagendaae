@@ -136,10 +136,8 @@ export function ReviewForm({ onCancel, onSubmit, theme: T, title, subtitle, imag
                     style={{ 
                       color: isActive ? '#FACC15' : `${T.text}20`,
                       fill: isActive ? '#FACC15' : 'transparent',
-                      filter: isActive && s === currentRating
+                      filter: isActive
                         ? `drop-shadow(0 0 ${sizes[currentRating]}px rgba(250, 204, 21, ${intensities[currentRating]}))`
-                        : isActive && s < currentRating
-                        ? `drop-shadow(0 0 ${sizes[s]}px rgba(250, 204, 21, ${intensities[s] * 0.5}))`
                         : 'none'
                     }}
                   />
