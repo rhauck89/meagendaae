@@ -1208,7 +1208,7 @@ export default function BarbershopLanding({ routeBusinessType, customSlug }: Bar
           style={{ backgroundColor: T.card }}
         >
           <DialogHeader 
-            className="flex flex-row items-center justify-between border-b pb-4 px-6 pt-16 pr-14 shrink-0 relative" 
+            className="flex flex-row items-center justify-between border-b pb-4 px-6 pt-12 pr-16 shrink-0 relative" 
             style={{ borderColor: T.border, backgroundColor: T.card }}
           >
             <div className="text-left space-y-1">
@@ -1225,7 +1225,7 @@ export default function BarbershopLanding({ routeBusinessType, customSlug }: Bar
             </div>
             <Button 
               size="sm" 
-              className="rounded-full font-bold px-6 shadow-lg shadow-black/10 transition-transform active:scale-95 border-none" 
+              className="rounded-full font-bold px-6 shadow-lg shadow-black/10 transition-transform active:scale-95 border-0 ring-0 outline-none" 
               style={{ background: T.accent, color: '#000' }}
               onClick={() => {
                 setIsReviewsDrawerOpen(false);
