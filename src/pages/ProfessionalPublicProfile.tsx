@@ -808,7 +808,12 @@ export default function ProfessionalPublicProfile() {
               </div>
               <div className="space-y-1">
                 {services.slice(0, 5).map(svc => (
-                  <div key={svc.id} className="flex items-center justify-between py-2.5 border-b last:border-b-0" style={{ borderColor: `${T.border}80` }}>
+                  <button
+                    key={svc.id}
+                    onClick={() => navigate(`${bookingUrl}?services=${svc.id}`)}
+                    className="w-full flex items-center justify-between py-2.5 border-b last:border-b-0 text-left transition-colors hover:bg-black/5 active:scale-[0.98]" 
+                    style={{ borderColor: `${T.border}80` }}
+                  >
                     <div className="flex items-center gap-2 min-w-0">
                       <Scissors className="w-3.5 h-3.5 flex-shrink-0 opacity-60" style={{ color: T.textSec }} />
                       <span className="text-sm font-medium truncate" style={{ color: T.text }}>{svc.name}</span>
@@ -817,12 +822,12 @@ export default function ProfessionalPublicProfile() {
                       <span className="text-xs opacity-60" style={{ color: T.textSec }}>{svc.duration_minutes} min</span>
                       <span className="text-sm font-bold" style={{ color: T.accent }}>R$ {Number(svc.price).toFixed(2)}</span>
                     </div>
-                  </div>
+                  </button>
                 ))}
               </div>
               <button
                 onClick={() => navigate(bookingUrl)}
-                className="w-full mt-4 py-2.5 rounded-xl border text-xs font-semibold"
+                className="w-full mt-4 py-2.5 rounded-xl border text-xs font-semibold hover:bg-black/5 transition-colors"
                 style={{ borderColor: T.border, color: T.text, background: 'transparent' }}
               >
                 Ver todos os serviços
