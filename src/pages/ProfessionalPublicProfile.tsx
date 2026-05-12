@@ -387,42 +387,52 @@ export default function ProfessionalPublicProfile() {
     ]);
 
     const tz = (settingsRes.data as any)?.timezone || DEFAULT_TZ;
-
     const avgDur = services.length > 0 ? Math.round(services.reduce((s, sv) => s + (sv.duration_minutes || 30), 0) / services.length) : 30;
 
     const now = new Date();
-    for (let i = 0; i < 14; i++) {
-      const day = addDays(startOfDay(new Date()), i);
-      const dateStr = format(day, 'yyyy-MM-dd');
-      const result = await getAvailableSlots({
-        source: 'public',
-        companyId: comp.id,
-        professionalId: prof.id,
-        date: day,
-        totalDuration: avgDur,
-        filterPastForToday: false,
-      });
+    // Use the selected date instead of searching for the next available day for the initial view
+    // but keep searching for the "nextAvailable" label/summary if needed elsewhere.
+    
+    const result = await getAvailableSlots({
+      source: 'public',
+      companyId: comp.id,
+      professionalId: prof.id,
+      date: selectedDate,
+      totalDuration: avgDur,
+      filterPastForToday: true,
+    });
 
-      const apts = ((result.existingAppointments as ExistingAppointment[]) || []).map(a => ({ start_time: a.start_time, end_time: a.end_time }));
-      let slots = result.slots;
-      if (isToday(day)) { const ct = format(now, 'HH:mm'); slots = slots.filter(s => s > ct); }
+    const slots = result.slots;
+    setAvailableSlotsForDate(slots);
 
-      if (slots.length > 0) {
-        let label: string;
-        if (isToday(day)) {
-          label = '🔥 Hoje';
-        } else if (isTomorrow(day)) {
-          label = '📅 Amanhã';
-        } else {
-          label = `📅 ${format(day, "EEEE • dd/MM", { locale: ptBR })}`;
-        }
-        setNextAvailable({ date: day, slots, label });
-        setSlotsLoading(false);
-        return;
-      }
+    // Also update the summary "nextAvailable" info for the label
+    let label: string;
+    if (isToday(selectedDate)) {
+      label = '🔥 Hoje';
+    } else if (isTomorrow(selectedDate)) {
+      label = '📅 Amanhã';
+    } else {
+      label = `📅 ${format(selectedDate, "EEEE • dd/MM", { locale: ptBR })}`;
     }
-    setNextAvailable(null);
+    setNextAvailable({ date: selectedDate, slots, label });
     setSlotsLoading(false);
+  };
+
+  useEffect(() => {
+    if (company?.id && professional?.id) {
+      fetchNextSlots(company, professional);
+    }
+  }, [selectedDate, company?.id, professional?.id]);
+
+  const handleNextDay = () => {
+    setSelectedDate(prev => addDays(prev, 1));
+  };
+
+  const handlePrevDay = () => {
+    const prevDay = addDays(selectedDate, -1);
+    if (prevDay >= startOfDay(new Date())) {
+      setSelectedDate(prevDay);
+    }
   };
 
   const profileUrl = slug && professionalSlug
