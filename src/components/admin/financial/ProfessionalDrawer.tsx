@@ -53,7 +53,7 @@ export const ProfessionalDrawer = ({
   const fetchProfessionalDetails = async () => {
     setLoading(true);
     try {
-      const { data: appointments, error } = await supabase
+      let query = supabase
         .from('appointments')
         .select(`
           id,
@@ -73,10 +73,14 @@ export const ProfessionalDrawer = ({
         `)
         .eq('professional_id', professional.id)
         .eq('company_id', companyId)
-        .eq('status', (status === 'all' ? 'completed' : status) as any)
         .gte('start_time', startDate.toISOString())
-        .lte('start_time', endDate.toISOString())
-        .order('start_time', { ascending: false });
+        .lte('start_time', endDate.toISOString());
+
+      if (status !== 'all') {
+        query = query.eq('status', status as any);
+      }
+
+      const { data: appointments, error } = await query.order('start_time', { ascending: false });
 
       if (error) throw error;
 
