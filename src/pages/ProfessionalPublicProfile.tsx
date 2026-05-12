@@ -18,6 +18,7 @@ import { getCompanyBranding, buildThemeFromBranding, useApplyBranding } from '@/
 import { useCompanyAmenities } from '@/hooks/useCompanyAmenities';
 import { motion, AnimatePresence, useScroll, useTransform } from 'framer-motion';
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerDescription } from "@/components/ui/drawer";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { ReviewForm } from '@/components/public-profile/ReviewForm';
@@ -848,19 +849,26 @@ export default function ProfessionalPublicProfile() {
         </DrawerContent>
       </Drawer>
 
-      {/* Add Review Drawer */}
-      <Drawer open={isAddReviewModalOpen} onOpenChange={setIsAddReviewModalOpen}>
-        <DrawerContent>
-          <div className="mx-auto w-full max-w-sm p-6">
-            <ReviewForm 
-              title={`Avaliar ${professional?.name || 'Profissional'}`}
-              onCancel={() => setIsAddReviewModalOpen(false)}
-              onSubmit={handleSubmitReview}
-              theme={T}
-            />
-          </div>
-        </DrawerContent>
-      </Drawer>
+      {/* Review Modal */}
+      <Dialog open={isAddReviewModalOpen} onOpenChange={setIsAddReviewModalOpen}>
+        <DialogContent 
+          className="p-0 border-none bg-transparent shadow-none max-w-[92%] sm:max-w-md"
+          style={{ 
+            backgroundColor: T.card,
+            borderRadius: '24px',
+            border: `1px solid ${T.border}`,
+            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)',
+          }}
+        >
+          <ReviewForm
+            title={professional?.name || "Profissional"}
+            image={avatarUrl}
+            theme={T}
+            onCancel={() => setIsAddReviewModalOpen(false)}
+            onSubmit={handleSubmitReview}
+          />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

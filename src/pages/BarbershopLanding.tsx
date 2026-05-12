@@ -18,7 +18,7 @@ import { useCompanyAmenities } from '@/hooks/useCompanyAmenities';
 import { AmenitiesDisplay } from '@/components/AmenitiesDisplay';
 import { motion, useScroll, useTransform } from 'framer-motion';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerDescription, DrawerFooter, DrawerClose } from "@/components/ui/drawer";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { toast } from 'sonner';
 import { IdentityModal } from '@/components/booking/IdentityModal';
 import { ReviewForm } from '@/components/public-profile/ReviewForm';
@@ -1129,19 +1129,26 @@ export default function BarbershopLanding({ routeBusinessType, customSlug }: Bar
         </DrawerContent>
       </Drawer>
 
-      {/* Add Review Drawer */}
-      <Drawer open={isAddReviewModalOpen} onOpenChange={setIsAddReviewModalOpen}>
-        <DrawerContent>
-          <div className="mx-auto w-full max-w-sm p-6">
-            <ReviewForm 
-              title={`Avaliar ${company?.name || 'Estabelecimento'}`}
-              onCancel={() => setIsAddReviewModalOpen(false)}
-              onSubmit={handleSubmitReview}
-              theme={T}
-            />
-          </div>
-        </DrawerContent>
-      </Drawer>
+      {/* Review Modal */}
+      <Dialog open={isAddReviewModalOpen} onOpenChange={setIsAddReviewModalOpen}>
+        <DialogContent 
+          className="p-0 border-none bg-transparent shadow-none max-w-[92%] sm:max-w-md"
+          style={{ 
+            backgroundColor: T.card,
+            borderRadius: '24px',
+            border: `1px solid ${T.border}`,
+            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)',
+          }}
+        >
+          <ReviewForm
+            title={company?.name || "Estabelecimento"}
+            image={company?.logo_url}
+            theme={T}
+            onCancel={() => setIsAddReviewModalOpen(false)}
+            onSubmit={handleSubmitReview}
+          />
+        </DialogContent>
+      </Dialog>
 
       <IdentityModal
         isOpen={showIdentityModal}
