@@ -1175,7 +1175,7 @@ export default function BarbershopLanding({ routeBusinessType, customSlug }: Bar
                   style={{ background: `${T.card}CC`, borderColor: T.border }}
                 >
                   <div className="relative shrink-0">
-                    <div className="w-16 h-16 rounded-2xl overflow-hidden ring-2 ring-offset-2 ring-offset-transparent transition-all group-hover:ring-offset-4" style={{ ringColor: T.accent }}>
+                    <div className="w-16 h-16 rounded-2xl overflow-hidden ring-2 ring-offset-2 ring-offset-transparent transition-all group-hover:ring-offset-4" style={{ boxShadow: `0 0 0 2px ${T.accent}` }}>
                       {prof.avatar_url ? (
                         <img src={prof.avatar_url} alt={prof.name} className="w-full h-full object-cover" />
                       ) : (
