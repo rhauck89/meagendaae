@@ -16,10 +16,15 @@ export const MembershipSection = ({ companyId, professionalId }: MembershipSecti
   const [contacts, setContacts] = useState<{ company?: string; professional?: string }>({});
 
   useEffect(() => {
-    if (!companyId) return;
+    if (!companyId) {
+      console.log('[MembershipSection] No companyId provided');
+      return;
+    }
 
     const fetchData = async () => {
       setLoading(true);
+      console.log('[MembershipSection] companyId:', companyId);
+      
       try {
         const [plansRes, companyRes, professionalRes] = await Promise.all([
           supabase
@@ -39,16 +44,22 @@ export const MembershipSection = ({ companyId, professionalId }: MembershipSecti
                 .select('whatsapp')
                 .eq('id', professionalId)
                 .maybeSingle()
-            : Promise.resolve({ data: null }),
+            : Promise.resolve({ data: null, error: null }),
         ]);
 
-        if (plansRes.data) setPlans(plansRes.data);
+        if (plansRes.error) {
+          console.error('[MembershipSection] query error:', plansRes.error);
+        } else {
+          console.log('[MembershipSection] plans found:', plansRes.data?.length || 0, plansRes.data);
+          setPlans(plansRes.data || []);
+        }
+
         setContacts({
           company: (companyRes.data as any)?.whatsapp,
           professional: (professionalRes.data as any)?.whatsapp,
         });
       } catch (error) {
-        console.error('Error fetching membership data:', error);
+        console.error('[MembershipSection] unexpected error:', error);
       } finally {
         setLoading(false);
       }
@@ -145,13 +156,13 @@ export const MembershipSection = ({ companyId, professionalId }: MembershipSecti
                   <div className="flex flex-col md:items-end">
                     <div className="flex items-baseline gap-1">
                       <span className="text-lg md:text-2xl font-bold text-white tracking-tight">
-                        R$ {plan.price_monthly.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                        R$ {Number(plan.price_monthly || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                       </span>
                       <span className="text-[10px] font-semibold text-white/30 uppercase">/mês</span>
                     </div>
-                    {plan.price_yearly && (
+                    {plan.price_yearly && Number(plan.price_yearly) > 0 && (
                       <span className="text-[10px] font-bold text-amber-500/70 uppercase tracking-wider">
-                        Anual: R$ {plan.price_yearly.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                        Anual: R$ {Number(plan.price_yearly).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                       </span>
                     )}
                   </div>
