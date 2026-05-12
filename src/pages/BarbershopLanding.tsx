@@ -761,6 +761,12 @@ export default function BarbershopLanding({ routeBusinessType, customSlug }: Bar
           );
         })()}
 
+        {/* Bloco de Assinatura */}
+        <MembershipSection companyId={company.id} />
+
+        {/* Benefícios e Vantagens */}
+        <BenefitsSection companyId={company.id} />
+
         {/* Team */}
         {professionals.length > 0 && (
           <section id="equipe" className="space-y-4">
